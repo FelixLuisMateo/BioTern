@@ -281,11 +281,10 @@ if ($students_result && $students_result->num_rows > 0) {
 
 // Helper function to get status badge
 function getStatusBadge($status) {
-    if ($status == 1) {
-        return '<span class="badge bg-soft-success text-success">Active</span>';
-    } else {
-        return '<span class="badge bg-soft-danger text-danger">Inactive</span>';
-    }
+    $is_active = ((int)$status === 1);
+    $label = $is_active ? 'Active' : 'Inactive';
+    $class = $is_active ? 'is-active' : 'is-inactive';
+    return '<span class="app-students-status-pill ' . $class . '">' . $label . '</span>';
 }
 
 // Helper function to format date
@@ -415,14 +414,16 @@ include 'includes/header.php';
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto app-students-header-actions">
-                    <div class="d-flex d-md-none align-items-center">
-                        <button type="button" class="btn btn-light-brand app-students-actions-toggle" data-bs-toggle="collapse" data-bs-target="#studentsActionsCollapse" aria-expanded="false" aria-controls="studentsActionsCollapse">
-                            <i class="feather-align-right me-2"></i>
-                            <span>Actions</span>
-                        </button>
-                    </div>
-                    <div class="page-header-right-items collapse d-md-flex app-students-actions-panel" id="studentsActionsCollapse">
-                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                    <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="studentsActionsMenu">
+                        <i class="feather-grid me-1"></i>
+                        <span>Actions</span>
+                    </button>
+                    <div class="page-header-actions app-students-actions-panel" id="studentsActionsMenu">
+                        <div class="dashboard-actions-panel">
+                            <div class="dashboard-actions-meta">
+                                <span class="text-muted fs-12">Quick Actions</span>
+                            </div>
+                            <div class="dashboard-actions-grid page-header-right-items-wrapper">
                             <button type="button" class="btn btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
                                 <i class="feather-bar-chart me-2"></i>
                                 <span>Statistics</span>
@@ -472,6 +473,7 @@ include 'includes/header.php';
                                 <i class="feather-plus me-2"></i>
                                 <span>Create Students</span>
                             </a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -497,7 +499,7 @@ include 'includes/header.php';
                             <form method="GET" class="filter-form app-students-filter-form row g-2 align-items-end" id="studentsFilterForm">
                                 <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                                     <label class="form-label" for="filter-school-year">School Year</label>
-                                    <select id="filter-school-year" name="school_year" class="form-control">
+                                    <select id="filter-school-year" name="school_year" class="form-control" data-ui-select="custom">
                                         <option value="">-- All School Years --</option>
                                         <?php foreach ($school_year_options as $school_year): ?>
                                             <option value="<?php echo htmlspecialchars($school_year, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filter_school_year === $school_year ? 'selected' : ''; ?>><?php echo htmlspecialchars($school_year, ENT_QUOTES, 'UTF-8'); ?></option>
@@ -510,7 +512,7 @@ include 'includes/header.php';
                                 </div>
                                 <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                                     <label class="form-label" for="filter-course">Course</label>
-                                    <select id="filter-course" name="course_id" class="form-control">
+                                    <select id="filter-course" name="course_id" class="form-control" data-ui-select="custom">
                                         <option value="0">-- All Courses --</option>
                                         <?php foreach ($courses as $course): ?>
                                             <option value="<?php echo (int)$course['id']; ?>" <?php echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($course['name'], ENT_QUOTES, 'UTF-8'); ?></option>
@@ -519,7 +521,7 @@ include 'includes/header.php';
                                 </div>
                                 <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                                     <label class="form-label" for="filter-department">Department</label>
-                                    <select id="filter-department" name="department_id" class="form-control">
+                                    <select id="filter-department" name="department_id" class="form-control" data-ui-select="custom">
                                         <option value="0">-- All Departments --</option>
                                         <?php foreach ($departments as $dept): ?>
                                             <option value="<?php echo (int)$dept['id']; ?>" <?php echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($dept['name'], ENT_QUOTES, 'UTF-8'); ?></option>
@@ -528,7 +530,7 @@ include 'includes/header.php';
                                 </div>
                                 <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                                     <label class="form-label" for="filter-section">Section</label>
-                                    <select id="filter-section" name="section_id" class="form-control">
+                                    <select id="filter-section" name="section_id" class="form-control" data-ui-select="custom">
                                         <option value="0">-- All Sections --</option>
                                         <?php foreach ($sections as $section): ?>
                                             <option value="<?php echo (int)$section['id']; ?>" <?php echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($section['section_label'], ENT_QUOTES, 'UTF-8'); ?></option>
@@ -537,7 +539,7 @@ include 'includes/header.php';
                                 </div>
                                 <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                                     <label class="form-label" for="filter-supervisor">Supervisor</label>
-                                    <select id="filter-supervisor" name="supervisor" class="form-control">
+                                    <select id="filter-supervisor" name="supervisor" class="form-control" data-ui-select="custom">
                                         <option value="">-- Any Supervisor --</option>
                                         <?php foreach ($supervisors as $sup): ?>
                                             <option value="<?php echo htmlspecialchars($sup, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php echo htmlspecialchars($sup, ENT_QUOTES, 'UTF-8'); ?></option>
@@ -546,7 +548,7 @@ include 'includes/header.php';
                                 </div>
                                 <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                                     <label class="form-label" for="filter-coordinator">Coordinator</label>
-                                    <select id="filter-coordinator" name="coordinator" class="form-control">
+                                    <select id="filter-coordinator" name="coordinator" class="form-control" data-ui-select="custom">
                                         <option value="">-- Any Coordinator --</option>
                                         <?php foreach ($coordinators as $coor): ?>
                                             <option value="<?php echo htmlspecialchars($coor, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor, ENT_QUOTES, 'UTF-8'); ?></option>
@@ -639,10 +641,10 @@ include 'includes/header.php';
             <div class="main-content app-students-main-content">
                 <div class="row">
                     <div class="col-lg-12">
-                        <div class="card stretch stretch-full app-students-table-card">
+                        <div class="card stretch stretch-full app-students-table-card app-data-card app-data-toolbar">
                             <div class="card-body p-0">
-                                <div class="table-responsive students-table-wrap">
-                                    <table class="table table-hover app-students-list-table" id="customerList">
+                                <div class="table-responsive students-table-wrap app-data-table-wrap">
+                                    <table class="table table-hover app-students-list-table app-data-table" id="customerList">
                                         <thead>
                                             <tr>
                                                 <th class="wd-30">
@@ -653,13 +655,10 @@ include 'includes/header.php';
                                                         </div>
                                                     </div>
                                                 </th>
-                                                <th>Name</th>
-                                                <th>Student ID</th>
-                                                <th>Course</th>
-                                                <th>Section</th>
-                                                <th>Supervisor</th>
-                                                <th>Coordinator</th>
-                                                <th>Last Logged</th>
+                                                <th>Student</th>
+                                                <th>Academic</th>
+                                                <th>Mentors</th>
+                                                <th>Activity</th>
                                                 <th>Status</th>
                                                 <th class="text-end">Actions</th>
                                             </tr>
@@ -667,7 +666,29 @@ include 'includes/header.php';
                                         <tbody>
                                             <?php if (count($students) > 0): ?>
                                                 <?php foreach ($students as $index => $student): ?>
-                                                    <tr class="single-item">
+                                                    <?php
+                                                    $student_name = trim((string)($student['first_name'] . ' ' . $student['last_name']));
+                                                    $student_id_label = (string)($student['student_id'] ?? '-');
+                                                    $course_name = (string)($student['course_name'] ?? 'N/A');
+                                                    $section_name = (string)($student['section_name'] ?? '-');
+                                                    $supervisor_name = (string)($student['supervisor_name'] ?? '-');
+                                                    $coordinator_name = (string)($student['coordinator_name'] ?? '-');
+                                                    $last_logged = formatDate($student['created_at']);
+                                                    $email_value = trim((string)($student['email'] ?? ''));
+                                                    $phone_value = trim((string)($student['phone'] ?? ''));
+                                                    $biometric_ready = ((int)($student['biometric_registered'] ?? 0) === 1);
+                                                    ?>
+                                                    <tr
+                                                        class="single-item app-students-table-row"
+                                                        data-export-name="<?php echo htmlspecialchars($student_name, ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-export-student-id="<?php echo htmlspecialchars($student_id_label, ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-export-course="<?php echo htmlspecialchars($course_name, ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-export-section="<?php echo htmlspecialchars($section_name, ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-export-supervisor="<?php echo htmlspecialchars($supervisor_name, ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-export-coordinator="<?php echo htmlspecialchars($coordinator_name, ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-export-last-logged="<?php echo htmlspecialchars($last_logged, ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-export-status="<?php echo ((int)($student['live_clock_status'] ?? 0) === 1) ? 'Active' : 'Inactive'; ?>"
+                                                    >
                                                         <td>
                                                             <div class="item-checkbox ms-1">
                                                                 <div class="custom-control custom-checkbox">
@@ -676,8 +697,8 @@ include 'includes/header.php';
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td>
-                                                            <a href="students-view.php?id=<?php echo $student['id']; ?>" class="hstack gap-3">
+                                                        <td data-label="Student">
+                                                            <a href="students-view.php?id=<?php echo $student['id']; ?>" class="app-students-student-block">
                                                                 <div class="avatar-image avatar-md">
                                                                     <?php
                                                                     $pp = $student['profile_picture'] ?? '';
@@ -689,26 +710,66 @@ include 'includes/header.php';
                                                                     }
                                                                     ?>
                                                                 </div>
-                                                                <div>
-                                                                    <span class="text-truncate-1-line"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
+                                                                <div class="app-students-student-copy">
+                                                                    <span class="app-students-student-name"><?php echo htmlspecialchars($student_name); ?></span>
+                                                                    <span class="app-students-student-meta"><?php echo htmlspecialchars($student_id_label); ?></span>
+                                                                    <span class="app-students-student-submeta"><?php echo htmlspecialchars($course_name); ?></span>
                                                                 </div>
                                                             </a>
+                                                            <div class="collapse app-students-inline-collapse" id="studentRowDetails<?php echo (int)$student['id']; ?>">
+                                                                <div class="app-students-inline-details">
+                                                                    <div class="app-students-inline-detail-item">
+                                                                        <span class="app-students-inline-detail-label">Section</span>
+                                                                        <span class="app-students-section-pill"><?php echo htmlspecialchars($section_name); ?></span>
+                                                                    </div>
+                                                                    <div class="app-students-inline-detail-item">
+                                                                        <span class="app-students-inline-detail-label">Email</span>
+                                                                        <span class="app-students-inline-detail-value"><?php echo htmlspecialchars($email_value !== '' ? $email_value : '-'); ?></span>
+                                                                    </div>
+                                                                    <div class="app-students-inline-detail-item">
+                                                                        <span class="app-students-inline-detail-label">Phone</span>
+                                                                        <span class="app-students-inline-detail-value"><?php echo htmlspecialchars($phone_value !== '' ? $phone_value : '-'); ?></span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </td>
-                                                        <td><a href="students-view.php?id=<?php echo $student['id']; ?>"><?php echo htmlspecialchars($student['student_id']); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['section_name'] ?? '-'); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></a></td>
-                                                        <td><a href="javascript:void(0);"><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></a></td>
-                                                        <td><?php echo formatDate($student['created_at']); ?></td>
-                                                        <td><?php echo getStatusBadge($student['live_clock_status']); ?></td>
-                                                        <td>
-                                                            <div class="hstack gap-2 justify-content-end">
-                                                                <a href="students-view.php?id=<?php echo $student['id']; ?>" class="avatar-text avatar-md" title="View">
-                                                                    <i class="feather feather-eye"></i>
-                                                                </a>
+                                                        <td data-label="Academic">
+                                                            <div class="app-students-cell-stack">
+                                                                <span class="app-students-cell-title">Course</span>
+                                                                <span class="app-students-cell-value"><?php echo htmlspecialchars($course_name); ?></span>
+                                                                <span class="app-students-cell-meta">Section <?php echo htmlspecialchars($section_name); ?></span>
+                                                            </div>
+                                                        </td>
+                                                        <td data-label="Mentors">
+                                                            <div class="app-students-cell-stack">
+                                                                <span class="app-students-cell-title">Supervisor</span>
+                                                                <span class="app-students-cell-value"><?php echo htmlspecialchars($supervisor_name); ?></span>
+                                                                <span class="app-students-cell-meta">Coordinator <?php echo htmlspecialchars($coordinator_name); ?></span>
+                                                            </div>
+                                                        </td>
+                                                        <td data-label="Activity">
+                                                            <div class="app-students-cell-stack">
+                                                                <span class="app-students-cell-title">Last Logged</span>
+                                                                <span class="app-students-cell-value"><?php echo htmlspecialchars($last_logged); ?></span>
+                                                                <span class="app-students-cell-meta"><?php echo $biometric_ready ? 'Biometric registered' : 'Biometric not registered'; ?></span>
+                                                            </div>
+                                                        </td>
+                                                        <td data-label="Status">
+                                                            <div class="app-students-status-block">
+                                                                <?php echo getStatusBadge($student['live_clock_status']); ?>
+                                                                <span class="app-students-biometric-pill <?php echo $biometric_ready ? 'is-ready' : 'is-missing'; ?>">
+                                                                    <?php echo $biometric_ready ? 'Biometric Ready' : 'Biometric Missing'; ?>
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td data-label="Actions">
+                                                            <div class="app-students-row-actions">
+                                                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#studentRowDetails<?php echo (int)$student['id']; ?>" aria-expanded="false" aria-controls="studentRowDetails<?php echo (int)$student['id']; ?>">
+                                                                    Details
+                                                                </button>
                                                                 <?php if (!$is_student_user): ?>
                                                                     <div class="dropdown students-action-dropdown">
-                                                                        <a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21">
+                                                                        <a href="javascript:void(0)" class="btn btn-sm btn-light app-students-menu-toggle" data-bs-toggle="dropdown" data-bs-offset="0,21" aria-label="More actions">
                                                                             <i class="feather feather-more-horizontal"></i>
                                                                         </a>
                                                                         <ul class="dropdown-menu">
@@ -765,7 +826,7 @@ include 'includes/header.php';
                                         </tbody>
                                     </table>
                                 </div>
-                                <div class="app-students-mobile-list">
+                                <div class="app-students-mobile-list app-mobile-list">
                                     <?php if (count($students) > 0): ?>
                                         <?php foreach ($students as $index => $student): ?>
                                             <?php
@@ -777,9 +838,9 @@ include 'includes/header.php';
                                                 $status_class = 'status-inactive';
                                             }
                                             ?>
-                                            <details class="app-student-mobile-item">
-                                                <summary class="app-student-mobile-summary">
-                                                    <div class="app-student-mobile-summary-main">
+                                            <details class="app-student-mobile-item app-mobile-item">
+                                                <summary class="app-student-mobile-summary app-mobile-summary">
+                                                    <div class="app-student-mobile-summary-main app-mobile-summary-main">
                                                         <div class="avatar-image avatar-md">
                                                             <?php
                                                             $pp = $student['profile_picture'] ?? '';
@@ -791,48 +852,48 @@ include 'includes/header.php';
                                                             }
                                                             ?>
                                                         </div>
-                                                        <div class="app-student-mobile-summary-text">
-                                                            <span class="app-student-mobile-name"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
-                                                            <span class="app-student-mobile-subtext">ID: <?php echo htmlspecialchars((string)$student['student_id']); ?> &middot; <?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></span>
+                                                        <div class="app-student-mobile-summary-text app-mobile-summary-text">
+                                                            <span class="app-student-mobile-name app-mobile-name"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
+                                                            <span class="app-student-mobile-subtext app-mobile-subtext">ID: <?php echo htmlspecialchars((string)$student['student_id']); ?> &middot; <?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></span>
                                                         </div>
                                                     </div>
                                                     <span class="app-student-mobile-status-dot <?php echo htmlspecialchars($status_class); ?>" aria-hidden="true"></span>
                                                 </summary>
-                                                <div class="app-student-mobile-details">
-                                                    <div class="app-student-mobile-row">
-                                                        <span class="app-student-mobile-label">Student ID</span>
-                                                        <span class="app-student-mobile-value"><?php echo htmlspecialchars((string)$student['student_id']); ?></span>
+                                                <div class="app-student-mobile-details app-mobile-details">
+                                                    <div class="app-student-mobile-row app-mobile-row">
+                                                        <span class="app-student-mobile-label app-mobile-label">Student ID</span>
+                                                        <span class="app-student-mobile-value app-mobile-value"><?php echo htmlspecialchars((string)$student['student_id']); ?></span>
                                                     </div>
-                                                    <div class="app-student-mobile-row">
-                                                        <span class="app-student-mobile-label">Course</span>
-                                                        <span class="app-student-mobile-value"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></span>
+                                                    <div class="app-student-mobile-row app-mobile-row">
+                                                        <span class="app-student-mobile-label app-mobile-label">Course</span>
+                                                        <span class="app-student-mobile-value app-mobile-value"><?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></span>
                                                     </div>
-                                                    <div class="app-student-mobile-row">
-                                                        <span class="app-student-mobile-label">Section</span>
-                                                        <span class="app-student-mobile-value"><?php echo htmlspecialchars($student['section_name'] ?? '-'); ?></span>
+                                                    <div class="app-student-mobile-row app-mobile-row">
+                                                        <span class="app-student-mobile-label app-mobile-label">Section</span>
+                                                        <span class="app-student-mobile-value app-mobile-value"><?php echo htmlspecialchars($student['section_name'] ?? '-'); ?></span>
                                                     </div>
-                                                    <div class="app-student-mobile-row">
-                                                        <span class="app-student-mobile-label">Supervisor</span>
-                                                        <span class="app-student-mobile-value"><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></span>
+                                                    <div class="app-student-mobile-row app-mobile-row">
+                                                        <span class="app-student-mobile-label app-mobile-label">Supervisor</span>
+                                                        <span class="app-student-mobile-value app-mobile-value"><?php echo htmlspecialchars($student['supervisor_name'] ?? '-'); ?></span>
                                                     </div>
-                                                    <div class="app-student-mobile-row">
-                                                        <span class="app-student-mobile-label">Coordinator</span>
-                                                        <span class="app-student-mobile-value"><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></span>
+                                                    <div class="app-student-mobile-row app-mobile-row">
+                                                        <span class="app-student-mobile-label app-mobile-label">Coordinator</span>
+                                                        <span class="app-student-mobile-value app-mobile-value"><?php echo htmlspecialchars($student['coordinator_name'] ?? '-'); ?></span>
                                                     </div>
-                                                    <div class="app-student-mobile-row">
-                                                        <span class="app-student-mobile-label">Last Logged</span>
-                                                        <span class="app-student-mobile-value"><?php echo formatDate($student['created_at']); ?></span>
+                                                    <div class="app-student-mobile-row app-mobile-row">
+                                                        <span class="app-student-mobile-label app-mobile-label">Last Logged</span>
+                                                        <span class="app-student-mobile-value app-mobile-value"><?php echo formatDate($student['created_at']); ?></span>
                                                     </div>
-                                                    <div class="app-student-mobile-row">
-                                                        <span class="app-student-mobile-label">Status</span>
-                                                        <span class="app-student-mobile-value"><?php echo getStatusBadge($student['live_clock_status']); ?></span>
+                                                    <div class="app-student-mobile-row app-mobile-row">
+                                                        <span class="app-student-mobile-label app-mobile-label">Status</span>
+                                                        <span class="app-student-mobile-value app-mobile-value"><?php echo getStatusBadge($student['live_clock_status']); ?></span>
                                                     </div>
                                                     <div class="app-student-mobile-actions">
                                                         <a href="students-view.php?id=<?php echo (int)$student['id']; ?>" class="btn btn-primary btn-sm">View</a>
                                                         <?php if (!$is_student_user): ?>
                                                             <a href="students-edit.php?id=<?php echo (int)$student['id']; ?>" class="btn btn-outline-primary btn-sm">Edit</a>
                                                             <div class="dropdown students-action-dropdown">
-                                                                <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="dropdown" data-bs-offset="0,21">More</a>
+                                                                <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm app-students-menu-toggle" data-bs-toggle="dropdown" data-bs-offset="0,21">More</a>
                                                                 <ul class="dropdown-menu">
                                                                     <li>
                                                                         <a class="dropdown-item" href="students-edit.php?id=<?php echo (int)$student['id']; ?>">

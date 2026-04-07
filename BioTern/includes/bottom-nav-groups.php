@@ -150,8 +150,9 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'icon' => 'feather-settings',
                 'routes' => [
                     'auth-register-creative.php', 'users.php', 'create_admin.php',
-                    'settings-support.php', 'theme-customizer.php',
-                    'help-knowledgebase.php',
+                    'settings-general.php', 'settings-email.php', 'settings-ojt.php', 'settings-students.php',
+                    'settings-support.php',
+                    'theme-customizer.php', 'import-students-excel.php', 'import-sql.php',
                 ],
                 'sections' => [
                     [
@@ -165,14 +166,21 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     [
                         'title' => 'Settings',
                         'items' => [
+                            ['label' => 'General', 'href' => 'settings-general.php', 'icon' => 'feather-settings'],
+                            ['label' => 'Email', 'href' => 'settings-email.php', 'icon' => 'feather-mail'],
+                            ['label' => 'OJT Settings', 'href' => 'settings-ojt.php', 'icon' => 'feather-briefcase'],
+                            ['label' => 'Student Settings', 'href' => 'settings-students.php', 'icon' => 'feather-users'],
                             ['label' => 'Support', 'href' => 'settings-support.php', 'icon' => 'feather-life-buoy'],
-                            ['label' => 'Theme', 'href' => 'theme-customizer.php', 'icon' => 'feather-droplet'],
+                            ['label' => 'Notifications', 'href' => 'notifications.php', 'icon' => 'feather-bell'],
+                            ['label' => 'Account Settings', 'href' => 'account-settings.php', 'icon' => 'feather-user'],
                         ],
                     ],
                     [
-                        'title' => 'Help',
+                        'title' => 'Tools',
                         'items' => [
-                            ['label' => 'Knowledgebase', 'href' => 'help-knowledgebase.php', 'icon' => 'feather-help-circle'],
+                            ['label' => 'Excel Import', 'href' => 'import-students-excel.php', 'icon' => 'feather-upload'],
+                            ['label' => 'Data Transfer', 'href' => 'import-sql.php', 'icon' => 'feather-database'],
+                            ['label' => 'Appearance', 'href' => 'theme-customizer.php', 'icon' => 'feather-droplet'],
                         ],
                     ],
                 ],

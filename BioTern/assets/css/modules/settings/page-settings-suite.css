@@ -1,0 +1,137 @@
+.settings-page .settings-shell {
+    width: 100%;
+    display: grid;
+    gap: 1.25rem;
+}
+
+.settings-page .settings-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+}
+
+.settings-page .settings-intro-card,
+.settings-page .settings-form-card,
+.settings-page .settings-panel {
+    background: var(--settings-card-bg);
+    border: 1px solid var(--settings-card-border);
+    border-radius: 14px;
+    box-shadow: var(--settings-card-shadow);
+    color: var(--settings-text);
+}
+
+.settings-page .settings-intro-card,
+.settings-page .settings-form-card,
+.settings-page .settings-panel {
+    padding: 16px;
+}
+
+.settings-page .settings-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 6px 10px;
+    border: 1px solid var(--settings-accent-border);
+    background: var(--settings-accent-bg);
+    color: var(--settings-accent-text);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.settings-page .settings-intro-meta,
+.settings-page .settings-form-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.settings-page .settings-intro-meta h3,
+.settings-page .settings-form-header h4 {
+    margin: 0;
+    color: var(--settings-text);
+}
+
+.settings-page .settings-intro-meta p,
+.settings-page .settings-form-header p {
+    margin: 6px 0 0;
+    color: var(--settings-muted);
+    max-width: 860px;
+}
+
+.settings-page .settings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.settings-page .settings-field,
+.settings-page .settings-field-card {
+    border: 1px solid var(--settings-item-border);
+    border-radius: 12px;
+    background: var(--settings-item-bg);
+    padding: 12px;
+}
+
+.settings-page .settings-field.full,
+.settings-page .settings-field-card.full {
+    grid-column: 1 / -1;
+}
+
+.settings-page .settings-field-card .form-label,
+.settings-page .settings-field label {
+    margin-bottom: 6px;
+    font-weight: 700;
+}
+
+.settings-page .settings-field .form-text,
+.settings-page .settings-field-card .form-text {
+    display: block;
+    margin-top: 6px;
+    color: var(--settings-muted);
+    font-size: 0.8rem;
+}
+
+.settings-page .settings-switches {
+    display: grid;
+    gap: 10px;
+}
+
+.settings-page .settings-switch,
+.settings-page .settings-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid var(--settings-item-border);
+    border-radius: 12px;
+    background: var(--settings-item-bg);
+    padding: 12px;
+}
+
+.settings-page .settings-switch h6,
+.settings-page .settings-switch p,
+.settings-page .settings-toggle-copy h6,
+.settings-page .settings-toggle-copy p {
+    margin: 0;
+}
+
+.settings-page .settings-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+@media (max-width: 991.98px) {
+    .settings-page .settings-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .settings-page .settings-grid {
+        grid-template-columns: 1fr;
+    }
+}

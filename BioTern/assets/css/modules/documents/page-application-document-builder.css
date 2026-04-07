@@ -13,6 +13,25 @@
     margin-top: 16px;
 }
 
+.application-builder-sidebar .builder-field-grid > * {
+    min-width: 0;
+}
+
+.application-builder-sidebar .builder-field-grid .form-control,
+.application-builder-sidebar .builder-field-grid .form-select,
+.application-builder-sidebar .select2-overlay-input,
+.application-builder-sidebar .select2-container--default .select2-selection--single .select2-selection__rendered {
+    font-size: 0.88rem;
+}
+
+.application-builder-sidebar .builder-field-grid:not(.builder-field-grid-compact) {
+    grid-template-columns: 1fr;
+}
+
+.application-builder-sidebar .builder-field-grid-compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .builder-note-list {
     margin: 14px 0 0;
     padding-left: 18px;

@@ -1,5 +1,5 @@
 <?php
-header('Location: account-settings.php');
+header('Location: settings-general.php');
 exit;
 
 

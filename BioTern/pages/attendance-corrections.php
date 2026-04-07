@@ -57,14 +57,16 @@ include 'includes/header.php';
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
-                    <div class="d-flex d-md-none align-items-center">
-                        <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#attendanceCorrectionsActionsCollapse" aria-expanded="false" aria-controls="attendanceCorrectionsActionsCollapse">
-                            <i class="feather-align-right me-2"></i>
-                            <span>Actions</span>
-                        </button>
-                    </div>
-                    <div class="page-header-right-items collapse d-md-flex" id="attendanceCorrectionsActionsCollapse">
-                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                    <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="attendanceCorrectionsActionsMenu">
+                        <i class="feather-grid me-1"></i>
+                        <span>Actions</span>
+                    </button>
+                    <div class="page-header-actions" id="attendanceCorrectionsActionsMenu">
+                        <div class="dashboard-actions-panel">
+                            <div class="dashboard-actions-meta">
+                                <span class="text-muted fs-12">Quick Actions</span>
+                            </div>
+                            <div class="dashboard-actions-grid page-header-right-items-wrapper">
                             <a href="attendance.php" class="btn btn-light-brand">
                                 <i class="feather-calendar me-1"></i>
                                 <span>Attendance DTR</span>
@@ -77,6 +79,7 @@ include 'includes/header.php';
                                 <i class="feather-printer me-1"></i>
                                 <span>Print</span>
                             </button>
+                            </div>
                         </div>
                     </div>
                 </div>

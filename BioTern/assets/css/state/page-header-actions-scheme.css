@@ -1,0 +1,62 @@
+/*
+ * Shared page-header action menu color schemes.
+ * Keeps scheme/tone styling separate from layout/behavior.
+ */
+
+body {
+  --ph-actions-panel-bg: rgba(12, 18, 36, 0.92);
+  --ph-actions-panel-border: rgba(255, 255, 255, 0.08);
+  --ph-actions-panel-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+  --ph-actions-item-bg: rgba(255, 255, 255, 0.06);
+  --ph-actions-item-bg-hover: rgba(255, 255, 255, 0.12);
+  --ph-actions-item-text: #f8fafc;
+  --ph-actions-item-primary-bg: rgba(var(--bs-primary-rgb), 0.9);
+  --ph-actions-item-primary-text: #ffffff;
+}
+
+body[data-page-header-action-skin="light"] {
+  --ph-actions-panel-bg: rgba(255, 255, 255, 0.96);
+  --ph-actions-panel-border: rgba(15, 23, 42, 0.12);
+  --ph-actions-panel-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+  --ph-actions-item-bg: rgba(15, 23, 42, 0.05);
+  --ph-actions-item-bg-hover: rgba(15, 23, 42, 0.1);
+  --ph-actions-item-text: #0f172a;
+  --ph-actions-item-primary-bg: rgba(var(--bs-primary-rgb), 0.95);
+  --ph-actions-item-primary-text: #ffffff;
+}
+
+body[data-page-header-action-tone="gray"] {
+  --ph-actions-item-primary-bg: rgba(96, 99, 106, 0.92);
+  --ph-actions-item-primary-text: #ffffff;
+}
+
+body[data-page-header-action-tone="gray"][data-page-header-action-skin="dark"] {
+  --ph-actions-panel-bg: rgba(24, 27, 31, 0.92);
+  --ph-actions-panel-border: rgba(255, 255, 255, 0.1);
+}
+
+body .page-header .page-header-actions .dashboard-actions-panel {
+  background: var(--ph-actions-panel-bg) !important;
+  border-color: var(--ph-actions-panel-border) !important;
+  box-shadow: var(--ph-actions-panel-shadow) !important;
+}
+
+body .page-header .page-header-actions .dashboard-actions-grid .action-tile {
+  background: var(--ph-actions-item-bg) !important;
+  color: var(--ph-actions-item-text) !important;
+}
+
+body .page-header .page-header-actions .dashboard-actions-grid .action-tile:hover {
+  background: var(--ph-actions-item-bg-hover) !important;
+  color: var(--ph-actions-item-text) !important;
+}
+
+body .page-header .page-header-actions .dashboard-actions-grid .action-tile-primary {
+  background: var(--ph-actions-item-primary-bg) !important;
+  color: var(--ph-actions-item-primary-text) !important;
+}
+
+body .page-header .page-header-actions .dashboard-actions-grid .action-tile-primary:hover {
+  background: var(--ph-actions-item-primary-bg) !important;
+  color: var(--ph-actions-item-primary-text) !important;
+}

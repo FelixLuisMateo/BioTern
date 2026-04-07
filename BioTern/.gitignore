@@ -37,3 +37,14 @@ Thumbs.db
 *.bak
 *.swp
 *.orig
+
+# Connector/bridge generated artifacts
+/tools/device_connector/obj/
+/tools/device_connector/bin/Debug/
+/tools/bridge-recovery/
+/tools/bridge-pending-ingest.json
+/tools/bridge-backfill-state.json
+/tools/bridge-worker.log
+/tools/bridge-worker-autostart.log
+/tools/_tmp_*
+/_tmp_*

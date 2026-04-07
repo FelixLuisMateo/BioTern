@@ -1,5 +1,4 @@
-.account-settings-shell,
-.notifications-page .settings-hub {
+.account-settings-shell {
     width: 100%;
 }
 
@@ -81,24 +80,6 @@
     background: var(--settings-item-bg);
 }
 
-.account-settings-shell .settings-sidebar-card {
-    padding: 18px;
-}
-
-.account-settings-shell .settings-menu-link {
-    min-height: 74px;
-}
-
-.account-settings-shell .settings-menu-link span {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.account-settings-shell .settings-menu-link small {
-    font-size: 0.78rem;
-}
-
 .account-settings-shell .settings-panel-card .card-header {
     display: flex;
     align-items: flex-start;
@@ -115,20 +96,6 @@
 .account-settings-shell .settings-sidebar-card,
 .account-settings-shell .settings-panel-card {
     background: var(--settings-card-bg);
-}
-
-.account-settings-shell .settings-menu-link.is-active {
-    color: var(--settings-accent-text);
-}
-
-.account-settings-shell .settings-menu-link.is-active small {
-    color: var(--settings-accent-text);
-    opacity: 0.82;
-}
-
-.account-settings-shell .settings-menu-link.is-active i,
-.account-settings-shell .settings-menu-link.is-active .feather-chevron-right {
-    color: var(--settings-accent-text);
 }
 
 .account-profile-field.full,
@@ -162,6 +129,29 @@
 .account-avatar-panel {
     display: grid;
     gap: 12px;
+}
+
+.avatar-crop-editor {
+    border: 1px solid var(--settings-item-border);
+    border-radius: 12px;
+    padding: 12px;
+    background: var(--settings-item-bg);
+}
+
+.avatar-crop-canvas-wrap {
+    width: min(320px, 100%);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--settings-item-border);
+    background: #0b1220;
+}
+
+.avatar-crop-canvas-wrap canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    cursor: grab;
+    touch-action: none;
 }
 
 .account-current-avatar {

@@ -40,17 +40,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['name'] = $name; $_SESSION['username'] = $username; $_SESSION['email'] = $email; aflash('success', 'Profile updated successfully.'); aredirect();
     }
     if ($action === 'upload_avatar') {
-        $file = $_FILES['profile_picture'] ?? null;
-        if (!is_array($file) || (int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) { aflash('danger', 'Upload failed. Please try again.'); aredirect(); }
-        $tmp = (string)($file['tmp_name'] ?? ''); $size = (int)($file['size'] ?? 0); $name = (string)($file['name'] ?? ''); $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-        $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif']; $allowedMime = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        $finfo = function_exists('finfo_open') ? finfo_open(FILEINFO_MIME_TYPE) : null; $mime = $finfo ? (string)finfo_file($finfo, $tmp) : ''; if ($finfo) finfo_close($finfo);
-        if ($size <= 0 || $size > 3145728) { aflash('danger', 'Image must be less than 3MB.'); aredirect(); }
-        if (!in_array($ext, $allowedExt, true) || ($mime !== '' && !in_array($mime, $allowedMime, true))) { aflash('danger', 'Only JPG, PNG, WEBP, or GIF images are allowed.'); aredirect(); }
+        $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        $allowedMime = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        $mimeToExt = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif'];
+        $maxImageBytes = 3145728;
+
+        $binaryUpload = null;
+        $tmpUpload = '';
+        $uploadExt = '';
+
+        $croppedData = trim((string)($_POST['profile_picture_cropped'] ?? ''));
+        if ($croppedData !== '') {
+            if (!preg_match('#^data:(image/(?:png|jpeg|jpg|webp|gif));base64,([a-zA-Z0-9+/=\r\n]+)$#', $croppedData, $parts)) {
+                aflash('danger', 'Invalid cropped image format. Please crop again.');
+                aredirect();
+            }
+
+            $mime = strtolower((string)$parts[1]);
+            if ($mime === 'image/jpg') {
+                $mime = 'image/jpeg';
+            }
+            if (!in_array($mime, $allowedMime, true)) {
+                aflash('danger', 'Only JPG, PNG, WEBP, or GIF images are allowed.');
+                aredirect();
+            }
+
+            $rawBase64 = preg_replace('/\s+/', '', (string)$parts[2]);
+            $decoded = base64_decode($rawBase64, true);
+            if ($decoded === false || $decoded === '') {
+                aflash('danger', 'Could not read cropped image data.');
+                aredirect();
+            }
+            if (strlen($decoded) > $maxImageBytes) {
+                aflash('danger', 'Cropped image must be less than 3MB.');
+                aredirect();
+            }
+
+            $imgInfo = function_exists('getimagesizefromstring') ? @getimagesizefromstring($decoded) : false;
+            $detectedMime = strtolower((string)($imgInfo['mime'] ?? ''));
+            if (!$imgInfo || !in_array($detectedMime, $allowedMime, true)) {
+                aflash('danger', 'Cropped image is not a supported photo type.');
+                aredirect();
+            }
+
+            $binaryUpload = $decoded;
+            $uploadExt = (string)($mimeToExt[$detectedMime] ?? 'png');
+        } else {
+            $file = $_FILES['profile_picture'] ?? null;
+            if (!is_array($file) || (int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                aflash('danger', 'Upload failed. Please try again.');
+                aredirect();
+            }
+
+            $tmpUpload = (string)($file['tmp_name'] ?? '');
+            $size = (int)($file['size'] ?? 0);
+            $name = (string)($file['name'] ?? '');
+            $uploadExt = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+
+            $finfo = function_exists('finfo_open') ? finfo_open(FILEINFO_MIME_TYPE) : null;
+            $mime = $finfo ? (string)finfo_file($finfo, $tmpUpload) : '';
+            if ($finfo) {
+                finfo_close($finfo);
+            }
+
+            if ($size <= 0 || $size > $maxImageBytes) {
+                aflash('danger', 'Image must be less than 3MB.');
+                aredirect();
+            }
+            if ($uploadExt === '' || !in_array($uploadExt, $allowedExt, true) || ($mime !== '' && !in_array(strtolower($mime), $allowedMime, true))) {
+                aflash('danger', 'Only JPG, PNG, WEBP, or GIF images are allowed.');
+                aredirect();
+            }
+        }
+
         $dir = dirname(__DIR__) . '/uploads/profile_pictures'; if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) { aflash('danger', 'Could not prepare upload folder.'); aredirect(); }
         try { $rand = bin2hex(random_bytes(6)); } catch (Throwable $e) { $rand = (string)mt_rand(100000, 999999); }
-        $targetFile = 'user_' . $userId . '_' . time() . '_' . $rand . '.' . $ext; $targetAbs = $dir . '/' . $targetFile; $targetRel = 'uploads/profile_pictures/' . $targetFile;
-        if (!move_uploaded_file($tmp, $targetAbs)) { aflash('danger', 'Failed to save uploaded image.'); aredirect(); }
+        $targetFile = 'user_' . $userId . '_' . time() . '_' . $rand . '.' . $uploadExt; $targetAbs = $dir . '/' . $targetFile; $targetRel = 'uploads/profile_pictures/' . $targetFile;
+        if ($binaryUpload !== null) {
+            if (@file_put_contents($targetAbs, $binaryUpload) === false) { aflash('danger', 'Failed to save cropped image.'); aredirect(); }
+        } else {
+            if (!move_uploaded_file($tmpUpload, $targetAbs)) { aflash('danger', 'Failed to save uploaded image.'); aredirect(); }
+        }
         $oldRel = anorm((string)($user['profile_picture'] ?? '')); $stmt = $conn->prepare("UPDATE users SET profile_picture = ? WHERE id = ? LIMIT 1");
         if (!$stmt) { @unlink($targetAbs); aflash('danger', 'Unable to save profile image.'); aredirect(); }
         $stmt->bind_param('si', $targetRel, $userId); $ok = $stmt->execute(); $stmt->close();
@@ -115,22 +185,7 @@ include dirname(__DIR__) . '/includes/header.php';
         <section class="settings-hub account-settings-shell">
             <?php if (is_array($flash) && !empty($flash['message'])): ?><div class="alert alert-<?php echo ash((string)($flash['type'] ?? 'info')); ?> mb-4" role="alert"><?php echo ash((string)$flash['message']); ?></div><?php endif; ?>
             <div class="row g-4">
-                <div class="col-xl-4 col-xxl-3">
-                    <aside class="settings-sidebar-card">
-                        <div class="settings-persona">
-                            <div class="settings-avatar"><img src="<?php echo ash($profileUrl); ?>" alt="Profile avatar"></div>
-                            <div class="settings-persona-copy"><strong><?php echo ash($displayName); ?></strong><span><?php echo ash((string)($user['email'] ?? '')); ?></span></div>
-                        </div>
-                        <nav class="settings-menu">
-                            <a class="settings-menu-link" href="#overview" data-settings-anchor><span><i class="feather-layout"></i> Overview<small>Snapshot and role details</small></span><i class="feather-chevron-right"></i></a>
-                            <a class="settings-menu-link" href="#profile-form" data-settings-anchor><span><i class="feather-edit-3"></i> Edit Profile<small>Name, username, and email</small></span><i class="feather-chevron-right"></i></a>
-                            <a class="settings-menu-link" href="#security" data-settings-anchor><span><i class="feather-shield"></i> Security<small>Photo and password tools</small></span><i class="feather-chevron-right"></i></a>
-                            <?php if (is_array($studentProfile)): ?><a class="settings-menu-link" href="#student-record" data-settings-anchor><span><i class="feather-book-open"></i> Student Record<small>Linked student information</small></span><i class="feather-chevron-right"></i></a><?php endif; ?>
-                            <a class="settings-menu-link" href="notifications.php"><span><i class="feather-bell"></i> Notifications<small>Open your full inbox</small></span><i class="feather-chevron-right"></i></a>
-                        </nav>
-                    </aside>
-                </div>
-                <div class="col-xl-8 col-xxl-9">
+                <div class="col-12">
                     <div class="settings-stack">
                         <section class="settings-hero account-profile-hero" id="overview">
                             <div class="account-identity">
@@ -184,10 +239,26 @@ include dirname(__DIR__) . '/includes/header.php';
                                     <div class="col-lg-5">
                                         <div class="account-avatar-panel">
                                             <div class="account-current-avatar"><img src="<?php echo ash($profileUrl); ?>" alt="Current avatar"><div><strong>Current profile image</strong><span><?php echo ash($profileRel !== '' ? $profileRel : 'Default BioTern avatar'); ?></span></div></div>
-                                            <form method="post" enctype="multipart/form-data">
+                                            <form method="post" enctype="multipart/form-data" data-avatar-upload-form>
                                                 <input type="hidden" name="action" value="upload_avatar">
+                                                <input type="hidden" name="profile_picture_cropped" value="" data-avatar-cropped-input>
                                                 <label class="form-label" for="profile_picture">Upload a new image</label>
-                                                <input type="file" id="profile_picture" name="profile_picture" class="form-control mb-3" accept=".jpg,.jpeg,.png,.webp,.gif,image/*" required>
+                                                <input type="file" id="profile_picture" name="profile_picture" class="form-control mb-3" accept=".jpg,.jpeg,.png,.webp,.gif,image/*" required data-avatar-file-input>
+                                                <div class="avatar-crop-editor d-none" data-avatar-crop-editor>
+                                                    <label class="form-label mb-2">Crop before upload</label>
+                                                    <div class="avatar-crop-canvas-wrap">
+                                                        <canvas width="320" height="320" data-avatar-crop-canvas></canvas>
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <label class="form-label mb-1" for="avatar_crop_zoom">Zoom</label>
+                                                        <input type="range" id="avatar_crop_zoom" min="100" max="400" step="1" value="100" class="form-range" data-avatar-crop-zoom>
+                                                    </div>
+                                                    <div class="account-form-actions mt-2">
+                                                        <button type="button" class="btn btn-light" data-avatar-crop-reset>Reset</button>
+                                                        <button type="button" class="btn btn-outline-primary" data-avatar-crop-apply>Apply Crop</button>
+                                                    </div>
+                                                    <p class="account-note mb-0 mt-2" data-avatar-crop-status>Drag the image to position the crop area.</p>
+                                                </div>
                                                 <div class="account-form-actions"><button type="submit" class="btn btn-primary">Upload Photo</button></div>
                                             </form>
                                             <form method="post"><input type="hidden" name="action" value="remove_avatar"><button type="submit" class="btn btn-outline-secondary">Remove Photo</button></form>
@@ -233,7 +304,7 @@ include dirname(__DIR__) . '/includes/header.php';
                             <div class="card-body">
                                 <div class="settings-utility-links">
                                     <a class="settings-utility-link" href="notifications.php"><span>Open notifications inbox</span><span><i class="feather-arrow-right"></i></span></a>
-                                    <a class="settings-utility-link" href="theme-customizer.php"><span>Theme customizer</span><span><i class="feather-arrow-right"></i></span></a>
+                                    <a class="settings-utility-link" href="theme-customizer.php"><span>Appearance</span><span><i class="feather-arrow-right"></i></span></a>
                                     <a class="settings-utility-link" href="auth-login-cover.php?logout=1"><span>Logout</span><span><i class="feather-log-out"></i></span></a>
                                 </div>
                             </div>

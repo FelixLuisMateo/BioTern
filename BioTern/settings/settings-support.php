@@ -1,282 +1,268 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
-/** @var mysqli $conn */
 
-$page_body_class = 'settings-page';
-
-$dbHost = getenv('DB_HOST');
-if ($dbHost === false || $dbHost === '') {
-    $dbHost = getenv('MYSQLHOST');
-}
-if ($dbHost === false || $dbHost === '') {
-    $dbHost = defined('DB_HOST') ? DB_HOST : '127.0.0.1';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-$dbUser = getenv('DB_USER');
-if ($dbUser === false || $dbUser === '') {
-    $dbUser = getenv('MYSQLUSER');
-}
-if ($dbUser === false || $dbUser === '') {
-    $dbUser = defined('DB_USER') ? DB_USER : 'root';
+$current_role = strtolower(trim((string) (
+    $_SESSION['role'] ??
+    $_SESSION['user_role'] ??
+    $_SESSION['account_role'] ??
+    ''
+)));
+
+if (!isset($_SESSION['user_id']) || !in_array($current_role, ['admin', 'coordinator'], true)) {
+    header('Location: ../homepage.php');
+    exit;
 }
 
-$dbPass = getenv('DB_PASS');
-if ($dbPass === false || $dbPass === '') {
-    $dbPass = getenv('MYSQLPASSWORD');
-}
-if ($dbPass === false) {
-    $dbPass = '';
-}
-if ($dbPass === '' && defined('DB_PASS')) {
-    $dbPass = DB_PASS;
-}
 
-$dbName = getenv('DB_NAME');
-if ($dbName === false || $dbName === '') {
-    $dbName = getenv('MYSQLDATABASE');
-}
-if ($dbName === false || $dbName === '') {
-    $dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
-}
-
-$dbPortRaw = getenv('DB_PORT');
-if ($dbPortRaw === false || $dbPortRaw === '') {
-    $dbPortRaw = getenv('MYSQLPORT');
-}
-if ($dbPortRaw === false || $dbPortRaw === '') {
-    $dbPortRaw = defined('DB_PORT') ? (string)DB_PORT : '3306';
-}
-$dbPort = (int)$dbPortRaw;
-if ($dbPort <= 0) {
-    $dbPort = 3306;
-}
-
-function support_h($value): string
+function sup_h(string $value): string
 {
-    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
-function support_pick($arr, $key, $default = ''): string
+function sup_ensure_system_settings_table(mysqli $conn): void
 {
-    if (!is_array($arr)) {
-        return (string)$default;
+    $sql = <<<'SQL'
+CREATE TABLE IF NOT EXISTS system_settings (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `key` VARCHAR(191) NOT NULL UNIQUE,
+    `value` TEXT NOT NULL,
+    `description` VARCHAR(255) NULL,
+    `category` VARCHAR(100) NOT NULL DEFAULT 'general',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+SQL;
+    $conn->query($sql);
+
+    $columns = [];
+    if ($result = $conn->query('SHOW COLUMNS FROM system_settings')) {
+        while ($row = $result->fetch_assoc()) {
+            $columns[(string)$row['Field']] = true;
+        }
+        $result->close();
     }
-    return array_key_exists($key, $arr) ? (string)$arr[$key] : (string)$default;
-}
 
-function support_is_selected($current, $value): string
-{
-    return ((string)$current === (string)$value) ? ' selected' : '';
-}
+    if (!isset($columns['description'])) {
+        $conn->query('ALTER TABLE system_settings ADD COLUMN `description` VARCHAR(255) NULL AFTER `value`');
+    }
 
-$support_defaults = [
-    'default_reply_status' => 'answered',
-    'default_piped_priority' => 'medium',
-    'allowed_extensions' => '.jpg,.png,.pdf,.doc,.zip,.rar',
-    'ticket_replies_order' => 'ascending',
-    'staff_dept_only_access' => '1',
-    'notify_assignee_only' => '0',
-    'notify_new_ticket' => '1',
-    'notify_customer_reply' => '0',
-    'staff_open_all_contacts' => '1',
-    'auto_assign_first_replier' => '0',
-    'allow_non_staff_ticket_access' => '1',
-    'allow_non_admin_delete_attachments' => '1',
-    'allow_customer_change_status' => '1',
-    'show_contact_tickets_only' => '1',
-    'enable_support_badge' => '1',
-    'pipe_registered_users_only' => '0',
-    'email_replies_only' => '1',
-    'import_actual_reply_only' => '0',
-];
-
-$boolean_fields = [
-    'staff_dept_only_access' => 'Allow staff to access only ticket that belongs to staff departments',
-    'notify_assignee_only' => 'Send staff-related ticket notifications to the ticket assignee only',
-    'notify_new_ticket' => 'Receive notification on new ticket opened',
-    'notify_customer_reply' => 'Receive notification when customer reply to a ticket',
-    'staff_open_all_contacts' => 'Allow staff members to open tickets to all contacts?',
-    'auto_assign_first_replier' => 'Automatically assign the ticket to the first staff that post a reply?',
-    'allow_non_staff_ticket_access' => 'Allow access to tickets for non staff members',
-    'allow_non_admin_delete_attachments' => 'Allow non-admin staff members to delete ticket attachments',
-    'allow_customer_change_status' => 'Allow customer to change ticket status from Studentsarea',
-    'show_contact_tickets_only' => 'In Studentsarea only show tickets related to the logged in contact (Primary contact not applied)',
-    'enable_support_badge' => 'Enable support menu item badge',
-    'pipe_registered_users_only' => 'Pipe Only on Registered Users',
-    'email_replies_only' => 'Only Replies Allowed by Email',
-    'import_actual_reply_only' => 'Try to import only the actual ticket reply (without quoted/forwarded message)',
-];
-
-$support_settings = $support_defaults;
-$support_success = '';
-$support_error = '';
-
-if (!isset($conn) || !($conn instanceof mysqli) || $conn->connect_errno) {
-    $support_error = 'Database connection failed for support settings.';
-} else {
-    $has_table = $conn->query("SHOW TABLES LIKE 'system_settings'");
-    if ($has_table && $has_table->num_rows > 0) {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $incoming = [];
-
-            foreach ($support_defaults as $key => $default) {
-                if (in_array($key, ['default_reply_status', 'default_piped_priority', 'ticket_replies_order'], true)) {
-                    $incoming[$key] = trim((string)($_POST[$key] ?? $default));
-                } elseif ($key !== 'allowed_extensions') {
-                    $incoming[$key] = (isset($_POST[$key]) && (string)$_POST[$key] === '1') ? '1' : '0';
-                }
-            }
-
-            $allowed_raw = isset($_POST['allowed_extensions']) && is_array($_POST['allowed_extensions']) ? $_POST['allowed_extensions'] : [];
-            $allowed_clean = [];
-            foreach ($allowed_raw as $ext) {
-                $ext = strtolower(trim((string)$ext));
-                if ($ext !== '' && preg_match('/^\.[a-z0-9]+$/', $ext)) {
-                    $allowed_clean[] = $ext;
-                }
-            }
-            $allowed_clean = array_values(array_unique($allowed_clean));
-            $incoming['allowed_extensions'] = !empty($allowed_clean) ? implode(',', $allowed_clean) : $support_defaults['allowed_extensions'];
-
-            $stmt = $conn->prepare(
-                "INSERT INTO system_settings (`key`, `value`, created_at, updated_at)
-                 VALUES (?, ?, NOW(), NOW())
-                 ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), updated_at = NOW()"
-            );
-
-            if ($stmt) {
-                $ok = true;
-                foreach ($incoming as $k => $v) {
-                    $full_key = 'support.' . $k;
-                    $stmt->bind_param('ss', $full_key, $v);
-                    if (!$stmt->execute()) {
-                        $ok = false;
-                        $support_error = 'Failed to save support settings.';
-                        break;
-                    }
-                }
-                $stmt->close();
-
-                if ($ok) {
-                    $support_success = 'Support settings saved.';
-                    $support_settings = array_merge($support_settings, $incoming);
-                }
-            } else {
-                $support_error = 'Unable to save support settings.';
-            }
-        }
-
-        $res = $conn->query("SELECT `key`, `value` FROM system_settings WHERE `key` LIKE 'support.%'");
-        if ($res) {
-            while ($row = $res->fetch_assoc()) {
-                $raw_key = isset($row['key']) ? (string)$row['key'] : '';
-                $short_key = str_replace('support.', '', $raw_key);
-                if (array_key_exists($short_key, $support_defaults)) {
-                    $support_settings[$short_key] = isset($row['value']) ? (string)$row['value'] : '';
-                }
-            }
-            $res->close();
-        }
-    } else {
-        $support_error = 'system_settings table not found in database.';
+    if (!isset($columns['category'])) {
+        $conn->query("ALTER TABLE system_settings ADD COLUMN `category` VARCHAR(100) NOT NULL DEFAULT 'general' AFTER `description`");
     }
 }
 
-$selected_extensions = array_filter(array_map('trim', explode(',', support_pick($support_settings, 'allowed_extensions', ''))));
+function sup_fetch_settings(mysqli $conn, string $category, array $defaults): array
+{
+    $settings = $defaults;
+    $stmt = $conn->prepare('SELECT `key`, `value` FROM system_settings WHERE category = ?');
+    if ($stmt) {
+        $stmt->bind_param('s', $category);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $settings[(string)$row['key']] = (string)($row['value'] ?? '');
+        }
+        $stmt->close();
+    }
+
+    return $settings;
+}
+
+function sup_store_setting(mysqli $conn, string $key, string $value, string $description, string $category): bool
+{
+    $stmt = $conn->prepare(
+        'INSERT INTO system_settings (`key`, `value`, `description`, `category`, created_at, updated_at)
+         VALUES (?, ?, ?, ?, NOW(), NOW())
+         ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), `description` = VALUES(`description`), `category` = VALUES(`category`), updated_at = NOW()'
+    );
+    if (!$stmt) {
+        return false;
+    }
+
+    $stmt->bind_param('ssss', $key, $value, $description, $category);
+    $ok = $stmt->execute();
+    $stmt->close();
+
+    return $ok;
+}
+
+sup_ensure_system_settings_table($conn);
+
+$category = 'support';
+$defaults = [
+    'support_email' => 'support@biotern.local',
+    'support_phone' => '+63 000 000 0000',
+    'support_hours' => 'Mon-Fri 8:00 AM to 5:00 PM',
+    'support_location' => 'BioTern Administration Office',
+    'help_center_url' => '',
+    'incident_form_url' => '',
+    'allow_support_requests' => '1',
+    'show_support_contact_to_students' => '1',
+];
+
+$field_meta = [
+    'support_email' => 'Primary support email shown in the system.',
+    'support_phone' => 'Primary support phone number.',
+    'support_hours' => 'Displayed support availability hours.',
+    'support_location' => 'Displayed support office or location.',
+    'help_center_url' => 'Optional help center URL for users.',
+    'incident_form_url' => 'Optional incident reporting form URL.',
+    'allow_support_requests' => 'Allow support request features inside the platform.',
+    'show_support_contact_to_students' => 'Show support contact details to students.',
+];
+
+$settings = sup_fetch_settings($conn, $category, $defaults);
+$errors = [];
+$success = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $settings['support_email'] = trim((string) ($_POST['support_email'] ?? ''));
+    $settings['support_phone'] = trim((string) ($_POST['support_phone'] ?? ''));
+    $settings['support_hours'] = trim((string) ($_POST['support_hours'] ?? ''));
+    $settings['support_location'] = trim((string) ($_POST['support_location'] ?? ''));
+    $settings['help_center_url'] = trim((string) ($_POST['help_center_url'] ?? ''));
+    $settings['incident_form_url'] = trim((string) ($_POST['incident_form_url'] ?? ''));
+    $settings['allow_support_requests'] = isset($_POST['allow_support_requests']) ? '1' : '0';
+    $settings['show_support_contact_to_students'] = isset($_POST['show_support_contact_to_students']) ? '1' : '0';
+
+    if ($settings['support_email'] !== '' && !filter_var($settings['support_email'], FILTER_VALIDATE_EMAIL)) {
+        $errors[] = 'Support email must be a valid email address.';
+    }
+    if ($settings['help_center_url'] !== '' && !filter_var($settings['help_center_url'], FILTER_VALIDATE_URL)) {
+        $errors[] = 'Help center URL must be a valid link.';
+    }
+    if ($settings['incident_form_url'] !== '' && !filter_var($settings['incident_form_url'], FILTER_VALIDATE_URL)) {
+        $errors[] = 'Incident form URL must be a valid link.';
+    }
+
+    if (!$errors) {
+        $ok = true;
+        foreach ($settings as $key => $value) {
+            if (!sup_store_setting($conn, $key, (string)$value, $field_meta[$key] ?? '', $category)) {
+                $ok = false;
+                break;
+            }
+        }
+        if ($ok) {
+            $success = 'Support settings saved successfully.';
+        } else {
+            $errors[] = 'Unable to save one or more settings right now.';
+        }
+    }
+}
 
 $page_title = 'Support Settings';
-include dirname(__DIR__) . '/includes/header.php';
+$page_body_class = 'settings-page';
+$page_styles = [
+    'assets/css/layout/page_shell.css',
+    'assets/css/modules/settings/settings-shell.css',
+    'assets/css/modules/settings/page-settings-suite.css',
+];
+require_once dirname(__DIR__) . '/includes/header.php';
 ?>
 <main class="nxl-container">
-    <div class="nxl-content">
-        <div class="main-content d-flex settings-theme-customizer">
-            <div class="content-area" data-scrollbar-target="#psScrollbarInit">
-                <div class="content-area-header sticky-top">
-                    <div class="page-header-right ms-auto">
-                        <div class="d-flex align-items-center gap-3 page-header-right-items-wrapper">
-                            <a href="settings-support.php" class="text-danger">Cancel</a>
-                            <button type="submit" form="supportSettingsForm" class="btn btn-primary successAlertMessage border-0">
-                                <i class="feather-save me-2"></i>
-                                <span>Save Changes</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="content-area-body">
-                    <?php if ($support_success !== ''): ?>
-                        <div class="alert alert-success" role="alert"><?php echo support_h($support_success); ?></div>
-                    <?php endif; ?>
-
-                    <?php if ($support_error !== ''): ?>
-                        <div class="alert alert-danger" role="alert"><?php echo support_h($support_error); ?></div>
-                    <?php endif; ?>
-
-                    <div class="card mb-0">
-                        <form id="supportSettingsForm" method="post" action="settings-support.php">
-                            <div class="card-body">
-                                <div class="mb-5">
-                                    <label class="form-label">Default status selected when replying to ticket</label>
-                                    <select name="default_reply_status" class="form-select" data-select2-selector="status">
-                                        <option value="open" data-bg="bg-dark"<?php echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'open'); ?>>Open</option>
-                                        <option value="in_progress" data-bg="bg-primary"<?php echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'in_progress'); ?>>In Progress</option>
-                                        <option value="answered" data-bg="bg-danger"<?php echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'answered'); ?>>Answered</option>
-                                        <option value="on_hold" data-bg="bg-success"<?php echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'on_hold'); ?>>On Hold</option>
-                                        <option value="closed" data-bg="bg-warning"<?php echo support_is_selected(support_pick($support_settings, 'default_reply_status'), 'closed'); ?>>Closed</option>
-                                    </select>
-                                    <small class="form-text text-muted">Default status selected when replying to ticket [Ex: Open/Closed/Answered]</small>
-                                </div>
-
-                                <div class="mb-5">
-                                    <label class="form-label">Default priority on piped ticket</label>
-                                    <select name="default_piped_priority" class="form-select" data-select2-selector="priority">
-                                        <option value="low" data-bg="bg-dark"<?php echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'low'); ?>>Low</option>
-                                        <option value="medium" data-bg="bg-primary"<?php echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'medium'); ?>>Medium</option>
-                                        <option value="high" data-bg="bg-danger"<?php echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'high'); ?>>High</option>
-                                        <option value="urgent" data-bg="bg-success"<?php echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'urgent'); ?>>Urgent</option>
-                                        <option value="closed" data-bg="bg-warning"<?php echo support_is_selected(support_pick($support_settings, 'default_piped_priority'), 'closed'); ?>>Closed</option>
-                                    </select>
-                                    <small class="form-text text-muted">Default priority on piped ticket [Ex: Low/Medium/High/Urgent/Closed]</small>
-                                </div>
-
-                                <div class="mb-5">
-                                    <label class="form-label">Allowed attachments file extensions</label>
-                                    <select name="allowed_extensions[]" class="form-select" data-select2-selector="label" multiple>
-                                        <option value=".jpg" data-bg="bg-primary"<?php echo in_array('.jpg', $selected_extensions, true) ? ' selected' : ''; ?>>.jpg</option>
-                                        <option value=".png" data-bg="bg-success"<?php echo in_array('.png', $selected_extensions, true) ? ' selected' : ''; ?>>.png</option>
-                                        <option value=".pdf" data-bg="bg-danger"<?php echo in_array('.pdf', $selected_extensions, true) ? ' selected' : ''; ?>>.pdf</option>
-                                        <option value=".doc" data-bg="bg-secondary"<?php echo in_array('.doc', $selected_extensions, true) ? ' selected' : ''; ?>>.doc</option>
-                                        <option value=".zip" data-bg="bg-dark"<?php echo in_array('.zip', $selected_extensions, true) ? ' selected' : ''; ?>>.zip</option>
-                                        <option value=".rar" data-bg="bg-warning"<?php echo in_array('.rar', $selected_extensions, true) ? ' selected' : ''; ?>>.rar</option>
-                                    </select>
-                                    <small class="form-text text-muted">Allowed attachments file extensions.</small>
-                                </div>
-
-                                <div class="mb-5">
-                                    <label class="form-label">Ticket Replies Order</label>
-                                    <select name="ticket_replies_order" class="form-select" data-select2-selector="label">
-                                        <option value="ascending" data-bg="bg-primary"<?php echo support_is_selected(support_pick($support_settings, 'ticket_replies_order'), 'ascending'); ?>>Ascending</option>
-                                        <option value="descending" data-bg="bg-success"<?php echo support_is_selected(support_pick($support_settings, 'ticket_replies_order'), 'descending'); ?>>Descending</option>
-                                    </select>
-                                    <small class="form-text text-muted">Ticket Replies Order [Ex: Ascending/Descending]</small>
-                                </div>
-
-                                <?php foreach ($boolean_fields as $field_key => $field_label): ?>
-                                    <div class="mb-5">
-                                        <label class="form-label"><?php echo support_h($field_label); ?></label>
-                                        <select name="<?php echo support_h($field_key); ?>" class="form-select" data-select2-selector="icon">
-                                            <option value="1" data-icon="feather-check text-success"<?php echo support_is_selected(support_pick($support_settings, $field_key), '1'); ?>>Yes</option>
-                                            <option value="0" data-icon="feather-x text-danger"<?php echo support_is_selected(support_pick($support_settings, $field_key), '0'); ?>>No</option>
-                                        </select>
-                                        <small class="form-text text-muted"><?php echo support_h($field_label); ?> [Ex: Yes/No]</small>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+<div class="nxl-content">
+    <div class="page-header">
+        <div class="page-header-left d-flex align-items-center">
+            <div class="page-header-title">
+                <h5 class="m-b-10">Support Settings</h5>
             </div>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="../homepage.php">Home</a></li>
+                <li class="breadcrumb-item"><a href="settings-general.php">Settings</a></li>
+                <li class="breadcrumb-item">Support</li>
+            </ul>
         </div>
     </div>
+
+    <div class="main-content settings-shell">
+        <div class="settings-layout">
+            <section class="settings-main">
+                <div class="settings-hero">
+                    <div>
+                        <h3>Support Contact Defaults</h3>
+                        <p>Manage the support contact details, help links, and whether students can see or use support request channels.</p>
+                    </div>
+                    <div class="settings-badge">System Settings</div>
+                </div>
+
+                <?php if ($errors): ?>
+                    <div class="alert alert-danger" role="alert">
+                        <ul class="mb-0 ps-3">
+                            <?php foreach ($errors as $error): ?>
+                                <li><?= sup_h($error) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($success): ?>
+                    <div class="alert alert-success" role="alert"><?= sup_h($success) ?></div>
+                <?php endif; ?>
+
+                <form method="post">
+                    <div class="settings-grid">
+                        <div class="settings-field">
+                            <label for="support_email">Support Email</label>
+                            <input type="email" class="form-control" id="support_email" name="support_email" value="<?= sup_h($settings['support_email']) ?>">
+                        </div>
+                        <div class="settings-field">
+                            <label for="support_phone">Support Phone</label>
+                            <input type="text" class="form-control" id="support_phone" name="support_phone" value="<?= sup_h($settings['support_phone']) ?>">
+                        </div>
+                        <div class="settings-field">
+                            <label for="support_hours">Support Hours</label>
+                            <input type="text" class="form-control" id="support_hours" name="support_hours" value="<?= sup_h($settings['support_hours']) ?>">
+                        </div>
+                        <div class="settings-field">
+                            <label for="support_location">Support Location</label>
+                            <input type="text" class="form-control" id="support_location" name="support_location" value="<?= sup_h($settings['support_location']) ?>">
+                        </div>
+                        <div class="settings-field full">
+                            <label for="help_center_url">Help Center URL</label>
+                            <input type="url" class="form-control" id="help_center_url" name="help_center_url" value="<?= sup_h($settings['help_center_url']) ?>">
+                        </div>
+                        <div class="settings-field full">
+                            <label for="incident_form_url">Incident Form URL</label>
+                            <input type="url" class="form-control" id="incident_form_url" name="incident_form_url" value="<?= sup_h($settings['incident_form_url']) ?>">
+                        </div>
+                        <div class="settings-field full">
+                            <div class="settings-switches">
+                                <label class="settings-switch">
+                                    <div>
+                                        <h6>Allow Support Requests</h6>
+                                        <p>Enable support-related links and request channels across the system.</p>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" name="allow_support_requests" <?= $settings['allow_support_requests'] === '1' ? 'checked' : '' ?>>
+                                    </div>
+                                </label>
+                                <label class="settings-switch">
+                                    <div>
+                                        <h6>Show Support Contact to Students</h6>
+                                        <p>Display support contact details in student-facing pages and help sections.</p>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" name="show_support_contact_to_students" <?= $settings['show_support_contact_to_students'] === '1' ? 'checked' : '' ?>>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-actions">
+                        <a href="settings-general.php" class="btn btn-light">Back to General</a>
+                        <button type="submit" class="btn btn-primary">Save Support Settings</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </div>
+</div>
 </main>
-<?php include dirname(__DIR__) . '/includes/footer.php'; ?>
+<?php require_once dirname(__DIR__) . '/includes/footer.php'; ?>
+

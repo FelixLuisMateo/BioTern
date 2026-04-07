@@ -2,7 +2,7 @@
     "autoImportOnIngest":  false,
     "deviceNumber":  1,
     "gateway":  "192.168.100.1",
-    "outputPath":  "C:\\BioTern\\attendance.txt",
+    "outputPath":  "C:\\xampp\\htdocs\\BioTern\\BioTern\\attendance.txt",
     "communicationPassword":  "0",
     "mask":  "255.255.255.0",
     "selectedRouterPreset":  "router_1",

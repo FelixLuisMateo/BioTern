@@ -11,7 +11,8 @@ $nav_is_supervisor = ($nav_role === 'supervisor');
 $nav_can_internship = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 $nav_can_academic = ($nav_is_admin || $nav_is_coordinator);
 $nav_can_workspace = ($nav_is_admin || $nav_is_coordinator);
-$nav_can_system = $nav_is_admin;
+$nav_can_system = ($nav_is_admin || $nav_is_coordinator);
+$nav_can_user_accounts = $nav_is_admin;
 
 $nav_current_file = '';
 if (isset($_GET['file'])) {
@@ -98,11 +99,12 @@ $nav_active_users = biotern_nav_any_active($nav_current_file, [
     'auth-register-creative.php', 'users.php', 'create_admin.php',
 ]);
 $nav_active_settings = biotern_nav_any_active($nav_current_file, [
-    'settings-support.php', 'account-settings.php', 'notifications.php', 'theme-customizer.php',
-    'import-sql.php', 'import-students-excel.php',
+    'settings-general.php', 'settings-email.php', 'settings-ojt.php', 'settings-students.php',
+    'settings-support.php',
+    'notifications.php', 'account-settings.php',
 ]);
-$nav_active_help = biotern_nav_any_active($nav_current_file, [
-    'help-knowledgebase.php', 'settings-support.php',
+$nav_active_tools = biotern_nav_any_active($nav_current_file, [
+    'theme-customizer.php', 'import-sql.php', 'import-students-excel.php',
 ]);
 ?>
 <nav class="nxl-navigation">
@@ -233,39 +235,43 @@ $nav_active_help = biotern_nav_any_active($nav_current_file, [
                 <li class="nxl-item nxl-caption">
                     <span>System</span>
                 </li>
-                <li class="nxl-item nxl-hasmenu<?php echo $nav_active_users ? ' active nxl-trigger' : ''; ?>">
-                    <a href="javascript:void(0);" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-user-plus"></i></span>
-                        <span class="nxl-mtext">User Accounts</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                    </a>
-                    <ul class="nxl-submenu">
-                        <li class="nxl-item<?php echo biotern_nav_is_active('auth-register-creative.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="auth-register-creative.php">User Registration</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('users.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="users.php">Users</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('create_admin.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="create_admin.php">Create Admin</a></li>
-                    </ul>
-                </li>
+                <?php if ($nav_can_user_accounts): ?>
+                    <li class="nxl-item nxl-hasmenu<?php echo $nav_active_users ? ' active nxl-trigger' : ''; ?>">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-user-plus"></i></span>
+                            <span class="nxl-mtext">User Accounts</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item<?php echo biotern_nav_is_active('auth-register-creative.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="auth-register-creative.php">User Registration</a></li>
+                            <li class="nxl-item<?php echo biotern_nav_is_active('users.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="users.php">Users</a></li>
+                            <li class="nxl-item<?php echo biotern_nav_is_active('create_admin.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="create_admin.php">Create Admin</a></li>
+                        </ul>
+                    </li>
+                <?php endif; ?>
                 <li class="nxl-item nxl-hasmenu<?php echo $nav_active_settings ? ' active nxl-trigger' : ''; ?>">
                     <a href="javascript:void(0);" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-settings"></i></span>
                         <span class="nxl-mtext">Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item<?php echo biotern_nav_is_active('account-settings.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="account-settings.php">Account Settings</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('notifications.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="notifications.php">Notifications</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-general.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-general.php">General</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-email.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-email.php">Email</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-ojt.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-ojt.php">OJT Settings</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-students.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-students.php">Student Settings</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('settings-support.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-support.php">Support</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('theme-customizer.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="theme-customizer.php">Theme Customizer</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('import-sql.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-sql.php">Data Transfer SQL Import</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('import-students-excel.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-students-excel.php">Data Transfer Student Excel</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('notifications.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="notifications.php">Notifications</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('account-settings.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="account-settings.php">Account Settings</a></li>
                     </ul>
                 </li>
-                <li class="nxl-item nxl-hasmenu<?php echo $nav_active_help ? ' active nxl-trigger' : ''; ?>">
+                <li class="nxl-item nxl-hasmenu<?php echo $nav_active_tools ? ' active nxl-trigger' : ''; ?>">
                     <a href="javascript:void(0);" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-life-buoy"></i></span>
-                        <span class="nxl-mtext">Help Center</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        <span class="nxl-micon"><i class="feather-tool"></i></span>
+                        <span class="nxl-mtext">Tools</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-support.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-support.php">Support</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('help-knowledgebase.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="help-knowledgebase.php">Knowledge Base</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('import-students-excel.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-students-excel.php">Excel Import</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('import-sql.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-sql.php">Data Transfer</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('theme-customizer.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="theme-customizer.php">Appearance</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>

@@ -26,6 +26,36 @@ html.app-skin-dark {
   --biotern-border: #1b2436;
 }
 
+html.app-theme-blue {
+  --biotern-primary: #3454d1;
+  --biotern-primary-rgb: 52, 84, 209;
+  --biotern-primary-hover: #2f46b8;
+  --biotern-primary-soft: #c6cff2;
+  --biotern-primary-soft-text: #2b3a7a;
+  --biotern-primary-contrast: #ffffff;
+  --biotern-link: #3454d1;
+  --biotern-link-hover: #2f46b8;
+  --biotern-body-bg: #f3f4f6;
+  --biotern-surface: #ffffff;
+  --biotern-surface-muted: #f8fafc;
+  --biotern-border: #e5e7eb;
+}
+
+html.app-theme-blue.app-skin-dark {
+  --biotern-primary: #6083f5;
+  --biotern-primary-rgb: 96, 131, 245;
+  --biotern-primary-hover: #7f9dff;
+  --biotern-primary-soft: #182446;
+  --biotern-primary-soft-text: #eef4ff;
+  --biotern-primary-contrast: #ffffff;
+  --biotern-link: #9cb4ff;
+  --biotern-link-hover: #c2d1ff;
+  --biotern-body-bg: #0b1220;
+  --biotern-surface: #0f172a;
+  --biotern-surface-muted: #111827;
+  --biotern-border: #1b2436;
+}
+
 html.app-theme-gray {
   --biotern-primary: #6b7280;
   --biotern-primary-rgb: 107, 114, 128;

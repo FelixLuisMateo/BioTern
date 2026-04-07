@@ -1,0 +1,154 @@
+/* SMACSS Module: unified form field styling */
+:root {
+  --biotern-field-radius: 12px;
+  --biotern-field-min-height: 42px;
+  --biotern-field-pad-y: 0.7rem;
+  --biotern-field-pad-x: 0.9rem;
+  --biotern-field-bg: rgba(255, 255, 255, 0.94);
+  --biotern-field-border: rgba(203, 213, 225, 0.95);
+  --biotern-field-text: #0f172a;
+  --biotern-field-placeholder: #64748b;
+  --biotern-field-muted-bg: rgba(248, 250, 252, 0.96);
+  --biotern-field-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset;
+  --biotern-field-focus-ring: rgba(148, 163, 184, 0.18);
+  --biotern-field-label: #334155;
+  --biotern-field-addon-bg: rgba(241, 245, 249, 0.9);
+  --biotern-field-addon-text: #475569;
+  --biotern-field-font-size: 0.9rem;
+  --biotern-field-font-weight: 500;
+  --biotern-field-line-height: 1.2;
+}
+
+html.app-skin-dark {
+  --biotern-field-bg: rgba(26, 31, 38, 0.98);
+  --biotern-field-border: #2d3748;
+  --biotern-field-text: #f8fafc;
+  --biotern-field-placeholder: #94a3b8;
+  --biotern-field-muted-bg: rgba(24, 29, 35, 0.98);
+  --biotern-field-shadow: none;
+  --biotern-field-focus-ring: rgba(148, 163, 184, 0.12);
+  --biotern-field-label: #cbd5e1;
+  --biotern-field-addon-bg: rgba(32, 38, 46, 0.98);
+  --biotern-field-addon-text: #cbd5e1;
+}
+
+body .form-label {
+  color: var(--biotern-field-label);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+body .form-control,
+body .form-select,
+body textarea.form-control,
+body input.form-control,
+body select.form-control,
+body select.form-select {
+  font-family: inherit;
+  font-size: var(--biotern-field-font-size);
+  font-weight: var(--biotern-field-font-weight);
+  line-height: var(--biotern-field-line-height);
+  letter-spacing: 0;
+  min-height: var(--biotern-field-min-height);
+  padding: var(--biotern-field-pad-y) var(--biotern-field-pad-x);
+  border-radius: var(--biotern-field-radius);
+  border: 1px solid var(--biotern-field-border);
+  background-color: var(--biotern-field-bg);
+  color: var(--biotern-field-text);
+  box-shadow: var(--biotern-field-shadow);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+body textarea.form-control {
+  min-height: calc(var(--biotern-field-min-height) * 2.2);
+  resize: vertical;
+}
+
+body .form-control::placeholder,
+body textarea.form-control::placeholder {
+  color: var(--biotern-field-placeholder);
+  opacity: 1;
+}
+
+body .form-control:focus,
+body .form-select:focus,
+body textarea.form-control:focus,
+body input.form-control:focus,
+body select.form-control:focus,
+body select.form-select:focus {
+  color: var(--biotern-field-text);
+  background-color: var(--biotern-field-bg);
+  border-color: var(--biotern-field-border);
+  box-shadow: 0 0 0 2px var(--biotern-field-focus-ring);
+}
+
+body .form-control[readonly],
+body .form-control:disabled,
+body .form-select:disabled,
+body textarea.form-control:disabled,
+body input.form-control:disabled,
+body select.form-control:disabled,
+body select.form-select:disabled {
+  background-color: var(--biotern-field-muted-bg);
+  color: var(--biotern-field-placeholder);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+body .form-control-sm,
+body .form-select-sm {
+  min-height: 34px;
+  padding: 0.4rem 0.68rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+body .form-control-lg,
+body .form-select-lg {
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 1rem;
+}
+
+body .input-group-text {
+  font-family: inherit;
+  font-size: var(--biotern-field-font-size);
+  font-weight: 500;
+  min-height: var(--biotern-field-min-height);
+  border-radius: var(--biotern-field-radius);
+  border: 1px solid var(--biotern-field-border);
+  background: var(--biotern-field-addon-bg);
+  color: var(--biotern-field-addon-text);
+}
+
+body .input-group > .form-control,
+body .input-group > .form-select,
+body .input-group > .input-group-text {
+  border-radius: var(--biotern-field-radius);
+}
+
+body input[type="file"].form-control {
+  padding: 0.32rem;
+}
+
+body input[type="file"].form-control::file-selector-button,
+body input[type="file"].form-control::-webkit-file-upload-button {
+  margin-right: 0.75rem;
+  padding: 0.48rem 0.82rem;
+  border-radius: 8px;
+  border: 1px solid var(--biotern-field-border);
+  background: var(--biotern-field-addon-bg);
+  color: var(--biotern-field-addon-text);
+}
+
+body .form-check-input {
+  border-color: var(--biotern-field-border);
+  background-color: var(--biotern-field-bg);
+}
+
+body .form-check-input:focus {
+  border-color: var(--biotern-field-border);
+  box-shadow: 0 0 0 2px var(--biotern-field-focus-ring);
+}

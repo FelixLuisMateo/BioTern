@@ -2,59 +2,13 @@
 (function () {
   "use strict";
 
-  function initSelect2Filters() {
-    if (!window.jQuery) return;
-
-    var $filterForm = $("#studentsFilterForm");
-    var baseOpts = {
-      width: "100%",
-      allowClear: false,
-      dropdownAutoWidth: false,
-    };
-
-    if ($filterForm.length) {
-      baseOpts.dropdownParent = $filterForm;
+  function initFilterSelects() {
+    if (
+      window.BioTernSelectDropdown &&
+      typeof window.BioTernSelectDropdown.refresh === "function"
+    ) {
+      window.BioTernSelectDropdown.refresh();
     }
-
-    function initSelect(selector, extraOpts) {
-      if (!$(selector).length) return;
-      var opts = Object.assign({}, baseOpts, extraOpts || {});
-      if (!opts.dropdownParent) {
-        delete opts.dropdownParent;
-      }
-      $(selector).select2(opts);
-    }
-
-    ["#filter-course", "#filter-department", "#filter-section", "#filter-school-year"].forEach(function (selector) {
-      initSelect(selector, { minimumResultsForSearch: Infinity });
-    });
-
-    ["#filter-supervisor", "#filter-coordinator"].forEach(function (selector) {
-      initSelect(selector, {});
-    });
-
-    [
-      "#filter-course",
-      "#filter-department",
-      "#filter-section",
-      "#filter-school-year",
-      "#filter-supervisor",
-      "#filter-coordinator",
-    ].forEach(function (selector) {
-      if (!$(selector).length) return;
-      $(selector).on("select2:open", function () {
-        var select2Instance = $(this).data("select2");
-        if (!select2Instance || !select2Instance.$container) return;
-        select2Instance.$container
-          .removeClass("select2-container--above")
-          .addClass("select2-container--below");
-        if (select2Instance.$dropdown) {
-          select2Instance.$dropdown
-            .removeClass("select2-dropdown--above")
-            .addClass("select2-dropdown--below");
-        }
-      });
-    });
   }
 
   function initFilterAutoSubmit() {
@@ -76,20 +30,6 @@
       if (el) el.addEventListener("change", submitFilters);
     });
 
-    if (window.jQuery) {
-      [
-        "#filter-course",
-        "#filter-department",
-        "#filter-section",
-        "#filter-school-year",
-        "#filter-supervisor",
-        "#filter-coordinator",
-      ].forEach(function (selector) {
-        if ($(selector).length) {
-          $(selector).on("select2:select select2:clear", submitFilters);
-        }
-      });
-    }
   }
 
   function initPrintActions() {
@@ -193,19 +133,30 @@
 
       var bodyRows = table.querySelectorAll("tbody tr");
       bodyRows.forEach(function (tr) {
-        var cells = tr.querySelectorAll("td");
-        if (!cells || cells.length < 10) return;
-
         var row = {
-          name: (cells[1].innerText || "").trim(),
-          student_id: (cells[2].innerText || "").trim(),
-          course: (cells[3].innerText || "").trim(),
-          section: (cells[4].innerText || "").trim(),
-          supervisor: (cells[5].innerText || "").trim(),
-          coordinator: (cells[6].innerText || "").trim(),
-          last_logged: (cells[7].innerText || "").trim(),
-          status: (cells[8].innerText || "").trim(),
+          name: (tr.dataset.exportName || "").trim(),
+          student_id: (tr.dataset.exportStudentId || "").trim(),
+          course: (tr.dataset.exportCourse || "").trim(),
+          section: (tr.dataset.exportSection || "").trim(),
+          supervisor: (tr.dataset.exportSupervisor || "").trim(),
+          coordinator: (tr.dataset.exportCoordinator || "").trim(),
+          last_logged: (tr.dataset.exportLastLogged || "").trim(),
+          status: (tr.dataset.exportStatus || "").trim(),
         };
+        if (!row.name) {
+          var cells = tr.querySelectorAll("td");
+          if (!cells || cells.length < 6) return;
+          row = {
+            name: (cells[1].innerText || "").trim(),
+            student_id: "",
+            course: (cells[2].innerText || "").trim(),
+            section: "",
+            supervisor: (cells[3].innerText || "").trim(),
+            coordinator: "",
+            last_logged: (cells[4].innerText || "").trim(),
+            status: (cells[5].innerText || "").trim(),
+          };
+        }
         if (row.name !== "" && row.name.toLowerCase() !== "no students found") {
           rows.push(row);
         }
@@ -344,7 +295,7 @@
   }
 
   function initStudentsPageRuntime() {
-    initSelect2Filters();
+    initFilterSelects();
     initFilterAutoSubmit();
     initPrintActions();
     initActionDropdownPortal();

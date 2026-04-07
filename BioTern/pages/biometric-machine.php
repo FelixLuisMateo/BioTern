@@ -39,6 +39,8 @@ $networkRaw = '';
 $timeRaw = '';
 $machineConfigPath = dirname(__DIR__) . '/tools/biometric_machine_config.json';
 $machineConfigJson = file_exists($machineConfigPath) ? trim((string)file_get_contents($machineConfigPath)) : '';
+$legacyAttendanceOutputPath = 'C:\\BioTern\\attendance.txt';
+$defaultAttendanceOutputPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'attendance.txt';
 
 function machine_h($value): string
 {
@@ -1399,9 +1401,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     : 'direct_ingest';
                 $submittedOutputPath = trim((string)($_POST['connector_output_path'] ?? ''));
                 $existingOutputPath = trim((string)($existingConfig['outputPath'] ?? ''));
+                if ($existingOutputPath === '' || strcasecmp($existingOutputPath, $legacyAttendanceOutputPath) === 0) {
+                    $existingOutputPath = $defaultAttendanceOutputPath;
+                }
                 $existingConfig['outputPath'] = $submittedOutputPath !== ''
                     ? $submittedOutputPath
-                    : ($existingOutputPath !== '' ? $existingOutputPath : 'C:\\BioTern\\attendance.txt');
+                    : ($existingOutputPath !== '' ? $existingOutputPath : $defaultAttendanceOutputPath);
                 $existingConfig['autoImportOnIngest'] = !isset($_POST['disable_auto_import_on_ingest']);
                 $existingConfig['attendanceWindowEnabled'] = isset($_POST['attendance_window_enabled']);
                 $existingConfig['attendanceStartTime'] = trim((string)($_POST['attendance_start_time'] ?? '08:00:00'));
@@ -1437,7 +1442,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $bridgePort = max(1, (int)($_POST['bridge_port'] ?? 5001));
                 $bridgeDeviceNo = max(1, (int)($_POST['bridge_device_number'] ?? 1));
                 $bridgePassword = trim((string)($_POST['bridge_password'] ?? '0'));
-                $bridgeOutputPath = trim((string)($_POST['bridge_output_path'] ?? 'C:\\BioTern\\attendance.txt'));
+                $bridgeOutputPath = trim((string)($_POST['bridge_output_path'] ?? $defaultAttendanceOutputPath));
 
                 if ($bridgeToken === '') {
                     $bridgeToken = machine_make_bridge_token();
@@ -1529,7 +1534,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'port' => 5001,
                     'device_number' => 1,
                     'communication_password' => '0',
-                    'output_path' => 'C:\\BioTern\\attendance.txt',
+                    'output_path' => $defaultAttendanceOutputPath,
                 ], (int)($_SESSION['user_id'] ?? 0));
 
                 $_SESSION['machine_manager_flash'] = [
@@ -1788,7 +1793,13 @@ $bridgeMask = (string)($bridgeProfile['mask'] ?? $connectorMask);
 $bridgePort = (int)($bridgeProfile['port'] ?? ($connectorPort !== '' ? (int)$connectorPort : 5001));
 $bridgeDeviceNumber = (int)($bridgeProfile['device_number'] ?? ($connectorDeviceNo !== '' ? (int)$connectorDeviceNo : 1));
 $bridgePassword = (string)($bridgeProfile['communication_password'] ?? $connectorPassword);
-$bridgeOutputPath = (string)($bridgeProfile['output_path'] ?? ($connectorOutputPath !== '' ? $connectorOutputPath : 'C:\\BioTern\\attendance.txt'));
+$bridgeOutputPath = (string)($bridgeProfile['output_path'] ?? ($connectorOutputPath !== '' ? $connectorOutputPath : $defaultAttendanceOutputPath));
+if ($connectorOutputPath === '' || strcasecmp($connectorOutputPath, $legacyAttendanceOutputPath) === 0) {
+    $connectorOutputPath = $defaultAttendanceOutputPath;
+}
+if ($bridgeOutputPath === '' || strcasecmp($bridgeOutputPath, $legacyAttendanceOutputPath) === 0) {
+    $bridgeOutputPath = $defaultAttendanceOutputPath;
+}
 $bridgeRuntimeStatus = machine_fetch_bridge_runtime_status($conn, $bridgePollSeconds);
 
 if ($bridgeToken === '') {
@@ -2377,7 +2388,7 @@ include __DIR__ . '/../includes/header.php';
                                     </div>
                                     <div class="col-sm-6">
                                         <label class="form-label">Local Output Path (bridge PC)</label>
-                                        <input type="text" name="bridge_output_path" id="bridgeOutputPathField" class="form-control" value="<?php echo machine_h($bridgeOutputPath); ?>" placeholder="C:\\BioTern\\attendance.txt">
+                                        <input type="text" name="bridge_output_path" id="bridgeOutputPathField" class="form-control" value="<?php echo machine_h($bridgeOutputPath); ?>" placeholder="<?php echo machine_h($defaultAttendanceOutputPath); ?>">
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label">Install Auto-Start Bridge Task (recommended)</label>
@@ -2451,7 +2462,7 @@ include __DIR__ . '/../includes/header.php';
                                 </div>
                                 <div class="col-sm-6">
                                     <label class="form-label">Attendance File</label>
-                                    <input type="text" name="connector_output_path" class="form-control" value="<?php echo machine_h($connectorOutputPath !== '' ? $connectorOutputPath : 'C:\\BioTern\\attendance.txt'); ?>" placeholder="C:\xampp\htdocs\BioTern\attendance.txt">
+                                    <input type="text" name="connector_output_path" class="form-control" value="<?php echo machine_h($connectorOutputPath !== '' ? $connectorOutputPath : $defaultAttendanceOutputPath); ?>" placeholder="<?php echo machine_h($defaultAttendanceOutputPath); ?>">
                                 </div>
                                 <div class="col-sm-6">
                                     <label class="form-label">Connector IP</label>

@@ -18,7 +18,7 @@
 .apps-review-card {
     border: 1px solid rgba(140, 160, 190, 0.18);
     border-radius: 14px;
-    overflow: hidden;
+    overflow: visible;
     width: 100%;
     margin-top: 0;
     position: relative;
@@ -34,6 +34,7 @@
 
 .apps-review-card .card-body {
     padding: 14px;
+    overflow: visible;
 }
 
 .apps-review-shell .main-content > .apps-review-card,
@@ -42,17 +43,26 @@
 }
 
 .apps-review-toolbar {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 8px;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.65rem;
     margin-bottom: 10px;
     align-items: end;
+    position: relative;
+    z-index: 20;
 }
 
 .apps-review-toolbar .form-label {
-    font-size: 12px;
-    margin-bottom: 6px;
-    color: #8a93a6;
+    margin-bottom: 0.35rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #334155;
+}
+
+html.app-skin-dark .apps-review-toolbar .form-label {
+    color: #cbd5e1;
 }
 
 
@@ -278,6 +288,8 @@
 
 .apps-review-shell .table-responsive {
     overflow-x: hidden;
+    position: relative;
+    z-index: 1;
 }
 
 .app-applications-header-actions {
