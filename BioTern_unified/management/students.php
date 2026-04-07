@@ -549,7 +549,7 @@ usort($print_students, function ($a, $b) {
         /* Filter row alignment */
         .filter-form {
             display: grid !important;
-            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 0.65rem;
             align-items: end;
         }
@@ -613,6 +613,11 @@ usort($print_students, function ($a, $b) {
             min-height: 42px;
             display: flex;
             align-items: center;
+        }
+
+        .filter-form .select2-container {
+            width: 100% !important;
+            min-width: 0;
         }
 
         .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -738,13 +743,25 @@ usort($print_students, function ($a, $b) {
             color: #cbd5e1;
         }
 
+        @media (max-width: 1599.98px) {
+            .filter-form {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 1279.98px) {
+            .filter-form {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
         @media (max-width: 767.98px) {
             .filter-panel {
                 padding: 0.85rem 0.75rem 0.25rem;
             }
 
             .filter-form {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
             .filter-panel-head {
