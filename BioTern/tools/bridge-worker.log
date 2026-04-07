@@ -2777,3 +2777,1165 @@
 [2026-04-06 17:44:32] User cache sync success. Users=9
 [2026-04-06 17:44:32] No new F20H logs to upload.
 [2026-04-06 17:45:32] Bridge loop error: Device connection failed.
+[2026-04-06 17:46:11] Bridge loop error: Device connection failed.
+[2026-04-06 17:46:40] Bridge loop error: Device connection failed.
+[2026-04-06 17:47:42] Bridge loop error: Device connection failed.
+[2026-04-06 17:48:11] Bridge loop error: Device connection failed.
+[2026-04-06 17:48:43] Bridge loop error: Device connection failed.
+[2026-04-06 17:49:11] Bridge loop error: Device connection failed.
+[2026-04-06 17:49:39] Bridge loop error: Device connection failed.
+[2026-04-06 17:50:09] Bridge loop error: Device connection failed.
+[2026-04-06 17:50:37] Bridge loop error: Device connection failed.
+[2026-04-06 17:51:05] Bridge loop error: Device connection failed.
+[2026-04-06 17:51:34] Bridge loop error: Device connection failed.
+[2026-04-06 17:52:02] Bridge loop error: Device connection failed.
+[2026-04-06 17:52:32] Bridge loop error: Device connection failed.
+[2026-04-06 17:52:59] Bridge loop error: Device connection failed.
+[2026-04-06 17:53:30] Bridge loop error: Device connection failed.
+[2026-04-06 17:53:59] Bridge loop error: Device connection failed.
+[2026-04-06 17:54:27] Bridge loop error: Device connection failed.
+[2026-04-06 17:55:14] Bridge loop error: Device connection failed.
+[2026-04-06 17:55:48] Bridge loop error: Device connection failed.
+[2026-04-06 17:56:17] Bridge loop error: Device connection failed.
+[2026-04-06 17:56:45] Bridge loop error: Device connection failed.
+[2026-04-06 17:57:14] Bridge loop error: Device connection failed.
+[2026-04-06 17:57:42] Bridge loop error: Device connection failed.
+[2026-04-06 17:58:11] Bridge loop error: Device connection failed.
+[2026-04-06 17:58:39] Bridge loop error: Device connection failed.
+[2026-04-06 17:59:07] Bridge loop error: Device connection failed.
+[2026-04-06 17:59:37] Bridge loop error: Device connection failed.
+[2026-04-06 18:00:06] Bridge loop error: Device connection failed.
+[2026-04-06 18:00:33] Bridge loop error: Device connection failed.
+[2026-04-06 18:01:02] Bridge loop error: Device connection failed.
+[2026-04-06 18:01:31] Bridge loop error: Device connection failed.
+[2026-04-06 18:01:59] Bridge loop error: Device connection failed.
+[2026-04-06 18:02:28] Bridge loop error: Device connection failed.
+[2026-04-06 18:02:56] Bridge loop error: Device connection failed.
+[2026-04-06 18:03:24] Bridge loop error: Device connection failed.
+[2026-04-06 18:03:53] Bridge loop error: Device connection failed.
+[2026-04-06 18:04:31] Bridge loop error: Device connection failed.
+[2026-04-06 18:13:34] Bridge loop error: Device connection failed.
+[2026-04-06 18:14:14] Bridge loop error: Device connection failed.
+[2026-04-06 18:14:55] Bridge loop error: Device connection failed.
+[2026-04-06 18:15:28] Bridge loop error: Device connection failed.
+[2026-04-06 18:16:05] Bridge loop error: Device connection failed.
+[2026-04-06 18:16:34] Bridge loop error: Device connection failed.
+[2026-04-06 18:17:07] Bridge loop error: Device connection failed.
+[2026-04-06 18:17:35] Bridge loop error: Device connection failed.
+[2026-04-06 18:18:04] Bridge loop error: Device connection failed.
+[2026-04-06 18:18:31] Bridge loop error: Device connection failed.
+[2026-04-06 18:19:00] Bridge loop error: Device connection failed.
+[2026-04-06 18:19:28] Bridge loop error: Device connection failed.
+[2026-04-06 18:19:56] Bridge loop error: Device connection failed.
+[2026-04-06 18:20:25] Bridge loop error: Device connection failed.
+[2026-04-06 18:20:54] Bridge loop error: Device connection failed.
+[2026-04-06 18:21:22] Bridge loop error: Device connection failed.
+[2026-04-06 18:21:50] Bridge loop error: Device connection failed.
+[2026-04-06 18:22:22] Bridge loop error: Device connection failed.
+[2026-04-06 18:22:51] Bridge loop error: Device connection failed.
+[2026-04-06 18:23:19] Bridge loop error: Device connection failed.
+[2026-04-06 18:23:48] Bridge loop error: Device connection failed.
+[2026-04-06 18:24:16] Bridge loop error: Device connection failed.
+[2026-04-06 18:24:44] Bridge loop error: Device connection failed.
+[2026-04-06 18:25:13] Bridge loop error: Device connection failed.
+[2026-04-06 18:25:41] Bridge loop error: Device connection failed.
+[2026-04-06 18:26:10] Bridge loop error: Device connection failed.
+[2026-04-06 18:26:38] Bridge loop error: Device connection failed.
+[2026-04-06 18:27:06] Bridge loop error: Device connection failed.
+[2026-04-06 18:27:34] Bridge loop error: Device connection failed.
+[2026-04-06 18:28:02] Bridge loop error: Device connection failed.
+[2026-04-06 18:28:30] Bridge loop error: Device connection failed.
+[2026-04-06 18:28:59] Bridge loop error: Device connection failed.
+[2026-04-06 18:29:27] Bridge loop error: Device connection failed.
+[2026-04-06 18:29:55] Bridge loop error: Device connection failed.
+[2026-04-06 18:30:24] Bridge loop error: Device connection failed.
+[2026-04-06 18:30:51] Bridge loop error: Device connection failed.
+[2026-04-06 18:31:20] Bridge loop error: Device connection failed.
+[2026-04-06 18:31:51] Bridge loop error: Device connection failed.
+[2026-04-06 18:32:19] Bridge loop error: Device connection failed.
+[2026-04-06 18:32:47] Bridge loop error: Device connection failed.
+[2026-04-06 18:33:15] Bridge loop error: Device connection failed.
+[2026-04-06 18:33:43] Bridge loop error: Device connection failed.
+[2026-04-06 18:34:11] Bridge loop error: Device connection failed.
+[2026-04-06 18:34:39] Bridge loop error: Device connection failed.
+[2026-04-06 18:35:07] Bridge loop error: Device connection failed.
+[2026-04-06 18:35:43] Bridge loop error: Device connection failed.
+[2026-04-06 18:36:10] Bridge loop error: Device connection failed.
+[2026-04-06 18:36:39] Bridge loop error: Device connection failed.
+[2026-04-06 18:37:07] Bridge loop error: Device connection failed.
+[2026-04-06 18:37:35] Bridge loop error: Device connection failed.
+[2026-04-06 18:38:03] Bridge loop error: Device connection failed.
+[2026-04-06 18:38:37] Bridge loop error: Device connection failed.
+[2026-04-06 18:39:14] Bridge loop error: Device connection failed.
+[2026-04-06 18:39:44] Bridge loop error: Device connection failed.
+[2026-04-06 18:40:15] Bridge loop error: Device connection failed.
+[2026-04-06 18:40:44] Bridge loop error: Device connection failed.
+[2026-04-06 18:41:12] Bridge loop error: Device connection failed.
+[2026-04-06 18:41:40] Bridge loop error: Device connection failed.
+[2026-04-06 18:42:08] Bridge loop error: Device connection failed.
+[2026-04-06 18:42:36] Bridge loop error: Device connection failed.
+[2026-04-06 18:42:58] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 57 Device disconnected.
+[2026-04-06 18:43:01] User cache sync success. Users=9
+[2026-04-06 18:43:04] Ingest success. Received=1 Inserted=1
+[2026-04-06 18:43:37] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:43:39] User cache sync success. Users=9
+[2026-04-06 18:43:39] No new F20H logs to upload.
+[2026-04-06 18:44:11] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 169 Device disconnected.
+[2026-04-06 18:44:13] User cache sync success. Users=9
+[2026-04-06 18:44:18] Ingest success. Received=3 Inserted=3
+[2026-04-06 18:44:55] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:48:01] Bridge worker started.
+[2026-04-06 18:48:07] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 57 Device disconnected.
+[2026-04-06 18:48:09] User cache sync success. Users=9
+[2026-04-06 18:48:09] Bridge loop error: Cannot bind argument to parameter 'First' because it is null.
+[2026-04-06 18:48:31] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:48:33] User cache sync success. Users=9
+[2026-04-06 18:48:33] Bridge loop error: Cannot bind argument to parameter 'First' because it is null.
+[2026-04-06 18:48:55] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:48:57] User cache sync success. Users=9
+[2026-04-06 18:48:57] Bridge loop error: Cannot bind argument to parameter 'First' because it is null.
+[2026-04-06 18:49:20] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:49:22] User cache sync success. Users=9
+[2026-04-06 18:49:22] Bridge loop error: Cannot bind argument to parameter 'First' because it is null.
+[2026-04-06 18:49:49] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:49:55] User cache sync success. Users=9
+[2026-04-06 18:49:55] Bridge loop error: Cannot bind argument to parameter 'First' because it is null.
+[2026-04-06 18:51:06] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:51:08] User cache sync success. Users=9
+[2026-04-06 18:51:08] Bridge loop error: Cannot bind argument to parameter 'First' because it is null.
+[2026-04-06 18:51:32] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:51:33] User cache sync success. Users=9
+[2026-04-06 18:51:33] Bridge loop error: Cannot bind argument to parameter 'First' because it is null.
+[2026-04-06 18:51:56] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:51:58] User cache sync success. Users=9
+[2026-04-06 18:51:58] Bridge loop error: Cannot bind argument to parameter 'First' because it is null.
+[2026-04-06 18:52:20] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:52:22] User cache sync success. Users=9
+[2026-04-06 18:52:22] Bridge loop error: Cannot bind argument to parameter 'First' because it is null.
+[2026-04-06 18:52:45] Executing bridge command #18: rename_user
+[2026-04-06 18:52:47] Bridge command #18 completed.
+[2026-04-06 18:52:50] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:52:52] User cache sync success. Users=9
+[2026-04-06 18:52:52] Bridge loop error: Cannot bind argument to parameter 'First' because it is null.
+[2026-04-06 18:53:15] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:53:16] User cache sync success. Users=9
+[2026-04-06 18:53:16] Bridge loop error: Cannot bind argument to parameter 'First' because it is null.
+[2026-04-06 18:53:40] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:53:42] User cache sync success. Users=9
+[2026-04-06 18:53:42] Bridge loop error: Cannot bind argument to parameter 'First' because it is null.
+[2026-04-06 18:54:05] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:54:07] User cache sync success. Users=9
+[2026-04-06 18:54:07] Bridge loop error: Cannot bind argument to parameter 'First' because it is null.
+[2026-04-06 18:54:48] Bridge worker started.
+[2026-04-06 18:55:06] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:55:18] User cache sync success. Users=9
+[2026-04-06 18:55:19] No new F20H logs to upload.
+[2026-04-06 18:55:51] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:55:54] User cache sync success. Users=9
+[2026-04-06 18:55:54] No new F20H logs to upload.
+[2026-04-06 18:56:26] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:56:28] User cache sync success. Users=9
+[2026-04-06 18:56:28] No new F20H logs to upload.
+[2026-04-06 18:57:01] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:57:02] User cache sync success. Users=9
+[2026-04-06 18:57:02] No new F20H logs to upload.
+[2026-04-06 18:57:35] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:57:37] User cache sync success. Users=9
+[2026-04-06 18:57:37] No new F20H logs to upload.
+[2026-04-06 18:58:11] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:58:13] User cache sync success. Users=9
+[2026-04-06 18:58:13] No new F20H logs to upload.
+[2026-04-06 18:58:46] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:58:47] User cache sync success. Users=9
+[2026-04-06 18:58:47] No new F20H logs to upload.
+[2026-04-06 18:59:20] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:59:22] User cache sync success. Users=9
+[2026-04-06 18:59:22] No new F20H logs to upload.
+[2026-04-06 18:59:55] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 18:59:57] User cache sync success. Users=9
+[2026-04-06 18:59:57] No new F20H logs to upload.
+[2026-04-06 19:00:30] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 19:00:32] User cache sync success. Users=9
+[2026-04-06 19:00:32] No new F20H logs to upload.
+[2026-04-06 19:00:53] Bridge worker started.
+[2026-04-06 19:00:57] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 19:00:57] No new F20H logs to upload.
+[2026-04-06 19:00:59] User cache sync success. Users=9
+[2026-04-06 19:01:31] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 19:01:31] No new F20H logs to upload.
+[2026-04-06 19:01:33] User cache sync success. Users=9
+[2026-04-06 19:02:05] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 19:02:05] No new F20H logs to upload.
+[2026-04-06 19:02:07] User cache sync success. Users=9
+[2026-04-06 19:02:40] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 19:02:40] No new F20H logs to upload.
+[2026-04-06 19:02:41] User cache sync success. Users=9
+[2026-04-06 19:03:14] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 19:03:14] No new F20H logs to upload.
+[2026-04-06 19:03:16] User cache sync success. Users=9
+[2026-04-06 19:03:48] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 19:03:48] No new F20H logs to upload.
+[2026-04-06 19:03:50] User cache sync success. Users=9
+[2026-04-06 19:04:23] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 57 Device disconnected.
+[2026-04-06 19:04:27] Bridge loop error: Cannot bind argument to parameter 'Events' because it is an empty array.
+[2026-04-06 19:04:49] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 19:04:52] Bridge loop error: Cannot bind argument to parameter 'Events' because it is an empty array.
+[2026-04-06 19:05:15] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 19:05:17] Bridge loop error: Cannot bind argument to parameter 'Events' because it is an empty array.
+[2026-04-06 19:05:40] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-06 19:05:43] Bridge loop error: Cannot bind argument to parameter 'Events' because it is an empty array.
+[2026-04-06 19:06:22] Connected to 192.168.110.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 169 Device disconnected.
+[2026-04-06 19:06:28] Bridge loop error: Cannot bind argument to parameter 'Events' because it is an empty array.
+[2026-04-06 19:07:14] Bridge loop error: Device connection failed.
+[2026-04-06 19:07:42] Bridge loop error: Device connection failed.
+[2026-04-06 19:08:10] Bridge loop error: Device connection failed.
+[2026-04-06 21:59:55] Bridge loop error: The remote name could not be resolved: 'biotern-ccst.vercel.app'
+[2026-04-06 22:00:57] Bridge loop error: Device connection failed.
+[2026-04-06 22:01:26] Bridge loop error: Device connection failed.
+[2026-04-06 22:02:10] Bridge loop error: Device connection failed.
+[2026-04-06 22:02:41] Bridge loop error: Device connection failed.
+[2026-04-06 22:03:25] Bridge loop error: Device connection failed.
+[2026-04-06 22:04:12] Bridge loop error: Device connection failed.
+[2026-04-06 22:04:54] Bridge loop error: Device connection failed.
+[2026-04-06 22:05:39] Bridge loop error: Device connection failed.
+[2026-04-06 22:06:10] Bridge loop error: Device connection failed.
+[2026-04-06 22:06:51] Bridge loop error: Device connection failed.
+[2026-04-06 22:07:19] Bridge loop error: Device connection failed.
+[2026-04-06 22:07:47] Bridge loop error: Device connection failed.
+[2026-04-06 22:08:17] Bridge loop error: Device connection failed.
+[2026-04-06 22:08:47] Bridge loop error: Device connection failed.
+[2026-04-06 22:09:17] Bridge loop error: Device connection failed.
+[2026-04-06 22:09:52] Bridge loop error: Device connection failed.
+[2026-04-06 22:10:21] Bridge loop error: Device connection failed.
+[2026-04-06 22:10:49] Bridge loop error: Device connection failed.
+[2026-04-06 22:11:17] Bridge loop error: Device connection failed.
+[2026-04-06 22:11:45] Bridge loop error: Device connection failed.
+[2026-04-06 22:12:13] Bridge loop error: Device connection failed.
+[2026-04-06 22:12:41] Bridge loop error: Device connection failed.
+[2026-04-06 22:13:09] Bridge loop error: Device connection failed.
+[2026-04-06 22:13:37] Bridge loop error: Device connection failed.
+[2026-04-06 22:14:06] Bridge loop error: Device connection failed.
+[2026-04-06 22:14:34] Bridge loop error: Device connection failed.
+[2026-04-06 22:15:02] Bridge loop error: Device connection failed.
+[2026-04-06 22:15:24] Executing bridge command #19: rename_user
+[2026-04-06 22:15:31] Bridge command #19 failed: Device connection failed.
+[2026-04-06 22:15:38] Bridge loop error: Device connection failed.
+[2026-04-06 22:16:06] Bridge loop error: Device connection failed.
+[2026-04-06 22:16:29] Executing bridge command #20: rename_user
+[2026-04-06 22:16:36] Bridge command #20 failed: Device connection failed.
+[2026-04-06 22:16:43] Bridge loop error: Device connection failed.
+[2026-04-06 22:17:11] Bridge loop error: Device connection failed.
+[2026-04-06 22:17:39] Bridge loop error: Device connection failed.
+[2026-04-06 22:18:07] Bridge loop error: Device connection failed.
+[2026-04-06 22:18:35] Bridge loop error: Device connection failed.
+[2026-04-06 22:19:04] Bridge loop error: Device connection failed.
+[2026-04-06 22:19:37] Bridge loop error: Device connection failed.
+[2026-04-06 22:20:06] Bridge loop error: Device connection failed.
+[2026-04-06 22:20:34] Bridge loop error: Device connection failed.
+[2026-04-06 22:20:57] Executing bridge command #21: rename_user
+[2026-04-06 22:21:04] Bridge command #21 failed: Device connection failed.
+[2026-04-06 22:21:11] Bridge loop error: Device connection failed.
+[2026-04-06 22:21:40] Bridge loop error: Device connection failed.
+[2026-04-06 22:22:08] Bridge loop error: Device connection failed.
+[2026-04-06 22:22:38] Bridge loop error: Device connection failed.
+[2026-04-06 22:23:08] Bridge loop error: Device connection failed.
+[2026-04-06 22:23:50] Bridge loop error: Device connection failed.
+[2026-04-06 22:24:31] Bridge worker started.
+[2026-04-06 22:24:51] Bridge loop error: Device connection failed.
+[2026-04-06 22:25:26] Bridge loop error: Device connection failed.
+[2026-04-06 22:25:54] Bridge loop error: Device connection failed.
+[2026-04-06 22:26:23] Bridge loop error: Device connection failed.
+[2026-04-06 22:26:52] Bridge loop error: Device connection failed.
+[2026-04-06 22:27:21] Bridge loop error: Device connection failed.
+[2026-04-06 22:27:52] Bridge loop error: Device connection failed.
+[2026-04-06 22:28:20] Bridge loop error: Device connection failed.
+[2026-04-06 22:28:49] Bridge loop error: Device connection failed.
+[2026-04-06 22:29:18] Bridge loop error: Device connection failed.
+[2026-04-06 22:29:51] Bridge loop error: Device connection failed.
+[2026-04-06 22:30:21] Bridge loop error: Device connection failed.
+[2026-04-06 22:30:47] Bridge worker started.
+[2026-04-06 22:30:57] Bridge loop error: Device connection failed.
+[2026-04-06 22:31:25] Bridge loop error: Device connection failed.
+[2026-04-06 22:31:53] Bridge loop error: Device connection failed.
+[2026-04-06 22:32:23] Bridge loop error: Device connection failed.
+[2026-04-06 22:33:03] Bridge loop error: Device connection failed.
+[2026-04-06 22:33:39] Bridge loop error: Device connection failed.
+[2026-04-06 22:34:11] Bridge loop error: Device connection failed.
+[2026-04-06 22:34:42] Bridge loop error: Device connection failed.
+[2026-04-06 22:35:14] Bridge loop error: Device connection failed.
+[2026-04-06 22:35:42] Bridge loop error: Device connection failed.
+[2026-04-06 22:36:10] Bridge loop error: Device connection failed.
+[2026-04-06 22:36:38] Bridge loop error: Device connection failed.
+[2026-04-06 22:37:06] Bridge loop error: Device connection failed.
+[2026-04-06 22:37:34] Bridge loop error: Device connection failed.
+[2026-04-06 22:38:02] Bridge loop error: Device connection failed.
+[2026-04-06 22:38:30] Bridge loop error: Device connection failed.
+[2026-04-06 22:38:59] Bridge loop error: Device connection failed.
+[2026-04-06 22:39:27] Bridge loop error: Device connection failed.
+[2026-04-06 22:39:55] Bridge loop error: Device connection failed.
+[2026-04-06 22:40:23] Bridge loop error: Device connection failed.
+[2026-04-06 22:40:51] Bridge loop error: Device connection failed.
+[2026-04-06 22:41:19] Bridge loop error: Device connection failed.
+[2026-04-06 22:41:47] Bridge loop error: Device connection failed.
+[2026-04-06 22:42:15] Bridge loop error: Device connection failed.
+[2026-04-06 22:42:43] Bridge loop error: Device connection failed.
+[2026-04-06 22:43:10] Bridge loop error: Device connection failed.
+[2026-04-06 22:43:38] Bridge loop error: Device connection failed.
+[2026-04-06 22:44:06] Bridge loop error: Device connection failed.
+[2026-04-06 22:44:34] Bridge loop error: Device connection failed.
+[2026-04-06 22:45:02] Bridge loop error: Device connection failed.
+[2026-04-06 22:45:31] Bridge loop error: Device connection failed.
+[2026-04-06 22:45:59] Bridge loop error: Device connection failed.
+[2026-04-06 22:46:27] Bridge loop error: Device connection failed.
+[2026-04-06 22:46:55] Bridge loop error: Device connection failed.
+[2026-04-06 22:47:24] Bridge loop error: Device connection failed.
+[2026-04-06 22:47:52] Bridge loop error: Device connection failed.
+[2026-04-06 22:48:20] Bridge loop error: Device connection failed.
+[2026-04-06 22:48:47] Bridge loop error: Device connection failed.
+[2026-04-06 22:49:15] Bridge loop error: Device connection failed.
+[2026-04-06 22:49:44] Bridge loop error: Device connection failed.
+[2026-04-06 22:50:11] Bridge loop error: Device connection failed.
+[2026-04-06 22:50:39] Bridge loop error: Device connection failed.
+[2026-04-06 22:51:07] Bridge loop error: Device connection failed.
+[2026-04-06 22:51:35] Bridge loop error: Device connection failed.
+[2026-04-06 22:52:03] Bridge loop error: Device connection failed.
+[2026-04-06 22:52:31] Bridge loop error: Device connection failed.
+[2026-04-06 22:52:59] Bridge loop error: Device connection failed.
+[2026-04-06 22:53:26] Bridge loop error: Device connection failed.
+[2026-04-06 22:53:54] Bridge loop error: Device connection failed.
+[2026-04-06 22:54:22] Bridge loop error: Device connection failed.
+[2026-04-06 22:54:50] Bridge loop error: Device connection failed.
+[2026-04-06 22:55:18] Bridge loop error: Device connection failed.
+[2026-04-06 22:55:46] Bridge loop error: Device connection failed.
+[2026-04-06 22:56:14] Bridge loop error: Device connection failed.
+[2026-04-06 22:56:41] Bridge loop error: Device connection failed.
+[2026-04-06 22:57:09] Bridge loop error: Device connection failed.
+[2026-04-06 22:57:37] Bridge loop error: Device connection failed.
+[2026-04-06 22:58:05] Bridge loop error: Device connection failed.
+[2026-04-06 22:58:33] Bridge loop error: Device connection failed.
+[2026-04-06 22:59:01] Bridge loop error: Device connection failed.
+[2026-04-06 22:59:28] Bridge loop error: Device connection failed.
+[2026-04-06 22:59:56] Bridge loop error: Device connection failed.
+[2026-04-06 23:00:25] Bridge loop error: Device connection failed.
+[2026-04-06 23:00:52] Bridge loop error: Device connection failed.
+[2026-04-06 23:01:20] Bridge loop error: Device connection failed.
+[2026-04-06 23:01:48] Bridge loop error: Device connection failed.
+[2026-04-06 23:02:16] Bridge loop error: Device connection failed.
+[2026-04-06 23:02:44] Bridge loop error: Device connection failed.
+[2026-04-06 23:03:12] Bridge loop error: Device connection failed.
+[2026-04-06 23:03:40] Bridge loop error: Device connection failed.
+[2026-04-06 23:04:08] Bridge loop error: Device connection failed.
+[2026-04-06 23:04:37] Bridge loop error: Device connection failed.
+[2026-04-06 23:05:05] Bridge loop error: Device connection failed.
+[2026-04-06 23:05:33] Bridge loop error: Device connection failed.
+[2026-04-06 23:06:01] Bridge loop error: Device connection failed.
+[2026-04-06 23:06:29] Bridge loop error: Device connection failed.
+[2026-04-06 23:06:57] Bridge loop error: Device connection failed.
+[2026-04-06 23:07:25] Bridge loop error: Device connection failed.
+[2026-04-06 23:07:52] Bridge loop error: Device connection failed.
+[2026-04-06 23:08:20] Bridge loop error: Device connection failed.
+[2026-04-06 23:08:48] Bridge loop error: Device connection failed.
+[2026-04-06 23:09:16] Bridge loop error: Device connection failed.
+[2026-04-06 23:09:44] Bridge loop error: Device connection failed.
+[2026-04-06 23:10:12] Bridge loop error: Device connection failed.
+[2026-04-06 23:10:41] Bridge loop error: Device connection failed.
+[2026-04-06 23:11:09] Bridge loop error: Device connection failed.
+[2026-04-06 23:11:36] Bridge loop error: Device connection failed.
+[2026-04-06 23:12:04] Bridge loop error: Device connection failed.
+[2026-04-06 23:12:32] Bridge loop error: Device connection failed.
+[2026-04-06 23:13:00] Bridge loop error: Device connection failed.
+[2026-04-06 23:13:28] Bridge loop error: Device connection failed.
+[2026-04-06 23:13:56] Bridge loop error: Device connection failed.
+[2026-04-06 23:14:24] Bridge loop error: Device connection failed.
+[2026-04-06 23:14:52] Bridge loop error: Device connection failed.
+[2026-04-06 23:15:20] Bridge loop error: Device connection failed.
+[2026-04-06 23:15:48] Bridge loop error: Device connection failed.
+[2026-04-06 23:16:16] Bridge loop error: Device connection failed.
+[2026-04-06 23:16:43] Bridge loop error: Device connection failed.
+[2026-04-06 23:17:11] Bridge loop error: Device connection failed.
+[2026-04-06 23:17:39] Bridge loop error: Device connection failed.
+[2026-04-06 23:18:07] Bridge loop error: Device connection failed.
+[2026-04-06 23:18:35] Bridge loop error: Device connection failed.
+[2026-04-06 23:19:02] Bridge loop error: Device connection failed.
+[2026-04-06 23:19:30] Bridge loop error: Device connection failed.
+[2026-04-06 23:19:58] Bridge loop error: Device connection failed.
+[2026-04-06 23:20:26] Bridge loop error: Device connection failed.
+[2026-04-06 23:20:54] Bridge loop error: Device connection failed.
+[2026-04-06 23:21:22] Bridge loop error: Device connection failed.
+[2026-04-06 23:21:50] Bridge loop error: Device connection failed.
+[2026-04-06 23:22:18] Bridge loop error: Device connection failed.
+[2026-04-06 23:22:46] Bridge loop error: Device connection failed.
+[2026-04-06 23:23:14] Bridge loop error: Device connection failed.
+[2026-04-06 23:23:41] Bridge loop error: Device connection failed.
+[2026-04-06 23:24:10] Bridge loop error: Device connection failed.
+[2026-04-06 23:24:38] Bridge loop error: Device connection failed.
+[2026-04-06 23:25:06] Bridge loop error: Device connection failed.
+[2026-04-06 23:25:34] Bridge loop error: Device connection failed.
+[2026-04-06 23:26:01] Bridge loop error: Device connection failed.
+[2026-04-06 23:26:29] Bridge loop error: Device connection failed.
+[2026-04-06 23:26:57] Bridge loop error: Device connection failed.
+[2026-04-06 23:27:25] Bridge loop error: Device connection failed.
+[2026-04-06 23:27:53] Bridge loop error: Device connection failed.
+[2026-04-06 23:28:21] Bridge loop error: Device connection failed.
+[2026-04-06 23:28:49] Bridge loop error: Device connection failed.
+[2026-04-06 23:29:17] Bridge loop error: Device connection failed.
+[2026-04-06 23:29:44] Bridge loop error: Device connection failed.
+[2026-04-06 23:30:13] Bridge loop error: Device connection failed.
+[2026-04-06 23:30:41] Bridge loop error: Device connection failed.
+[2026-04-06 23:31:08] Bridge loop error: Device connection failed.
+[2026-04-06 23:31:36] Bridge loop error: Device connection failed.
+[2026-04-06 23:32:04] Bridge loop error: Device connection failed.
+[2026-04-06 23:32:32] Bridge loop error: Device connection failed.
+[2026-04-06 23:33:00] Bridge loop error: Device connection failed.
+[2026-04-06 23:33:28] Bridge loop error: Device connection failed.
+[2026-04-06 23:33:55] Bridge loop error: Device connection failed.
+[2026-04-06 23:34:23] Bridge loop error: Device connection failed.
+[2026-04-06 23:34:51] Bridge loop error: Device connection failed.
+[2026-04-06 23:35:19] Bridge loop error: Device connection failed.
+[2026-04-06 23:35:47] Bridge loop error: Device connection failed.
+[2026-04-06 23:36:15] Bridge loop error: Device connection failed.
+[2026-04-06 23:36:43] Bridge loop error: Device connection failed.
+[2026-04-06 23:37:11] Bridge loop error: Device connection failed.
+[2026-04-06 23:37:38] Bridge loop error: Device connection failed.
+[2026-04-06 23:38:07] Bridge loop error: Device connection failed.
+[2026-04-06 23:38:34] Bridge loop error: Device connection failed.
+[2026-04-06 23:39:05] Bridge loop error: Device connection failed.
+[2026-04-06 23:39:34] Bridge loop error: Device connection failed.
+[2026-04-06 23:40:02] Bridge loop error: Device connection failed.
+[2026-04-06 23:40:30] Bridge loop error: Device connection failed.
+[2026-04-06 23:40:58] Bridge loop error: Device connection failed.
+[2026-04-06 23:41:26] Bridge loop error: Device connection failed.
+[2026-04-06 23:41:54] Bridge loop error: Device connection failed.
+[2026-04-06 23:42:21] Bridge loop error: Device connection failed.
+[2026-04-06 23:42:49] Bridge loop error: Device connection failed.
+[2026-04-06 23:43:17] Bridge loop error: Device connection failed.
+[2026-04-06 23:43:45] Bridge loop error: Device connection failed.
+[2026-04-06 23:44:13] Bridge loop error: Device connection failed.
+[2026-04-06 23:44:41] Bridge loop error: Device connection failed.
+[2026-04-06 23:45:09] Bridge loop error: Device connection failed.
+[2026-04-06 23:45:36] Bridge loop error: Device connection failed.
+[2026-04-06 23:46:04] Bridge loop error: Device connection failed.
+[2026-04-06 23:46:34] Bridge loop error: Device connection failed.
+[2026-04-06 23:47:02] Bridge loop error: Device connection failed.
+[2026-04-06 23:47:30] Bridge loop error: Device connection failed.
+[2026-04-06 23:47:58] Bridge loop error: Device connection failed.
+[2026-04-06 23:48:26] Bridge loop error: Device connection failed.
+[2026-04-06 23:48:54] Bridge loop error: Device connection failed.
+[2026-04-06 23:49:22] Bridge loop error: Device connection failed.
+[2026-04-06 23:49:50] Bridge loop error: Device connection failed.
+[2026-04-06 23:50:18] Bridge loop error: Device connection failed.
+[2026-04-06 23:50:46] Bridge loop error: Device connection failed.
+[2026-04-06 23:51:14] Bridge loop error: Device connection failed.
+[2026-04-06 23:51:42] Bridge loop error: Device connection failed.
+[2026-04-06 23:52:10] Bridge loop error: Device connection failed.
+[2026-04-06 23:52:38] Bridge loop error: Device connection failed.
+[2026-04-06 23:53:05] Bridge loop error: Device connection failed.
+[2026-04-06 23:53:33] Bridge loop error: Device connection failed.
+[2026-04-06 23:54:01] Bridge loop error: Device connection failed.
+[2026-04-06 23:54:29] Bridge loop error: Device connection failed.
+[2026-04-06 23:54:57] Bridge loop error: Device connection failed.
+[2026-04-06 23:55:25] Bridge loop error: Device connection failed.
+[2026-04-06 23:55:53] Bridge loop error: Device connection failed.
+[2026-04-06 23:56:21] Bridge loop error: Device connection failed.
+[2026-04-06 23:56:48] Bridge loop error: Device connection failed.
+[2026-04-06 23:57:16] Bridge loop error: Device connection failed.
+[2026-04-06 23:57:44] Bridge loop error: Device connection failed.
+[2026-04-06 23:58:12] Bridge loop error: Device connection failed.
+[2026-04-06 23:58:40] Bridge loop error: Device connection failed.
+[2026-04-06 23:59:08] Bridge loop error: Device connection failed.
+[2026-04-06 23:59:36] Bridge loop error: Device connection failed.
+[2026-04-07 00:00:03] Bridge loop error: Device connection failed.
+[2026-04-07 00:00:32] Bridge loop error: Device connection failed.
+[2026-04-07 00:00:59] Bridge loop error: Device connection failed.
+[2026-04-07 00:01:27] Bridge loop error: Device connection failed.
+[2026-04-07 00:01:56] Bridge loop error: Device connection failed.
+[2026-04-07 00:02:24] Bridge loop error: Device connection failed.
+[2026-04-07 00:02:52] Bridge loop error: Device connection failed.
+[2026-04-07 00:03:20] Bridge loop error: Device connection failed.
+[2026-04-07 00:03:47] Bridge loop error: Device connection failed.
+[2026-04-07 00:04:15] Bridge loop error: Device connection failed.
+[2026-04-07 00:04:43] Bridge loop error: Device connection failed.
+[2026-04-07 00:05:11] Bridge loop error: Device connection failed.
+[2026-04-07 00:05:39] Bridge loop error: Device connection failed.
+[2026-04-07 00:06:07] Bridge loop error: Device connection failed.
+[2026-04-07 00:06:35] Bridge loop error: Device connection failed.
+[2026-04-07 00:07:02] Bridge loop error: Device connection failed.
+[2026-04-07 00:07:30] Bridge loop error: Device connection failed.
+[2026-04-07 00:07:58] Bridge loop error: Device connection failed.
+[2026-04-07 00:08:26] Bridge loop error: Device connection failed.
+[2026-04-07 00:08:54] Bridge loop error: Device connection failed.
+[2026-04-07 00:09:22] Bridge loop error: Device connection failed.
+[2026-04-07 00:09:50] Bridge loop error: Device connection failed.
+[2026-04-07 00:10:18] Bridge loop error: Device connection failed.
+[2026-04-07 00:10:45] Bridge loop error: Device connection failed.
+[2026-04-07 00:11:13] Bridge loop error: Device connection failed.
+[2026-04-07 00:11:41] Bridge loop error: Device connection failed.
+[2026-04-07 00:12:09] Bridge loop error: Device connection failed.
+[2026-04-07 00:12:37] Bridge loop error: Device connection failed.
+[2026-04-07 00:13:05] Bridge loop error: Device connection failed.
+[2026-04-07 00:13:33] Bridge loop error: Device connection failed.
+[2026-04-07 00:14:01] Bridge loop error: Device connection failed.
+[2026-04-07 00:14:29] Bridge loop error: Device connection failed.
+[2026-04-07 00:14:57] Bridge loop error: Device connection failed.
+[2026-04-07 00:15:25] Bridge loop error: Device connection failed.
+[2026-04-07 00:15:52] Bridge loop error: Device connection failed.
+[2026-04-07 00:16:20] Bridge loop error: Device connection failed.
+[2026-04-07 00:16:48] Bridge loop error: Device connection failed.
+[2026-04-07 00:17:16] Bridge loop error: Device connection failed.
+[2026-04-07 00:17:44] Bridge loop error: Device connection failed.
+[2026-04-07 00:18:11] Bridge loop error: Device connection failed.
+[2026-04-07 00:18:39] Bridge loop error: Device connection failed.
+[2026-04-07 00:19:07] Bridge loop error: Device connection failed.
+[2026-04-07 00:19:36] Bridge loop error: Device connection failed.
+[2026-04-07 00:20:03] Bridge loop error: Device connection failed.
+[2026-04-07 00:20:32] Bridge loop error: Device connection failed.
+[2026-04-07 00:21:00] Bridge loop error: Device connection failed.
+[2026-04-07 00:21:28] Bridge loop error: Device connection failed.
+[2026-04-07 00:21:56] Bridge loop error: Device connection failed.
+[2026-04-07 00:22:23] Bridge loop error: Device connection failed.
+[2026-04-07 00:22:51] Bridge loop error: Device connection failed.
+[2026-04-07 00:23:19] Bridge loop error: Device connection failed.
+[2026-04-07 00:23:47] Bridge loop error: Device connection failed.
+[2026-04-07 00:24:15] Bridge loop error: Device connection failed.
+[2026-04-07 00:24:43] Bridge loop error: Device connection failed.
+[2026-04-07 00:25:11] Bridge loop error: Device connection failed.
+[2026-04-07 00:25:39] Bridge loop error: Device connection failed.
+[2026-04-07 00:26:07] Bridge loop error: Device connection failed.
+[2026-04-07 00:26:35] Bridge loop error: Device connection failed.
+[2026-04-07 00:27:03] Bridge loop error: Device connection failed.
+[2026-04-07 00:27:31] Bridge loop error: Device connection failed.
+[2026-04-07 00:27:59] Bridge loop error: Device connection failed.
+[2026-04-07 00:28:26] Bridge loop error: Device connection failed.
+[2026-04-07 00:28:54] Bridge loop error: Device connection failed.
+[2026-04-07 00:29:22] Bridge loop error: Device connection failed.
+[2026-04-07 00:29:50] Bridge loop error: Device connection failed.
+[2026-04-07 00:30:18] Bridge loop error: Device connection failed.
+[2026-04-07 00:30:46] Bridge loop error: Device connection failed.
+[2026-04-07 00:31:14] Bridge loop error: Device connection failed.
+[2026-04-07 00:31:42] Bridge loop error: Device connection failed.
+[2026-04-07 00:32:09] Bridge loop error: Device connection failed.
+[2026-04-07 00:32:37] Bridge loop error: Device connection failed.
+[2026-04-07 00:33:05] Bridge loop error: Device connection failed.
+[2026-04-07 00:33:33] Bridge loop error: Device connection failed.
+[2026-04-07 00:34:01] Bridge loop error: Device connection failed.
+[2026-04-07 00:34:29] Bridge loop error: Device connection failed.
+[2026-04-07 00:34:57] Bridge loop error: Device connection failed.
+[2026-04-07 00:35:26] Bridge loop error: Device connection failed.
+[2026-04-07 00:35:53] Bridge loop error: Device connection failed.
+[2026-04-07 00:36:21] Bridge loop error: Device connection failed.
+[2026-04-07 00:36:49] Bridge loop error: Device connection failed.
+[2026-04-07 00:37:17] Bridge loop error: Device connection failed.
+[2026-04-07 00:37:45] Bridge loop error: Device connection failed.
+[2026-04-07 00:38:13] Bridge loop error: Device connection failed.
+[2026-04-07 00:38:40] Bridge loop error: Device connection failed.
+[2026-04-07 00:39:08] Bridge loop error: Device connection failed.
+[2026-04-07 00:39:38] Bridge loop error: Device connection failed.
+[2026-04-07 00:40:06] Bridge loop error: Device connection failed.
+[2026-04-07 00:40:34] Bridge loop error: Device connection failed.
+[2026-04-07 00:41:02] Bridge loop error: Device connection failed.
+[2026-04-07 00:41:30] Bridge loop error: Device connection failed.
+[2026-04-07 00:41:58] Bridge loop error: Device connection failed.
+[2026-04-07 00:42:26] Bridge loop error: Device connection failed.
+[2026-04-07 00:42:54] Bridge loop error: Device connection failed.
+[2026-04-07 00:43:22] Bridge loop error: Device connection failed.
+[2026-04-07 00:43:49] Bridge loop error: Device connection failed.
+[2026-04-07 00:44:17] Bridge loop error: Device connection failed.
+[2026-04-07 00:44:45] Bridge loop error: Device connection failed.
+[2026-04-07 00:45:13] Bridge loop error: Device connection failed.
+[2026-04-07 00:45:41] Bridge loop error: Device connection failed.
+[2026-04-07 00:46:09] Bridge loop error: Device connection failed.
+[2026-04-07 00:46:39] Bridge loop error: Device connection failed.
+[2026-04-07 00:47:07] Bridge loop error: Device connection failed.
+[2026-04-07 00:47:35] Bridge loop error: Device connection failed.
+[2026-04-07 00:48:03] Bridge loop error: Device connection failed.
+[2026-04-07 00:48:31] Bridge loop error: Device connection failed.
+[2026-04-07 00:49:08] Bridge loop error: Device connection failed.
+[2026-04-07 00:50:12] Bridge loop error: Device connection failed.
+[2026-04-07 00:50:44] Bridge loop error: Device connection failed.
+[2026-04-07 00:51:12] Bridge loop error: Device connection failed.
+[2026-04-07 00:51:40] Bridge loop error: Device connection failed.
+[2026-04-07 00:52:08] Bridge loop error: Device connection failed.
+[2026-04-07 00:52:35] Bridge loop error: Device connection failed.
+[2026-04-07 00:53:03] Bridge loop error: Device connection failed.
+[2026-04-07 00:53:31] Bridge loop error: Device connection failed.
+[2026-04-07 00:53:59] Bridge loop error: Device connection failed.
+[2026-04-07 00:54:27] Bridge loop error: Device connection failed.
+[2026-04-07 00:54:56] Bridge loop error: Device connection failed.
+[2026-04-07 00:55:24] Bridge loop error: Device connection failed.
+[2026-04-07 00:55:52] Bridge loop error: Device connection failed.
+[2026-04-07 00:56:19] Bridge loop error: Device connection failed.
+[2026-04-07 00:56:47] Bridge loop error: Device connection failed.
+[2026-04-07 00:57:15] Bridge loop error: Device connection failed.
+[2026-04-07 00:57:43] Bridge loop error: Device connection failed.
+[2026-04-07 00:58:11] Bridge loop error: Device connection failed.
+[2026-04-07 00:58:39] Bridge loop error: Device connection failed.
+[2026-04-07 00:59:07] Bridge loop error: Device connection failed.
+[2026-04-07 00:59:35] Bridge loop error: Device connection failed.
+[2026-04-07 01:00:02] Bridge loop error: Device connection failed.
+[2026-04-07 01:00:31] Bridge loop error: Device connection failed.
+[2026-04-07 01:00:59] Bridge loop error: Device connection failed.
+[2026-04-07 01:01:27] Bridge loop error: Device connection failed.
+[2026-04-07 01:01:55] Bridge loop error: Device connection failed.
+[2026-04-07 01:02:23] Bridge loop error: Device connection failed.
+[2026-04-07 01:02:51] Bridge loop error: Device connection failed.
+[2026-04-07 01:03:18] Bridge loop error: Device connection failed.
+[2026-04-07 01:03:46] Bridge loop error: Device connection failed.
+[2026-04-07 01:04:14] Bridge loop error: Device connection failed.
+[2026-04-07 01:04:42] Bridge loop error: Device connection failed.
+[2026-04-07 01:05:10] Bridge loop error: Device connection failed.
+[2026-04-07 01:05:38] Bridge loop error: Device connection failed.
+[2026-04-07 01:06:06] Bridge loop error: Device connection failed.
+[2026-04-07 01:06:33] Bridge loop error: Device connection failed.
+[2026-04-07 01:07:01] Bridge loop error: Device connection failed.
+[2026-04-07 01:07:29] Bridge loop error: Device connection failed.
+[2026-04-07 01:07:57] Bridge loop error: Device connection failed.
+[2026-04-07 01:08:25] Bridge loop error: Device connection failed.
+[2026-04-07 01:08:53] Bridge loop error: Device connection failed.
+[2026-04-07 01:09:21] Bridge loop error: Device connection failed.
+[2026-04-07 01:09:49] Bridge loop error: Device connection failed.
+[2026-04-07 01:10:17] Bridge loop error: Device connection failed.
+[2026-04-07 01:10:45] Bridge loop error: Device connection failed.
+[2026-04-07 01:11:13] Bridge loop error: Device connection failed.
+[2026-04-07 01:11:40] Bridge loop error: Device connection failed.
+[2026-04-07 01:12:08] Bridge loop error: Device connection failed.
+[2026-04-07 01:12:36] Bridge loop error: Device connection failed.
+[2026-04-07 01:13:04] Bridge loop error: Device connection failed.
+[2026-04-07 01:13:32] Bridge loop error: Device connection failed.
+[2026-04-07 01:14:00] Bridge loop error: Device connection failed.
+[2026-04-07 01:14:28] Bridge loop error: Device connection failed.
+[2026-04-07 01:14:56] Bridge loop error: Device connection failed.
+[2026-04-07 01:15:23] Bridge loop error: Device connection failed.
+[2026-04-07 01:15:51] Bridge loop error: Device connection failed.
+[2026-04-07 01:16:19] Bridge loop error: Device connection failed.
+[2026-04-07 01:16:47] Bridge loop error: Device connection failed.
+[2026-04-07 01:17:15] Bridge loop error: Device connection failed.
+[2026-04-07 01:17:43] Bridge loop error: Device connection failed.
+[2026-04-07 01:18:11] Bridge loop error: Device connection failed.
+[2026-04-07 01:18:39] Bridge loop error: Device connection failed.
+[2026-04-07 01:19:06] Bridge loop error: Device connection failed.
+[2026-04-07 01:19:35] Bridge loop error: Device connection failed.
+[2026-04-07 01:20:03] Bridge loop error: Device connection failed.
+[2026-04-07 01:20:31] Bridge loop error: Device connection failed.
+[2026-04-07 01:20:59] Bridge loop error: Device connection failed.
+[2026-04-07 01:21:27] Bridge loop error: Device connection failed.
+[2026-04-07 01:21:55] Bridge loop error: Device connection failed.
+[2026-04-07 01:22:22] Bridge loop error: Device connection failed.
+[2026-04-07 01:22:50] Bridge loop error: Device connection failed.
+[2026-04-07 01:23:18] Bridge loop error: Device connection failed.
+[2026-04-07 01:23:46] Bridge loop error: Device connection failed.
+[2026-04-07 01:24:14] Bridge loop error: Device connection failed.
+[2026-04-07 01:24:42] Bridge loop error: Device connection failed.
+[2026-04-07 01:25:10] Bridge loop error: Device connection failed.
+[2026-04-07 01:25:37] Bridge loop error: Device connection failed.
+[2026-04-07 01:26:05] Bridge loop error: Device connection failed.
+[2026-04-07 01:26:33] Bridge loop error: Device connection failed.
+[2026-04-07 01:27:01] Bridge loop error: Device connection failed.
+[2026-04-07 01:27:29] Bridge loop error: Device connection failed.
+[2026-04-07 01:27:57] Bridge loop error: Device connection failed.
+[2026-04-07 01:28:24] Bridge loop error: Device connection failed.
+[2026-04-07 01:28:52] Bridge loop error: Device connection failed.
+[2026-04-07 01:29:20] Bridge loop error: Device connection failed.
+[2026-04-07 01:29:48] Bridge loop error: Device connection failed.
+[2026-04-07 01:30:16] Bridge loop error: Device connection failed.
+[2026-04-07 01:30:44] Bridge loop error: Device connection failed.
+[2026-04-07 01:31:12] Bridge loop error: Device connection failed.
+[2026-04-07 01:31:40] Bridge loop error: Device connection failed.
+[2026-04-07 01:32:07] Bridge loop error: Device connection failed.
+[2026-04-07 01:32:35] Bridge loop error: Device connection failed.
+[2026-04-07 01:33:03] Bridge loop error: Device connection failed.
+[2026-04-07 01:33:31] Bridge loop error: Device connection failed.
+[2026-04-07 01:33:59] Bridge loop error: Device connection failed.
+[2026-04-07 01:34:27] Bridge loop error: Device connection failed.
+[2026-04-07 01:34:55] Bridge loop error: Device connection failed.
+[2026-04-07 01:35:23] Bridge loop error: Device connection failed.
+[2026-04-07 01:35:51] Bridge loop error: Device connection failed.
+[2026-04-07 01:36:19] Bridge loop error: Device connection failed.
+[2026-04-07 01:36:47] Bridge loop error: Device connection failed.
+[2026-04-07 01:37:15] Bridge loop error: Device connection failed.
+[2026-04-07 01:37:43] Bridge loop error: Device connection failed.
+[2026-04-07 01:38:11] Bridge loop error: Device connection failed.
+[2026-04-07 01:38:39] Bridge loop error: Device connection failed.
+[2026-04-07 01:39:06] Bridge loop error: Device connection failed.
+[2026-04-07 01:39:35] Bridge loop error: Device connection failed.
+[2026-04-07 01:40:03] Bridge loop error: Device connection failed.
+[2026-04-07 01:40:31] Bridge loop error: Device connection failed.
+[2026-04-07 01:40:59] Bridge loop error: Device connection failed.
+[2026-04-07 01:41:27] Bridge loop error: Device connection failed.
+[2026-04-07 01:41:55] Bridge loop error: Device connection failed.
+[2026-04-07 01:42:23] Bridge loop error: Device connection failed.
+[2026-04-07 01:42:51] Bridge loop error: Device connection failed.
+[2026-04-07 01:43:19] Bridge loop error: Device connection failed.
+[2026-04-07 01:43:46] Bridge loop error: Device connection failed.
+[2026-04-07 01:44:14] Bridge loop error: Device connection failed.
+[2026-04-07 01:44:42] Bridge loop error: Device connection failed.
+[2026-04-07 01:45:10] Bridge loop error: Device connection failed.
+[2026-04-07 01:45:38] Bridge loop error: Device connection failed.
+[2026-04-07 01:46:06] Bridge loop error: Device connection failed.
+[2026-04-07 01:46:35] Bridge loop error: Device connection failed.
+[2026-04-07 01:47:03] Bridge loop error: Device connection failed.
+[2026-04-07 01:47:31] Bridge loop error: Device connection failed.
+[2026-04-07 01:47:59] Bridge loop error: Device connection failed.
+[2026-04-07 01:48:27] Bridge loop error: Device connection failed.
+[2026-04-07 01:48:55] Bridge loop error: Device connection failed.
+[2026-04-07 01:49:23] Bridge loop error: Device connection failed.
+[2026-04-07 01:49:51] Bridge loop error: Device connection failed.
+[2026-04-07 01:50:19] Bridge loop error: Device connection failed.
+[2026-04-07 01:50:47] Bridge loop error: Device connection failed.
+[2026-04-07 01:51:15] Bridge loop error: Device connection failed.
+[2026-04-07 01:51:43] Bridge loop error: Device connection failed.
+[2026-04-07 01:52:11] Bridge loop error: Device connection failed.
+[2026-04-07 01:52:38] Bridge loop error: Device connection failed.
+[2026-04-07 01:53:06] Bridge loop error: Device connection failed.
+[2026-04-07 01:53:34] Bridge loop error: Device connection failed.
+[2026-04-07 01:54:02] Bridge loop error: Device connection failed.
+[2026-04-07 01:54:30] Bridge loop error: Device connection failed.
+[2026-04-07 01:54:58] Bridge loop error: Device connection failed.
+[2026-04-07 01:55:26] Bridge loop error: Device connection failed.
+[2026-04-07 01:55:53] Bridge loop error: Device connection failed.
+[2026-04-07 01:56:21] Bridge loop error: Device connection failed.
+[2026-04-07 01:56:49] Bridge loop error: Device connection failed.
+[2026-04-07 01:57:17] Bridge loop error: Device connection failed.
+[2026-04-07 01:57:45] Bridge loop error: Device connection failed.
+[2026-04-07 01:58:13] Bridge loop error: Device connection failed.
+[2026-04-07 01:58:40] Bridge loop error: Device connection failed.
+[2026-04-07 01:59:08] Bridge loop error: Device connection failed.
+[2026-04-07 01:59:37] Bridge loop error: Device connection failed.
+[2026-04-07 02:00:05] Bridge loop error: Device connection failed.
+[2026-04-07 02:00:33] Bridge loop error: Device connection failed.
+[2026-04-07 02:01:01] Bridge loop error: Device connection failed.
+[2026-04-07 02:01:29] Bridge loop error: Device connection failed.
+[2026-04-07 02:01:57] Bridge loop error: Device connection failed.
+[2026-04-07 02:02:24] Bridge loop error: Device connection failed.
+[2026-04-07 02:02:52] Bridge loop error: Device connection failed.
+[2026-04-07 02:03:20] Bridge loop error: Device connection failed.
+[2026-04-07 02:03:48] Bridge loop error: Device connection failed.
+[2026-04-07 02:04:16] Bridge loop error: Device connection failed.
+[2026-04-07 02:04:44] Bridge loop error: Device connection failed.
+[2026-04-07 02:05:12] Bridge loop error: Device connection failed.
+[2026-04-07 02:05:40] Bridge loop error: Device connection failed.
+[2026-04-07 02:06:08] Bridge loop error: Device connection failed.
+[2026-04-07 02:06:36] Bridge loop error: Device connection failed.
+[2026-04-07 02:07:04] Bridge loop error: Device connection failed.
+[2026-04-07 02:07:32] Bridge loop error: Device connection failed.
+[2026-04-07 02:08:00] Bridge loop error: Device connection failed.
+[2026-04-07 02:08:27] Bridge loop error: Device connection failed.
+[2026-04-07 02:08:55] Bridge loop error: Device connection failed.
+[2026-04-07 02:09:23] Bridge loop error: Device connection failed.
+[2026-04-07 02:09:51] Bridge loop error: Device connection failed.
+[2026-04-07 02:10:19] Bridge loop error: Device connection failed.
+[2026-04-07 02:10:47] Bridge loop error: Device connection failed.
+[2026-04-07 02:11:15] Bridge loop error: Device connection failed.
+[2026-04-07 02:11:43] Bridge loop error: Device connection failed.
+[2026-04-07 02:12:11] Bridge loop error: Device connection failed.
+[2026-04-07 02:12:39] Bridge loop error: Device connection failed.
+[2026-04-07 02:13:07] Bridge loop error: Device connection failed.
+[2026-04-07 02:13:35] Bridge loop error: Device connection failed.
+[2026-04-07 02:14:02] Bridge loop error: Device connection failed.
+[2026-04-07 02:14:30] Bridge loop error: Device connection failed.
+[2026-04-07 02:14:58] Bridge loop error: Device connection failed.
+[2026-04-07 02:15:26] Bridge loop error: Device connection failed.
+[2026-04-07 02:15:54] Bridge loop error: Device connection failed.
+[2026-04-07 02:16:22] Bridge loop error: Device connection failed.
+[2026-04-07 02:16:50] Bridge loop error: Device connection failed.
+[2026-04-07 02:17:18] Bridge loop error: Device connection failed.
+[2026-04-07 02:17:45] Bridge loop error: Device connection failed.
+[2026-04-07 02:18:13] Bridge loop error: Device connection failed.
+[2026-04-07 02:18:41] Bridge loop error: Device connection failed.
+[2026-04-07 02:19:09] Bridge loop error: Device connection failed.
+[2026-04-07 02:19:37] Bridge loop error: Device connection failed.
+[2026-04-07 02:20:05] Bridge loop error: Device connection failed.
+[2026-04-07 02:20:33] Bridge loop error: Device connection failed.
+[2026-04-07 02:21:01] Bridge loop error: Device connection failed.
+[2026-04-07 02:21:28] Bridge loop error: Device connection failed.
+[2026-04-07 02:21:56] Bridge loop error: Device connection failed.
+[2026-04-07 02:22:24] Bridge loop error: Device connection failed.
+[2026-04-07 02:22:52] Bridge loop error: Device connection failed.
+[2026-04-07 02:23:20] Bridge loop error: Device connection failed.
+[2026-04-07 02:23:48] Bridge loop error: Device connection failed.
+[2026-04-07 02:24:16] Bridge loop error: Device connection failed.
+[2026-04-07 02:24:44] Bridge loop error: Device connection failed.
+[2026-04-07 02:25:12] Bridge loop error: Device connection failed.
+[2026-04-07 02:25:40] Bridge loop error: Device connection failed.
+[2026-04-07 02:26:08] Bridge loop error: Device connection failed.
+[2026-04-07 02:26:36] Bridge loop error: Device connection failed.
+[2026-04-07 02:27:04] Bridge loop error: Device connection failed.
+[2026-04-07 02:27:32] Bridge loop error: Device connection failed.
+[2026-04-07 02:27:59] Bridge loop error: Device connection failed.
+[2026-04-07 02:28:27] Bridge loop error: Device connection failed.
+[2026-04-07 02:28:55] Bridge loop error: Device connection failed.
+[2026-04-07 02:29:23] Bridge loop error: Device connection failed.
+[2026-04-07 02:29:52] Bridge loop error: Device connection failed.
+[2026-04-07 02:30:20] Bridge loop error: Device connection failed.
+[2026-04-07 02:30:47] Bridge loop error: Device connection failed.
+[2026-04-07 02:31:15] Bridge loop error: Device connection failed.
+[2026-04-07 02:31:43] Bridge loop error: Device connection failed.
+[2026-04-07 02:32:11] Bridge loop error: Device connection failed.
+[2026-04-07 02:32:39] Bridge loop error: Device connection failed.
+[2026-04-07 02:33:07] Bridge loop error: Device connection failed.
+[2026-04-07 02:33:35] Bridge loop error: Device connection failed.
+[2026-04-07 02:34:02] Bridge loop error: Device connection failed.
+[2026-04-07 02:34:30] Bridge loop error: Device connection failed.
+[2026-04-07 02:34:58] Bridge loop error: Device connection failed.
+[2026-04-07 02:35:26] Bridge loop error: Device connection failed.
+[2026-04-07 02:35:54] Bridge loop error: Device connection failed.
+[2026-04-07 02:36:22] Bridge loop error: Device connection failed.
+[2026-04-07 02:36:50] Bridge loop error: Device connection failed.
+[2026-04-07 02:37:18] Bridge loop error: Device connection failed.
+[2026-04-07 02:37:45] Bridge loop error: Device connection failed.
+[2026-04-07 02:38:13] Bridge loop error: Device connection failed.
+[2026-04-07 02:38:41] Bridge loop error: Device connection failed.
+[2026-04-07 02:39:09] Bridge loop error: Device connection failed.
+[2026-04-07 02:39:40] Bridge loop error: Device connection failed.
+[2026-04-07 02:40:09] Bridge loop error: Device connection failed.
+[2026-04-07 02:40:37] Bridge loop error: Device connection failed.
+[2026-04-07 02:41:05] Bridge loop error: Device connection failed.
+[2026-04-07 02:41:32] Bridge loop error: Device connection failed.
+[2026-04-07 02:42:00] Bridge loop error: Device connection failed.
+[2026-04-07 02:42:28] Bridge loop error: Device connection failed.
+[2026-04-07 02:42:56] Bridge loop error: Device connection failed.
+[2026-04-07 02:43:24] Bridge loop error: Device connection failed.
+[2026-04-07 02:43:52] Bridge loop error: Device connection failed.
+[2026-04-07 02:44:20] Bridge loop error: Device connection failed.
+[2026-04-07 02:44:48] Bridge loop error: Device connection failed.
+[2026-04-07 02:45:16] Bridge loop error: Device connection failed.
+[2026-04-07 02:45:44] Bridge loop error: Device connection failed.
+[2026-04-07 02:46:12] Bridge loop error: Device connection failed.
+[2026-04-07 02:46:42] Bridge loop error: Device connection failed.
+[2026-04-07 02:47:14] Bridge loop error: Device connection failed.
+[2026-04-07 02:47:44] Bridge loop error: Device connection failed.
+[2026-04-07 02:48:12] Bridge loop error: Device connection failed.
+[2026-04-07 02:48:40] Bridge loop error: Device connection failed.
+[2026-04-07 02:49:08] Bridge loop error: Device connection failed.
+[2026-04-07 02:49:37] Bridge loop error: Device connection failed.
+[2026-04-07 02:50:05] Bridge loop error: Device connection failed.
+[2026-04-07 02:50:33] Bridge loop error: Device connection failed.
+[2026-04-07 02:51:01] Bridge loop error: Device connection failed.
+[2026-04-07 02:51:29] Bridge loop error: Device connection failed.
+[2026-04-07 02:51:57] Bridge loop error: Device connection failed.
+[2026-04-07 02:52:25] Bridge loop error: Device connection failed.
+[2026-04-07 02:52:53] Bridge loop error: Device connection failed.
+[2026-04-07 02:53:20] Bridge loop error: Device connection failed.
+[2026-04-07 02:53:48] Bridge loop error: Device connection failed.
+[2026-04-07 02:54:16] Bridge loop error: Device connection failed.
+[2026-04-07 02:54:44] Bridge loop error: Device connection failed.
+[2026-04-07 02:55:12] Bridge loop error: Device connection failed.
+[2026-04-07 02:55:40] Bridge loop error: Device connection failed.
+[2026-04-07 02:56:07] Bridge loop error: Device connection failed.
+[2026-04-07 02:56:35] Bridge loop error: Device connection failed.
+[2026-04-07 02:57:03] Bridge loop error: Device connection failed.
+[2026-04-07 02:57:31] Bridge loop error: Device connection failed.
+[2026-04-07 02:57:59] Bridge loop error: Device connection failed.
+[2026-04-07 02:58:27] Bridge loop error: Device connection failed.
+[2026-04-07 02:58:55] Bridge loop error: Device connection failed.
+[2026-04-07 02:59:23] Bridge loop error: Device connection failed.
+[2026-04-07 02:59:51] Bridge loop error: Device connection failed.
+[2026-04-07 03:00:19] Bridge loop error: Device connection failed.
+[2026-04-07 03:00:46] Bridge loop error: Device connection failed.
+[2026-04-07 03:01:14] Bridge loop error: Device connection failed.
+[2026-04-07 03:01:42] Bridge loop error: Device connection failed.
+[2026-04-07 03:02:10] Bridge loop error: Device connection failed.
+[2026-04-07 03:02:38] Bridge loop error: Device connection failed.
+[2026-04-07 03:03:06] Bridge loop error: Device connection failed.
+[2026-04-07 03:03:34] Bridge loop error: Device connection failed.
+[2026-04-07 03:04:01] Bridge loop error: Device connection failed.
+[2026-04-07 03:04:29] Bridge loop error: Device connection failed.
+[2026-04-07 03:04:57] Bridge loop error: Device connection failed.
+[2026-04-07 03:05:26] Bridge loop error: Device connection failed.
+[2026-04-07 03:05:54] Bridge loop error: Device connection failed.
+[2026-04-07 03:06:22] Bridge loop error: Device connection failed.
+[2026-04-07 03:06:49] Bridge loop error: Device connection failed.
+[2026-04-07 03:07:17] Bridge loop error: Device connection failed.
+[2026-04-07 03:07:45] Bridge loop error: Device connection failed.
+[2026-04-07 03:08:13] Bridge loop error: Device connection failed.
+[2026-04-07 03:08:41] Bridge loop error: Device connection failed.
+[2026-04-07 03:09:09] Bridge loop error: Device connection failed.
+[2026-04-07 03:09:37] Bridge loop error: Device connection failed.
+[2026-04-07 03:10:05] Bridge loop error: Device connection failed.
+[2026-04-07 03:10:33] Bridge loop error: Device connection failed.
+[2026-04-07 03:11:01] Bridge loop error: Device connection failed.
+[2026-04-07 03:11:29] Bridge loop error: Device connection failed.
+[2026-04-07 03:11:57] Bridge loop error: Device connection failed.
+[2026-04-07 03:12:25] Bridge loop error: Device connection failed.
+[2026-04-07 03:12:53] Bridge loop error: Device connection failed.
+[2026-04-07 03:13:20] Bridge loop error: Device connection failed.
+[2026-04-07 03:13:48] Bridge loop error: Device connection failed.
+[2026-04-07 03:14:16] Bridge loop error: Device connection failed.
+[2026-04-07 03:14:44] Bridge loop error: Device connection failed.
+[2026-04-07 03:15:12] Bridge loop error: Device connection failed.
+[2026-04-07 03:15:40] Bridge loop error: Device connection failed.
+[2026-04-07 03:16:07] Bridge loop error: Device connection failed.
+[2026-04-07 03:16:35] Bridge loop error: Device connection failed.
+[2026-04-07 03:17:03] Bridge loop error: Device connection failed.
+[2026-04-07 03:17:31] Bridge loop error: Device connection failed.
+[2026-04-07 03:17:59] Bridge loop error: Device connection failed.
+[2026-04-07 03:18:27] Bridge loop error: Device connection failed.
+[2026-04-07 03:18:55] Bridge loop error: Device connection failed.
+[2026-04-07 03:19:23] Bridge loop error: Device connection failed.
+[2026-04-07 03:19:53] Bridge loop error: Device connection failed.
+[2026-04-07 03:20:22] Bridge loop error: Device connection failed.
+[2026-04-07 03:20:51] Bridge loop error: Device connection failed.
+[2026-04-07 03:21:18] Bridge loop error: Device connection failed.
+[2026-04-07 03:21:46] Bridge loop error: Device connection failed.
+[2026-04-07 03:22:14] Bridge loop error: Device connection failed.
+[2026-04-07 03:22:43] Bridge loop error: Device connection failed.
+[2026-04-07 03:23:11] Bridge loop error: Device connection failed.
+[2026-04-07 03:23:40] Bridge loop error: Device connection failed.
+[2026-04-07 03:24:08] Bridge loop error: Device connection failed.
+[2026-04-07 03:24:37] Bridge loop error: Device connection failed.
+[2026-04-07 03:25:06] Bridge loop error: Device connection failed.
+[2026-04-07 03:25:35] Bridge loop error: Device connection failed.
+[2026-04-07 03:26:03] Bridge loop error: Device connection failed.
+[2026-04-07 03:26:31] Bridge loop error: Device connection failed.
+[2026-04-07 03:26:59] Bridge loop error: Device connection failed.
+[2026-04-07 03:27:27] Bridge loop error: Device connection failed.
+[2026-04-07 03:27:55] Bridge loop error: Device connection failed.
+[2026-04-07 03:28:22] Bridge loop error: Device connection failed.
+[2026-04-07 03:28:50] Bridge loop error: Device connection failed.
+[2026-04-07 03:29:18] Bridge loop error: Device connection failed.
+[2026-04-07 03:29:46] Bridge loop error: Device connection failed.
+[2026-04-07 03:30:14] Bridge loop error: Device connection failed.
+[2026-04-07 03:30:42] Bridge loop error: Device connection failed.
+[2026-04-07 03:31:10] Bridge loop error: Device connection failed.
+[2026-04-07 03:31:37] Bridge loop error: Device connection failed.
+[2026-04-07 03:32:05] Bridge loop error: Device connection failed.
+[2026-04-07 03:32:33] Bridge loop error: Device connection failed.
+[2026-04-07 03:33:01] Bridge loop error: Device connection failed.
+[2026-04-07 03:33:29] Bridge loop error: Device connection failed.
+[2026-04-07 03:33:57] Bridge loop error: Device connection failed.
+[2026-04-07 03:34:24] Bridge loop error: Device connection failed.
+[2026-04-07 03:34:52] Bridge loop error: Device connection failed.
+[2026-04-07 03:35:20] Bridge loop error: Device connection failed.
+[2026-04-07 03:35:48] Bridge loop error: Device connection failed.
+[2026-04-07 03:36:16] Bridge loop error: Device connection failed.
+[2026-04-07 03:36:44] Bridge loop error: Device connection failed.
+[2026-04-07 03:37:12] Bridge loop error: Device connection failed.
+[2026-04-07 03:37:40] Bridge loop error: Device connection failed.
+[2026-04-07 03:38:07] Bridge loop error: Device connection failed.
+[2026-04-07 03:38:35] Bridge loop error: Device connection failed.
+[2026-04-07 03:39:03] Bridge loop error: Device connection failed.
+[2026-04-07 03:39:32] Bridge loop error: Device connection failed.
+[2026-04-07 03:40:00] Bridge loop error: Device connection failed.
+[2026-04-07 03:40:29] Bridge loop error: Device connection failed.
+[2026-04-07 03:40:56] Bridge loop error: Device connection failed.
+[2026-04-07 03:41:25] Bridge loop error: Device connection failed.
+[2026-04-07 03:41:53] Bridge loop error: Device connection failed.
+[2026-04-07 03:42:20] Bridge loop error: Device connection failed.
+[2026-04-07 03:42:48] Bridge loop error: Device connection failed.
+[2026-04-07 03:43:16] Bridge loop error: Device connection failed.
+[2026-04-07 03:43:44] Bridge loop error: Device connection failed.
+[2026-04-07 03:44:12] Bridge loop error: Device connection failed.
+[2026-04-07 03:44:40] Bridge loop error: Device connection failed.
+[2026-04-07 03:45:08] Bridge loop error: Device connection failed.
+[2026-04-07 03:45:36] Bridge loop error: Device connection failed.
+[2026-04-07 03:46:04] Bridge loop error: Device connection failed.
+[2026-04-07 03:46:32] Bridge loop error: Device connection failed.
+[2026-04-07 03:47:00] Bridge loop error: Device connection failed.
+[2026-04-07 03:47:29] Bridge loop error: Device connection failed.
+[2026-04-07 03:47:56] Bridge loop error: Device connection failed.
+[2026-04-07 03:48:24] Bridge loop error: Device connection failed.
+[2026-04-07 03:48:52] Bridge loop error: Device connection failed.
+[2026-04-07 03:49:20] Bridge loop error: Device connection failed.
+[2026-04-07 03:49:48] Bridge loop error: Device connection failed.
+[2026-04-07 03:50:16] Bridge loop error: Device connection failed.
+[2026-04-07 03:50:44] Bridge loop error: Device connection failed.
+[2026-04-07 03:51:12] Bridge loop error: Device connection failed.
+[2026-04-07 03:51:40] Bridge loop error: Device connection failed.
+[2026-04-07 03:52:07] Bridge loop error: Device connection failed.
+[2026-04-07 03:52:35] Bridge loop error: Device connection failed.
+[2026-04-07 03:53:03] Bridge loop error: Device connection failed.
+[2026-04-07 03:53:31] Bridge loop error: Device connection failed.
+[2026-04-07 03:53:59] Bridge loop error: Device connection failed.
+[2026-04-07 03:54:27] Bridge loop error: Device connection failed.
+[2026-04-07 03:54:55] Bridge loop error: Device connection failed.
+[2026-04-07 03:55:23] Bridge loop error: Device connection failed.
+[2026-04-07 03:55:51] Bridge loop error: Device connection failed.
+[2026-04-07 03:56:19] Bridge loop error: Device connection failed.
+[2026-04-07 03:56:47] Bridge loop error: Device connection failed.
+[2026-04-07 03:57:15] Bridge loop error: Device connection failed.
+[2026-04-07 03:57:43] Bridge loop error: Device connection failed.
+[2026-04-07 03:58:10] Bridge loop error: Device connection failed.
+[2026-04-07 03:58:38] Bridge loop error: Device connection failed.
+[2026-04-07 03:59:06] Bridge loop error: Device connection failed.
+[2026-04-07 03:59:34] Bridge loop error: Device connection failed.
+[2026-04-07 04:00:02] Bridge loop error: Device connection failed.
+[2026-04-07 04:00:31] Bridge loop error: Device connection failed.
+[2026-04-07 04:00:58] Bridge loop error: Device connection failed.
+[2026-04-07 04:01:26] Bridge loop error: Device connection failed.
+[2026-04-07 04:01:54] Bridge loop error: Device connection failed.
+[2026-04-07 04:02:22] Bridge loop error: Device connection failed.
+[2026-04-07 04:02:50] Bridge loop error: Device connection failed.
+[2026-04-07 04:03:18] Bridge loop error: Device connection failed.
+[2026-04-07 04:03:46] Bridge loop error: Device connection failed.
+[2026-04-07 04:04:13] Bridge loop error: Device connection failed.
+[2026-04-07 04:04:42] Bridge loop error: Device connection failed.
+[2026-04-07 04:05:10] Bridge loop error: Device connection failed.
+[2026-04-07 04:05:37] Bridge loop error: Device connection failed.
+[2026-04-07 04:06:05] Bridge loop error: Device connection failed.
+[2026-04-07 04:06:33] Bridge loop error: Device connection failed.
+[2026-04-07 04:07:01] Bridge loop error: Device connection failed.
+[2026-04-07 04:07:29] Bridge loop error: Device connection failed.
+[2026-04-07 04:07:57] Bridge loop error: Device connection failed.
+[2026-04-07 04:08:25] Bridge loop error: Device connection failed.
+[2026-04-07 04:08:53] Bridge loop error: Device connection failed.
+[2026-04-07 04:09:21] Bridge loop error: Device connection failed.
+[2026-04-07 04:09:59] Bridge loop error: Device connection failed.
+[2026-04-07 04:10:27] Bridge loop error: Device connection failed.
+[2026-04-07 04:10:55] Bridge loop error: Device connection failed.
+[2026-04-07 04:11:23] Bridge loop error: Device connection failed.
+[2026-04-07 04:11:51] Bridge loop error: Device connection failed.
+[2026-04-07 04:12:19] Bridge loop error: Device connection failed.
+[2026-04-07 04:12:47] Bridge loop error: Device connection failed.
+[2026-04-07 04:13:15] Bridge loop error: Device connection failed.
+[2026-04-07 04:13:43] Bridge loop error: Device connection failed.
+[2026-04-07 04:14:10] Bridge loop error: Device connection failed.
+[2026-04-07 04:14:38] Bridge loop error: Device connection failed.
+[2026-04-07 04:15:06] Bridge loop error: Device connection failed.
+[2026-04-07 04:15:34] Bridge loop error: Device connection failed.
+[2026-04-07 04:16:02] Bridge loop error: Device connection failed.
+[2026-04-07 04:16:30] Bridge loop error: Device connection failed.
+[2026-04-07 04:16:58] Bridge loop error: Device connection failed.
+[2026-04-07 04:17:25] Bridge loop error: Device connection failed.
+[2026-04-07 04:17:53] Bridge loop error: Device connection failed.
+[2026-04-07 04:18:21] Bridge loop error: Device connection failed.
+[2026-04-07 04:18:49] Bridge loop error: Device connection failed.
+[2026-04-07 04:19:17] Bridge loop error: Device connection failed.
+[2026-04-07 04:19:46] Bridge loop error: Device connection failed.
+[2026-04-07 04:20:13] Bridge loop error: Device connection failed.
+[2026-04-07 04:20:41] Bridge loop error: Device connection failed.
+[2026-04-07 04:21:09] Bridge loop error: Device connection failed.
+[2026-04-07 04:21:37] Bridge loop error: Device connection failed.
+[2026-04-07 04:22:05] Bridge loop error: Device connection failed.
+[2026-04-07 04:22:33] Bridge loop error: Device connection failed.
+[2026-04-07 04:23:01] Bridge loop error: Device connection failed.
+[2026-04-07 04:23:29] Bridge loop error: Device connection failed.
+[2026-04-07 04:23:56] Bridge loop error: Device connection failed.
+[2026-04-07 04:24:24] Bridge loop error: Device connection failed.
+[2026-04-07 04:24:52] Bridge loop error: Device connection failed.
+[2026-04-07 04:25:20] Bridge loop error: Device connection failed.
+[2026-04-07 04:25:48] Bridge loop error: Device connection failed.
+[2026-04-07 04:26:16] Bridge loop error: Device connection failed.
+[2026-04-07 04:26:44] Bridge loop error: Device connection failed.
+[2026-04-07 04:27:11] Bridge loop error: Device connection failed.
+[2026-04-07 04:27:39] Bridge loop error: Device connection failed.
+[2026-04-07 04:28:07] Bridge loop error: Device connection failed.
+[2026-04-07 04:28:35] Bridge loop error: Device connection failed.
+[2026-04-07 04:29:03] Bridge loop error: Device connection failed.
+[2026-04-07 04:29:31] Bridge loop error: Device connection failed.
+[2026-04-07 04:29:59] Bridge loop error: Device connection failed.
+[2026-04-07 04:30:27] Bridge loop error: Device connection failed.
+[2026-04-07 04:30:54] Bridge loop error: Device connection failed.
+[2026-04-07 04:31:22] Bridge loop error: Device connection failed.
+[2026-04-07 04:31:50] Bridge loop error: Device connection failed.
+[2026-04-07 04:32:22] Bridge loop error: Device connection failed.
+[2026-04-07 04:32:54] Bridge loop error: Device connection failed.
+[2026-04-07 04:33:33] Bridge loop error: Device connection failed.
+[2026-04-07 04:34:01] Bridge loop error: Device connection failed.
+[2026-04-07 04:34:40] Bridge loop error: Device connection failed.
+[2026-04-07 04:35:21] Bridge loop error: Device connection failed.
+[2026-04-07 04:35:51] Bridge loop error: Device connection failed.
+[2026-04-07 04:36:19] Bridge loop error: Device connection failed.
+[2026-04-07 04:36:47] Bridge loop error: Device connection failed.
+[2026-04-07 04:37:15] Bridge loop error: Device connection failed.
+[2026-04-07 04:37:43] Bridge loop error: Device connection failed.
+[2026-04-07 04:38:11] Bridge loop error: Device connection failed.
+[2026-04-07 04:38:39] Bridge loop error: Device connection failed.
+[2026-04-07 04:39:07] Bridge loop error: Device connection failed.
+[2026-04-07 04:39:37] Bridge loop error: Device connection failed.
+[2026-04-07 04:40:07] Bridge loop error: Device connection failed.
+[2026-04-07 04:40:36] Bridge loop error: Device connection failed.
+[2026-04-07 04:41:04] Bridge loop error: Device connection failed.
+[2026-04-07 04:41:32] Bridge loop error: Device connection failed.
+[2026-04-07 04:42:00] Bridge loop error: Device connection failed.
+[2026-04-07 04:42:28] Bridge loop error: Device connection failed.
+[2026-04-07 04:42:56] Bridge loop error: Device connection failed.
+[2026-04-07 04:43:24] Bridge loop error: Device connection failed.
+[2026-04-07 04:43:52] Bridge loop error: Device connection failed.
+[2026-04-07 04:44:21] Bridge loop error: Device connection failed.
+[2026-04-07 04:44:49] Bridge loop error: Device connection failed.
+[2026-04-07 04:45:18] Bridge loop error: Device connection failed.
+[2026-04-07 04:45:46] Bridge loop error: Device connection failed.
+[2026-04-07 04:46:14] Bridge loop error: Device connection failed.
+[2026-04-07 04:46:44] Bridge loop error: Device connection failed.
+[2026-04-07 04:47:12] Bridge loop error: Device connection failed.
+[2026-04-07 04:47:41] Bridge loop error: Device connection failed.
+[2026-04-07 04:48:10] Bridge loop error: Device connection failed.
+[2026-04-07 04:48:38] Bridge loop error: Device connection failed.
+[2026-04-07 04:49:06] Bridge loop error: Device connection failed.
+[2026-04-07 04:49:35] Bridge loop error: Device connection failed.
+[2026-04-07 04:50:03] Bridge loop error: Device connection failed.
+[2026-04-07 04:50:31] Bridge loop error: Device connection failed.
+[2026-04-07 04:50:59] Bridge loop error: Device connection failed.
+[2026-04-07 04:51:27] Bridge loop error: Device connection failed.
+[2026-04-07 04:51:56] Bridge loop error: Device connection failed.
+[2026-04-07 04:52:25] Bridge loop error: Device connection failed.
+[2026-04-07 04:52:53] Bridge loop error: Device connection failed.
+[2026-04-07 04:53:21] Bridge loop error: Device connection failed.
+[2026-04-07 04:53:50] Bridge loop error: Device connection failed.
+[2026-04-07 04:54:18] Bridge loop error: Device connection failed.
+[2026-04-07 04:54:47] Bridge loop error: Device connection failed.
+[2026-04-07 04:55:15] Bridge loop error: Device connection failed.
+[2026-04-07 04:55:44] Bridge loop error: Device connection failed.
+[2026-04-07 04:56:02] Bridge worker started.
+[2026-04-07 04:56:05] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 113 Device disconnected.
+[2026-04-07 04:56:10] Ingest success. Uploaded=6 Received=6 Inserted=2
+[2026-04-07 04:56:12] User cache sync success. Users=9
+[2026-04-07 04:56:44] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 04:56:44] No new F20H logs to upload.
+[2026-04-07 04:56:46] User cache sync success. Users=9
+[2026-04-07 04:57:18] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 04:57:18] No new F20H logs to upload.
+[2026-04-07 04:57:20] User cache sync success. Users=9
+[2026-04-07 04:57:53] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 04:57:53] No new F20H logs to upload.
+[2026-04-07 04:57:54] User cache sync success. Users=9
+[2026-04-07 04:58:27] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 04:58:27] No new F20H logs to upload.
+[2026-04-07 04:58:28] User cache sync success. Users=9
+[2026-04-07 04:59:01] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 04:59:01] No new F20H logs to upload.
+[2026-04-07 04:59:03] User cache sync success. Users=9
+[2026-04-07 04:59:36] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 04:59:36] No new F20H logs to upload.
+[2026-04-07 04:59:38] User cache sync success. Users=9
+[2026-04-07 05:00:11] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:00:11] No new F20H logs to upload.
+[2026-04-07 05:00:12] User cache sync success. Users=9
+[2026-04-07 05:00:45] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:00:45] No new F20H logs to upload.
+[2026-04-07 05:00:47] User cache sync success. Users=9
+[2026-04-07 05:01:20] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:01:20] No new F20H logs to upload.
+[2026-04-07 05:01:21] User cache sync success. Users=9
+[2026-04-07 05:01:54] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:01:54] No new F20H logs to upload.
+[2026-04-07 05:01:56] User cache sync success. Users=9
+[2026-04-07 05:02:28] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:02:28] No new F20H logs to upload.
+[2026-04-07 05:02:30] User cache sync success. Users=9
+[2026-04-07 05:03:03] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:03:03] No new F20H logs to upload.
+[2026-04-07 05:03:04] User cache sync success. Users=9
+[2026-04-07 05:03:37] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:03:37] No new F20H logs to upload.
+[2026-04-07 05:03:39] User cache sync success. Users=9
+[2026-04-07 05:04:12] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:04:12] No new F20H logs to upload.
+[2026-04-07 05:04:13] User cache sync success. Users=9
+[2026-04-07 05:04:50] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:04:50] No new F20H logs to upload.
+[2026-04-07 05:04:52] User cache sync success. Users=9
+[2026-04-07 05:05:26] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:05:26] No new F20H logs to upload.
+[2026-04-07 05:05:27] User cache sync success. Users=9
+[2026-04-07 05:06:01] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:06:01] No new F20H logs to upload.
+[2026-04-07 05:06:02] User cache sync success. Users=9
+[2026-04-07 05:06:35] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:06:36] No new F20H logs to upload.
+[2026-04-07 05:06:37] User cache sync success. Users=9
+[2026-04-07 05:07:10] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:07:10] No new F20H logs to upload.
+[2026-04-07 05:07:12] User cache sync success. Users=9
+[2026-04-07 05:07:47] Connected to 192.168.100.201:5001. Logs saved to: C:\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-07 05:07:47] No new F20H logs to upload.
+[2026-04-07 05:07:49] User cache sync success. Users=9

@@ -1198,7 +1198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         (int)($_SESSION['user_id'] ?? 0)
                     );
                     $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '. Bridge runs in background via Scheduled Task; keep the laptop logged in and connected to the same LAN, then click Read All Users after a few seconds.'];
-                    machine_redirect_after_post(['selected_user_id' => $selectedUserId]);
+                    machine_redirect_after_post(['selected_user_id' => $selectedUserId, 'load_users' => 1, 'load_user' => 1]);
                 }
                 $patchedJson = biometric_machine_patch_user_name($userDetailsRaw, $newName);
                 $tmp = tempnam(sys_get_temp_dir(), 'biotern_user_');
@@ -1226,7 +1226,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         (int)($_SESSION['user_id'] ?? 0)
                     );
                     $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Rename command queued for bridge worker. Queue ID #' . $queuedId . '. Bridge runs in background via Scheduled Task; keep the laptop logged in and connected to the same LAN, then click Read All Users after a few seconds.'];
-                    machine_redirect_after_post(['selected_user_id' => $inlineUserId]);
+                    machine_redirect_after_post(['selected_user_id' => $inlineUserId, 'load_users' => 1, 'load_user' => 1]);
                 }
                 machine_load_user_details_into_state($inlineUserId, $userDetailsRaw, $userDetailsDecoded);
                 if ($userDetailsRaw === '') {
@@ -1397,7 +1397,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existingConfig['syncMode'] = in_array($selectedSyncMode, ['direct_ingest', 'connector_fallback'], true)
                     ? $selectedSyncMode
                     : 'direct_ingest';
-                $existingConfig['outputPath'] = trim((string)($_POST['connector_output_path'] ?? ''));
+                $submittedOutputPath = trim((string)($_POST['connector_output_path'] ?? ''));
+                $existingOutputPath = trim((string)($existingConfig['outputPath'] ?? ''));
+                $existingConfig['outputPath'] = $submittedOutputPath !== ''
+                    ? $submittedOutputPath
+                    : ($existingOutputPath !== '' ? $existingOutputPath : 'C:\\BioTern\\attendance.txt');
                 $existingConfig['autoImportOnIngest'] = !isset($_POST['disable_auto_import_on_ingest']);
                 $existingConfig['attendanceWindowEnabled'] = isset($_POST['attendance_window_enabled']);
                 $existingConfig['attendanceStartTime'] = trim((string)($_POST['attendance_start_time'] ?? '08:00:00'));
@@ -1411,10 +1415,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($existingConfig['ipAddress'] === '') {
                     throw new RuntimeException('Connector IP address is required.');
                 }
-                if ($existingConfig['outputPath'] === '') {
-                    throw new RuntimeException('Connector output path is required.');
-                }
-
                 machine_connector_write_config($machineConfigPath, $existingConfig);
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Quick connector settings updated.'];
                 machine_redirect_after_post([]);
@@ -1765,6 +1765,17 @@ $connectorEndTime = is_array($connectorConfig) ? (string)($connectorConfig['atte
 $duplicateGuardMinutes = is_array($connectorConfig) ? (int)($connectorConfig['duplicateGuardMinutes'] ?? 10) : 10;
 $slotAdvanceMinimumMinutes = is_array($connectorConfig) ? (int)($connectorConfig['slotAdvanceMinimumMinutes'] ?? 10) : 10;
 $selectedRouterPreset = is_array($connectorConfig) ? (string)($connectorConfig['selectedRouterPreset'] ?? 'custom') : 'custom';
+if (!in_array($selectedRouterPreset, ['router_1', 'router_2', 'custom'], true)) {
+    $selectedRouterPreset = 'custom';
+}
+
+if ($selectedRouterPreset === 'custom') {
+    if ($connectorIp === '192.168.100.201' && $connectorGateway === '192.168.100.1') {
+        $selectedRouterPreset = 'router_1';
+    } elseif ($connectorIp === '192.168.110.201' && $connectorGateway === '192.168.110.1') {
+        $selectedRouterPreset = 'router_2';
+    }
+}
 $bridgeEnabled = !empty($bridgeProfile['bridge_enabled']);
 $bridgeToken = (string)($bridgeProfile['bridge_token'] ?? '');
 $bridgeCloudBaseUrl = (string)($bridgeProfile['cloud_base_url'] ?? '');
@@ -2440,7 +2451,7 @@ include __DIR__ . '/../includes/header.php';
                                 </div>
                                 <div class="col-sm-6">
                                     <label class="form-label">Attendance File</label>
-                                    <input type="text" name="connector_output_path" class="form-control" value="<?php echo machine_h($connectorOutputPath); ?>" placeholder="C:\xampp\htdocs\BioTern\attendance.txt">
+                                    <input type="text" name="connector_output_path" class="form-control" value="<?php echo machine_h($connectorOutputPath !== '' ? $connectorOutputPath : 'C:\\BioTern\\attendance.txt'); ?>" placeholder="C:\xampp\htdocs\BioTern\attendance.txt">
                                 </div>
                                 <div class="col-sm-6">
                                     <label class="form-label">Connector IP</label>
@@ -2988,6 +2999,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     var seenCompletedIds = {};
+    var autoRefreshTriggered = false;
 
     function trimText(value) {
         var text = (value || '').toString().trim();
@@ -3058,6 +3070,25 @@ document.addEventListener('DOMContentLoaded', function () {
             window.setTimeout(function () {
                 wrapper.remove();
             }, isSuccess ? 6000 : 9000);
+        }
+
+        if (isSuccess) {
+            var shouldRefresh = ['rename_user', 'delete_user', 'clear_users'].indexOf(commandName) >= 0;
+            if (shouldRefresh && !autoRefreshTriggered) {
+                autoRefreshTriggered = true;
+                window.setTimeout(function () {
+                    try {
+                        var url = new URL(window.location.href);
+                        url.searchParams.set('load_users', '1');
+                        if (url.searchParams.get('selected_user_id')) {
+                            url.searchParams.set('load_user', '1');
+                        }
+                        window.location.href = url.toString();
+                    } catch (error) {
+                        window.location.reload();
+                    }
+                }, 1200);
+            }
         }
     }
 

@@ -814,7 +814,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existingConfig['port'] = max(1, (int)($_POST['connector_port'] ?? 5001));
                 $existingConfig['deviceNumber'] = max(1, (int)($_POST['connector_device_number'] ?? 1));
                 $existingConfig['communicationPassword'] = trim((string)($_POST['connector_password'] ?? '0'));
-                $existingConfig['outputPath'] = trim((string)($_POST['connector_output_path'] ?? ''));
+                $submittedOutputPath = trim((string)($_POST['connector_output_path'] ?? ''));
+                $existingOutputPath = trim((string)($existingConfig['outputPath'] ?? ''));
+                $existingConfig['outputPath'] = $submittedOutputPath !== ''
+                    ? $submittedOutputPath
+                    : ($existingOutputPath !== '' ? $existingOutputPath : 'C:\\BioTern\\attendance.txt');
                 $existingConfig['attendanceWindowEnabled'] = isset($_POST['attendance_window_enabled']);
                 $existingConfig['attendanceStartTime'] = trim((string)($_POST['attendance_start_time'] ?? '08:00:00'));
                 $existingConfig['attendanceEndTime'] = trim((string)($_POST['attendance_end_time'] ?? '19:00:00'));
@@ -829,10 +833,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($existingConfig['ipAddress'] === '') {
                     throw new RuntimeException('Connector IP address is required.');
                 }
-                if ($existingConfig['outputPath'] === '') {
-                    throw new RuntimeException('Connector output path is required.');
-                }
-
                 machine_connector_write_config($machineConfigPath, $existingConfig);
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Quick connector settings updated.'];
                 machine_redirect_after_post([]);
@@ -1019,6 +1019,17 @@ $slotAdvanceMinimumMinutes = is_array($connectorConfig) ? (int)($connectorConfig
 $maxEarlyArrivalMinutes = is_array($connectorConfig) ? (int)($connectorConfig['maxEarlyArrivalMinutes'] ?? 120) : 120;
 $maxLateDepartureMinutes = is_array($connectorConfig) ? (int)($connectorConfig['maxLateDepartureMinutes'] ?? 120) : 120;
 $selectedRouterPreset = is_array($connectorConfig) ? (string)($connectorConfig['selectedRouterPreset'] ?? 'custom') : 'custom';
+if (!in_array($selectedRouterPreset, ['router_1', 'router_2', 'custom'], true)) {
+    $selectedRouterPreset = 'custom';
+}
+
+if ($selectedRouterPreset === 'custom') {
+    if ($connectorIp === '192.168.100.201' && $connectorGateway === '192.168.100.1') {
+        $selectedRouterPreset = 'router_1';
+    } elseif ($connectorIp === '192.168.110.201' && $connectorGateway === '192.168.110.1') {
+        $selectedRouterPreset = 'router_2';
+    }
+}
 $quickRouterOptions = [
     'router_1' => [
         'label' => 'Router 1',
@@ -1562,7 +1573,7 @@ include __DIR__ . '/../includes/header.php';
                                 </div>
                                 <div class="col-sm-6">
                                     <label class="form-label">Attendance File</label>
-                                    <input type="text" name="connector_output_path" class="form-control" value="<?php echo machine_h($connectorOutputPath); ?>" placeholder="C:\xampp\htdocs\BioTern\attendance.txt">
+                                    <input type="text" name="connector_output_path" class="form-control" value="<?php echo machine_h($connectorOutputPath !== '' ? $connectorOutputPath : 'C:\\BioTern\\attendance.txt'); ?>" placeholder="C:\xampp\htdocs\BioTern\attendance.txt">
                                 </div>
                                 <div class="col-sm-6">
                                     <label class="form-label">Connector IP</label>

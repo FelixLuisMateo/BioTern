@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "9zkPAwgOv90=",
+  "dgSpecHash": "KpeI1AHNW54=",
   "success": true,
-  "projectFilePath": "c:\\xampp\\htdocs\\BioTern\\BioTern_unified\\tools\\device_connector\\BioTernMachineConnector.csproj",
+  "projectFilePath": "C:\\xampp\\htdocs\\BioTern\\BioTern\\tools\\device_connector\\BioTernMachineConnector.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }

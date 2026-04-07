@@ -338,6 +338,7 @@ if ($rawLogRes instanceof mysqli_result) {
             $detectedFingerprints[$fingerId] = [
                 'finger_id' => $fingerId,
                 'last_seen' => $timeValue,
+                'machine_user_name' => '',
                 'is_mapped' => false,
                 'mapped_user_name' => '',
                 'mapped_user_id' => 0,
@@ -350,6 +351,62 @@ if ($rawLogRes instanceof mysqli_result) {
     $rawLogRes->close();
 }
 
+$extractBridgeRows = static function ($decoded): array {
+    if (!is_array($decoded)) {
+        return [];
+    }
+
+    foreach (['rows', 'users', 'data', 'items', 'list'] as $key) {
+        if (isset($decoded[$key]) && is_array($decoded[$key])) {
+            return $decoded[$key];
+        }
+    }
+
+    $isList = array_keys($decoded) === range(0, count($decoded) - 1);
+    return $isList ? $decoded : [$decoded];
+};
+
+$bridgeCacheRes = $conn->query('SELECT users_json FROM biometric_bridge_user_cache ORDER BY id DESC LIMIT 1');
+if ($bridgeCacheRes instanceof mysqli_result) {
+    $bridgeCacheRow = $bridgeCacheRes->fetch_assoc();
+    $bridgeCacheRes->close();
+
+    $usersJson = trim((string)($bridgeCacheRow['users_json'] ?? ''));
+    if ($usersJson !== '') {
+        $decodedUsers = json_decode($usersJson, true);
+        if (is_array($decodedUsers)) {
+            foreach ($extractBridgeRows($decodedUsers) as $userRow) {
+                if (!is_array($userRow)) {
+                    continue;
+                }
+
+                $fingerId = (int)trim((string)($userRow['id'] ?? $userRow['ID'] ?? $userRow['user_id'] ?? $userRow['userId'] ?? $userRow['EnrollNumber'] ?? 0));
+                if ($fingerId <= 0) {
+                    continue;
+                }
+
+                $machineName = trim((string)($userRow['name'] ?? $userRow['Name'] ?? $userRow['user_name'] ?? ''));
+
+                if (!isset($detectedFingerprints[$fingerId])) {
+                    $detectedFingerprints[$fingerId] = [
+                        'finger_id' => $fingerId,
+                        'last_seen' => '',
+                        'machine_user_name' => $machineName,
+                        'is_mapped' => false,
+                        'mapped_user_name' => '',
+                        'mapped_user_id' => 0,
+                        'student_name' => '',
+                        'student_number' => '',
+                        'mapped_created_at' => '',
+                    ];
+                } elseif ($machineName !== '' && trim((string)($detectedFingerprints[$fingerId]['machine_user_name'] ?? '')) === '') {
+                    $detectedFingerprints[$fingerId]['machine_user_name'] = $machineName;
+                }
+            }
+        }
+    }
+}
+
 foreach ($mappings as $mapping) {
     $fingerId = (int)($mapping['finger_id'] ?? 0);
     if ($fingerId <= 0) {
@@ -360,6 +417,7 @@ foreach ($mappings as $mapping) {
         $detectedFingerprints[$fingerId] = [
             'finger_id' => $fingerId,
             'last_seen' => '',
+            'machine_user_name' => '',
             'is_mapped' => false,
             'mapped_user_name' => '',
             'mapped_user_id' => 0,
@@ -393,6 +451,7 @@ foreach ($detectedFingerprints as $detectedFingerprint) {
     $availableFingerIds[] = [
         'finger_id' => (int)($detectedFingerprint['finger_id'] ?? 0),
         'last_seen' => (string)($detectedFingerprint['last_seen'] ?? ''),
+        'machine_user_name' => (string)($detectedFingerprint['machine_user_name'] ?? ''),
     ];
 }
 
@@ -413,6 +472,7 @@ foreach ($detectedFingerprints as $detectedFingerprint) {
     $fingerprintSelectOptions[] = [
         'finger_id' => $fingerId,
         'last_seen' => (string)($detectedFingerprint['last_seen'] ?? ''),
+        'machine_user_name' => (string)($detectedFingerprint['machine_user_name'] ?? ''),
         'is_mapped' => $isMapped,
     ];
 }
@@ -421,6 +481,7 @@ if ($editFingerId > 0 && !isset($detectedFingerprints[$editFingerId])) {
     $fingerprintSelectOptions[] = [
         'finger_id' => $editFingerId,
         'last_seen' => '',
+        'machine_user_name' => '',
         'is_mapped' => false,
     ];
 }
@@ -596,6 +657,9 @@ ob_end_flush();
                         <?php foreach ($availableFingerIds as $item): ?>
                             <span class="badge bg-soft-warning text-warning">
                                 ID <?php echo (int)$item['finger_id']; ?>
+                                <?php if ($item['machine_user_name'] !== ''): ?>
+                                    | Name: <?php echo htmlspecialchars($item['machine_user_name'], ENT_QUOTES, 'UTF-8'); ?>
+                                <?php endif; ?>
                                 <?php if ($item['last_seen'] !== ''): ?>
                                     | Last seen: <?php echo htmlspecialchars($item['last_seen'], ENT_QUOTES, 'UTF-8'); ?>
                                 <?php endif; ?>
@@ -654,6 +718,7 @@ ob_end_flush();
                             <?php foreach ($fingerprintSelectOptions as $fingerprintOption): ?>
                                 <option value="<?php echo (int)$fingerprintOption['finger_id']; ?>" <?php echo ((int)$fingerprintOption['finger_id'] === $editFingerId) ? 'selected' : ''; ?>>
                                     ID <?php echo (int)$fingerprintOption['finger_id']; ?>
+                                    <?php if ($fingerprintOption['machine_user_name'] !== ''): ?> - Name: <?php echo htmlspecialchars($fingerprintOption['machine_user_name'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?>
                                     <?php if ($fingerprintOption['last_seen'] !== ''): ?> - Last seen: <?php echo htmlspecialchars($fingerprintOption['last_seen'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?>
                                     <?php if (!empty($fingerprintOption['is_mapped'])): ?> [currently mapped]<?php endif; ?>
                                 </option>
@@ -703,6 +768,7 @@ ob_end_flush();
                             <?php foreach ($fingerprintSelectOptions as $fingerprintOption): ?>
                                 <option value="<?php echo (int)$fingerprintOption['finger_id']; ?>" <?php echo ((int)$fingerprintOption['finger_id'] === $editFingerId) ? 'selected' : ''; ?>>
                                     ID <?php echo (int)$fingerprintOption['finger_id']; ?>
+                                    <?php if ($fingerprintOption['machine_user_name'] !== ''): ?> - Name: <?php echo htmlspecialchars($fingerprintOption['machine_user_name'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?>
                                     <?php if ($fingerprintOption['last_seen'] !== ''): ?> - Last seen: <?php echo htmlspecialchars($fingerprintOption['last_seen'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?>
                                     <?php if (!empty($fingerprintOption['is_mapped'])): ?> [currently mapped]<?php endif; ?>
                                 </option>
@@ -927,6 +993,9 @@ ob_end_flush();
                                             <div class="text-muted small">Mapped: <?php echo $fingerprint['mapped_created_at'] !== '' ? htmlspecialchars(date('M d, Y h:i A', strtotime((string)$fingerprint['mapped_created_at'])), ENT_QUOTES, 'UTF-8') : 'N/A'; ?></div>
                                         <?php else: ?>
                                             <span class="text-muted">Not mapped yet</span>
+                                            <?php if (!empty($fingerprint['machine_user_name'])): ?>
+                                                <div class="text-muted small">Machine Name: <?php echo htmlspecialchars((string)$fingerprint['machine_user_name'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-end">
