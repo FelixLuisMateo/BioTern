@@ -1,12 +1,12 @@
 ﻿{
     "autoImportOnIngest":  false,
     "deviceNumber":  1,
-    "mask":  "255.255.255.0",
     "gateway":  "192.168.110.1",
     "outputPath":  "C:\\BioTern\\attendance.txt",
-    "port":  5001,
+    "mask":  "255.255.255.0",
     "selectedRouterPreset":  "router_2",
     "communicationPassword":  "0",
     "ipAddress":  "192.168.110.201",
-    "syncMode":  "connector_fallback"
+    "syncMode":  "connector_fallback",
+    "port":  5001
 }

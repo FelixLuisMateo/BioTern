@@ -45,6 +45,9 @@ $connectorDllPath = Join-Path $WorkspaceRoot 'tools\device_connector\bin\Release
 $bridgeLogPath = Join-Path $WorkspaceRoot 'tools\bridge-worker.log'
 $bridgePendingIngestPath = Join-Path $WorkspaceRoot 'tools\bridge-pending-ingest.json'
 $bridgeBackfillStatePath = Join-Path $WorkspaceRoot 'tools\bridge-backfill-state.json'
+$bridgeHoldingRootPath = Join-Path $WorkspaceRoot 'tools\bridge-holding'
+$bridgeHoldingPendingPath = Join-Path $bridgeHoldingRootPath 'pending'
+$bridgeHoldingUploadedPath = Join-Path $bridgeHoldingRootPath 'uploaded'
 $bridgeNodeName = $env:COMPUTERNAME
 if ([string]::IsNullOrWhiteSpace($bridgeNodeName)) {
     $bridgeNodeName = [System.Net.Dns]::GetHostName()
@@ -619,6 +622,67 @@ function Read-BridgeEventsFromFile {
     return @($parsed)
 }
 
+function Ensure-BridgeHoldingDirectories {
+    foreach ($dir in @($bridgeHoldingRootPath, $bridgeHoldingPendingPath, $bridgeHoldingUploadedPath)) {
+        if (-not (Test-Path $dir)) {
+            New-Item -Path $dir -ItemType Directory -Force | Out-Null
+        }
+    }
+}
+
+function Read-BridgeHoldingPendingEvents {
+    Ensure-BridgeHoldingDirectories
+
+    $all = @()
+    $files = Get-ChildItem -Path $bridgeHoldingPendingPath -Filter 'holding-*.json' -File -ErrorAction SilentlyContinue |
+        Sort-Object Name
+
+    foreach ($file in $files) {
+        $rows = @(Read-BridgeEventsFromFile -Path $file.FullName)
+        if ($rows.Count -eq 0) {
+            continue
+        }
+        $all = Merge-BridgeEventsUnique -First $all -Second $rows
+    }
+
+    return $all
+}
+
+function Save-BridgeHoldingPendingBatch {
+    param(
+        [AllowEmptyCollection()]
+        [object[]]$Events = @()
+    )
+
+    if ($Events.Count -eq 0) {
+        return
+    }
+
+    Ensure-BridgeHoldingDirectories
+
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
+    $path = Join-Path $bridgeHoldingPendingPath ("holding-{0}.json" -f $stamp)
+    $json = $Events | ConvertTo-Json -Depth 20
+    Set-Content -Path $path -Value $json -Encoding UTF8
+}
+
+function Move-BridgeHoldingPendingToUploaded {
+    Ensure-BridgeHoldingDirectories
+
+    $pendingFiles = Get-ChildItem -Path $bridgeHoldingPendingPath -Filter 'holding-*.json' -File -ErrorAction SilentlyContinue
+    foreach ($file in $pendingFiles) {
+        $dest = Join-Path $bridgeHoldingUploadedPath $file.Name
+        Move-Item -Path $file.FullName -Destination $dest -Force -ErrorAction SilentlyContinue
+    }
+
+    # Keep a large but bounded archive of already uploaded holding files.
+    $uploaded = Get-ChildItem -Path $bridgeHoldingUploadedPath -Filter 'holding-*.json' -File -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending
+    if ($uploaded.Count -gt 2000) {
+        $uploaded | Select-Object -Skip 2000 | Remove-Item -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Convert-BridgeDecodedPayloadToEvents {
     param($Decoded)
 
@@ -863,7 +927,25 @@ function Publish-Ingest {
         $newEvents = @()
     }
 
-    $eventsToUpload = Merge-BridgeEventsUnique -First $pendingEvents -Second $newEvents
+    if ($newEvents.Count -gt 0) {
+        try {
+            Save-BridgeHoldingPendingBatch -Events $newEvents
+        } catch {
+            Write-BridgeLog ("Holding station write warning: " + $_.Exception.Message)
+        }
+    }
+
+    $holdingPendingEvents = @(Read-BridgeHoldingPendingEvents)
+    if ($null -eq $holdingPendingEvents) {
+        $holdingPendingEvents = @()
+    }
+
+    if ($holdingPendingEvents.Count -gt 0) {
+        Write-BridgeLog ("Holding station replay queued events: {0}" -f $holdingPendingEvents.Count)
+    }
+
+    $eventsToUpload = Merge-BridgeEventsUnique -First $pendingEvents -Second $holdingPendingEvents
+    $eventsToUpload = Merge-BridgeEventsUnique -First $eventsToUpload -Second $newEvents
 
     if ($eventsToUpload.Count -eq 0) {
         Write-BridgeLog 'No new F20H logs to upload.'
@@ -931,6 +1013,7 @@ function Publish-Ingest {
     }
 
     Save-BridgePendingEvents -Events @()
+    Move-BridgeHoldingPendingToUploaded
     Write-BridgeLog "Ingest success. Uploaded=$($eventsToUpload.Count) Received=$($response.received) Inserted=$($response.inserted)"
 }
 

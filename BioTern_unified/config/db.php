@@ -140,6 +140,59 @@ if (!function_exists('biotern_mysql_url_parts')) {
 
 $biotern_mysql_url = biotern_mysql_url_parts();
 
+if (!function_exists('biotern_unified_is_local_runtime')) {
+    function biotern_unified_is_local_runtime(): bool
+    {
+        $httpHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+        $serverName = strtolower((string)($_SERVER['SERVER_NAME'] ?? ''));
+        $remoteAddr = strtolower((string)($_SERVER['REMOTE_ADDR'] ?? ''));
+
+        if ($httpHost !== '' && preg_match('/^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/', $httpHost)) {
+            return true;
+        }
+        if (in_array($serverName, ['localhost', '127.0.0.1', '::1'], true)) {
+            return true;
+        }
+        if (in_array($remoteAddr, ['127.0.0.1', '::1'], true)) {
+            return true;
+        }
+
+        return false;
+    }
+}
+
+if (!function_exists('biotern_unified_open_mysqli')) {
+    function biotern_unified_open_mysqli(string $host, string $user, string $pass, string $name, int $port): mysqli
+    {
+        $mysqli = mysqli_init();
+        if ($mysqli instanceof mysqli) {
+            @mysqli_options($mysqli, MYSQLI_OPT_CONNECT_TIMEOUT, 8);
+            @mysqli_real_connect($mysqli, $host, $user, $pass, $name, $port);
+            return $mysqli;
+        }
+
+        return @new mysqli($host, $user, $pass, $name, $port);
+    }
+}
+
+if (!function_exists('biotern_unified_env_truthy')) {
+    function biotern_unified_env_truthy(array $keys): bool
+    {
+        foreach ($keys as $key) {
+            $value = getenv($key);
+            if ($value === false) {
+                continue;
+            }
+            $normalized = strtolower(trim((string)$value));
+            if (in_array($normalized, ['1', 'true', 'yes', 'on'], true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
 $envHost = (string)biotern_env_first(
     ['DB_HOST', 'DB_HOST_ONLINE', 'MYSQLHOST', 'RAILWAY_MYSQL_HOST'],
     (string)($biotern_mysql_url['host'] ?? '127.0.0.1')
@@ -164,54 +217,95 @@ if ($envPort <= 0) {
     $envPort = 3306;
 }
 
+$requestedTarget = strtolower(trim((string)biotern_env_first(['BIOTERN_DB_TARGET'], '')));
+$forceRemoteTarget = in_array($requestedTarget, ['vercel', 'remote', 'railway', 'cloud'], true)
+    || biotern_unified_env_truthy(['VERCEL', 'BIOTERN_PRIORITIZE_VERCEL']);
+$forceLocalTarget = in_array($requestedTarget, ['local', 'xampp'], true);
+
+$isLocalRuntime = biotern_unified_is_local_runtime();
+$primaryIsLocal = in_array(strtolower($envHost), ['127.0.0.1', 'localhost', '::1'], true);
+
+$localProfile = [
+    'host' => (string)biotern_env_first(['LOCAL_DB_HOST'], '127.0.0.1'),
+    'user' => (string)biotern_env_first(['LOCAL_DB_USER'], 'root'),
+    'pass' => (string)biotern_env_first(['LOCAL_DB_PASS'], ''),
+    'name' => (string)biotern_env_first(['LOCAL_DB_NAME'], 'biotern_db'),
+    'port' => (int)biotern_env_first(['LOCAL_DB_PORT'], '3306'),
+];
+if ($localProfile['port'] <= 0) {
+    $localProfile['port'] = 3306;
+}
+
+$remoteProfile = [
+    'host' => $envHost,
+    'user' => $envUser,
+    'pass' => $envPass,
+    'name' => $envName,
+    'port' => $envPort,
+];
+
+$connectionProfiles = [];
+if ($forceLocalTarget || ($isLocalRuntime && !$forceRemoteTarget && !$primaryIsLocal)) {
+    $connectionProfiles[] = $localProfile;
+    $connectionProfiles[] = $remoteProfile;
+} else {
+    $connectionProfiles[] = $remoteProfile;
+    if ($isLocalRuntime && !$forceRemoteTarget && !$primaryIsLocal) {
+        $connectionProfiles[] = $localProfile;
+    }
+}
+
+$activeProfile = null;
+$lastError = 'Unknown database connection error';
+$conn = null;
+
+foreach ($connectionProfiles as $profile) {
+    $mysqli = biotern_unified_open_mysqli(
+        (string)$profile['host'],
+        (string)$profile['user'],
+        (string)$profile['pass'],
+        (string)$profile['name'],
+        (int)$profile['port']
+    );
+
+    if ($mysqli instanceof mysqli && !$mysqli->connect_errno) {
+        $conn = $mysqli;
+        $activeProfile = $profile;
+        break;
+    }
+
+    $lastError = (string)(($mysqli instanceof mysqli && $mysqli->connect_error) ? $mysqli->connect_error : 'Unknown database connection error');
+    if ($mysqli instanceof mysqli) {
+        $mysqli->close();
+    }
+}
+
+if (!($conn instanceof mysqli) || !$activeProfile) {
+    $safeHost = $envHost !== '' ? $envHost : 'unknown-host';
+    $safeDb = $envName !== '' ? $envName : 'unknown-db';
+    die('Database connection failed. Please verify DB env variables (DB_HOST/DB_USER/DB_PASS/DB_NAME/DB_PORT or MYSQL*/RAILWAY_MYSQL* vars). Current host=' . $safeHost . ', db=' . $safeDb . '. Error: ' . $lastError);
+}
+
 if (!defined('DB_HOST')) {
-    define('DB_HOST', $envHost);
+    define('DB_HOST', (string)$activeProfile['host']);
 }
 if (!defined('DB_USER')) {
-    define('DB_USER', $envUser);
+    define('DB_USER', (string)$activeProfile['user']);
 }
 if (!defined('DB_PASS')) {
-    define('DB_PASS', $envPass);
+    define('DB_PASS', (string)$activeProfile['pass']);
 }
 if (!defined('DB_NAME')) {
-    define('DB_NAME', $envName);
+    define('DB_NAME', (string)$activeProfile['name']);
 }
 if (!defined('DB_PORT')) {
-    define('DB_PORT', $envPort);
+    define('DB_PORT', (int)$activeProfile['port']);
 }
 
 @ini_set('mysqli.default_host', (string)DB_HOST);
 @ini_set('mysqli.default_user', (string)DB_USER);
 @ini_set('mysqli.default_pw', (string)DB_PASS);
 @ini_set('mysqli.default_port', (string)DB_PORT);
-
-// Create connection
-$conn = null;
-$db_connect_error = '';
-
-try {
-    $mysqli = mysqli_init();
-    if ($mysqli instanceof mysqli) {
-        @mysqli_options($mysqli, MYSQLI_OPT_CONNECT_TIMEOUT, 8);
-        if (@$mysqli->real_connect(DB_HOST, DB_USER, DB_PASS, DB_NAME, (int)DB_PORT)) {
-            $conn = $mysqli;
-        } else {
-            $db_connect_error = (string)($mysqli->connect_error ?: 'Unknown database connection error');
-        }
-    } else {
-        $conn = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, (int)DB_PORT);
-    }
-} catch (Throwable $e) {
-    $db_connect_error = $e->getMessage();
-}
-
-// Check connection
-if (!($conn instanceof mysqli) || $conn->connect_error) {
-    $safeHost = DB_HOST !== '' ? DB_HOST : 'unknown-host';
-    $safeDb = DB_NAME !== '' ? DB_NAME : 'unknown-db';
-    $safeError = $db_connect_error !== '' ? $db_connect_error : (string)($conn instanceof mysqli ? $conn->connect_error : 'Unknown database connection error');
-    die('Database connection failed. Please verify DB env variables (DB_HOST/DB_USER/DB_PASS/DB_NAME/DB_PORT or MYSQL*/RAILWAY_MYSQL* vars). Current host=' . $safeHost . ', db=' . $safeDb . '. Error: ' . $safeError);
-}
 
 // Set charset to utf8mb4
 $conn->set_charset("utf8mb4");
