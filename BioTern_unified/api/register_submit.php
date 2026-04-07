@@ -297,18 +297,47 @@ function createUser($mysqli, $username, $email, $password, $role, &$errorCode = 
         $hasIsActive = tableHasColumn($mysqli, 'users', 'is_active');
         $hasAppStatus = tableHasColumn($mysqli, 'users', 'application_status');
         $hasSubmittedAt = tableHasColumn($mysqli, 'users', 'application_submitted_at');
-        if ($hasIsActive && $hasAppStatus && $hasSubmittedAt) {
-            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, application_submitted_at, created_at) VALUES (?, ?, ?, ?, ?, 1, 'approved', NOW(), NOW())");
-        } elseif ($hasIsActive && $hasAppStatus) {
-            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, created_at) VALUES (?, ?, ?, ?, ?, 1, 'approved', NOW())");
-        } elseif ($hasIsActive) {
-            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, NOW())");
-        } else {
-            $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+        $hasProfilePicture = tableHasColumn($mysqli, 'users', 'profile_picture');
+        $hasCreatedAt = tableHasColumn($mysqli, 'users', 'created_at');
+
+        $name = $username;
+        $columns = ['name', 'username', 'email', 'password', 'role'];
+        $values = ['?', '?', '?', '?', '?'];
+        $bindTypes = 'sssss';
+        $bindValues = [$name, $username, $email, $pwdHash, $role];
+
+        if ($hasIsActive) {
+            $columns[] = 'is_active';
+            $values[] = '1';
         }
+        if ($hasAppStatus) {
+            $columns[] = 'application_status';
+            $values[] = "'approved'";
+        }
+        if ($hasSubmittedAt) {
+            $columns[] = 'application_submitted_at';
+            $values[] = 'NOW()';
+        }
+        if ($hasProfilePicture) {
+            $profilePicture = '';
+            $columns[] = 'profile_picture';
+            $values[] = '?';
+            $bindTypes .= 's';
+            $bindValues[] = $profilePicture;
+        }
+        if ($hasCreatedAt) {
+            $columns[] = 'created_at';
+            $values[] = 'NOW()';
+        }
+
+        $insertSql = 'INSERT INTO users (' . implode(', ', $columns) . ') VALUES (' . implode(', ', $values) . ')';
+        $stmt = $mysqli->prepare($insertSql);
         if ($stmt) {
-            $name = $username;
-            $stmt->bind_param('sssss', $name, $username, $email, $pwdHash, $role);
+            $bindParams = [$bindTypes];
+            foreach ($bindValues as $idx => $value) {
+                $bindParams[] = &$bindValues[$idx];
+            }
+            call_user_func_array([$stmt, 'bind_param'], $bindParams);
             try {
                 $executed = $stmt->execute();
                 if (!$executed) {

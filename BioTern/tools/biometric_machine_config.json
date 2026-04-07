@@ -3,10 +3,10 @@
     "deviceNumber":  1,
     "gateway":  "192.168.110.1",
     "outputPath":  "C:\\BioTern\\attendance.txt",
-    "selectedRouterPreset":  "router_2",
     "mask":  "255.255.255.0",
+    "selectedRouterPreset":  "router_2",
     "communicationPassword":  "0",
-    "port":  5001,
     "ipAddress":  "192.168.110.201",
-    "syncMode":  "connector_fallback"
+    "syncMode":  "connector_fallback",
+    "port":  5001
 }
