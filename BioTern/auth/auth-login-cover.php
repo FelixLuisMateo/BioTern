@@ -403,11 +403,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="auth-login-page">
     <div class="login-bg-watermark" aria-hidden="true"></div>
     <main class="auth-cover-wrapper">
+        <div class="auth-cover-content-inner">
+            <div class="auth-cover-content-wrapper">
+                <div class="auth-img auth-login-visual" aria-hidden="true"></div>
+            </div>
+        </div>
         <div class="auth-cover-sidebar-inner">
             <div class="auth-cover-card-wrapper">
                 <div class="auth-cover-card p-sm-5">
-                    <div class="wd-50 mb-5">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+                    <div class="auth-brand-lockup mb-5">
+                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/ccstlogo.png" alt="Clark College of Science and Technology" class="auth-brand-lockup-school">
+                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-full.png" alt="BioTern" class="auth-brand-lockup-app auth-brand-lockup-app-light">
+                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-full-header.png" alt="BioTern" class="auth-brand-lockup-app auth-brand-lockup-app-dark">
                     </div>
                     <h2 class="fs-25 fw-bolder mb-4">Login</h2>
                     <h4 class="fs-15 fw-bold mb-2">Log in to your Clark College of Science and Technology internship account.</h4>
@@ -419,16 +426,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <form action="<?php echo htmlspecialchars($route_prefix . 'auth/auth-login-cover.php', ENT_QUOTES, 'UTF-8'); ?>" method="post" class="w-100 mt-4 pt-2">
                         <input type="hidden" name="next" value="<?php echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-4">
-                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Email or Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Email or Username" autofocus>
+                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Email or Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Email or Username" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus>
                         </div>
                         <div class="mb-3 input-group">
-                            <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Password" required aria-required="true" aria-label="Password">
+                            <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Password" required aria-required="true" aria-label="Password" autocomplete="current-password">
                             <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Show password"><i></i></button>
                         </div>
                         <div class="d-flex align-items-center justify-content-between">
                             <div>
                                 <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="rememberMe">
+                                    <input type="checkbox" class="form-check-input" id="rememberMe" name="remember_me" value="1"<?php echo !empty($_POST['remember_me']) ? ' checked' : ''; ?>>
                                     <label class="form-check-label c-pointer" for="rememberMe">Remember Me</label>
                                 </div>
                             </div>

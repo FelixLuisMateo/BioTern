@@ -70,6 +70,8 @@ if (!$page_is_public) {
 
 if (!isset($page_title) || trim($page_title) === '') {
     $page_title = 'BioTern';
+} elseif (!preg_match('/^\s*BioTern\b/i', $page_title)) {
+    $page_title = 'BioTern || ' . ltrim(trim($page_title), "|-: ");
 }
 if (!isset($base_href)) {
     $base_href = '';

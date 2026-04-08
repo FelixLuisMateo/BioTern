@@ -5,7 +5,7 @@ $student_name = trim((string)(($student['first_name'] ?? '') . ' ' . ($student['
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Resume</title>
+    <title>BioTern || Resume</title>
     <link rel="stylesheet" href="../assets/css/modules/documents/document-resume.css">
 </head>
 <body>

@@ -6,7 +6,7 @@ $today = date('F d, Y');
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Waiver</title>
+    <title>BioTern || Waiver</title>
     <link rel="stylesheet" href="../assets/css/modules/documents/document-waiver.css">
 </head>
 <body>

@@ -580,6 +580,7 @@ include 'includes/header.php';
                         <thead>
                         <tr>
                             <th>Student</th>
+                            <th>Section</th>
                             <th>Pipeline</th>
                             <th>Hours</th>
                             <th>Risk</th>
@@ -588,7 +589,7 @@ include 'includes/header.php';
                         </thead>
                         <tbody>
                         <?php if (!$rows): ?>
-                            <tr><td colspan="5" class="text-center py-4 text-muted">No records found.</td></tr>
+                            <tr><td colspan="6" class="text-center py-4 text-muted">No records found.</td></tr>
                         <?php endif; ?>
                         <?php foreach ($rows as $index => $r): ?>
                             <?php
@@ -621,12 +622,8 @@ include 'includes/header.php';
                                             <div class="app-ojt-student-submeta"><?php echo htmlspecialchars($r['course_name'] ?? '-'); ?></div>
                                         </div>
                                     </a>
-                                    <div class="collapse app-ojt-inline-collapse" id="ojtRowDetails<?php echo (int)$r['id']; ?>">
+                                    <template class="app-ojt-detail-template">
                                         <div class="app-ojt-inline-details">
-                                            <div class="app-ojt-inline-detail-item">
-                                                <span class="app-ojt-inline-detail-label">Section</span>
-                                                <span class="app-ojt-section-pill"><?php echo htmlspecialchars($r['section_name'] ?? '-'); ?></span>
-                                            </div>
                                             <div class="app-ojt-inline-detail-item">
                                                 <span class="app-ojt-inline-detail-label">Last Biometric</span>
                                                 <span class="app-ojt-inline-detail-value"><?php echo htmlspecialchars($last_biometric_label); ?></span>
@@ -651,6 +648,12 @@ include 'includes/header.php';
                                                 <?php endif; ?>
                                             </div>
                                         </div>
+                                    </template>
+                                </td>
+                                <td data-label="Section">
+                                    <div class="app-ojt-cell-stack app-ojt-section-block">
+                                        <span class="app-ojt-cell-title">Section</span>
+                                        <span class="app-ojt-section-pill"><?php echo htmlspecialchars($r['section_name'] ?? '-'); ?></span>
                                     </div>
                                 </td>
                                 <td data-label="Pipeline">
@@ -662,10 +665,9 @@ include 'includes/header.php';
                                 </td>
                                 <td data-label="Hours">
                                     <div class="app-ojt-cell-stack app-ojt-hours-block">
-                                        <span class="app-ojt-cell-title">Rendered</span>
                                         <div class="app-ojt-hours-total"><?php echo number_format($rendered, 1); ?> / <?php echo number_format($required, 1); ?></div>
                                         <div class="progress app-progress-6"><div class="progress-bar" style="width:<?php echo (float)$r['progress_pct']; ?>%"></div></div>
-                                        <span class="app-ojt-cell-meta"><?php echo (float)$r['progress_pct']; ?>% complete<?php if ($required > 0): ?> | <?php echo number_format($hours_remaining, 1); ?> hrs left<?php endif; ?></span>
+                                        <span class="app-ojt-cell-meta"><?php echo (float)$r['progress_pct']; ?>%</span>
                                     </div>
                                 </td>
                                 <td data-label="Risk" data-order="<?php echo $risk_score_int; ?>">
@@ -676,7 +678,7 @@ include 'includes/header.php';
                                 </td>
                                 <td data-label="Actions">
                                     <div class="app-ojt-row-actions">
-                                        <button class="btn btn-sm btn-outline-secondary app-ojt-inline-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#ojtRowDetails<?php echo (int)$r['id']; ?>" aria-expanded="false" aria-controls="ojtRowDetails<?php echo (int)$r['id']; ?>">
+                                        <button class="btn btn-sm btn-outline-secondary app-ojt-inline-toggle" type="button" aria-expanded="false">
                                             Details
                                         </button>
                                         <div class="dropdown ojt-action-dropdown">

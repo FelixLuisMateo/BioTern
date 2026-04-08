@@ -33,7 +33,7 @@ function dtr_fmt_time($value): string {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>DTR - <?php echo dtr_h($student_name); ?></title>
+    <title>BioTern || DTR - <?php echo dtr_h($student_name); ?></title>
     <link rel="stylesheet" href="../assets/css/modules/documents/document-dtr.css">
 </head>
 <body>

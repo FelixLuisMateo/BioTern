@@ -591,7 +591,7 @@ if (!function_exists('transfer_send_students_word')) {
         $rows = transfer_students_rows($mysqli);
         header('Content-Type: application/msword; charset=UTF-8');
         header('Content-Disposition: attachment; filename="students-export-' . date('Ymd-His') . '.doc"');
-        echo '<html><head><meta charset="utf-8"><title>Students Export</title></head><body>';
+        echo '<html><head><meta charset="utf-8"><title>BioTern || Students Export</title></head><body>';
         echo '<h2>Students Export</h2>';
         echo '<table border="1" cellpadding="6" cellspacing="0">';
         echo '<tr><th>ID</th><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Is Active</th><th>Profile Picture</th><th>Created At</th><th>Updated At</th></tr>';
