@@ -479,7 +479,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </form>
 
                     <div class="text-center text-muted my-4">or</div>
-                    <a href="<?php echo htmlspecialchars($route_prefix . 'auth/auth-register-creative.php?role=student', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-lg btn-outline-primary w-100">Apply as Student</a>
+                    <a href="<?php echo htmlspecialchars($route_prefix . 'auth/auth-register.php?role=student', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-lg btn-outline-primary w-100">Apply as Student</a>
                     <div class="text-center text-muted fs-11 mt-2">Student applications only. Staff accounts are created by the school administrator.</div>
                 </div>
             </div>

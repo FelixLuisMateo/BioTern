@@ -144,7 +144,7 @@ $page_scripts = [
                             <i class="feather-sun"></i>
                         </a>
                     </div>
-                    <a href="auth/auth-register-creative.php?role=student" class="btn btn-sm btn-light-brand">Apply</a>
+                    <a href="auth/auth-register.php?role=student" class="btn btn-sm btn-light-brand">Apply</a>
                     <a href="<?php echo htmlspecialchars($landing_signin_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-primary"><?php echo htmlspecialchars($landing_signin_label, ENT_QUOTES, 'UTF-8'); ?></a>
                 </div>
             </div>
@@ -163,7 +163,7 @@ $page_scripts = [
                             <p class="hero-subtitle mb-4">Track attendance with biometric confidence, monitor internship progress, and generate key documents and reports without juggling multiple systems.</p>
                             <div class="hero-cta">
                                 <a href="<?php echo htmlspecialchars($landing_hero_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary btn-lg"><?php echo htmlspecialchars($landing_hero_label, ENT_QUOTES, 'UTF-8'); ?></a>
-                                <a href="auth/auth-register-creative.php?role=student" class="btn btn-light-brand btn-lg">Start Application</a>
+                                <a href="auth/auth-register.php?role=student" class="btn btn-light-brand btn-lg">Start Application</a>
                             </div>
                         </div>  
                     </div>

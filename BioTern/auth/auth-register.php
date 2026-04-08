@@ -3,7 +3,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 $route_prefix = $asset_prefix;
-$self_register_url = $route_prefix . 'auth-register-creative.php';
+$self_register_url = $route_prefix . 'auth-register.php';
 // Handle submissions immediately to avoid rendering/query side effects before redirects.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $requestedRole = strtolower(trim((string)($_POST['role'] ?? '')));

@@ -29,7 +29,7 @@ function getCurrentSchoolYearLabel($timestamp = null) {
 }
 
 function studentApplicationRedirect(string $status, string $message): void {
-    header('Location: auth-register-creative.php?registered=' . rawurlencode($status) . '&msg=' . urlencode($message));
+    header('Location: auth-register.php?registered=' . rawurlencode($status) . '&msg=' . urlencode($message));
     exit;
 }
 
@@ -841,7 +841,7 @@ if ($role === 'coordinator') {
     $password = getPost('password');
     $confirm_password = getPost('confirm_password');
     if ($password !== $confirm_password) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Passwords do not match'));
+        header('Location: auth-register.php?registered=error&msg=' . urlencode('Passwords do not match'));
         exit;
     }
     
@@ -855,7 +855,7 @@ if ($role === 'coordinator') {
     $account_email = getPost('account_email');
 
     if (!$department_id) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Department code not found. Please create it first in Departments page.'));
+        header('Location: auth-register.php?registered=error&msg=' . urlencode('Department code not found. Please create it first in Departments page.'));
         exit;
     }
 
@@ -868,7 +868,7 @@ if ($role === 'coordinator') {
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
         if ((int)$createUserErrorCode === 1062) {
-            header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+            header('Location: auth-register.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
             exit;
         }
 
@@ -876,7 +876,7 @@ if ($role === 'coordinator') {
         if (!empty($createUserErrorMessage)) {
             $message .= ' ' . $createUserErrorMessage;
         }
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($message));
+        header('Location: auth-register.php?registered=error&msg=' . urlencode($message));
         exit;
     }
 
@@ -912,22 +912,22 @@ if ($role === 'coordinator') {
             if (!$stmt->execute()) {
                 $error = $stmt->error;
                 $stmt->close();
-                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+                header('Location: auth-register.php?registered=error&msg=' . urlencode($error));
                 exit;
             }
         } catch (mysqli_sql_exception $e) {
             $stmt->close();
             if ((int)$e->getCode() === 1062) {
-                header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('Coordinator record already exists for this account.'));
+                header('Location: auth-register.php?registered=exists&msg=' . urlencode('Coordinator record already exists for this account.'));
                 exit;
             }
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($e->getMessage()));
+            header('Location: auth-register.php?registered=error&msg=' . urlencode($e->getMessage()));
             exit;
         }
         $stmt->close();
     }
 
-    header('Location: auth-register-creative.php?registered=coordinator');
+    header('Location: auth-register.php?registered=coordinator');
     exit;
 }
 
@@ -936,7 +936,7 @@ if ($role === 'supervisor') {
     $password = getPost('password');
     $confirm_password = getPost('confirm_password');
     if ($password !== $confirm_password) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Passwords do not match'));
+        header('Location: auth-register.php?registered=error&msg=' . urlencode('Passwords do not match'));
         exit;
     }
     
@@ -957,7 +957,7 @@ if ($role === 'supervisor') {
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
         if ((int)$createUserErrorCode === 1062) {
-            header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+            header('Location: auth-register.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
             exit;
         }
 
@@ -965,7 +965,7 @@ if ($role === 'supervisor') {
         if (!empty($createUserErrorMessage)) {
             $message .= ' ' . $createUserErrorMessage;
         }
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($message));
+        header('Location: auth-register.php?registered=error&msg=' . urlencode($message));
         exit;
     }
 
@@ -1001,22 +1001,22 @@ if ($role === 'supervisor') {
             if (!$stmt->execute()) {
                 $error = $stmt->error;
                 $stmt->close();
-                header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($error));
+                header('Location: auth-register.php?registered=error&msg=' . urlencode($error));
                 exit;
             }
         } catch (mysqli_sql_exception $e) {
             $stmt->close();
             if ((int)$e->getCode() === 1062) {
-                header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('Supervisor record already exists for this account.'));
+                header('Location: auth-register.php?registered=exists&msg=' . urlencode('Supervisor record already exists for this account.'));
                 exit;
             }
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($e->getMessage()));
+            header('Location: auth-register.php?registered=error&msg=' . urlencode($e->getMessage()));
             exit;
         }
         $stmt->close();
     }
 
-    header('Location: auth-register-creative.php?registered=supervisor');
+    header('Location: auth-register.php?registered=supervisor');
     exit;
 }
 
@@ -1025,7 +1025,7 @@ if ($role === 'admin') {
     $password = getPost('password');
     $confirm_password = getPost('confirm_password');
     if ($password !== $confirm_password) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Passwords do not match'));
+        header('Location: auth-register.php?registered=error&msg=' . urlencode('Passwords do not match'));
         exit;
     }
     
@@ -1041,7 +1041,7 @@ if ($role === 'admin') {
     $middle_name = getPost('middle_name') ?: '';
 
     if (!$department_id) {
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Department code not found. Please create it first in Departments page.'));
+        header('Location: auth-register.php?registered=error&msg=' . urlencode('Department code not found. Please create it first in Departments page.'));
         exit;
     }
 
@@ -1054,7 +1054,7 @@ if ($role === 'admin') {
     // if createUser() returned null (possible duplicate/email exists), warn and stop
     if (!$userId) {
         if ((int)$createUserErrorCode === 1062) {
-            header('Location: auth-register-creative.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
+            header('Location: auth-register.php?registered=exists&msg=' . urlencode('An account with that email already exists'));
             exit;
         }
 
@@ -1062,7 +1062,7 @@ if ($role === 'admin') {
         if (!empty($createUserErrorMessage)) {
             $message .= ' ' . $createUserErrorMessage;
         }
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode($message));
+        header('Location: auth-register.php?registered=error&msg=' . urlencode($message));
         exit;
     }
 
@@ -1104,7 +1104,7 @@ if ($role === 'admin') {
                 $cleanup->execute();
                 $cleanup->close();
             }
-            header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Admin record error: ' . $error));
+            header('Location: auth-register.php?registered=error&msg=' . urlencode('Admin record error: ' . $error));
             exit;
         }
         $stmt_admin->close();
@@ -1115,11 +1115,11 @@ if ($role === 'admin') {
             $cleanup->execute();
             $cleanup->close();
         }
-        header('Location: auth-register-creative.php?registered=error&msg=' . urlencode('Admin table statement error: ' . $mysqli->error));
+        header('Location: auth-register.php?registered=error&msg=' . urlencode('Admin table statement error: ' . $mysqli->error));
         exit;
     }
 
-    header('Location: auth-register-creative.php?registered=admin');
+    header('Location: auth-register.php?registered=admin');
     exit;
 }
 

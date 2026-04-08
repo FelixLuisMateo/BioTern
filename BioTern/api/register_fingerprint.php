@@ -113,7 +113,7 @@ $route_prefix = $asset_prefix;
                                 <button id="retryBtn" class="btn btn-lg btn-secondary w-100 mb-2" onclick="retryFingerprintScan()" style="display: none;">
                                     Retry Scan
                                 </button>
-                                <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-register-creative.php" class="btn btn-lg btn-outline-secondary w-100">
+                                <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-register.php" class="btn btn-lg btn-outline-secondary w-100">
                                     Back to Registration
                                 </a>
                             </div>

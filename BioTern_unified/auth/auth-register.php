@@ -5,7 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $requestedRole = strtolower(trim((string)($_POST['role'] ?? '')));
     if ($requestedRole !== 'student') {
         $msg = rawurlencode('Staff accounts are created by an admin. Please contact your administrator.');
-        header('Location: auth-register-creative.php?registered=error&msg=' . $msg);
+        header('Location: auth-register.php?registered=error&msg=' . $msg);
         exit;
     }
     require_once dirname(__DIR__) . '/api/register_submit.php';

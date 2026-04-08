@@ -78,8 +78,8 @@ $favicon_png_version = ($favicon_png_mtime !== false) ? (string)$favicon_png_mti
 $favicon_ico_href = $favicon_root . 'assets/images/favicon.ico?v=' . rawurlencode($favicon_ico_version);
 $favicon_png_href = $favicon_root . 'assets/images/favicon-rounded.png?v=' . rawurlencode($favicon_png_version);
 
-$landing_apply_href = $landing_app_root . 'auth-register-creative.php?role=student';
-$landing_start_href = $landing_app_root . 'auth-register-creative.php?role=student';
+$landing_apply_href = $landing_app_root . 'auth-register.php?role=student';
+$landing_start_href = $landing_app_root . 'auth-register.php?role=student';
 $landing_signin_href = $landing_logged_in
     ? ($landing_app_root . 'homepage.php')
     : ($landing_app_root . 'auth-login-cover.php');

@@ -149,7 +149,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'label' => 'System',
                 'icon' => 'feather-settings',
                 'routes' => [
-                    'auth-register-creative.php', 'users.php', 'create_admin.php',
+                    'auth-register.php', 'users.php', 'create_admin.php',
                     'settings-general.php', 'settings-email.php', 'settings-ojt.php', 'settings-students.php',
                     'settings-support.php',
                     'theme-customizer.php', 'import-students-excel.php', 'import-sql.php',
@@ -159,7 +159,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'title' => 'Users',
                         'items' => [
                             ['label' => 'Users', 'href' => 'users.php', 'icon' => 'feather-users'],
-                            ['label' => 'Register Creative', 'href' => 'auth-register-creative.php', 'icon' => 'feather-user-plus'],
+                            ['label' => 'Register Creative', 'href' => 'auth-register.php', 'icon' => 'feather-user-plus'],
                             ['label' => 'Create Admin', 'href' => 'create_admin.php', 'icon' => 'feather-shield'],
                         ],
                     ],
