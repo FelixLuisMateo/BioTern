@@ -224,6 +224,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stagedStmt->close();
         }
     }
+    $stagedDateOfBirth = $stagedApplication ? trim((string)($stagedApplication['date_of_birth'] ?? '')) : '';
+    $stagedGender = $stagedApplication ? trim((string)($stagedApplication['gender'] ?? '')) : '';
 
     if ($userId <= 0 || !in_array($decision, ['approve', 'reject'], true)) {
         $flashType = 'danger';
@@ -246,11 +248,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $stmt->close();
 
-                $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ?, internal_total_hours = ?, external_total_hours = ?, internal_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN 0 ELSE ? END, external_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN ? ELSE 0 END WHERE user_id = ? LIMIT 1");
+                $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ?, internal_total_hours = ?, external_total_hours = ?, internal_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN 0 ELSE ? END, external_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN ? ELSE 0 END, date_of_birth = COALESCE(NULLIF(?, ''), date_of_birth), gender = COALESCE(NULLIF(?, ''), gender) WHERE user_id = ? LIMIT 1");
                 if (!$studentStmt) {
                     throw new Exception('Unable to update student hour settings.');
                 }
-                $studentStmt->bind_param('iisiisiiii', $departmentId, $coordinatorId, $coordinatorName, $supervisorId, $supervisorName, $internalHours, $externalHours, $internalHours, $externalHours, $userId);
+                $studentStmt->bind_param('iisisiiiissi', $departmentId, $coordinatorId, $coordinatorName, $supervisorId, $supervisorName, $internalHours, $externalHours, $internalHours, $externalHours, $stagedDateOfBirth, $stagedGender, $userId);
                 if (!$studentStmt->execute()) {
                     $studentStmt->close();
                     throw new Exception('Unable to save updated assignment and hour settings.');
