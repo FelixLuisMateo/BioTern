@@ -214,7 +214,7 @@ function Get-ConnectorUserListRaw {
     return ($output -join "`n")
 }
 
-function Extract-JsonPayloadFromRaw {
+function ConvertFrom-BridgeRawJsonPayload {
     param(
         [Parameter(Mandatory = $true)]
         [string]$RawText
@@ -265,7 +265,7 @@ function Extract-JsonPayloadFromRaw {
 
 function Get-UsersPayloadJson {
     $raw = Get-ConnectorUserListRaw
-    return (Extract-JsonPayloadFromRaw -RawText $raw)
+    return (ConvertFrom-BridgeRawJsonPayload -RawText $raw)
 }
 
 function Get-ConnectorHistoricalLogRaw {
@@ -383,7 +383,7 @@ function Invoke-BridgeRenameUser {
     }
 
     $userRaw = (Invoke-ConnectorCommand -Command 'get-user' -Arguments @([string]$userId)) -join "`n"
-    $userJson = Extract-JsonPayloadFromRaw -RawText $userRaw
+    $userJson = ConvertFrom-BridgeRawJsonPayload -RawText $userRaw
     $userObj = $userJson | ConvertFrom-Json -ErrorAction Stop
 
     if ($null -eq $userObj) {
@@ -484,7 +484,7 @@ function Invoke-BridgeQueuedCommand {
     }
 }
 
-function Process-BridgeCommandQueue {
+function Invoke-BridgeCommandQueue {
     param($BridgeConfig)
 
     for ($i = 0; $i -lt 3; $i++) {
@@ -569,25 +569,25 @@ function Publish-UserCache {
 }
 
 function Get-BridgeEventKey {
-    param($Event)
+    param($BridgeEvent)
 
-    if ($null -eq $Event) {
+    if ($null -eq $BridgeEvent) {
         return ''
     }
 
-    $fingerId = [string]($Event.finger_id)
+    $fingerId = [string]($BridgeEvent.finger_id)
     if ([string]::IsNullOrWhiteSpace($fingerId)) {
-        $fingerId = [string]($Event.id)
+        $fingerId = [string]($BridgeEvent.id)
     }
 
-    $clockType = [string]($Event.type)
+    $clockType = [string]($BridgeEvent.type)
     if ([string]::IsNullOrWhiteSpace($clockType)) {
-        $clockType = [string]($Event.clock_type)
+        $clockType = [string]($BridgeEvent.clock_type)
     }
 
-    $clockTime = [string]($Event.time)
+    $clockTime = [string]($BridgeEvent.time)
     if ([string]::IsNullOrWhiteSpace($clockTime)) {
-        $clockTime = [string]($Event.record_time)
+        $clockTime = [string]($BridgeEvent.record_time)
     }
 
     return ('{0}|{1}|{2}' -f $fingerId, $clockType, $clockTime)
@@ -622,7 +622,7 @@ function Read-BridgeEventsFromFile {
     return @($parsed)
 }
 
-function Ensure-BridgeHoldingDirectories {
+function Initialize-BridgeHoldingDirectories {
     foreach ($dir in @($bridgeHoldingRootPath, $bridgeHoldingPendingPath, $bridgeHoldingUploadedPath)) {
         if (-not (Test-Path $dir)) {
             New-Item -Path $dir -ItemType Directory -Force | Out-Null
@@ -631,7 +631,7 @@ function Ensure-BridgeHoldingDirectories {
 }
 
 function Read-BridgeHoldingPendingEvents {
-    Ensure-BridgeHoldingDirectories
+    Initialize-BridgeHoldingDirectories
 
     $all = @()
     $files = Get-ChildItem -Path $bridgeHoldingPendingPath -Filter 'holding-*.json' -File -ErrorAction SilentlyContinue |
@@ -658,7 +658,7 @@ function Save-BridgeHoldingPendingBatch {
         return
     }
 
-    Ensure-BridgeHoldingDirectories
+    Initialize-BridgeHoldingDirectories
 
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
     $path = Join-Path $bridgeHoldingPendingPath ("holding-{0}.json" -f $stamp)
@@ -667,7 +667,7 @@ function Save-BridgeHoldingPendingBatch {
 }
 
 function Move-BridgeHoldingPendingToUploaded {
-    Ensure-BridgeHoldingDirectories
+    Initialize-BridgeHoldingDirectories
 
     $pendingFiles = Get-ChildItem -Path $bridgeHoldingPendingPath -Filter 'holding-*.json' -File -ErrorAction SilentlyContinue
     foreach ($file in $pendingFiles) {
@@ -786,7 +786,7 @@ function Invoke-BridgeHistoricalBackfill {
     $endTime = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
 
     $rawHistory = Get-ConnectorHistoricalLogRaw -BeginTime $beginTime -EndTime $endTime
-    $historyJson = Extract-JsonPayloadFromRaw -RawText $rawHistory
+    $historyJson = ConvertFrom-BridgeRawJsonPayload -RawText $rawHistory
     $decodedHistory = $historyJson | ConvertFrom-Json -ErrorAction Stop
     $historyEvents = Convert-BridgeDecodedPayloadToEvents -Decoded $decodedHistory
 
@@ -824,14 +824,14 @@ function Merge-BridgeEventsUnique {
     $merged = @()
     $seen = @{}
 
-    foreach ($event in @($First) + @($Second)) {
-        if ($null -eq $event) {
+    foreach ($eventRecord in @($First) + @($Second)) {
+        if ($null -eq $eventRecord) {
             continue
         }
 
-        $key = Get-BridgeEventKey -Event $event
+        $key = Get-BridgeEventKey -BridgeEvent $eventRecord
         if ([string]::IsNullOrWhiteSpace($key)) {
-            $merged += $event
+            $merged += $eventRecord
             continue
         }
 
@@ -840,7 +840,7 @@ function Merge-BridgeEventsUnique {
         }
 
         $seen[$key] = $true
-        $merged += $event
+        $merged += $eventRecord
     }
 
     return $merged
@@ -1034,7 +1034,7 @@ while ($true) {
         }
 
         Update-ConnectorConfig -BridgeConfig $bridgeConfig
-        Process-BridgeCommandQueue -BridgeConfig $bridgeConfig
+        Invoke-BridgeCommandQueue -BridgeConfig $bridgeConfig
         $connectorOutput = Invoke-ConnectorSync
         Write-BridgeLog (($connectorOutput -join ' ') -replace '\s+', ' ')
         Save-BridgeRecoverySnapshot -BridgeConfig $bridgeConfig

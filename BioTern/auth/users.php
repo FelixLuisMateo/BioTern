@@ -297,7 +297,7 @@ include __DIR__ . '/../includes/header.php';
         </ul>
     </div>
     <div class="page-header-right ms-auto">
-        <a href="auth-register-creative.php" class="btn btn-primary">Create User</a>
+        <a href="auth-register.php" class="btn btn-primary">Create User</a>
     </div>
 </div>
 

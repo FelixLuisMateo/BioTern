@@ -168,7 +168,7 @@ $map = [
   'auth-404-minimal.php' => 'auth/auth-404-minimal.php',
   'auth-login-cover.php' => 'auth/auth-login-cover.php',
   'auth-maintenance-cover.php' => 'auth/auth-maintenance-cover.php',
-  'auth-register-creative.php' => 'auth/auth-register-creative.php',
+  'auth-register.php' => 'auth/auth-register.php',
   'auth-reset-cover.php' => 'auth/auth-reset-cover.php',
   'auth-resetting-minimal.php' => 'auth/auth-resetting-minimal.php',
   'auth-verify-cover.php' => 'auth/auth-verify-cover.php',
@@ -268,7 +268,7 @@ $public_files = [
   'f20h_ingest.php',
   'bridge_profile.php',
   'auth-login-cover.php',
-  'auth-register-creative.php',
+  'auth-register.php',
   'auth-reset-cover.php',
   'auth-resetting-minimal.php',
   'auth-verify-cover.php',
@@ -294,7 +294,7 @@ if ($is_logged_in && $file === 'auth-login-cover.php' && !$is_logout_request) {
 }
 
 // Allow account registration page only for privileged logged-in users.
-if ($is_logged_in && $file === 'auth-register-creative.php') {
+if ($is_logged_in && $file === 'auth-register.php') {
   $current_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
   if (!in_array($current_role, ['admin', 'coordinator', 'supervisor'], true)) {
     header('Location: homepage.php');
@@ -371,7 +371,7 @@ if ($is_logged_in) {
     'apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
   ];
   $system_files = [
-    'auth-register-creative.php', 'users.php', 'create_admin.php',
+    'auth-register.php', 'users.php', 'create_admin.php',
     'import-sql.php',
     'settings-general.php', 'settings-tags.php', 'settings-email.php',
     'settings-tasks.php', 'settings-ojt.php', 'settings-support.php', 'settings-students.php',

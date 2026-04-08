@@ -1,4 +1,5 @@
 let currentRole = null;
+const STUDENT_ONLY_REGISTRATION = true;
 
 function parseJSONDataset(el, key, fallback) {
     if (!el) return fallback;
@@ -14,19 +15,25 @@ function parseJSONDataset(el, key, fallback) {
 const registerDataEl = document.getElementById("registerData");
 const courseDepartmentMap = parseJSONDataset(registerDataEl, "courseMap", {});
 const sectionRecords = parseJSONDataset(registerDataEl, "sectionRecords", []);
+const studentDraftStorageKey = 'biotern.studentDraft.v1.' + window.location.pathname;
+
+function escapeSelector(value) {
+    if (window.CSS && typeof window.CSS.escape === 'function') {
+        return window.CSS.escape(value);
+    }
+    return String(value).replace(/([ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, '\\$1');
+}
 
         function selectRole(role) {
+            if (STUDENT_ONLY_REGISTRATION) {
+                role = 'student';
+            }
             currentRole = role;
             const roleSelection = document.getElementById('roleSelectionScreen');
             const loginLink = document.getElementById('loginLink');
             const loginLinkHidden = document.getElementById('loginLinkHidden');
 
-            const forms = {
-                'student': 'studentForm',
-                'coordinator': 'coordinatorForm',
-                'supervisor': 'supervisorForm',
-                'admin': 'adminForm'
-            };
+            const forms = { 'student': 'studentForm' };
 
             // Hide role selection and login hint (guarded)
             if (roleSelection) {
@@ -65,14 +72,15 @@ const sectionRecords = parseJSONDataset(registerDataEl, "sectionRecords", []);
         }
 
         function backToRoles() {
+            if (STUDENT_ONLY_REGISTRATION) {
+                selectRole('student');
+                return;
+            }
             const roleSelection = document.getElementById('roleSelectionScreen');
             const loginLink = document.getElementById('loginLink');
             const loginLinkHidden = document.getElementById('loginLinkHidden');
             const forms = {
-                'student': 'studentForm',
-                'coordinator': 'coordinatorForm',
-                'supervisor': 'supervisorForm',
-                'admin': 'adminForm'
+                'student': 'studentForm'
             };
 
             // Hide forms
@@ -104,6 +112,15 @@ const sectionRecords = parseJSONDataset(registerDataEl, "sectionRecords", []);
 
         window.selectRole = selectRole;
         window.backToRoles = backToRoles;
+
+        function enforceStudentOnlyForms() {
+            if (!STUDENT_ONLY_REGISTRATION) return;
+            const studentForm = document.getElementById('studentForm');
+            if (studentForm) {
+                studentForm.classList.add('show-form');
+                studentForm.classList.remove('hide-form');
+            }
+        }
 
         function initFormStepper(formId) {
             const form = document.getElementById(formId);
@@ -173,6 +190,7 @@ const sectionRecords = parseJSONDataset(registerDataEl, "sectionRecords", []);
                             for (let i = 0; i < requiredFields.length; i++) {
                                 const field = requiredFields[i];
                                 if (field.disabled || !field.required) continue;
+                                if (field.tagName === 'INPUT' && String(field.type || '').toLowerCase() === 'hidden') continue;
                                 if (!field.checkValidity()) {
                                     hasInvalid = true;
                                     let msg = 'Please check this field.';
@@ -245,7 +263,7 @@ const sectionRecords = parseJSONDataset(registerDataEl, "sectionRecords", []);
 
         // Attach validation to all forms when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            const formIds = ['studentForm', 'coordinatorForm', 'supervisorForm', 'adminForm'];
+            const formIds = ['studentForm'];
             formIds.forEach(formId => {
                 const form = document.getElementById(formId);
                 if (form) {
@@ -257,10 +275,14 @@ const sectionRecords = parseJSONDataset(registerDataEl, "sectionRecords", []);
             setupPasswordToggle();
             setupStudentHoursControls();
             setupAcademicFilters();
+            setupStudentPhilippineAddress();
+            setupStudentDraftPersistence();
+            setupStudentFinalReview();
             initFormStepper('studentForm');
-            initFormStepper('coordinatorForm');
-            initFormStepper('supervisorForm');
-            initFormStepper('adminForm');
+            enforceStudentOnlyForms();
+            if (STUDENT_ONLY_REGISTRATION) {
+                selectRole('student');
+            }
 
             const studentIdInput = document.querySelector('#studentForm input[name="student_id"]');
             if (studentIdInput) {
@@ -287,10 +309,12 @@ const sectionRecords = parseJSONDataset(registerDataEl, "sectionRecords", []);
 
             const params = new URLSearchParams(window.location.search);
             if (params.get('registered')) {
+                clearStudentDraft();
                 const studentForm = document.getElementById('studentForm');
                 if (studentForm) {
                     studentForm.reset();
                     setupAcademicFilters();
+                    setupStudentPhilippineAddress();
                     if (typeof studentForm._showStep === 'function') {
                         studentForm._showStep(1);
                     }
@@ -318,6 +342,392 @@ const sectionRecords = parseJSONDataset(registerDataEl, "sectionRecords", []);
 
             finishedSelect.addEventListener('change', syncExternalField);
             syncExternalField();
+        }
+
+        function getStudentDraft() {
+            try {
+                const raw = localStorage.getItem(studentDraftStorageKey);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return null;
+                return parsed;
+            } catch (err) {
+                return null;
+            }
+        }
+
+        function clearStudentDraft() {
+            try {
+                localStorage.removeItem(studentDraftStorageKey);
+            } catch (err) {
+                // ignore localStorage errors
+            }
+        }
+
+        function saveStudentDraft() {
+            const form = document.getElementById('studentForm');
+            if (!form) return;
+            const values = {};
+            const fields = Array.prototype.slice.call(form.querySelectorAll('input, select, textarea'));
+            fields.forEach(function(field) {
+                if (!field) return;
+                const fieldName = String(field.name || '').trim();
+                const fieldId = String(field.id || '').trim();
+                const key = fieldName !== '' ? ('name:' + fieldName) : (fieldId !== '' ? ('id:' + fieldId) : '');
+                if (!key) return;
+                if (field.type === 'password') return;
+                if (field.type === 'checkbox' || field.type === 'radio') {
+                    values[key] = !!field.checked;
+                } else {
+                    values[key] = field.value;
+                }
+            });
+
+            const activePanel = form.querySelector('.step-panel.active');
+            const activeStep = activePanel ? Number(activePanel.getAttribute('data-step') || 1) : 1;
+            const payload = {
+                values: values,
+                activeStep: activeStep,
+                updatedAt: Date.now()
+            };
+
+            try {
+                localStorage.setItem(studentDraftStorageKey, JSON.stringify(payload));
+            } catch (err) {
+                // ignore localStorage errors
+            }
+        }
+
+        function restoreStudentDraft() {
+            const form = document.getElementById('studentForm');
+            const draft = getStudentDraft();
+            if (!form || !draft || !draft.values) return;
+
+            Object.keys(draft.values).forEach(function(key) {
+                if (key.indexOf('id:studentProvinceSelect') === 0 || key.indexOf('id:studentCitySelect') === 0 || key.indexOf('id:studentBarangaySelect') === 0) {
+                    return;
+                }
+
+                let field = null;
+                if (key.indexOf('name:') === 0) {
+                    const fieldName = key.substring(5);
+                    field = form.querySelector('[name="' + escapeSelector(fieldName) + '"]');
+                } else if (key.indexOf('id:') === 0) {
+                    const fieldId = key.substring(3);
+                    field = document.getElementById(fieldId);
+                }
+                if (!field) return;
+
+                if (field.type === 'checkbox' || field.type === 'radio') {
+                    field.checked = !!draft.values[key];
+                } else {
+                    const value = draft.values[key];
+                    if (value !== null && value !== undefined) {
+                        field.value = String(value);
+                    }
+                }
+            });
+
+            if (typeof form._showStep === 'function' && Number(draft.activeStep) > 0) {
+                form._showStep(Number(draft.activeStep));
+            }
+        }
+
+        function setupStudentDraftPersistence() {
+            const form = document.getElementById('studentForm');
+            if (!form || form.dataset.draftBound === '1') {
+                restoreStudentDraft();
+                return;
+            }
+
+            form.addEventListener('input', saveStudentDraft);
+            form.addEventListener('change', saveStudentDraft);
+            form.addEventListener('click', function(e) {
+                const target = e.target;
+                if (target && target.matches('[data-step-action]')) {
+                    setTimeout(saveStudentDraft, 0);
+                }
+            });
+
+            form.dataset.draftBound = '1';
+            restoreStudentDraft();
+            saveStudentDraft();
+        }
+
+        function setupStudentFinalReview() {
+            const form = document.getElementById('studentForm');
+            const reviewModalEl = document.getElementById('studentReviewModal');
+            const reviewBody = document.getElementById('studentReviewContent');
+            const confirmBtn = document.getElementById('studentConfirmSubmitBtn');
+            const applyBtn = document.getElementById('studentApplyBtn');
+            if (!form || !reviewModalEl || !reviewBody || !confirmBtn || !applyBtn || typeof bootstrap === 'undefined') return;
+            if (form.dataset.reviewBound === '1') return;
+
+            const reviewModal = new bootstrap.Modal(reviewModalEl);
+            let confirmed = false;
+
+            function getFieldDisplay(name, fallback) {
+                const fieldSelector = '[name="' + escapeSelector(name) + '"]';
+                const resolvedField = form.querySelector(fieldSelector);
+                if (!resolvedField) return fallback || '-';
+                if (resolvedField.tagName === 'SELECT') {
+                    const opt = resolvedField.options[resolvedField.selectedIndex];
+                    if (!opt || !opt.value) return fallback || '-';
+                    return String(opt.textContent || '').trim() || fallback || '-';
+                }
+                const value = String(resolvedField.value || '').trim();
+                return value !== '' ? value : (fallback || '-');
+            }
+
+            function renderReview() {
+                const rows = [
+                    ['Student ID', getFieldDisplay('student_id')],
+                    ['First Name', getFieldDisplay('first_name')],
+                    ['Middle Name', getFieldDisplay('middle_name', '-')],
+                    ['Last Name', getFieldDisplay('last_name')],
+                    ['Address', String((document.getElementById('studentAddress') || {}).value || '-').trim() || '-'],
+                    ['Course', getFieldDisplay('course_id')],
+                    ['Department', getFieldDisplay('department_id')],
+                    ['Section', getFieldDisplay('section')],
+                    ['School Year', getFieldDisplay('school_year')],
+                    ['Semester', getFieldDisplay('semester')],
+                    ['Coordinator', getFieldDisplay('coordinator_id')],
+                    ['Supervisor', getFieldDisplay('supervisor_id')],
+                    ['Phone', getFieldDisplay('phone')],
+                    ['Date of Birth', getFieldDisplay('date_of_birth')],
+                    ['Gender', getFieldDisplay('gender')],
+                    ['Emergency Contact', getFieldDisplay('emergency_contact')],
+                    ['Emergency Contact Phone', getFieldDisplay('emergency_contact_phone')],
+                    ['Username', getFieldDisplay('username')],
+                    ['Account Email', getFieldDisplay('account_email')]
+                ];
+
+                let html = '<div class="table-responsive"><table class="table table-sm align-middle mb-0">';
+                rows.forEach(function(row) {
+                    html += '<tr><th class="text-muted" style="width: 42%;">' + row[0] + '</th><td>' + row[1] + '</td></tr>';
+                });
+                html += '</table></div>';
+                reviewBody.innerHTML = html;
+            }
+
+            function openReviewModal() {
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+                renderReview();
+                reviewModal.show();
+            }
+
+            applyBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                openReviewModal();
+            });
+
+            form.addEventListener('submit', function(e) {
+                if (confirmed) {
+                    confirmed = false;
+                    return;
+                }
+                e.preventDefault();
+                openReviewModal();
+            });
+
+            confirmBtn.addEventListener('click', function() {
+                confirmed = true;
+                saveStudentDraft();
+                reviewModal.hide();
+                if (form.requestSubmit) {
+                    form.requestSubmit();
+                } else {
+                    form.submit();
+                }
+            });
+
+            form.dataset.reviewBound = '1';
+        }
+
+        function setSelectLoading(selectEl, label) {
+            if (!selectEl) return;
+            selectEl.innerHTML = '';
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = label;
+            opt.disabled = true;
+            opt.selected = true;
+            selectEl.appendChild(opt);
+        }
+
+        function fillSelectOptions(selectEl, placeholder, records, codeKey, nameKey) {
+            if (!selectEl) return;
+            selectEl.innerHTML = '';
+            const placeholderOption = document.createElement('option');
+            placeholderOption.value = '';
+            placeholderOption.textContent = placeholder;
+            placeholderOption.disabled = true;
+            placeholderOption.selected = true;
+            selectEl.appendChild(placeholderOption);
+
+            records.forEach(function(rec) {
+                const code = String(rec[codeKey] || '').trim();
+                const name = String(rec[nameKey] || '').trim();
+                if (code === '' || name === '') return;
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = name;
+                option.setAttribute('data-name', name);
+                selectEl.appendChild(option);
+            });
+        }
+
+        function setupStudentPhilippineAddress() {
+            const provinceSelect = document.getElementById('studentProvinceSelect');
+            const citySelect = document.getElementById('studentCitySelect');
+            const barangaySelect = document.getElementById('studentBarangaySelect');
+            const streetInput = document.getElementById('studentStreetAddress');
+            const addressInput = document.getElementById('studentAddress');
+            if (!provinceSelect || !citySelect || !barangaySelect || !addressInput) return;
+            if (provinceSelect.dataset.addressBound === '1') {
+                updateComposedAddress();
+                return;
+            }
+
+            const psgcBase = 'https://psgc.gitlab.io/api';
+
+            function selectedName(selectEl) {
+                if (!selectEl) return '';
+                const opt = selectEl.options[selectEl.selectedIndex];
+                if (!opt || !opt.value) return '';
+                return String(opt.getAttribute('data-name') || opt.textContent || '').trim();
+            }
+
+            function updateComposedAddress() {
+                const province = selectedName(provinceSelect);
+                const city = selectedName(citySelect);
+                const barangay = selectedName(barangaySelect);
+                const street = streetInput ? String(streetInput.value || '').trim() : '';
+                const segments = [];
+                if (street !== '') segments.push(street);
+                if (barangay !== '') segments.push(barangay);
+                if (city !== '') segments.push(city);
+                if (province !== '') segments.push(province);
+                addressInput.value = segments.join(', ');
+            }
+
+            function fetchList(endpoint) {
+                return fetch(psgcBase + endpoint)
+                    .then(function(response) {
+                        if (!response.ok) {
+                            throw new Error('Request failed with status ' + response.status);
+                        }
+                        return response.json();
+                    });
+            }
+
+            const draft = getStudentDraft();
+            const draftValues = draft && draft.values ? draft.values : {};
+            const draftProvinceCode = String(draftValues['id:studentProvinceSelect'] || '');
+            const draftCityCode = String(draftValues['id:studentCitySelect'] || '');
+            const draftBarangayCode = String(draftValues['id:studentBarangaySelect'] || '');
+
+            function loadProvinces() {
+                provinceSelect.disabled = true;
+                citySelect.disabled = true;
+                barangaySelect.disabled = true;
+                setSelectLoading(provinceSelect, 'Loading provinces...');
+                setSelectLoading(citySelect, 'Select City / Municipality');
+                setSelectLoading(barangaySelect, 'Select Barangay');
+
+                return fetchList('/provinces/')
+                    .then(function(records) {
+                        const sorted = (Array.isArray(records) ? records : []).slice().sort(function(a, b) {
+                            return String(a.name || '').localeCompare(String(b.name || ''));
+                        });
+                        fillSelectOptions(provinceSelect, 'Select Province', sorted, 'code', 'name');
+                        provinceSelect.disabled = false;
+                    })
+                    .catch(function() {
+                        setSelectLoading(provinceSelect, 'Unable to load provinces');
+                    });
+            }
+
+            function loadCities(provinceCode) {
+                citySelect.disabled = true;
+                barangaySelect.disabled = true;
+                setSelectLoading(citySelect, 'Loading cities/municipalities...');
+                setSelectLoading(barangaySelect, 'Select Barangay');
+                if (!provinceCode) {
+                    setSelectLoading(citySelect, 'Select City / Municipality');
+                    return Promise.resolve();
+                }
+
+                return fetchList('/provinces/' + encodeURIComponent(provinceCode) + '/cities-municipalities/')
+                    .then(function(records) {
+                        const sorted = (Array.isArray(records) ? records : []).slice().sort(function(a, b) {
+                            return String(a.name || '').localeCompare(String(b.name || ''));
+                        });
+                        fillSelectOptions(citySelect, 'Select City / Municipality', sorted, 'code', 'name');
+                        citySelect.disabled = false;
+                    })
+                    .catch(function() {
+                        setSelectLoading(citySelect, 'Unable to load cities/municipalities');
+                    });
+            }
+
+            function loadBarangays(cityCode) {
+                barangaySelect.disabled = true;
+                setSelectLoading(barangaySelect, 'Loading barangays...');
+                if (!cityCode) {
+                    setSelectLoading(barangaySelect, 'Select Barangay');
+                    return Promise.resolve();
+                }
+
+                return fetchList('/cities-municipalities/' + encodeURIComponent(cityCode) + '/barangays/')
+                    .then(function(records) {
+                        const sorted = (Array.isArray(records) ? records : []).slice().sort(function(a, b) {
+                            return String(a.name || '').localeCompare(String(b.name || ''));
+                        });
+                        fillSelectOptions(barangaySelect, 'Select Barangay', sorted, 'code', 'name');
+                        barangaySelect.disabled = false;
+                    })
+                    .catch(function() {
+                        setSelectLoading(barangaySelect, 'Unable to load barangays');
+                    });
+            }
+
+            provinceSelect.addEventListener('change', function() {
+                loadCities(provinceSelect.value);
+                updateComposedAddress();
+            });
+            citySelect.addEventListener('change', function() {
+                loadBarangays(citySelect.value);
+                updateComposedAddress();
+            });
+            barangaySelect.addEventListener('change', updateComposedAddress);
+            if (streetInput) {
+                streetInput.addEventListener('input', updateComposedAddress);
+            }
+
+            provinceSelect.dataset.addressBound = '1';
+            loadProvinces().then(function() {
+                if (draftProvinceCode && provinceSelect.querySelector('option[value="' + escapeSelector(draftProvinceCode) + '"]')) {
+                    provinceSelect.value = draftProvinceCode;
+                    return loadCities(draftProvinceCode).then(function() {
+                        if (draftCityCode && citySelect.querySelector('option[value="' + escapeSelector(draftCityCode) + '"]')) {
+                            citySelect.value = draftCityCode;
+                            return loadBarangays(draftCityCode).then(function() {
+                                if (draftBarangayCode && barangaySelect.querySelector('option[value="' + escapeSelector(draftBarangayCode) + '"]')) {
+                                    barangaySelect.value = draftBarangayCode;
+                                }
+                            });
+                        }
+                        return Promise.resolve();
+                    });
+                }
+                return Promise.resolve();
+            }).then(function() {
+                updateComposedAddress();
+            });
         }
 
         function getCourseAllowedDepartmentIds(courseId) {

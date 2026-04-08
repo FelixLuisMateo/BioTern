@@ -165,6 +165,70 @@ function formatSectionDisplayLabel($code, $name)
     return $code !== '' ? $code : $name;
 }
 
+function ensureApplicationsStagingTable(mysqli $conn)
+{
+    $ok = $conn->query("CREATE TABLE IF NOT EXISTS student_applications (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id INT UNSIGNED NULL,
+        username VARCHAR(120) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        student_id VARCHAR(80) NULL,
+        first_name VARCHAR(120) NOT NULL,
+        middle_name VARCHAR(120) NULL,
+        last_name VARCHAR(120) NOT NULL,
+        course_id INT NULL,
+        department_id INT NULL,
+        section_id INT NULL,
+        section_code_snapshot VARCHAR(80) NULL,
+        section_name_snapshot VARCHAR(120) NULL,
+        semester VARCHAR(30) NULL,
+        school_year VARCHAR(16) NULL,
+        address VARCHAR(255) NULL,
+        phone VARCHAR(50) NULL,
+        date_of_birth DATE NULL,
+        gender VARCHAR(30) NULL,
+        supervisor_id INT NULL,
+        supervisor_name VARCHAR(255) NULL,
+        coordinator_id INT NULL,
+        coordinator_name VARCHAR(255) NULL,
+        internal_total_hours INT NULL,
+        external_total_hours INT NULL,
+        assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal',
+        emergency_contact VARCHAR(255) NULL,
+        emergency_contact_phone VARCHAR(50) NULL,
+        status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+        submitted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        reviewed_at DATETIME NULL,
+        reviewed_by INT NULL,
+        approval_notes VARCHAR(255) NULL,
+        disciplinary_remark VARCHAR(255) NULL,
+        created_student_user_id INT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_student_app_user_id (user_id),
+        UNIQUE KEY uq_student_app_email (email),
+        KEY idx_student_app_status (status),
+        KEY idx_student_app_submitted (submitted_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    return (bool)$ok;
+}
+
+function reviewBindDynamicParams(mysqli_stmt $stmt, $types, &$values)
+{
+    if (!is_array($values) || $types === '') {
+        return true;
+    }
+    $bind = [$types];
+    foreach (array_keys($values) as $idx) {
+        $bind[] = &$values[$idx];
+    }
+    return call_user_func_array([$stmt, 'bind_param'], $bind);
+}
+
+$applicationsStageTable = ensureApplicationsStagingTable($conn) ? '`student_applications`' : '';
+
 $flashType = '';
 $flashMessage = '';
 if (isset($_SESSION['flash_message'])) {
@@ -188,6 +252,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $externalHours = is_numeric($externalHoursRaw) ? (int)$externalHoursRaw : -1;
     $coordinatorName = $coordinatorId > 0 && isset($coordinatorNameMap[$coordinatorId]) ? $coordinatorNameMap[$coordinatorId] : null;
     $supervisorName = $supervisorId > 0 && isset($supervisorNameMap[$supervisorId]) ? $supervisorNameMap[$supervisorId] : null;
+    $stagedApplication = null;
+    if ($applicationsStageTable !== '' && $userId > 0) {
+        $stagedStmt = $conn->prepare("SELECT * FROM {$applicationsStageTable} WHERE user_id = ? LIMIT 1");
+        if ($stagedStmt) {
+            $stagedStmt->bind_param('i', $userId);
+            $stagedStmt->execute();
+            $stagedApplication = $stagedStmt->get_result()->fetch_assoc();
+            $stagedStmt->close();
+        }
+    }
+    $stagedDateOfBirth = $stagedApplication ? trim((string)($stagedApplication['date_of_birth'] ?? '')) : '';
+    $stagedGender = $stagedApplication ? trim((string)($stagedApplication['gender'] ?? '')) : '';
 
     if ($userId <= 0 || !in_array($decision, ['approve', 'reject'], true)) {
         $flashType = 'danger';
@@ -210,16 +286,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $stmt->close();
 
-                $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ?, internal_total_hours = ?, external_total_hours = ?, internal_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN 0 ELSE ? END, external_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN ? ELSE 0 END, application_status = 'approved', status = 1 WHERE user_id = ? LIMIT 1");
+                $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ?, internal_total_hours = ?, external_total_hours = ?, internal_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN 0 ELSE ? END, external_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN ? ELSE 0 END, date_of_birth = COALESCE(NULLIF(?, ''), date_of_birth), gender = COALESCE(NULLIF(?, ''), gender), application_status = 'approved', status = 1 WHERE user_id = ? LIMIT 1");
                 if (!$studentStmt) {
                     throw new Exception('Unable to update student hour settings.');
                 }
-                $studentStmt->bind_param('iisiisiiii', $departmentId, $coordinatorId, $coordinatorName, $supervisorId, $supervisorName, $internalHours, $externalHours, $internalHours, $externalHours, $userId);
+                $studentStmt->bind_param('iisisiiiissi', $departmentId, $coordinatorId, $coordinatorName, $supervisorId, $supervisorName, $internalHours, $externalHours, $internalHours, $externalHours, $stagedDateOfBirth, $stagedGender, $userId);
                 if (!$studentStmt->execute()) {
                     $studentStmt->close();
                     throw new Exception('Unable to save updated assignment and hour settings.');
                 }
+                $studentUpdatedRows = (int)$studentStmt->affected_rows;
                 $studentStmt->close();
+
+                if ($studentUpdatedRows === 0 && $stagedApplication) {
+                    $assignmentTrack = strtolower((string)($stagedApplication['assignment_track'] ?? 'internal'));
+                    if (!in_array($assignmentTrack, ['internal', 'external'], true)) {
+                        $assignmentTrack = 'internal';
+                    }
+
+                    $insertStudentSql = "INSERT INTO students (
+                        user_id, course_id, student_id, first_name, last_name, middle_name,
+                        password, email, department_id, section_id, semester, school_year,
+                        address, phone, date_of_birth, gender,
+                        supervisor_id, supervisor_name, coordinator_id, coordinator_name,
+                        internal_total_hours, internal_total_hours_remaining,
+                        external_total_hours, external_total_hours_remaining,
+                        assignment_track, emergency_contact, emergency_contact_phone,
+                        application_status, status, created_at
+                    ) VALUES (
+                        ?, ?, ?, ?, ?, ?,
+                        ?, ?, NULLIF(?, 0), NULLIF(?, 0), NULLIF(?, ''), NULLIF(?, ''),
+                        NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''),
+                        NULLIF(?, 0), NULLIF(?, ''), NULLIF(?, 0), NULLIF(?, ''),
+                        ?, ?, ?, ?,
+                        ?, NULLIF(?, ''), NULLIF(?, ''),
+                        'approved', 1, NOW()
+                    )";
+                    $insertStudentStmt = $conn->prepare($insertStudentSql);
+                    if (!$insertStudentStmt) {
+                        throw new Exception('Unable to create approved student record.');
+                    }
+
+                    $insertStudentValues = [
+                        (string)$userId,
+                        (string)((int)($stagedApplication['course_id'] ?? 0)),
+                        (string)($stagedApplication['student_id'] ?? ''),
+                        (string)($stagedApplication['first_name'] ?? ''),
+                        (string)($stagedApplication['last_name'] ?? ''),
+                        (string)($stagedApplication['middle_name'] ?? ''),
+                        (string)($stagedApplication['password_hash'] ?? ''),
+                        (string)($stagedApplication['email'] ?? ''),
+                        (string)$departmentId,
+                        (string)((int)($stagedApplication['section_id'] ?? 0)),
+                        (string)($stagedApplication['semester'] ?? ''),
+                        (string)($stagedApplication['school_year'] ?? ''),
+                        (string)($stagedApplication['address'] ?? ''),
+                        (string)($stagedApplication['phone'] ?? ''),
+                        (string)($stagedApplication['date_of_birth'] ?? ''),
+                        (string)($stagedApplication['gender'] ?? ''),
+                        (string)$supervisorId,
+                        (string)($supervisorName ?? ''),
+                        (string)$coordinatorId,
+                        (string)($coordinatorName ?? ''),
+                        (string)$internalHours,
+                        (string)($assignmentTrack === 'external' ? 0 : $internalHours),
+                        (string)$externalHours,
+                        (string)($assignmentTrack === 'external' ? $externalHours : 0),
+                        (string)$assignmentTrack,
+                        (string)($stagedApplication['emergency_contact'] ?? ''),
+                        (string)($stagedApplication['emergency_contact_phone'] ?? '')
+                    ];
+                    $insertStudentTypes = str_repeat('s', count($insertStudentValues));
+                    reviewBindDynamicParams($insertStudentStmt, $insertStudentTypes, $insertStudentValues);
+                    if (!$insertStudentStmt->execute()) {
+                        $insertStudentStmt->close();
+                        throw new Exception('Unable to create approved student record.');
+                    }
+                    $insertStudentStmt->close();
+                }
 
                 // Create internship record on approval (if not already created).
                 $studentRow = null;
@@ -318,6 +462,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
+                if ($applicationsStageTable !== '') {
+                    $stageApproveStmt = $conn->prepare("UPDATE {$applicationsStageTable} SET status = 'approved', reviewed_at = NOW(), reviewed_by = ?, approval_notes = ?, disciplinary_remark = ?, created_student_user_id = ? WHERE user_id = ?");
+                    if ($stageApproveStmt) {
+                        $stageApproveStmt->bind_param('issii', $currentUserId, $notes, $disciplinaryRemark, $userId, $userId);
+                        $stageApproveStmt->execute();
+                        $stageApproveStmt->close();
+                    }
+                }
+
                 $conn->commit();
                 $flashType = 'success';
                 $flashMessage = 'Application approved. Student assignments and required hours were updated successfully.';
@@ -352,6 +505,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $studentStmt->close();
+
+                if ($applicationsStageTable !== '') {
+                    $stageRejectStmt = $conn->prepare("UPDATE {$applicationsStageTable} SET status = 'rejected', reviewed_at = NOW(), reviewed_by = ?, approval_notes = ?, disciplinary_remark = ?, created_student_user_id = NULL WHERE user_id = ?");
+                    if ($stageRejectStmt) {
+                        $stageRejectStmt->bind_param('issi', $currentUserId, $notes, $disciplinaryRemark, $userId);
+                        $stageRejectStmt->execute();
+                        $stageRejectStmt->close();
+                    }
+                }
+
                 $conn->commit();
                 $flashType = 'warning';
                 $flashMessage = 'Application rejected. Student assignment details were updated successfully.';
@@ -390,7 +553,10 @@ $courseFilter = isset($_GET['course_id']) ? (int)$_GET['course_id'] : 0;
 $sectionFilter = isset($_GET['section_id']) ? (int)$_GET['section_id'] : 0;
 $coordinatorFilter = isset($_GET['coordinator_id']) ? (int)$_GET['coordinator_id'] : 0;
 $supervisorFilter = isset($_GET['supervisor_id']) ? (int)$_GET['supervisor_id'] : 0;
-$effectiveStatusSql = "COALESCE(NULLIF(s_link.application_status, ''), NULLIF(s_fallback.application_status, ''), u.application_status)";
+$stagedJoinSql = $applicationsStageTable !== ''
+    ? " LEFT JOIN {$applicationsStageTable} sa ON sa.user_id = u.id "
+    : " LEFT JOIN (SELECT NULL AS user_id) sa ON 1 = 0 ";
+$effectiveStatusSql = "COALESCE(NULLIF(s_link.application_status, ''), NULLIF(sa.status, ''), NULLIF(s_fallback.application_status, ''), u.application_status)";
 
 $sql = "
     SELECT
@@ -399,42 +565,43 @@ $sql = "
         u.email,
         u.role,
         {$effectiveStatusSql} AS application_status,
-        u.application_submitted_at,
+        COALESCE(sa.submitted_at, u.application_submitted_at) AS application_submitted_at,
         u.approved_at,
         u.rejected_at,
-        u.approval_notes,
-        u.disciplinary_remark,
-        COALESCE(s_link.student_id, s_fallback.student_id) AS student_id,
-        COALESCE(s_link.first_name, s_fallback.first_name) AS first_name,
-        COALESCE(s_link.middle_name, s_fallback.middle_name) AS middle_name,
-        COALESCE(s_link.last_name, s_fallback.last_name) AS last_name,
-        COALESCE(s_link.address, s_fallback.address) AS address,
-        COALESCE(s_link.phone, s_fallback.phone) AS phone,
-        COALESCE(s_link.date_of_birth, s_fallback.date_of_birth) AS date_of_birth,
-        COALESCE(s_link.gender, s_fallback.gender) AS gender,
-        COALESCE(s_link.emergency_contact, s_fallback.emergency_contact) AS emergency_contact,
-        COALESCE(s_link.emergency_contact_phone, s_fallback.emergency_contact_phone) AS emergency_contact_phone,
-        COALESCE(s_link.department_id, s_fallback.department_id) AS department_id,
-        COALESCE(s_link.coordinator_id, s_fallback.coordinator_id) AS coordinator_id,
-        COALESCE(s_link.supervisor_id, s_fallback.supervisor_id) AS supervisor_id,
-        COALESCE(s_link.coordinator_name, s_fallback.coordinator_name) AS coordinator_name,
-        COALESCE(s_link.supervisor_name, s_fallback.supervisor_name) AS supervisor_name,
-        COALESCE(s_link.internal_total_hours, s_fallback.internal_total_hours) AS internal_total_hours,
-        COALESCE(s_link.external_total_hours, s_fallback.external_total_hours) AS external_total_hours,
-        COALESCE(s_link.school_year, s_fallback.school_year) AS school_year,
-        COALESCE(s_link.semester, s_fallback.semester) AS semester,
+        COALESCE(sa.approval_notes, u.approval_notes) AS approval_notes,
+        COALESCE(sa.disciplinary_remark, u.disciplinary_remark) AS disciplinary_remark,
+        COALESCE(s_link.student_id, sa.student_id, s_fallback.student_id) AS student_id,
+        COALESCE(s_link.first_name, sa.first_name, s_fallback.first_name) AS first_name,
+        COALESCE(s_link.middle_name, sa.middle_name, s_fallback.middle_name) AS middle_name,
+        COALESCE(s_link.last_name, sa.last_name, s_fallback.last_name) AS last_name,
+        COALESCE(s_link.address, sa.address, s_fallback.address) AS address,
+        COALESCE(s_link.phone, sa.phone, s_fallback.phone) AS phone,
+        COALESCE(s_link.date_of_birth, sa.date_of_birth, s_fallback.date_of_birth) AS date_of_birth,
+        COALESCE(s_link.gender, sa.gender, s_fallback.gender) AS gender,
+        COALESCE(s_link.emergency_contact, sa.emergency_contact, s_fallback.emergency_contact) AS emergency_contact,
+        COALESCE(s_link.emergency_contact_phone, sa.emergency_contact_phone, s_fallback.emergency_contact_phone) AS emergency_contact_phone,
+        COALESCE(s_link.department_id, sa.department_id, s_fallback.department_id) AS department_id,
+        COALESCE(s_link.coordinator_id, sa.coordinator_id, s_fallback.coordinator_id) AS coordinator_id,
+        COALESCE(s_link.supervisor_id, sa.supervisor_id, s_fallback.supervisor_id) AS supervisor_id,
+        COALESCE(s_link.coordinator_name, sa.coordinator_name, s_fallback.coordinator_name) AS coordinator_name,
+        COALESCE(s_link.supervisor_name, sa.supervisor_name, s_fallback.supervisor_name) AS supervisor_name,
+        COALESCE(s_link.internal_total_hours, sa.internal_total_hours, s_fallback.internal_total_hours) AS internal_total_hours,
+        COALESCE(s_link.external_total_hours, sa.external_total_hours, s_fallback.external_total_hours) AS external_total_hours,
+        COALESCE(s_link.school_year, sa.school_year, s_fallback.school_year) AS school_year,
+        COALESCE(s_link.semester, sa.semester, s_fallback.semester) AS semester,
         c.name AS course_name,
         d.name AS department_name,
-        sec.code AS section_code,
-        sec.name AS section_name
+        COALESCE(sec.code, sa.section_code_snapshot) AS section_code,
+        COALESCE(sec.name, sa.section_name_snapshot) AS section_name
     FROM users u
     LEFT JOIN students s_link ON s_link.user_id = u.id
+    {$stagedJoinSql}
     LEFT JOIN students s_fallback ON s_link.id IS NULL
         AND LOWER(TRIM(COALESCE(s_fallback.email, ''))) <> ''
         AND LOWER(TRIM(COALESCE(s_fallback.email, ''))) = LOWER(TRIM(COALESCE(u.email, '')))
-    LEFT JOIN courses c ON c.id = COALESCE(s_link.course_id, s_fallback.course_id)
-    LEFT JOIN departments d ON d.id = COALESCE(s_link.department_id, s_fallback.department_id)
-    LEFT JOIN sections sec ON sec.id = COALESCE(s_link.section_id, s_fallback.section_id)
+    LEFT JOIN courses c ON c.id = COALESCE(s_link.course_id, sa.course_id, s_fallback.course_id)
+    LEFT JOIN departments d ON d.id = COALESCE(s_link.department_id, sa.department_id, s_fallback.department_id)
+    LEFT JOIN sections sec ON sec.id = COALESCE(s_link.section_id, sa.section_id, s_fallback.section_id)
     WHERE u.role = 'student'
     AND (
         LOWER(TRIM(COALESCE(u.email, ''))) = ''
@@ -454,19 +621,19 @@ if ($statusFilter !== 'all') {
 }
 
 if ($courseFilter > 0) {
-    $sql .= " AND COALESCE(s_link.course_id, s_fallback.course_id) = " . (int)$courseFilter;
+    $sql .= " AND COALESCE(s_link.course_id, sa.course_id, s_fallback.course_id) = " . (int)$courseFilter;
 }
 if ($sectionFilter > 0) {
-    $sql .= " AND COALESCE(s_link.section_id, s_fallback.section_id) = " . (int)$sectionFilter;
+    $sql .= " AND COALESCE(s_link.section_id, sa.section_id, s_fallback.section_id) = " . (int)$sectionFilter;
 }
 if ($coordinatorFilter > 0) {
-    $sql .= " AND COALESCE(s_link.coordinator_id, s_fallback.coordinator_id) = " . (int)$coordinatorFilter;
+    $sql .= " AND COALESCE(s_link.coordinator_id, sa.coordinator_id, s_fallback.coordinator_id) = " . (int)$coordinatorFilter;
 }
 if ($supervisorFilter > 0) {
-    $sql .= " AND COALESCE(s_link.supervisor_id, s_fallback.supervisor_id) = " . (int)$supervisorFilter;
+    $sql .= " AND COALESCE(s_link.supervisor_id, sa.supervisor_id, s_fallback.supervisor_id) = " . (int)$supervisorFilter;
 }
 
-$sql .= " ORDER BY COALESCE(u.application_submitted_at, u.created_at) DESC, u.id DESC";
+$sql .= " ORDER BY COALESCE(sa.submitted_at, u.application_submitted_at, u.created_at) DESC, u.id DESC";
 $applications = $conn->query($sql);
 
 $page_title = 'BioTern || Student Applications';
@@ -805,17 +972,19 @@ include 'includes/header.php';
     }
 
     .apps-review-table th:nth-child(1),
-    .apps-review-table td:nth-child(1) { width: 29%; }
+    .apps-review-table td:nth-child(1) { width: 27%; }
     .apps-review-table th:nth-child(2),
-    .apps-review-table td:nth-child(2) { width: 26%; }
+    .apps-review-table td:nth-child(2) { width: 21%; }
     .apps-review-table th:nth-child(3),
     .apps-review-table td:nth-child(3) { width: 9%; }
     .apps-review-table th:nth-child(4),
     .apps-review-table td:nth-child(4) { width: 10%; }
     .apps-review-table th:nth-child(5),
-    .apps-review-table td:nth-child(5) { width: 17%; }
+    .apps-review-table td:nth-child(5) { width: 12%; }
     .apps-review-table th:nth-child(6),
-    .apps-review-table td:nth-child(6) { width: 9%; text-align: center; white-space: nowrap; }
+    .apps-review-table td:nth-child(6) { width: 14%; text-align: center; white-space: nowrap; }
+    .apps-review-table th:nth-child(7),
+    .apps-review-table td:nth-child(7) { width: 7%; text-align: center; white-space: nowrap; }
 
     .student-block small {
         overflow-wrap: anywhere;
@@ -834,7 +1003,7 @@ include 'includes/header.php';
         vertical-align: middle;
     }
 
-    .apps-review-table td:nth-child(5) {
+    .apps-review-table td:nth-child(6) {
         line-height: 1.3;
     }
 
@@ -963,13 +1132,15 @@ include 'includes/header.php';
 .apps-review-table th:nth-child(3),
 .apps-review-table td[data-label="Hours (Int/Ext)"],
 .apps-review-table th:nth-child(4),
+.apps-review-table td[data-label="Term"],
+.apps-review-table th:nth-child(5),
 .apps-review-table td[data-label="Submitted"],
-.apps-review-table th:nth-child(5) {
+.apps-review-table th:nth-child(6) {
     text-align: center;
 }
 
 .apps-review-table td[data-label="Review"],
-.apps-review-table th:nth-child(6) {
+.apps-review-table th:nth-child(7) {
     text-align: center !important;
     vertical-align: middle;
 }
@@ -1009,32 +1180,36 @@ include 'includes/header.php';
         }
 
         .apps-review-table th:nth-child(1),
-        .apps-review-table td:nth-child(1) { width: 28%; }
+        .apps-review-table td:nth-child(1) { width: 26%; }
         .apps-review-table th:nth-child(2),
-        .apps-review-table td:nth-child(2) { width: 25%; }
+        .apps-review-table td:nth-child(2) { width: 22%; }
         .apps-review-table th:nth-child(3),
         .apps-review-table td:nth-child(3) { width: 9%; }
         .apps-review-table th:nth-child(4),
         .apps-review-table td:nth-child(4) { width: 10%; }
         .apps-review-table th:nth-child(5),
-        .apps-review-table td:nth-child(5) { width: 18%; }
+        .apps-review-table td:nth-child(5) { width: 12%; }
         .apps-review-table th:nth-child(6),
-        .apps-review-table td:nth-child(6) { width: 10%; }
+        .apps-review-table td:nth-child(6) { width: 14%; }
+        .apps-review-table th:nth-child(7),
+        .apps-review-table td:nth-child(7) { width: 7%; }
     }
 
     @media (max-width: 1200px) {
         .apps-review-table th:nth-child(1),
-        .apps-review-table td:nth-child(1) { width: 28%; }
+        .apps-review-table td:nth-child(1) { width: 25%; }
         .apps-review-table th:nth-child(2),
-        .apps-review-table td:nth-child(2) { width: 24%; }
+        .apps-review-table td:nth-child(2) { width: 21%; }
         .apps-review-table th:nth-child(3),
         .apps-review-table td:nth-child(3) { width: 9%; }
         .apps-review-table th:nth-child(4),
         .apps-review-table td:nth-child(4) { width: 10%; }
         .apps-review-table th:nth-child(5),
-        .apps-review-table td:nth-child(5) { width: 18%; }
+        .apps-review-table td:nth-child(5) { width: 14%; }
         .apps-review-table th:nth-child(6),
-        .apps-review-table td:nth-child(6) { width: 11%; }
+        .apps-review-table td:nth-child(6) { width: 14%; }
+        .apps-review-table th:nth-child(7),
+        .apps-review-table td:nth-child(7) { width: 7%; }
     }
 
     @media (max-width: 1399.98px) {
@@ -1127,7 +1302,7 @@ include 'includes/header.php';
             align-items: flex-start;
         }
 
-        .apps-review-table td:nth-child(6) {
+        .apps-review-table td:nth-child(7) {
             text-align: left;
         }
 
@@ -1315,6 +1490,7 @@ include 'includes/header.php';
                                     <th>Course</th>
                                     <th>Status</th>
                                     <th>Hours (Int/Ext)</th>
+                                    <th>Term</th>
                                     <th>Submitted</th>
                                     <th style="width: 120px;">Review</th>
                                 </tr>
@@ -1374,6 +1550,7 @@ include 'includes/header.php';
                                             $genderLabel = $genderValue !== '' ? ucfirst(strtolower($genderValue)) : '-';
                                             $emergencyContactLabel = $emergencyContactNameOnly !== '' ? $emergencyContactNameOnly : '-';
                                             $emergencyContactPhoneLabel = $emergencyContactPhoneValue !== '' ? $emergencyContactPhoneValue : '-';
+                                            $termLabel = ($schoolYearLabel !== '' ? $schoolYearLabel : 'Unassigned') . ' / ' . ($semesterLabel !== '' ? $semesterLabel : 'Unassigned');
 
                                             $submittedAt = formatDisplayDateTime($row['application_submitted_at'] ?? '');
                                             $approvedAt = formatDisplayDateTime($row['approved_at'] ?? '');
@@ -1401,7 +1578,6 @@ include 'includes/header.php';
                                             <td data-label="Course">
                                                 <div class="fw-semibold"><?php echo htmlspecialchars($courseLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <small class="text-muted d-block">Section: <?php echo htmlspecialchars($sectionLabel, ENT_QUOTES, 'UTF-8'); ?></small>
-                                                <small class="text-muted d-block">Term: <?php echo htmlspecialchars(($schoolYearLabel !== '' ? $schoolYearLabel : 'Unassigned') . ' / ' . ($semesterLabel !== '' ? $semesterLabel : 'Unassigned'), ENT_QUOTES, 'UTF-8'); ?></small>
                                             </td>
                                             <td data-label="Status">
                                                 <span class="badge bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?> text-capitalize"><?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?></span>
@@ -1409,13 +1585,14 @@ include 'includes/header.php';
                                             <td data-label="Hours (Int/Ext)">
                                                 <span class="hours-pill"><?php echo (int)($row['internal_total_hours'] ?? 140); ?> / <?php echo (int)($row['external_total_hours'] ?? 250); ?></span>
                                             </td>
+                                            <td data-label="Term"><?php echo htmlspecialchars($termLabel, ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td data-label="Submitted"><?php echo htmlspecialchars($submittedAt, ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td data-label="Review" class="text-center">
                                                 <button class="btn btn-outline-primary btn-sm expand-btn application-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#<?php echo $collapseId; ?>" aria-expanded="false" aria-controls="<?php echo $collapseId; ?>" data-expand-text="Details" data-collapse-text="Hide">Details</button>
                                             </td>
                                         </tr>
                                         <tr class="application-detail-row">
-                                            <td colspan="6">
+                                            <td colspan="7">
                                                 <div id="<?php echo $collapseId; ?>" class="collapse application-detail-box">
                                                     <div class="detail-grid">
                                                         <div class="detail-meta">
@@ -1499,7 +1676,7 @@ include 'includes/header.php';
                                     <?php endwhile; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">No applications match the current filter.</td>
+                                        <td colspan="7" class="text-center text-muted py-4">No applications match the current filter.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>

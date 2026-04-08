@@ -108,7 +108,7 @@
                                 <button id="retryBtn" class="btn btn-lg btn-secondary w-100 mb-2" onclick="retryFingerprintScan()" style="display: none;">
                                     Retry Scan
                                 </button>
-                                <a href="auth-register-creative.php" class="btn btn-lg btn-outline-secondary w-100">
+                                <a href="auth-register.php" class="btn btn-lg btn-outline-secondary w-100">
                                     Back to Registration
                                 </a>
                             </div>

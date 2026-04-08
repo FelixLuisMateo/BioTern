@@ -30,6 +30,8 @@ $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS date_of_birth DATE N
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS gender VARCHAR(30) NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS emergency_contact VARCHAR(255) NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS emergency_contact_phone VARCHAR(50) NULL");
+$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS school_year VARCHAR(16) NULL");
+$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS semester VARCHAR(30) NULL");
 
 $departmentOptions = [];
 $courseOptions = [];
@@ -116,6 +118,79 @@ function formatDisplayDateTime($rawValue)
     return date('M d, Y h:i A', $timestamp);
 }
 
+function ensureApplicationsStagingTable(mysqli $conn)
+{
+    $ok = $conn->query("CREATE TABLE IF NOT EXISTS student_applications (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id INT UNSIGNED NULL,
+        username VARCHAR(120) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        student_id VARCHAR(80) NULL,
+        first_name VARCHAR(120) NOT NULL,
+        middle_name VARCHAR(120) NULL,
+        last_name VARCHAR(120) NOT NULL,
+        course_id INT NULL,
+        department_id INT NULL,
+        section_id INT NULL,
+        section_code_snapshot VARCHAR(80) NULL,
+        section_name_snapshot VARCHAR(120) NULL,
+        semester VARCHAR(30) NULL,
+        school_year VARCHAR(16) NULL,
+        address VARCHAR(255) NULL,
+        phone VARCHAR(50) NULL,
+        date_of_birth DATE NULL,
+        gender VARCHAR(30) NULL,
+        supervisor_id INT NULL,
+        supervisor_name VARCHAR(255) NULL,
+        coordinator_id INT NULL,
+        coordinator_name VARCHAR(255) NULL,
+        internal_total_hours INT NULL,
+        external_total_hours INT NULL,
+        assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal',
+        emergency_contact VARCHAR(255) NULL,
+        emergency_contact_phone VARCHAR(50) NULL,
+        status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+        submitted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        reviewed_at DATETIME NULL,
+        reviewed_by INT NULL,
+        approval_notes VARCHAR(255) NULL,
+        disciplinary_remark VARCHAR(255) NULL,
+        created_student_user_id INT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_student_app_user_id (user_id),
+        UNIQUE KEY uq_student_app_email (email),
+        KEY idx_student_app_status (status),
+        KEY idx_student_app_submitted (submitted_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    return (bool)$ok;
+}
+
+function reviewTableHasColumn(mysqli $conn, $table, $column)
+{
+    $safeTable = str_replace('`', '``', (string)$table);
+    $safeColumn = $conn->real_escape_string((string)$column);
+    $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    return $res && $res->num_rows > 0;
+}
+
+function reviewBindDynamicParams(mysqli_stmt $stmt, $types, &$values)
+{
+    if (!is_array($values) || $types === '') {
+        return true;
+    }
+    $bind = [$types];
+    foreach (array_keys($values) as $idx) {
+        $bind[] = &$values[$idx];
+    }
+    return call_user_func_array([$stmt, 'bind_param'], $bind);
+}
+
+$applicationsStageTable = ensureApplicationsStagingTable($conn) ? '`student_applications`' : '';
+
 $flashType = '';
 $flashMessage = '';
 if (isset($_SESSION['flash_message'])) {
@@ -139,6 +214,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $externalHours = is_numeric($externalHoursRaw) ? (int)$externalHoursRaw : -1;
     $coordinatorName = $coordinatorId > 0 && isset($coordinatorNameMap[$coordinatorId]) ? $coordinatorNameMap[$coordinatorId] : null;
     $supervisorName = $supervisorId > 0 && isset($supervisorNameMap[$supervisorId]) ? $supervisorNameMap[$supervisorId] : null;
+    $stagedApplication = null;
+    if ($applicationsStageTable !== '' && $userId > 0) {
+        $stagedStmt = $conn->prepare("SELECT * FROM {$applicationsStageTable} WHERE user_id = ? LIMIT 1");
+        if ($stagedStmt) {
+            $stagedStmt->bind_param('i', $userId);
+            $stagedStmt->execute();
+            $stagedApplication = $stagedStmt->get_result()->fetch_assoc();
+            $stagedStmt->close();
+        }
+    }
+    $stagedDateOfBirth = $stagedApplication ? trim((string)($stagedApplication['date_of_birth'] ?? '')) : '';
+    $stagedGender = $stagedApplication ? trim((string)($stagedApplication['gender'] ?? '')) : '';
 
     if ($userId <= 0 || !in_array($decision, ['approve', 'reject'], true)) {
         $flashType = 'danger';
@@ -161,16 +248,111 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $stmt->close();
 
-                $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ?, internal_total_hours = ?, external_total_hours = ?, internal_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN 0 ELSE ? END, external_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN ? ELSE 0 END WHERE user_id = ? LIMIT 1");
+                $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ?, internal_total_hours = ?, external_total_hours = ?, internal_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN 0 ELSE ? END, external_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN ? ELSE 0 END, date_of_birth = COALESCE(NULLIF(?, ''), date_of_birth), gender = COALESCE(NULLIF(?, ''), gender) WHERE user_id = ? LIMIT 1");
                 if (!$studentStmt) {
                     throw new Exception('Unable to update student hour settings.');
                 }
-                $studentStmt->bind_param('iisiisiiii', $departmentId, $coordinatorId, $coordinatorName, $supervisorId, $supervisorName, $internalHours, $externalHours, $internalHours, $externalHours, $userId);
+                $studentStmt->bind_param('iisisiiiissi', $departmentId, $coordinatorId, $coordinatorName, $supervisorId, $supervisorName, $internalHours, $externalHours, $internalHours, $externalHours, $stagedDateOfBirth, $stagedGender, $userId);
                 if (!$studentStmt->execute()) {
                     $studentStmt->close();
                     throw new Exception('Unable to save updated assignment and hour settings.');
                 }
+                $studentUpdatedRows = (int)$studentStmt->affected_rows;
                 $studentStmt->close();
+
+                if ($studentUpdatedRows === 0 && $stagedApplication) {
+                    $assignmentTrack = strtolower((string)($stagedApplication['assignment_track'] ?? 'internal'));
+                    if (!in_array($assignmentTrack, ['internal', 'external'], true)) {
+                        $assignmentTrack = 'internal';
+                    }
+
+                    $studentColumns = [
+                        'user_id', 'course_id', 'student_id', 'first_name', 'last_name', 'middle_name', 'username',
+                        'password', 'email', 'department_id', 'section_id', 'address', 'phone', 'date_of_birth', 'gender',
+                        'supervisor_id', 'supervisor_name', 'coordinator_id', 'coordinator_name',
+                        'internal_total_hours', 'internal_total_hours_remaining',
+                        'external_total_hours', 'external_total_hours_remaining',
+                        'assignment_track', 'emergency_contact'
+                    ];
+                    $studentTypes = str_repeat('s', 25);
+                    $studentValues = [
+                        $userId,
+                        (int)($stagedApplication['course_id'] ?? 0),
+                        (string)($stagedApplication['student_id'] ?? ''),
+                        (string)($stagedApplication['first_name'] ?? ''),
+                        (string)($stagedApplication['last_name'] ?? ''),
+                        (string)($stagedApplication['middle_name'] ?? ''),
+                        (string)($stagedApplication['username'] ?? ''),
+                        (string)($stagedApplication['password_hash'] ?? ''),
+                        (string)($stagedApplication['email'] ?? ''),
+                        $departmentId,
+                        (int)($stagedApplication['section_id'] ?? 0),
+                        (string)($stagedApplication['address'] ?? ''),
+                        (string)($stagedApplication['phone'] ?? ''),
+                        (string)($stagedApplication['date_of_birth'] ?? ''),
+                        (string)($stagedApplication['gender'] ?? ''),
+                        $supervisorId,
+                        (string)($supervisorName ?? ''),
+                        $coordinatorId,
+                        (string)($coordinatorName ?? ''),
+                        $internalHours,
+                        ($assignmentTrack === 'external' ? 0 : $internalHours),
+                        $externalHours,
+                        ($assignmentTrack === 'external' ? $externalHours : 0),
+                        $assignmentTrack,
+                        (string)($stagedApplication['emergency_contact'] ?? '')
+                    ];
+
+                    if (reviewTableHasColumn($conn, 'students', 'bio')) {
+                        $studentColumns[] = 'bio';
+                        $studentTypes .= 's';
+                        $studentValues[] = '';
+                    }
+
+                    if (reviewTableHasColumn($conn, 'students', 'emergency_contact_phone')) {
+                        $studentColumns[] = 'emergency_contact_phone';
+                        $studentTypes .= 's';
+                        $studentValues[] = (string)($stagedApplication['emergency_contact_phone'] ?? '');
+                    }
+                    if (reviewTableHasColumn($conn, 'students', 'school_year')) {
+                        $studentColumns[] = 'school_year';
+                        $studentTypes .= 's';
+                        $studentValues[] = (string)($stagedApplication['school_year'] ?? '');
+                    }
+                    if (reviewTableHasColumn($conn, 'students', 'semester')) {
+                        $studentColumns[] = 'semester';
+                        $studentTypes .= 's';
+                        $studentValues[] = (string)($stagedApplication['semester'] ?? '');
+                    }
+                    if (reviewTableHasColumn($conn, 'students', 'application_status')) {
+                        $studentColumns[] = 'application_status';
+                        $studentTypes .= 's';
+                        $studentValues[] = 'approved';
+                    }
+                    if (reviewTableHasColumn($conn, 'students', 'status')) {
+                        $studentColumns[] = 'status';
+                        $studentTypes .= 's';
+                        $studentValues[] = '1';
+                    }
+
+                    $studentPlaceholders = array_fill(0, count($studentColumns), '?');
+                    if (reviewTableHasColumn($conn, 'students', 'created_at')) {
+                        $studentColumns[] = 'created_at';
+                        $studentPlaceholders[] = 'NOW()';
+                    }
+
+                    $insertStudentSql = 'INSERT INTO students (' . implode(', ', $studentColumns) . ') VALUES (' . implode(', ', $studentPlaceholders) . ')';
+                    $insertStudentStmt = $conn->prepare($insertStudentSql);
+                    if (!$insertStudentStmt) {
+                        throw new Exception('Unable to create approved student record.');
+                    }
+                    reviewBindDynamicParams($insertStudentStmt, $studentTypes, $studentValues);
+                    if (!$insertStudentStmt->execute()) {
+                        $insertStudentStmt->close();
+                        throw new Exception('Unable to create approved student record.');
+                    }
+                    $insertStudentStmt->close();
+                }
 
                 // Create internship record on approval (if not already created).
                 $studentRow = null;
@@ -180,6 +362,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $studentLookup->execute();
                     $studentRow = $studentLookup->get_result()->fetch_assoc();
                     $studentLookup->close();
+                }
+
+                if ($applicationsStageTable !== '') {
+                    $stageApproveStmt = $conn->prepare("UPDATE {$applicationsStageTable} SET status = 'approved', reviewed_at = NOW(), reviewed_by = ?, approval_notes = ?, disciplinary_remark = ?, created_student_user_id = ? WHERE user_id = ?");
+                    if ($stageApproveStmt) {
+                        $stageApproveStmt->bind_param('issii', $currentUserId, $notes, $disciplinaryRemark, $userId, $userId);
+                        $stageApproveStmt->execute();
+                        $stageApproveStmt->close();
+                    }
                 }
 
                 if ($studentRow && !empty($studentRow['id'])) {
@@ -301,6 +492,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $studentStmt->close();
+
+                if ($applicationsStageTable !== '') {
+                    $stageRejectStmt = $conn->prepare("UPDATE {$applicationsStageTable} SET status = 'rejected', reviewed_at = NOW(), reviewed_by = ?, approval_notes = ?, disciplinary_remark = ?, created_student_user_id = NULL WHERE user_id = ?");
+                    if ($stageRejectStmt) {
+                        $stageRejectStmt->bind_param('issi', $currentUserId, $notes, $disciplinaryRemark, $userId);
+                        $stageRejectStmt->execute();
+                        $stageRejectStmt->close();
+                    }
+                }
+
                 $conn->commit();
                 $flashType = 'warning';
                 $flashMessage = 'Application rejected and assignments updated.';
@@ -340,65 +541,73 @@ $sectionFilter = isset($_GET['section_id']) ? (int)$_GET['section_id'] : 0;
 $coordinatorFilter = isset($_GET['coordinator_id']) ? (int)$_GET['coordinator_id'] : 0;
 $supervisorFilter = isset($_GET['supervisor_id']) ? (int)$_GET['supervisor_id'] : 0;
 
+$stagedJoinSql = $applicationsStageTable !== ''
+    ? " LEFT JOIN {$applicationsStageTable} sa ON sa.user_id = u.id "
+    : " LEFT JOIN (SELECT NULL AS user_id) sa ON 1 = 0 ";
+$effectiveStatusSql = "COALESCE(sa.status, u.application_status)";
+
 $sql = "
     SELECT
         u.id AS user_id,
         u.username,
         u.email,
         u.role,
-        u.application_status,
-        u.application_submitted_at,
+        {$effectiveStatusSql} AS application_status,
+        COALESCE(sa.submitted_at, u.application_submitted_at) AS application_submitted_at,
         u.approved_at,
         u.rejected_at,
-        u.approval_notes,
-        u.disciplinary_remark,
-        s.student_id,
-        s.first_name,
-        s.middle_name,
-        s.last_name,
-        s.address,
-        s.phone,
-        s.date_of_birth,
-        s.gender,
-        s.emergency_contact,
-        s.emergency_contact_phone,
-        s.department_id,
-        s.coordinator_id,
-        s.supervisor_id,
-        s.coordinator_name,
-        s.supervisor_name,
-        s.internal_total_hours,
-        s.external_total_hours,
+        COALESCE(sa.approval_notes, u.approval_notes) AS approval_notes,
+        COALESCE(sa.disciplinary_remark, u.disciplinary_remark) AS disciplinary_remark,
+        COALESCE(s.student_id, sa.student_id) AS student_id,
+        COALESCE(s.first_name, sa.first_name) AS first_name,
+        COALESCE(s.middle_name, sa.middle_name) AS middle_name,
+        COALESCE(s.last_name, sa.last_name) AS last_name,
+        COALESCE(s.address, sa.address) AS address,
+        COALESCE(s.phone, sa.phone) AS phone,
+        COALESCE(s.date_of_birth, sa.date_of_birth) AS date_of_birth,
+        COALESCE(s.gender, sa.gender) AS gender,
+        COALESCE(s.emergency_contact, sa.emergency_contact) AS emergency_contact,
+        COALESCE(s.emergency_contact_phone, sa.emergency_contact_phone) AS emergency_contact_phone,
+        COALESCE(s.department_id, sa.department_id) AS department_id,
+        COALESCE(s.coordinator_id, sa.coordinator_id) AS coordinator_id,
+        COALESCE(s.supervisor_id, sa.supervisor_id) AS supervisor_id,
+        COALESCE(s.coordinator_name, sa.coordinator_name) AS coordinator_name,
+        COALESCE(s.supervisor_name, sa.supervisor_name) AS supervisor_name,
+        COALESCE(s.internal_total_hours, sa.internal_total_hours) AS internal_total_hours,
+        COALESCE(s.external_total_hours, sa.external_total_hours) AS external_total_hours,
+        COALESCE(s.school_year, sa.school_year) AS school_year,
+        COALESCE(s.semester, sa.semester) AS semester,
         c.name AS course_name,
         d.name AS department_name,
-        sec.code AS section_code,
-        sec.name AS section_name
+        COALESCE(sec.code, sa.section_code_snapshot) AS section_code,
+        COALESCE(sec.name, sa.section_name_snapshot) AS section_name
     FROM users u
     LEFT JOIN students s ON s.user_id = u.id
-    LEFT JOIN courses c ON c.id = s.course_id
-    LEFT JOIN departments d ON d.id = s.department_id
-    LEFT JOIN sections sec ON sec.id = s.section_id
+    {$stagedJoinSql}
+    LEFT JOIN courses c ON c.id = COALESCE(s.course_id, sa.course_id)
+    LEFT JOIN departments d ON d.id = COALESCE(s.department_id, sa.department_id)
+    LEFT JOIN sections sec ON sec.id = COALESCE(s.section_id, sa.section_id)
     WHERE u.role = 'student'
 ";
 
 if ($statusFilter !== 'all') {
-    $sql .= " AND u.application_status = '" . $conn->real_escape_string($statusFilter) . "'";
+    $sql .= " AND {$effectiveStatusSql} = '" . $conn->real_escape_string($statusFilter) . "'";
 }
 
 if ($courseFilter > 0) {
-    $sql .= " AND s.course_id = " . (int)$courseFilter;
+    $sql .= " AND COALESCE(s.course_id, sa.course_id) = " . (int)$courseFilter;
 }
 if ($sectionFilter > 0) {
-    $sql .= " AND s.section_id = " . (int)$sectionFilter;
+    $sql .= " AND COALESCE(s.section_id, sa.section_id) = " . (int)$sectionFilter;
 }
 if ($coordinatorFilter > 0) {
-    $sql .= " AND s.coordinator_id = " . (int)$coordinatorFilter;
+    $sql .= " AND COALESCE(s.coordinator_id, sa.coordinator_id) = " . (int)$coordinatorFilter;
 }
 if ($supervisorFilter > 0) {
-    $sql .= " AND s.supervisor_id = " . (int)$supervisorFilter;
+    $sql .= " AND COALESCE(s.supervisor_id, sa.supervisor_id) = " . (int)$supervisorFilter;
 }
 
-$sql .= " ORDER BY COALESCE(u.application_submitted_at, u.created_at) DESC, u.id DESC";
+$sql .= " ORDER BY COALESCE(sa.submitted_at, u.application_submitted_at, u.created_at) DESC, u.id DESC";
 $applications = $conn->query($sql);
 
 $page_title = 'BioTern || Student Applications';
@@ -518,6 +727,7 @@ include 'includes/header.php';
                                     <th>Course</th>
                                     <th>Status</th>
                                     <th>Hours (Int/Ext)</th>
+                                    <th>Term</th>
                                     <th>Submitted</th>
                                     <th class="apps-review-col-review">Review</th>
                                 </tr>
@@ -539,6 +749,8 @@ include 'includes/header.php';
                                             $departmentName = trim((string)($row['department_name'] ?? ''));
                                             $sectionCode = trim((string)($row['section_code'] ?? ''));
                                             $sectionName = trim((string)($row['section_name'] ?? ''));
+                                            $semesterValue = trim((string)($row['semester'] ?? ''));
+                                            $schoolYearValue = trim((string)($row['school_year'] ?? ''));
                                             $coordinatorName = trim((string)($row['coordinator_name'] ?? ''));
                                             $supervisorName = trim((string)($row['supervisor_name'] ?? ''));
                                             $addressValue = trim((string)($row['address'] ?? ''));
@@ -571,6 +783,8 @@ include 'includes/header.php';
                                             } elseif ($sectionName !== '') {
                                                 $sectionLabel = $sectionName;
                                             }
+                                            $semesterLabel = $semesterValue !== '' ? $semesterValue : 'Not set';
+                                            $schoolYearLabel = $schoolYearValue !== '' ? $schoolYearValue : 'Not set';
                                             $coordinatorLabel = $coordinatorName !== '' ? $coordinatorName : 'To be assigned';
                                             $supervisorLabel = $supervisorName !== '' ? $supervisorName : 'To be assigned';
                                             $addressLabel = $addressValue !== '' ? $addressValue : '-';
@@ -606,6 +820,7 @@ include 'includes/header.php';
                                             <td data-label="Course">
                                                 <div class="fw-semibold"><?php echo htmlspecialchars($courseLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <small class="text-muted d-block">Section: <?php echo htmlspecialchars($sectionLabel, ENT_QUOTES, 'UTF-8'); ?></small>
+                                                <small class="text-muted d-block">Semester: <?php echo htmlspecialchars($semesterLabel, ENT_QUOTES, 'UTF-8'); ?> | SY: <?php echo htmlspecialchars($schoolYearLabel, ENT_QUOTES, 'UTF-8'); ?></small>
                                             </td>
                                             <td data-label="Status">
                                                 <span class="badge bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?> text-capitalize"><?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?></span>
@@ -613,13 +828,14 @@ include 'includes/header.php';
                                             <td data-label="Hours (Int/Ext)">
                                                 <span class="hours-pill"><?php echo (int)($row['internal_total_hours'] ?? 140); ?> / <?php echo (int)($row['external_total_hours'] ?? 250); ?></span>
                                             </td>
+                                            <td data-label="Term"><?php echo htmlspecialchars($schoolYearLabel . ' / ' . $semesterLabel, ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td data-label="Submitted"><?php echo htmlspecialchars($submittedAt, ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td data-label="Review" class="text-center">
                                                 <button class="btn btn-outline-primary btn-sm expand-btn application-toggle-btn" type="button" data-bs-toggle="collapse" data-bs-target="#<?php echo $collapseId; ?>" aria-expanded="false" aria-controls="<?php echo $collapseId; ?>" data-expand-text="Details" data-collapse-text="Hide">Details</button>
                                             </td>
                                         </tr>
                                         <tr class="application-detail-row">
-                                            <td colspan="6">
+                                            <td colspan="7">
                                                 <div id="<?php echo $collapseId; ?>" class="collapse application-detail-box">
                                                     <div class="detail-grid">
                                                         <div class="detail-meta">
@@ -635,6 +851,8 @@ include 'includes/header.php';
                                                             <div class="line"><strong>Parent/Emergency Phone:</strong> <?php echo htmlspecialchars($emergencyContactPhoneLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Department:</strong> <?php echo htmlspecialchars($departmentLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Section:</strong> <?php echo htmlspecialchars($sectionLabel, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                            <div class="line"><strong>Semester:</strong> <?php echo htmlspecialchars($semesterLabel, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                            <div class="line"><strong>School Year:</strong> <?php echo htmlspecialchars($schoolYearLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Coordinator:</strong> <?php echo htmlspecialchars($coordinatorLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Supervisor:</strong> <?php echo htmlspecialchars($supervisorLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Submitted:</strong> <?php echo htmlspecialchars($submittedAt, ENT_QUOTES, 'UTF-8'); ?></div>
@@ -701,7 +919,7 @@ include 'includes/header.php';
                                     <?php endwhile; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">No applications found.</td>
+                                        <td colspan="7" class="text-center text-muted py-4">No applications found.</td>
                                     </tr>
                                 <?php endif; ?>
                             </tbody>

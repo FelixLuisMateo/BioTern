@@ -5,7 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $requestedRole = strtolower(trim((string)($_POST['role'] ?? '')));
     if ($requestedRole !== 'student') {
         $msg = rawurlencode('Staff accounts are created by an admin. Please contact your administrator.');
-        header('Location: auth-register-creative.php?registered=error&msg=' . $msg);
+        header('Location: auth-register.php?registered=error&msg=' . $msg);
         exit;
     }
     require_once dirname(__DIR__) . '/api/register_submit.php';
@@ -26,6 +26,56 @@ $dbUser = defined('DB_USER') ? DB_USER : 'root';
 $dbPass = defined('DB_PASS') ? DB_PASS : '';
 $dbName = defined('DB_NAME') ? DB_NAME : 'biotern_db';
 $dbPort = defined('DB_PORT') ? (int)DB_PORT : 3306;
+
+$tableInitConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
+if ($tableInitConn && $tableInitConn->connect_errno === 0) {
+    $tableInitConn->query("CREATE TABLE IF NOT EXISTS student_applications (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id INT UNSIGNED NULL,
+        username VARCHAR(120) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        student_id VARCHAR(80) NULL,
+        first_name VARCHAR(120) NOT NULL,
+        middle_name VARCHAR(120) NULL,
+        last_name VARCHAR(120) NOT NULL,
+        course_id INT NULL,
+        department_id INT NULL,
+        section_id INT NULL,
+        section_code_snapshot VARCHAR(80) NULL,
+        section_name_snapshot VARCHAR(120) NULL,
+        semester VARCHAR(30) NULL,
+        school_year VARCHAR(16) NULL,
+        address VARCHAR(255) NULL,
+        phone VARCHAR(50) NULL,
+        date_of_birth DATE NULL,
+        gender VARCHAR(30) NULL,
+        supervisor_id INT NULL,
+        supervisor_name VARCHAR(255) NULL,
+        coordinator_id INT NULL,
+        coordinator_name VARCHAR(255) NULL,
+        internal_total_hours INT NULL,
+        external_total_hours INT NULL,
+        assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal',
+        emergency_contact VARCHAR(255) NULL,
+        emergency_contact_phone VARCHAR(50) NULL,
+        status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+        submitted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        reviewed_at DATETIME NULL,
+        reviewed_by INT NULL,
+        approval_notes VARCHAR(255) NULL,
+        disciplinary_remark VARCHAR(255) NULL,
+        created_student_user_id INT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_student_app_user_id (user_id),
+        UNIQUE KEY uq_student_app_email (email),
+        KEY idx_student_app_status (status),
+        KEY idx_student_app_submitted (submitted_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $tableInitConn->close();
+}
 
 $departmentsConn = new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
 if ($departmentsConn && $departmentsConn->connect_errno === 0) {
@@ -295,22 +345,69 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
     .form-stepper {
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        margin: 8px 0 18px;
+        gap: 6px;
+        margin: 6px 0 14px;
+        width: 100%;
+        max-width: 100%;
     }
 
     .stepper-track {
         display: flex;
-        gap: 8px;
+        gap: 6px;
     }
 
     .step-dot {
         flex: 1 1 0;
-        height: 6px;
+        height: 5px;
         border-radius: 999px;
         background: rgba(148, 163, 184, 0.2);
         position: relative;
         overflow: hidden;
+    }
+
+    .register-brand-partnership {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: fit-content;
+        max-width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+        gap: 10px;
+        margin-bottom: 0;
+    }
+
+    .register-floating-logos {
+        z-index: 4;
+    }
+
+    .register-logo-badge {
+        width: 54px;
+        height: 54px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        padding: 4px;
+    }
+
+    .register-logo-badge img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .register-logo-badge--school {
+        width: 60px;
+        height: 60px;
+    }
+
+    .register-partner-divider {
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        color: #64748b;
+        text-transform: uppercase;
     }
 
     .step-dot::after {
@@ -565,6 +662,44 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
             padding: 20px !important;
             background-color: transparent;
         }
+
+        .auth-minimal-inner,
+        .minimal-card-wrapper {
+            width: 100% !important;
+            max-width: 640px !important;
+        }
+
+        .student-location-row .col-12.col-md-4 {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .student-location-row .form-control {
+            width: 100%;
+        }
+
+        @media (max-width: 767.98px) {
+            .register-brand-partnership {
+                gap: 8px;
+                margin-bottom: 10px;
+            }
+
+            .register-logo-badge {
+                width: 48px;
+                height: 48px;
+            }
+
+            .register-logo-badge--school {
+                width: 52px;
+                height: 52px;
+            }
+
+            .form-stepper {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+
         /* Ensure the card doesn't overflow on small screens */
         .card.p-sm-5 {
             box-sizing: border-box;
@@ -576,11 +711,19 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
     <main class="auth-minimal-wrapper">
         <div class="auth-minimal-inner">
             <div class="minimal-card-wrapper">
-                <div class="card mb-4 mt-5 mx-2 mx-sm-0 position-relative" style="width: 130%; max-width: 1500px; margin: 40px auto;">
-                    <div class="wd-50 bg-white p-2 rounded-circle shadow-lg position-absolute translate-middle top-0 start-50">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+                <div class="card mb-4 mt-5 mx-2 mx-sm-0 position-relative" style="width: min(100%, 640px); max-width: 640px; margin: 20px auto;">
+                    <div class="register-floating-logos position-absolute translate-middle top-0 start-50" aria-label="BioTern and school partnership logos">
+                        <div class="register-brand-partnership">
+                            <span class="register-logo-badge register-logo-badge--biotern">
+                                <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="BioTern logo" class="img-fluid">
+                            </span>
+                            <span class="register-partner-divider">x</span>
+                            <span class="register-logo-badge register-logo-badge--school">
+                                <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/ccstlogo.png" alt="School logo" class="img-fluid">
+                            </span>
+                        </div>
                     </div>
-                    <div class="card-body p-sm-5" style="padding: 50px !important; min-height: auto;">
+                    <div class="card-body p-sm-5" style="padding: 50px 24px 22px !important; min-height: auto;">
                         <h2 class="fs-20 fw-bolder mb-4">Apply</h2>
                         <div class="mb-3">
                             <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>index.php" class="btn btn-sm btn-outline-primary">&#8592; Back to Home</a>
@@ -643,9 +786,30 @@ if (isset($_GET['registered'])) {
                                         <input type="text" name="last_name" class="form-control" placeholder="Last name" autocomplete="family-name" required>
                                     </div>
                                 </div>
+                                <div class="row g-3 student-location-row">
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
+                                        <label class="form-label fs-12" for="studentProvinceSelect">Province</label>
+                                        <select id="studentProvinceSelect" class="form-control" required>
+                                            <option value="" selected disabled>Select Province</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
+                                        <label class="form-label fs-12" for="studentCitySelect">City / Municipality</label>
+                                        <select id="studentCitySelect" class="form-control" required disabled>
+                                            <option value="" selected disabled>Select City / Municipality</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
+                                        <label class="form-label fs-12" for="studentBarangaySelect">Barangay</label>
+                                        <select id="studentBarangaySelect" class="form-control" required disabled>
+                                            <option value="" selected disabled>Select Barangay</option>
+                                        </select>
+                                    </div>
+                                </div>
                                 <div class="row g-3">
                                     <div class="col-12 mb-2">
-                                        <input type="text" name="address" class="form-control" placeholder="Full Home Address" autocomplete="street-address" required>
+                                        <input type="text" id="studentStreetAddress" class="form-control" placeholder="Street / House No. (optional)" autocomplete="street-address">
+                                        <input type="hidden" name="address" id="studentAddress" required>
                                     </div>
                                 </div>
                                 <div class="step-actions">
@@ -658,7 +822,7 @@ if (isset($_GET['registered'])) {
                             <div class="mb-4 step-panel" data-step="2">
                                 <h5 class="fs-14 fw-bold mb-3">Academic Information</h5>
                                 <div class="row g-3">
-                                    <div class="col-4 mb-2">
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentCourseSelect">Course</label>
                                         <select name="course_id" id="studentCourseSelect" class="form-control dynamic-course-select" data-section-target="studentSectionSelect" required>
                                             <option value="" disabled selected>Select Course</option>
@@ -687,7 +851,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                                         </select>
                                     </div>
-                                    <div class="col-4 mb-2">
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentDepartmentSelect">Department</label>
                                         <select name="department_id" id="studentDepartmentSelect" class="form-control" required>
                                             <option value="" selected>Select Department</option>
@@ -717,14 +881,14 @@ require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                                         </select>
                                     </div>
-                                    <div class="col-4 mb-2">
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentSectionSelect">Section</label>
                                         <select name="section" id="studentSectionSelect" class="form-control" required>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="row g-3">
-                                    <div class="col-4 mb-2">
+                                    <div class="col-12 col-md-4 mb-2">
                                         <label class="form-label fs-12" for="studentSchoolYear">School Year</label>
                                         <select name="school_year" id="studentSchoolYear" class="form-control" required>
                                             <?php
@@ -740,7 +904,7 @@ for ($y = $currentYear; $y >= $startYear; $y--):
                                             <?php endfor; ?>
                                         </select>
                                     </div>
-                                    <div class="col-4 mb-2">
+                                    <div class="col-12 col-md-4 mb-2">
                                         <label class="form-label fs-12" for="studentSemester">Semester</label>
                                         <select name="semester" id="studentSemester" class="form-control" required>
                                             <option value="" disabled selected>Select Semester</option>
@@ -929,7 +1093,7 @@ endforeach; ?>
                             </div>
                             <div class="step-actions">
                                 <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>
-                                <button type="submit" class="btn btn-primary">Apply</button>
+                                <button type="submit" class="btn btn-primary" id="studentApplyBtn">Apply</button>
                             </div>
                             </div>
                         </form>
@@ -954,6 +1118,22 @@ endforeach; ?>
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal fade" id="studentReviewModal" tabindex="-1" aria-labelledby="studentReviewModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="studentReviewModalLabel">Final Review</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body" id="studentReviewContent"></div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Edit Details</button>
+                                        <button type="button" class="btn btn-primary" id="studentConfirmSubmitBtn">Confirm and Submit</button>
                                     </div>
                                 </div>
                             </div>
@@ -1372,6 +1552,14 @@ endforeach; ?>
 
     <script>
         let currentRole = null;
+        const studentDraftStorageKey = 'biotern.studentDraft.v1.' + window.location.pathname;
+
+        function escapeSelector(value) {
+            if (window.CSS && typeof window.CSS.escape === 'function') {
+                return window.CSS.escape(value);
+            }
+            return String(value).replace(/([ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, '\\$1');
+        }
 
         function selectRole(role) {
             currentRole = role;
@@ -1612,6 +1800,9 @@ endforeach; ?>
             setupPasswordToggle();
             setupStudentHoursControls();
             setupAcademicFilters();
+            setupStudentPhilippineAddress();
+            setupStudentDraftPersistence();
+            setupStudentFinalReview();
             initFormStepper('studentForm');
             initFormStepper('coordinatorForm');
             initFormStepper('supervisorForm');
@@ -1642,10 +1833,12 @@ endforeach; ?>
 
             const params = new URLSearchParams(window.location.search);
             if (params.get('registered')) {
+                clearStudentDraft();
                 const studentForm = document.getElementById('studentForm');
                 if (studentForm) {
                     studentForm.reset();
                     setupAcademicFilters();
+                    setupStudentPhilippineAddress();
                     if (typeof studentForm._showStep === 'function') {
                         studentForm._showStep(1);
                     }
@@ -1673,6 +1866,390 @@ endforeach; ?>
 
             finishedSelect.addEventListener('change', syncExternalField);
             syncExternalField();
+        }
+
+        function getStudentDraft() {
+            try {
+                const raw = localStorage.getItem(studentDraftStorageKey);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return null;
+                return parsed;
+            } catch (err) {
+                return null;
+            }
+        }
+
+        function clearStudentDraft() {
+            try {
+                localStorage.removeItem(studentDraftStorageKey);
+            } catch (err) {
+                // ignore localStorage errors
+            }
+        }
+
+        function saveStudentDraft() {
+            const form = document.getElementById('studentForm');
+            if (!form) return;
+            const values = {};
+            const fields = Array.prototype.slice.call(form.querySelectorAll('input, select, textarea'));
+            fields.forEach(function(field) {
+                if (!field) return;
+                const fieldName = String(field.name || '').trim();
+                const fieldId = String(field.id || '').trim();
+                const key = fieldName !== '' ? ('name:' + fieldName) : (fieldId !== '' ? ('id:' + fieldId) : '');
+                if (!key) return;
+                if (field.type === 'password') return;
+                if (field.type === 'checkbox' || field.type === 'radio') {
+                    values[key] = !!field.checked;
+                } else {
+                    values[key] = field.value;
+                }
+            });
+
+            const activePanel = form.querySelector('.step-panel.active');
+            const activeStep = activePanel ? Number(activePanel.getAttribute('data-step') || 1) : 1;
+            const payload = {
+                values: values,
+                activeStep: activeStep,
+                updatedAt: Date.now()
+            };
+
+            try {
+                localStorage.setItem(studentDraftStorageKey, JSON.stringify(payload));
+            } catch (err) {
+                // ignore localStorage errors
+            }
+        }
+
+        function restoreStudentDraft() {
+            const form = document.getElementById('studentForm');
+            const draft = getStudentDraft();
+            if (!form || !draft || !draft.values) return;
+
+            Object.keys(draft.values).forEach(function(key) {
+                if (key.indexOf('id:studentProvinceSelect') === 0 || key.indexOf('id:studentCitySelect') === 0 || key.indexOf('id:studentBarangaySelect') === 0) {
+                    return;
+                }
+
+                let field = null;
+                if (key.indexOf('name:') === 0) {
+                    const fieldName = key.substring(5);
+                    field = form.querySelector('[name="' + escapeSelector(fieldName) + '"]');
+                } else if (key.indexOf('id:') === 0) {
+                    const fieldId = key.substring(3);
+                    field = document.getElementById(fieldId);
+                }
+                if (!field) return;
+
+                if (field.type === 'checkbox' || field.type === 'radio') {
+                    field.checked = !!draft.values[key];
+                } else {
+                    const value = draft.values[key];
+                    if (value !== null && value !== undefined) {
+                        field.value = String(value);
+                    }
+                }
+            });
+
+            if (typeof form._showStep === 'function' && Number(draft.activeStep) > 0) {
+                form._showStep(Number(draft.activeStep));
+            }
+        }
+
+        function setupStudentDraftPersistence() {
+            const form = document.getElementById('studentForm');
+            if (!form || form.dataset.draftBound === '1') {
+                restoreStudentDraft();
+                return;
+            }
+
+            form.addEventListener('input', saveStudentDraft);
+            form.addEventListener('change', saveStudentDraft);
+            form.addEventListener('click', function(e) {
+                const target = e.target;
+                if (target && target.matches('[data-step-action]')) {
+                    setTimeout(saveStudentDraft, 0);
+                }
+            });
+
+            form.dataset.draftBound = '1';
+            restoreStudentDraft();
+            saveStudentDraft();
+        }
+
+        function setupStudentFinalReview() {
+            const form = document.getElementById('studentForm');
+            const reviewModalEl = document.getElementById('studentReviewModal');
+            const reviewBody = document.getElementById('studentReviewContent');
+            const confirmBtn = document.getElementById('studentConfirmSubmitBtn');
+            const applyBtn = document.getElementById('studentApplyBtn');
+            if (!form || !reviewModalEl || !reviewBody || !confirmBtn || !applyBtn || typeof bootstrap === 'undefined') return;
+            if (form.dataset.reviewBound === '1') return;
+
+            const reviewModal = new bootstrap.Modal(reviewModalEl);
+            let confirmed = false;
+
+            function getFieldDisplay(name, fallback) {
+                const field = form.querySelector('[name="' + escapeSelector(name) + '"]');
+                if (!field) return fallback || '-';
+                if (field.tagName === 'SELECT') {
+                    const opt = field.options[field.selectedIndex];
+                    if (!opt || !opt.value) return fallback || '-';
+                    return String(opt.textContent || '').trim() || fallback || '-';
+                }
+                const value = String(field.value || '').trim();
+                return value !== '' ? value : (fallback || '-');
+            }
+
+            function renderReview() {
+                const rows = [
+                    ['Student ID', getFieldDisplay('student_id')],
+                    ['First Name', getFieldDisplay('first_name')],
+                    ['Middle Name', getFieldDisplay('middle_name', '-')],
+                    ['Last Name', getFieldDisplay('last_name')],
+                    ['Address', String((document.getElementById('studentAddress') || {}).value || '-').trim() || '-'],
+                    ['Course', getFieldDisplay('course_id')],
+                    ['Department', getFieldDisplay('department_id')],
+                    ['Section', getFieldDisplay('section')],
+                    ['School Year', getFieldDisplay('school_year')],
+                    ['Semester', getFieldDisplay('semester')],
+                    ['Coordinator', getFieldDisplay('coordinator_id')],
+                    ['Supervisor', getFieldDisplay('supervisor_id')],
+                    ['Phone', getFieldDisplay('phone')],
+                    ['Date of Birth', getFieldDisplay('date_of_birth')],
+                    ['Gender', getFieldDisplay('gender')],
+                    ['Emergency Contact', getFieldDisplay('emergency_contact')],
+                    ['Emergency Contact Phone', getFieldDisplay('emergency_contact_phone')],
+                    ['Username', getFieldDisplay('username')],
+                    ['Account Email', getFieldDisplay('account_email')]
+                ];
+
+                let html = '<div class="table-responsive"><table class="table table-sm align-middle mb-0">';
+                rows.forEach(function(row) {
+                    html += '<tr><th class="text-muted" style="width: 42%;">' + row[0] + '</th><td>' + row[1] + '</td></tr>';
+                });
+                html += '</table></div>';
+                reviewBody.innerHTML = html;
+            }
+
+            function openReviewModal() {
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+                renderReview();
+                reviewModal.show();
+            }
+
+            applyBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                openReviewModal();
+            });
+
+            form.addEventListener('submit', function(e) {
+                if (confirmed) {
+                    confirmed = false;
+                    return;
+                }
+                e.preventDefault();
+                openReviewModal();
+            });
+
+            confirmBtn.addEventListener('click', function() {
+                confirmed = true;
+                saveStudentDraft();
+                reviewModal.hide();
+                if (form.requestSubmit) {
+                    form.requestSubmit();
+                } else {
+                    form.submit();
+                }
+            });
+
+            form.dataset.reviewBound = '1';
+        }
+
+        function setSelectLoading(selectEl, label) {
+            if (!selectEl) return;
+            selectEl.innerHTML = '';
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = label;
+            opt.disabled = true;
+            opt.selected = true;
+            selectEl.appendChild(opt);
+        }
+
+        function fillSelectOptions(selectEl, placeholder, records, codeKey, nameKey) {
+            if (!selectEl) return;
+            selectEl.innerHTML = '';
+            const placeholderOption = document.createElement('option');
+            placeholderOption.value = '';
+            placeholderOption.textContent = placeholder;
+            placeholderOption.disabled = true;
+            placeholderOption.selected = true;
+            selectEl.appendChild(placeholderOption);
+
+            records.forEach(function(rec) {
+                const code = String(rec[codeKey] || '').trim();
+                const name = String(rec[nameKey] || '').trim();
+                if (code === '' || name === '') return;
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = name;
+                option.setAttribute('data-name', name);
+                selectEl.appendChild(option);
+            });
+        }
+
+        function setupStudentPhilippineAddress() {
+            const provinceSelect = document.getElementById('studentProvinceSelect');
+            const citySelect = document.getElementById('studentCitySelect');
+            const barangaySelect = document.getElementById('studentBarangaySelect');
+            const streetInput = document.getElementById('studentStreetAddress');
+            const addressInput = document.getElementById('studentAddress');
+            if (!provinceSelect || !citySelect || !barangaySelect || !addressInput) return;
+            if (provinceSelect.dataset.addressBound === '1') {
+                updateComposedAddress();
+                return;
+            }
+
+            const psgcBase = 'https://psgc.gitlab.io/api';
+            const draft = getStudentDraft();
+            const draftValues = draft && draft.values ? draft.values : {};
+            const draftProvinceCode = String(draftValues['id:studentProvinceSelect'] || '');
+            const draftCityCode = String(draftValues['id:studentCitySelect'] || '');
+            const draftBarangayCode = String(draftValues['id:studentBarangaySelect'] || '');
+
+            function selectedName(selectEl) {
+                if (!selectEl) return '';
+                const opt = selectEl.options[selectEl.selectedIndex];
+                if (!opt || !opt.value) return '';
+                return String(opt.getAttribute('data-name') || opt.textContent || '').trim();
+            }
+
+            function updateComposedAddress() {
+                const province = selectedName(provinceSelect);
+                const city = selectedName(citySelect);
+                const barangay = selectedName(barangaySelect);
+                const street = streetInput ? String(streetInput.value || '').trim() : '';
+                const segments = [];
+                if (street !== '') segments.push(street);
+                if (barangay !== '') segments.push(barangay);
+                if (city !== '') segments.push(city);
+                if (province !== '') segments.push(province);
+                addressInput.value = segments.join(', ');
+            }
+
+            function fetchList(endpoint) {
+                return fetch(psgcBase + endpoint)
+                    .then(function(response) {
+                        if (!response.ok) {
+                            throw new Error('Request failed with status ' + response.status);
+                        }
+                        return response.json();
+                    });
+            }
+
+            function loadProvinces() {
+                provinceSelect.disabled = true;
+                citySelect.disabled = true;
+                barangaySelect.disabled = true;
+                setSelectLoading(provinceSelect, 'Loading provinces...');
+                setSelectLoading(citySelect, 'Select City / Municipality');
+                setSelectLoading(barangaySelect, 'Select Barangay');
+
+                return fetchList('/provinces/')
+                    .then(function(records) {
+                        const sorted = (Array.isArray(records) ? records : []).slice().sort(function(a, b) {
+                            return String(a.name || '').localeCompare(String(b.name || ''));
+                        });
+                        fillSelectOptions(provinceSelect, 'Select Province', sorted, 'code', 'name');
+                        provinceSelect.disabled = false;
+                    })
+                    .catch(function() {
+                        setSelectLoading(provinceSelect, 'Unable to load provinces');
+                    });
+            }
+
+            function loadCities(provinceCode) {
+                citySelect.disabled = true;
+                barangaySelect.disabled = true;
+                setSelectLoading(citySelect, 'Loading cities/municipalities...');
+                setSelectLoading(barangaySelect, 'Select Barangay');
+                if (!provinceCode) {
+                    setSelectLoading(citySelect, 'Select City / Municipality');
+                    return Promise.resolve();
+                }
+
+                return fetchList('/provinces/' + encodeURIComponent(provinceCode) + '/cities-municipalities/')
+                    .then(function(records) {
+                        const sorted = (Array.isArray(records) ? records : []).slice().sort(function(a, b) {
+                            return String(a.name || '').localeCompare(String(b.name || ''));
+                        });
+                        fillSelectOptions(citySelect, 'Select City / Municipality', sorted, 'code', 'name');
+                        citySelect.disabled = false;
+                    })
+                    .catch(function() {
+                        setSelectLoading(citySelect, 'Unable to load cities/municipalities');
+                    });
+            }
+
+            function loadBarangays(cityCode) {
+                barangaySelect.disabled = true;
+                setSelectLoading(barangaySelect, 'Loading barangays...');
+                if (!cityCode) {
+                    setSelectLoading(barangaySelect, 'Select Barangay');
+                    return Promise.resolve();
+                }
+
+                return fetchList('/cities-municipalities/' + encodeURIComponent(cityCode) + '/barangays/')
+                    .then(function(records) {
+                        const sorted = (Array.isArray(records) ? records : []).slice().sort(function(a, b) {
+                            return String(a.name || '').localeCompare(String(b.name || ''));
+                        });
+                        fillSelectOptions(barangaySelect, 'Select Barangay', sorted, 'code', 'name');
+                        barangaySelect.disabled = false;
+                    })
+                    .catch(function() {
+                        setSelectLoading(barangaySelect, 'Unable to load barangays');
+                    });
+            }
+
+            provinceSelect.addEventListener('change', function() {
+                loadCities(provinceSelect.value);
+                updateComposedAddress();
+            });
+            citySelect.addEventListener('change', function() {
+                loadBarangays(citySelect.value);
+                updateComposedAddress();
+            });
+            barangaySelect.addEventListener('change', updateComposedAddress);
+            if (streetInput) {
+                streetInput.addEventListener('input', updateComposedAddress);
+            }
+
+            provinceSelect.dataset.addressBound = '1';
+            loadProvinces().then(function() {
+                if (draftProvinceCode && provinceSelect.querySelector('option[value="' + escapeSelector(draftProvinceCode) + '"]')) {
+                    provinceSelect.value = draftProvinceCode;
+                    return loadCities(draftProvinceCode).then(function() {
+                        if (draftCityCode && citySelect.querySelector('option[value="' + escapeSelector(draftCityCode) + '"]')) {
+                            citySelect.value = draftCityCode;
+                            return loadBarangays(draftCityCode).then(function() {
+                                if (draftBarangayCode && barangaySelect.querySelector('option[value="' + escapeSelector(draftBarangayCode) + '"]')) {
+                                    barangaySelect.value = draftBarangayCode;
+                                }
+                            });
+                        }
+                        return Promise.resolve();
+                    });
+                }
+                return Promise.resolve();
+            }).then(function() {
+                updateComposedAddress();
+            });
         }
 
         const courseDepartmentMap = <?php

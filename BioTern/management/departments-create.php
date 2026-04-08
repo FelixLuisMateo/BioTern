@@ -193,7 +193,7 @@ include 'includes/header.php';
             <div class="card stretch stretch-full">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Existing Departments</h5>
-                    <a href="auth-register-creative.php" class="btn btn-sm btn-outline-primary">Open Registration</a>
+                    <a href="auth-register.php" class="btn btn-sm btn-outline-primary">Open Registration</a>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
