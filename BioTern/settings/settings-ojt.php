@@ -189,16 +189,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
     <div class="main-content settings-shell">
         <div class="settings-layout">
         <section class="settings-main">
-            <div class="settings-intro-card">
-                <div class="settings-intro-meta">
-                    <div>
-                        <h3>Internship Workflow Controls</h3>
-                        <p>Set how OJT assignments begin, what completion means, and whether approvals or document generation should be allowed at different stages of the workflow.</p>
-                    </div>
-                    <div class="settings-badge">OJT Category</div>
-                </div>
-            </div>
-
             <?php if ($save_success !== ''): ?>
                 <div class="alert alert-success settings-alert" role="alert"><?= so_h($save_success) ?></div>
             <?php endif; ?>

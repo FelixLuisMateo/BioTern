@@ -284,7 +284,10 @@
             align-items: center !important;
             justify-content: center !important;
             min-height: 100vh !important;
-            padding: 24px 16px 18px !important;
+            min-height: 100dvh !important;
+            padding: 12px !important;
+            box-sizing: border-box;
+            overflow-x: hidden;
             background-color: transparent;
         }
         /* Ensure the card doesn't overflow on small screens */
@@ -300,7 +303,7 @@ body {
 
 .register-auth-card {
     width: min(100%, 640px);
-    margin: 26px auto 8px;
+    margin: 0 auto;
     border-radius: 16px;
     border: 1px solid var(--biotern-border, #d1d5db);
     background: var(--biotern-surface, #ffffff);
@@ -308,7 +311,7 @@ body {
 }
 
 .register-auth-card .card-body {
-    padding: 50px 24px 22px !important;
+    padding: 58px 24px 22px !important;
     min-height: auto;
 }
 
@@ -537,30 +540,48 @@ html.app-theme-gray .step-dot.done::after {
 
     .register-auth-card {
         width: min(100%, 620px);
-        margin: 26px auto 8px;
+        margin: 0 auto;
     }
 }
 
 @media (max-width: 767.98px) {
     .auth-minimal-wrapper {
-        padding: 18px 12px 14px !important;
-        min-height: 100svh !important;
+        display: block !important;
+        min-height: 100vh !important;
+        min-height: 100dvh !important;
+        padding: 0 !important;
+        align-items: stretch !important;
+        justify-content: flex-start !important;
+        overflow-x: hidden;
+        overflow-y: auto;
     }
 
     .auth-minimal-inner,
     .minimal-card-wrapper {
-        display: flex;
-        justify-content: center;
+        max-width: none !important;
+        width: 100% !important;
+        min-height: 100vh;
+        min-height: 100dvh;
     }
 
     .register-auth-card {
         width: 100%;
-        max-width: 430px;
-        margin: 30px auto 8px;
+        min-height: 100vh;
+        min-height: 100dvh;
+        margin: 0;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+        box-shadow: none;
     }
 
     .register-auth-card .card-body {
-        padding: 1.1rem !important;
+        padding:
+            calc(env(safe-area-inset-top, 0px) + 4.35rem)
+            1rem
+            calc(env(safe-area-inset-bottom, 0px) + 1rem) !important;
+        min-height: 100vh;
+        min-height: 100dvh;
     }
 
     .register-logo-badge {
@@ -577,6 +598,11 @@ html.app-theme-gray .step-dot.done::after {
     .register-brand-partnership {
         gap: 8px;
         margin-bottom: 10px;
+    }
+
+    .register-floating-logos {
+        top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
+        transform: translate(-50%, 0) !important;
     }
 
     .register-hero,
@@ -629,5 +655,12 @@ html.app-theme-gray .step-dot.done::after {
     .step-actions .btn {
         min-width: 0;
         width: 100%;
+        min-height: 50px;
+    }
+
+    .register-auth-card .form-control,
+    .register-auth-card .form-select {
+        min-height: 50px;
+        font-size: 0.97rem;
     }
 }

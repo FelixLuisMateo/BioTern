@@ -11,7 +11,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $userId = (int)($_SESSION['user_id'] ?? 0);
 if ($userId <= 0) {
-    header('Location: auth-login-cover.php?next=tools/import-students-excel.php');
+    header('Location: auth-login.php?next=tools/import-students-excel.php');
     exit;
 }
 

@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
+require_once __DIR__ . '/avatar.php';
 // Shared header include.  Sets up HTML <head> and page header/navigation.
 // Pages can set a $page_title variable before including this file.
 if (session_status() === PHP_SESSION_NONE) {
@@ -13,7 +14,7 @@ $header_project_pos = stripos($header_script_name, '/BioTern/BioTern/');
 if ($header_project_pos !== false) {
     $header_root = substr($header_script_name, 0, $header_project_pos) . '/BioTern/BioTern/';
 }
-$header_login_url = $header_root . 'auth/auth-login-cover.php';
+$header_login_url = $header_root . 'auth/auth-login.php';
 
 $page_is_public = isset($page_is_public) && $page_is_public === true;
 $page_render_navigation = isset($page_render_navigation) ? (bool)$page_render_navigation : !$page_is_public;
@@ -22,6 +23,9 @@ $page_render_header = isset($page_render_header) ? (bool)$page_render_header : !
 // Enforce authenticated session for all non-public pages using the shared app header.
 $header_user_id_session = (int)($_SESSION['user_id'] ?? 0);
 $header_db = null;
+$header_account_status_text = 'Active';
+$header_member_since_text = 'Unknown';
+$header_last_login_text = 'No login record';
 if (!$page_is_public) {
     if ($header_user_id_session <= 0) {
         header('Location: ' . $header_login_url);
@@ -37,7 +41,7 @@ if (!$page_is_public) {
         defined('DB_PORT') ? (int)DB_PORT : 3306
     );
     if (!$header_db->connect_errno) {
-        $stmt = $header_db->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
+        $stmt = $header_db->prepare("SELECT id, name, username, email, role, is_active, profile_picture, created_at FROM users WHERE id = ? LIMIT 1");
         if ($stmt) {
             $stmt->bind_param('i', $header_user_id_session);
             $stmt->execute();
@@ -62,6 +66,32 @@ if (!$page_is_public) {
             $_SESSION['role'] = (string)($header_user['role'] ?? '');
             $_SESSION['profile_picture'] = (string)($header_user['profile_picture'] ?? '');
             $_SESSION['logged_in'] = true;
+
+            $header_account_status_text = ((int)($header_user['is_active'] ?? 0) === 1) ? 'Active' : 'Inactive';
+            $header_created_at_raw = (string)($header_user['created_at'] ?? '');
+            if ($header_created_at_raw !== '') {
+                $header_created_at_ts = strtotime($header_created_at_raw);
+                if ($header_created_at_ts !== false) {
+                    $header_member_since_text = date('M d, Y', $header_created_at_ts);
+                }
+            }
+
+            $header_last_login_stmt = $header_db->prepare('SELECT created_at FROM login_logs WHERE user_id = ? AND status = ? ORDER BY created_at DESC LIMIT 1');
+            if ($header_last_login_stmt) {
+                $header_login_success = 'success';
+                $header_last_login_stmt->bind_param('is', $header_user_id_session, $header_login_success);
+                $header_last_login_stmt->execute();
+                $header_last_login_row = $header_last_login_stmt->get_result()->fetch_assoc();
+                $header_last_login_stmt->close();
+
+                $header_last_login_raw = (string)($header_last_login_row['created_at'] ?? '');
+                if ($header_last_login_raw !== '') {
+                    $header_last_login_ts = strtotime($header_last_login_raw);
+                    if ($header_last_login_ts !== false) {
+                        $header_last_login_text = date('M d, Y h:i A', $header_last_login_ts);
+                    }
+                }
+            }
         }
     } else {
         $header_db = null;
@@ -142,40 +172,17 @@ if (!function_exists('header_asset_versioned_href')) {
     }
 }
 
-if (!function_exists('header_resolve_avatar_href')) {
-    function header_resolve_avatar_href(string $rawAvatar, string $fallback = 'assets/images/avatar/1.png'): string
+if (!function_exists('header_role_badge_color')) {
+    function header_role_badge_color(string $role = ''): string
     {
-        $normalized = trim(str_replace('\\', '/', $rawAvatar));
-        if ($normalized === '') {
-            return header_asset_versioned_href($fallback);
-        }
-
-        $normalized = preg_replace('/\?.*$/', '', $normalized);
-        $normalized = ltrim((string)$normalized, '/');
-        $normalized = preg_replace('#^(\./)+#', '', (string)$normalized);
-
-        $candidates = [];
-        if ($normalized !== '') {
-            $candidates[] = $normalized;
-            if (stripos($normalized, 'BioTern/BioTern/') === 0) {
-                $candidates[] = substr($normalized, strlen('BioTern/BioTern/'));
-            } elseif (stripos($normalized, 'BioTern/') === 0) {
-                $candidates[] = substr($normalized, strlen('BioTern/'));
-            }
-        }
-
-        foreach (array_values(array_unique($candidates)) as $candidate) {
-            $candidate = ltrim((string)$candidate, '/');
-            if ($candidate === '') {
-                continue;
-            }
-            $absolute = dirname(__DIR__) . '/' . $candidate;
-            if (is_file($absolute)) {
-                return header_asset_versioned_href($candidate);
-            }
-        }
-
-        return header_asset_versioned_href($fallback);
+        $role = strtolower(trim($role));
+        return match ($role) {
+            'admin' => 'bg-soft-success text-success',
+            'supervisor' => 'bg-soft-warning text-warning',
+            'coordinator' => 'bg-soft-info text-info',
+            'student' => 'bg-soft-secondary text-secondary',
+            default => 'bg-soft-primary text-primary',
+        };
     }
 }
 
@@ -270,6 +277,8 @@ $header_user_role = '';
 $header_avatar = 'assets/images/avatar/1.png';
 $header_notifications = [];
 $header_notifications_unread = 0;
+$header_notifications_url = 'notifications.php';
+$header_account_settings_url = 'account-settings.php#security';
 
 if ($page_render_header) {
     $header_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
@@ -283,7 +292,8 @@ if ($page_render_header) {
     $header_user_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
 
     $session_avatar = trim((string)($_SESSION['profile_picture'] ?? ''));
-    $header_avatar = header_resolve_avatar_href($session_avatar, $header_avatar);
+    $header_avatar_path = biotern_avatar_public_src($session_avatar, $header_user_id_session);
+    $header_avatar = header_asset_versioned_href($header_avatar_path) . '&uid=' . rawurlencode((string)$header_user_id_session);
 
     if ($header_user_id_session > 0) {
         $hdr_db = $header_db;
@@ -495,23 +505,25 @@ if ($header_db instanceof mysqli) {
                             </a>
                         <?php endif; ?>
                         <div class="<?php echo $header_is_homepage ? 'd-none d-lg-flex' : 'd-flex'; ?> align-items-center">
-                            <div class="dropdown nxl-h-item nxl-header-search d-none d-sm-flex">
-                                <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                                    <i class="feather-search"></i>
-                                </a>
-                                <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
-                                    <div class="input-group search-form">
-                                        <span class="input-group-text">
-                                            <i class="feather-search fs-6 text-muted"></i>
-                                        </span>
-                                        <input type="text" id="headerSearchInput" name="header_search" class="form-control search-input-field" placeholder="Search page...">
-                                        <span class="input-group-text">
-                                            <button type="button" class="btn-close" id="headerSearchClear"></button>
-                                        </span>
-                                    </div>
-                                    <div class="dropdown-divider mt-0"></div>
-                                    <div class="px-3 py-2 fs-12 text-muted">Type and press Enter to open first matching menu page.</div>
+                            <div class="nxl-h-item nxl-header-search-inline d-none d-sm-flex">
+                                <div class="header-search-inline-shell">
+                                    <span class="header-search-inline-icon" aria-hidden="true">
+                                        <i class="feather-search"></i>
+                                    </span>
+                                    <input
+                                        type="text"
+                                        id="headerSearchInput"
+                                        name="header_search"
+                                        class="header-search-inline-input"
+                                        placeholder="Search pages..."
+                                        autocomplete="off"
+                                        spellcheck="false"
+                                        aria-label="Search pages">
+                                    <button type="button" class="header-search-inline-clear" id="headerSearchClear" aria-label="Clear search">
+                                        <i class="feather-x"></i>
+                                    </button>
                                 </div>
+                                <div class="dropdown-menu nxl-h-dropdown nxl-search-dropdown header-search-inline-results"></div>
                             </div>
                             <div class="nxl-h-item d-none d-sm-flex">
                                 <div class="full-screen-switcher">
@@ -582,58 +594,98 @@ if ($header_db instanceof mysqli) {
                                 </div>
                             </div>
                             <div class="dropdown nxl-h-item click-only-dropdown">
-                                <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                                <a href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-display="static" data-bs-offset="0,10" role="button" data-bs-auto-close="outside">
                                     <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
-                                    <div class="dropdown-header">
+                                    <div class="dropdown-header user-dropdown-hero">
                                         <div class="header-menu-profile">
                                             <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
-                                            <div class="header-menu-profile-copy">
-                                                <div class="header-menu-profile-name">
-                                                    <h6><?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?></h6>
-                                                    <?php if ($header_user_role !== ''): ?>
-                                                        <span class="header-menu-pill"><?php echo htmlspecialchars(ucfirst($header_user_role), ENT_QUOTES, 'UTF-8'); ?></span>
-                                                    <?php endif; ?>
+                                            <div class="user-dropdown-identity">
+                                                <h6 class="user-dropdown-name"><?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?></h6>
+                                                <div class="user-dropdown-meta-row">
+                                                    <span class="user-dropdown-role-inline"><?php echo htmlspecialchars($header_user_role !== '' ? ucfirst($header_user_role) : 'User', ENT_QUOTES, 'UTF-8'); ?></span>
                                                 </div>
-                                                <span class="fs-12 fw-medium text-muted"><?php echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
+                                                <span class="user-dropdown-email"><?php echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="header-menu-status">
-                                        <span class="header-menu-status-dot"></span>
-                                        <span>Active</span>
+                                    <div class="user-dropdown-primary-action-wrap">
+                                        <a href="<?php echo htmlspecialchars($header_account_settings_url, ENT_QUOTES, 'UTF-8'); ?>" class="user-dropdown-primary-action">
+                                            <i class="feather-settings"></i>
+                                            <span>Account Settings</span>
+                                        </a>
                                     </div>
                                     <div class="dropdown-divider"></div>
-                                    <div class="dropdown-meta">Profile</div>
-                                    <div class="header-menu-section">
-                                        <a href="account-settings.php#overview" class="dropdown-item">
-                                            <i class="feather-user"></i>
-                                            <span>Profile Details</span>
-                                        </a>
-                                        <a href="account-settings.php#profile-form" class="dropdown-item">
-                                            <i class="feather-edit-3"></i>
-                                            <span>Edit Profile</span>
-                                        </a>
+                                    <div class="dropdown-item-text pb-1">
+                                        <div class="user-dropdown-section-title">Status</div>
                                     </div>
-                                    <div class="dropdown-meta">Account</div>
-                                    <div class="header-menu-section">
-                                        <a href="notifications.php" class="dropdown-item">
-                                            <i class="feather-bell"></i>
+                                    <div class="user-dropdown-status-grid">
+                                        <div class="dropdown-item-text user-dropdown-status-item">
+                                            <span class="user-dropdown-status-row">
+                                                <span class="user-dropdown-label">
+                                                    <span class="user-dropdown-icon-box">
+                                                        <span class="user-dropdown-status-dot <?php echo $header_account_status_text === 'Active' ? 'is-active' : 'is-inactive'; ?>"></span>
+                                                    </span>
+                                                    <span>Account</span>
+                                                </span>
+                                                <span class="badge <?php echo $header_account_status_text === 'Active' ? 'bg-soft-success text-success' : 'bg-soft-secondary text-secondary'; ?>"><?php echo htmlspecialchars($header_account_status_text, ENT_QUOTES, 'UTF-8'); ?></span>
+                                            </span>
+                                        </div>
+                                        <div class="dropdown-item-text user-dropdown-status-item">
+                                            <span class="user-dropdown-status-row">
+                                                <span class="user-dropdown-label">
+                                                    <span class="user-dropdown-icon-box"><i class="feather-shield"></i></span>
+                                                    <span>Role</span>
+                                                </span>
+                                                <span class="badge <?php echo header_role_badge_color($header_user_role); ?>"><?php echo htmlspecialchars($header_user_role !== '' ? ucfirst($header_user_role) : 'User', ENT_QUOTES, 'UTF-8'); ?></span>
+                                            </span>
+                                        </div>
+                                        <div class="dropdown-item-text user-dropdown-status-item">
+                                            <span class="user-dropdown-status-row">
+                                                <span class="user-dropdown-label">
+                                                    <span class="user-dropdown-icon-box"><i class="feather-calendar"></i></span>
+                                                    <span>Member Since</span>
+                                                </span>
+                                                <span class="user-dropdown-value"><?php echo htmlspecialchars($header_member_since_text, ENT_QUOTES, 'UTF-8'); ?></span>
+                                            </span>
+                                        </div>
+                                        <div class="dropdown-item-text user-dropdown-status-item">
+                                            <span class="user-dropdown-status-row">
+                                                <span class="user-dropdown-label">
+                                                    <span class="user-dropdown-icon-box"><i class="feather-clock"></i></span>
+                                                    <span>Last Login</span>
+                                                </span>
+                                                <span class="user-dropdown-value text-end"><?php echo htmlspecialchars($header_last_login_text, ENT_QUOTES, 'UTF-8'); ?></span>
+                                            </span>
+                                        </div>
+                                        <div class="dropdown-item-text user-dropdown-status-item">
+                                            <span class="user-dropdown-status-row">
+                                                <span class="user-dropdown-label">
+                                                    <span class="user-dropdown-icon-box"><i class="feather-bell"></i></span>
+                                                    <span>Notifications</span>
+                                                </span>
+                                                <span class="badge <?php echo (int)$header_notifications_unread > 0 ? 'bg-soft-warning text-warning' : 'bg-soft-secondary text-secondary'; ?>"><?php echo (int)$header_notifications_unread > 0 ? ((int)$header_notifications_unread . ' unread') : 'All read'; ?></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown-divider"></div>
+                                    <div class="dropdown-item-text pb-1">
+                                        <div class="user-dropdown-section-title">Workspace</div>
+                                    </div>
+                                    <div class="header-menu-section user-dropdown-links">
+                                        <a href="<?php echo htmlspecialchars($header_notifications_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
+                                            <span class="header-menu-link-icon"><i class="feather-bell"></i></span>
                                             <span>Notifications</span>
-                                        </a>
-                                        <a href="account-settings.php#security" class="dropdown-item">
-                                            <i class="feather-shield"></i>
-                                            <span>Security</span>
+                                            <i class="feather-chevron-right user-dropdown-link-caret"></i>
                                         </a>
                                     </div>
                                     <div class="dropdown-divider"></div>
-                                    <div class="header-menu-section">
-                                        <a href="auth-login-cover.php?logout=1" class="dropdown-item">
-                                            <i class="feather-log-out"></i>
-                                            <span>Logout</span>
-                                        </a>
-                                    </div>
+                                    <a href="auth-login.php?logout=1" class="dropdown-item user-dropdown-logout">
+                                        <span class="header-menu-link-icon"><i class="feather-log-out"></i></span>
+                                        <span>Logout</span>
+                                        <i class="feather-chevron-right user-dropdown-link-caret"></i>
+                                    </a>
                                 </div>
                             </div>
                         </div>

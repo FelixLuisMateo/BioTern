@@ -704,11 +704,11 @@ endforeach; ?>
 
                         <div id="loginLink" class="mt-5 text-muted show-form">
                             <span>Already have an account?</span>
-                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login-cover.php" class="fw-bold">Login</a>
+                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login.php" class="fw-bold">Login</a>
                         </div>
                         <div id="loginLinkHidden" class="mt-5 text-muted hide-form">
                             <span>Already have an account?</span>
-                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login-cover.php" class="fw-bold">Login</a>
+                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login.php" class="fw-bold">Login</a>
                         </div>
                     </div>
                 </div>

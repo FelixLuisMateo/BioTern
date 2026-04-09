@@ -195,14 +195,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
         </div>
     <div class="main-content settings-shell">
         <section class="settings-panel">
-                <div class="settings-hero">
-                    <div>
-                        <h3>Mail Delivery Defaults</h3>
-                        <p>Configure the outgoing mail server, sender identity, and which BioTern updates should trigger email notifications.</p>
-                    </div>
-                    <div class="settings-badge">System Settings</div>
-                </div>
-
                 <?php if ($errors): ?>
                     <div class="alert alert-danger" role="alert">
                         <ul class="mb-0 ps-3">

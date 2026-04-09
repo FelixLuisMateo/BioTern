@@ -128,7 +128,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'label' => 'Workspace',
                 'icon' => 'feather-layers',
                 'routes' => [
-                    'apps-chat.php', 'apps-email.php', 'apps-tasks.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
+                    'apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
                 ],
                 'sections' => [
                     [
@@ -136,7 +136,6 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'items' => [
                             ['label' => 'Chat', 'href' => 'apps-chat.php', 'icon' => 'feather-message-circle'],
                             ['label' => 'Email', 'href' => 'apps-email.php', 'icon' => 'feather-mail'],
-                            ['label' => 'Tasks', 'href' => 'apps-tasks.php', 'icon' => 'feather-check-square'],
                             ['label' => 'Notes', 'href' => 'apps-notes.php', 'icon' => 'feather-edit-2'],
                             ['label' => 'Storage', 'href' => 'apps-storage.php', 'icon' => 'feather-hard-drive'],
                             ['label' => 'Calendar', 'href' => 'apps-calendar.php', 'icon' => 'feather-calendar'],
@@ -203,7 +202,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         ['label' => 'Profile Details', 'href' => 'account-settings.php#overview', 'icon' => 'feather-user'],
                         ['label' => 'Account Settings', 'href' => 'account-settings.php#security', 'icon' => 'feather-settings'],
                         ['label' => 'Notifications', 'href' => 'notifications.php', 'icon' => 'feather-bell'],
-                        ['label' => 'Logout', 'href' => '/BioTern/BioTern/auth/auth-login-cover.php?logout=1', 'icon' => 'feather-log-out'],
+                        ['label' => 'Logout', 'href' => '/BioTern/BioTern/auth/auth-login.php?logout=1', 'icon' => 'feather-log-out'],
                     ],
                 ],
             ],

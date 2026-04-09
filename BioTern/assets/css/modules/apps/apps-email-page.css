@@ -1,0 +1,189 @@
+body.apps-email-page .main-content {
+        padding-top: 0 !important;
+    }
+
+    body.apps-email-page .content-sidebar,
+    body.apps-email-page .content-area {
+        border-color: #e2e8f0 !important;
+    }
+
+    body.apps-email-page .content-sidebar-header,
+    body.apps-email-page .content-area-header {
+        background: #ffffff !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+    }
+
+    body.apps-email-page .nxl-content-sidebar-item .nav-link {
+        border-radius: 8px;
+        margin: 0 0.35rem;
+        color: #1f2937;
+        font-weight: 600;
+    }
+
+    body.apps-email-page .nxl-content-sidebar-item .nav-link.active {
+        background: #eef2ff;
+        color: #1d4ed8;
+    }
+
+    body.apps-email-page .email-list-pane,
+    body.apps-email-page .email-detail-pane {
+        max-height: calc(100vh - 240px);
+        overflow-y: auto;
+    }
+
+    body.apps-email-page .email-list-pane {
+        border-right: 1px solid #e2e8f0;
+        background: #ffffff;
+    }
+
+    body.apps-email-page .email-detail-pane {
+        background: #ffffff;
+    }
+
+    body.apps-email-page .email-row {
+        border-bottom: 1px solid #eef2f7;
+        transition: background-color 0.16s ease;
+    }
+
+    body.apps-email-page .email-row:hover {
+        background: #f8fafc;
+    }
+
+    body.apps-email-page .email-row.email-row-active {
+        background: #eff6ff;
+    }
+
+    body.apps-email-page .email-person-name {
+        color: #0f172a;
+    }
+
+    body.apps-email-page .email-subject {
+        color: #0f172a;
+    }
+
+    body.apps-email-page .email-body {
+        color: #111827;
+    }
+
+    body.apps-email-page .email-meta {
+        color: #475569;
+    }
+
+    body.apps-email-page .email-toolbar-form .form-control,
+    body.apps-email-page .email-toolbar-form .form-select {
+        min-width: 0;
+    }
+
+body.apps-email-page .email-toolbar-form {
+        width: 100%;
+    }
+
+body.apps-email-page .email-toolbar-shell {
+        max-width: 620px;
+    }
+
+body.apps-email-page .email-toolbar-actions {
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+body.apps-email-page .email-filter-select {
+        max-width: 140px;
+    }
+
+body.apps-email-page .email-search-input {
+        max-width: 220px;
+    }
+
+body.apps-email-page .email-body-content {
+        white-space: pre-wrap;
+    }
+
+    body.apps-email-page .modal-backdrop.show {
+        opacity: 0.62 !important;
+    }
+
+    body.apps-email-page #composeMail {
+        z-index: 12050;
+    }
+
+    body.apps-email-page #composeMail .modal-content {
+        border-radius: 12px;
+        border: 1px solid rgba(27, 36, 54, 0.18);
+        box-shadow: 0 18px 45px rgba(2, 6, 23, 0.45);
+    }
+
+    html.app-skin-dark body.apps-email-page #composeMail .modal-content {
+        background-color: #0f172a !important;
+        border-color: #1b2436 !important;
+    }
+
+    html.app-skin-dark body.apps-email-page #composeMail .modal-header,
+    html.app-skin-dark body.apps-email-page #composeMail .modal-footer {
+        border-color: #1b2436 !important;
+    }
+
+    html.app-skin-dark body.apps-email-page #composeMail .form-control,
+    html.app-skin-dark body.apps-email-page #composeMail .form-select,
+    html.app-skin-dark body.apps-email-page #composeMail textarea {
+        background-color: #121a2d !important;
+        border-color: #1b2436 !important;
+        color: #b1b4c0 !important;
+    }
+
+    html.app-skin-dark body.apps-email-page #composeMail .form-control::placeholder,
+    html.app-skin-dark body.apps-email-page #composeMail textarea::placeholder {
+        color: rgba(177, 180, 192, 0.75) !important;
+    }
+
+    html.app-skin-dark body.apps-email-page .content-sidebar,
+    html.app-skin-dark body.apps-email-page .content-area {
+        border-color: #1b2436 !important;
+    }
+
+    html.app-skin-dark body.apps-email-page .content-sidebar-header,
+    html.app-skin-dark body.apps-email-page .content-area-header {
+        background: #0f172a !important;
+        border-bottom-color: #1b2436 !important;
+    }
+
+    html.app-skin-dark body.apps-email-page .nxl-content-sidebar-item .nav-link {
+        color: #dbe5f5 !important;
+    }
+
+    html.app-skin-dark body.apps-email-page .nxl-content-sidebar-item .nav-link.active {
+        background: #1c2740 !important;
+        color: #8fb4ff !important;
+    }
+
+    html.app-skin-dark body.apps-email-page .email-list-pane {
+        border-right-color: #1b2436 !important;
+        background: #0f172a;
+    }
+
+    html.app-skin-dark body.apps-email-page .email-detail-pane {
+        background: #0f172a;
+    }
+
+    html.app-skin-dark body.apps-email-page .email-row {
+        border-bottom-color: #1b2436;
+    }
+
+    html.app-skin-dark body.apps-email-page .email-row:hover {
+        background: #162238;
+    }
+
+    html.app-skin-dark body.apps-email-page .email-row.email-row-active {
+        background: #1b2a46;
+    }
+
+    html.app-skin-dark body.apps-email-page .email-person-name,
+    html.app-skin-dark body.apps-email-page .email-subject,
+    html.app-skin-dark body.apps-email-page .email-body {
+        color: #e6edf8 !important;
+    }
+
+    html.app-skin-dark body.apps-email-page .email-meta,
+    html.app-skin-dark body.apps-email-page .text-muted {
+        color: #9fb0cc !important;
+    }

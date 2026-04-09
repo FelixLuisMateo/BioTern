@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php if ($reset_success !== ''): ?>
                             <div class="alert alert-success" role="alert"><?php echo htmlspecialchars($reset_success); ?></div>
                             <div class="mt-4">
-                                <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login-cover.php" class="btn btn-lg btn-primary w-100">Go to Login</a>
+                                <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login.php" class="btn btn-lg btn-primary w-100">Go to Login</a>
                             </div>
                         <?php else: ?>
                             <form action="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-resetting-minimal.php" method="post" class="w-100 mt-4 pt-2">
@@ -158,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <div class="mt-5 text-muted">
                             <span>Remembered your password?</span>
-                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login-cover.php" class="fw-bold">Back to Login</a>
+                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login.php" class="fw-bold">Back to Login</a>
                         </div>
                     </div>
                 </div>

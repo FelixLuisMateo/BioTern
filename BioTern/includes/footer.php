@@ -146,6 +146,7 @@ if (!function_exists('footer_asset_versioned_src')) {
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/navigation-core.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/navigation-state.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/mobile-bottom-nav.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/mobile-patterns.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/customers-runtime.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/customers-init.min.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <?php if (isset($page_vendor_scripts) && is_array($page_vendor_scripts)): ?>
