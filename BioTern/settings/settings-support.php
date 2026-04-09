@@ -182,14 +182,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
     <div class="main-content settings-shell">
         <div class="settings-layout">
             <section class="settings-main">
-                <div class="settings-hero">
-                    <div>
-                        <h3>Support Contact Defaults</h3>
-                        <p>Manage the support contact details, help links, and whether students can see or use support request channels.</p>
-                    </div>
-                    <div class="settings-badge">System Settings</div>
-                </div>
-
                 <?php if ($errors): ?>
                     <div class="alert alert-danger" role="alert">
                         <ul class="mb-0 ps-3">

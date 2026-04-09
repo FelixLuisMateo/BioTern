@@ -214,16 +214,6 @@
         return out;
     };
 
-    HeaderSearchRuntime.prototype.buildSearchForm = function () {
-        var form = document.createElement("div");
-        form.className = "input-group search-form";
-        form.innerHTML =
-            '<span class="input-group-text"><i class="feather-search fs-6 text-muted"></i></span>' +
-            '<input type="text" class="form-control search-input-field" placeholder="Search page...">' +
-            '<span class="input-group-text"><button type="button" class="btn-close"></button></span>';
-        return form;
-    };
-
     HeaderSearchRuntime.prototype.groupBySection = function (items) {
         var groups = {};
         items.forEach(function (item) {
@@ -236,24 +226,16 @@
         return groups;
     };
 
-    HeaderSearchRuntime.prototype.mountDropdown = function (dropdown, links) {
+    HeaderSearchRuntime.prototype.mountInlineSearch = function (host, links) {
         var self = this;
-        var host = dropdown.cloneNode(true);
-        dropdown.parentNode.replaceChild(host, dropdown);
-
-        var toggle = host.querySelector(".nxl-head-link");
-        var menu = host.querySelector(".nxl-search-dropdown, .dropdown-menu");
-        if (!toggle || !menu) {
+        var input = host.querySelector("#headerSearchInput, .header-search-inline-input");
+        var clearBtn = host.querySelector("#headerSearchClear, .header-search-inline-clear");
+        var menu = host.querySelector(".nxl-search-dropdown, .header-search-inline-results, .dropdown-menu");
+        if (!input || !clearBtn || !menu) {
             return;
         }
 
-        toggle.removeAttribute("data-bs-toggle");
-        toggle.removeAttribute("data-bs-auto-close");
         host.style.position = "relative";
-
-        var searchForm = this.buildSearchForm();
-        var input = searchForm.querySelector(".search-input-field");
-        var clearBtn = searchForm.querySelector(".btn-close");
 
         var hint = document.createElement("div");
         hint.className = "biotern-search-hint";
@@ -263,9 +245,7 @@
         results.className = "biotern-search-results";
 
         menu.classList.add("nxl-search-dropdown");
-        menu.style.display = "none";
         menu.innerHTML = "";
-        menu.appendChild(searchForm);
         menu.appendChild(hint);
         menu.appendChild(results);
 
@@ -273,18 +253,13 @@
         var active = -1;
 
         function closeMenu() {
-            menu.style.display = "none";
             menu.classList.remove("show");
-            toggle.classList.remove("show");
+            host.classList.remove("header-search-open");
         }
 
         function openMenu() {
-            menu.style.display = "block";
             menu.classList.add("show");
-            toggle.classList.add("show");
-            global.setTimeout(function () {
-                input.focus();
-            }, 20);
+            host.classList.add("header-search-open");
             render(input.value);
         }
 
@@ -349,16 +324,12 @@
             });
         }
 
-        toggle.addEventListener("click", function (event) {
-            event.preventDefault();
-            if (menu.style.display === "block") {
-                closeMenu();
-            } else {
-                openMenu();
-            }
+        input.addEventListener("focus", function () {
+            openMenu();
         });
 
         input.addEventListener("input", function () {
+            openMenu();
             render(input.value);
         });
 
@@ -409,12 +380,12 @@
     HeaderSearchRuntime.prototype.init = function () {
         this.ensureStyle();
         var links = this.collectNavigationLinks();
-        var dropdowns = Array.prototype.slice.call(document.querySelectorAll(".nxl-header-search"));
-        if (!dropdowns.length) {
+        var searchHosts = Array.prototype.slice.call(document.querySelectorAll(".nxl-header-search-inline"));
+        if (!searchHosts.length) {
             return;
         }
-        for (var i = 0; i < dropdowns.length; i += 1) {
-            this.mountDropdown(dropdowns[i], links);
+        for (var i = 0; i < searchHosts.length; i += 1) {
+            this.mountInlineSearch(searchHosts[i], links);
         }
     };
 
@@ -447,4 +418,3 @@
 
     boot();
 })(window);
-

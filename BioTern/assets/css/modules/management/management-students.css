@@ -931,24 +931,45 @@ html.app-skin-dark .app-students-mobile-empty {
 }
 
 @media (max-width: 991.98px) {
+    .nxl-content {
+        padding-left: 0.65rem;
+        padding-right: 0.65rem;
+        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .app-students-table-card {
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        overflow: visible;
+    }
+
+    .app-students-table-card > .card-body {
+        padding: 0 !important;
+        background: transparent;
+    }
+
     .app-students-table-card .students-table-wrap {
         display: none !important;
     }
 
     .app-students-mobile-list {
         display: grid;
+        gap: 0.75rem;
+        padding: 0;
     }
 }
 
 @media (max-width: 575.98px) {
     .app-students-mobile-list {
-        padding: 0.75rem;
+        gap: 0.65rem;
     }
 
     .app-student-mobile-summary,
     .app-student-mobile-details {
-        padding-left: 0.85rem;
-        padding-right: 0.85rem;
+        padding-left: 0.9rem;
+        padding-right: 0.9rem;
     }
 }
 
@@ -969,7 +990,7 @@ html.app-skin-dark .app-students-mobile-empty {
     }
 }
 
-        /* Section: filter controls */
+/* Section: filter controls */
         /* Used by management/students.php: #studentsFilterForm */
         .app-students-filter-form .form-control,
         .app-students-filter-form .biotern-select-trigger {
@@ -1049,6 +1070,114 @@ html.app-skin-dark .app-students-mobile-empty {
             gap: 0.4rem;
             flex-wrap: wrap;
         }
+
+@media (max-width: 991.98px) {
+    .app-student-mobile-item {
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.09);
+    }
+
+    .app-student-mobile-summary {
+        padding: 0.95rem 0.95rem 0.85rem;
+        gap: 0.65rem;
+    }
+
+    .app-student-mobile-summary-main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .app-student-mobile-summary::after {
+        margin-left: auto;
+    }
+
+    .app-student-mobile-details {
+        gap: 0.55rem;
+        padding: 0.15rem 0.95rem 0.95rem;
+    }
+
+    .app-student-mobile-row {
+        display: grid;
+        grid-template-columns: minmax(5.25rem, auto) minmax(0, 1fr);
+        gap: 0.5rem 0.85rem;
+        align-items: start;
+    }
+
+    .app-student-mobile-label {
+        font-size: 0.68rem;
+        letter-spacing: 0.05em;
+    }
+
+    .app-student-mobile-value {
+        font-size: 0.86rem;
+        text-align: left;
+        justify-self: stretch;
+        min-width: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .app-student-mobile-value .badge,
+    .app-student-mobile-value .app-students-status-pill,
+    .app-student-mobile-value .app-students-biometric-pill {
+        max-width: 100%;
+        white-space: normal;
+    }
+
+    .app-student-mobile-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem;
+        margin-top: 0.2rem;
+    }
+
+    .app-student-mobile-actions .btn,
+    .app-student-mobile-actions .students-action-dropdown {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .app-student-mobile-actions .students-action-dropdown > .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .app-student-mobile-item {
+        border-radius: 16px;
+    }
+
+    .app-student-mobile-summary {
+        padding: 0.9rem;
+    }
+
+    .app-student-mobile-details {
+        padding: 0.15rem 0.9rem 0.9rem;
+    }
+
+    .app-student-mobile-summary-main .avatar-image {
+        width: 2.65rem;
+        height: 2.65rem;
+        flex: 0 0 2.65rem;
+    }
+
+    .app-student-mobile-name {
+        font-size: 0.94rem;
+    }
+
+    .app-student-mobile-subtext {
+        font-size: 0.75rem;
+    }
+
+    .app-student-mobile-row {
+        grid-template-columns: 1fr;
+        gap: 0.2rem;
+    }
+
+    .app-student-mobile-actions {
+        grid-template-columns: 1fr;
+    }
+}
 
         .footer .footer-links {
             display: flex;

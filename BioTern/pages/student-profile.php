@@ -19,7 +19,7 @@ $student = $stmt->get_result()->fetch_assoc();
 $stmt->close();
 
 if (!$student) {
-    header('Location: auth-login-cover.php?logout=1');
+    header('Location: auth-login.php?logout=1');
     exit;
 }
 

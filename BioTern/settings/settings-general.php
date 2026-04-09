@@ -186,16 +186,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
     <div class="main-content settings-shell">
         <div class="settings-layout">
         <section class="settings-main">
-            <div class="settings-intro-card">
-                <div class="settings-intro-meta">
-                    <div>
-                        <h3>System Defaults</h3>
-                        <p>Set the platform identity, academic defaults, and global access rules used across BioTern. These values become the shared starting point for forms, reports, and public registration.</p>
-                    </div>
-                    <div class="settings-badge">General Category</div>
-                </div>
-            </div>
-
             <?php if ($save_success !== ''): ?>
                 <div class="alert alert-success settings-alert" role="alert"><?= sg_h($save_success) ?></div>
             <?php endif; ?>

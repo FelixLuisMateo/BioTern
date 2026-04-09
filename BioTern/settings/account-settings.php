@@ -21,9 +21,9 @@ function auser(mysqli $conn, int $id): ?array {
 }
 
 $userId = (int)($_SESSION['user_id'] ?? 0);
-if ($userId <= 0) { header('Location: auth-login-cover.php'); exit; }
+if ($userId <= 0) { header('Location: auth-login.php'); exit; }
 $user = auser($conn, $userId);
-if (!$user || (int)($user['is_active'] ?? 0) !== 1) { header('Location: auth-login-cover.php'); exit; }
+if (!$user || (int)($user['is_active'] ?? 0) !== 1) { header('Location: auth-login.php'); exit; }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = strtolower(trim((string)($_POST['action'] ?? '')));
@@ -305,7 +305,7 @@ include dirname(__DIR__) . '/includes/header.php';
                                 <div class="settings-utility-links">
                                     <a class="settings-utility-link" href="notifications.php"><span>Open notifications inbox</span><span><i class="feather-arrow-right"></i></span></a>
                                     <a class="settings-utility-link" href="theme-customizer.php"><span>Appearance</span><span><i class="feather-arrow-right"></i></span></a>
-                                    <a class="settings-utility-link" href="auth-login-cover.php?logout=1"><span>Logout</span><span><i class="feather-log-out"></i></span></a>
+                                    <a class="settings-utility-link" href="auth-login.php?logout=1"><span>Logout</span><span><i class="feather-log-out"></i></span></a>
                                 </div>
                             </div>
                         </section>

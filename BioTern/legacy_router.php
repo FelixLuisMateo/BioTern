@@ -241,10 +241,12 @@ $map = [
 
   'apps-chat.php' => 'apps/apps-chat.php',
   'apps-email.php' => 'apps/apps-email.php',
-  'apps-tasks.php' => 'apps/apps-tasks.php',
   'apps-notes.php' => 'apps/apps-notes.php',
   'apps-storage.php' => 'apps/apps-storage.php',
   'apps-calendar.php' => 'apps/apps-calendar.php',
+  'notes.php' => 'api/notes.php',
+  'storage_files.php' => 'api/storage_files.php',
+  'calendar_events.php' => 'api/calendar_events.php',
 
   'api-biometric-event.php' => 'api/api-biometric-event.php',
   'f20h_ingest.php' => 'api/f20h_ingest.php',
@@ -261,7 +263,8 @@ $map = [
   'users.php' => 'auth/users.php',
   'idnotfound-404.php' => 'auth/idnotfound-404.php',
   'auth-404-minimal.php' => 'auth/auth-404-minimal.php',
-  'auth-login-cover.php' => 'auth/auth-login-cover.php',
+  'auth-login-cover.php' => 'auth/auth-login.php',
+  'auth-login.php' => 'auth/auth-login.php',
   'auth-maintenance-cover.php' => 'auth/auth-maintenance-cover.php',
   'auth-register.php' => 'auth/auth-register.php',
   'auth-reset-cover.php' => 'auth/auth-reset-cover.php',
@@ -332,6 +335,7 @@ $public_files = [
   'bridge_users_sync.php',
   'bridge_commands_claim.php',
   'bridge_commands_complete.php',
+  'auth-login.php',
   'auth-login-cover.php',
   'auth-register.php',
   'auth-reset-cover.php',
@@ -344,16 +348,16 @@ $public_files = [
 $is_public = in_array($file, $public_files, true);
 $current_user_id = (int)($_SESSION['user_id'] ?? 0);
 $is_logged_in = ($current_user_id > 0);
-$is_logout_request = ($file === 'auth-login-cover.php' && isset($_GET['logout']) && (string)$_GET['logout'] === '1');
+$is_logout_request = (($file === 'auth-login.php' || $file === 'auth-login-cover.php') && isset($_GET['logout']) && (string)$_GET['logout'] === '1');
 
 if (!$is_public && !$is_logged_in) {
   $next = urlencode($file);
-  header('Location: auth-login-cover.php?next=' . $next);
+  header('Location: auth-login.php?next=' . $next);
   exit;
 }
 
 // If already logged in, keep login page blocked.
-if ($is_logged_in && $file === 'auth-login-cover.php' && !$is_logout_request) {
+if ($is_logged_in && ($file === 'auth-login.php' || $file === 'auth-login-cover.php') && !$is_logout_request) {
   header('Location: homepage.php');
   exit;
 }
@@ -397,7 +401,7 @@ if ($is_logged_in) {
           setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
         }
         session_destroy();
-        header('Location: auth-login-cover.php');
+        header('Location: auth-login.php');
         exit;
       }
 
@@ -434,7 +438,7 @@ if ($is_logged_in) {
     'supervisors.php', 'supervisors-create.php', 'supervisors-edit.php',
   ];
   $workspace_files = [
-    'apps-chat.php', 'apps-email.php', 'apps-tasks.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
+    'apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
   ];
   $system_files = [
     'auth-register.php', 'users.php', 'create_admin.php',

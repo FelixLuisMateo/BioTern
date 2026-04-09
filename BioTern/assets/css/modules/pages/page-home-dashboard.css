@@ -1027,6 +1027,272 @@ html.app-theme-gray:not(.app-skin-dark) {
     }
 }
 
+@media (max-width: 991.98px) {
+    body.mobile-bottom-nav.dashboard-home .nxl-container {
+        min-height: 100vh !important;
+        min-height: 100dvh !important;
+        padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 10px) !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .nxl-content {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .main-content.dashboard-shell {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 0.7rem 0.85rem 1rem !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dashboard-page-header {
+        margin: 0.75rem 0.85rem 0.45rem !important;
+        border-radius: 16px !important;
+        min-height: 54px !important;
+        padding: 0.75rem 0.85rem !important;
+        background: var(--dash-card-bg) !important;
+        border: 1px solid var(--dash-card-border) !important;
+        box-shadow: var(--dash-card-shadow) !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dashboard-page-header .page-header-title h5 {
+        font-size: 1rem !important;
+        line-height: 1.2;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dashboard-page-header .page-header-quick {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dashboard-page-header .page-header-actions {
+        width: min(320px, calc(100vw - 1.7rem)) !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dashboard-mobile-summary {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dashboard-shell > .row {
+        display: flex;
+        flex-wrap: wrap;
+        --bs-gutter-x: 0;
+        --bs-gutter-y: 0.75rem;
+        margin: 0;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dashboard-shell > .row > [class*="col-"] {
+        flex: 0 0 100%;
+        max-width: 100%;
+        width: 100%;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dashboard-shell .kpi-strip {
+        display: block !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dashboard-shell .card,
+    body.mobile-bottom-nav.dashboard-home .dash-card {
+        border-radius: 16px;
+        box-shadow: none;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-card-header,
+    body.mobile-bottom-nav.dashboard-home .dashboard-shell .card-header {
+        padding: 0.85rem 0.95rem;
+        min-height: 52px;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-card-title,
+    body.mobile-bottom-nav.dashboard-home .dashboard-shell .card-title {
+        font-size: 0.92rem;
+        line-height: 1.25;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-card-body,
+    body.mobile-bottom-nav.dashboard-home .dashboard-shell .card-body {
+        padding: 0.9rem 0.95rem !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .kpi-strip .card-body {
+        padding: 0.8rem 0.85rem !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .kpi-strip .row.g-3 {
+        --bs-gutter-x: 0.65rem;
+        --bs-gutter-y: 0.65rem;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .kpi-strip .col-sm-6.col-xl-3 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .kpi-tile {
+        min-height: 118px;
+        padding: 0.85rem;
+        border-radius: 12px;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .kpi-title {
+        font-size: 0.62rem;
+        margin-bottom: 0.35rem;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .kpi-value {
+        font-size: 1.18rem;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .kpi-subtext {
+        font-size: 0.7rem;
+        line-height: 1.35;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .kpi-progress {
+        margin-top: 0.45rem;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-list {
+        gap: 0.6rem;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-list-item {
+        padding: 0.8rem 0.85rem;
+        gap: 0.6rem;
+        border-radius: 12px;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-list-main {
+        gap: 0.75rem;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-avatar,
+    body.mobile-bottom-nav.dashboard-home .dash-activity-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        flex: 0 0 auto;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-list-title {
+        font-size: 0.88rem;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-list-sub,
+    body.mobile-bottom-nav.dashboard-home .dash-meta-line {
+        font-size: 0.72rem;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-list-meta {
+        gap: 0.35rem;
+    }
+
+    body.mobile-bottom-nav.dashboard-home [data-move-key="active-students"] .dash-card-body,
+    body.mobile-bottom-nav.dashboard-home [data-move-key="recent-activities"] .dash-card-body,
+    body.mobile-bottom-nav.dashboard-home [data-move-key="coordinators"] .dash-card-body,
+    body.mobile-bottom-nav.dashboard-home [data-move-key="supervisors"] .dash-card-body,
+    body.mobile-bottom-nav.dashboard-home [data-move-key="latest-attendance"] .dash-card-body {
+        max-height: 42vh;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    body.mobile-bottom-nav.dashboard-home [data-move-key="latest-attendance"] .dash-card-body {
+        max-height: 46vh;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-pill,
+    body.mobile-bottom-nav.dashboard-home .badge {
+        font-size: 0.69rem;
+        line-height: 1.2;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .table-responsive {
+        overflow: visible;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-table tr {
+        padding: 0.8rem 0.85rem;
+        margin-bottom: 0.6rem;
+        border-radius: 12px;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-table td {
+        padding: 0.32rem 0;
+        white-space: normal !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-table td:before {
+        font-size: 0.64rem;
+        margin-bottom: 0.15rem;
+    }
+
+    body.mobile-bottom-nav.dashboard-home #latest-attendance-table .d-flex.align-items-center.gap-3 {
+        gap: 0.7rem !important;
+        align-items: flex-start !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home #latest-attendance-table .avatar-text.avatar-sm {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
+        font-size: 0.74rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    body.mobile-bottom-nav.dashboard-home .dashboard-page-header {
+        margin: 0.65rem 0.75rem 0.4rem !important;
+        padding: 0.7rem 0.8rem !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .main-content.dashboard-shell {
+        padding: 0.6rem 0.75rem 0.95rem !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dashboard-shell .card,
+    body.mobile-bottom-nav.dashboard-home .dash-card {
+        border-radius: 14px;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-card-header,
+    body.mobile-bottom-nav.dashboard-home .dashboard-shell .card-header {
+        padding: 0.78rem 0.82rem;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .dash-card-body,
+    body.mobile-bottom-nav.dashboard-home .dashboard-shell .card-body {
+        padding: 0.82rem !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .kpi-strip .col-sm-6.col-xl-3 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .kpi-tile {
+        min-height: 104px;
+    }
+
+    body.mobile-bottom-nav.dashboard-home [data-move-key="active-students"] .dash-card-body,
+    body.mobile-bottom-nav.dashboard-home [data-move-key="recent-activities"] .dash-card-body,
+    body.mobile-bottom-nav.dashboard-home [data-move-key="coordinators"] .dash-card-body,
+    body.mobile-bottom-nav.dashboard-home [data-move-key="supervisors"] .dash-card-body {
+        max-height: 38vh;
+    }
+
+    body.mobile-bottom-nav.dashboard-home [data-move-key="latest-attendance"] .dash-card-body {
+        max-height: 42vh;
+    }
+}
+
 /* Collapse toggles are available on all viewports. */
 
 /* Gray scheme polish: remove remaining blue hardcoded accents on dashboard UI */

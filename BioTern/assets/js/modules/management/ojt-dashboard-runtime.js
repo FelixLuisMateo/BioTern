@@ -20,7 +20,7 @@
       submitTimer = setTimeout(submitFilters, 350);
     }
 
-    ["ojtFilterCourse", "ojtFilterSection", "ojtFilterStage", "ojtFilterRisk"].forEach(function (id) {
+    ["ojtFilterCourse", "ojtFilterSection", "ojtFilterSchoolYear", "ojtFilterSemester", "ojtFilterStage", "ojtFilterRisk"].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.addEventListener("change", submitFilters);
     });
@@ -81,9 +81,9 @@
           [10, 25, 50, 100],
           [10, 25, 50, 100],
         ],
-        order: [[4, "desc"]],
+        order: [[6, "desc"]],
         columnDefs: [
-          { orderable: false, targets: [5] },
+          { orderable: false, targets: [7] },
         ],
       });
     } else if (

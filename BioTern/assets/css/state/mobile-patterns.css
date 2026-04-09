@@ -1,0 +1,223 @@
+/*
+ * Shared mobile-first component patterns.
+ * Purpose:
+ * - give the app reusable mobile surfaces beyond shell overrides
+ * - make dashboard/list/filter layouts easier to read and tap
+ */
+
+.app-mobile-surface,
+.app-mobile-stat-strip,
+.app-mobile-action-dock,
+.app-mobile-chip-row,
+.app-mobile-form-stack,
+.app-mobile-kpi-track,
+.app-mobile-inline-list {
+    width: 100%;
+}
+
+@media (max-width: 991.98px) {
+    body.mobile-bottom-nav {
+        --app-mobile-gap: 0.85rem;
+        --app-mobile-radius: 16px;
+        --app-mobile-card-padding: 0.95rem;
+    }
+
+    .app-mobile-surface {
+        padding: var(--app-mobile-card-padding);
+        border-radius: var(--app-mobile-radius);
+        background: var(--biotern-surface);
+        border: 1px solid var(--biotern-border);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .app-mobile-inline-list {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .app-mobile-stat-strip {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(148px, 74vw);
+        gap: 0.75rem;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scroll-snap-type: x proximity;
+        padding-bottom: 0.15rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .app-mobile-stat-strip > * {
+        scroll-snap-align: start;
+    }
+
+    .app-mobile-chip-row {
+        display: flex;
+        gap: 0.45rem;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 0.1rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .app-mobile-chip-row > * {
+        flex: 0 0 auto;
+    }
+
+    .app-mobile-action-dock {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.65rem;
+    }
+
+    .app-mobile-action-dock > .btn,
+    .app-mobile-action-dock > .dropdown,
+    .app-mobile-action-dock > a {
+        width: 100%;
+        min-height: 46px;
+    }
+
+    .app-mobile-form-stack {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .app-mobile-form-stack > [class*="col-"],
+    .app-mobile-form-stack > .form-group,
+    .app-mobile-form-stack > .input-group,
+    .app-mobile-form-stack > .btn,
+    .app-mobile-form-stack > .dropdown,
+    .app-mobile-form-stack > .app-ui-select {
+        width: 100% !important;
+        min-width: 0;
+    }
+
+    .app-mobile-form-stack .btn,
+    .app-mobile-form-stack .form-control,
+    .app-mobile-form-stack .form-select {
+        min-height: 46px;
+    }
+
+    .app-mobile-kpi-track {
+        display: grid !important;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(220px, 78vw);
+        gap: 0.75rem;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scroll-snap-type: x proximity;
+        padding-bottom: 0.15rem;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .app-mobile-kpi-track > [class*="col-"] {
+        width: auto !important;
+        max-width: none !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        scroll-snap-align: start;
+    }
+
+    .app-mobile-kpi-track .kpi-card,
+    .app-mobile-kpi-track .kpi-tile,
+    .app-mobile-kpi-track .card {
+        height: 100%;
+        min-height: 100%;
+        margin-bottom: 0;
+    }
+
+    .dashboard-shell .card-header-action .card-header-btn.app-mobile-action-dock {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-shell .card-header-action .card-header-btn.app-mobile-action-dock .btn {
+        width: 100%;
+    }
+
+    .app-data-card.app-mobile-surface {
+        padding: 0.65rem;
+    }
+
+    .app-data-card .dataTables_wrapper.app-mobile-inline-list {
+        gap: 0.85rem;
+    }
+
+    .app-data-card .dataTables_wrapper.app-mobile-inline-list .dataTables_length,
+    .app-data-card .dataTables_wrapper.app-mobile-inline-list .dataTables_filter {
+        margin: 0;
+    }
+
+    .app-data-card .dataTables_wrapper.app-mobile-inline-list .dataTables_length label,
+    .app-data-card .dataTables_wrapper.app-mobile-inline-list .dataTables_filter label {
+        display: grid;
+        gap: 0.4rem;
+        width: 100%;
+    }
+
+    .app-data-card .dataTables_wrapper.app-mobile-inline-list .dataTables_length select,
+    .app-data-card .dataTables_wrapper.app-mobile-inline-list .dataTables_filter input {
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+
+    .page-header-actions .dashboard-actions-grid.app-mobile-action-dock {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .filter-form.app-mobile-form-stack {
+        gap: 0.7rem;
+    }
+
+    .filter-form.app-mobile-form-stack .col-12,
+    .filter-form.app-mobile-form-stack .col-md-6,
+    .filter-form.app-mobile-form-stack .col-lg-3,
+    .filter-form.app-mobile-form-stack .col-lg-4,
+    .filter-form.app-mobile-form-stack .col-lg-2,
+    .filter-form.app-mobile-form-stack .col-auto {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    .app-mobile-list {
+        gap: 0.7rem;
+    }
+
+    .app-mobile-list details {
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .app-mobile-list summary,
+    .app-mobile-list .app-mobile-summary {
+        min-height: 56px;
+    }
+
+    .app-mobile-list .app-mobile-details,
+    .app-mobile-list .app-student-mobile-details,
+    .app-mobile-list .app-ojt-mobile-details {
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    body.mobile-bottom-nav {
+        --app-mobile-radius: 14px;
+        --app-mobile-card-padding: 0.85rem;
+    }
+
+    .app-mobile-stat-strip {
+        grid-auto-columns: minmax(168px, 84vw);
+    }
+
+    .app-mobile-kpi-track {
+        grid-auto-columns: minmax(196px, 86vw);
+    }
+
+    .app-mobile-action-dock,
+    .page-header-actions .dashboard-actions-grid.app-mobile-action-dock {
+        grid-template-columns: 1fr;
+    }
+}

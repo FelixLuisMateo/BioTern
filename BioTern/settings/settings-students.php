@@ -189,16 +189,6 @@ require_once dirname(__DIR__) . '/includes/header.php';
     <div class="main-content settings-shell">
         <div class="settings-layout">
         <section class="settings-main">
-            <div class="settings-intro-card">
-                <div class="settings-intro-meta">
-                    <div>
-                        <h3>Student Workflow Rules</h3>
-                        <p>Set the defaults used when student profiles, assignments, and daily DTR behavior are created. These settings are meant to match the current BioTern student workflow instead of the old generic template.</p>
-                    </div>
-                    <div class="settings-badge">Students Category</div>
-                </div>
-            </div>
-
             <?php if ($save_success !== ''): ?>
                 <div class="alert alert-success settings-alert" role="alert"><?= ss_h($save_success) ?></div>
             <?php endif; ?>

@@ -110,9 +110,9 @@ if ((int)($_SESSION['user_id'] ?? 0) <= 0) {
 
 $landing_user_id = (int)($_SESSION['user_id'] ?? 0);
 $landing_logged_in = $landing_user_id > 0 || !empty($_SESSION['logged_in']);
-$landing_signin_href = $landing_logged_in ? 'homepage.php' : 'auth/auth-login-cover.php';
+$landing_signin_href = $landing_logged_in ? 'homepage.php' : 'auth/auth-login.php';
 $landing_signin_label = $landing_logged_in ? 'Dashboard' : 'Sign In';
-$landing_hero_href = $landing_logged_in ? 'homepage.php' : 'auth/auth-login-cover.php';
+$landing_hero_href = $landing_logged_in ? 'homepage.php' : 'auth/auth-login.php';
 $landing_hero_label = $landing_logged_in ? 'Go to Dashboard' : 'Go to Dashboard Login';
 
 $year = date('Y');
@@ -131,7 +131,8 @@ $page_scripts = [
         <div class="header-wrapper">
             <div class="header-left d-flex align-items-center gap-4">
                 <a href="index.php" class="d-flex align-items-center">
-                    <img src="assets/images/logo-full-header.png" alt="BioTern" class="landing-brand-logo">
+                    <img src="assets/images/logo-full-header.png" alt="BioTern" class="landing-brand-logo landing-brand-logo-full">
+                    <img src="assets/images/logo-abbr.png" alt="BioTern" class="landing-brand-logo landing-brand-logo-short">
                 </a>
             </div>
             <div class="header-right ms-auto">
@@ -158,46 +159,30 @@ $page_scripts = [
                 <div class="row g-0 align-items-center">
                     <div class="col-lg-8">
                         <div class="hero-body">
-                            <span class="mini-pill mb-3"><i class="feather-shield"></i> Biometric-secured internship monitoring</span>
-                            <h1 class="hero-title mb-3">Build for schools, supervisors, and interns in one BioTern workspace.</h1>
-                            <p class="hero-subtitle mb-4">Track attendance with biometric confidence, monitor internship progress, and generate key documents and reports without juggling multiple systems.</p>
+                            <h1 class="hero-title mb-3">Manage attendance, documents, and internship progress in one place.</h1>
+                            <p class="hero-subtitle mb-4">BioTern gives students, supervisors, and coordinators one shared workspace for daily OJT records, approvals, and reporting.</p>
+                            <div class="hero-points mb-4">
+                                <div class="hero-point"><i class="feather-check-circle"></i><span>Keep DTR, endorsements, and approvals organized.</span></div>
+                                <div class="hero-point"><i class="feather-check-circle"></i><span>Monitor internship status without switching systems.</span></div>
+                                <div class="hero-point"><i class="feather-check-circle"></i><span>Review student progress with clearer records and reports.</span></div>
+                            </div>
                             <div class="hero-cta">
                                 <a href="<?php echo htmlspecialchars($landing_hero_href, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary btn-lg"><?php echo htmlspecialchars($landing_hero_label, ENT_QUOTES, 'UTF-8'); ?></a>
-                                <a href="auth/auth-register.php?role=student" class="btn btn-light-brand btn-lg">Start Application</a>
+                                <a href="auth/auth-register.php?role=student" class="btn btn-light-brand btn-lg">Student Application</a>
                             </div>
                         </div>  
                     </div>
-                    <div class="col-lg-4 d-flex justify-content-center p-4 p-lg-0">
-                        <img class="hero-college-logo" src="assets/images/auth/auth-cover-login-bg.png" alt="Clark College Logo">
-                    </div>
-                </div>
-            </div>
-
-            <div class="row g-3 mt-3">
-                <div class="col-md-4">
-                    <div class="card feature-card">
-                        <div class="card-body">
-                            <span class="feature-icon mb-3"><i class="feather-fingerprint"></i></span>
-                            <h5 class="mb-2">Biometric Attendance</h5>
-                            <p class="text-muted mb-0">Automate attendance capture and approvals with reduced manual errors.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card feature-card">
-                        <div class="card-body">
-                            <span class="feature-icon mb-3"><i class="feather-users"></i></span>
-                            <h5 class="mb-2">Unified Management</h5>
-                            <p class="text-muted mb-0">Handle students, coordinators, supervisors, and internships from one panel.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card feature-card">
-                        <div class="card-body">
-                            <span class="feature-icon mb-3"><i class="feather-file-text"></i></span>
-                            <h5 class="mb-2">Document Workflow</h5>
-                            <p class="text-muted mb-0">Create and manage application letters, endorsements, MOA, and reports faster.</p>
+                    <div class="col-lg-4">
+                        <div class="hero-side-panel">
+                            <img class="hero-college-logo" src="assets/images/auth/auth-cover-login-bg.png" alt="Clark College Logo">
+                            <div class="hero-side-copy">
+                                <h5 class="mb-2">Built for everyday internship work</h5>
+                                <ul class="hero-side-list mb-0">
+                                    <li>Attendance and rendered hours</li>
+                                    <li>Student applications and approvals</li>
+                                    <li>Documents, reports, and follow-up</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>

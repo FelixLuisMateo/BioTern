@@ -231,6 +231,43 @@ html.theme-preload .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger > .nxl-subm
 }
 
 @media (min-width: 1025px) {
+  html.minimenu .nxl-navigation .m-header,
+  html.minimenu .nxl-navigation .navbar-wrapper,
+  html.minimenu .nxl-navigation .navbar-content,
+  html.minimenu .nxl-navigation {
+    transition: width 0.22s ease, padding 0.22s ease;
+  }
+
+  html.minimenu .nxl-navigation {
+    width: 100px;
+  }
+
+  html.minimenu .nxl-navigation .navbar-wrapper {
+    width: 100px;
+    overflow: hidden;
+  }
+
+  html.minimenu .nxl-navigation .m-header {
+    width: 100px;
+    overflow: hidden;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  html.minimenu .nxl-navigation .m-header .b-brand {
+    min-height: 40px;
+    overflow: hidden;
+    transition: width 0.22s ease, padding 0.22s ease;
+  }
+
+  html.minimenu .nxl-navigation .m-header .logo.logo-lg {
+    display: none !important;
+  }
+
+  html.minimenu .nxl-navigation .m-header .logo.logo-sm {
+    display: block !important;
+  }
+
   html.minimenu .nxl-navigation .navbar-content .nxl-caption {
     display: block !important;
     padding: 10px 8px 6px;
@@ -247,14 +284,20 @@ html.theme-preload .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger > .nxl-subm
     display: block !important;
   }
 
-  html.minimenu .nxl-navigation:hover .navbar-content .nxl-caption span {
+  html.minimenu .nxl-navigation:hover .navbar-content .nxl-caption span,
+  html.minimenu .nxl-navigation:hover .navbar-content .nxl-caption label {
     display: block !important;
   }
 
   html.minimenu .nxl-navigation:hover .m-header {
+    width: 280px;
     padding-left: 20px;
     padding-right: 20px;
     justify-content: center;
+  }
+
+  html.minimenu .nxl-navigation:hover .m-header .b-brand {
+    width: 100%;
   }
 
   html.minimenu .nxl-navigation:hover .m-header .logo.logo-lg {
@@ -296,13 +339,4 @@ html.theme-preload .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger > .nxl-subm
     transform: translateX(6px);
   }
 
-  /* Keep desktop content clear of expanded mini sidebar (matches unified behavior). */
-  html.minimenu .nxl-navigation:hover ~ .nxl-header,
-  html.minimenu .nxl-navigation:hover ~ .nxl-container .page-header {
-    left: 280px !important;
-  }
-
-  html.minimenu .nxl-navigation:hover ~ .nxl-container {
-    margin-left: 280px !important;
-  }
 }

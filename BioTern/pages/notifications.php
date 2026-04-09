@@ -13,7 +13,7 @@ function notifications_h($value): string
 
 $userId = (int)($_SESSION['user_id'] ?? 0);
 if ($userId <= 0) {
-    header('Location: auth-login-cover.php');
+    header('Location: auth-login.php');
     exit;
 }
 

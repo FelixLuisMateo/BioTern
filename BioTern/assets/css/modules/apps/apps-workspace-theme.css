@@ -1,0 +1,239 @@
+/* Shared BioTern workspace app polish for Email, Notes, Storage, Calendar */
+:root {
+  --app-workspace-surface: rgba(255, 255, 255, 0.98);
+  --app-workspace-surface-2: rgba(248, 250, 252, 0.98);
+  --app-workspace-surface-3: rgba(241, 245, 249, 0.98);
+  --app-workspace-border: rgba(15, 23, 42, 0.08);
+  --app-workspace-border-strong: rgba(52, 84, 209, 0.24);
+  --app-workspace-text: #0f172a;
+  --app-workspace-muted: #64748b;
+  --app-workspace-soft: #94a3b8;
+  --app-workspace-primary: #3454d1;
+  --app-workspace-primary-soft: rgba(52, 84, 209, 0.12);
+  --app-workspace-hover: rgba(15, 23, 42, 0.032);
+  --app-workspace-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+html.app-skin-dark {
+  --app-workspace-surface: rgba(21, 26, 33, 0.98);
+  --app-workspace-surface-2: rgba(18, 23, 31, 0.98);
+  --app-workspace-surface-3: rgba(26, 31, 38, 0.98);
+  --app-workspace-border: rgba(129, 153, 199, 0.18);
+  --app-workspace-border-strong: rgba(129, 153, 199, 0.26);
+  --app-workspace-text: #eef2f8;
+  --app-workspace-muted: #9fb0cc;
+  --app-workspace-soft: #7f92b5;
+  --app-workspace-primary: #8fb4ff;
+  --app-workspace-primary-soft: rgba(143, 180, 255, 0.14);
+  --app-workspace-hover: rgba(255, 255, 255, 0.03);
+  --app-workspace-shadow: none;
+}
+
+html.app-theme-gray {
+  --app-workspace-primary: #607089;
+  --app-workspace-primary-soft: rgba(96, 112, 137, 0.14);
+  --app-workspace-border-strong: rgba(96, 112, 137, 0.28);
+}
+
+body.apps-calendar-page {
+  background: transparent !important;
+}
+
+body.apps-email-page .nxl-content,
+body.apps-notes-page .nxl-content,
+body.apps-storage-page .nxl-content,
+body.apps-calendar-page .nxl-content {
+  min-width: 0;
+}
+
+body.apps-notes-page .apps-workspace-main,
+body.apps-storage-page .apps-workspace-main,
+body.apps-calendar-page .apps-workspace-main {
+  min-width: 0;
+}
+
+body.apps-notes-page .apps-workspace-main > .app-notes-shell,
+body.apps-storage-page .apps-workspace-main > .app-storage-shell,
+body.apps-calendar-page .apps-workspace-main > .app-calendar-shell {
+  min-width: 0;
+}
+
+body.apps-email-page .content-sidebar,
+body.apps-email-page .content-area,
+body.apps-email-page .content-sidebar-header,
+body.apps-email-page .content-area-header,
+body.apps-email-page .email-list-pane,
+body.apps-email-page .email-detail-pane,
+body.apps-email-page #composeMail .modal-content,
+body.apps-notes-page .app-notes-shell .card,
+body.apps-storage-page .app-storage-shell .card,
+body.apps-calendar-page .app-calendar-board,
+body.apps-calendar-page .app-calendar-sidecard,
+body.apps-calendar-page .app-calendar-hero {
+  background: var(--app-workspace-surface) !important;
+  border-color: var(--app-workspace-border) !important;
+  box-shadow: var(--app-workspace-shadow) !important;
+}
+
+body.apps-email-page .content-sidebar-header,
+body.apps-email-page .content-area-header {
+  border-bottom-color: var(--app-workspace-border) !important;
+}
+
+body.apps-email-page .email-list-pane {
+  border-right-color: var(--app-workspace-border) !important;
+}
+
+body.apps-email-page .email-row,
+body.apps-calendar-page .app-calendar-grid button,
+body.apps-calendar-page .app-calendar-day-card,
+body.apps-calendar-page .app-calendar-mini-item {
+  border-color: var(--app-workspace-border);
+}
+
+body.apps-email-page .email-row:hover,
+body.apps-email-page .email-row.email-row-active {
+  background: var(--app-workspace-hover);
+}
+
+body.apps-email-page .nxl-content-sidebar-item .nav-link,
+body.apps-email-page .email-person-name,
+body.apps-email-page .email-subject,
+body.apps-email-page .email-body,
+body.apps-notes-page .app-notes-sidebar-head h2,
+body.apps-notes-page .app-notes-list-head h3,
+body.apps-notes-page .app-notes-editor-empty h3,
+body.apps-storage-page .app-storage-sidebar-head h2,
+body.apps-storage-page .app-storage-list-head h3,
+body.apps-storage-page .app-storage-details-empty h3,
+body.apps-storage-page .app-storage-upload-head h3,
+body.apps-storage-page .app-storage-details h3,
+body.apps-calendar-page .app-calendar-title,
+body.apps-calendar-page .app-calendar-month-title,
+body.apps-calendar-page .app-calendar-sidecard h3,
+body.apps-calendar-page .app-calendar-section-title,
+body.apps-calendar-page .app-calendar-day-summary,
+body.apps-calendar-page .app-calendar-weekdays span,
+body.apps-calendar-page .app-calendar-event-title,
+body.apps-calendar-page .app-calendar-mini-title {
+  color: var(--app-workspace-text) !important;
+}
+
+body.apps-email-page .email-meta,
+body.apps-email-page .text-muted,
+body.apps-notes-page .app-notes-editor-empty p,
+body.apps-notes-page .app-notes-list-meta,
+body.apps-notes-page .app-notes-editor-time,
+body.apps-storage-page .app-storage-sidebar-head p,
+body.apps-storage-page .app-storage-details-empty p,
+body.apps-storage-page .app-storage-helper-card p,
+body.apps-storage-page .app-storage-meta-note,
+body.apps-storage-page .app-storage-upload-status,
+body.apps-calendar-page .app-calendar-subtitle,
+body.apps-calendar-page .app-calendar-toolbar-subtitle,
+body.apps-calendar-page .app-calendar-legend,
+body.apps-calendar-page .app-calendar-legend-note,
+body.apps-calendar-page .app-calendar-event-desc,
+body.apps-calendar-page .app-calendar-mini-copy,
+body.apps-calendar-page .app-calendar-empty,
+body.apps-calendar-page .app-calendar-overflow {
+  color: var(--app-workspace-muted) !important;
+}
+
+body.apps-email-page .nxl-content-sidebar-item .nav-link.active,
+body.apps-notes-page .app-notes-filter-chip.is-active,
+body.apps-storage-page .app-storage-filter-chip.is-active,
+body.apps-storage-page .app-storage-category-chip.is-active {
+  background: var(--app-workspace-primary-soft) !important;
+  border-color: var(--app-workspace-border-strong) !important;
+  color: var(--app-workspace-primary) !important;
+}
+
+body.apps-email-page .btn-primary,
+body.apps-notes-page .app-notes-primary-button,
+body.apps-storage-page .app-storage-primary-button,
+body.apps-calendar-page .app-calendar-create-button {
+  background: var(--app-workspace-primary) !important;
+  border-color: var(--app-workspace-primary) !important;
+  box-shadow: none !important;
+}
+
+body.apps-notes-page .app-notes-secondary-button,
+body.apps-storage-page .app-storage-secondary-button,
+body.apps-calendar-page .app-calendar-jump-controls,
+body.apps-calendar-page .app-calendar-nav-buttons {
+  background: var(--app-workspace-surface-2) !important;
+  border-color: var(--app-workspace-border) !important;
+  box-shadow: none !important;
+}
+
+body.apps-notes-page .app-notes-shell {
+  --notes-border: var(--app-workspace-border);
+  --notes-text: var(--app-workspace-text);
+  --notes-muted: var(--app-workspace-muted);
+}
+
+body.apps-notes-page .app-notes-kicker,
+body.apps-storage-page .app-storage-kicker,
+body.apps-calendar-page .app-calendar-kicker,
+body.apps-calendar-page .app-calendar-sidecard-kicker,
+body.apps-calendar-page .app-calendar-toolbar-label {
+  color: var(--app-workspace-primary) !important;
+}
+
+body.apps-notes-page .app-notes-shell .card,
+body.apps-storage-page .app-storage-shell .card,
+body.apps-calendar-page .app-calendar-board,
+body.apps-calendar-page .app-calendar-sidecard {
+  border-radius: 18px !important;
+}
+
+body.apps-notes-page .app-notes-primary-button,
+body.apps-notes-page .app-notes-secondary-button,
+body.apps-notes-page .app-notes-icon-button,
+body.apps-notes-page .app-notes-dropdown-item,
+body.apps-storage-page .app-storage-primary-button,
+body.apps-storage-page .app-storage-secondary-button,
+body.apps-storage-page .app-storage-filter-chip,
+body.apps-storage-page .app-storage-category-chip,
+body.apps-storage-page .app-storage-icon-button,
+body.apps-storage-page .app-storage-action-button,
+body.apps-calendar-page .app-calendar-create-button,
+body.apps-calendar-page .app-calendar-nav-buttons button {
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease !important;
+  transform: none !important;
+}
+
+body.apps-notes-page .app-notes-dropdown-item,
+body.apps-notes-page .app-notes-search,
+body.apps-notes-page .app-notes-filter-chip,
+body.apps-notes-page .app-notes-sort-field .form-select,
+body.apps-storage-page .app-storage-search,
+body.apps-storage-page .app-storage-helper-card,
+body.apps-storage-page .app-storage-shortcuts-card,
+body.apps-calendar-page .app-calendar-jump-controls .form-select {
+  background: var(--app-workspace-surface-2) !important;
+  border-color: var(--app-workspace-border) !important;
+  color: var(--app-workspace-text) !important;
+}
+
+body.apps-notes-page .app-notes-search input::placeholder,
+body.apps-storage-page .app-storage-search input::placeholder {
+  color: var(--app-workspace-soft);
+}
+
+body.apps-storage-page .app-storage-shortcut,
+body.apps-storage-page .app-storage-resource-tag,
+body.apps-calendar-page .app-calendar-dot.is-custom {
+  background: var(--app-workspace-primary-soft) !important;
+  border-color: var(--app-workspace-border-strong) !important;
+  color: var(--app-workspace-text) !important;
+}
+
+body.apps-calendar-page .app-calendar-jump-controls .form-select:focus,
+body.apps-calendar-page .app-calendar-nav-buttons button:hover,
+body.apps-calendar-page .app-calendar-nav-buttons button:focus-visible,
+body.apps-calendar-page .app-calendar-create-button:hover,
+body.apps-calendar-page .app-calendar-create-button:focus-visible {
+  box-shadow: none !important;
+}

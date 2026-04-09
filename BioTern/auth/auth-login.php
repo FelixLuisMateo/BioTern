@@ -329,7 +329,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($identifier === '' || $password === '') {
-        $login_error = 'Please enter your username/email and password.';
+        $login_error = 'Please enter your email, student ID, or admin username and password.';
     } else {
         $mysqli = $conn;
 
@@ -346,16 +346,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             ensure_login_logs_schema($mysqli);
 
-            $stmt = $mysqli->prepare("SELECT id, name, username, email, password, role, is_active, profile_picture, COALESCE(application_status, 'approved') AS application_status FROM users WHERE (username = ? OR email = ?) LIMIT 1");
+            $stmt = $mysqli->prepare("SELECT u.id, u.name, u.username, u.email, u.password, u.role, u.is_active, u.profile_picture, COALESCE(u.application_status, 'approved') AS application_status FROM users u LEFT JOIN students s ON s.user_id = u.id WHERE (u.email = ? OR s.student_id = ? OR (u.role = 'admin' AND u.username = ?)) LIMIT 1");
 
             if ($stmt) {
-                $stmt->bind_param('ss', $identifier, $identifier);
+                $stmt->bind_param('sss', $identifier, $identifier, $identifier);
                 $stmt->execute();
                 $user = $stmt->get_result()->fetch_assoc();
                 $stmt->close();
 
                 if (!$user) {
-                    $login_error = 'Invalid username/email or password.';
+                    $login_error = 'Invalid email, student ID, admin username, or password.';
                     log_login_attempt($mysqli, 0, $identifier, '', 'failed', 'invalid_credentials', $client_ip, $client_user_agent);
                 } elseif ((int)($user['is_active'] ?? 0) !== 1) {
                     $login_error = 'Your account is inactive.';
@@ -384,7 +384,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     if (!$passwordMatches) {
-                    $login_error = 'Invalid username/email or password.';
+                    $login_error = 'Invalid email, student ID, admin username, or password.';
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'invalid_credentials', $client_ip, $client_user_agent);
                 } elseif (strtolower((string)($user['application_status'] ?? 'approved')) === 'pending') {
                     $login_error = 'Your registration is pending approval.';
@@ -424,7 +424,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BioTern || Login Cover</title>
+    <title>BioTern || Login</title>
     <link rel="icon" type="image/png" sizes="192x192" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png?v=<?php echo rawurlencode((string)$favicon_logo_version); ?>">
     <link rel="icon" type="image/png" sizes="64x64" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon-rounded.png?v=<?php echo rawurlencode((string)$favicon_png_version); ?>">
     <link rel="apple-touch-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png?v=<?php echo rawurlencode((string)$favicon_logo_version); ?>">
@@ -450,8 +450,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="auth-cover-card p-sm-5">
                     <div class="auth-brand-lockup mb-5">
                         <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/ccstlogo.png" alt="Clark College of Science and Technology" class="auth-brand-lockup-school">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-full.png" alt="BioTern" class="auth-brand-lockup-app auth-brand-lockup-app-light">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-full-header.png" alt="BioTern" class="auth-brand-lockup-app auth-brand-lockup-app-dark">
+                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-full-header.png" alt="BioTern" class="auth-brand-lockup-app">
                     </div>
                     <h2 class="fs-25 fw-bolder mb-4">Login</h2>
                     <h4 class="fs-15 fw-bold mb-2">Log in to your Clark College of Science and Technology internship account.</h4>
@@ -460,10 +459,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($login_error); ?></div>
                     <?php endif; ?>
 
-                    <form action="<?php echo htmlspecialchars($route_prefix . 'auth/auth-login-cover.php', ENT_QUOTES, 'UTF-8'); ?>" method="post" class="w-100 mt-4 pt-2">
+                    <form action="<?php echo htmlspecialchars($route_prefix . 'auth/auth-login.php', ENT_QUOTES, 'UTF-8'); ?>" method="post" class="w-100 mt-4 pt-2">
                         <input type="hidden" name="next" value="<?php echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-4">
-                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Email or Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Email or Username" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus>
+                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Student ID, Email, or Admin Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Student ID, Email, or Admin Username" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus>
                         </div>
                         <div class="mb-3 input-group">
                             <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Password" required aria-required="true" aria-label="Password" autocomplete="current-password">
