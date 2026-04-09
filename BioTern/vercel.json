@@ -64,6 +64,10 @@
       "dest": "/legacy_router.php?file=bridge_commands_complete.php"
     },
     {
+      "src": "^/includes/avatar-image\\.php$",
+      "dest": "/legacy_router.php?file=avatar-image.php"
+    },
+    {
       "handle": "filesystem"
     },
     {
