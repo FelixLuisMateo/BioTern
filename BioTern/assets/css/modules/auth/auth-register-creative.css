@@ -315,6 +315,103 @@ body {
     min-height: auto;
 }
 
+.register-auth-card .row {
+    --bs-gutter-y: 0.65rem;
+}
+
+.register-auth-card .step-panel .row.g-3 {
+    --bs-gutter-x: 0.8rem;
+    --bs-gutter-y: 1.05rem;
+}
+
+.register-auth-card .form-label {
+    margin-bottom: 0.35rem;
+}
+
+.register-auth-card .form-control,
+.register-auth-card .input-group,
+.register-auth-card .input-group .form-control,
+.register-auth-card .input-group .input-group-text {
+    min-height: 48px;
+}
+
+.register-auth-card .mb-2 {
+    margin-bottom: 0 !important;
+}
+
+.floating-field {
+    position: relative;
+}
+
+.floating-field .form-control {
+    padding-top: 1.35rem;
+    padding-bottom: 0.52rem;
+    line-height: 1.2;
+}
+
+.floating-field-label {
+    position: absolute;
+    left: 13px;
+    top: 52%;
+    transform: translateY(-50%);
+    font-size: 0.8rem;
+    line-height: 1;
+    color: #9ca3af;
+    pointer-events: none;
+    transition: top 180ms ease, transform 180ms ease, font-size 180ms ease, color 180ms ease;
+    background: var(--biotern-surface, #ffffff);
+    padding: 0 4px;
+    z-index: 2;
+    max-width: calc(100% - 26px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.floating-field:focus-within .floating-field-label,
+.floating-field.has-value .floating-field-label {
+    top: 8px;
+    transform: none;
+    font-size: 0.7rem;
+    color: #a5b4fc;
+}
+
+.floating-field .form-control:focus + .floating-field-label,
+.floating-field .form-control:not(:placeholder-shown) + .floating-field-label,
+.floating-field .form-control:-webkit-autofill + .floating-field-label {
+    top: 8px;
+    transform: none;
+    font-size: 0.7rem;
+    color: #a5b4fc;
+}
+
+html.app-skin-dark .floating-field-label {
+    color: #94a3b8;
+    background: var(--biotern-surface-muted, #1b1f23);
+}
+
+html.app-skin-dark .floating-field:focus-within .floating-field-label,
+html.app-skin-dark .floating-field.has-value .floating-field-label {
+    color: #c7d2fe;
+}
+
+.show-pass-toggle {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.register-auth-card input[type="password"]::-ms-reveal,
+.register-auth-card input[type="password"]::-ms-clear {
+    display: none;
+}
+
+.register-auth-card input[type="password"]::-webkit-credentials-auto-fill-button,
+.register-auth-card input[type="password"]::-webkit-strong-password-auto-fill-button {
+    visibility: hidden;
+    pointer-events: none;
+    display: none !important;
+}
+
 .register-floating-logos {
     z-index: 4;
 }
@@ -515,6 +612,40 @@ html.app-theme-gray .step-dot.done::after {
 
     .register-auth-card .row > [class*="col-"] {
         width: 100%;
+    }
+
+    .register-auth-card .form-control,
+    .register-auth-card .input-group,
+    .register-auth-card .input-group .form-control,
+    .register-auth-card .input-group .input-group-text {
+        min-height: 47px;
+    }
+
+    .register-auth-card .mb-2 {
+        margin-bottom: 0 !important;
+    }
+
+    .register-auth-card .step-panel .row.g-3 {
+        --bs-gutter-x: 0.8rem;
+        --bs-gutter-y: 1rem;
+    }
+
+    .floating-field .form-control {
+        padding-top: 1.28rem;
+        padding-bottom: 0.48rem;
+    }
+
+    .floating-field-label {
+        font-size: 0.78rem;
+    }
+
+    .floating-field:focus-within .floating-field-label,
+    .floating-field.has-value .floating-field-label,
+    .floating-field .form-control:focus + .floating-field-label,
+    .floating-field .form-control:not(:placeholder-shown) + .floating-field-label,
+    .floating-field .form-control:-webkit-autofill + .floating-field-label {
+        top: 7px;
+        font-size: 0.68rem;
     }
 
     .step-actions {

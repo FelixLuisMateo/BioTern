@@ -267,7 +267,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
     <main class="auth-minimal-wrapper">
         <div class="auth-minimal-inner">
             <div class="minimal-card-wrapper">
-                <div class="card register-auth-card position-relative">
+                <div class="card register-auth-card mb-4 position-relative">
                     <div class="register-floating-logos position-absolute translate-middle top-0 start-50" aria-label="BioTern and school partnership logos">
                         <div class="register-brand-partnership">
                             <span class="register-logo-badge register-logo-badge--biotern">
@@ -330,7 +330,7 @@ if (isset($_GET['registered'])) {
                                 <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                                 <div class="row g-3 register-field-grid register-field-grid-halves">
                                     <div class="col-6 mb-2">
-                                        <input type="text" name="student_id" class="form-control register-field-input" placeholder="School ID Number" autocomplete="off" required pattern="^05-[0-9]{4,5}$" maxlength="8" title="Use format 05-1234 or 05-12345">
+                                        <input type="text" name="student_id" class="form-control register-field-input" placeholder="School ID Number" autocomplete="off" required pattern="^05-[0-9]{4,5}$" maxlength="8" title="Use format 05-1234 or 05-12345" value="05-">
                                     </div>
                                     <div class="col-6 mb-2">
                                         <input type="text" name="first_name" class="form-control register-field-input" placeholder="First name" autocomplete="given-name" required>
@@ -342,6 +342,13 @@ if (isset($_GET['registered'])) {
                                     </div>
                                     <div class="col-6 mb-2">
                                         <input type="text" name="last_name" class="form-control register-field-input" placeholder="Last name" autocomplete="family-name" required>
+                                    </div>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-12 mb-2">
+                                        <label class="form-label fs-12 mb-1" for="studentStreetAddress">Current Address</label>
+                                        <input type="text" id="studentStreetAddress" class="form-control" placeholder="Street / House No. (optional)" autocomplete="street-address" data-no-floating="1">
+                                        <input type="hidden" name="address" id="studentAddress">
                                     </div>
                                 </div>
                                 <div class="row g-3 student-location-row">
@@ -362,12 +369,6 @@ if (isset($_GET['registered'])) {
                                         <select id="studentBarangaySelect" class="form-control" required disabled>
                                             <option value="" selected disabled>Select Barangay</option>
                                         </select>
-                                    </div>
-                                </div>
-                                <div class="row g-3">
-                                    <div class="col-12 mb-2">
-                                        <input type="text" id="studentStreetAddress" class="form-control" placeholder="Street / House No. (optional)" autocomplete="street-address">
-                                        <input type="hidden" name="address" id="studentAddress">
                                     </div>
                                 </div>
                                 <div class="step-actions">
@@ -586,7 +587,7 @@ endforeach; ?>
                                 <div class="row g-3">
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12" for="studentDateOfBirth">Date of Birth</label>
-                                        <input type="date" id="studentDateOfBirth" name="date_of_birth" class="form-control" autocomplete="bday" required>
+                                        <input type="text" id="studentDateOfBirth" name="date_of_birth" class="form-control" autocomplete="bday" placeholder="mm/dd/yyyy" inputmode="numeric" pattern="^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$" title="Use format mm/dd/yyyy" required>
                                     </div>
                                     <div class="col-6 mb-2">
                                         <label class="form-label fs-12" for="studentGender">Gender</label>
@@ -632,13 +633,13 @@ endforeach; ?>
                                     <div class="col-6 mb-2">
                                         <div class="input-group field">
                                             <input type="password" name="password" class="form-control password" id="studentPassword" placeholder="Password" autocomplete="new-password" required>
-                                            <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
+                                            <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentPassword" aria-label="Show password"><i></i></div>
                                         </div>
                                     </div>
                                     <div class="col-6 mb-2">
                                         <div class="input-group field">
                                             <input type="password" name="confirm_password" class="form-control" id="studentConfirmPassword" placeholder="Confirm password" autocomplete="new-password" required>
-                                            <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentConfirmPassword" data-bs-toggle="tooltip" title="Show/Hide Password"><i></i></div>
+                                            <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentConfirmPassword" aria-label="Show password"><i></i></div>
                                         </div>
                                     </div>
                                 </div>
@@ -668,14 +669,15 @@ endforeach; ?>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
                                     <div class="modal-body">
-                                        <p>By submitting this application, you confirm that the information you provide is accurate and complete. Applications are subject to review and approval by the school administrator.</p>
+                                        <p>By submitting this application, you confirm that the information you provide is accurate and complete. Your account request stays pending until it is reviewed by an authorized school approver.</p>
                                         <ul>
-                                            <li>Your application will be reviewed before any account is activated.</li>
-                                            <li>You agree to comply with school policies and internship guidelines.</li>
-                                            <li>Submitting false or misleading information may result in rejection.</li>
-                                            <li>Approval or rejection decisions are final, but you may reapply if instructed.</li>
+                                            <li>Your account can be activated only after approval by an administrator, coordinator, or supervisor.</li>
+                                            <li>You agree that your course, department, section, and internship assignments may be validated and adjusted by school staff.</li>
+                                            <li>If approved, your profile may be linked to biometric/fingerprint records used for attendance and internship tracking.</li>
+                                            <li>Fingerprint and attendance data are used for school operations, monitoring, and required OJT documentation.</li>
+                                            <li>Submitting false, incomplete, or misleading information can result in rejection, suspension, or account deactivation.</li>
                                         </ul>
-                                        <p class="mb-0">If you have questions, contact the school administrator.</p>
+                                        <p class="mb-0">If you have questions about your application or biometric processing, contact the school administrator.</p>
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

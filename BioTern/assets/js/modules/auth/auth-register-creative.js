@@ -24,6 +24,148 @@ function escapeSelector(value) {
     return String(value).replace(/([ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, '\\$1');
 }
 
+function parseUsDateInput(value) {
+    const raw = String(value || '').trim();
+    const match = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return null;
+
+    const month = Number(match[1]);
+    const day = Number(match[2]);
+    const year = Number(match[3]);
+    if (month < 1 || month > 12 || day < 1 || year < 1900) return null;
+
+    const candidate = new Date(year, month - 1, day);
+    if (
+        candidate.getFullYear() !== year ||
+        candidate.getMonth() !== (month - 1) ||
+        candidate.getDate() !== day
+    ) {
+        return null;
+    }
+    return candidate;
+}
+
+function validateDobAgeField(field) {
+    if (!field) return true;
+    const raw = String(field.value || '').trim();
+    if (raw === '') {
+        field.setCustomValidity('This field is required.');
+        return false;
+    }
+
+    const parsed = parseUsDateInput(raw);
+    if (!parsed) {
+        field.setCustomValidity('Use format mm/dd/yyyy.');
+        return false;
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - parsed.getFullYear();
+    const monthDiff = today.getMonth() - parsed.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < parsed.getDate())) {
+        age -= 1;
+    }
+
+    if (age < 17) {
+        field.setCustomValidity('You must be at least 17 years old to apply.');
+        return false;
+    }
+
+    field.setCustomValidity('');
+    return true;
+}
+
+function normalizeStudentId(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    let body = digits;
+    if (body.startsWith('05')) {
+        body = body.substring(2);
+    }
+    body = body.substring(0, 5);
+    return '05-' + body;
+}
+
+function setupFloatingTextFields() {
+    const form = document.getElementById('studentForm');
+    if (!form) return;
+
+    const fields = Array.prototype.slice.call(
+        form.querySelectorAll('input.form-control, textarea.form-control')
+    );
+
+    fields.forEach(function(field) {
+        if (!field || field.dataset.floatingBound === '1') return;
+        if (field.dataset.noFloating === '1') return;
+        if (field.closest('.input-group')) return;
+
+        const type = String(field.type || '').toLowerCase();
+        if (type === 'hidden' || type === 'checkbox' || type === 'radio' || type === 'file') return;
+        if (field.hasAttribute('readonly')) return;
+
+        const originalPlaceholder = String(field.getAttribute('placeholder') || '').trim();
+        const explicitLabel = field.id
+            ? form.querySelector('label[for="' + escapeSelector(field.id) + '"]')
+            : null;
+        const explicitLabelText = explicitLabel ? String(explicitLabel.textContent || '').trim() : '';
+        let floatingLabelText = explicitLabelText || originalPlaceholder;
+
+        if (field.id === 'studentDateOfBirth') {
+            floatingLabelText = 'Date of Birth (mm/dd/yyyy)';
+        }
+        if (field.id === 'studentStreetAddress') {
+            floatingLabelText = 'Current Address';
+        }
+
+        if (!floatingLabelText) return;
+
+        const parent = field.parentElement;
+        if (!parent) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'floating-field';
+
+        parent.insertBefore(wrapper, field);
+        wrapper.appendChild(field);
+
+        let label = explicitLabel;
+        if (label) {
+            label.classList.remove('form-label', 'fs-12', 'mb-1', 'mb-2', 'mb-3');
+            label.classList.add('floating-field-label');
+            label.textContent = floatingLabelText;
+            wrapper.appendChild(label);
+        } else {
+            label = document.createElement('label');
+            label.className = 'floating-field-label';
+            label.textContent = floatingLabelText;
+            if (field.id) {
+                label.setAttribute('for', field.id);
+            }
+            wrapper.appendChild(label);
+        }
+
+        field.setAttribute('placeholder', ' ');
+
+        const syncState = function() {
+            wrapper.classList.toggle('has-value', String(field.value || '').trim() !== '');
+        };
+
+        field.addEventListener('input', syncState);
+        field.addEventListener('change', syncState);
+        field.addEventListener('blur', syncState);
+        field.addEventListener('focus', syncState);
+        field.addEventListener('animationstart', syncState);
+        syncState();
+
+        // Browsers/password managers may inject values after DOMContentLoaded without firing input.
+        setTimeout(syncState, 80);
+        setTimeout(syncState, 300);
+        setTimeout(syncState, 900);
+        window.addEventListener('pageshow', syncState);
+
+        field.dataset.floatingBound = '1';
+    });
+}
+
         function selectRole(role) {
             if (STUDENT_ONLY_REGISTRATION) {
                 role = 'student';
@@ -276,6 +418,7 @@ function escapeSelector(value) {
             setupStudentHoursControls();
             setupAcademicFilters();
             setupStudentPhilippineAddress();
+            setupFloatingTextFields();
             setupStudentDraftPersistence();
             setupStudentFinalReview();
             initFormStepper('studentForm');
@@ -288,9 +431,31 @@ function escapeSelector(value) {
             if (studentIdInput) {
                 const studentIdPattern = /^05-[0-9]{4,5}$/;
 
+                if (!String(studentIdInput.value || '').trim()) {
+                    studentIdInput.value = '05-';
+                } else {
+                    studentIdInput.value = normalizeStudentId(studentIdInput.value);
+                }
+
+                studentIdInput.addEventListener('focus', function() {
+                    if (!String(this.value || '').startsWith('05-')) {
+                        this.value = normalizeStudentId(this.value);
+                    }
+                });
+
+                studentIdInput.addEventListener('keydown', function(e) {
+                    const start = this.selectionStart || 0;
+                    const end = this.selectionEnd || 0;
+                    const blockedForPrefix = (e.key === 'Backspace' && start <= 3 && end <= 3)
+                        || (e.key === 'Delete' && start < 3);
+                    if (blockedForPrefix) {
+                        e.preventDefault();
+                    }
+                });
+
                 studentIdInput.addEventListener('input', function() {
-                    this.value = this.value.replace(/\s+/g, '');
-                    if (this.value === '' || studentIdPattern.test(this.value)) {
+                    this.value = normalizeStudentId(this.value);
+                    if (studentIdPattern.test(this.value)) {
                         this.setCustomValidity('');
                     } else {
                         this.setCustomValidity('Use format 05-1234 or 05-12345');
@@ -298,7 +463,27 @@ function escapeSelector(value) {
                 });
 
                 studentIdInput.addEventListener('blur', function() {
-                    this.value = this.value.trim();
+                    this.value = normalizeStudentId(this.value);
+                });
+            }
+
+            const dobInput = document.getElementById('studentDateOfBirth');
+            if (dobInput) {
+                dobInput.addEventListener('input', function() {
+                    const digits = String(this.value || '').replace(/\D/g, '').substring(0, 8);
+                    let formatted = digits;
+                    if (digits.length > 2) {
+                        formatted = digits.substring(0, 2) + '/' + digits.substring(2);
+                    }
+                    if (digits.length > 4) {
+                        formatted = digits.substring(0, 2) + '/' + digits.substring(2, 4) + '/' + digits.substring(4);
+                    }
+                    this.value = formatted;
+                    validateDobAgeField(this);
+                });
+
+                dobInput.addEventListener('blur', function() {
+                    validateDobAgeField(this);
                 });
             }
 
@@ -511,6 +696,11 @@ function escapeSelector(value) {
             }
 
             function openReviewModal() {
+                const dobField = document.getElementById('studentDateOfBirth');
+                if (dobField && !validateDobAgeField(dobField)) {
+                    form.reportValidity();
+                    return;
+                }
                 if (!form.checkValidity()) {
                     form.reportValidity();
                     return;

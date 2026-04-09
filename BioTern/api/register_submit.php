@@ -28,6 +28,37 @@ function getCurrentSchoolYearLabel($timestamp = null) {
     return sprintf('%d-%d', $startYear, $startYear + 1);
 }
 
+function parseStudentDateOfBirthToSql(?string $rawDate): ?string {
+    $value = trim((string)$rawDate);
+    if ($value === '') {
+        return null;
+    }
+
+    $formats = ['Y-m-d', 'm/d/Y'];
+    foreach ($formats as $format) {
+        $dt = DateTime::createFromFormat($format, $value);
+        if ($dt instanceof DateTime) {
+            $errors = DateTime::getLastErrors();
+            $hasErrors = is_array($errors) && (($errors['warning_count'] ?? 0) > 0 || ($errors['error_count'] ?? 0) > 0);
+            if (!$hasErrors) {
+                return $dt->format('Y-m-d');
+            }
+        }
+    }
+
+    return null;
+}
+
+function calculateAgeFromSqlDate(string $dateValue): int {
+    try {
+        $dob = new DateTime($dateValue);
+        $today = new DateTime('today');
+        return (int)$dob->diff($today)->y;
+    } catch (Throwable $e) {
+        return -1;
+    }
+}
+
 function studentApplicationRedirect(string $status, string $message): void {
     header('Location: auth-register.php?registered=' . rawurlencode($status) . '&msg=' . urlencode($message));
     exit;
@@ -441,7 +472,7 @@ if ($role === 'student') {
     
     // New fields - now accepting IDs
     $phone = getPost('phone');
-    $date_of_birth = getPost('date_of_birth');
+    $date_of_birth_raw = getPost('date_of_birth');
     $gender = getPost('gender');
     $supervisor_id = getPost('supervisor_id') ? (int)getPost('supervisor_id') : null;
     $coordinator_id = getPost('coordinator_id') ? (int)getPost('coordinator_id') : null;
@@ -460,6 +491,19 @@ if ($role === 'student') {
     $finished_internal = strtolower((string)(getPost('finished_internal') ?: 'no'));
     $emergency_contact = getPost('emergency_contact');
     $emergency_contact_phone = getPost('emergency_contact_phone');
+
+    if ($student_id !== null && $student_id !== '' && !preg_match('/^05-\d{4,5}$/', (string)$student_id)) {
+        studentApplicationRedirect('error', 'School ID Number must follow the format 05-1234 or 05-12345.');
+    }
+
+    $date_of_birth = parseStudentDateOfBirthToSql($date_of_birth_raw);
+    if ($date_of_birth === null) {
+        studentApplicationRedirect('error', 'Please enter Date of Birth using mm/dd/yyyy.');
+    }
+    $age = calculateAgeFromSqlDate($date_of_birth);
+    if ($age < 17) {
+        studentApplicationRedirect('error', 'Student applicants must be at least 17 years old.');
+    }
 
     // Use account_email if provided, otherwise use email
     $final_email = $account_email ?: $email;
