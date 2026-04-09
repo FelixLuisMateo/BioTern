@@ -242,8 +242,13 @@ $user = auser($conn, $userId) ?? $user; $flash = $_SESSION['account_settings_fla
 $profileRel = anorm((string)($user['profile_picture'] ?? '')); $profileAbs = $profileRel !== '' ? dirname(__DIR__) . '/' . $profileRel : '';
 $profileMeta = aprofile_picture_meta($conn, $userId);
 $profileVersion = rawurlencode((string)strtotime((string)($profileMeta['updated_at'] ?? 'now')));
+$scriptName = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+$appBaseDir = rtrim(dirname(dirname($scriptName)), '/');
+if ($appBaseDir === '' || $appBaseDir === '.') {
+    $appBaseDir = '';
+}
 $profileUrl = $profileMeta
-    ? ('includes/avatar-image.php?uid=' . (int)$userId . '&v=' . $profileVersion)
+    ? ($appBaseDir . '/includes/avatar-image.php?uid=' . (int)$userId . '&v=' . $profileVersion)
     : (($profileRel !== '' && is_file($profileAbs)) ? $profileRel . '?v=' . rawurlencode((string)@filemtime($profileAbs)) : ('assets/images/avatar/' . (($userId % 5) + 1) . '.png'));
 $profileSourceLabel = $profileMeta ? 'Stored in database' : ($profileRel !== '' ? $profileRel : 'Default BioTern avatar');
 $displayName = trim((string)($user['name'] ?? 'BioTern User')); if ($displayName === '') $displayName = 'BioTern User';
@@ -277,7 +282,7 @@ include dirname(__DIR__) . '/includes/header.php';
                     <div class="settings-stack">
                         <section class="settings-hero account-profile-hero" id="overview">
                             <div class="account-identity">
-                                <div class="account-identity-avatar"><img src="<?php echo ash($profileUrl); ?>" alt="Profile picture"></div>
+                                <div class="account-identity-avatar"><img src="<?php echo ash($profileUrl); ?>" alt="Profile picture" data-avatar-debug-src="<?php echo ash($profileUrl); ?>"></div>
                                 <div class="account-identity-copy">
                                     <h3><?php echo ash($displayName); ?></h3>
                                     <p>Manage your account identity, security settings, and profile image from one place.</p>
@@ -326,7 +331,7 @@ include dirname(__DIR__) . '/includes/header.php';
                                 <div class="row g-4">
                                     <div class="col-lg-5">
                                         <div class="account-avatar-panel">
-                                            <div class="account-current-avatar"><img src="<?php echo ash($profileUrl); ?>" alt="Current avatar"><div><strong>Current profile image</strong><span><?php echo ash($profileSourceLabel); ?></span></div></div>
+                                            <div class="account-current-avatar"><img src="<?php echo ash($profileUrl); ?>" alt="Current avatar" data-avatar-debug-src="<?php echo ash($profileUrl); ?>"><div><strong>Current profile image</strong><span><?php echo ash($profileSourceLabel); ?></span></div></div>
                                             <form method="post" enctype="multipart/form-data" data-avatar-upload-form>
                                                 <input type="hidden" name="action" value="upload_avatar">
                                                 <input type="hidden" name="profile_picture_cropped" value="" data-avatar-cropped-input>

@@ -80,7 +80,12 @@ if (!function_exists('biotern_avatar_db_src')) {
 
         $normalized = strtolower(trim((string)$rawPath));
         if ($normalized === 'db-avatar' || $normalized === 'db_avatar') {
-            return 'includes/avatar-image.php?uid=' . $userId;
+            $scriptName = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+            $baseDir = rtrim(dirname(dirname($scriptName)), '/');
+            if ($baseDir === '' || $baseDir === '.') {
+                $baseDir = '';
+            }
+            return $baseDir . '/includes/avatar-image.php?uid=' . $userId;
         }
 
         return '';
