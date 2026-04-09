@@ -241,6 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $user = auser($conn, $userId) ?? $user; $flash = $_SESSION['account_settings_flash'] ?? null; unset($_SESSION['account_settings_flash']);
 $profileRel = anorm((string)($user['profile_picture'] ?? '')); $profileAbs = $profileRel !== '' ? dirname(__DIR__) . '/' . $profileRel : '';
+<<<<<<< HEAD
 $profileMeta = aprofile_picture_meta($conn, $userId);
 $profileVersion = rawurlencode((string)strtotime((string)($profileMeta['updated_at'] ?? 'now')));
 $scriptName = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
@@ -252,6 +253,9 @@ $profileUrl = $profileMeta
     ? ($appBaseDir . '/includes/avatar-image.php?uid=' . (int)$userId . '&v=' . $profileVersion)
     : (($profileRel !== '' && is_file($profileAbs)) ? $profileRel . '?v=' . rawurlencode((string)@filemtime($profileAbs)) : ('assets/images/avatar/' . (($userId % 5) + 1) . '.png'));
 $profileSourceLabel = $profileMeta ? 'Stored in database' : ($profileRel !== '' ? $profileRel : 'Default BioTern avatar');
+=======
+$profileUrl = ($profileRel !== '' && is_file($profileAbs)) ? $profileRel . '?v=' . rawurlencode((string)@filemtime($profileAbs)) : ('assets/images/avatar/' . (($userId % 5) + 1) . '.png');
+>>>>>>> 132a6924715653764f137b781a6956cecf852112
 $displayName = trim((string)($user['name'] ?? 'BioTern User')); if ($displayName === '') $displayName = 'BioTern User';
 $memberSince = '-'; if (!empty($user['created_at'])) { $ts = strtotime((string)$user['created_at']); if ($ts !== false) $memberSince = date('M d, Y h:i A', $ts); }
 $lastLogin = 'No login record yet'; $loginStmt = $conn->prepare("SELECT created_at FROM login_logs WHERE user_id = ? AND status = ? ORDER BY created_at DESC LIMIT 1");
@@ -288,6 +292,23 @@ include dirname(__DIR__) . '/includes/header.php';
                                     <h3><?php echo ash($displayName); ?></h3>
                                     <p>Manage your account identity, security settings, and profile image from one place.</p>
                                     <span class="account-role-chip"><i class="feather-user-check"></i><?php echo ash(ucfirst((string)($user['role'] ?? 'user'))); ?></span>
+                                    <div class="account-hero-avatar-tools">
+                                        <div class="account-hero-avatar-actions">
+                                            <form method="post" enctype="multipart/form-data" data-avatar-upload-form class="account-hero-upload-form">
+                                                <input type="hidden" name="action" value="upload_avatar">
+                                                <input type="hidden" name="profile_picture_cropped" value="" data-avatar-cropped-input>
+                                                <input type="file" id="profile_picture" name="profile_picture" class="d-none" accept=".jpg,.jpeg,.png,.webp,.gif,image/*" data-avatar-file-input>
+                                                <div class="account-hero-upload-actions">
+                                                    <button type="button" class="btn btn-primary" data-avatar-open-picker>Upload</button>
+                                                </div>
+                                            </form>
+                                            <form method="post" class="account-hero-remove-form">
+                                                <input type="hidden" name="action" value="remove_avatar">
+                                                <button type="submit" class="btn btn-outline-secondary">Remove Photo</button>
+                                            </form>
+                                        </div>
+                                        <p class="account-note mb-0">Accepted formats: JPG, PNG, WEBP, and GIF up to 3MB.</p>
+                                    </div>
                                 </div>
                             </div>
                             <div class="settings-kpi-grid">
@@ -298,6 +319,7 @@ include dirname(__DIR__) . '/includes/header.php';
                             </div>
                         </section>
 
+<<<<<<< HEAD
                         <section class="card settings-panel-card">
                             <div class="card-header"><h6 class="settings-section-title">Account overview</h6><p class="settings-section-subtitle">Current identity and contact information.</p></div>
                             <div class="card-body">
@@ -358,9 +380,46 @@ include dirname(__DIR__) . '/includes/header.php';
                                             </form>
                                             <form method="post"><input type="hidden" name="action" value="remove_avatar"><button type="submit" class="btn btn-outline-secondary">Remove Photo</button></form>
                                             <p class="account-note mb-0">Accepted formats: JPG, PNG, WEBP, and GIF up to 3MB.</p>
+=======
+                        <div class="row g-3 account-dual-grid">
+                            <div class="col-xl-6">
+                                <section class="card settings-panel-card">
+                                    <div class="card-header"><h6 class="settings-section-title">Account overview</h6><p class="settings-section-subtitle">Current identity and contact information.</p></div>
+                                    <div class="card-body">
+                                        <div class="account-profile-grid">
+                                            <div class="account-profile-field"><span>Full Name</span><strong><?php echo ash((string)($user['name'] ?? '')); ?></strong></div>
+                                            <div class="account-profile-field"><span>Username</span><strong><?php echo ash((string)($user['username'] ?? '')); ?></strong></div>
+                                            <div class="account-profile-field full"><span>Email</span><strong><?php echo ash((string)($user['email'] ?? '')); ?></strong></div>
+                                            <div class="account-profile-field"><span>Role</span><strong><?php echo ash(ucfirst((string)($user['role'] ?? 'user'))); ?></strong></div>
+                                            <div class="account-profile-field"><span>Initials</span><strong><?php echo ash(ainitials($displayName)); ?></strong></div>
+>>>>>>> 132a6924715653764f137b781a6956cecf852112
                                         </div>
                                     </div>
-                                    <div class="col-lg-7">
+                                </section>
+                            </div>
+                            <div class="col-xl-6">
+                                <section class="card settings-panel-card" id="profile-form">
+                                    <div class="card-header"><h6 class="settings-section-title">Edit profile</h6><p class="settings-section-subtitle">Update the details that appear throughout the app.</p></div>
+                                    <div class="card-body">
+                                        <form method="post">
+                                            <input type="hidden" name="action" value="save_profile">
+                                            <div class="account-form-grid">
+                                                <div><label class="form-label" for="name">Full Name</label><input type="text" id="name" name="name" class="form-control" value="<?php echo ash((string)($user['name'] ?? '')); ?>" required></div>
+                                                <div><label class="form-label" for="username">Username</label><input type="text" id="username" name="username" class="form-control" value="<?php echo ash((string)($user['username'] ?? '')); ?>" required></div>
+                                                <div class="full"><label class="form-label" for="email">Email Address</label><input type="email" id="email" name="email" class="form-control" value="<?php echo ash((string)($user['email'] ?? '')); ?>" required></div>
+                                            </div>
+                                            <div class="account-form-actions"><button type="submit" class="btn btn-primary">Save Profile</button><a href="homepage.php" class="btn btn-light">Back to Dashboard</a></div>
+                                        </form>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 account-dual-grid">
+                            <div class="col-xl-8">
+                                <section class="card settings-panel-card" id="security">
+                                    <div class="card-header"><h6 class="settings-section-title">Security</h6><p class="settings-section-subtitle">Keep your password current and secure.</p></div>
+                                    <div class="card-body">
                                         <form method="post">
                                             <input type="hidden" name="action" value="change_password">
                                             <div class="account-form-grid">
@@ -373,9 +432,21 @@ include dirname(__DIR__) . '/includes/header.php';
                                             <p class="account-note mb-0 mt-3">Use at least 8 characters, including uppercase, lowercase, and a number.</p>
                                         </form>
                                     </div>
-                                </div>
+                                </section>
                             </div>
-                        </section>
+                            <div class="col-xl-4">
+                                <section class="card settings-panel-card">
+                                    <div class="card-header"><h6 class="settings-section-title">Quick links</h6><p class="settings-section-subtitle">Shortcuts that belong with your account tools.</p></div>
+                                    <div class="card-body">
+                                        <div class="settings-utility-links">
+                                            <a class="settings-utility-link" href="notifications.php"><span>Open notifications inbox</span><span><i class="feather-arrow-right"></i></span></a>
+                                            <a class="settings-utility-link" href="theme-customizer.php"><span>Appearance</span><span><i class="feather-arrow-right"></i></span></a>
+                                            <a class="settings-utility-link" href="auth-login.php?logout=1"><span>Logout</span><span><i class="feather-log-out"></i></span></a>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
 
                         <?php if (is_array($studentProfile)): ?>
                             <section class="card settings-panel-card" id="student-record">
@@ -394,20 +465,39 @@ include dirname(__DIR__) . '/includes/header.php';
                             </section>
                         <?php endif; ?>
 
-                        <section class="card settings-panel-card">
-                            <div class="card-header"><h6 class="settings-section-title">Quick links</h6><p class="settings-section-subtitle">Shortcuts that belong with your account tools.</p></div>
-                            <div class="card-body">
-                                <div class="settings-utility-links">
-                                    <a class="settings-utility-link" href="notifications.php"><span>Open notifications inbox</span><span><i class="feather-arrow-right"></i></span></a>
-                                    <a class="settings-utility-link" href="theme-customizer.php"><span>Appearance</span><span><i class="feather-arrow-right"></i></span></a>
-                                    <a class="settings-utility-link" href="auth-login.php?logout=1"><span>Logout</span><span><i class="feather-log-out"></i></span></a>
-                                </div>
-                            </div>
-                        </section>
+
                     </div>
                 </div>
             </div>
         </section>
     </div>
 </main>
+
+<div class="modal fade" id="avatarCropModal" tabindex="-1" aria-hidden="true" data-avatar-crop-modal>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crop Profile Picture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="avatar-crop-editor" data-avatar-crop-editor>
+                    <div class="avatar-crop-canvas-wrap">
+                        <canvas width="320" height="320" data-avatar-crop-canvas></canvas>
+                    </div>
+                    <div class="mt-2">
+                        <label class="form-label mb-1" for="avatar_crop_zoom">Zoom</label>
+                        <input type="range" id="avatar_crop_zoom" min="100" max="400" step="1" value="100" class="form-range" data-avatar-crop-zoom>
+                    </div>
+                    <p class="account-note mb-0 mt-2" data-avatar-crop-status>Drag the image to position the crop area.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-avatar-crop-reset>Reset</button>
+                <button type="button" class="btn btn-primary" data-avatar-crop-upload>Crop and Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>

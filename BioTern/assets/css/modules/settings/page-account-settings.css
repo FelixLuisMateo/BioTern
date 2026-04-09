@@ -19,18 +19,18 @@
 }
 
 .account-identity-avatar {
-    width: 156px;
-    height: 156px;
+    width: 184px;
+    height: 184px;
     border-radius: 16px;
     background: var(--settings-accent-bg);
     color: var(--settings-text);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.2rem;
+    font-size: 2.5rem;
     font-weight: 700;
     overflow: hidden;
-    flex: 0 0 156px;
+    flex: 0 0 184px;
 }
 
 .account-identity-avatar img {
@@ -76,6 +76,13 @@
     display: grid;
     gap: 8px;
     max-width: 620px;
+}
+
+.account-hero-avatar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
 }
 
 .account-hero-upload-row {
@@ -389,10 +396,10 @@ body.account-settings-page .account-note {
     }
 
     .account-identity-avatar {
-        width: 118px;
-        height: 118px;
+        width: 132px;
+        height: 132px;
         font-size: 1.7rem;
-        flex-basis: 118px;
+        flex-basis: 132px;
     }
 
     .account-hero-upload-row {
