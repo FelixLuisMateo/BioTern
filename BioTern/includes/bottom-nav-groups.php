@@ -70,9 +70,6 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Endorsement', 'href' => 'document_endorsement.php', 'icon' => 'feather-file-text'],
                             ['label' => 'MOA', 'href' => 'document_moa.php', 'icon' => 'feather-file-text'],
                             ['label' => 'DAU MOA', 'href' => 'document_dau_moa.php', 'icon' => 'feather-file-text'],
-                            ['label' => 'Resume', 'href' => 'document_resume.php', 'icon' => 'feather-file-text'],
-                            ['label' => 'DTR', 'href' => 'document_dtr.php', 'icon' => 'feather-file-text'],
-                            ['label' => 'Waiver', 'href' => 'document_waiver.php', 'icon' => 'feather-file-text'],
                         ],
                     ],
                     [

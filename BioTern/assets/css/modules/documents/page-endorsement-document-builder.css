@@ -1,0 +1,170 @@
+.endorsement-builder-page .main-content {
+    padding-top: 20px;
+}
+
+.endorsement-builder-page .application-builder-grid {
+    display: grid;
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+/* Remove dark canvas framing around the paper for endorsement builder. */
+.endorsement-builder-page .builder-paper-shell {
+    padding: 0;
+}
+
+.endorsement-builder-page .builder-paper {
+    background: transparent;
+    padding: 0;
+    width: var(--doc-builder-paper-width);
+    min-width: var(--doc-builder-paper-width);
+}
+
+.endorsement-builder-page .builder-editor-surface {
+    margin: 0 auto;
+}
+
+.endorsement-builder-page .builder-field-grid {
+    grid-template-columns: 1fr;
+}
+
+.endorsement-builder-page .builder-inline-options {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.endorsement-builder-page .builder-inline-options .form-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+.endorsement-builder-page .builder-inline-options .form-check-label {
+    margin: 0;
+    color: var(--doc-builder-text);
+    font-size: 0.84rem;
+}
+
+.endorsement-builder-page .builder-editor-surface {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    line-height: 1.45;
+    color: #111;
+}
+
+.endorsement-builder-page #editor .endorsement-letter-template {
+    width: 100%;
+}
+
+.endorsement-builder-page #editor .preview-header {
+    position: relative;
+    min-height: 72px;
+    text-align: left;
+    border-bottom: 1px solid #8ab0e6;
+    padding: 8px 0 6px;
+    margin-bottom: 10px;
+}
+
+.endorsement-builder-page #editor .preview-header-copy {
+    padding-left: 96px;
+    text-align: left;
+}
+
+/* Backward-compatibility: old saved templates may not have .preview-header-copy */
+.endorsement-builder-page #editor .preview-header > .school-name,
+.endorsement-builder-page #editor .preview-header > .school-meta,
+.endorsement-builder-page #editor .preview-header > .school-tel {
+    padding-left: 96px;
+    text-align: left;
+    display: block;
+}
+
+.endorsement-builder-page #editor .school-name {
+    font-family: "Times New Roman", Times, serif;
+    color: #1b4f9c;
+    font-size: 20px;
+    margin: 0 0 6px;
+    font-weight: 700;
+}
+
+.endorsement-builder-page #editor .school-meta,
+.endorsement-builder-page #editor .school-tel {
+    font-family: "Times New Roman", Times, serif;
+    color: #1b4f9c;
+    font-size: 14px;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.endorsement-builder-page #editor .preview-content {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    line-height: 1.45;
+    color: #2f3640;
+}
+
+.endorsement-builder-page #editor .preview-content h5 {
+    text-align: center;
+    margin: 8px 0 12px;
+    font-size: 13pt;
+    font-weight: 700;
+}
+
+.endorsement-builder-page #editor .signature {
+    margin-top: 28px;
+}
+
+.endorsement-builder-page #editor .ross-signatory {
+    position: relative;
+    margin-top: 34px;
+    padding-top: 48px;
+}
+
+.endorsement-builder-page #editor .ross-signature {
+    position: absolute;
+    top: -26px;
+    left: -6px;
+    width: 300px;
+    max-width: none;
+    height: auto;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.endorsement-builder-page #editor .ross-signatory-text {
+    position: relative;
+    z-index: 1;
+}
+
+.endorsement-builder-page #editor .crest-preview-position {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+}
+
+.endorsement-builder-page #editor .preview-header .crest-preview {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+}
+
+@media (max-width: 1199.98px) {
+    .endorsement-builder-page .application-builder-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .endorsement-builder-page .main-content {
+        padding-top: 16px;
+    }
+}

@@ -74,6 +74,37 @@
         }
     }
 
+    function ensureA4TemplateStructure() {
+        if (!editor) {
+            return;
+        }
+
+        var pages = Array.prototype.slice.call(editor.querySelectorAll('.a4-page'));
+        if (!pages.length) {
+            var firstPage = document.createElement('div');
+            firstPage.className = 'a4-page';
+            while (editor.firstChild) {
+                firstPage.appendChild(editor.firstChild);
+            }
+            editor.appendChild(firstPage);
+            pages = [firstPage];
+        }
+
+        pages.forEach(function (pageEl) {
+            pageEl.setAttribute('data-a4-width-mm', '210');
+            pageEl.setAttribute('data-a4-height-mm', '297');
+            pageEl.style.width = '210mm';
+            pageEl.style.minHeight = '297mm';
+            pageEl.style.boxSizing = 'border-box';
+            if (!pageEl.style.padding) {
+                pageEl.style.padding = '0.55in 0.9in 0.85in 0.9in';
+            }
+            if (!pageEl.style.background) {
+                pageEl.style.background = '#ffffff';
+            }
+        });
+    }
+
     function setEditMode(nextEditMode) {
         isEditMode = !!nextEditMode;
         if (!editor) {
@@ -578,6 +609,7 @@
             preserveSelectionOnFormat: true,
             fontSizeMode: 'rich-span',
             onAfterLoad: function (editorNode, api) {
+                ensureA4TemplateStructure();
                 if (window.AppCore.TemplateEditor.attachLogoDrag) {
                     window.AppCore.TemplateEditor.attachLogoDrag(editorNode, {
                         setStatus: api.setStatus,
@@ -606,6 +638,7 @@
             if (event && typeof event.preventDefault === 'function') {
                 event.preventDefault();
             }
+            ensureA4TemplateStructure();
             updatePreviewFields();
             window.print();
         });

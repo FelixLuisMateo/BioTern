@@ -75,15 +75,26 @@ if (isset($_GET['action'])) {
     exit;
 }
 
-$page_title = 'DAU MOA';
-$base_href = '../';
-$page_styles = ['assets/css/layout/page_shell.css', 'assets/css/modules/documents/documents.css'];
-$page_scripts = ['assets/js/modules/documents/documents-page-runtime.js'];
+$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+$asset_prefix = (strpos($script_name, '/documents/') !== false) ? '../' : '';
+
+$page_title = 'DAU MOA Builder';
+$base_href = $asset_prefix;
+$page_body_class = 'application-builder-page document-builder-page moa-builder-page';
+$page_styles = [
+    'assets/css/layout/page_shell.css',
+    'assets/css/modules/documents/document-builder-shared.css',
+    'assets/css/modules/documents/documents.css',
+    'assets/css/modules/documents/page-moa-document-builder.css',
+    'assets/css/modules/documents/template-print-isolation.css',
+];
+$page_scripts = ['assets/js/modules/documents/moa-document-builder.js'];
 include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-<div class="moa-page doc-page-root" data-page="dau_moa" data-prefill-student-id="<?php echo intval($prefill_student_id); ?>">
+<div class="application-document-builder moa-page doc-page-root" data-page="dau_moa" data-prefill-student-id="<?php echo intval($prefill_student_id); ?>">
+        <div class="main-content">
         <div class="page-header dashboard-page-header page-header-with-middle">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
@@ -92,11 +103,11 @@ include __DIR__ . '/../includes/header.php';
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                     <li class="breadcrumb-item">Documents</li>
-                    <li class="breadcrumb-item">DAU MOA</li>
+                    <li class="breadcrumb-item">DAU MOA Builder</li>
                 </ul>
             </div>
             <div class="page-header-middle">
-                <p class="page-header-statement">Fill the fields below, then generate the printable DAU Memorandum of Agreement.</p>
+                <p class="page-header-statement">Use the template builder flow to update and generate the printable DAU Memorandum of Agreement.</p>
             </div>
             <div class="page-header-right ms-auto">
                 <div class="d-md-none d-flex align-items-center">
@@ -241,16 +252,42 @@ include __DIR__ . '/../includes/header.php';
                         </div>
 
                         <div class="mt-3 d-flex gap-2">
-                            <button id="btn_file_edit_moa" type="button" class="btn btn-primary flex-grow-0">File Edit</button>
-                            <button id="btn_generate_moa" type="button" class="btn btn-success flex-grow-1">Generate DAU MOA</button>
+                            <button id="btn_print_moa" type="button" class="btn btn-success flex-grow-1">Generate / Print DAU MOA</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="col-lg-6 doc-template-pane">
+                    <div class="moa-builder-controls">
+                        <div class="builder-editor-actions">
+                            <button id="btn_toggle_edit" class="btn btn-light" type="button" aria-pressed="false">Edit Template</button>
+                            <button id="btn_save" class="btn btn-primary" type="button">Save Template</button>
+                            <button id="btn_reset" class="btn btn-light" type="button">Reset</button>
+                            <button id="btn_print" class="btn btn-success" type="button">Print</button>
+                        </div>
+                        <div class="builder-toolbar is-disabled" id="builder_toolbar" aria-label="Template formatting tools" aria-hidden="true">
+                            <button id="btn_bold" class="btn btn-light" type="button"><strong>B</strong></button>
+                            <button id="btn_italic" class="btn btn-light" type="button"><em>I</em></button>
+                            <button id="btn_underline" class="btn btn-light" type="button"><u>U</u></button>
+                            <button id="btn_left" class="btn btn-light" type="button">Left</button>
+                            <button id="btn_center" class="btn btn-light" type="button">Center</button>
+                            <button id="btn_right" class="btn btn-light" type="button">Right</button>
+                            <button id="btn_justify" class="btn btn-light" type="button">Justify</button>
+                            <button id="btn_indent" class="btn btn-light" type="button">Indent</button>
+                            <button id="btn_outdent" class="btn btn-light" type="button">Outdent</button>
+                            <label for="font_size_pt">Size</label>
+                            <input id="font_size_pt" type="number" min="6" max="96" step="1" value="12" title="Double-click for custom size">
+                            <button id="btn_apply_size" class="btn btn-light" type="button">Apply</button>
+                            <label for="font_color">Color</label>
+                            <input id="font_color" type="color" value="#000000">
+                        </div>
+                        <div class="builder-status-bar">
+                            <span id="msg" class="builder-status-text">Template ready.</span>
+                        </div>
+                    </div>
                     <div class="doc-preview" id="moa_preview">
                         <div id="moa_content" class="a4-pages-stack">
-                            <div class="a4-page">
+                            <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.35in 1in 1in 1in; background:#fff;">
                             <h5 class="text-center-inline">Memorandum of Agreement</h5>
                             <p>Date: <span id="moa_date">__________</span></p>
                             <p>This Memorandum of Agreement made and executed between: <strong>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</strong>a Higher Education Institution, duly organized and existing under Philippine Laws with office/business address at <strong>AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA</strong> represented herein by <strong>MR. JOMAR G. SANGIL (IT, DEPARTMENT HEAD)</strong>, here in after referred to as the Higher Education Institution.<strong></p>
@@ -278,7 +315,7 @@ include __DIR__ . '/../includes/header.php';
 
                             </div>
 
-                            <div class="a4-page">
+                            <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.35in 1in 1in 1in; background:#fff;">
                             <p class="mt-12">
                                 This Memorandum of Agreement shall become effective upon signature of both parties and implementation will begin immediately and shall continue to be valid hereafter until written notice is given by either party thirty (30) days prior to the date of intended termination.
                             </p>
@@ -330,6 +367,7 @@ include __DIR__ . '/../includes/header.php';
         </div>
 
 </div>
+        </div>
 </div> <!-- .nxl-content -->
 </main>
 <?php include __DIR__ . '/../includes/footer.php'; ?>

@@ -7,8 +7,8 @@
     --doc-builder-text: var(--bs-body-color, #1f2937);
     --doc-builder-muted: var(--bs-secondary-color, #6b7280);
     --doc-builder-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
-    --doc-builder-paper-width: 8.5in;
-    --doc-builder-paper-height: 11in;
+    --doc-builder-paper-width: 210mm;
+    --doc-builder-paper-height: 297mm;
     --doc-builder-paper-padding: 0.38in;
     --doc-builder-paper-outer-padding: 16px;
 }
@@ -488,8 +488,8 @@ html.app-skin-dark .select2-container--open .biotern-doc-select2-dropdown .selec
 }
 
 @page {
-    size: letter portrait;
-    margin: 0.5in;
+    size: A4 portrait;
+    margin: 0.3in;
 }
 
 @media (max-width: 1199.98px) {
