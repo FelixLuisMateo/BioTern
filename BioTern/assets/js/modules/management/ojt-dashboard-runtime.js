@@ -75,6 +75,17 @@
       window.jQuery("#ojtListTable").length &&
       !window.jQuery.fn.DataTable.isDataTable("#ojtListTable")
     ) {
+      var ojtTable = document.getElementById("ojtListTable");
+      if (ojtTable) {
+        // DataTables expects each body row to match header column count.
+        ojtTable.querySelectorAll("tbody tr").forEach(function (row) {
+          var firstCell = row.querySelector("td[colspan]");
+          if (firstCell) {
+            row.remove();
+          }
+        });
+      }
+
       dataTableInstance = window.jQuery("#ojtListTable").DataTable({
         pageLength: 10,
         lengthMenu: [
