@@ -272,3 +272,68 @@
     .app-skin-dark .dtr-empty-note {
         color: #8a9ab2;
     }
+
+    @media print {
+        body * {
+            visibility: hidden !important;
+        }
+
+        .nxl-content,
+        .nxl-content *,
+        .main-content,
+        .main-content *,
+        .dtr-desktop-table,
+        .dtr-desktop-table * {
+            visibility: visible !important;
+        }
+
+        .nxl-navigation,
+        .nxl-header,
+        .page-header,
+        .toolbar,
+        .app-students-dtr-toolbar,
+        .dtr-mobile-list,
+        .app-students-dtr-mobile-list,
+        .btn,
+        .breadcrumb {
+            display: none !important;
+        }
+
+        .nxl-content {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #fff;
+        }
+
+        .main-content {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .dtr-table,
+        .app-students-dtr-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 11px !important;
+        }
+
+        .dtr-table th,
+        .dtr-table td,
+        .app-students-dtr-table th,
+        .app-students-dtr-table td {
+            border: 1px solid #222 !important;
+            padding: 6px !important;
+            color: #111 !important;
+            background: #fff !important;
+        }
+
+        .dtr-table th,
+        .app-students-dtr-table th {
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+    }

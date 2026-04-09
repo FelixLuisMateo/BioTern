@@ -102,6 +102,25 @@ if (!isset($page_title) || trim($page_title) === '') {
 } elseif (!preg_match('/^\s*BioTern\b/i', $page_title)) {
     $page_title = 'BioTern || ' . ltrim(trim($page_title), "|-: ");
 }
+
+// Allow notification links from any page to mark a notification as read,
+// then redirect back to the same page without notif_read in the query string.
+if (!$page_is_public && $header_user_id_session > 0 && isset($_GET['notif_read'])) {
+    $notifReadId = (int)$_GET['notif_read'];
+    if ($notifReadId > 0 && isset($conn) && $conn instanceof mysqli) {
+        biotern_notifications_mark_read($conn, $header_user_id_session, $notifReadId);
+    }
+
+    $redirectParams = $_GET;
+    unset($redirectParams['notif_read']);
+    $redirectTarget = basename((string)($_SERVER['PHP_SELF'] ?? 'homepage.php'));
+    $redirectQuery = http_build_query($redirectParams);
+    if ($redirectQuery !== '') {
+        $redirectTarget .= '?' . $redirectQuery;
+    }
+    header('Location: ' . $redirectTarget);
+    exit;
+}
 if (!isset($base_href)) {
     $base_href = '';
 }

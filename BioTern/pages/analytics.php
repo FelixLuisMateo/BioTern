@@ -28,6 +28,19 @@ function a_rows(mysqli $conn, string $sql): array
     return $rows;
 }
 
+function a_table_has_column(mysqli $conn, string $table, string $column): bool
+{
+    $safeTable = str_replace('`', '``', $table);
+    $safeColumn = $conn->real_escape_string($column);
+    $result = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    if (!$result instanceof mysqli_result) {
+        return false;
+    }
+    $has = $result->num_rows > 0;
+    $result->close();
+    return $has;
+}
+
 function a_pct(int|float $part, int|float $whole): float
 {
     return $whole > 0 ? round(($part / $whole) * 100, 2) : 0.0;
@@ -105,14 +118,19 @@ for ($i = 6; $i >= 0; $i--) {
     $weekLabels[] = date('D', strtotime($date));
 }
 
-$studentsTotal = a_count($conn, "SELECT COUNT(*) AS count FROM students WHERE deleted_at IS NULL");
-$studentsActive = a_count($conn, "SELECT COUNT(DISTINCT s.id) AS count FROM students s INNER JOIN internships i ON i.student_id = s.id WHERE s.deleted_at IS NULL AND i.deleted_at IS NULL AND i.status = 'ongoing'");
-$studentsBiometric = a_count($conn, "SELECT COUNT(*) AS count FROM students WHERE deleted_at IS NULL AND biometric_registered = 1");
+$hasApplicationStatus = a_table_has_column($conn, 'users', 'application_status');
+$approvedStudentCondition = $hasApplicationStatus
+    ? "COALESCE(u.application_status, 'approved') = 'approved'"
+    : '1 = 1';
+
+$studentsTotal = a_count($conn, "SELECT COUNT(*) AS count FROM students s LEFT JOIN users u ON u.id = s.user_id WHERE s.deleted_at IS NULL AND {$approvedStudentCondition}");
+$studentsActive = a_count($conn, "SELECT COUNT(DISTINCT s.id) AS count FROM students s LEFT JOIN users u ON u.id = s.user_id INNER JOIN internships i ON i.student_id = s.id WHERE s.deleted_at IS NULL AND i.deleted_at IS NULL AND i.status = 'ongoing' AND {$approvedStudentCondition}");
+$studentsBiometric = a_count($conn, "SELECT COUNT(*) AS count FROM students s LEFT JOIN users u ON u.id = s.user_id WHERE s.deleted_at IS NULL AND s.biometric_registered = 1 AND {$approvedStudentCondition}");
 $attendanceTotal = a_count($conn, "SELECT COUNT(*) AS count FROM attendances");
 $attendanceToday = a_count($conn, "SELECT COUNT(*) AS count FROM attendances WHERE DATE(attendance_date) = '{$today}'");
-$internshipsTotal = a_count($conn, "SELECT COUNT(*) AS count FROM internships WHERE deleted_at IS NULL");
-$internshipsActive = a_count($conn, "SELECT COUNT(*) AS count FROM internships WHERE deleted_at IS NULL AND status = 'ongoing'");
-$internshipsCompleted = a_count($conn, "SELECT COUNT(*) AS count FROM internships WHERE deleted_at IS NULL AND status = 'completed'");
+$internshipsTotal = a_count($conn, "SELECT COUNT(*) AS count FROM internships i INNER JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND {$approvedStudentCondition}");
+$internshipsActive = a_count($conn, "SELECT COUNT(*) AS count FROM internships i INNER JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND i.status = 'ongoing' AND {$approvedStudentCondition}");
+$internshipsCompleted = a_count($conn, "SELECT COUNT(*) AS count FROM internships i INNER JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND i.status = 'completed' AND {$approvedStudentCondition}");
 
 $attendanceStatus = ['Pending' => 0, 'Approved' => 0, 'Rejected' => 0];
 foreach (a_rows($conn, "SELECT status, COUNT(*) AS count FROM attendances GROUP BY status") as $row) {
@@ -123,7 +141,7 @@ foreach (a_rows($conn, "SELECT status, COUNT(*) AS count FROM attendances GROUP 
 }
 
 $internshipStatus = ['Pending' => 0, 'Ongoing' => 0, 'Completed' => 0, 'Cancelled' => 0];
-foreach (a_rows($conn, "SELECT status, COUNT(*) AS count FROM internships WHERE deleted_at IS NULL GROUP BY status") as $row) {
+foreach (a_rows($conn, "SELECT i.status, COUNT(*) AS count FROM internships i INNER JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND {$approvedStudentCondition} GROUP BY i.status") as $row) {
     $status = strtolower(trim((string)($row['status'] ?? '')));
     if ($status === 'pending') $internshipStatus['Pending'] = (int)$row['count'];
     if ($status === 'ongoing') $internshipStatus['Ongoing'] = (int)$row['count'];
@@ -132,27 +150,27 @@ foreach (a_rows($conn, "SELECT status, COUNT(*) AS count FROM internships WHERE 
 }
 
 $internshipTypes = ['Internal' => 0, 'External' => 0];
-foreach (a_rows($conn, "SELECT type, COUNT(*) AS count FROM internships WHERE deleted_at IS NULL GROUP BY type") as $row) {
+foreach (a_rows($conn, "SELECT i.type, COUNT(*) AS count FROM internships i INNER JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND {$approvedStudentCondition} GROUP BY i.type") as $row) {
     $type = strtolower(trim((string)($row['type'] ?? '')));
     if ($type === 'internal') $internshipTypes['Internal'] = (int)$row['count'];
     if ($type === 'external') $internshipTypes['External'] = (int)$row['count'];
 }
 
-foreach (a_rows($conn, "SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym, COUNT(*) AS count FROM students WHERE deleted_at IS NULL AND created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH) GROUP BY ym") as $row) {
+foreach (a_rows($conn, "SELECT DATE_FORMAT(s.created_at, '%Y-%m') AS ym, COUNT(*) AS count FROM students s LEFT JOIN users u ON u.id = s.user_id WHERE s.deleted_at IS NULL AND s.created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH) AND {$approvedStudentCondition} GROUP BY ym") as $row) {
     if (isset($studentTrend[$row['ym']])) $studentTrend[$row['ym']] = (int)$row['count'];
 }
 foreach (a_rows($conn, "SELECT DATE_FORMAT(attendance_date, '%Y-%m') AS ym, COUNT(*) AS count FROM attendances WHERE attendance_date >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH) GROUP BY ym") as $row) {
     if (isset($attendanceTrend[$row['ym']])) $attendanceTrend[$row['ym']] = (int)$row['count'];
 }
-foreach (a_rows($conn, "SELECT DATE_FORMAT(created_at, '%Y-%m') AS ym, COUNT(*) AS count FROM internships WHERE deleted_at IS NULL AND created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH) GROUP BY ym") as $row) {
+foreach (a_rows($conn, "SELECT DATE_FORMAT(i.created_at, '%Y-%m') AS ym, COUNT(*) AS count FROM internships i INNER JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND i.created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH) AND {$approvedStudentCondition} GROUP BY ym") as $row) {
     if (isset($internshipTrend[$row['ym']])) $internshipTrend[$row['ym']] = (int)$row['count'];
 }
 foreach (a_rows($conn, "SELECT DATE(attendance_date) AS day_key, COUNT(*) AS count FROM attendances WHERE DATE(attendance_date) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) GROUP BY day_key") as $row) {
     if (isset($weekMap[$row['day_key']])) $weekMap[$row['day_key']] = (int)$row['count'];
 }
 
-$recentStudents = a_rows($conn, "SELECT student_id, first_name, last_name, biometric_registered FROM students WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 5");
-$recentInternships = a_rows($conn, "SELECT i.company_name, i.status, i.type, i.completion_percentage, s.first_name, s.last_name FROM internships i LEFT JOIN students s ON s.id = i.student_id WHERE i.deleted_at IS NULL ORDER BY i.updated_at DESC, i.created_at DESC LIMIT 5");
+$recentStudents = a_rows($conn, "SELECT s.student_id, s.first_name, s.last_name, s.biometric_registered FROM students s LEFT JOIN users u ON u.id = s.user_id WHERE s.deleted_at IS NULL AND {$approvedStudentCondition} ORDER BY s.created_at DESC LIMIT 5");
+$recentInternships = a_rows($conn, "SELECT i.company_name, i.status, i.type, i.completion_percentage, s.first_name, s.last_name FROM internships i LEFT JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND {$approvedStudentCondition} ORDER BY i.updated_at DESC, i.created_at DESC LIMIT 5");
 
 $attendanceApprovalRate = a_pct($attendanceStatus['Approved'], $attendanceTotal);
 $biometricCoverageRate = a_pct($studentsBiometric, $studentsTotal);

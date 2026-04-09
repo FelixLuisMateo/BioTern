@@ -411,7 +411,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 echo '<td><span class="text-muted fs-12" title="Biometric records are auto-verified">Auto</span></td>';
             }
             // build avatar (use uploaded profile picture when available)
-            $avatar_html = '<a href="students-view.php?id=' . $attendance['student_id'] . '" class="hstack gap-3">';
+            $avatar_html = '<a href="students-dtr.php?id=' . (int)$attendance['student_id'] . '" class="hstack gap-3">';
             $pp_url = resolve_attendance_profile_image_url((string)($attendance['profile_picture'] ?? ''));
             if ($pp_url !== null) {
                 $avatar_html .= '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid"></div>';
@@ -429,7 +429,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<td>' . attendance_hours_cell_html($attendance) . '</td>';
             echo '<td>' . attendance_status_cell_html($attendance) . '</td>';
             echo '<td>' . getSourceBadge($attendance['source'] ?? 'manual', $attendance) . '</td>';
-            echo '<td>' . getReviewBadge($attendance) . '</td>';
+            echo '<td>' . attendance_reports_cell_html($attendance) . '</td>';
             $student_name = trim((string)($attendance['first_name'] ?? '') . ' ' . (string)($attendance['last_name'] ?? ''));
             $approval_status_label = ucfirst((string)($attendance['status'] ?? 'pending'));
             $morning_in_text = $attendance['morning_time_in'] ? date('h:i A', strtotime($attendance['morning_time_in'])) : '-';
@@ -898,6 +898,24 @@ function getReviewBadge(array $attendance): string
     return getStatusBadge(strtolower(trim((string)($attendance['status'] ?? 'pending'))));
 }
 
+function attendance_reports_cell_html(array $attendance): string
+{
+    $studentId = (int)($attendance['student_id'] ?? 0);
+    $attendanceId = (int)($attendance['id'] ?? 0);
+
+    if ($studentId <= 0 || $attendanceId <= 0) {
+        return '<span class="text-muted">N/A</span>';
+    }
+
+    $dtrUrl = 'students-dtr.php?id=' . $studentId;
+    $printUrl = 'print_attendance.php?id=' . $attendanceId;
+
+    return '<div class="d-flex flex-wrap gap-1">'
+        . '<a class="badge bg-soft-primary text-primary" href="' . htmlspecialchars($dtrUrl, ENT_QUOTES, 'UTF-8') . '">DTR</a>'
+        . '<a class="badge bg-soft-secondary text-secondary" href="' . htmlspecialchars($printUrl, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener">Print</a>'
+        . '</div>';
+}
+
 function attendanceCanReview(array $attendance): bool
 {
     return !attendanceIsBiometricRecord($attendance);
@@ -1009,19 +1027,6 @@ include 'includes/header.php';
                                     <span>Quick Filter</span>
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end">
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="today">
-                                        <i class="feather-calendar me-3"></i>
-                                        <span>Today</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="week">
-                                        <i class="feather-calendar me-3"></i>
-                                        <span>This Week</span>
-                                    </a>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="period" data-value="month">
-                                        <i class="feather-calendar me-3"></i>
-                                        <span>This Month</span>
-                                    </a>
-                                    <div class="dropdown-divider"></div>
                                     <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="approved">
                                         <i class="feather-check-circle me-3"></i>
                                         <span>Approved</span>
@@ -1370,7 +1375,7 @@ echo $stats['total_count'] ?? 0; ?></span>
                                                 <th>Total Hours</th>
                                                 <th>Status</th>
                                                 <th>Source</th>
-                                                <th>Review</th>
+                                                <th>Reports</th>
                                                 <th class="text-end">Actions</th>
                                             </tr>
                                         </thead>
@@ -1398,7 +1403,7 @@ echo (int)$index; ?>"></label>
                                                             <?php endif; ?>
                                                         </td>
                                                         <td>
-                                                            <a href="students-view.php?id=<?php
+                                                            <a href="students-dtr.php?id=<?php
 echo $attendance['student_id']; ?>" class="hstack gap-3">
                                                                 <?php
 $pp = $attendance['profile_picture'] ?? '';
@@ -1439,7 +1444,7 @@ echo attendance_status_cell_html($attendance);
                                                         <td><?php
 echo getSourceBadge($attendance['source'] ?? 'manual', $attendance); ?></td>
                                                         <td><?php
-echo getReviewBadge($attendance); ?></td>
+echo attendance_reports_cell_html($attendance); ?></td>
                                                         <td>
                                                             <?php echo attendanceActionMenuItems($attendance); ?>
                                                         </td>
@@ -1506,7 +1511,7 @@ endif; ?>
                         <div class="col-md-3"><small class="text-muted d-block">Afternoon Out</small><strong id="view_afternoon_out">-</strong></div>
                         <div class="col-md-4"><small class="text-muted d-block">Total Hours</small><strong id="view_total_hours">-</strong></div>
                         <div class="col-md-4"><small class="text-muted d-block">Attendance Status</small><strong id="view_attendance_status">-</strong></div>
-                        <div class="col-md-4"><small class="text-muted d-block">Approval Status</small><strong id="view_approval_status">-</strong></div>
+                        <div class="col-md-4"><small class="text-muted d-block">Record Status</small><strong id="view_approval_status">-</strong></div>
                     </div>
                 </div>
                 <div class="modal-footer">

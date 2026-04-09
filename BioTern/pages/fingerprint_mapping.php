@@ -350,6 +350,32 @@ $orphanMappings = array_values(array_filter($studentMappings, static function (a
 }));
 
 $detectedFingerprints = [];
+$extractFingerId = static function (array $entry): int {
+    $candidates = [
+        $entry['finger_id'] ?? null,
+        $entry['fingerId'] ?? null,
+        $entry['id'] ?? null,
+        $entry['user_id'] ?? null,
+        $entry['userId'] ?? null,
+        $entry['uid'] ?? null,
+        $entry['enroll_number'] ?? null,
+        $entry['enrollNumber'] ?? null,
+        $entry['EnrollNumber'] ?? null,
+    ];
+
+    foreach ($candidates as $candidate) {
+        if ($candidate === null) {
+            continue;
+        }
+        $parsed = (int)trim((string)$candidate);
+        if ($parsed > 0) {
+            return $parsed;
+        }
+    }
+
+    return 0;
+};
+
 $rawLogRes = $conn->query('SELECT raw_data FROM biometric_raw_logs ORDER BY id DESC');
 if ($rawLogRes instanceof mysqli_result) {
     while ($row = $rawLogRes->fetch_assoc()) {
@@ -358,7 +384,11 @@ if ($rawLogRes instanceof mysqli_result) {
             continue;
         }
 
-        $fingerId = isset($entry['finger_id']) ? (int)$entry['finger_id'] : (isset($entry['id']) ? (int)$entry['id'] : 0);
+        if (isset($entry['data']) && is_array($entry['data'])) {
+            $entry = $entry['data'];
+        }
+
+        $fingerId = $extractFingerId($entry);
         $timeValue = trim((string)($entry['time'] ?? ''));
         if ($fingerId <= 0) {
             continue;

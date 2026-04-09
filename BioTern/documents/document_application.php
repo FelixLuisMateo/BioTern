@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/document_access.php';
 
 $prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
@@ -9,10 +10,14 @@ if (isset($_GET['action'])) {
 
     if ($action === 'search_students') {
         $term = isset($_GET['q']) ? $conn->real_escape_string((string)$_GET['q']) : '';
+        $gateWhere = documents_students_search_gate_sql($conn, 's');
         $sql = "SELECT id, first_name, middle_name, last_name, student_id
-                FROM students
-                WHERE CONCAT(first_name,' ',middle_name,' ',last_name) LIKE '%" . $term . "%'
-                   OR student_id LIKE '%" . $term . "%'
+            FROM students s
+            WHERE (
+                CONCAT(first_name,' ',middle_name,' ',last_name) LIKE '%" . $term . "%'
+                OR student_id LIKE '%" . $term . "%'
+            )
+              AND {$gateWhere}
                 ORDER BY first_name
                 LIMIT 50";
         $res = $conn->query($sql);
@@ -32,6 +37,11 @@ if (isset($_GET['action'])) {
 
     if ($action === 'get_student' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
+        $access = documents_student_can_generate($conn, $id);
+        if (empty($access['allowed'])) {
+            echo json_encode(['access_denied' => true, 'message' => (string)($access['reason'] ?? 'Document access denied.')]);
+            exit;
+        }
         $stmt = $conn->prepare("SELECT s.*, c.name AS course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1");
         if ($stmt) {
             $stmt->bind_param('i', $id);
@@ -48,6 +58,11 @@ if (isset($_GET['action'])) {
 
     if ($action === 'get_application_letter' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
+        $access = documents_student_can_generate($conn, $id);
+        if (empty($access['allowed'])) {
+            echo json_encode(['access_denied' => true, 'message' => (string)($access['reason'] ?? 'Document access denied.')]);
+            exit;
+        }
         $exists = $conn->query("SHOW TABLES LIKE 'application_letter'");
         if (!$exists instanceof mysqli_result || $exists->num_rows === 0) {
             echo json_encode(new stdClass());

@@ -180,7 +180,7 @@
                 submitAttendanceFilters();
             });
 
-            // Header quick-filters (Today / This Week / This Month / status)
+            // Header quick-filters (status)
             // Use delegated binding so dynamically shown menu items are caught
             $(document).on('click', '.attendance-filter', function(e) {
                 e.preventDefault();

@@ -42,6 +42,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
                     'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-attendance-exceptions.php',
                     'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php',
+                        'reports-disciplinary-acts.php', 'reports-dtr-manual-input.php',
                 ],
                 'sections' => [
                     [
@@ -85,6 +86,8 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Chat Logs', 'href' => 'reports-chat-logs.php', 'icon' => 'feather-message-circle'],
                             ['label' => 'Reported Chats', 'href' => 'reports-chat-reports.php', 'icon' => 'feather-flag'],
                             ['label' => 'Login Logs', 'href' => 'reports-login-logs.php', 'icon' => 'feather-log-in'],
+                                ['label' => 'Disciplinary Acts', 'href' => 'reports-disciplinary-acts.php', 'icon' => 'feather-alert-triangle'],
+                                ['label' => 'Manual DTR Input', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit'],
                         ],
                     ],
                 ],

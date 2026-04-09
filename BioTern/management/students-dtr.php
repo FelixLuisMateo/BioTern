@@ -8,14 +8,17 @@ if ($student_id <= 0) {
     exit;
 }
 
+$month_invalid = false;
 $month_input = isset($_GET['month']) ? trim((string)$_GET['month']) : date('Y-m');
 if (!preg_match('/^\d{4}-\d{2}$/', $month_input)) {
+    $month_invalid = true;
     $month_input = date('Y-m');
 }
 
 $month_start = $month_input . '-01';
 $month_ts = strtotime($month_start);
 if ($month_ts === false) {
+    $month_invalid = true;
     $month_input = date('Y-m');
     $month_start = $month_input . '-01';
     $month_ts = strtotime($month_start);
@@ -74,6 +77,9 @@ $att_stmt->close();
 $present_days = count($records_by_day);
 $month_label = date('F Y', $month_ts);
 $student_name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
+if ($student_name === '') {
+    $student_name = 'Student #' . (string)($student['student_id'] ?? $student_id);
+}
 $assignment_track = strtolower((string)($student['assignment_track'] ?? 'internal'));
 $total_hours_target = $assignment_track === 'external'
     ? (float)($student['external_total_hours'] ?? 0)
@@ -128,6 +134,9 @@ include 'includes/header.php';
 </div>
 
 <div class="main-content">
+    <?php if ($month_invalid): ?>
+        <div class="alert alert-info py-2">Invalid month format detected. Showing current month instead.</div>
+    <?php endif; ?>
     <div class="card stretch stretch-full mb-3">
         <div class="card-body">
             <div class="toolbar app-students-dtr-toolbar">

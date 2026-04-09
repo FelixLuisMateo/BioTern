@@ -156,6 +156,341 @@ function students_excel_index_columns(mysqli $mysqli, string $table, string $key
     return array_values(array_filter($columns, static fn(string $value): bool => $value !== ''));
 }
 
+function students_excel_table_exists(mysqli $mysqli, string $table): bool
+{
+    $safeTable = $mysqli->real_escape_string($table);
+    $res = $mysqli->query("SHOW TABLES LIKE '{$safeTable}'");
+    return $res instanceof mysqli_result && $res->num_rows > 0;
+}
+
+function students_excel_columns(mysqli $mysqli, string $table): array
+{
+    $safeTable = str_replace('`', '``', $table);
+    $res = $mysqli->query("SHOW COLUMNS FROM `{$safeTable}`");
+    if (!$res instanceof mysqli_result) {
+        return [];
+    }
+    $columns = [];
+    while ($row = $res->fetch_assoc()) {
+        $name = trim((string)($row['Field'] ?? ''));
+        if ($name !== '') {
+            $columns[] = $name;
+        }
+    }
+    $res->close();
+    return $columns;
+}
+
+function students_excel_internship_status(string $raw): string
+{
+    $status = strtolower(trim($raw));
+    if (in_array($status, ['ongoing', 'completed', 'dropped', 'cancelled', 'pending'], true)) {
+        return $status;
+    }
+    if ($status === 'active') {
+        return 'ongoing';
+    }
+    if ($status === 'done') {
+        return 'completed';
+    }
+    return 'ongoing';
+}
+
+function students_excel_student_lookup_keys(array $student): array
+{
+    $firstName = trim((string)($student['first_name'] ?? ''));
+    $middleName = trim((string)($student['middle_name'] ?? ''));
+    $lastName = trim((string)($student['last_name'] ?? ''));
+    $keys = [];
+
+    $variants = [
+        trim($firstName . ' ' . $lastName),
+        trim($firstName . ' ' . $middleName . ' ' . $lastName),
+        trim($lastName . ' ' . $firstName),
+        trim($lastName . ' ' . $firstName . ' ' . $middleName),
+        trim($lastName . ', ' . $firstName),
+        trim($lastName . ', ' . $firstName . ' ' . $middleName),
+    ];
+
+    foreach ($variants as $variant) {
+        $key = students_excel_lookup_key($variant);
+        if ($key !== '') {
+            $keys[$key] = true;
+        }
+    }
+
+    return array_keys($keys);
+}
+
+function students_excel_sync_internship_from_masterlist(mysqli $mysqli, array $studentRow, array $masterlistRow, array &$summary): bool
+{
+    if (!students_excel_table_exists($mysqli, 'internships')) {
+        return false;
+    }
+
+    $studentId = (int)($studentRow['id'] ?? 0);
+    if ($studentId <= 0) {
+        return false;
+    }
+
+    $studentTrack = strtolower(trim((string)($studentRow['assignment_track'] ?? 'internal')));
+    if (!in_array($studentTrack, ['internal', 'external'], true)) {
+        $studentTrack = 'internal';
+    }
+    $requiredHours = $studentTrack === 'external'
+        ? (int)($studentRow['external_total_hours'] ?? 250)
+        : (int)($studentRow['internal_total_hours'] ?? 140);
+    if ($requiredHours < 0) {
+        $requiredHours = 0;
+    }
+
+    $companyName = trim((string)($masterlistRow['company_name'] ?? ''));
+    $supervisorName = trim((string)($masterlistRow['supervisor_name'] ?? ''));
+    $positionName = trim((string)($masterlistRow['supervisor_position'] ?? ''));
+    $status = students_excel_internship_status((string)($masterlistRow['status'] ?? 'ongoing'));
+    $schoolYear = trim((string)($masterlistRow['school_year'] ?? ''));
+    $semester = trim((string)($masterlistRow['semester'] ?? ''));
+
+    $internCols = students_excel_columns($mysqli, 'internships');
+    if ($internCols === []) {
+        return false;
+    }
+
+    $existingStmt = $mysqli->prepare('SELECT * FROM internships WHERE student_id = ? ORDER BY id DESC LIMIT 1');
+    if (!$existingStmt) {
+        return false;
+    }
+    $existingStmt->bind_param('i', $studentId);
+    $existingStmt->execute();
+    $existing = $existingStmt->get_result()->fetch_assoc();
+    $existingStmt->close();
+
+    if ($existing) {
+        $updates = [];
+        $types = '';
+        $values = [];
+
+        if (in_array('type', $internCols, true) && (string)($existing['type'] ?? '') !== $studentTrack) {
+            $updates[] = 'type = ?';
+            $types .= 's';
+            $values[] = $studentTrack;
+        }
+        if (in_array('required_hours', $internCols, true) && (int)($existing['required_hours'] ?? 0) <= 0 && $requiredHours > 0) {
+            $updates[] = 'required_hours = ?';
+            $types .= 'i';
+            $values[] = $requiredHours;
+        }
+        if (in_array('school_year', $internCols, true) && trim((string)($existing['school_year'] ?? '')) === '' && $schoolYear !== '') {
+            $updates[] = 'school_year = ?';
+            $types .= 's';
+            $values[] = $schoolYear;
+        }
+        if (in_array('semester', $internCols, true) && trim((string)($existing['semester'] ?? '')) === '' && $semester !== '') {
+            $updates[] = 'semester = ?';
+            $types .= 's';
+            $values[] = $semester;
+        }
+        if (in_array('company_name', $internCols, true) && trim((string)($existing['company_name'] ?? '')) === '' && $companyName !== '') {
+            $updates[] = 'company_name = ?';
+            $types .= 's';
+            $values[] = $companyName;
+        }
+        if (in_array('supervisor_name', $internCols, true) && trim((string)($existing['supervisor_name'] ?? '')) === '' && $supervisorName !== '') {
+            $updates[] = 'supervisor_name = ?';
+            $types .= 's';
+            $values[] = $supervisorName;
+        }
+        if (in_array('position', $internCols, true) && trim((string)($existing['position'] ?? '')) === '' && $positionName !== '') {
+            $updates[] = 'position = ?';
+            $types .= 's';
+            $values[] = $positionName;
+        }
+        if (in_array('status', $internCols, true)) {
+            $currentStatus = strtolower(trim((string)($existing['status'] ?? '')));
+            if (($currentStatus === '' || $currentStatus === 'pending') && $status !== '') {
+                $updates[] = 'status = ?';
+                $types .= 's';
+                $values[] = $status;
+            }
+        }
+
+        if ($updates !== []) {
+            if (in_array('updated_at', $internCols, true)) {
+                $updates[] = 'updated_at = NOW()';
+            }
+            $sql = 'UPDATE internships SET ' . implode(', ', $updates) . ' WHERE id = ?';
+            $types .= 'i';
+            $values[] = (int)$existing['id'];
+            $stmt = $mysqli->prepare($sql);
+            if (!$stmt) {
+                return false;
+            }
+            students_excel_bind_dynamic($stmt, $types, $values);
+            $ok = $stmt->execute();
+            $stmt->close();
+            if ($ok) {
+                $summary['internships_synced'] = (int)($summary['internships_synced'] ?? 0) + 1;
+            }
+            return (bool)$ok;
+        }
+
+        return true;
+    }
+
+    $insertCols = ['student_id'];
+    $insertVals = [$studentId];
+    $insertTypes = 'i';
+    if (in_array('status', $internCols, true)) {
+        $insertCols[] = 'status';
+        $insertVals[] = $status;
+        $insertTypes .= 's';
+    }
+    if (in_array('type', $internCols, true)) {
+        $insertCols[] = 'type';
+        $insertVals[] = $studentTrack;
+        $insertTypes .= 's';
+    }
+    if (in_array('required_hours', $internCols, true)) {
+        $insertCols[] = 'required_hours';
+        $insertVals[] = $requiredHours;
+        $insertTypes .= 'i';
+    }
+    if (in_array('school_year', $internCols, true) && $schoolYear !== '') {
+        $insertCols[] = 'school_year';
+        $insertVals[] = $schoolYear;
+        $insertTypes .= 's';
+    }
+    if (in_array('semester', $internCols, true) && $semester !== '') {
+        $insertCols[] = 'semester';
+        $insertVals[] = $semester;
+        $insertTypes .= 's';
+    }
+    if (in_array('company_name', $internCols, true) && $companyName !== '') {
+        $insertCols[] = 'company_name';
+        $insertVals[] = $companyName;
+        $insertTypes .= 's';
+    }
+    if (in_array('supervisor_name', $internCols, true) && $supervisorName !== '') {
+        $insertCols[] = 'supervisor_name';
+        $insertVals[] = $supervisorName;
+        $insertTypes .= 's';
+    }
+    if (in_array('position', $internCols, true) && $positionName !== '') {
+        $insertCols[] = 'position';
+        $insertVals[] = $positionName;
+        $insertTypes .= 's';
+    }
+    if (in_array('created_at', $internCols, true)) {
+        $insertCols[] = 'created_at';
+    }
+    if (in_array('updated_at', $internCols, true)) {
+        $insertCols[] = 'updated_at';
+    }
+
+    $placeholders = [];
+    foreach ($insertCols as $colName) {
+        if ($colName === 'created_at' || $colName === 'updated_at') {
+            $placeholders[] = 'NOW()';
+        } else {
+            $placeholders[] = '?';
+        }
+    }
+
+    $sql = 'INSERT INTO internships (' . implode(', ', $insertCols) . ') VALUES (' . implode(', ', $placeholders) . ')';
+    $stmt = $mysqli->prepare($sql);
+    if (!$stmt) {
+        return false;
+    }
+    students_excel_bind_dynamic($stmt, $insertTypes, $insertVals);
+    $ok = $stmt->execute();
+    $stmt->close();
+
+    if ($ok) {
+        $summary['internships_created'] = (int)($summary['internships_created'] ?? 0) + 1;
+    }
+    return (bool)$ok;
+}
+
+function students_excel_sync_masterlist_to_internships(mysqli $mysqli, string $schoolYear, string $semester, array &$summary, array &$errors): void
+{
+    if (!students_excel_table_exists($mysqli, 'ojt_masterlist') || !students_excel_table_exists($mysqli, 'students')) {
+        return;
+    }
+
+    $students = [];
+    $studentSql = "SELECT s.id, s.first_name, s.middle_name, s.last_name, s.assignment_track, s.internal_total_hours, s.external_total_hours,
+            COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '') AS section_name
+        FROM students s
+        LEFT JOIN sections sec ON sec.id = s.section_id";
+    $studentRes = $mysqli->query($studentSql);
+    if ($studentRes instanceof mysqli_result) {
+        while ($row = $studentRes->fetch_assoc()) {
+            $students[] = $row;
+        }
+        $studentRes->close();
+    }
+    if ($students === []) {
+        return;
+    }
+
+    $studentMap = [];
+    foreach ($students as $student) {
+        foreach (students_excel_student_lookup_keys($student) as $key) {
+            $studentMap[$key][] = $student;
+        }
+    }
+
+    $masterSql = "SELECT school_year, semester, student_lookup_key, section, company_name, supervisor_name, supervisor_position, status
+        FROM ojt_masterlist
+        WHERE school_year = ?";
+    $types = 's';
+    $params = [$schoolYear];
+    if ($semester !== '') {
+        $masterSql .= ' AND semester = ?';
+        $types .= 's';
+        $params[] = $semester;
+    }
+    $masterSql .= ' ORDER BY id ASC';
+
+    $stmt = $mysqli->prepare($masterSql);
+    if (!$stmt) {
+        $errors[] = 'Unable to prepare masterlist-to-internship sync query.';
+        return;
+    }
+    students_excel_bind_dynamic($stmt, $types, $params);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        $lookupKey = trim((string)($row['student_lookup_key'] ?? ''));
+        if ($lookupKey === '' || empty($studentMap[$lookupKey])) {
+            continue;
+        }
+
+        $masterSectionKey = students_excel_lookup_key((string)($row['section'] ?? ''));
+        $candidates = $studentMap[$lookupKey];
+        $picked = null;
+        foreach ($candidates as $candidate) {
+            $sectionKey = students_excel_lookup_key((string)($candidate['section_name'] ?? ''));
+            if ($masterSectionKey !== '' && $sectionKey !== '' && $masterSectionKey === $sectionKey) {
+                $picked = $candidate;
+                break;
+            }
+            if ($picked === null) {
+                $picked = $candidate;
+            }
+        }
+
+        if ($picked === null) {
+            continue;
+        }
+
+        if (!students_excel_sync_internship_from_masterlist($mysqli, $picked, $row, $summary)) {
+            $errors[] = 'Unable to sync internship for masterlist student key: ' . $lookupKey;
+        }
+    }
+    $stmt->close();
+}
+
 function students_excel_password(string $password): string
 {
     $password = trim($password);
@@ -168,6 +503,20 @@ function students_excel_password(string $password): string
     }
     $hashed = password_hash($password, PASSWORD_DEFAULT);
     return $hashed !== false ? $hashed : $password;
+}
+
+function students_excel_bind_dynamic(mysqli_stmt $stmt, string $types, array &$values): bool
+{
+    if ($types === '') {
+        return true;
+    }
+
+    $bind = [$types];
+    foreach ($values as $idx => &$value) {
+        $bind[] = &$value;
+    }
+
+    return call_user_func_array([$stmt, 'bind_param'], $bind);
 }
 
 function students_excel_username(string $firstName, string $lastName, string $email): string
@@ -1079,7 +1428,13 @@ function students_excel_import_workbook(mysqli $mysqli, string $path, string $so
     }
 
     if (!empty($masterlistRows)) {
-        $summary = ['masterlist_rows_replaced' => 0, 'masterlist_rows_upserted' => 0, 'masterlist_rows_linked_to_company' => 0];
+        $summary = [
+            'masterlist_rows_replaced' => 0,
+            'masterlist_rows_upserted' => 0,
+            'masterlist_rows_linked_to_company' => 0,
+            'internships_created' => 0,
+            'internships_synced' => 0,
+        ];
         $schoolYear = students_excel_infer_school_year($sourceWorkbook);
         $semester = students_excel_normalize_semester($semesterOverride);
         if ($semester === '') {
@@ -1092,7 +1447,9 @@ function students_excel_import_workbook(mysqli $mysqli, string $path, string $so
             $semester = 'Unspecified';
         }
         students_excel_import_masterlist($mysqli, $masterlistSheetKey, $masterlistRows, $schoolYear, $semester, $sourceWorkbook, $summary, $errors);
+        students_excel_sync_masterlist_to_internships($mysqli, $schoolYear, $semester, $summary, $errors);
         $message = 'Masterlist import finished for ' . $schoolYear . ' / ' . $semester . '. Previous rows replaced: ' . $summary['masterlist_rows_replaced'] . '. New rows saved: ' . $summary['masterlist_rows_upserted'] . '. Linked to company records: ' . $summary['masterlist_rows_linked_to_company'] . '.';
+        $message .= ' Internship records created: ' . (int)($summary['internships_created'] ?? 0) . '. Internship records synced: ' . (int)($summary['internships_synced'] ?? 0) . '.';
         if (!empty($errors)) {
             $message .= ' Some rows need review.';
         }
@@ -1104,7 +1461,14 @@ function students_excel_import_workbook(mysqli $mysqli, string $path, string $so
         return false;
     }
 
-    $summary = ['users_upserted' => 0, 'students_upserted' => 0, 'documents_inserted' => 0, 'documents_updated' => 0];
+    $summary = [
+        'users_upserted' => 0,
+        'students_upserted' => 0,
+        'documents_inserted' => 0,
+        'documents_updated' => 0,
+        'internships_created' => 0,
+        'internships_synced' => 0,
+    ];
     foreach ($studentsRows as $index => $row) {
         $rowError = '';
         $userId = students_excel_upsert_user($mysqli, $row, $rowError);
@@ -1120,6 +1484,41 @@ function students_excel_import_workbook(mysqli $mysqli, string $path, string $so
             continue;
         }
         $summary['students_upserted']++;
+
+        $studentStmt = $mysqli->prepare("SELECT s.id, s.first_name, s.middle_name, s.last_name, s.assignment_track, s.internal_total_hours, s.external_total_hours,
+                COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '') AS section_name
+            FROM students s
+            LEFT JOIN sections sec ON sec.id = s.section_id
+            WHERE s.id = ? LIMIT 1");
+        if ($studentStmt) {
+            $studentStmt->bind_param('i', $studentPk);
+            $studentStmt->execute();
+            $studentRow = $studentStmt->get_result()->fetch_assoc();
+            $studentStmt->close();
+
+            if (is_array($studentRow) && students_excel_table_exists($mysqli, 'ojt_masterlist')) {
+                $candidateKeys = students_excel_student_lookup_keys($studentRow);
+                if ($candidateKeys !== []) {
+                    $in = implode(',', array_fill(0, count($candidateKeys), '?'));
+                    $masterSql = "SELECT school_year, semester, student_lookup_key, section, company_name, supervisor_name, supervisor_position, status
+                        FROM ojt_masterlist
+                        WHERE student_lookup_key IN ({$in})
+                        ORDER BY updated_at DESC, id DESC
+                        LIMIT 1";
+                    $masterStmt = $mysqli->prepare($masterSql);
+                    if ($masterStmt) {
+                        $masterTypes = str_repeat('s', count($candidateKeys));
+                        students_excel_bind_dynamic($masterStmt, $masterTypes, $candidateKeys);
+                        $masterStmt->execute();
+                        $masterRow = $masterStmt->get_result()->fetch_assoc();
+                        $masterStmt->close();
+                        if (is_array($masterRow) && !students_excel_sync_internship_from_masterlist($mysqli, $studentRow, $masterRow, $summary)) {
+                            $errors[] = 'Students row ' . ($index + 2) . ': unable to sync internship from matching masterlist row.';
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (!empty($documentsRows)) {
@@ -1127,6 +1526,7 @@ function students_excel_import_workbook(mysqli $mysqli, string $path, string $so
     }
 
     $message = 'Excel import finished. Users upserted: ' . $summary['users_upserted'] . '. Students upserted: ' . $summary['students_upserted'] . '.';
+    $message .= ' Internship records created: ' . (int)($summary['internships_created'] ?? 0) . '. Internship records synced: ' . (int)($summary['internships_synced'] ?? 0) . '.';
     if (!empty($documentsRows)) {
         $message .= ' Documents inserted: ' . $summary['documents_inserted'] . '. Documents updated: ' . $summary['documents_updated'] . '.';
     }
@@ -1415,7 +1815,7 @@ include dirname(__DIR__) . '/includes/header.php';
                 <div class="card excel-import-card"><div class="card-body p-4 p-md-5"><div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3"><div><span class="excel-import-badge">Import Workbook</span><h4 class="mt-3 mb-2">Teacher masterlist or Students/Documents workbook</h4><p class="text-muted mb-0">Upload the teacher masterlist with columns like <code>STUDENT NAME</code>, <code>COMPANY</code>, <code>SUPERVISOR NAME</code>, and <code>STATUS</code>, or use the older <code>Students</code> plus optional <code>Documents</code> workbook.</p></div><a href="import-sql.php" class="btn btn-light">Back to SQL Tools</a></div><form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>"><div class="mb-3"><label for="excel_file" class="form-label fw-semibold">Upload Excel workbook</label><input class="form-control" type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"><div class="form-text">The teacher file can be a single-sheet workbook. The older import still accepts <code>Students</code> and optional <code>Documents</code>.</div></div><div class="mb-3"><label for="school_year_override" class="form-label fw-semibold">School year override</label><input class="form-control" type="text" id="school_year_override" name="school_year_override" placeholder="e.g. 2025-2026 or 25-26"><div class="form-text">Leave blank to infer from the filename. Use this if the file name does not clearly include the school year.</div></div><div class="mb-3"><label for="semester_override" class="form-label fw-semibold">Semester override</label><select class="form-select" id="semester_override" name="semester_override"><option value="">Infer from file or sheet</option><option value="1st Semester">1st Semester</option><option value="2nd Semester">2nd Semester</option><option value="Summer">Summer</option></select><div class="form-text">Use this when the uploaded masterlist belongs to a specific semester. Imports now refresh by school year and semester together.</div></div><div class="d-flex flex-wrap gap-2"><button type="submit" class="btn btn-primary">Import Excel Database</button><a href="students-edit.php" class="btn btn-outline-primary">Review Students</a></div></form></div></div>
             </div>
             <div class="col-lg-4">
-                <div class="card excel-import-card mb-4"><div class="card-body"><span class="excel-import-badge">Workbook Rules</span><div class="excel-import-step mt-3"><h6>Teacher masterlist supported</h6><p class="text-muted mb-0">Single-sheet masterlists are imported into centralized tables <code>ojt_masterlist</code> and <code>ojt_partner_companies</code>. They do not create rows in <code>students</code>. This data is used to prefill <code>ojt.php</code> and <code>ojt-view.php</code> once a real student account already exists and can be matched.</p></div><div class="excel-import-step mt-3"><h6>Older student workbook still works</h6><p class="text-muted mb-0">For direct account/student imports, use <code>Students</code> and optional <code>Documents</code> with the original columns. That workbook is the one that writes into <code>students.php</code>.</p></div></div></div>
+                <div class="card excel-import-card mb-4"><div class="card-body"><span class="excel-import-badge">Workbook Rules</span><div class="excel-import-step mt-3"><h6>Teacher masterlist supported</h6><p class="text-muted mb-0">Single-sheet masterlists are imported into centralized tables <code>ojt_masterlist</code> and <code>ojt_partner_companies</code>. They do not create rows in <code>students</code>, but now automatically create/sync <code>internships</code> records when a matching student account already exists.</p></div><div class="excel-import-step mt-3"><h6>Older student workbook still works</h6><p class="text-muted mb-0">For direct account/student imports, use <code>Students</code> and optional <code>Documents</code> with the original columns. Student imports now also attempt to sync a matching masterlist row into <code>internships</code>.</p></div></div></div>
                 <div class="card excel-import-card"><div class="card-body"><span class="excel-import-badge">Localhost Review</span><h5 class="mt-3 mb-2">Open this on localhost</h5><p class="text-muted mb-2">Review this tool locally before pushing changes.</p><div class="small"><div><code>http://localhost/BioTern/BioTern/import-students-excel.php</code></div></div></div></div>
             </div>
         </div>
