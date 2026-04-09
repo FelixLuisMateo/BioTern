@@ -117,6 +117,29 @@ function formatDisplayDateTime($rawValue)
     return date('M d, Y h:i A', $timestamp);
 }
 
+function formatGenderLabel($rawValue): string
+{
+    $value = strtolower(trim((string)$rawValue));
+    if ($value === '') {
+        return '-';
+    }
+
+    if (in_array($value, ['m', 'male'], true)) {
+        return 'Male';
+    }
+    if (in_array($value, ['f', 'female'], true)) {
+        return 'Female';
+    }
+    if (in_array($value, ['n', 'nb', 'nonbinary', 'non-binary'], true)) {
+        return 'Non-binary';
+    }
+    if (in_array($value, ['prefer not to say', 'prefer_not_to_say', 'na', 'n/a'], true)) {
+        return 'Prefer not to say';
+    }
+
+    return ucwords(str_replace(['_', '-'], ' ', $value));
+}
+
 function ensureApplicationsStagingTable(mysqli $conn)
 {
     $ok = $conn->query("CREATE TABLE IF NOT EXISTS student_applications (
@@ -578,7 +601,7 @@ $sql = "
         COALESCE(s.address, sa.address) AS address,
         COALESCE(s.phone, sa.phone) AS phone,
         COALESCE(s.date_of_birth, sa.date_of_birth) AS date_of_birth,
-        COALESCE(s.gender, sa.gender) AS gender,
+        COALESCE(NULLIF(TRIM(s.gender), ''), NULLIF(TRIM(sa.gender), '')) AS gender,
         COALESCE(s.emergency_contact, sa.emergency_contact) AS emergency_contact,
         COALESCE(s.emergency_contact_phone, sa.emergency_contact_phone) AS emergency_contact_phone,
         COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
@@ -805,7 +828,7 @@ include 'includes/header.php';
                                             $addressLabel = $addressValue !== '' ? $addressValue : '-';
                                             $phoneLabel = $phoneValue !== '' ? $phoneValue : '-';
                                             $dateOfBirthLabel = $dateOfBirthValue !== '' ? $dateOfBirthValue : '-';
-                                            $genderLabel = $genderValue !== '' ? ucfirst(strtolower($genderValue)) : '-';
+                                            $genderLabel = formatGenderLabel($genderValue);
                                             $emergencyContactLabel = $emergencyContactNameOnly !== '' ? $emergencyContactNameOnly : '-';
                                             $emergencyContactPhoneLabel = $emergencyContactPhoneValue !== '' ? $emergencyContactPhoneValue : '-';
 

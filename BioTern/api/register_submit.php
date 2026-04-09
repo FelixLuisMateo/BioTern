@@ -49,6 +49,22 @@ function parseStudentDateOfBirthToSql(?string $rawDate): ?string {
     return null;
 }
 
+function normalizeStudentGender(?string $rawValue): ?string {
+    $value = strtolower(trim((string)$rawValue));
+    if ($value === '') {
+        return null;
+    }
+
+    if (in_array($value, ['m', 'male'], true)) {
+        return 'male';
+    }
+    if (in_array($value, ['f', 'female'], true)) {
+        return 'female';
+    }
+
+    return null;
+}
+
 function calculateAgeFromSqlDate(string $dateValue): int {
     try {
         $dob = new DateTime($dateValue);
@@ -506,7 +522,7 @@ if ($role === 'student') {
     // New fields - now accepting IDs
     $phone = getPost('phone');
     $date_of_birth_raw = getPost('date_of_birth');
-    $gender = getPost('gender');
+    $gender = normalizeStudentGender(getPost('gender'));
     $supervisor_id = getPost('supervisor_id') ? (int)getPost('supervisor_id') : null;
     $coordinator_id = getPost('coordinator_id') ? (int)getPost('coordinator_id') : null;
     if ($supervisor_id !== null && $supervisor_id <= 0) {
@@ -539,6 +555,9 @@ if ($role === 'student') {
     $age = calculateAgeFromSqlDate($date_of_birth);
     if ($age < 17) {
         studentApplicationRedirect('error', 'Student applicants must be at least 17 years old.');
+    }
+    if ($gender === null) {
+        studentApplicationRedirect('error', 'Please select a valid gender.');
     }
 
     // Use account_email if provided, otherwise use email
@@ -899,7 +918,7 @@ if ($role === 'student') {
     $supervisorIdForApp = !empty($supervisor_id) ? (int)$supervisor_id : 0;
     $coordinatorIdForApp = !empty($coordinator_id) ? (int)$coordinator_id : 0;
     $stageStmt->bind_param(
-        'isssssssiiisssssssisisiiisss',
+        'isssssssiiissssssssisisiisss',
         $user_id,
         $username,
         $final_email,
