@@ -18,12 +18,13 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
             'key' => 'home',
             'label' => 'Home',
             'icon' => 'feather-home',
-            'routes' => ['homepage.php'],
+            'routes' => ['homepage.php', 'analytics.php'],
             'sections' => [
                 [
                     'title' => 'Dashboard',
                     'items' => [
                         ['label' => 'Overview', 'href' => 'homepage.php', 'icon' => 'feather-grid'],
+                        ['label' => 'Analytics', 'href' => 'analytics.php', 'icon' => 'feather-bar-chart-2'],
                     ],
                 ],
             ],
@@ -49,10 +50,9 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Students List', 'href' => 'students.php', 'icon' => 'feather-users'],
                             ['label' => 'Applications Review', 'href' => 'applications-review.php', 'icon' => 'feather-clipboard'],
                             ['label' => 'Attendance DTR', 'href' => 'attendance.php', 'icon' => 'feather-clock'],
-                            ['label' => 'Attendance Corrections', 'href' => 'attendance-corrections.php', 'icon' => 'feather-edit'],
                             ['label' => 'Fingerprint Mapping', 'href' => 'fingerprint_mapping.php', 'icon' => 'feather-link'],
-                            ['label' => 'F20H Manager', 'href' => 'biometric-machine.php', 'icon' => 'feather-cpu'],
-                            ['label' => 'Sync Biometrics', 'href' => 'biometric_machine_sync.php?redirect=biometric-machine.php', 'icon' => 'feather-refresh-cw'],
+                            ['label' => 'F20H Machine Manager', 'href' => 'biometric-machine.php', 'icon' => 'feather-cpu'],
+                            ['label' => 'Sync Biometric Machine', 'href' => 'biometric_machine_sync.php?redirect=biometric-machine.php', 'icon' => 'feather-refresh-cw'],
                         ],
                     ],
                     [
@@ -60,7 +60,6 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'items' => [
                             ['label' => 'OJT List', 'href' => 'ojt.php', 'icon' => 'feather-archive'],
                             ['label' => 'OJT Create', 'href' => 'ojt-create.php', 'icon' => 'feather-plus-circle'],
-                            ['label' => 'OJT Workflow', 'href' => 'ojt-workflow-board.php', 'icon' => 'feather-git-branch'],
                         ],
                     ],
                     [
@@ -158,7 +157,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'title' => 'Users',
                         'items' => [
                             ['label' => 'Users', 'href' => 'users.php', 'icon' => 'feather-users'],
-                            ['label' => 'Register Creative', 'href' => 'auth-register.php', 'icon' => 'feather-user-plus'],
+                            ['label' => 'User Registration', 'href' => 'auth-register.php', 'icon' => 'feather-user-plus'],
                             ['label' => 'Create Admin', 'href' => 'create_admin.php', 'icon' => 'feather-shield'],
                         ],
                     ],
@@ -196,10 +195,9 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 [
                     'title' => 'Account',
                     'items' => [
-                        ['label' => 'Profile Details', 'href' => 'account-settings.php#overview', 'icon' => 'feather-user'],
                         ['label' => 'Account Settings', 'href' => 'account-settings.php#security', 'icon' => 'feather-settings'],
                         ['label' => 'Notifications', 'href' => 'notifications.php', 'icon' => 'feather-bell'],
-                        ['label' => 'Logout', 'href' => '/BioTern/BioTern/auth/auth-login.php?logout=1', 'icon' => 'feather-log-out'],
+                        ['label' => 'Logout', 'href' => 'auth-login.php?logout=1', 'icon' => 'feather-log-out'],
                     ],
                 ],
             ],

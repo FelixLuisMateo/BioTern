@@ -1,11 +1,8 @@
 <?php
 // Start session early to avoid headers-sent warnings
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Include database connection
 include_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/includes/auth-session.php';
+biotern_boot_session(isset($conn) ? $conn : null);
 include_once dirname(__DIR__) . '/includes/dashboard_data.php';
 
 if (!function_exists('dashboard_fetch_count')) {
@@ -572,7 +569,7 @@ include 'includes/header.php';
                                                             <?php echo htmlspecialchars(trim($firstName . ' ' . $lastName)); ?>
                                                         </a>
                                                         <div class="dash-list-sub">
-                                                            <?php echo htmlspecialchars((string)($student['student_id'] ?? '')); ?> Â· <?php echo htmlspecialchars($internshipType); ?>
+                                                            <?php echo htmlspecialchars((string)($student['student_id'] ?? '')); ?> Ãƒâ€šÃ‚Â· <?php echo htmlspecialchars($internshipType); ?>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -587,7 +584,7 @@ include 'includes/header.php';
                                                         <span class="badge bg-soft-secondary text-secondary">No record</span>
                                                     <?php endif; ?>
                                                     <div class="dash-meta-line">
-                                                        <?php echo $attendanceDate; ?><?php echo $attendanceTime ? ' Â· ' . $attendanceTime : ''; ?>
+                                                        <?php echo $attendanceDate; ?><?php echo $attendanceTime ? ' Ãƒâ€šÃ‚Â· ' . $attendanceTime : ''; ?>
                                                     </div>
                                                 </div>
                                             </div>

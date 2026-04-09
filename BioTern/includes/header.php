@@ -1,12 +1,11 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once __DIR__ . '/auth-session.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
 require_once __DIR__ . '/avatar.php';
 // Shared header include.  Sets up HTML <head> and page header/navigation.
 // Pages can set a $page_title variable before including this file.
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+biotern_boot_session(isset($conn) ? $conn : null);
 
 $header_script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $header_root = '/';
@@ -442,6 +441,7 @@ if ($header_db instanceof mysqli) {
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/page-header-consistency.css'), ENT_QUOTES, 'UTF-8'); ?>" />
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/page-header-actions-scheme.css'), ENT_QUOTES, 'UTF-8'); ?>" />
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/header-account-menu.css'), ENT_QUOTES, 'UTF-8'); ?>" />
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/notification-skin.css'), ENT_QUOTES, 'UTF-8'); ?>" />
 </head>
 
 <body<?php echo $page_body_class !== '' ? ' class="' . htmlspecialchars($page_body_class, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>

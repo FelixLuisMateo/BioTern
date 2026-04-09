@@ -13,7 +13,8 @@
     var prefillStudentId = parseInt(root.getAttribute('data-prefill-student-id') || '0', 10) || 0;
 
     var editor = document.getElementById('editor');
-    var select = window.jQuery ? window.jQuery('#student_select') : null;
+    var selectElement = document.getElementById('student_select');
+    var studentSearchInput = null;
     var inputName = document.getElementById('input_name');
     var inputPosition = document.getElementById('input_position');
     var inputCompany = document.getElementById('input_company');
@@ -156,6 +157,23 @@
         storageSet(STORAGE_STUDENT, JSON.stringify(student));
     }
 
+    function setSelectValue(value, label) {
+        if (!selectElement) {
+            return;
+        }
+
+        var target = String(value || '');
+        if (!target) {
+            selectElement.innerHTML = '';
+            return;
+        }
+
+        var option = new Option(label || target, target, true, true);
+        selectElement.innerHTML = '';
+        selectElement.appendChild(option);
+        selectElement.value = target;
+    }
+
     function loadStudentState() {
         var raw = storageGet(STORAGE_STUDENT);
         if (!raw) {
@@ -232,7 +250,7 @@
     }
 
     function prefillByStudentId(studentId) {
-        if (!studentId || !select) {
+        if (!studentId) {
             return;
         }
 
@@ -253,8 +271,10 @@
                     .join(' ')
                     .trim();
                 var label = (fullName || 'Student') + ' - ' + (student.student_id || student.id);
-                var option = new Option(label, String(student.id), true, true);
-                select.append(option).trigger('change');
+                setSelectValue(student.id, label);
+                if (studentSearchInput) {
+                    studentSearchInput.value = label;
+                }
                 applyStudentData(student);
                 saveStudentState({
                     id: String(student.id),
@@ -267,34 +287,115 @@
     }
 
     function initStudentSelect() {
-        if (!select) {
+        if (!selectElement) {
             return;
         }
 
-        select.select2({
-            placeholder: '',
-            ajax: {
-                url: endpoint,
-                dataType: 'json',
-                delay: 250,
-                data: function (params) {
-                    return { action: 'search_students', q: params.term };
-                },
-                processResults: function (data) {
-                    return { results: data.results || [] };
-                }
-            },
-            minimumInputLength: 1,
-            width: 'resolve',
-            dropdownParent: window.jQuery(document.body),
-            dropdownCssClass: 'select2-dropdown'
-        });
+        // Prevent global select enhancers from rendering a second "Select" UI for this field.
+        selectElement.setAttribute('data-ui-select', 'native');
 
-        select.on('select2:select', function () {
-            var studentId = select.val();
+        if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
+            var jqSelect = window.jQuery(selectElement);
+            if (jqSelect.hasClass('select2-hidden-accessible')) {
+                try {
+                    jqSelect.select2('destroy');
+                } catch (err) {}
+            }
+        }
+
+        var select2Sibling = selectElement.nextElementSibling;
+        if (select2Sibling && select2Sibling.classList && select2Sibling.classList.contains('select2')) {
+            select2Sibling.parentNode.removeChild(select2Sibling);
+        }
+
+        var selectWrap = selectElement.parentElement;
+        if (selectWrap && selectWrap.classList && selectWrap.classList.contains('biotern-select-wrap')) {
+            var wrapParent = selectWrap.parentElement;
+            if (wrapParent) {
+                wrapParent.insertBefore(selectElement, selectWrap);
+                wrapParent.removeChild(selectWrap);
+            }
+        }
+
+        var field = selectElement.closest('.builder-field');
+        if (!field) {
+            return;
+        }
+
+        var wrap = document.createElement('div');
+        wrap.className = 'app-student-search-wrap';
+
+        var control = document.createElement('div');
+        control.className = 'app-student-search-control';
+
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control app-student-search-input';
+        input.placeholder = selectElement.getAttribute('data-placeholder') || 'Search by name or student id';
+        input.autocomplete = 'off';
+
+        var toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'app-student-search-toggle';
+        toggle.setAttribute('aria-label', 'Toggle student list');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.innerHTML = '<i class="feather-chevron-down"></i>';
+
+        var panel = document.createElement('div');
+        panel.className = 'app-student-search-panel';
+
+        var message = document.createElement('div');
+        message.className = 'app-student-search-message';
+
+        var list = document.createElement('div');
+        list.className = 'app-student-search-results';
+
+        panel.appendChild(message);
+        panel.appendChild(list);
+        control.appendChild(input);
+        control.appendChild(toggle);
+        wrap.appendChild(control);
+        wrap.appendChild(panel);
+
+        selectElement.style.display = 'none';
+        selectElement.setAttribute('aria-hidden', 'true');
+        selectElement.setAttribute('tabindex', '-1');
+        selectElement.insertAdjacentElement('afterend', wrap);
+
+        studentSearchInput = input;
+
+        var searchTimer = null;
+        var requestToken = 0;
+        var activeIndex = -1;
+        var currentItems = [];
+
+        function setMessage(text) {
+            message.textContent = text;
+        }
+
+        function openPanel() {
+            panel.classList.add('is-open');
+            toggle.setAttribute('aria-expanded', 'true');
+        }
+
+        function closePanel() {
+            panel.classList.remove('is-open');
+            toggle.setAttribute('aria-expanded', 'false');
+            activeIndex = -1;
+        }
+
+        function markActiveRow() {
+            var rows = list.querySelectorAll('.app-student-search-option');
+            for (var i = 0; i < rows.length; i += 1) {
+                rows[i].classList.toggle('is-active', i === activeIndex);
+            }
+        }
+
+        function selectStudentById(studentId) {
             if (!studentId) {
                 return;
             }
+
             selectedStudentId = String(studentId);
             fetch(endpoint + '?action=get_student&id=' + encodeURIComponent(studentId), {
                 credentials: 'same-origin'
@@ -306,20 +407,151 @@
                     if (!student || !student.id) {
                         return;
                     }
+
                     var fullName = [student.first_name, student.middle_name, student.last_name]
                         .filter(Boolean)
                         .join(' ')
                         .trim();
+                    var label = (fullName || 'Student') + ' - ' + (student.student_id || student.id);
+
+                    input.value = label;
+                    setSelectValue(student.id, label);
                     applyStudentData(student);
                     clearRecipientFields();
                     saveStudentState({
                         id: String(student.id),
                         name: fullName,
-                        label: (fullName || 'Student') + ' - ' + (student.student_id || student.id)
+                        label: label
                     });
+                    closePanel();
                     return loadApplicationRecord(student.id);
                 })
                 .catch(function () {});
+        }
+
+        function renderResults(items) {
+            list.innerHTML = '';
+            currentItems = Array.isArray(items) ? items : [];
+            activeIndex = -1;
+
+            if (!currentItems.length) {
+                setMessage('No results found');
+                return;
+            }
+
+            setMessage('');
+            currentItems.forEach(function (item, index) {
+                var row = document.createElement('button');
+                row.type = 'button';
+                row.className = 'app-student-search-option';
+                row.setAttribute('data-index', String(index));
+                row.textContent = item && item.text ? String(item.text) : 'Student';
+                row.addEventListener('click', function () {
+                    selectStudentById(item && item.id ? item.id : '');
+                });
+                list.appendChild(row);
+            });
+        }
+
+        function runSearch(term) {
+            var token = ++requestToken;
+            fetch(endpoint + '?action=search_students&q=' + encodeURIComponent(term), {
+                credentials: 'same-origin'
+            })
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (token !== requestToken) {
+                        return;
+                    }
+                    renderResults(data && data.results ? data.results : []);
+                })
+                .catch(function () {
+                    if (token !== requestToken) {
+                        return;
+                    }
+                    renderResults([]);
+                });
+        }
+
+        input.addEventListener('focus', function () {
+            openPanel();
+            setMessage('Searching...');
+            runSearch(input.value.trim());
+        });
+
+        input.addEventListener('input', function () {
+            var term = input.value.trim();
+            openPanel();
+
+            if (searchTimer) {
+                window.clearTimeout(searchTimer);
+            }
+
+            if (!term) {
+                setMessage('Searching...');
+                searchTimer = window.setTimeout(function () {
+                    runSearch('');
+                }, 140);
+                return;
+            }
+
+            setMessage('Searching...');
+            list.innerHTML = '';
+            searchTimer = window.setTimeout(function () {
+                runSearch(term);
+            }, 220);
+        });
+
+        input.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closePanel();
+                return;
+            }
+
+            if (event.key === 'ArrowDown') {
+                if (!panel.classList.contains('is-open')) {
+                    openPanel();
+                }
+                if (currentItems.length > 0) {
+                    event.preventDefault();
+                    activeIndex = Math.min(activeIndex + 1, currentItems.length - 1);
+                    markActiveRow();
+                }
+                return;
+            }
+
+            if (event.key === 'ArrowUp') {
+                if (currentItems.length > 0) {
+                    event.preventDefault();
+                    activeIndex = Math.max(activeIndex - 1, 0);
+                    markActiveRow();
+                }
+                return;
+            }
+
+            if (event.key === 'Enter' && activeIndex >= 0 && currentItems[activeIndex]) {
+                event.preventDefault();
+                selectStudentById(currentItems[activeIndex].id || '');
+            }
+        });
+
+        toggle.addEventListener('click', function () {
+            if (panel.classList.contains('is-open')) {
+                closePanel();
+                return;
+            }
+            openPanel();
+            setMessage('Searching...');
+            runSearch(input.value.trim());
+            input.focus();
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!wrap.contains(event.target)) {
+                closePanel();
+            }
         });
     }
 
@@ -404,11 +636,14 @@
             updatePreviewFields();
         }
 
-        var savedStudent = loadStudentState();
         if (prefillStudentId > 0) {
             prefillByStudentId(prefillStudentId);
-        } else if (savedStudent && savedStudent.id) {
-            prefillByStudentId(savedStudent.id);
+        } else {
+            saveStudentState(null);
+            selectedStudentId = null;
+            if (studentSearchInput) {
+                studentSearchInput.value = '';
+            }
         }
     });
 })();

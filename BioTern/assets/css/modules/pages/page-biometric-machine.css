@@ -36,6 +36,36 @@
     font-size: 0.75rem;
 }
 
+.machine-info-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.7rem;
+    margin-bottom: 0.9rem;
+    padding: 0.72rem 0.86rem;
+    border: 1px solid rgba(148, 163, 184, 0.32);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--biotern-surface-muted, #f8fafc) 88%, var(--biotern-primary-soft, rgba(52, 84, 209, 0.12)) 12%);
+    color: var(--bs-body-color, #1e293b);
+}
+
+.machine-info-note-icon {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--biotern-primary, #3454d1) 16%, transparent);
+    color: var(--biotern-primary, #3454d1);
+    margin-top: 1px;
+}
+
+.machine-info-note-body {
+    line-height: 1.38;
+    font-size: 0.9rem;
+}
+
 .page-biometric-machine .nxl-content {
     padding-bottom: 5rem;
 }
@@ -122,6 +152,17 @@ html.app-skin-dark .machine-config-pane {
 html.app-skin-dark .machine-endpoint-box {
     background: rgba(30, 41, 59, 0.88);
     border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+html.app-skin-dark .machine-info-note {
+    border-color: rgba(129, 153, 199, 0.34);
+    background: color-mix(in srgb, var(--biotern-surface-muted, #121a2d) 84%, var(--biotern-primary-soft, rgba(52, 84, 209, 0.24)) 16%);
+    color: #dbe8ff;
+}
+
+html.app-skin-dark .machine-info-note-icon {
+    background: rgba(96, 165, 250, 0.18);
+    color: #93c5fd;
 }
 
 html.app-skin-dark .machine-compact-form .form-control,

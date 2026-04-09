@@ -1,9 +1,7 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/includes/auth-session.php';
+biotern_boot_session(isset($conn) ? $conn : null);
 
 function a_count(mysqli $conn, string $sql, string $key = 'count'): int
 {
@@ -458,7 +456,7 @@ include 'includes/header.php';
                                 <div class="analytics-list-item analytics-list-item--stacked">
                                     <div class="analytics-list-copy">
                                         <strong><?php echo htmlspecialchars($company !== '' ? $company : ($studentName !== '' ? $studentName : 'Unnamed internship'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                                        <small><?php echo htmlspecialchars(($studentName !== '' ? $studentName : 'Unknown student') . ' • ' . strtoupper((string)($row['type'] ?? 'n/a')), ENT_QUOTES, 'UTF-8'); ?></small>
+                                        <small><?php echo htmlspecialchars(($studentName !== '' ? $studentName : 'Unknown student') . ' Ã¢â‚¬Â¢ ' . strtoupper((string)($row['type'] ?? 'n/a')), ENT_QUOTES, 'UTF-8'); ?></small>
                                     </div>
                                     <div class="analytics-inline-meta">
                                         <span class="badge bg-soft-info text-info"><?php echo htmlspecialchars(ucfirst((string)($row['status'] ?? 'pending')), ENT_QUOTES, 'UTF-8'); ?></span>

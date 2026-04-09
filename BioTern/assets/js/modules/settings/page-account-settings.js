@@ -28,16 +28,35 @@
             return;
         }
 
+        var openPickerButton = form.querySelector('[data-avatar-open-picker]');
         var fileInput = form.querySelector('[data-avatar-file-input]');
         var hiddenInput = form.querySelector('[data-avatar-cropped-input]');
-        var editor = form.querySelector('[data-avatar-crop-editor]');
+        var modalEl = document.querySelector('[data-avatar-crop-modal]');
+        var editor = modalEl ? modalEl.querySelector('[data-avatar-crop-editor]') : null;
         var canvas = form.querySelector('[data-avatar-crop-canvas]');
+        if (!canvas && modalEl) {
+            canvas = modalEl.querySelector('[data-avatar-crop-canvas]');
+        }
         var zoomInput = form.querySelector('[data-avatar-crop-zoom]');
+        if (!zoomInput && modalEl) {
+            zoomInput = modalEl.querySelector('[data-avatar-crop-zoom]');
+        }
         var resetButton = form.querySelector('[data-avatar-crop-reset]');
-        var applyButton = form.querySelector('[data-avatar-crop-apply]');
+        if (!resetButton && modalEl) {
+            resetButton = modalEl.querySelector('[data-avatar-crop-reset]');
+        }
+        var uploadButton = modalEl ? modalEl.querySelector('[data-avatar-crop-upload]') : null;
         var status = form.querySelector('[data-avatar-crop-status]');
+        if (!status && modalEl) {
+            status = modalEl.querySelector('[data-avatar-crop-status]');
+        }
 
-        if (!fileInput || !hiddenInput || !editor || !canvas || !zoomInput || !resetButton || !applyButton) {
+        var cropModal = null;
+        if (modalEl && window.bootstrap && typeof window.bootstrap.Modal === 'function') {
+            cropModal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
+        }
+
+        if (!fileInput || !hiddenInput || !editor || !canvas || !zoomInput || !resetButton || !uploadButton) {
             return;
         }
 
@@ -192,18 +211,34 @@
             state.dragging = false;
         }
 
+        function openCropModal() {
+            if (cropModal) {
+                cropModal.show();
+            }
+        }
+
+        function closeCropModal() {
+            if (cropModal) {
+                cropModal.hide();
+            }
+        }
+
+        if (openPickerButton) {
+            openPickerButton.addEventListener('click', function () {
+                fileInput.click();
+            });
+        }
+
         fileInput.addEventListener('change', function () {
             hiddenInput.value = '';
             var file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
             if (!file) {
-                editor.classList.add('d-none');
                 state.image = null;
                 setStatus('Drag the image to position the crop area.');
                 return;
             }
 
             if (!/^image\//i.test(file.type)) {
-                editor.classList.add('d-none');
                 setStatus('Please select an image file.');
                 return;
             }
@@ -213,8 +248,8 @@
                 var img = new Image();
                 img.onload = function () {
                     state.image = img;
-                    editor.classList.remove('d-none');
                     resetToDefault();
+                    openCropModal();
                 };
                 img.src = String(loadEvent.target && loadEvent.target.result ? loadEvent.target.result : '');
             };
@@ -231,8 +266,10 @@
             resetToDefault();
         });
 
-        applyButton.addEventListener('click', function () {
+        uploadButton.addEventListener('click', function () {
             applyCrop();
+            closeCropModal();
+            form.submit();
         });
 
         canvas.addEventListener('mousedown', startDrag);
@@ -247,6 +284,12 @@
                 applyCrop();
             }
         });
+
+        if (modalEl) {
+            modalEl.addEventListener('hidden.bs.modal', function () {
+                state.dragging = false;
+            });
+        }
     }
 
     if (document.readyState === 'loading') {

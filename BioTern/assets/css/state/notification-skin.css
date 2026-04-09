@@ -1,0 +1,251 @@
+/* Unified notification skin: alerts, toasts, and SweetAlert popups */
+:root {
+  --biotern-notify-bg: #ffffff;
+  --biotern-notify-text: #0f172a;
+  --biotern-notify-muted: #475569;
+  --biotern-notify-border: rgba(15, 23, 42, 0.12);
+  --biotern-notify-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
+
+  --biotern-notify-success: #10b981;
+  --biotern-notify-info: #0ea5e9;
+  --biotern-notify-warning: #f59e0b;
+  --biotern-notify-danger: #ef4444;
+}
+
+html.app-skin-dark {
+  --biotern-notify-bg: #0f172a;
+  --biotern-notify-text: #e2e8f0;
+  --biotern-notify-muted: #94a3b8;
+  --biotern-notify-border: rgba(148, 163, 184, 0.26);
+  --biotern-notify-shadow: 0 18px 42px rgba(2, 6, 23, 0.62);
+}
+
+.alert {
+  border-radius: 12px;
+  border: 1px solid var(--biotern-notify-border);
+  background: var(--biotern-notify-bg);
+  color: var(--biotern-notify-text);
+  box-shadow: var(--biotern-notify-shadow);
+  padding: 0.78rem 0.92rem;
+}
+
+.alert .alert-link {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.alert-dismissible .btn-close {
+  opacity: 0.7;
+}
+
+.alert-dismissible .btn-close:hover {
+  opacity: 1;
+}
+
+.alert-success,
+.alert-primary {
+  border-left: 4px solid var(--biotern-notify-success);
+}
+
+.alert-info {
+  border-left: 4px solid var(--biotern-notify-info);
+}
+
+.alert-warning {
+  border-left: 4px solid var(--biotern-notify-warning);
+}
+
+.alert-danger {
+  border-left: 4px solid var(--biotern-notify-danger);
+}
+
+.toast {
+  border-radius: 12px;
+  border: 1px solid var(--biotern-notify-border);
+  background: var(--biotern-notify-bg);
+  color: var(--biotern-notify-text);
+  box-shadow: var(--biotern-notify-shadow);
+  overflow: hidden;
+}
+
+.toast .toast-header {
+  border-bottom: 1px solid var(--biotern-notify-border);
+  background: color-mix(in srgb, var(--biotern-notify-bg) 88%, #94a3b8 12%);
+  color: var(--biotern-notify-text);
+  font-weight: 700;
+}
+
+.toast .toast-header small,
+.toast .toast-body {
+  color: var(--biotern-notify-muted);
+}
+
+.toast .btn-close {
+  opacity: 0.72;
+}
+
+.toast .btn-close:hover {
+  opacity: 1;
+}
+
+.toast-container {
+  z-index: 10050;
+}
+
+.app-toast-fixed {
+  z-index: 10050;
+}
+
+.swal2-container {
+  z-index: 10060 !important;
+}
+
+.swal2-popup {
+  border-radius: 14px !important;
+  border: 1px solid var(--biotern-notify-border) !important;
+  background: var(--biotern-notify-bg) !important;
+  color: var(--biotern-notify-text) !important;
+  box-shadow: var(--biotern-notify-shadow) !important;
+}
+
+.swal2-title {
+  color: var(--biotern-notify-text) !important;
+  font-size: 1.08rem !important;
+  font-weight: 700 !important;
+}
+
+.swal2-html-container {
+  color: var(--biotern-notify-muted) !important;
+}
+
+.swal2-styled.swal2-confirm {
+  background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+.swal2-styled.swal2-cancel {
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+.swal2-toast {
+  border-radius: 12px !important;
+}
+
+.swal2-popup.swal2-toast.app-theme-toast {
+  width: min(380px, calc(100vw - 1.5rem)) !important;
+  border-radius: 14px !important;
+  border: 1px solid var(--biotern-notify-border) !important;
+  background: var(--biotern-notify-bg) !important;
+  box-shadow: var(--biotern-notify-shadow) !important;
+  padding: 0.84rem 0.92rem 0.72rem !important;
+}
+
+html.app-skin-dark .swal2-popup.swal2-toast.app-theme-toast {
+  background: #12161f !important;
+  border-color: rgba(148, 163, 184, 0.3) !important;
+}
+
+.swal2-popup.swal2-toast.app-theme-toast .swal2-title,
+.swal2-popup.swal2-toast.app-theme-toast .app-theme-toast-title {
+  color: var(--biotern-notify-text) !important;
+  font-size: 0.98rem !important;
+  font-weight: 700 !important;
+  margin: 0 0 0 0.55rem !important;
+}
+
+.swal2-popup.swal2-toast.app-theme-toast .swal2-icon {
+  width: 22px !important;
+  min-width: 22px !important;
+  height: 22px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  background: color-mix(in srgb, var(--biotern-notify-success) 16%, transparent) !important;
+  color: var(--biotern-notify-success) !important;
+}
+
+.swal2-popup.swal2-toast.app-theme-toast .swal2-icon-content {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0 !important;
+}
+
+.swal2-popup.swal2-toast.app-theme-toast .swal2-icon-content i {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.swal2-popup.swal2-toast.app-theme-toast .swal2-timer-progress-bar,
+.swal2-popup.swal2-toast.app-theme-toast .app-theme-toast-progress {
+  height: 4px !important;
+  background: color-mix(in srgb, var(--biotern-notify-success) 78%, #bbf7d0 22%) !important;
+  opacity: 0.95;
+}
+
+.app-theme-toast-static {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 12050;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  max-width: min(370px, calc(100vw - 1.2rem));
+  min-height: 56px;
+  padding: 0.72rem 0.86rem;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--biotern-surface-muted, #f8fafc) 92%, #ffffff 8%);
+  color: #0f172a;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+}
+
+.app-theme-toast-static-icon {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 185, 129, 0.16);
+  color: #059669;
+}
+
+.app-theme-toast-static-icon-glyph {
+  width: 13px;
+  height: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-theme-toast-static-icon-glyph svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.app-theme-toast-static-text {
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: inherit;
+}
+
+html.app-skin-dark .app-theme-toast-static {
+  background: color-mix(in srgb, var(--biotern-surface-muted, #121a2d) 84%, #0f172a 16%);
+  color: #dbe8ff;
+  border-color: rgba(129, 153, 199, 0.34);
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.46);
+}
+
+html.app-skin-dark .app-theme-toast-static-icon {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+}

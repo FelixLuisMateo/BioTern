@@ -275,6 +275,7 @@ $base_href = '';
 $page_body_class = 'app-page-users-admin';
 $page_styles = [
     'assets/css/modules/management/management-filters.css',
+    'assets/css/modules/app-ui-lists-tables.css',
     'assets/css/modules/auth/page-users-admin.css',
 ];
 $page_scripts = [
@@ -413,7 +414,7 @@ include __DIR__ . '/../includes/header.php';
                                 $role = strtolower((string)($r['role'] ?? 'student'));
                                 $role_label = users_role_label($role);
                                 $pp = normalized_upload_path((string)($r['profile_picture'] ?? ''));
-                                $pp_url = $pp !== '' ? header_resolve_avatar_href($pp, 'assets/images/avatar/' . (($index % 5) + 1) . '.png') : '';
+                                $pp_url = $pp !== '' ? biotern_avatar_public_src($pp, $id) : '';
                                 $display_name = trim((string)($r['name'] ?? ''));
                                 $username_label = (string)($r['username'] ?? '-');
                                 $email_label = (string)($r['email'] ?? '-');

@@ -184,15 +184,14 @@ html.theme-preload .nxl-navigation .nxl-item.nxl-hasmenu.nxl-trigger > .nxl-subm
 }
 
 .select2-container--default .select2-selection--single .select2-selection__rendered {
-  display: flex;
-  align-items: center;
-  line-height: 38px;
-  padding-left: 0.75rem;
-  padding-right: 2rem;
+  display: block;
+  min-width: 0;
+  line-height: 1.35;
+  padding: 0.45rem 2.1rem 0.45rem 0.75rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(100% - 80px);
+  max-width: 100%;
 }
 
 .select2-container--default .select2-selection--single .select2-selection__arrow {

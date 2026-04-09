@@ -2,9 +2,8 @@
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once dirname(__DIR__) . '/includes/auth-session.php';
+biotern_boot_session(isset($conn) ? $conn : null);
 
 $current_role = strtolower(trim((string) (
     $_SESSION['role'] ??
@@ -530,7 +529,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         }
                     }
 
-                    $success_message = "Ã¯Â¿Â½ Student information updated successfully!";
+                    $success_message = "ÃƒÂ¯Ã‚Â¿Ã‚Â½ Student information updated successfully!";
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
                     $stmt->bind_param("i", $student_id);
