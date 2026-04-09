@@ -236,6 +236,7 @@ if (isset($_SESSION['flash_message'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $applicationId = isset($_POST['application_id']) ? (int)$_POST['application_id'] : 0;
     $userId = isset($_POST['user_id']) ? (int)$_POST['user_id'] : 0;
     $decision = strtolower(trim((string)($_POST['decision'] ?? '')));
     $notes = trim((string)($_POST['approval_notes'] ?? ''));
@@ -251,19 +252,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $coordinatorName = $coordinatorId > 0 && isset($coordinatorNameMap[$coordinatorId]) ? $coordinatorNameMap[$coordinatorId] : null;
     $supervisorName = $supervisorId > 0 && isset($supervisorNameMap[$supervisorId]) ? $supervisorNameMap[$supervisorId] : null;
     $stagedApplication = null;
-    if ($applicationsStageTable !== '' && $userId > 0) {
-        $stagedStmt = $conn->prepare("SELECT * FROM {$applicationsStageTable} WHERE user_id = ? LIMIT 1");
+    if ($applicationsStageTable !== '' && $applicationId > 0) {
+        $stagedStmt = $conn->prepare("SELECT * FROM {$applicationsStageTable} WHERE id = ? LIMIT 1");
         if ($stagedStmt) {
-            $stagedStmt->bind_param('i', $userId);
+            $stagedStmt->bind_param('i', $applicationId);
             $stagedStmt->execute();
             $stagedApplication = $stagedStmt->get_result()->fetch_assoc();
             $stagedStmt->close();
         }
     }
+    if ($userId <= 0 && $stagedApplication && !empty($stagedApplication['user_id'])) {
+        $userId = (int)$stagedApplication['user_id'];
+    }
     $stagedDateOfBirth = $stagedApplication ? trim((string)($stagedApplication['date_of_birth'] ?? '')) : '';
     $stagedGender = $stagedApplication ? trim((string)($stagedApplication['gender'] ?? '')) : '';
 
-    if ($userId <= 0 || !in_array($decision, ['approve', 'reject'], true)) {
+    if ($applicationId <= 0 || !in_array($decision, ['approve', 'reject'], true) || !$stagedApplication) {
         $flashType = 'danger';
         $flashMessage = 'Invalid request.';
     } elseif ($internalHours < 0 || $externalHours < 0) {
@@ -273,6 +277,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($decision === 'approve') {
             $conn->begin_transaction();
             try {
+                if ($userId <= 0 && $stagedApplication) {
+                    $stagedEmail = trim((string)($stagedApplication['email'] ?? ''));
+                    $stagedUsername = trim((string)($stagedApplication['username'] ?? ''));
+                    $stagedPasswordHash = trim((string)($stagedApplication['password_hash'] ?? ''));
+                    $stagedFirstName = trim((string)($stagedApplication['first_name'] ?? ''));
+                    $stagedLastName = trim((string)($stagedApplication['last_name'] ?? ''));
+                    $stagedFullName = trim($stagedFirstName . ' ' . $stagedLastName);
+
+                    if ($stagedEmail === '' || $stagedUsername === '' || $stagedPasswordHash === '') {
+                        throw new Exception('Pending application is missing required account fields.');
+                    }
+
+                    $existingUserStmt = $conn->prepare("SELECT id FROM users WHERE email = ? OR username = ? LIMIT 1");
+                    if ($existingUserStmt) {
+                        $existingUserStmt->bind_param('ss', $stagedEmail, $stagedUsername);
+                        $existingUserStmt->execute();
+                        $existingUserRow = $existingUserStmt->get_result()->fetch_assoc();
+                        $existingUserStmt->close();
+                        if ($existingUserRow) {
+                            $userId = (int)($existingUserRow['id'] ?? 0);
+                        }
+                    }
+
+                    if ($userId <= 0) {
+                        $insertUserStmt = $conn->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, 'student', 1, NOW(), NOW())");
+                        if (!$insertUserStmt) {
+                            throw new Exception('Unable to create user account for approved application. ' . (string)$conn->error);
+                        }
+                        $insertUserStmt->bind_param('ssss', $stagedFullName, $stagedUsername, $stagedEmail, $stagedPasswordHash);
+                        if (!$insertUserStmt->execute()) {
+                            $insertUserError = (string)$insertUserStmt->error;
+                            $insertUserStmt->close();
+                            throw new Exception('Unable to create user account for approved application. ' . $insertUserError);
+                        }
+                        $userId = (int)$conn->insert_id;
+                        $insertUserStmt->close();
+                    }
+                }
+
+                if ($userId <= 0) {
+                    throw new Exception('Unable to resolve user account for this application.');
+                }
+
                 $stmt = $conn->prepare("UPDATE users SET application_status = 'approved', is_active = 1, approved_by = ?, approved_at = NOW(), rejected_at = NULL, approval_notes = ?, disciplinary_remark = ? WHERE id = ? LIMIT 1");
                 if (!$stmt) {
                     throw new Exception('Unable to update application status.');
@@ -427,9 +474,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if ($applicationsStageTable !== '') {
-                    $stageApproveStmt = $conn->prepare("UPDATE {$applicationsStageTable} SET status = 'approved', reviewed_at = NOW(), reviewed_by = ?, approval_notes = ?, disciplinary_remark = ?, created_student_user_id = ? WHERE user_id = ?");
+                    $stageApproveStmt = $conn->prepare("UPDATE {$applicationsStageTable} SET user_id = NULLIF(?, 0), status = 'approved', reviewed_at = NOW(), reviewed_by = ?, approval_notes = ?, disciplinary_remark = ?, created_student_user_id = ? WHERE id = ?");
                     if ($stageApproveStmt) {
-                        $stageApproveStmt->bind_param('issii', $currentUserId, $notes, $disciplinaryRemark, $userId, $userId);
+                        $stageApproveStmt->bind_param('iissii', $userId, $currentUserId, $notes, $disciplinaryRemark, $userId, $applicationId);
                         $stageApproveStmt->execute();
                         $stageApproveStmt->close();
                     }
@@ -531,17 +578,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $conn->begin_transaction();
             try {
-                $stmt = $conn->prepare("UPDATE users SET application_status = 'rejected', is_active = 0, approved_by = ?, approved_at = NULL, rejected_at = NOW(), approval_notes = ?, disciplinary_remark = ? WHERE id = ? LIMIT 1");
-                if (!$stmt) {
-                    throw new Exception('Unable to reject application.');
-                }
-                $stmt->bind_param('issi', $currentUserId, $notes, $disciplinaryRemark, $userId);
-                if (!$stmt->execute()) {
-                    $stmt->close();
-                    throw new Exception('Unable to reject application.');
-                }
+                if ($userId > 0) {
+                    $stmt = $conn->prepare("UPDATE users SET application_status = 'rejected', is_active = 0, approved_by = ?, approved_at = NULL, rejected_at = NOW(), approval_notes = ?, disciplinary_remark = ? WHERE id = ? LIMIT 1");
+                    if (!$stmt) {
+                        throw new Exception('Unable to reject application.');
+                    }
+                    $stmt->bind_param('issi', $currentUserId, $notes, $disciplinaryRemark, $userId);
+                    if (!$stmt->execute()) {
+                        $stmt->close();
+                        throw new Exception('Unable to reject application.');
+                    }
 
-                $stmt->close();
+                    $stmt->close();
+                }
 
                 $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ? WHERE user_id = ? LIMIT 1");
                 if (!$studentStmt) {
@@ -556,9 +605,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $studentStmt->close();
 
                 if ($applicationsStageTable !== '') {
-                    $stageRejectStmt = $conn->prepare("UPDATE {$applicationsStageTable} SET status = 'rejected', reviewed_at = NOW(), reviewed_by = ?, approval_notes = ?, disciplinary_remark = ?, created_student_user_id = NULL WHERE user_id = ?");
+                    $stageRejectStmt = $conn->prepare("UPDATE {$applicationsStageTable} SET user_id = NULLIF(?, 0), status = 'rejected', reviewed_at = NOW(), reviewed_by = ?, approval_notes = ?, disciplinary_remark = ?, created_student_user_id = NULL WHERE id = ?");
                     if ($stageRejectStmt) {
-                        $stageRejectStmt->bind_param('issi', $currentUserId, $notes, $disciplinaryRemark, $userId);
+                        $stageRejectStmt->bind_param('iissi', $userId, $currentUserId, $notes, $disciplinaryRemark, $applicationId);
                         $stageRejectStmt->execute();
                         $stageRejectStmt->close();
                     }
@@ -603,17 +652,15 @@ $sectionFilter = isset($_GET['section_id']) ? (int)$_GET['section_id'] : 0;
 $coordinatorFilter = isset($_GET['coordinator_id']) ? (int)$_GET['coordinator_id'] : 0;
 $supervisorFilter = isset($_GET['supervisor_id']) ? (int)$_GET['supervisor_id'] : 0;
 
-$stagedJoinSql = $applicationsStageTable !== ''
-    ? " LEFT JOIN {$applicationsStageTable} sa ON sa.user_id = u.id "
-    : " LEFT JOIN (SELECT NULL AS user_id) sa ON 1 = 0 ";
-$effectiveStatusSql = "COALESCE(sa.status, u.application_status)";
+$effectiveStatusSql = "sa.status";
 
 $sql = "
     SELECT
-        u.id AS user_id,
-        u.username,
-        u.email,
-        u.role,
+        sa.id AS application_id,
+        COALESCE(u.id, 0) AS user_id,
+        COALESCE(u.username, sa.username) AS username,
+        COALESCE(u.email, sa.email) AS email,
+        COALESCE(u.role, 'student') AS role,
         {$effectiveStatusSql} AS application_status,
         COALESCE(sa.submitted_at, u.application_submitted_at) AS application_submitted_at,
         u.approved_at,
@@ -645,13 +692,13 @@ $sql = "
         d.name AS department_name,
         COALESCE(sec.code, sa.section_code_snapshot) AS section_code,
         COALESCE(sec.name, sa.section_name_snapshot) AS section_name
-    FROM users u
+    FROM {$applicationsStageTable} sa
+    LEFT JOIN users u ON u.id = sa.user_id
     LEFT JOIN students s ON s.user_id = u.id
-    {$stagedJoinSql}
     LEFT JOIN courses c ON c.id = COALESCE(s.course_id, sa.course_id)
     LEFT JOIN departments d ON d.id = COALESCE(s.department_id, sa.department_id)
     LEFT JOIN sections sec ON sec.id = COALESCE(s.section_id, sa.section_id)
-    WHERE u.role = 'student'
+    WHERE 1 = 1
 ";
 
 if ($statusFilter !== 'all') {
@@ -671,7 +718,7 @@ if ($supervisorFilter > 0) {
     $sql .= " AND COALESCE(s.supervisor_id, sa.supervisor_id) = " . (int)$supervisorFilter;
 }
 
-$sql .= " ORDER BY COALESCE(sa.submitted_at, u.application_submitted_at, u.created_at) DESC, u.id DESC";
+$sql .= " ORDER BY COALESCE(sa.submitted_at, sa.created_at) DESC, sa.id DESC";
 $applications = $conn->query($sql);
 
 $page_title = 'BioTern || Student Applications';
@@ -941,6 +988,7 @@ include 'includes/header.php';
                                                             <?php endif; ?>
                                                         </div>
                                                         <form method="post" class="action-form">
+                                                            <input type="hidden" name="application_id" value="<?php echo (int)($row['application_id'] ?? 0); ?>">
                                                             <input type="hidden" name="user_id" value="<?php echo (int)$row['user_id']; ?>">
                                                             <div class="field-wrap wide-field">
                                                                 <label class="field-label">Department</label>

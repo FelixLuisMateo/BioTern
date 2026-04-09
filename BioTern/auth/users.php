@@ -16,6 +16,19 @@ function normalized_upload_path(string $path): string
     return ltrim(str_replace('\\', '/', trim($path)), '/');
 }
 
+function users_table_has_column(mysqli $conn, string $table, string $column): bool
+{
+    $stmt = $conn->prepare("SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('ss', $table, $column);
+    $stmt->execute();
+    $exists = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
+    return $exists;
+}
+
 $allowed_roles = ['admin', 'coordinator', 'supervisor', 'student'];
 $current_user_id = (int) (
     $_SESSION['user_id'] ??
@@ -180,6 +193,11 @@ $where = [];
 $types = '';
 $params = [];
 
+$has_application_status = users_table_has_column($conn, 'users', 'application_status');
+if ($has_application_status) {
+    $where[] = "NOT (role = 'student' AND application_status = 'pending')";
+}
+
 if ($search !== '') {
     $where[] = '(name LIKE ? OR username LIKE ? OR email LIKE ?)';
     $types .= 'sss';
@@ -239,6 +257,13 @@ $stats_query = "
         SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) AS admins
     FROM users
 ";
+$stats_where = [];
+if ($has_application_status) {
+    $stats_where[] = "NOT (role = 'student' AND application_status = 'pending')";
+}
+if (!empty($stats_where)) {
+    $stats_query .= ' WHERE ' . implode(' AND ', $stats_where);
+}
 $stats_res = $conn->query($stats_query);
 if ($stats_res) {
     $stats_data = $stats_res->fetch_assoc();
