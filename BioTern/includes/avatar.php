@@ -71,9 +71,30 @@ if (!function_exists('biotern_avatar_default_path')) {
     }
 }
 
+if (!function_exists('biotern_avatar_db_src')) {
+    function biotern_avatar_db_src(string $rawPath, int $userId = 0): string
+    {
+        if ($userId <= 0) {
+            return '';
+        }
+
+        $normalized = strtolower(trim((string)$rawPath));
+        if ($normalized === 'db-avatar' || $normalized === 'db_avatar') {
+            return 'includes/avatar-image.php?uid=' . $userId;
+        }
+
+        return '';
+    }
+}
+
 if (!function_exists('biotern_avatar_public_src')) {
     function biotern_avatar_public_src(string $rawPath, int $userId = 0): string
     {
+        $dbSrc = biotern_avatar_db_src($rawPath, $userId);
+        if ($dbSrc !== '') {
+            return $dbSrc;
+        }
+
         $resolved = biotern_avatar_resolve_existing_path($rawPath);
         if ($resolved !== '') {
             return $resolved;

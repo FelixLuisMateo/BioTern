@@ -5651,3 +5651,622 @@
 [2026-04-09 13:00:54] Bridge loop error: Device connection failed.
 [2026-04-09 13:01:23] Bridge loop error: Device connection failed.
 [2026-04-09 13:01:56] Bridge loop error: Device connection failed.
+[2026-04-09 13:02:32] Bridge loop error: Device connection failed.
+[2026-04-09 13:03:02] Bridge loop error: Device connection failed.
+[2026-04-09 13:03:30] Bridge loop error: Device connection failed.
+[2026-04-09 13:03:58] Bridge loop error: Device connection failed.
+[2026-04-09 14:06:52] Bridge loop error: Device connection failed.
+[2026-04-09 14:07:23] Bridge loop error: Device connection failed.
+[2026-04-09 14:08:02] Bridge loop error: Device connection failed.
+[2026-04-09 14:08:34] Bridge loop error: Device connection failed.
+[2026-04-09 14:09:04] Bridge loop error: Device connection failed.
+[2026-04-09 14:09:33] Bridge loop error: Device connection failed.
+[2026-04-09 14:10:00] Bridge loop error: Device connection failed.
+[2026-04-09 14:10:28] Bridge loop error: Device connection failed.
+[2026-04-09 14:10:51] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 169 Device disconnected.
+[2026-04-09 14:10:53] Historical backfill scan complete. SourceEvents=102 AddedToPending=102
+[2026-04-09 14:11:04] Ingest success. Uploaded=102 Received=102 Inserted=3
+[2026-04-09 14:11:06] User cache sync success. Users=9
+[2026-04-09 14:11:38] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:11:38] No new F20H logs to upload.
+[2026-04-09 14:11:40] User cache sync success. Users=9
+[2026-04-09 14:12:12] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:12:12] No new F20H logs to upload.
+[2026-04-09 14:12:14] User cache sync success. Users=9
+[2026-04-09 14:12:47] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:12:47] No new F20H logs to upload.
+[2026-04-09 14:12:48] User cache sync success. Users=9
+[2026-04-09 14:13:21] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:13:21] No new F20H logs to upload.
+[2026-04-09 14:13:22] User cache sync success. Users=9
+[2026-04-09 14:13:55] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:13:55] No new F20H logs to upload.
+[2026-04-09 14:13:57] User cache sync success. Users=9
+[2026-04-09 14:14:29] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:14:29] No new F20H logs to upload.
+[2026-04-09 14:14:31] User cache sync success. Users=9
+[2026-04-09 14:15:03] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:15:03] No new F20H logs to upload.
+[2026-04-09 14:15:05] User cache sync success. Users=9
+[2026-04-09 14:15:37] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:15:37] No new F20H logs to upload.
+[2026-04-09 14:15:39] User cache sync success. Users=9
+[2026-04-09 14:16:11] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:16:11] No new F20H logs to upload.
+[2026-04-09 14:16:13] User cache sync success. Users=9
+[2026-04-09 14:16:46] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:16:46] No new F20H logs to upload.
+[2026-04-09 14:16:47] User cache sync success. Users=9
+[2026-04-09 14:17:20] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:17:20] No new F20H logs to upload.
+[2026-04-09 14:17:21] User cache sync success. Users=9
+[2026-04-09 14:17:55] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:17:55] No new F20H logs to upload.
+[2026-04-09 14:17:57] User cache sync success. Users=9
+[2026-04-09 14:18:30] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:18:30] No new F20H logs to upload.
+[2026-04-09 14:18:32] User cache sync success. Users=9
+[2026-04-09 14:19:04] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:19:04] No new F20H logs to upload.
+[2026-04-09 14:19:06] User cache sync success. Users=9
+[2026-04-09 14:19:39] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:19:39] No new F20H logs to upload.
+[2026-04-09 14:19:41] User cache sync success. Users=9
+[2026-04-09 14:20:13] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:20:13] No new F20H logs to upload.
+[2026-04-09 14:20:15] User cache sync success. Users=9
+[2026-04-09 14:20:47] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:20:47] No new F20H logs to upload.
+[2026-04-09 14:20:50] User cache sync success. Users=9
+[2026-04-09 14:21:22] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:21:22] No new F20H logs to upload.
+[2026-04-09 14:21:24] User cache sync success. Users=9
+[2026-04-09 14:21:56] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:21:56] No new F20H logs to upload.
+[2026-04-09 14:21:58] User cache sync success. Users=9
+[2026-04-09 14:22:30] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:22:30] No new F20H logs to upload.
+[2026-04-09 14:22:32] User cache sync success. Users=9
+[2026-04-09 14:23:04] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:23:04] No new F20H logs to upload.
+[2026-04-09 14:23:06] User cache sync success. Users=9
+[2026-04-09 14:23:39] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:23:39] No new F20H logs to upload.
+[2026-04-09 14:23:40] User cache sync success. Users=9
+[2026-04-09 14:24:13] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:24:13] No new F20H logs to upload.
+[2026-04-09 14:24:14] User cache sync success. Users=9
+[2026-04-09 14:24:47] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:24:47] No new F20H logs to upload.
+[2026-04-09 14:24:48] User cache sync success. Users=9
+[2026-04-09 14:25:21] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:25:21] No new F20H logs to upload.
+[2026-04-09 14:25:23] User cache sync success. Users=9
+[2026-04-09 14:25:55] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:25:55] No new F20H logs to upload.
+[2026-04-09 14:25:57] User cache sync success. Users=9
+[2026-04-09 14:26:30] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:26:30] No new F20H logs to upload.
+[2026-04-09 14:26:32] User cache sync success. Users=9
+[2026-04-09 14:27:04] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:27:04] No new F20H logs to upload.
+[2026-04-09 14:27:06] User cache sync success. Users=9
+[2026-04-09 14:27:38] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:27:38] No new F20H logs to upload.
+[2026-04-09 14:27:40] User cache sync success. Users=9
+[2026-04-09 14:28:12] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:28:13] No new F20H logs to upload.
+[2026-04-09 14:28:14] User cache sync success. Users=9
+[2026-04-09 14:28:47] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:28:47] No new F20H logs to upload.
+[2026-04-09 14:28:48] User cache sync success. Users=9
+[2026-04-09 14:29:21] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:29:21] No new F20H logs to upload.
+[2026-04-09 14:29:23] User cache sync success. Users=9
+[2026-04-09 14:29:56] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:29:56] No new F20H logs to upload.
+[2026-04-09 14:29:57] User cache sync success. Users=9
+[2026-04-09 14:30:30] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:30:30] No new F20H logs to upload.
+[2026-04-09 14:30:31] User cache sync success. Users=9
+[2026-04-09 14:31:04] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:31:04] No new F20H logs to upload.
+[2026-04-09 14:31:06] User cache sync success. Users=9
+[2026-04-09 14:31:47] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:31:47] No new F20H logs to upload.
+[2026-04-09 14:31:49] User cache sync success. Users=9
+[2026-04-09 14:32:22] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:32:22] No new F20H logs to upload.
+[2026-04-09 14:32:23] User cache sync success. Users=9
+[2026-04-09 14:32:57] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:32:57] No new F20H logs to upload.
+[2026-04-09 14:32:59] User cache sync success. Users=9
+[2026-04-09 14:33:32] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:33:32] No new F20H logs to upload.
+[2026-04-09 14:33:34] User cache sync success. Users=9
+[2026-04-09 14:34:07] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:34:07] No new F20H logs to upload.
+[2026-04-09 14:34:08] User cache sync success. Users=9
+[2026-04-09 14:34:41] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:34:41] No new F20H logs to upload.
+[2026-04-09 14:34:43] User cache sync success. Users=9
+[2026-04-09 14:35:15] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:35:15] No new F20H logs to upload.
+[2026-04-09 14:35:17] User cache sync success. Users=9
+[2026-04-09 14:35:50] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:35:50] No new F20H logs to upload.
+[2026-04-09 14:35:51] User cache sync success. Users=9
+[2026-04-09 14:36:24] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:36:24] No new F20H logs to upload.
+[2026-04-09 14:36:26] User cache sync success. Users=9
+[2026-04-09 14:36:58] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:36:58] No new F20H logs to upload.
+[2026-04-09 14:37:00] User cache sync success. Users=9
+[2026-04-09 14:37:32] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:37:32] No new F20H logs to upload.
+[2026-04-09 14:37:34] User cache sync success. Users=9
+[2026-04-09 14:38:06] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:38:06] No new F20H logs to upload.
+[2026-04-09 14:38:08] User cache sync success. Users=9
+[2026-04-09 14:38:41] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:38:41] No new F20H logs to upload.
+[2026-04-09 14:38:42] User cache sync success. Users=9
+[2026-04-09 14:39:15] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:39:15] No new F20H logs to upload.
+[2026-04-09 14:39:17] User cache sync success. Users=9
+[2026-04-09 14:39:50] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:39:50] No new F20H logs to upload.
+[2026-04-09 14:39:52] User cache sync success. Users=9
+[2026-04-09 14:40:25] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:40:25] No new F20H logs to upload.
+[2026-04-09 14:40:26] User cache sync success. Users=9
+[2026-04-09 14:40:59] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:40:59] No new F20H logs to upload.
+[2026-04-09 14:41:01] User cache sync success. Users=9
+[2026-04-09 14:41:33] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:41:33] No new F20H logs to upload.
+[2026-04-09 14:41:35] User cache sync success. Users=9
+[2026-04-09 14:42:07] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:42:08] No new F20H logs to upload.
+[2026-04-09 14:42:09] User cache sync success. Users=9
+[2026-04-09 14:42:42] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:42:42] No new F20H logs to upload.
+[2026-04-09 14:42:43] User cache sync success. Users=9
+[2026-04-09 14:43:16] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:43:16] No new F20H logs to upload.
+[2026-04-09 14:43:18] User cache sync success. Users=9
+[2026-04-09 14:43:51] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:43:51] No new F20H logs to upload.
+[2026-04-09 14:43:52] User cache sync success. Users=9
+[2026-04-09 14:44:25] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:44:25] No new F20H logs to upload.
+[2026-04-09 14:44:26] User cache sync success. Users=9
+[2026-04-09 14:44:59] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:44:59] No new F20H logs to upload.
+[2026-04-09 14:45:00] User cache sync success. Users=9
+[2026-04-09 14:45:33] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:45:33] No new F20H logs to upload.
+[2026-04-09 14:45:35] User cache sync success. Users=9
+[2026-04-09 14:46:07] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:46:07] No new F20H logs to upload.
+[2026-04-09 14:46:09] User cache sync success. Users=9
+[2026-04-09 14:46:41] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:46:41] No new F20H logs to upload.
+[2026-04-09 14:46:43] User cache sync success. Users=9
+[2026-04-09 14:47:15] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:47:15] No new F20H logs to upload.
+[2026-04-09 14:47:17] User cache sync success. Users=9
+[2026-04-09 14:47:49] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:47:49] No new F20H logs to upload.
+[2026-04-09 14:47:51] User cache sync success. Users=9
+[2026-04-09 14:48:26] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:48:27] No new F20H logs to upload.
+[2026-04-09 14:48:28] User cache sync success. Users=9
+[2026-04-09 14:49:01] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:49:01] No new F20H logs to upload.
+[2026-04-09 14:49:02] User cache sync success. Users=9
+[2026-04-09 14:49:35] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:49:35] No new F20H logs to upload.
+[2026-04-09 14:49:37] User cache sync success. Users=9
+[2026-04-09 14:50:13] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:50:13] No new F20H logs to upload.
+[2026-04-09 14:50:15] User cache sync success. Users=9
+[2026-04-09 14:50:48] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:50:48] No new F20H logs to upload.
+[2026-04-09 14:50:50] User cache sync success. Users=9
+[2026-04-09 14:51:22] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:51:22] No new F20H logs to upload.
+[2026-04-09 14:51:24] User cache sync success. Users=9
+[2026-04-09 14:51:57] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:51:57] No new F20H logs to upload.
+[2026-04-09 14:51:58] User cache sync success. Users=9
+[2026-04-09 14:52:31] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:52:31] No new F20H logs to upload.
+[2026-04-09 14:52:32] User cache sync success. Users=9
+[2026-04-09 14:53:05] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:53:05] No new F20H logs to upload.
+[2026-04-09 14:53:06] User cache sync success. Users=9
+[2026-04-09 14:53:39] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:53:39] No new F20H logs to upload.
+[2026-04-09 14:53:41] User cache sync success. Users=9
+[2026-04-09 14:54:13] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:54:13] No new F20H logs to upload.
+[2026-04-09 14:54:15] User cache sync success. Users=9
+[2026-04-09 14:54:47] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:54:47] No new F20H logs to upload.
+[2026-04-09 14:54:49] User cache sync success. Users=9
+[2026-04-09 14:55:21] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:55:21] No new F20H logs to upload.
+[2026-04-09 14:55:23] User cache sync success. Users=9
+[2026-04-09 14:55:55] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:55:55] No new F20H logs to upload.
+[2026-04-09 14:55:57] User cache sync success. Users=9
+[2026-04-09 14:56:30] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:56:30] No new F20H logs to upload.
+[2026-04-09 14:56:31] User cache sync success. Users=9
+[2026-04-09 14:57:04] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:57:04] No new F20H logs to upload.
+[2026-04-09 14:57:05] User cache sync success. Users=9
+[2026-04-09 14:57:38] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:57:38] No new F20H logs to upload.
+[2026-04-09 14:57:39] User cache sync success. Users=9
+[2026-04-09 14:58:12] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:58:12] No new F20H logs to upload.
+[2026-04-09 14:58:13] User cache sync success. Users=9
+[2026-04-09 14:58:46] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:58:46] No new F20H logs to upload.
+[2026-04-09 14:58:47] User cache sync success. Users=9
+[2026-04-09 14:59:20] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:59:20] No new F20H logs to upload.
+[2026-04-09 14:59:21] User cache sync success. Users=9
+[2026-04-09 14:59:54] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 14:59:54] No new F20H logs to upload.
+[2026-04-09 14:59:56] User cache sync success. Users=9
+[2026-04-09 15:00:28] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:00:29] No new F20H logs to upload.
+[2026-04-09 15:00:30] User cache sync success. Users=9
+[2026-04-09 15:01:03] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:01:03] No new F20H logs to upload.
+[2026-04-09 15:01:04] User cache sync success. Users=9
+[2026-04-09 15:01:37] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:01:37] No new F20H logs to upload.
+[2026-04-09 15:01:38] User cache sync success. Users=9
+[2026-04-09 15:02:11] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:02:11] No new F20H logs to upload.
+[2026-04-09 15:02:13] User cache sync success. Users=9
+[2026-04-09 15:02:45] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:02:45] No new F20H logs to upload.
+[2026-04-09 15:02:47] User cache sync success. Users=9
+[2026-04-09 15:03:19] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:03:19] No new F20H logs to upload.
+[2026-04-09 15:03:21] User cache sync success. Users=9
+[2026-04-09 15:03:53] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:03:53] No new F20H logs to upload.
+[2026-04-09 15:03:55] User cache sync success. Users=9
+[2026-04-09 15:04:28] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:04:28] No new F20H logs to upload.
+[2026-04-09 15:04:30] User cache sync success. Users=9
+[2026-04-09 15:05:02] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:05:02] No new F20H logs to upload.
+[2026-04-09 15:05:04] User cache sync success. Users=9
+[2026-04-09 15:05:37] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:05:37] No new F20H logs to upload.
+[2026-04-09 15:05:39] User cache sync success. Users=9
+[2026-04-09 15:06:11] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:06:11] No new F20H logs to upload.
+[2026-04-09 15:06:13] User cache sync success. Users=9
+[2026-04-09 15:06:45] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:06:45] No new F20H logs to upload.
+[2026-04-09 15:06:47] User cache sync success. Users=9
+[2026-04-09 15:07:19] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:07:19] No new F20H logs to upload.
+[2026-04-09 15:07:21] User cache sync success. Users=9
+[2026-04-09 15:07:53] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:07:53] No new F20H logs to upload.
+[2026-04-09 15:07:55] User cache sync success. Users=9
+[2026-04-09 15:08:28] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:08:28] No new F20H logs to upload.
+[2026-04-09 15:08:29] User cache sync success. Users=9
+[2026-04-09 15:09:02] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:09:02] No new F20H logs to upload.
+[2026-04-09 15:09:03] User cache sync success. Users=9
+[2026-04-09 15:09:36] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:09:36] No new F20H logs to upload.
+[2026-04-09 15:09:38] User cache sync success. Users=9
+[2026-04-09 15:10:10] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:10:10] No new F20H logs to upload.
+[2026-04-09 15:10:12] User cache sync success. Users=9
+[2026-04-09 15:10:44] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:10:44] No new F20H logs to upload.
+[2026-04-09 15:10:47] User cache sync success. Users=9
+[2026-04-09 15:11:20] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:11:20] No new F20H logs to upload.
+[2026-04-09 15:11:21] User cache sync success. Users=9
+[2026-04-09 15:11:54] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:11:54] No new F20H logs to upload.
+[2026-04-09 15:11:55] User cache sync success. Users=9
+[2026-04-09 15:12:28] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:12:28] No new F20H logs to upload.
+[2026-04-09 15:12:29] User cache sync success. Users=9
+[2026-04-09 15:13:02] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:13:02] No new F20H logs to upload.
+[2026-04-09 15:13:04] User cache sync success. Users=9
+[2026-04-09 15:13:36] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:13:36] No new F20H logs to upload.
+[2026-04-09 15:13:38] User cache sync success. Users=9
+[2026-04-09 15:14:10] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:14:10] No new F20H logs to upload.
+[2026-04-09 15:14:12] User cache sync success. Users=9
+[2026-04-09 15:14:44] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:14:44] No new F20H logs to upload.
+[2026-04-09 15:14:46] User cache sync success. Users=9
+[2026-04-09 15:15:19] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:15:19] No new F20H logs to upload.
+[2026-04-09 15:15:21] User cache sync success. Users=9
+[2026-04-09 15:15:54] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:15:54] No new F20H logs to upload.
+[2026-04-09 15:15:55] User cache sync success. Users=9
+[2026-04-09 15:16:28] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:16:28] No new F20H logs to upload.
+[2026-04-09 15:16:29] User cache sync success. Users=9
+[2026-04-09 15:17:02] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:17:02] No new F20H logs to upload.
+[2026-04-09 15:17:03] User cache sync success. Users=9
+[2026-04-09 15:17:36] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:17:36] No new F20H logs to upload.
+[2026-04-09 15:17:38] User cache sync success. Users=9
+[2026-04-09 15:18:10] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:18:10] No new F20H logs to upload.
+[2026-04-09 15:18:12] User cache sync success. Users=9
+[2026-04-09 15:18:44] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:18:44] No new F20H logs to upload.
+[2026-04-09 15:18:46] User cache sync success. Users=9
+[2026-04-09 15:19:18] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:19:18] No new F20H logs to upload.
+[2026-04-09 15:19:20] User cache sync success. Users=9
+[2026-04-09 15:19:53] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:19:53] No new F20H logs to upload.
+[2026-04-09 15:19:55] User cache sync success. Users=9
+[2026-04-09 15:20:28] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:20:28] No new F20H logs to upload.
+[2026-04-09 15:20:29] User cache sync success. Users=9
+[2026-04-09 15:21:02] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:21:02] No new F20H logs to upload.
+[2026-04-09 15:21:03] User cache sync success. Users=9
+[2026-04-09 15:21:36] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:21:36] No new F20H logs to upload.
+[2026-04-09 15:21:37] User cache sync success. Users=9
+[2026-04-09 15:22:10] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:22:10] No new F20H logs to upload.
+[2026-04-09 15:22:11] User cache sync success. Users=9
+[2026-04-09 15:22:44] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:22:44] No new F20H logs to upload.
+[2026-04-09 15:22:45] User cache sync success. Users=9
+[2026-04-09 15:23:18] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:23:18] No new F20H logs to upload.
+[2026-04-09 15:23:20] User cache sync success. Users=9
+[2026-04-09 15:23:52] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:23:52] No new F20H logs to upload.
+[2026-04-09 15:23:54] User cache sync success. Users=9
+[2026-04-09 15:24:26] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:24:26] No new F20H logs to upload.
+[2026-04-09 15:24:28] User cache sync success. Users=9
+[2026-04-09 15:25:00] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:25:00] No new F20H logs to upload.
+[2026-04-09 15:25:02] User cache sync success. Users=9
+[2026-04-09 15:25:34] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:25:34] No new F20H logs to upload.
+[2026-04-09 15:25:36] User cache sync success. Users=9
+[2026-04-09 15:26:08] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:26:08] No new F20H logs to upload.
+[2026-04-09 15:26:10] User cache sync success. Users=9
+[2026-04-09 15:26:43] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:26:43] No new F20H logs to upload.
+[2026-04-09 15:26:44] User cache sync success. Users=9
+[2026-04-09 15:27:17] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:27:17] No new F20H logs to upload.
+[2026-04-09 15:27:18] User cache sync success. Users=9
+[2026-04-09 15:27:51] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:27:51] No new F20H logs to upload.
+[2026-04-09 15:27:52] User cache sync success. Users=9
+[2026-04-09 15:28:25] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:28:25] No new F20H logs to upload.
+[2026-04-09 15:28:26] User cache sync success. Users=9
+[2026-04-09 15:28:59] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:28:59] No new F20H logs to upload.
+[2026-04-09 15:29:00] User cache sync success. Users=9
+[2026-04-09 15:29:33] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:29:33] No new F20H logs to upload.
+[2026-04-09 15:29:35] User cache sync success. Users=9
+[2026-04-09 15:30:07] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:30:07] No new F20H logs to upload.
+[2026-04-09 15:30:09] User cache sync success. Users=9
+[2026-04-09 15:30:42] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:30:42] No new F20H logs to upload.
+[2026-04-09 15:30:43] User cache sync success. Users=9
+[2026-04-09 15:31:16] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:31:16] No new F20H logs to upload.
+[2026-04-09 15:31:17] User cache sync success. Users=9
+[2026-04-09 15:31:53] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:31:53] No new F20H logs to upload.
+[2026-04-09 15:31:58] User cache sync success. Users=9
+[2026-04-09 15:32:31] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:32:31] No new F20H logs to upload.
+[2026-04-09 15:32:32] User cache sync success. Users=9
+[2026-04-09 15:33:05] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:33:05] No new F20H logs to upload.
+[2026-04-09 15:33:06] User cache sync success. Users=9
+[2026-04-09 15:33:39] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:33:39] No new F20H logs to upload.
+[2026-04-09 15:33:41] User cache sync success. Users=9
+[2026-04-09 15:34:13] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:34:13] No new F20H logs to upload.
+[2026-04-09 15:34:15] User cache sync success. Users=9
+[2026-04-09 15:34:48] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:34:48] No new F20H logs to upload.
+[2026-04-09 15:34:49] User cache sync success. Users=9
+[2026-04-09 15:35:22] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:35:22] No new F20H logs to upload.
+[2026-04-09 15:35:24] User cache sync success. Users=9
+[2026-04-09 15:35:56] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:35:56] No new F20H logs to upload.
+[2026-04-09 15:35:58] User cache sync success. Users=9
+[2026-04-09 15:36:31] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:36:31] No new F20H logs to upload.
+[2026-04-09 15:36:32] User cache sync success. Users=9
+[2026-04-09 15:37:05] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:37:05] No new F20H logs to upload.
+[2026-04-09 15:37:07] User cache sync success. Users=9
+[2026-04-09 15:37:40] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:37:40] No new F20H logs to upload.
+[2026-04-09 15:37:41] User cache sync success. Users=9
+[2026-04-09 15:38:14] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:38:14] No new F20H logs to upload.
+[2026-04-09 15:38:15] User cache sync success. Users=9
+[2026-04-09 15:38:48] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:38:48] No new F20H logs to upload.
+[2026-04-09 15:38:50] User cache sync success. Users=9
+[2026-04-09 15:39:22] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:39:22] No new F20H logs to upload.
+[2026-04-09 15:39:24] User cache sync success. Users=9
+[2026-04-09 15:39:56] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:39:56] No new F20H logs to upload.
+[2026-04-09 15:39:58] User cache sync success. Users=9
+[2026-04-09 15:40:30] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:40:30] No new F20H logs to upload.
+[2026-04-09 15:40:32] User cache sync success. Users=9
+[2026-04-09 15:41:04] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:41:04] No new F20H logs to upload.
+[2026-04-09 15:41:06] User cache sync success. Users=9
+[2026-04-09 15:41:39] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:41:39] No new F20H logs to upload.
+[2026-04-09 15:41:40] User cache sync success. Users=9
+[2026-04-09 15:42:13] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:42:13] No new F20H logs to upload.
+[2026-04-09 15:42:14] User cache sync success. Users=9
+[2026-04-09 15:42:47] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:42:47] No new F20H logs to upload.
+[2026-04-09 15:42:48] User cache sync success. Users=9
+[2026-04-09 15:43:21] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:43:21] No new F20H logs to upload.
+[2026-04-09 15:43:22] User cache sync success. Users=9
+[2026-04-09 15:43:55] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:43:55] No new F20H logs to upload.
+[2026-04-09 15:43:56] User cache sync success. Users=9
+[2026-04-09 15:44:29] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:44:29] No new F20H logs to upload.
+[2026-04-09 15:44:31] User cache sync success. Users=9
+[2026-04-09 15:45:03] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:45:03] No new F20H logs to upload.
+[2026-04-09 15:45:05] User cache sync success. Users=9
+[2026-04-09 15:45:38] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:45:38] No new F20H logs to upload.
+[2026-04-09 15:45:39] User cache sync success. Users=9
+[2026-04-09 15:46:12] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:46:12] No new F20H logs to upload.
+[2026-04-09 15:46:13] User cache sync success. Users=9
+[2026-04-09 15:46:46] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:46:46] No new F20H logs to upload.
+[2026-04-09 15:46:47] User cache sync success. Users=9
+[2026-04-09 15:47:20] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:47:20] No new F20H logs to upload.
+[2026-04-09 15:47:22] User cache sync success. Users=9
+[2026-04-09 15:47:54] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:47:54] No new F20H logs to upload.
+[2026-04-09 15:47:56] User cache sync success. Users=9
+[2026-04-09 15:48:29] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:48:29] No new F20H logs to upload.
+[2026-04-09 15:48:30] User cache sync success. Users=9
+[2026-04-09 15:49:03] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:49:03] No new F20H logs to upload.
+[2026-04-09 15:49:04] User cache sync success. Users=9
+[2026-04-09 15:49:37] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:49:37] No new F20H logs to upload.
+[2026-04-09 15:49:39] User cache sync success. Users=9
+[2026-04-09 15:50:13] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:50:13] No new F20H logs to upload.
+[2026-04-09 15:50:16] User cache sync success. Users=9
+[2026-04-09 15:50:49] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:50:49] No new F20H logs to upload.
+[2026-04-09 15:50:50] User cache sync success. Users=9
+[2026-04-09 15:51:23] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:51:23] No new F20H logs to upload.
+[2026-04-09 15:51:24] User cache sync success. Users=9
+[2026-04-09 15:52:07] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:52:07] No new F20H logs to upload.
+[2026-04-09 15:52:09] User cache sync success. Users=9
+[2026-04-09 15:52:42] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:52:42] No new F20H logs to upload.
+[2026-04-09 15:52:44] User cache sync success. Users=9
+[2026-04-09 15:53:17] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:53:17] No new F20H logs to upload.
+[2026-04-09 15:53:19] User cache sync success. Users=9
+[2026-04-09 15:53:51] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:53:51] No new F20H logs to upload.
+[2026-04-09 15:53:53] User cache sync success. Users=9
+[2026-04-09 15:54:27] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:54:27] No new F20H logs to upload.
+[2026-04-09 15:54:29] User cache sync success. Users=9
+[2026-04-09 15:55:03] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:55:03] No new F20H logs to upload.
+[2026-04-09 15:55:04] User cache sync success. Users=9
+[2026-04-09 15:55:38] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:55:38] No new F20H logs to upload.
+[2026-04-09 15:55:40] User cache sync success. Users=9
+[2026-04-09 15:56:20] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:56:20] No new F20H logs to upload.
+[2026-04-09 15:56:22] User cache sync success. Users=9
+[2026-04-09 15:56:55] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:56:55] No new F20H logs to upload.
+[2026-04-09 15:56:57] User cache sync success. Users=9
+[2026-04-09 15:57:30] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:57:30] No new F20H logs to upload.
+[2026-04-09 15:57:31] User cache sync success. Users=9
+[2026-04-09 15:58:05] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:58:05] No new F20H logs to upload.
+[2026-04-09 15:58:06] User cache sync success. Users=9
+[2026-04-09 15:58:39] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:58:39] No new F20H logs to upload.
+[2026-04-09 15:58:41] User cache sync success. Users=9
+[2026-04-09 15:59:14] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:59:14] No new F20H logs to upload.
+[2026-04-09 15:59:15] User cache sync success. Users=9
+[2026-04-09 15:59:49] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 15:59:49] No new F20H logs to upload.
+[2026-04-09 15:59:51] User cache sync success. Users=9
+[2026-04-09 16:00:25] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 16:00:25] No new F20H logs to upload.
+[2026-04-09 16:00:27] User cache sync success. Users=9
+[2026-04-09 16:01:00] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 16:01:00] No new F20H logs to upload.
+[2026-04-09 16:01:02] User cache sync success. Users=9
+[2026-04-09 16:01:34] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 16:01:34] No new F20H logs to upload.
+[2026-04-09 16:01:36] User cache sync success. Users=9
+[2026-04-09 16:02:09] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 16:02:09] No new F20H logs to upload.
+[2026-04-09 16:02:11] User cache sync success. Users=9
+[2026-04-09 16:02:44] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 16:02:44] No new F20H logs to upload.
+[2026-04-09 16:02:46] User cache sync success. Users=9
+[2026-04-09 16:03:18] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 16:03:19] No new F20H logs to upload.
+[2026-04-09 16:03:20] User cache sync success. Users=9
+[2026-04-09 16:03:53] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 16:03:54] No new F20H logs to upload.
+[2026-04-09 16:03:55] User cache sync success. Users=9
+[2026-04-09 16:04:29] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 16:04:29] No new F20H logs to upload.
+[2026-04-09 16:04:31] User cache sync success. Users=9
+[2026-04-09 16:05:04] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 16:05:04] No new F20H logs to upload.
+[2026-04-09 16:05:05] User cache sync success. Users=9
+[2026-04-09 16:05:38] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 16:05:38] No new F20H logs to upload.
+[2026-04-09 16:05:40] User cache sync success. Users=9
+[2026-04-09 16:06:13] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 16:06:13] No new F20H logs to upload.
+[2026-04-09 16:06:15] User cache sync success. Users=9
+[2026-04-09 16:06:48] Connected to 192.168.100.201:5001. Logs saved to: C:\xampp\htdocs\BioTern\BioTern\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-09 16:06:48] No new F20H logs to upload.
+[2026-04-09 16:06:50] User cache sync success. Users=9
