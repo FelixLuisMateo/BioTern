@@ -66,6 +66,19 @@ if (!$page_is_public) {
             $_SESSION['profile_picture'] = (string)($header_user['profile_picture'] ?? '');
             $_SESSION['logged_in'] = true;
 
+            // If a DB-backed avatar exists, force the shared session marker so all pages render it consistently.
+            $header_has_db_avatar = false;
+            $header_avatar_stmt = $header_db->prepare('SELECT 1 FROM user_profile_pictures WHERE user_id = ? LIMIT 1');
+            if ($header_avatar_stmt) {
+                $header_avatar_stmt->bind_param('i', $header_user_id_session);
+                $header_avatar_stmt->execute();
+                $header_has_db_avatar = (bool)$header_avatar_stmt->get_result()->fetch_row();
+                $header_avatar_stmt->close();
+            }
+            if ($header_has_db_avatar) {
+                $_SESSION['profile_picture'] = 'db-avatar';
+            }
+
             $header_account_status_text = ((int)($header_user['is_active'] ?? 0) === 1) ? 'Active' : 'Inactive';
             $header_created_at_raw = (string)($header_user['created_at'] ?? '');
             if ($header_created_at_raw !== '') {
@@ -727,7 +740,8 @@ if ($header_db instanceof mysqli) {
                         out.appendChild(line);
                         fetch(src, { method: 'GET', credentials: 'same-origin' })
                             .then(function (res) {
-                                line.textContent = '[' + res.status + ' ' + res.statusText + '] ' + src;
+                                var ctype = res.headers && res.headers.get ? (res.headers.get('content-type') || '') : '';
+                                line.textContent = '[' + res.status + ' ' + res.statusText + (ctype ? ' | ' + ctype : '') + '] ' + src;
                             })
                             .catch(function (err) {
                                 line.textContent = '[fetch-error] ' + src + ' :: ' + (err && err.message ? err.message : 'unknown');

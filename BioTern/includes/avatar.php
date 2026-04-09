@@ -71,6 +71,46 @@ if (!function_exists('biotern_avatar_default_path')) {
     }
 }
 
+if (!function_exists('biotern_avatar_discover_web_base')) {
+    function biotern_avatar_discover_web_base(): string
+    {
+        $scriptName = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+        $docRoot = rtrim(str_replace('\\', '/', (string)($_SERVER['DOCUMENT_ROOT'] ?? '')), '/');
+        $cursor = str_replace('\\', '/', dirname($scriptName));
+        if ($cursor === '\\' || $cursor === '.') {
+            $cursor = '/';
+        }
+
+        for ($i = 0; $i < 8; $i++) {
+            $candidate = rtrim($cursor, '/');
+            if ($candidate === '') {
+                $candidate = '/';
+            }
+
+            if ($docRoot !== '') {
+                $probe = $docRoot . ($candidate === '/' ? '' : $candidate) . '/includes/avatar-image.php';
+                if (is_file($probe)) {
+                    return $candidate === '/' ? '' : $candidate;
+                }
+            }
+
+            if ($candidate === '/' || $candidate === '') {
+                break;
+            }
+
+            $parent = dirname($candidate);
+            $cursor = ($parent === '\\' || $parent === '.') ? '/' : str_replace('\\', '/', $parent);
+        }
+
+        // Last-resort fallback keeps behavior from previous implementation.
+        $legacyBase = rtrim(dirname(dirname($scriptName)), '/');
+        if ($legacyBase === '' || $legacyBase === '.') {
+            return '';
+        }
+        return $legacyBase;
+    }
+}
+
 if (!function_exists('biotern_avatar_db_src')) {
     function biotern_avatar_db_src(string $rawPath, int $userId = 0): string
     {
@@ -80,11 +120,7 @@ if (!function_exists('biotern_avatar_db_src')) {
 
         $normalized = strtolower(trim((string)$rawPath));
         if ($normalized === 'db-avatar' || $normalized === 'db_avatar') {
-            $scriptName = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-            $baseDir = rtrim(dirname(dirname($scriptName)), '/');
-            if ($baseDir === '' || $baseDir === '.') {
-                $baseDir = '';
-            }
+            $baseDir = biotern_avatar_discover_web_base();
             return $baseDir . '/includes/avatar-image.php?uid=' . $userId;
         }
 
