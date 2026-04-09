@@ -133,6 +133,29 @@
     padding-right: 1.15rem;
 }
 
+.app-users-table-card .dataTables_wrapper .row:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.app-users-table-card .dataTables_wrapper .row:last-child > div {
+    width: auto;
+    flex: 0 0 auto;
+}
+
+.app-users-table-card .dataTables_wrapper .dataTables_paginate {
+    margin-left: auto !important;
+    float: none !important;
+    text-align: right !important;
+}
+
+.app-users-table-card .dataTables_wrapper .dataTables_paginate .pagination {
+    justify-content: flex-end !important;
+}
+
 .app-users-student-block {
     display: flex;
     align-items: center;

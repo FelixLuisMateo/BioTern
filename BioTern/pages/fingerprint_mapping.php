@@ -3,9 +3,8 @@ ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once dirname(__DIR__) . '/tools/biometric_ops.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once dirname(__DIR__) . '/includes/auth-session.php';
+biotern_boot_session(isset($conn) ? $conn : null);
 
 $role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 if (!in_array($role, ['admin', 'coordinator', 'supervisor'], true)) {

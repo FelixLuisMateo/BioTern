@@ -1,0 +1,148 @@
+.ca-honeypot {
+    position: absolute;
+    left: -10000px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+body.create-admin-public {
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+}
+
+body.create-admin-public .create-admin-wrapper {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+    background-color: rgba(8, 20, 52, 0.82);
+}
+
+body.create-admin-public .create-admin-card {
+    width: 100%;
+    max-width: 480px;
+    background: transparent;
+}
+
+body.create-admin-public .badge-setup {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+}
+
+body.create-admin-public .badge-setup .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4caf50;
+    display: inline-block;
+    animation: create-admin-pulse-dot 1.6s infinite;
+}
+
+@keyframes create-admin-pulse-dot {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.35;
+    }
+}
+
+body.create-admin-public .create-admin-card h2 {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 28px;
+    margin-bottom: 6px;
+}
+
+body.create-admin-public .create-admin-card .subtitle {
+    color: rgba(255, 255, 255, 0.55);
+    font-size: 13.5px;
+    margin-bottom: 28px;
+}
+
+body.create-admin-public .create-admin-card .form-label {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+body.create-admin-public .create-admin-card .form-control {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    border-radius: 8px;
+    padding: 10px 14px;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+body.create-admin-public .create-admin-card .form-control:focus {
+    background: rgba(255, 255, 255, 0.11);
+    border-color: rgba(99, 132, 255, 0.7);
+    box-shadow: 0 0 0 3px rgba(99, 132, 255, 0.18);
+    color: #ffffff;
+}
+
+body.create-admin-public .create-admin-card .input-group .form-control {
+    border-right: 0;
+}
+
+body.create-admin-public .create-admin-card .input-group .btn-outline-secondary {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-left: 0;
+    color: rgba(255, 255, 255, 0.55);
+    border-radius: 0 8px 8px 0;
+}
+
+body.create-admin-public .create-admin-card .input-group .btn-outline-secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+body.create-admin-public .create-admin-card .btn-primary {
+    border-radius: 8px;
+    padding: 11px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+body.create-admin-public .create-admin-card .divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 24px 0 16px;
+}
+
+body.create-admin-public .create-admin-card .footer-note {
+    color: rgba(255, 255, 255, 0.38);
+    font-size: 12px;
+    text-align: center;
+}
+
+body.create-admin-public .create-admin-card .footer-note a {
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: underline;
+}
+
+@media (max-width: 575.98px) {
+    body.create-admin-public .create-admin-wrapper {
+        padding: 24px 12px;
+    }
+}

@@ -223,7 +223,7 @@
         }
 
         select.select2({
-            placeholder: '',
+            placeholder: select.attr('data-placeholder') || 'Search by name or student id',
             ajax: {
                 url: 'documents/document_application.php',
                 dataType: 'json',
@@ -234,48 +234,8 @@
             minimumInputLength: 1,
             width: 'resolve',
             dropdownParent: $(document.body),
-            dropdownCssClass: 'select2-dropdown'
+            dropdownCssClass: 'select2-dropdown biotern-doc-select2-dropdown'
         });
-
-        (function createOverlayInput() {
-            var sel = document.getElementById('student_select');
-            var container = sel && sel.nextElementSibling;
-            if (!container) return;
-            container.style.position = container.style.position || 'relative';
-
-            var overlay = document.createElement('input');
-            overlay.type = 'text';
-            overlay.className = 'select2-overlay-input';
-            overlay.placeholder = sel.getAttribute('data-placeholder') || 'Search by name or student id';
-            overlay.autocomplete = 'off';
-            container.appendChild(overlay);
-
-            function openAndSync() {
-                try { select.select2('open'); } catch (e) {}
-                setTimeout(function () {
-                    var fld = document.querySelector('.select2-container--open .select2-search__field');
-                    if (!fld) return;
-                    fld.value = overlay.value || '';
-                    fld.dispatchEvent(new Event('input', { bubbles: true }));
-                }, 0);
-            }
-
-            overlay.addEventListener('input', function () { openAndSync(); });
-            overlay.addEventListener('keydown', function (e) {
-                if (e.key && (e.key.length === 1 || e.key === 'Backspace')) {
-                    openAndSync();
-                }
-            });
-
-            $(document).on('select2:select select2:closing', '#student_select', function () {
-                setTimeout(function () {
-                    var txt = $('#student_select').find('option:selected').text() || '';
-                    overlay.value = txt.replace(/\s+[\u2014-]\s+.*$/, '');
-                }, 0);
-            });
-
-            container.addEventListener('click', function () { overlay.focus(); });
-        })();
 
         $('#student_select').on('select2:select', function () {
             var id = select.val();
@@ -332,9 +292,6 @@
                     var option = new Option(label, String(id), true, true);
                     select.append(option).trigger('change');
                     saveSelectedStudentState({ id: id, name: fullname, label: label });
-
-                    var overlayInput = document.querySelector('.select2-overlay-input');
-                    if (overlayInput) overlayInput.value = fullname || '';
 
                     document.getElementById('ap_student').textContent = fullname || '__________________________';
                     document.getElementById('ap_student_name').textContent = fullname || '__________________________';
@@ -423,8 +380,6 @@
             if (savedStudent && savedStudent.id) {
                 var option = new Option(savedStudent.label || savedStudent.name || ('Student - ' + savedStudent.id), String(savedStudent.id), true, true);
                 select.append(option).trigger('change');
-                var overlayInput = document.querySelector('.select2-overlay-input');
-                if (overlayInput) overlayInput.value = savedStudent.name || '';
                 prefillByStudentId(savedStudent.id);
             }
         }
@@ -475,7 +430,7 @@
         }
 
         select.select2({
-            placeholder: '',
+            placeholder: select.attr('data-placeholder') || 'Search by name or student id',
             ajax: {
                 url: pageUrl,
                 dataType: 'json',
@@ -486,46 +441,8 @@
             minimumInputLength: 1,
             width: 'resolve',
             dropdownParent: $(document.body),
-            dropdownCssClass: 'select2-dropdown'
+            dropdownCssClass: 'select2-dropdown biotern-doc-select2-dropdown'
         });
-
-        (function createOverlayInput() {
-            var sel = document.getElementById('student_select');
-            var container = sel && sel.nextElementSibling;
-            if (!container) return;
-            container.style.position = container.style.position || 'relative';
-
-            var overlay = document.createElement('input');
-            overlay.type = 'text';
-            overlay.className = 'select2-overlay-input';
-            overlay.placeholder = sel.getAttribute('data-placeholder') || 'Search by name or student id';
-            overlay.autocomplete = 'off';
-            container.appendChild(overlay);
-
-            function openAndSync() {
-                try { select.select2('open'); } catch (e) {}
-                setTimeout(function () {
-                    var fld = document.querySelector('.select2-container--open .select2-search__field');
-                    if (!fld) return;
-                    fld.value = overlay.value || '';
-                    fld.dispatchEvent(new Event('input', { bubbles: true }));
-                }, 0);
-            }
-
-            overlay.addEventListener('input', function () { openAndSync(); });
-            overlay.addEventListener('keydown', function (e) {
-                if (e.key && (e.key.length === 1 || e.key === 'Backspace')) openAndSync();
-            });
-
-            $(document).on('select2:select select2:closing', '#student_select', function () {
-                setTimeout(function () {
-                    var txt = $('#student_select').find('option:selected').text() || '';
-                    overlay.value = txt.replace(/\s+[\u2014-]\s+.*$/, '');
-                }, 0);
-            });
-
-            container.addEventListener('click', function () { overlay.focus(); });
-        })();
 
         document.addEventListener('click', function (e) {
             var editBtn = e.target.closest('#btn_file_edit_moa');
@@ -901,7 +818,7 @@
         }
 
         select.select2({
-            placeholder: '',
+            placeholder: select.attr('data-placeholder') || 'Search by name or student id',
             ajax: {
                 url: 'documents/document_endorsement.php',
                 dataType: 'json',
@@ -912,46 +829,8 @@
             minimumInputLength: 1,
             width: 'resolve',
             dropdownParent: $(document.body),
-            dropdownCssClass: 'select2-dropdown'
+            dropdownCssClass: 'select2-dropdown biotern-doc-select2-dropdown'
         });
-
-        function createSelectOverlay() {
-            if (document.querySelector('.select2-overlay-input')) return;
-            var sel = document.getElementById('student_select');
-            if (!sel) return;
-            var container = sel.nextElementSibling;
-            if (!container || !container.classList || !container.classList.contains('select2')) return;
-            container.style.position = 'relative';
-            var overlay = document.createElement('input');
-            overlay.type = 'text';
-            overlay.className = 'select2-overlay-input';
-            overlay.placeholder = sel.getAttribute('data-placeholder') || 'Search by name or student id';
-            overlay.autocomplete = 'off';
-            container.appendChild(overlay);
-
-            function openAndSync() {
-                try { select.select2('open'); } catch (e) {}
-                setTimeout(function () {
-                    var fld = document.querySelector('.select2-container--open .select2-search__field');
-                    if (!fld) return;
-                    fld.value = overlay.value || '';
-                    fld.dispatchEvent(new Event('input', { bubbles: true }));
-                }, 0);
-            }
-
-            overlay.addEventListener('input', function () { openAndSync(); });
-            overlay.addEventListener('keydown', function (e) {
-                if (e.key && (e.key.length === 1 || e.key === 'Backspace')) openAndSync();
-            });
-
-            $(document).on('select2:select select2:closing', '#student_select', function () {
-                setTimeout(function () {
-                    var txt = $('#student_select').find('option:selected').text() || '';
-                    overlay.value = buildNameFromOptionText(txt);
-                }, 0);
-            });
-            container.addEventListener('click', function () { overlay.focus(); });
-        }
 
         select.on('select2:select', function () {
             var pickedId = String(select.val() || '');
@@ -968,9 +847,6 @@
                     .catch(function () {});
             }
             select.val(null).trigger('change');
-            var overlay = document.querySelector('.select2-overlay-input');
-            if (overlay) overlay.value = '';
-            setTimeout(function () { if (overlay) overlay.focus(); }, 0);
             updatePreview();
             updateLinks();
         });
@@ -1022,7 +898,6 @@
                     if (hasSaved) {
                         updatePreview();
                         updateLinks();
-                        setTimeout(createSelectOverlay, 60);
                         return;
                     }
                     fetch('documents/document_endorsement.php?action=get_student&id=' + encodeURIComponent(prefillId))
@@ -1037,12 +912,9 @@
                             }
                             updatePreview();
                             updateLinks();
-                            setTimeout(createSelectOverlay, 60);
                         });
                 });
         }
-
-        setTimeout(createSelectOverlay, 60);
         recipientTitleRadios.forEach(function (r) { r.checked = (r.value === PREFILL_RECIPIENT_TITLE); });
         if (!recipientTitleRadios.some(function (r) { return r.checked; }) && recipientTitleRadios.length) {
             var auto = recipientTitleRadios.find(function (r) { return r.value === 'auto'; });

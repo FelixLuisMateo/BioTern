@@ -4,31 +4,33 @@
 
 .account-profile-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.9fr);
-    gap: 18px;
+    grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.85fr);
+    gap: 14px;
     align-items: stretch;
-    padding: 18px;
+    padding: 14px;
 }
 
 .account-identity {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+    min-width: 0;
 }
 
 .account-identity-avatar {
-    width: 76px;
-    height: 76px;
-    border-radius: 14px;
+    width: 156px;
+    height: 156px;
+    border-radius: 16px;
     background: var(--settings-accent-bg);
     color: var(--settings-text);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.45rem;
+    font-size: 2.2rem;
     font-weight: 700;
     overflow: hidden;
-    flex: 0 0 72px;
+    flex: 0 0 156px;
 }
 
 .account-identity-avatar img {
@@ -39,44 +41,78 @@
 
 .account-identity-copy h3 {
     margin: 0;
-    font-size: clamp(1.28rem, 2vw, 1.75rem);
+    font-size: clamp(1.12rem, 1.7vw, 1.45rem);
     color: var(--settings-text);
 }
 
+.account-identity-copy {
+    min-width: 0;
+}
+
 .account-identity-copy p {
-    margin: 6px 0 0;
+    margin: 4px 0 0;
     max-width: 620px;
     color: var(--settings-muted);
-    font-size: 0.92rem;
+    font-size: 0.84rem;
 }
 
 .account-role-chip {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-top: 10px;
-    padding: 6px 10px;
+    margin-top: 8px;
+    padding: 5px 9px;
     border-radius: 999px;
     background: var(--settings-accent-bg);
     color: var(--settings-accent-text);
-    font-size: 0.74rem;
+    font-size: 0.68rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+}
+
+.account-hero-avatar-tools {
+    margin-top: 8px;
+    display: grid;
+    gap: 8px;
+    max-width: 620px;
+}
+
+.account-hero-upload-row {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.account-hero-upload-actions {
+    display: inline-flex;
+}
+
+.account-hero-upload-row .form-control {
+    min-width: 0;
+}
+
+.account-hero-upload-row .btn {
+    white-space: nowrap;
+}
+
+.account-hero-remove-form {
+    display: inline-flex;
 }
 
 .account-profile-grid,
 .account-form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 10px;
 }
 
 .account-profile-field,
 .account-current-avatar {
     border: 1px solid var(--settings-item-border);
-    border-radius: 12px;
-    padding: 12px;
+    border-radius: 10px;
+    padding: 10px;
     background: var(--settings-item-bg);
 }
 
@@ -84,12 +120,54 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
 }
 
 .account-settings-shell .settings-panel-card .card-header p {
-    max-width: 340px;
+    max-width: 300px;
     text-align: right;
+    font-size: 0.78rem;
+}
+
+.account-settings-shell .settings-panel-card .card-header {
+    padding: 10px 12px;
+}
+
+.account-settings-shell .settings-panel-card .card-body {
+    padding: 12px;
+}
+
+.account-settings-shell .settings-stack {
+    gap: 14px;
+}
+
+.account-settings-shell .settings-kpi-grid {
+    gap: 10px;
+    align-content: start;
+}
+
+.account-settings-shell .settings-kpi {
+    min-height: 112px;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.account-settings-shell .settings-kpi-label {
+    font-size: 0.66rem;
+}
+
+.account-settings-shell .settings-kpi-value {
+    margin-top: 4px;
+    font-size: 0.88rem;
+}
+
+.account-settings-shell .settings-section-title {
+    font-size: 0.9rem;
+}
+
+.account-settings-shell .settings-section-subtitle {
+    font-size: 0.78rem;
+    margin-top: 2px;
 }
 
 .account-settings-shell .settings-hero,
@@ -106,7 +184,7 @@
 .account-profile-field span {
     display: block;
     color: var(--settings-muted);
-    font-size: 0.72rem;
+    font-size: 0.66rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -114,33 +192,44 @@
 .account-profile-field strong,
 .account-current-avatar strong {
     display: block;
-    margin-top: 6px;
+    margin-top: 4px;
     color: var(--settings-text);
-    font-size: 0.95rem;
+    font-size: 0.88rem;
 }
 
 .account-form-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 8px;
+    gap: 8px;
+    margin-top: 6px;
 }
 
 .account-avatar-panel {
     display: grid;
-    gap: 12px;
+    gap: 10px;
 }
 
 .avatar-crop-editor {
     border: 1px solid var(--settings-item-border);
-    border-radius: 12px;
-    padding: 12px;
+    border-radius: 10px;
+    padding: 10px;
     background: var(--settings-item-bg);
+}
+
+#avatarCropModal .modal-content {
+    background: var(--settings-card-bg);
+    border: 1px solid var(--settings-card-border);
+    color: var(--settings-text);
+}
+
+#avatarCropModal .modal-header,
+#avatarCropModal .modal-footer {
+    border-color: var(--settings-card-border);
 }
 
 .avatar-crop-canvas-wrap {
     width: min(320px, 100%);
-    border-radius: 12px;
+    border-radius: 10px;
     overflow: hidden;
     border: 1px solid var(--settings-item-border);
     background: #0b1220;
@@ -157,21 +246,21 @@
 .account-current-avatar {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .account-current-avatar img {
-    width: 48px;
-    height: 48px;
+    width: 42px;
+    height: 42px;
     object-fit: cover;
-    border-radius: 12px;
+    border-radius: 10px;
 }
 
 .account-current-avatar span,
 .account-note,
 .account-password-toggle {
     color: var(--settings-muted);
-    font-size: 0.8rem;
+    font-size: 0.74rem;
 }
 
 .account-password-toggle {
@@ -183,16 +272,109 @@
 }
 
 .account-form-grid .form-control {
-    min-height: 48px;
+    min-height: 42px;
+    padding-top: 0.45rem;
+    padding-bottom: 0.45rem;
 }
 
 .account-avatar-panel .form-control[type="file"] {
-    min-height: 48px;
+    min-height: 42px;
+}
+
+body.account-settings-page .settings-hub .row.g-4 {
+    --bs-gutter-x: 0.75rem;
+    --bs-gutter-y: 0.75rem;
+}
+
+body.account-settings-page .account-dual-grid {
+    --bs-gutter-x: 0.75rem;
+    --bs-gutter-y: 0.75rem;
+}
+
+body.account-settings-page .account-dual-grid > [class*="col-"] {
+    display: flex;
+}
+
+body.account-settings-page .account-dual-grid .settings-panel-card {
+    width: 100%;
+}
+
+body.account-settings-page .settings-stack {
+    gap: 10px;
+}
+
+body.account-settings-page .account-profile-hero {
+    gap: 10px;
+    padding: 12px;
+}
+
+body.account-settings-page .account-profile-grid,
+body.account-settings-page .account-form-grid {
+    gap: 8px;
+}
+
+body.account-settings-page .account-profile-field,
+body.account-settings-page .account-current-avatar,
+body.account-settings-page .settings-kpi {
+    padding: 8px;
+}
+
+body.account-settings-page .settings-panel-card .card-header {
+    padding: 8px 10px;
+}
+
+body.account-settings-page .settings-panel-card .card-body {
+    padding: 10px;
+}
+
+body.account-settings-page .form-label {
+    margin-bottom: 0.25rem;
+    font-size: 0.78rem;
+}
+
+body.account-settings-page .account-form-grid .form-control,
+body.account-settings-page .account-avatar-panel .form-control[type="file"] {
+    min-height: 38px;
+    font-size: 0.92rem;
+}
+
+body.account-settings-page .settings-panel-card .mb-4 {
+    margin-bottom: 0.75rem !important;
+}
+
+body.account-settings-page .settings-panel-card .mb-3 {
+    margin-bottom: 0.5rem !important;
+}
+
+body.account-settings-page .account-form-actions {
+    gap: 6px;
+    margin-top: 4px;
+}
+
+body.account-settings-page .account-form-actions .btn {
+    padding: 0.38rem 0.72rem;
+    font-size: 0.86rem;
+}
+
+body.account-settings-page .account-password-toggle {
+    font-size: 0.72rem;
+}
+
+body.account-settings-page .account-note {
+    font-size: 0.7rem;
 }
 
 @media (max-width: 991.98px) {
     .account-profile-hero {
         grid-template-columns: 1fr;
+    }
+
+    .account-hero-avatar-tools {
+        max-width: none;
+    }
+
+    .account-settings-shell .settings-kpi {
+        min-height: 0;
     }
 }
 
@@ -203,13 +385,21 @@
     }
 
     .account-identity {
-        align-items: flex-start;
+        grid-template-columns: 1fr;
     }
 
     .account-identity-avatar {
-        width: 60px;
-        height: 60px;
-        font-size: 1.2rem;
-        flex-basis: 60px;
+        width: 118px;
+        height: 118px;
+        font-size: 1.7rem;
+        flex-basis: 118px;
+    }
+
+    .account-hero-upload-row {
+        grid-template-columns: 1fr;
+    }
+
+    .account-hero-upload-row .btn {
+        width: 100%;
     }
 }

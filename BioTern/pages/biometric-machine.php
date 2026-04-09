@@ -4,9 +4,8 @@ require_once dirname(__DIR__) . '/tools/biometric_machine_runtime.php';
 require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
 require_once dirname(__DIR__) . '/tools/biometric_ops.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once dirname(__DIR__) . '/includes/auth-session.php';
+biotern_boot_session(isset($conn) ? $conn : null);
 
 $role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 if (!in_array($role, ['admin', 'coordinator', 'supervisor'], true)) {
@@ -1986,8 +1985,11 @@ include __DIR__ . '/../includes/header.php';
             </div>
         <?php endif; ?>
 
-        <div class="alert alert-info">
-            Fingerprint templates stay on the F20H. BioTern only manages machine user records, mappings, and attendance events. Card numbers are masked for non-admin views.
+        <div class="machine-info-note" role="note" aria-label="F20H data handling notice">
+            <span class="machine-info-note-icon" aria-hidden="true"><i class="feather-info"></i></span>
+            <div class="machine-info-note-body">
+                Fingerprint templates stay on the F20H. BioTern only manages machine user records, mappings, and attendance events. Card numbers are masked for non-admin views.
+            </div>
         </div>
 
         <div class="row g-3 mb-3">
@@ -2007,7 +2009,7 @@ include __DIR__ . '/../includes/header.php';
                         <div class="fs-3 fw-bold"><?php echo count($loadedUserRows); ?></div>
                         <div class="text-muted"><?php echo $cloudRuntime
                             ? 'Cloud mode: Read All Users uses bridge cache uploaded by your bridge computer.'
-                            : 'Use “Read All Users” to refresh this page view.'; ?></div>
+                            : 'Use â€œRead All Usersâ€ to refresh this page view.'; ?></div>
                     </div>
                 </div>
             </div>

@@ -1,8 +1,7 @@
 <?php
 // Centralized navigation include (grouped/relabeled).
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/auth-session.php';
+biotern_boot_session();
 $nav_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? 'guest')));
 $nav_is_admin = ($nav_role === 'admin');
 $nav_is_coordinator = ($nav_role === 'coordinator');

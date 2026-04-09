@@ -348,24 +348,64 @@ div.nxl-content { padding-bottom: 24px; }
     box-shadow: none !important;
     background: transparent !important;
 }
-.select2-container .select2-selection__rendered,
-.select2-container .select2-selection__placeholder {
-    visibility: hidden !important;
+
+.doc-page-root .select2-container--default .select2-dropdown,
+.doc-page-root .select2-dropdown {
+    background: #ffffff !important;
+    border: 1px solid #d7deea !important;
+    opacity: 1 !important;
+    overflow: hidden !important;
 }
-.select2-overlay-input {
-    position: absolute;
-    inset: 0 40px 0 8px;
-    width: calc(100% - 48px);
-    height: calc(100% - 8px);
-    border: none;
-    background: transparent;
-    padding: 6px 8px;
-    box-sizing: border-box;
-    z-index: 99999999;
-    font: inherit;
-    color: inherit;
+
+.doc-page-root .select2-results,
+.doc-page-root .select2-results__options {
+    background: #ffffff !important;
 }
-.select2-overlay-input:focus { outline: none; }
+
+.doc-page-root .select2-results__option {
+    background: #ffffff;
+}
+
+.select2-container--open .biotern-doc-select2-dropdown {
+    z-index: 2147483000 !important;
+    opacity: 1 !important;
+    isolation: isolate;
+    overflow: hidden !important;
+    background: #ffffff !important;
+    border: 1px solid #d7deea !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.select2-container--open .biotern-doc-select2-dropdown .select2-results,
+.select2-container--open .biotern-doc-select2-dropdown .select2-results__options,
+.select2-container--open .biotern-doc-select2-dropdown .select2-results__option {
+    background: #ffffff !important;
+}
+
+html.app-skin-dark .doc-page-root .select2-container--default .select2-dropdown,
+html.app-skin-dark .doc-page-root .select2-dropdown {
+    background: #111826 !important;
+    border-color: #2f3f56 !important;
+}
+
+html.app-skin-dark .doc-page-root .select2-results,
+html.app-skin-dark .doc-page-root .select2-results__options,
+html.app-skin-dark .doc-page-root .select2-results__option {
+    background: #111826 !important;
+}
+
+html.app-skin-dark .select2-container--open .biotern-doc-select2-dropdown {
+    background: #111826 !important;
+    border-color: #2f3f56 !important;
+}
+
+html.app-skin-dark .select2-container--open .biotern-doc-select2-dropdown .select2-results,
+html.app-skin-dark .select2-container--open .biotern-doc-select2-dropdown .select2-results__options,
+html.app-skin-dark .select2-container--open .biotern-doc-select2-dropdown .select2-results__option {
+    background: #111826 !important;
+}
+
 
 /* Inputs */
 .form-control::placeholder { color: #7a8699; opacity: 1; }

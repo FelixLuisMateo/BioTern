@@ -1,9 +1,8 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once dirname(__DIR__) . '/includes/auth-session.php';
+biotern_boot_session(isset($conn) ? $conn : null);
 $view_user_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $selected_student_id = $view_user_id;
 $selected_user_id = 0;

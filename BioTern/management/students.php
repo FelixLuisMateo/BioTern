@@ -1,9 +1,8 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once dirname(__DIR__) . '/includes/auth-session.php';
+biotern_boot_session(isset($conn) ? $conn : null);
 if (!isset($conn) || !($conn instanceof mysqli) || $conn->connect_errno) {
     http_response_code(500);
     die('Database connection is not available.');
@@ -347,6 +346,7 @@ $page_title = 'BioTern || Students';
 $page_styles = array(
     'assets/css/layout/page_shell.css',
     'assets/css/modules/management/management-filters.css',
+    'assets/css/modules/app-ui-lists-tables.css',
     'assets/css/modules/management/management-students-shared.css',
     'assets/css/modules/management/management-students.css'
 );

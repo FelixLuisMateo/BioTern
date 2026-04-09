@@ -2,9 +2,8 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once dirname(__DIR__) . '/includes/auth-session.php';
+biotern_boot_session(isset($conn) ? $conn : null);
 require_roles_page(['admin', 'coordinator', 'supervisor']);
 
 $report_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));

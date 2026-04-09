@@ -1,10 +1,9 @@
 <?php
+require_once dirname(__DIR__) . '/includes/auth-session.php';
 
 function get_current_user_role(): string
 {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
+    biotern_boot_session();
     $raw = $_SESSION['role']
         ?? $_SESSION['user_role']
         ?? $_SESSION['account_role']
@@ -16,9 +15,7 @@ function get_current_user_role(): string
 
 function get_current_user_id_or_zero(): int
 {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
+    biotern_boot_session();
     return isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 }
 

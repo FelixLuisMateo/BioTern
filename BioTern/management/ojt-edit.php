@@ -1,9 +1,8 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once dirname(__DIR__) . '/includes/auth-session.php';
+biotern_boot_session(isset($conn) ? $conn : null);
 $ops_helpers = dirname(__DIR__) . '/lib/ops_helpers.php';
 if (file_exists($ops_helpers)) {
     require_once $ops_helpers;

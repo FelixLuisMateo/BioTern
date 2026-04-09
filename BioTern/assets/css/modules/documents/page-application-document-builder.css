@@ -19,9 +19,14 @@
 
 .application-builder-sidebar .builder-field-grid .form-control,
 .application-builder-sidebar .builder-field-grid .form-select,
-.application-builder-sidebar .select2-overlay-input,
 .application-builder-sidebar .select2-container--default .select2-selection--single .select2-selection__rendered {
     font-size: 0.88rem;
+}
+
+.application-builder-sidebar .select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 1.35 !important;
+    padding: 0.45rem 2rem 0.45rem 0.75rem !important;
+    max-width: 100% !important;
 }
 
 .application-builder-sidebar .builder-field-grid:not(.builder-field-grid-compact) {
@@ -30,6 +35,88 @@
 
 .application-builder-sidebar .builder-field-grid-compact {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.app-student-search-wrap {
+    display: block;
+}
+
+.app-student-search-control {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0;
+    align-items: stretch;
+}
+
+.app-student-search-control .app-student-search-input {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.app-student-search-toggle {
+    border: 1px solid var(--doc-builder-border, rgba(15, 23, 42, 0.12));
+    border-left: 0;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    background: var(--doc-builder-card-bg, #ffffff);
+    color: var(--doc-builder-text, #1f2937);
+    min-width: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-student-search-toggle:hover,
+.app-student-search-toggle:focus-visible {
+    outline: none;
+    background: var(--doc-builder-surface-bg, #f8fafc);
+}
+
+.app-student-search-panel {
+    display: none;
+    margin-top: 0.45rem;
+    border: 1px solid var(--doc-builder-border, rgba(15, 23, 42, 0.12));
+    border-radius: 10px;
+    background: var(--doc-builder-card-bg, #ffffff);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+    overflow: hidden;
+}
+
+.app-student-search-panel.is-open {
+    display: block;
+}
+
+.app-student-search-message {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.82rem;
+    color: var(--doc-builder-muted, #6b7280);
+    border-bottom: 1px solid var(--doc-builder-border, rgba(15, 23, 42, 0.12));
+}
+
+.app-student-search-results {
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.app-student-search-option {
+    width: 100%;
+    border: 0;
+    border-top: 1px solid var(--doc-builder-border, rgba(15, 23, 42, 0.08));
+    background: var(--doc-builder-card-bg, #ffffff);
+    color: var(--doc-builder-text, #1f2937);
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.84rem;
+}
+
+.app-student-search-option:hover,
+.app-student-search-option:focus-visible {
+    outline: none;
+    background: var(--doc-builder-surface-bg, #f8fafc);
+}
+
+.app-student-search-option.is-active {
+    background: var(--doc-builder-surface-bg, #f1f5f9);
 }
 
 .builder-note-list {

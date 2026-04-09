@@ -3,9 +3,8 @@ require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 
 require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once dirname(__DIR__) . '/includes/auth-session.php';
+biotern_boot_session(isset($conn) ? $conn : null);
 $current_user_id = (int)($_SESSION['user_id'] ?? 0);
 $current_user_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 $can_manage_eval_unlock = in_array($current_user_role, ['admin', 'coordinator'], true);

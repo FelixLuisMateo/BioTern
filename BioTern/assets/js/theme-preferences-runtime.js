@@ -330,13 +330,13 @@
     }
 
     function getSavedScheme() {
+      if (runtimePrefs.scheme) return normalizeScheme(runtimePrefs.scheme);
+      if (serverPrefs.scheme) return normalizeScheme(serverPrefs.scheme);
+
       try {
         var stored = storageGet("app-theme-scheme", null);
         if (stored) return normalizeScheme(stored);
       } catch (e) {}
-
-      if (runtimePrefs.scheme) return normalizeScheme(runtimePrefs.scheme);
-      if (serverPrefs.scheme) return normalizeScheme(serverPrefs.scheme);
       return "blue";
     }
 
@@ -387,15 +387,20 @@
 
     function applyFont(fontClass) {
       var nextFont = allowedFonts.indexOf(fontClass) !== -1 ? fontClass : "default";
+      var currentFont = currentFontValue();
       runtimePrefs.font = nextFont;
-      if (themeStateCore && typeof themeStateCore.applyFontClass === "function") {
-        nextFont = themeStateCore.applyFontClass(document.documentElement, nextFont);
-      } else {
-        clearFontClasses();
-        if (nextFont !== "default") {
-          document.documentElement.classList.add(nextFont);
+
+      if (currentFont !== nextFont) {
+        if (themeStateCore && typeof themeStateCore.applyFontClass === "function") {
+          nextFont = themeStateCore.applyFontClass(document.documentElement, nextFont);
+        } else {
+          clearFontClasses();
+          if (nextFont !== "default") {
+            document.documentElement.classList.add(nextFont);
+          }
         }
       }
+
       try {
         if (nextFont === "default") {
           storageRemove("font-family");
@@ -408,10 +413,15 @@
 
     function applyNavigationMode(mode) {
       var next = mode === "dark" ? "dark" : "light";
+      var current = document.documentElement.classList.contains("app-navigation-dark")
+        ? "dark"
+        : "light";
       runtimePrefs.navigation = next;
-      document.documentElement.classList.remove("app-navigation-dark");
-      if (next === "dark") {
-        document.documentElement.classList.add("app-navigation-dark");
+      if (current !== next) {
+        document.documentElement.classList.remove("app-navigation-dark");
+        if (next === "dark") {
+          document.documentElement.classList.add("app-navigation-dark");
+        }
       }
       try {
         storageSet(
@@ -424,10 +434,15 @@
 
     function applyHeaderMode(mode) {
       var next = mode === "dark" ? "dark" : "light";
+      var current = document.documentElement.classList.contains("app-header-dark")
+        ? "dark"
+        : "light";
       runtimePrefs.header = next;
-      document.documentElement.classList.remove("app-header-dark");
-      if (next === "dark") {
-        document.documentElement.classList.add("app-header-dark");
+      if (current !== next) {
+        document.documentElement.classList.remove("app-header-dark");
+        if (next === "dark") {
+          document.documentElement.classList.add("app-header-dark");
+        }
       }
       try {
         storageSet(
@@ -440,6 +455,9 @@
 
     function applySurfaceMode(mode) {
       var next = normalizeSurfacesMode(mode);
+      if (runtimePrefs.surfaces === next) {
+        return next;
+      }
       runtimePrefs.surfaces = next;
       try {
         storageSet("app-surfaces", next);
@@ -471,10 +489,14 @@
 
     function applyScheme(scheme) {
       var next = normalizeScheme(scheme);
+      var isGray = document.documentElement.classList.contains("app-theme-gray");
+      var current = isGray ? "gray" : "blue";
       runtimePrefs.scheme = next;
-      document.documentElement.classList.remove("app-theme-gray");
-      if (next === "gray") {
-        document.documentElement.classList.add("app-theme-gray");
+      if (current !== next) {
+        document.documentElement.classList.remove("app-theme-gray");
+        if (next === "gray") {
+          document.documentElement.classList.add("app-theme-gray");
+        }
       }
       try {
         storageSet("app-theme-scheme", next);
@@ -565,26 +587,51 @@
     }
 
     function showThemeToast(icon, title) {
-      if (window.Swal && typeof window.Swal.mixin === "function") {
-        window.Swal.mixin({
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-          timer: 3000,
-          timerProgressBar: true,
-          didOpen: function (toast) {
-            toast.style.marginTop = "14px";
-            toast.style.marginRight = "14px";
-            toast.addEventListener("mouseenter", window.Swal.stopTimer);
-            toast.addEventListener("mouseleave", window.Swal.resumeTimer);
-          },
-        }).fire({
-          icon: icon || "success",
-          title: title || "Saved",
-        });
+      var root = document.body || document.documentElement;
+      if (!root) {
+        console.log(title || "Saved");
         return;
       }
-      console.log(title || "Saved");
+
+      var existing = document.getElementById("appThemeToast");
+      if (existing && existing.parentNode) {
+        existing.parentNode.removeChild(existing);
+      }
+
+      var toast = document.createElement("div");
+      toast.id = "appThemeToast";
+      toast.className = "app-theme-toast-static";
+      toast.setAttribute("role", "status");
+      toast.setAttribute("aria-live", "polite");
+
+      var iconWrap = document.createElement("span");
+      iconWrap.className = "app-theme-toast-static-icon";
+
+      var iconEl = document.createElement("span");
+      iconEl.className = "app-theme-toast-static-icon-glyph";
+      iconEl.setAttribute("aria-hidden", "true");
+      if (icon === "error") {
+        iconEl.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 9v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+      } else {
+        iconEl.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6 9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      }
+      iconWrap.appendChild(iconEl);
+
+      var textWrap = document.createElement("span");
+      textWrap.className = "app-theme-toast-static-text";
+      textWrap.textContent = title || "Saved";
+
+      toast.appendChild(iconWrap);
+      toast.appendChild(textWrap);
+      root.appendChild(toast);
+
+      window.setTimeout(function () {
+        if (toast && toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 2800);
     }
 
     function applyMenuMode(mode) {
@@ -662,6 +709,15 @@
     }
 
     function setDark(isDark, persist) {
+      var alreadyDark = document.documentElement.classList.contains("app-skin-dark");
+      if (alreadyDark === !!isDark) {
+        runtimePrefs.skin = isDark ? "dark" : "light";
+        if (darkBtn) darkBtn.style.display = isDark ? "none" : "inline-flex";
+        if (lightBtn) lightBtn.style.display = isDark ? "inline-flex" : "none";
+        syncCustomizerInputs();
+        return;
+      }
+
       if (isDark) {
         runtimePrefs.skin = "dark";
         document.documentElement.classList.add("app-skin-dark");
