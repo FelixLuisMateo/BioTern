@@ -5,7 +5,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
-if (empty($_SESSION['user']) || !is_array($_SESSION['user'])) {
+$sessionUserId = (int)($_SESSION['user_id'] ?? 0);
+if ($sessionUserId <= 0) {
     http_response_code(403);
     exit;
 }

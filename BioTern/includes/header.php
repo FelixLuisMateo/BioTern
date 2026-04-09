@@ -278,6 +278,7 @@ $header_notifications = [];
 $header_notifications_unread = 0;
 $header_notifications_url = 'notifications.php';
 $header_account_settings_url = 'account-settings.php#security';
+$header_avatar_debug_enabled = isset($_GET['avatar_debug']) && (string)$_GET['avatar_debug'] === '1';
 
 if ($page_render_header) {
     $header_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
@@ -597,12 +598,12 @@ if ($header_db instanceof mysqli) {
                             </div>
                             <div class="dropdown nxl-h-item click-only-dropdown">
                                 <a href="javascript:void(0);" data-bs-toggle="dropdown" data-bs-display="static" data-bs-offset="0,10" role="button" data-bs-auto-close="outside">
-                                    <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0">
+                                    <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar me-0" data-avatar-debug-src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>">
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                                     <div class="dropdown-header user-dropdown-hero">
                                         <div class="header-menu-profile">
-                                            <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar">
+                                            <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" data-avatar-debug-src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>">
                                             <div class="user-dropdown-identity">
                                                 <h6 class="user-dropdown-name"><?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?></h6>
                                                 <div class="user-dropdown-meta-row">
@@ -698,5 +699,42 @@ if ($header_db instanceof mysqli) {
         <!--! ================================================================ !-->
         <!--! [End] Header !-->
         <!--! ================================================================ !-->
+
+        <?php if ($header_avatar_debug_enabled): ?>
+            <div id="avatar-debug-panel" style="position:fixed;right:12px;bottom:12px;z-index:2000;max-width:460px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:10px;padding:10px 12px;box-shadow:0 8px 24px rgba(2,6,23,.35);font:12px/1.4 Consolas,'Courier New',monospace;">
+                <div style="font-weight:700;margin-bottom:6px;">Avatar Debug Mode</div>
+                <div style="opacity:.9;word-break:break-all;">Page: <?php echo htmlspecialchars((string)($_SERVER['REQUEST_URI'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                <div id="avatar-debug-lines" style="margin-top:6px;display:grid;gap:4px;"></div>
+            </div>
+            <script>
+                (function () {
+                    var out = document.getElementById('avatar-debug-lines');
+                    if (!out) return;
+                    var srcSet = new Set();
+                    document.querySelectorAll('img[data-avatar-debug-src]').forEach(function (img) {
+                        var src = img.getAttribute('data-avatar-debug-src') || img.getAttribute('src') || '';
+                        if (src) srcSet.add(src);
+                    });
+                    var sources = Array.from(srcSet);
+                    if (!sources.length) {
+                        out.innerHTML = '<div>No avatar sources found.</div>';
+                        return;
+                    }
+                    sources.forEach(function (src) {
+                        var line = document.createElement('div');
+                        line.style.wordBreak = 'break-all';
+                        line.textContent = '[checking] ' + src;
+                        out.appendChild(line);
+                        fetch(src, { method: 'GET', credentials: 'same-origin' })
+                            .then(function (res) {
+                                line.textContent = '[' + res.status + ' ' + res.statusText + '] ' + src;
+                            })
+                            .catch(function (err) {
+                                line.textContent = '[fetch-error] ' + src + ' :: ' + (err && err.message ? err.message : 'unknown');
+                            });
+                    });
+                })();
+            </script>
+        <?php endif; ?>
     <?php endif; ?>
 
