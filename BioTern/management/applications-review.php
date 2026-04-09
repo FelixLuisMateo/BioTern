@@ -388,7 +388,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $studentPlaceholders[] = 'NOW()';
                     }
 
+                    $upsertAssignments = [];
+                    foreach ($studentColumns as $columnName) {
+                        if ($columnName === 'created_at') {
+                            continue;
+                        }
+                        $upsertAssignments[] = $columnName . ' = VALUES(' . $columnName . ')';
+                    }
+                    if (reviewTableHasColumn($conn, 'students', 'updated_at')) {
+                        $upsertAssignments[] = 'updated_at = NOW()';
+                    }
+
                     $insertStudentSql = 'INSERT INTO students (' . implode(', ', $studentColumns) . ') VALUES (' . implode(', ', $studentPlaceholders) . ')';
+                    if (!empty($upsertAssignments)) {
+                        $insertStudentSql .= ' ON DUPLICATE KEY UPDATE ' . implode(', ', $upsertAssignments);
+                    }
                     $insertStudentStmt = $conn->prepare($insertStudentSql);
                     if (!$insertStudentStmt) {
                         throw new Exception('Unable to create approved student record. ' . (string)$conn->error);
