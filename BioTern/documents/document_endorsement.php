@@ -3,10 +3,6 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/document_access.php';
 
 $prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-$prefill_greeting_pref = strtolower(trim((string)($_GET['greeting_pref'] ?? 'either')));
-if (!in_array($prefill_greeting_pref, ['sir', 'maam', 'either'], true)) {
-    $prefill_greeting_pref = 'either';
-}
 $prefill_recipient_title = strtolower(trim((string)($_GET['recipient_title'] ?? 'auto')));
 if (!in_array($prefill_recipient_title, ['auto', 'mr', 'ms', 'none'], true)) {
     $prefill_recipient_title = 'auto';
@@ -78,157 +74,207 @@ if (isset($_GET['action'])) {
     echo json_encode(new stdClass());
     exit;
 }
-$page_title = 'Endorsement Letter';
+$page_title = 'Endorsement Builder';
 $base_href = '../';
-$page_styles = ['assets/css/layout/page_shell.css', 'assets/css/modules/documents/documents.css'];
-$page_scripts = ['assets/js/modules/documents/documents-page-runtime.js'];
+$page_body_class = 'application-builder-page document-builder-page endorsement-builder-page';
+$page_styles = [
+    'assets/css/layout/page_shell.css',
+    'assets/css/modules/documents/document-builder-shared.css',
+    'assets/css/modules/documents/page-application-document-builder.css',
+    'assets/css/modules/documents/page-endorsement-document-builder.css',
+    'assets/css/modules/documents/template-print-isolation.css',
+];
+$page_scripts = ['assets/js/modules/documents/endorsement-document-builder.js'];
 include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-<div
-    class="endorsement-page doc-page-root"
-    data-page="endorsement"
-    data-prefill-student-id="<?php echo intval($prefill_student_id); ?>"
-    data-prefill-greeting-pref="<?php echo htmlspecialchars($prefill_greeting_pref, ENT_QUOTES, 'UTF-8'); ?>"
-    data-prefill-recipient-title="<?php echo htmlspecialchars($prefill_recipient_title, ENT_QUOTES, 'UTF-8'); ?>"
->
-    <div class="page-header dashboard-page-header page-header-with-middle">
-        <div class="page-header-left d-flex align-items-center">
-            <div class="page-header-title">
-                <h5 class="m-b-10">Documents - Endorsement Letter</h5>
-            </div>
-            <ul class="breadcrumb">
-                <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                <li class="breadcrumb-item">Documents</li>
-                <li class="breadcrumb-item">Endorsement</li>
-            </ul>
-        </div>
-        <div class="page-header-middle">
-            <p class="page-header-statement">Select a student and prepare the endorsement letter content.</p>
-        </div>
-        <div class="page-header-right ms-auto">
-            <div class="d-md-none d-flex align-items-center">
-                <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#documentEndorsementActionsCollapse" aria-expanded="false" aria-controls="documentEndorsementActionsCollapse">
-                    <i class="feather-more-horizontal"></i>
-                </button>
-            </div>
-            <div class="page-header-right-items collapse d-md-flex" id="documentEndorsementActionsCollapse">
-                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                    <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
-                    <a href="document_application.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>Application</a>
-                    <a href="document_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>MOA</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="container">
-    <div class="row doc-workspace-row">
-        <div class="col-lg-6 doc-form-pane">
-            <div class="card p-3">
-                <div class="mt-2">
-                    <label for="student_select" class="form-label">Search Student</label>
-                    <select id="student_select" class="student-select-full"></select>
-                    <small class="text-muted">Search and select student.</small>
-                </div>
-                <div class="mt-1">
-                    <label class="form-label">Recipient Name</label>
-                    <input id="input_recipient" class="form-control form-control-sm" type="text" placeholder="e.g. Mr. Mark G. Sison">
-                </div>
-                <div class="mt-2">
-                    <label class="form-label d-block mb-2">Recipient Title</label>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="recipient_title" id="rt_auto" value="auto">
-                        <label class="form-check-label" for="rt_auto">Auto (AI guess)</label>
+        <div
+            class="application-document-builder endorsement-page"
+            data-prefill-student-id="<?php echo intval($prefill_student_id); ?>"
+            data-prefill-recipient-title="<?php echo htmlspecialchars($prefill_recipient_title, ENT_QUOTES, 'UTF-8'); ?>"
+        >
+            <div class="main-content">
+                <div class="page-header dashboard-page-header page-header-with-middle">
+                    <div class="page-header-left d-flex align-items-center">
+                        <div class="page-header-title">
+                            <h5 class="m-b-10">Documents - Endorsement Letter</h5>
+                        </div>
+                        <ul class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                            <li class="breadcrumb-item">Documents</li>
+                            <li class="breadcrumb-item">Endorsement Builder</li>
+                        </ul>
                     </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="recipient_title" id="rt_mr" value="mr">
-                        <label class="form-check-label" for="rt_mr">Mr.</label>
+                    <div class="page-header-middle">
+                        <p class="page-header-statement">Use one workspace to edit the template, load data, and print the endorsement letter.</p>
                     </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="recipient_title" id="rt_ms" value="ms">
-                        <label class="form-check-label" for="rt_ms">Ms.</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="recipient_title" id="rt_none" value="none">
-                        <label class="form-check-label" for="rt_none">Mr./Ms.</label>
-                    </div>
-                </div>
-                <div class="mt-2">
-                    <label class="form-label">Recipient Position</label>
-                    <input id="input_position" class="form-control form-control-sm" type="text" placeholder="e.g. Supervisor/Manager">
-                </div>
-                <div class="mt-2">
-                    <label class="form-label">Company Name</label>
-                    <input id="input_company" class="form-control form-control-sm" type="text" placeholder="Company name">
-                </div>
-                <div class="mt-2">
-                    <label class="form-label">Company Address</label>
-                    <textarea id="input_company_address" class="form-control form-control-sm" rows="2" placeholder="Company address"></textarea>
-                </div>
-                <div class="mt-2">
-                    <label class="form-label">Students to Endorse (one per line)</label>
-                    <textarea id="input_students" class="form-control form-control-sm" rows="4" placeholder="Lastname, Firstname M."></textarea>
-                </div>
-
-                <div class="mt-3 d-flex gap-2">
-                    <a id="btn_file_edit" class="btn btn-primary">File Edit</a>
-                    <a id="btn_generate" class="btn btn-success flex-grow-1" target="_blank">Generate / Print</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-6 doc-template-pane">
-            <div class="doc-preview" id="letter_preview">
-                <img class="crest-preview crest-preview-position js-hide-on-error" src="assets/images/auth/auth-cover-login-bg.png" alt="crest">
-                <div class="preview-header">
-                    <p class="school-name">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</p>
-                    <div class="school-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
-                    <div class="school-tel">Telefax No.: (045) 624-0215</div>
-                </div>
-                <div class="preview-content" id="preview_content">
-                    <h5>ENDORSEMENT LETTER</h5>
-                    <p><strong id="pv_recipient">__________________________</strong><br>
-                    <span id="pv_position">__________________________</span><br>
-                    <span id="pv_company">__________________________</span><br>
-                    <span id="pv_company_address">__________________________</span></p>
-
-                    <p><span id="pv_salutation">Dear Ma'am,</span></p>
-
-                    <p>Greetings from Clark College of Science and Technology!</p>
-
-                    <p>We are pleased to introduce our Associate in Computer Technology program, designed to promote student success by developing competencies in core Information Technology disciplines. Our curriculum emphasizes practical experience through internships and on-the-job training, fostering a strong foundation in current industry practices.</p>
-
-                    <p>In this regard, we are seeking your esteemed company's support in accommodating the following students:</p>
-                    <ul id="pv_students">
-                        <li>__________________________</li>
-                    </ul>
-
-                    <p>These students are required to complete 250 training hours. We believe that your organization can provide them with invaluable knowledge and skills, helping them to maximize their potential for future careers in IT.</p>
-                    <p>Our teacher-in-charge will coordinate with you to monitor the students' progress and performance.</p>
-                    <p>We look forward to a productive partnership with your organization. Thank you for your consideration and support.</p>
-
-                    <p>Sincerely,</p>
-                    <div class="signature">
-                        <p><strong>MR. JOMAR G. SANGIL</strong><br>
-                        <strong>ICT DEPARTMENT HEAD</strong><br>
-                        <strong>Clark College of Science and Technology</strong></p>
-                        <div class="ross-signatory">
-                            <img class="ross-signature js-hide-on-error" src="pages/Ross-Signature.png" alt="Ross signature">
-                            <p class="ross-signatory-text"><strong>MR. ROSS CARVEL C. RAMIREZ</strong><br>
-                            <strong>HEAD OF ACADEMIC AFFAIRS</strong><br>
-                            <strong>Clark College of Science and Technology</strong></p>
+                    <div class="page-header-right ms-auto">
+                        <div class="d-md-none d-flex align-items-center">
+                            <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#documentEndorsementActionsCollapse" aria-expanded="false" aria-controls="documentEndorsementActionsCollapse">
+                                <i class="feather-more-horizontal"></i>
+                            </button>
+                        </div>
+                        <div class="page-header-right-items collapse d-md-flex" id="documentEndorsementActionsCollapse">
+                            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                                <a href="document_application.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>Application</a>
+                                <a href="document_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>MOA</a>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <div class="application-builder-grid">
+                    <section class="application-builder-sidebar">
+                        <div class="builder-card">
+                            <div class="builder-card-head">
+                                <h6>Record Source</h6>
+                                <p>Select a student, load saved endorsement data, and prepare final values for print.</p>
+                            </div>
+
+                            <div class="builder-field">
+                                <label for="student_select" class="form-label">Search Student</label>
+                                <select id="student_select" class="student-select-full" data-placeholder="Search by name or student id"></select>
+                            </div>
+
+                            <div class="builder-field">
+                                <label class="form-label">Recipient Name</label>
+                                <input id="input_recipient" class="form-control" type="text" placeholder="e.g. Mark G. Sison" autocomplete="off">
+                            </div>
+
+                            <div class="builder-field">
+                                <label class="form-label d-block mb-2">Recipient Title</label>
+                                <div class="builder-inline-options">
+                                    <label class="form-check"><input class="form-check-input" type="radio" name="recipient_title" id="rt_auto" value="auto"><span class="form-check-label">Auto</span></label>
+                                    <label class="form-check"><input class="form-check-input" type="radio" name="recipient_title" id="rt_mr" value="mr"><span class="form-check-label">Mr.</span></label>
+                                    <label class="form-check"><input class="form-check-input" type="radio" name="recipient_title" id="rt_ms" value="ms"><span class="form-check-label">Ms.</span></label>
+                                    <label class="form-check"><input class="form-check-input" type="radio" name="recipient_title" id="rt_none" value="none"><span class="form-check-label">Mr./Ms.</span></label>
+                                </div>
+                            </div>
+
+                            <div class="builder-field-grid">
+                                <div class="builder-field">
+                                    <label class="form-label">Recipient Position</label>
+                                    <input id="input_position" class="form-control" type="text" placeholder="Supervisor/Manager" autocomplete="off">
+                                </div>
+                                <div class="builder-field">
+                                    <label class="form-label">Company Name</label>
+                                    <input id="input_company" class="form-control" type="text" placeholder="Company name" autocomplete="off">
+                                </div>
+                            </div>
+
+                            <div class="builder-field">
+                                <label class="form-label">Company Address</label>
+                                <textarea id="input_company_address" class="form-control" rows="2" placeholder="Company address" autocomplete="off"></textarea>
+                            </div>
+
+                            <div class="builder-field">
+                                <label class="form-label">Students to Endorse (one per line)</label>
+                                <textarea id="input_students" class="form-control" rows="5" placeholder="Lastname, Firstname M."></textarea>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="application-builder-canvas">
+                        <div class="builder-card builder-card-editor">
+                            <div class="builder-editor-head">
+                                <div>
+                                    <h6>Template Builder</h6>
+                                    <p>Edit, save, and print endorsement letters directly from this page.</p>
+                                </div>
+                                <div class="builder-editor-actions">
+                                    <button id="btn_toggle_edit" class="btn btn-light" type="button" aria-pressed="false">Edit Template</button>
+                                    <button id="btn_save" class="btn btn-primary" type="button">Save Template</button>
+                                    <button id="btn_reset" class="btn btn-light" type="button">Reset</button>
+                                    <button id="btn_print" class="btn btn-success" type="button">Generate / Print</button>
+                                </div>
+                            </div>
+
+                            <div class="builder-toolbar is-disabled" id="builder_toolbar" aria-label="Template formatting tools" aria-hidden="true">
+                                <button id="btn_bold" class="btn btn-light" type="button"><strong>B</strong></button>
+                                <button id="btn_italic" class="btn btn-light" type="button"><em>I</em></button>
+                                <button id="btn_underline" class="btn btn-light" type="button"><u>U</u></button>
+                                <button id="btn_left" class="btn btn-light" type="button">Left</button>
+                                <button id="btn_center" class="btn btn-light" type="button">Center</button>
+                                <button id="btn_right" class="btn btn-light" type="button">Right</button>
+                                <button id="btn_justify" class="btn btn-light" type="button">Justify</button>
+                                <button id="btn_indent" class="btn btn-light" type="button">Indent</button>
+                                <button id="btn_outdent" class="btn btn-light" type="button">Outdent</button>
+                                <label for="font_size_pt">Size</label>
+                                <input id="font_size_pt" type="number" min="6" max="96" step="1" value="12" title="Double-click for custom size">
+                                <button id="btn_apply_size" class="btn btn-light" type="button">Apply</button>
+                                <label for="font_color">Color</label>
+                                <input id="font_color" type="color" value="#000000">
+                            </div>
+
+                            <div class="builder-status-bar">
+                                <span id="msg" class="builder-status-text">Template ready.</span>
+                            </div>
+
+                            <div class="builder-paper-shell">
+                                <div class="builder-paper">
+                                    <div id="editor" class="builder-editor-surface is-locked" contenteditable="false" spellcheck="true"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <template id="endorsement_default_template">
+                    <div class="a4-pages-stack" data-a4-document="true">
+                        <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.55in 0.9in 0.85in 0.9in; background:#fff;">
+                            <div class="endorsement-letter-template">
+                                <div class="preview-header">
+                                    <img class="crest-preview" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" style="position:absolute; top:12px; left:12px; width:56px; height:56px; object-fit:contain;" onerror="this.style.display='none'">
+                                    <div class="preview-header-copy">
+                                        <p class="school-name">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</p>
+                                        <div class="school-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
+                                        <div class="school-tel">Telefax No.: (045) 624-0215</div>
+                                    </div>
+                                </div>
+                                <div class="preview-content" id="preview_content">
+                                    <h5>ENDORSEMENT LETTER</h5>
+                                    <p><strong id="pv_recipient">__________________________</strong><br>
+                                    <span id="pv_position">__________________________</span><br>
+                                    <span id="pv_company">__________________________</span><br>
+                                    <span id="pv_company_address">__________________________</span></p>
+
+                                    <p><span id="pv_salutation">Dear Ma'am,</span></p>
+
+                                    <p>Greetings from Clark College of Science and Technology!</p>
+
+                                    <p>We are pleased to introduce our Associate in Computer Technology program, designed to promote student success by developing competencies in core Information Technology disciplines. Our curriculum emphasizes practical experience through internships and on-the-job training, fostering a strong foundation in current industry practices.</p>
+
+                                    <p>In this regard, we are seeking your esteemed company's support in accommodating the following students:</p>
+                                    <ul id="pv_students">
+                                        <li>__________________________</li>
+                                    </ul>
+
+                                    <p>These students are required to complete 250 training hours. We believe that your organization can provide them with invaluable knowledge and skills, helping them to maximize their potential for future careers in IT.</p>
+                                    <p>Our teacher-in-charge will coordinate with you to monitor the students' progress and performance.</p>
+                                    <p>We look forward to a productive partnership with your organization. Thank you for your consideration and support.</p>
+
+                                    <p>Sincerely,</p>
+                                    <div class="signature">
+                                        <p><strong>MR. JOMAR G. SANGIL</strong><br>
+                                        <strong>ICT DEPARTMENT HEAD</strong><br>
+                                        <strong>Clark College of Science and Technology</strong></p>
+                                        <div class="ross-signatory">
+                                            <img class="ross-signature" src="pages/Ross-Signature.png" alt="Ross signature" onerror="this.style.display='none'">
+                                            <p class="ross-signatory-text"><strong>MR. ROSS CARVEL C. RAMIREZ</strong><br>
+                                            <strong>HEAD OF ACADEMIC AFFAIRS</strong><br>
+                                            <strong>Clark College of Science and Technology</strong></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
             </div>
         </div>
-    </div>
-</div>
-
-</div>
-</div> <!-- .nxl-content -->
+    </div> <!-- .nxl-content -->
 </main>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 
