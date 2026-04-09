@@ -20,6 +20,68 @@ function auser(mysqli $conn, int $id): ?array {
     if (!$stmt) return null; $stmt->bind_param('i', $id); $stmt->execute(); $row = $stmt->get_result()->fetch_assoc(); $stmt->close(); return $row ?: null;
 }
 
+function aensure_profile_picture_table(mysqli $conn): bool {
+    return (bool)$conn->query("CREATE TABLE IF NOT EXISTS user_profile_pictures (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id INT UNSIGNED NOT NULL,
+        image_mime VARCHAR(64) NOT NULL,
+        image_data LONGBLOB NOT NULL,
+        image_size INT UNSIGNED NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_user_profile_picture (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function aprofile_picture_meta(mysqli $conn, int $userId): ?array {
+    if ($userId <= 0 || !aensure_profile_picture_table($conn)) {
+        return null;
+    }
+    $stmt = $conn->prepare("SELECT image_mime, image_size, updated_at FROM user_profile_pictures WHERE user_id = ? LIMIT 1");
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return is_array($row) ? $row : null;
+}
+
+function asave_profile_picture(mysqli $conn, int $userId, string $mime, string $binary): bool {
+    if ($userId <= 0 || $mime === '' || $binary === '' || !aensure_profile_picture_table($conn)) {
+        return false;
+    }
+    $size = strlen($binary);
+    $stmt = $conn->prepare("INSERT INTO user_profile_pictures (user_id, image_mime, image_data, image_size, created_at, updated_at)
+        VALUES (?, ?, ?, ?, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE image_mime = VALUES(image_mime), image_data = VALUES(image_data), image_size = VALUES(image_size), updated_at = NOW()");
+    if (!$stmt) {
+        return false;
+    }
+    $blob = '';
+    $stmt->bind_param('isbi', $userId, $mime, $blob, $size);
+    $stmt->send_long_data(2, $binary);
+    $ok = $stmt->execute();
+    $stmt->close();
+    return (bool)$ok;
+}
+
+function adelete_profile_picture(mysqli $conn, int $userId): bool {
+    if ($userId <= 0 || !aensure_profile_picture_table($conn)) {
+        return false;
+    }
+    $stmt = $conn->prepare("DELETE FROM user_profile_pictures WHERE user_id = ?");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('i', $userId);
+    $ok = $stmt->execute();
+    $stmt->close();
+    return (bool)$ok;
+}
+
 $userId = (int)($_SESSION['user_id'] ?? 0);
 if ($userId <= 0) { header('Location: auth-login.php'); exit; }
 $user = auser($conn, $userId);
@@ -42,12 +104,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'upload_avatar') {
         $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
         $allowedMime = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        $mimeToExt = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif'];
         $maxImageBytes = 3145728;
 
         $binaryUpload = null;
-        $tmpUpload = '';
-        $uploadExt = '';
+        $detectedMime = '';
 
         $croppedData = trim((string)($_POST['profile_picture_cropped'] ?? ''));
         if ($croppedData !== '') {
@@ -84,7 +144,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $binaryUpload = $decoded;
-            $uploadExt = (string)($mimeToExt[$detectedMime] ?? 'png');
         } else {
             $file = $_FILES['profile_picture'] ?? null;
             if (!is_array($file) || (int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
@@ -111,29 +170,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 aflash('danger', 'Only JPG, PNG, WEBP, or GIF images are allowed.');
                 aredirect();
             }
+
+            $binaryUpload = @file_get_contents($tmpUpload);
+            if (!is_string($binaryUpload) || $binaryUpload === '') {
+                aflash('danger', 'Failed to read uploaded image data.');
+                aredirect();
+            }
+            if (strlen($binaryUpload) > $maxImageBytes) {
+                aflash('danger', 'Image must be less than 3MB.');
+                aredirect();
+            }
+            $imgInfo = function_exists('getimagesizefromstring') ? @getimagesizefromstring($binaryUpload) : false;
+            $detectedMime = strtolower((string)($imgInfo['mime'] ?? $mime));
+            if (!$imgInfo || !in_array($detectedMime, $allowedMime, true)) {
+                aflash('danger', 'Uploaded image is not a supported photo type.');
+                aredirect();
+            }
         }
 
-        $dir = dirname(__DIR__) . '/uploads/profile_pictures'; if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) { aflash('danger', 'Could not prepare upload folder.'); aredirect(); }
-        try { $rand = bin2hex(random_bytes(6)); } catch (Throwable $e) { $rand = (string)mt_rand(100000, 999999); }
-        $targetFile = 'user_' . $userId . '_' . time() . '_' . $rand . '.' . $uploadExt; $targetAbs = $dir . '/' . $targetFile; $targetRel = 'uploads/profile_pictures/' . $targetFile;
-        if ($binaryUpload !== null) {
-            if (@file_put_contents($targetAbs, $binaryUpload) === false) { aflash('danger', 'Failed to save cropped image.'); aredirect(); }
-        } else {
-            if (!move_uploaded_file($tmpUpload, $targetAbs)) { aflash('danger', 'Failed to save uploaded image.'); aredirect(); }
+        if (!asave_profile_picture($conn, $userId, $detectedMime, (string)$binaryUpload)) {
+            aflash('danger', 'Unable to save profile image in database.');
+            aredirect();
         }
-        $oldRel = anorm((string)($user['profile_picture'] ?? '')); $stmt = $conn->prepare("UPDATE users SET profile_picture = ? WHERE id = ? LIMIT 1");
-        if (!$stmt) { @unlink($targetAbs); aflash('danger', 'Unable to save profile image.'); aredirect(); }
-        $stmt->bind_param('si', $targetRel, $userId); $ok = $stmt->execute(); $stmt->close();
-        if (!$ok) { @unlink($targetAbs); aflash('danger', 'Unable to save profile image.'); aredirect(); }
-        if ($oldRel !== '' && strpos($oldRel, 'uploads/profile_pictures/') === 0) { $oldAbs = dirname(__DIR__) . '/' . $oldRel; if (is_file($oldAbs)) @unlink($oldAbs); }
-        $_SESSION['profile_picture'] = $targetRel; aflash('success', 'Profile picture updated.'); aredirect();
+
+        $marker = 'db-avatar';
+        $stmt = $conn->prepare("UPDATE users SET profile_picture = ? WHERE id = ? LIMIT 1");
+        if (!$stmt) {
+            aflash('danger', 'Unable to finalize profile image update.');
+            aredirect();
+        }
+        $stmt->bind_param('si', $marker, $userId);
+        $ok = $stmt->execute();
+        $stmt->close();
+        if (!$ok) {
+            aflash('danger', 'Unable to finalize profile image update.');
+            aredirect();
+        }
+
+        $_SESSION['profile_picture'] = $marker;
+        aflash('success', 'Profile picture updated.');
+        aredirect();
     }
     if ($action === 'remove_avatar') {
-        $oldRel = anorm((string)($user['profile_picture'] ?? '')); $stmt = $conn->prepare("UPDATE users SET profile_picture = NULL WHERE id = ? LIMIT 1");
+        adelete_profile_picture($conn, $userId);
+        $stmt = $conn->prepare("UPDATE users SET profile_picture = NULL WHERE id = ? LIMIT 1");
         if (!$stmt) { aflash('danger', 'Unable to remove profile picture.'); aredirect(); }
         $stmt->bind_param('i', $userId); $ok = $stmt->execute(); $stmt->close();
         if (!$ok) { aflash('danger', 'Unable to remove profile picture.'); aredirect(); }
-        if ($oldRel !== '' && strpos($oldRel, 'uploads/profile_pictures/') === 0) { $oldAbs = dirname(__DIR__) . '/' . $oldRel; if (is_file($oldAbs)) @unlink($oldAbs); }
         $_SESSION['profile_picture'] = ''; aflash('success', 'Profile picture removed.'); aredirect();
     }
     if ($action === 'change_password') {
@@ -157,7 +240,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $user = auser($conn, $userId) ?? $user; $flash = $_SESSION['account_settings_flash'] ?? null; unset($_SESSION['account_settings_flash']);
 $profileRel = anorm((string)($user['profile_picture'] ?? '')); $profileAbs = $profileRel !== '' ? dirname(__DIR__) . '/' . $profileRel : '';
-$profileUrl = ($profileRel !== '' && is_file($profileAbs)) ? $profileRel . '?v=' . rawurlencode((string)@filemtime($profileAbs)) : ('assets/images/avatar/' . (($userId % 5) + 1) . '.png');
+$profileMeta = aprofile_picture_meta($conn, $userId);
+$profileVersion = rawurlencode((string)strtotime((string)($profileMeta['updated_at'] ?? 'now')));
+$profileUrl = $profileMeta
+    ? ('includes/avatar-image.php?uid=' . (int)$userId . '&v=' . $profileVersion)
+    : (($profileRel !== '' && is_file($profileAbs)) ? $profileRel . '?v=' . rawurlencode((string)@filemtime($profileAbs)) : ('assets/images/avatar/' . (($userId % 5) + 1) . '.png'));
+$profileSourceLabel = $profileMeta ? 'Stored in database' : ($profileRel !== '' ? $profileRel : 'Default BioTern avatar');
 $displayName = trim((string)($user['name'] ?? 'BioTern User')); if ($displayName === '') $displayName = 'BioTern User';
 $memberSince = '-'; if (!empty($user['created_at'])) { $ts = strtotime((string)$user['created_at']); if ($ts !== false) $memberSince = date('M d, Y h:i A', $ts); }
 $lastLogin = 'No login record yet'; $loginStmt = $conn->prepare("SELECT created_at FROM login_logs WHERE user_id = ? AND status = ? ORDER BY created_at DESC LIMIT 1");
@@ -238,7 +326,7 @@ include dirname(__DIR__) . '/includes/header.php';
                                 <div class="row g-4">
                                     <div class="col-lg-5">
                                         <div class="account-avatar-panel">
-                                            <div class="account-current-avatar"><img src="<?php echo ash($profileUrl); ?>" alt="Current avatar"><div><strong>Current profile image</strong><span><?php echo ash($profileRel !== '' ? $profileRel : 'Default BioTern avatar'); ?></span></div></div>
+                                            <div class="account-current-avatar"><img src="<?php echo ash($profileUrl); ?>" alt="Current avatar"><div><strong>Current profile image</strong><span><?php echo ash($profileSourceLabel); ?></span></div></div>
                                             <form method="post" enctype="multipart/form-data" data-avatar-upload-form>
                                                 <input type="hidden" name="action" value="upload_avatar">
                                                 <input type="hidden" name="profile_picture_cropped" value="" data-avatar-cropped-input>

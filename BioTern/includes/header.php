@@ -293,7 +293,9 @@ if ($page_render_header) {
 
     $session_avatar = trim((string)($_SESSION['profile_picture'] ?? ''));
     $header_avatar_path = biotern_avatar_public_src($session_avatar, $header_user_id_session);
-    $header_avatar = header_asset_versioned_href($header_avatar_path) . '&uid=' . rawurlencode((string)$header_user_id_session);
+    $header_avatar_base = header_asset_versioned_href($header_avatar_path);
+    $header_avatar_sep = (strpos($header_avatar_base, '?') !== false) ? '&' : '?';
+    $header_avatar = $header_avatar_base . $header_avatar_sep . 'u=' . rawurlencode((string)$header_user_id_session);
 
     if ($header_user_id_session > 0) {
         $hdr_db = $header_db;
