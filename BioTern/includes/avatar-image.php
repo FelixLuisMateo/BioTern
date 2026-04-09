@@ -5,23 +5,38 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
 
+if (!function_exists('biotern_avatar_image_output_default')) {
+    function biotern_avatar_image_output_default(int $userId = 0): void
+    {
+        $fallback = __DIR__ . '/../assets/images/avatar/' . (($userId % 5) + 1) . '.png';
+        if (!is_file($fallback)) {
+            $fallback = __DIR__ . '/../assets/images/avatar/1.png';
+        }
+        if (is_file($fallback)) {
+            header('Content-Type: image/png');
+            header('Cache-Control: public, max-age=300');
+            readfile($fallback);
+            exit;
+        }
+        http_response_code(404);
+        exit;
+    }
+}
+
 $sessionUserId = (int)($_SESSION['user_id'] ?? 0);
+$userId = isset($_GET['uid']) ? (int)$_GET['uid'] : 0;
+if ($userId <= 0) {
+    biotern_avatar_image_output_default(1);
+}
+
 if ($sessionUserId <= 0) {
-    http_response_code(403);
-    exit;
+    biotern_avatar_image_output_default($userId);
 }
 
 require_once __DIR__ . '/../config/db.php';
 
-$userId = isset($_GET['uid']) ? (int)$_GET['uid'] : 0;
-if ($userId <= 0) {
-    http_response_code(400);
-    exit;
-}
-
 if (!($conn instanceof mysqli)) {
-    http_response_code(500);
-    exit;
+    biotern_avatar_image_output_default($userId);
 }
 
 $conn->query("CREATE TABLE IF NOT EXISTS user_profile_pictures (
@@ -38,8 +53,7 @@ $conn->query("CREATE TABLE IF NOT EXISTS user_profile_pictures (
 
 $stmt = $conn->prepare("SELECT image_mime, image_data, updated_at FROM user_profile_pictures WHERE user_id = ? LIMIT 1");
 if (!$stmt) {
-    http_response_code(500);
-    exit;
+    biotern_avatar_image_output_default($userId);
 }
 
 $stmt->bind_param('i', $userId);
@@ -49,15 +63,7 @@ $hasRow = $stmt->fetch();
 $stmt->close();
 
 if (!$hasRow || !is_string($blob) || $blob === '') {
-    $fallback = __DIR__ . '/../assets/images/avatar/' . (($userId % 5) + 1) . '.png';
-    if (is_file($fallback)) {
-        header('Content-Type: image/png');
-        header('Cache-Control: public, max-age=300');
-        readfile($fallback);
-        exit;
-    }
-    http_response_code(404);
-    exit;
+    biotern_avatar_image_output_default($userId);
 }
 
 $mime = is_string($mime) && $mime !== '' ? $mime : 'image/png';
