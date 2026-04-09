@@ -288,15 +288,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$studentStmt) {
                     throw new Exception('Unable to update student hour settings.');
                 }
+
+                $studentExistsForUser = false;
+                $studentExistsStmt = $conn->prepare("SELECT id FROM students WHERE user_id = ? LIMIT 1");
+                if ($studentExistsStmt) {
+                    $studentExistsStmt->bind_param('i', $userId);
+                    $studentExistsStmt->execute();
+                    $studentExistsForUser = (bool)$studentExistsStmt->get_result()->fetch_assoc();
+                    $studentExistsStmt->close();
+                }
+
                 $studentStmt->bind_param('iisisiiiissi', $departmentId, $coordinatorId, $coordinatorName, $supervisorId, $supervisorName, $internalHours, $externalHours, $internalHours, $externalHours, $stagedDateOfBirth, $stagedGender, $userId);
                 if (!$studentStmt->execute()) {
+                    $studentError = (string)$studentStmt->error;
                     $studentStmt->close();
-                    throw new Exception('Unable to save updated assignment and hour settings.');
+                    throw new Exception('Unable to save updated assignment and hour settings. ' . $studentError);
                 }
                 $studentUpdatedRows = (int)$studentStmt->affected_rows;
                 $studentStmt->close();
 
-                if ($studentUpdatedRows === 0 && $stagedApplication) {
+                if (!$studentExistsForUser && $stagedApplication) {
                     $assignmentTrack = strtolower((string)($stagedApplication['assignment_track'] ?? 'internal'));
                     if (!in_array($assignmentTrack, ['internal', 'external'], true)) {
                         $assignmentTrack = 'internal';
@@ -380,12 +391,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $insertStudentSql = 'INSERT INTO students (' . implode(', ', $studentColumns) . ') VALUES (' . implode(', ', $studentPlaceholders) . ')';
                     $insertStudentStmt = $conn->prepare($insertStudentSql);
                     if (!$insertStudentStmt) {
-                        throw new Exception('Unable to create approved student record.');
+                        throw new Exception('Unable to create approved student record. ' . (string)$conn->error);
                     }
                     reviewBindDynamicParams($insertStudentStmt, $studentTypes, $studentValues);
                     if (!$insertStudentStmt->execute()) {
+                        $insertStudentError = (string)$insertStudentStmt->error;
                         $insertStudentStmt->close();
-                        throw new Exception('Unable to create approved student record.');
+                        throw new Exception('Unable to create approved student record. ' . $insertStudentError);
                     }
                     $insertStudentStmt->close();
                 }
