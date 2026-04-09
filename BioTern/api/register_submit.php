@@ -64,6 +64,39 @@ function studentApplicationRedirect(string $status, string $message): void {
     exit;
 }
 
+function studentIdAlreadyUsed(mysqli $mysqli, string $studentId): bool {
+    $value = trim($studentId);
+    if ($value === '') {
+        return false;
+    }
+
+    $stmt = $mysqli->prepare('SELECT id FROM students WHERE student_id = ? LIMIT 1');
+    if ($stmt) {
+        $stmt->bind_param('s', $value);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if ($row) {
+            return true;
+        }
+    }
+
+    if (ensureStudentApplicationsTable($mysqli)) {
+        $stmt = $mysqli->prepare('SELECT id FROM student_applications WHERE student_id = ? AND status IN (\'pending\', \'approved\') LIMIT 1');
+        if ($stmt) {
+            $stmt->bind_param('s', $value);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if ($row) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 function ensureStudentApplicationsTable(mysqli $mysqli): bool {
     $ok = $mysqli->query("CREATE TABLE IF NOT EXISTS student_applications (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -494,6 +527,9 @@ if ($role === 'student') {
 
     if ($student_id !== null && $student_id !== '' && !preg_match('/^05-\d{4,5}$/', (string)$student_id)) {
         studentApplicationRedirect('error', 'School ID Number must follow the format 05-1234 or 05-12345.');
+    }
+    if ($student_id !== null && $student_id !== '' && studentIdAlreadyUsed($mysqli, (string)$student_id)) {
+        studentApplicationRedirect('exists', 'An application or account already exists for that School ID Number.');
     }
 
     $date_of_birth = parseStudentDateOfBirthToSql($date_of_birth_raw);
@@ -1014,6 +1050,7 @@ if ($role === 'supervisor') {
     $office = getPost('office');
     $username = getPost('username');
     $account_email = getPost('account_email');
+    $officeOrSpecialization = $office ?: '';
 
     $final_email = $account_email ?: $email;
     $supervisor_username = generateUniqueUsername($mysqli, $final_email ?: ($first_name . '.' . $last_name), 'supervisor');

@@ -41,6 +41,48 @@
     });
   }
 
+  function initTableCheckboxes() {
+    var selectAll = document.getElementById("checkAllStudent");
+    var rowCheckboxes = Array.prototype.slice.call(
+      document.querySelectorAll("#customerList tbody .checkbox")
+    );
+
+    function toggleRowState(checkboxEl) {
+      var row = checkboxEl ? checkboxEl.closest("tr") : null;
+      if (!row) return;
+      row.classList.toggle("selected", !!checkboxEl.checked);
+    }
+
+    function refreshSelectAllState() {
+      if (!selectAll || rowCheckboxes.length === 0) return;
+      var checkedCount = rowCheckboxes.filter(function (cb) {
+        return cb.checked;
+      }).length;
+      selectAll.checked = checkedCount > 0 && checkedCount === rowCheckboxes.length;
+      selectAll.indeterminate = checkedCount > 0 && checkedCount < rowCheckboxes.length;
+    }
+
+    if (selectAll) {
+      selectAll.addEventListener("change", function () {
+        rowCheckboxes.forEach(function (checkboxEl) {
+          checkboxEl.checked = !!selectAll.checked;
+          toggleRowState(checkboxEl);
+        });
+        refreshSelectAllState();
+      });
+    }
+
+    rowCheckboxes.forEach(function (checkboxEl) {
+      checkboxEl.addEventListener("change", function () {
+        toggleRowState(checkboxEl);
+        refreshSelectAllState();
+      });
+      toggleRowState(checkboxEl);
+    });
+
+    refreshSelectAllState();
+  }
+
   function initActionDropdownPortal() {
     var activeActionMenu = null;
 
@@ -298,6 +340,7 @@
     initFilterSelects();
     initFilterAutoSubmit();
     initPrintActions();
+    initTableCheckboxes();
     initActionDropdownPortal();
     initExportActions();
   }

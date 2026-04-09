@@ -47,6 +47,7 @@ function pipeline_stage(array $row): string {
     $intern = strtolower((string)($row['internship_status'] ?? ''));
     $progress = (float)($row['progress_pct'] ?? 0);
 
+    if ($intern === 'dropped' || $intern === 'cancelled') return 'Dropped';
     if ($intern === 'completed' || $progress >= 100) return 'Completed';
     if ($intern === 'ongoing') return 'Ongoing';
     if ($wf_moa === 'approved' || $has_moa) return 'Accepted';
@@ -186,7 +187,15 @@ FROM students s
 LEFT JOIN users u_student ON s.user_id = u_student.id
 LEFT JOIN courses c ON s.course_id = c.id
 LEFT JOIN sections sec ON s.section_id = sec.id
-LEFT JOIN internships i ON s.id = i.student_id AND i.status IN ('ongoing','completed')
+LEFT JOIN (
+    SELECT i_full.*
+    FROM internships i_full
+    INNER JOIN (
+        SELECT student_id, MAX(id) AS latest_id
+        FROM internships
+        GROUP BY student_id
+    ) i_latest ON i_latest.latest_id = i_full.id
+) i ON s.id = i.student_id
 LEFT JOIN users u_supervisor ON i.supervisor_id = u_supervisor.id
 LEFT JOIN users u_coordinator ON i.coordinator_id = u_coordinator.id
 LEFT JOIN (SELECT user_id, 1 AS has_application FROM application_letter GROUP BY user_id) app ON app.user_id = s.id
@@ -234,8 +243,12 @@ if ($res) {
         if (empty($row['has_moa'])) $risk[] = 'No MOA';
         if (empty($row['has_endorsement'])) $risk[] = 'No Endorsement';
         if (($row['internship_status'] ?? '') === 'ongoing' && !empty($row['last_attendance_date'])) {
-            $days = (int)floor((strtotime($today) - strtotime($row['last_attendance_date'])) / 86400);
-            if ($days >= 3) $risk[] = 'No biometric logs 3+ days';
+            $today_ts = strtotime($today);
+            $last_ts = strtotime((string)$row['last_attendance_date']);
+            if ($today_ts !== false && $last_ts !== false) {
+                $days = (int)floor(($today_ts - $last_ts) / 86400);
+                if ($days >= 3) $risk[] = 'No biometric logs 3+ days';
+            }
         }
         if (($row['internship_status'] ?? '') === 'ongoing' && $row['progress_pct'] < 50) {
             $risk[] = 'Low completion';
@@ -250,8 +263,12 @@ if ($res) {
         if (($row['internship_status'] ?? '') === 'ongoing' && $row['progress_pct'] < 50) $risk_score += 25;
         if ((int)($row['pending_logs'] ?? 0) > 0) $risk_score += 15;
         if (($row['internship_status'] ?? '') === 'ongoing' && !empty($row['last_attendance_date'])) {
-            $days = (int)floor((strtotime($today) - strtotime($row['last_attendance_date'])) / 86400);
-            if ($days >= 3) $risk_score += 15;
+            $today_ts = strtotime($today);
+            $last_ts = strtotime((string)$row['last_attendance_date']);
+            if ($today_ts !== false && $last_ts !== false) {
+                $days = (int)floor(($today_ts - $last_ts) / 86400);
+                if ($days >= 3) $risk_score += 15;
+            }
         }
         if ($risk_score > 100) $risk_score = 100;
         $row['risk_score'] = $risk_score;
@@ -555,7 +572,7 @@ include 'includes/header.php';
                         <label class="form-label" for="ojtFilterStage">Stage</label>
                         <select name="stage" id="ojtFilterStage" class="form-control" data-ui-select="custom">
                             <option value="">All Stages</option>
-                            <?php foreach (['Applied','Endorsed','Accepted','Ongoing','Completed'] as $st): ?>
+                            <?php foreach (['Applied','Endorsed','Accepted','Ongoing','Completed','Dropped'] as $st): ?>
                                 <option value="<?php echo $st; ?>" <?php echo ($status_filter === $st) ? 'selected' : ''; ?>><?php echo $st; ?></option>
                             <?php endforeach; ?>
                         </select>

@@ -2,16 +2,22 @@
 require_once '../config/db.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 require_roles_page(['admin', 'coordinator', 'supervisor']);
 
+if (empty($_SESSION['evaluate_csrf'])) {
+    $_SESSION['evaluate_csrf'] = bin2hex(random_bytes(16));
+}
+$evaluate_csrf = (string)$_SESSION['evaluate_csrf'];
+
 function evaluate_column_exists(mysqli $conn, string $table, string $column): bool {
-    $safeTable = $conn->real_escape_string($table);
+    $safeTable = str_replace('`', '``', $table);
     $safeColumn = $conn->real_escape_string($column);
-    $res = $conn->query("SHOW COLUMNS FROM {$safeTable} LIKE '{$safeColumn}'");
+    $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
     return ($res && $res->num_rows > 0);
 }
 
@@ -39,12 +45,38 @@ if ($student) {
     if ($current_user_role === 'admin') {
         $can_access_page = true;
     } elseif ($current_user_role === 'supervisor') {
-        $can_access_page = ((int)($student['supervisor_id'] ?? 0) === $current_user_id);
+        $assignedSupervisorId = (int)($student['supervisor_id'] ?? 0);
+        $supervisorProfileId = 0;
+        $supervisorProfileStmt = $conn->prepare("SELECT id FROM supervisors WHERE user_id = ? LIMIT 1");
+        if ($supervisorProfileStmt) {
+            $supervisorProfileStmt->bind_param('i', $current_user_id);
+            $supervisorProfileStmt->execute();
+            $supervisorProfileRow = $supervisorProfileStmt->get_result()->fetch_assoc();
+            $supervisorProfileStmt->close();
+            $supervisorProfileId = (int)($supervisorProfileRow['id'] ?? 0);
+        }
+        $can_access_page = ($assignedSupervisorId > 0) && (
+            $assignedSupervisorId === $current_user_id
+            || ($supervisorProfileId > 0 && $assignedSupervisorId === $supervisorProfileId)
+        );
         if (!$can_access_page) {
             $deny_reason = 'You are not assigned as this student\'s supervisor.';
         }
     } elseif ($current_user_role === 'coordinator') {
-        $assigned = ((int)($student['coordinator_id'] ?? 0) === $current_user_id);
+        $assignedCoordinatorId = (int)($student['coordinator_id'] ?? 0);
+        $coordinatorProfileId = 0;
+        $coordinatorProfileStmt = $conn->prepare("SELECT id FROM coordinators WHERE user_id = ? LIMIT 1");
+        if ($coordinatorProfileStmt) {
+            $coordinatorProfileStmt->bind_param('i', $current_user_id);
+            $coordinatorProfileStmt->execute();
+            $coordinatorProfileRow = $coordinatorProfileStmt->get_result()->fetch_assoc();
+            $coordinatorProfileStmt->close();
+            $coordinatorProfileId = (int)($coordinatorProfileRow['id'] ?? 0);
+        }
+        $assigned = ($assignedCoordinatorId > 0) && (
+            $assignedCoordinatorId === $current_user_id
+            || ($coordinatorProfileId > 0 && $assignedCoordinatorId === $coordinatorProfileId)
+        );
         $course_scoped = false;
         $tbl = $conn->query("SHOW TABLES LIKE 'coordinator_courses'");
         if ($tbl && $tbl->num_rows > 0 && (int)($student['course_id'] ?? 0) > 0) {
@@ -99,7 +131,20 @@ if ($stmt_hours) {
 
 $can_evaluate = ($hours_rendered >= $required_hours) && $can_access_page;
 
+if ($student && $can_access_page && !$can_evaluate) {
+    $unlockState = get_evaluation_unlock_state($conn, $student_id);
+    if (!empty($unlockState['is_unlocked'])) {
+        $can_evaluate = true;
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $can_evaluate && isset($_POST['rating'])) {
+    $posted_csrf = (string)($_POST['csrf'] ?? '');
+    if (!hash_equals($evaluate_csrf, $posted_csrf)) {
+        http_response_code(400);
+        die('Invalid form token. Please reload and try again.');
+    }
+
     $rating = intval($_POST['rating']);
     $comments = trim((string)($_POST['comments'] ?? ''));
     $evaluator_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'System'));
@@ -125,11 +170,12 @@ include 'includes/header.php';
         <div class="card-header"><h5 class="card-title mb-0">Student Evaluation</h5></div>
         <div class="card-body">
             <?php if (!$student): ?>
-                <div class="alert alert-danger mb-0">Student not found.</div>
+                <div class="alert alert-danger mb-0">Student not found. ID: <?php echo (int)$student_id; ?></div>
             <?php elseif (!$can_access_page): ?>
                 <div class="alert alert-danger mb-0">Access denied. <?php echo htmlspecialchars($deny_reason !== '' ? $deny_reason : 'Insufficient permission.'); ?></div>
             <?php elseif ($can_evaluate): ?>
                 <form method="POST" action="" class="row g-3">
+                    <input type="hidden" name="csrf" value="<?php echo htmlspecialchars($evaluate_csrf, ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="col-12 col-md-4">
                         <label class="form-label">Rating (1-5)</label>
                         <select name="rating" class="form-select" required>
@@ -151,7 +197,10 @@ include 'includes/header.php';
                     </div>
                 </form>
             <?php else: ?>
-                <div class="alert alert-warning mb-0">Evaluation is locked: rendered hours (<?php echo number_format((float)$hours_rendered, 1); ?>) are below required hours (<?php echo number_format((float)$required_hours, 1); ?>).</div>
+                <div class="alert alert-warning mb-0">
+                    Evaluation is locked: rendered hours (<?php echo number_format((float)$hours_rendered, 1); ?>) are below required hours (<?php echo number_format((float)$required_hours, 1); ?>).
+                    <div class="small mt-1">Current assignment track: <strong><?php echo htmlspecialchars($assignment_track !== '' ? ucfirst($assignment_track) : 'Internal', ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                </div>
             <?php endif; ?>
         </div>
     </div>

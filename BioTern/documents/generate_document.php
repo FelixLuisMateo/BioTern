@@ -1,5 +1,6 @@
 <?php
 require_once '../config/db.php';
+require_once dirname(__DIR__) . '/lib/document_access.php';
 
 $student_id = (int)($_GET['student_id'] ?? 0);
 $doc_type = strtolower(trim((string)($_GET['doc_type'] ?? 'application')));
@@ -35,6 +36,12 @@ if ($stmt_student) {
 if (!$student) {
     http_response_code(404);
     die('Student not found.');
+}
+
+$access = documents_student_can_generate($conn, $student_id);
+if (empty($access['allowed'])) {
+    http_response_code(403);
+    die((string)($access['reason'] ?? 'Document access denied.'));
 }
 
 $coordinator = null;

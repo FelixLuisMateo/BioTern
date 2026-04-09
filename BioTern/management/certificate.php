@@ -29,12 +29,38 @@ if ($student) {
     if ($current_user_role === 'admin') {
         $can_access_certificate = true;
     } elseif ($current_user_role === 'supervisor') {
-        $can_access_certificate = ((int)($student['supervisor_id'] ?? 0) === $current_user_id);
+        $assignedSupervisorId = (int)($student['supervisor_id'] ?? 0);
+        $supervisorProfileId = 0;
+        $supervisorProfileStmt = $conn->prepare("SELECT id FROM supervisors WHERE user_id = ? LIMIT 1");
+        if ($supervisorProfileStmt) {
+            $supervisorProfileStmt->bind_param('i', $current_user_id);
+            $supervisorProfileStmt->execute();
+            $supervisorProfileRow = $supervisorProfileStmt->get_result()->fetch_assoc();
+            $supervisorProfileStmt->close();
+            $supervisorProfileId = (int)($supervisorProfileRow['id'] ?? 0);
+        }
+        $can_access_certificate = ($assignedSupervisorId > 0) && (
+            $assignedSupervisorId === $current_user_id
+            || ($supervisorProfileId > 0 && $assignedSupervisorId === $supervisorProfileId)
+        );
         if (!$can_access_certificate) {
             $deny_reason = 'You are not assigned as this student\'s supervisor.';
         }
     } elseif ($current_user_role === 'coordinator') {
-        $assigned = ((int)($student['coordinator_id'] ?? 0) === $current_user_id);
+        $assignedCoordinatorId = (int)($student['coordinator_id'] ?? 0);
+        $coordinatorProfileId = 0;
+        $coordinatorProfileStmt = $conn->prepare("SELECT id FROM coordinators WHERE user_id = ? LIMIT 1");
+        if ($coordinatorProfileStmt) {
+            $coordinatorProfileStmt->bind_param('i', $current_user_id);
+            $coordinatorProfileStmt->execute();
+            $coordinatorProfileRow = $coordinatorProfileStmt->get_result()->fetch_assoc();
+            $coordinatorProfileStmt->close();
+            $coordinatorProfileId = (int)($coordinatorProfileRow['id'] ?? 0);
+        }
+        $assigned = ($assignedCoordinatorId > 0) && (
+            $assignedCoordinatorId === $current_user_id
+            || ($coordinatorProfileId > 0 && $assignedCoordinatorId === $coordinatorProfileId)
+        );
         $course_scoped = false;
         $tbl = $conn->query("SHOW TABLES LIKE 'coordinator_courses'");
         if ($tbl && $tbl->num_rows > 0 && (int)($student['course_id'] ?? 0) > 0) {

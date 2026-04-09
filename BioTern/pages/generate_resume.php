@@ -3,10 +3,24 @@
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 
+function resolve_resume_profile_image_url(string $profilePath): ?string
+{
+    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
+    if ($clean === '') {
+        return null;
+    }
+    $absolutePath = dirname(__DIR__) . '/' . $clean;
+    if (!file_exists($absolutePath)) {
+        return null;
+    }
+    $mtime = @filemtime($absolutePath);
+    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+}
+
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 if ($student_id <= 0) die('Invalid student id');
 
-$query = "SELECT s.*, c.name as course_name FROM students s LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1";
+$query = "SELECT s.*, c.name as course_name, COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture FROM students s LEFT JOIN users u ON u.id = s.user_id LEFT JOIN courses c ON s.course_id = c.id WHERE s.id = ? LIMIT 1";
 $stmt = $conn->prepare($query);
 $stmt->bind_param('i', $student_id);
 $stmt->execute();
@@ -16,7 +30,7 @@ $student = $result->fetch_assoc();
 
 // Normalize values
 $full_name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
-$profile = $student['profile_picture'] ?? '';
+$profileUrl = resolve_resume_profile_image_url((string)($student['profile_picture'] ?? ''));
 $phone = $student['phone'] ?? '';
 $email = $student['email'] ?? '';
 $address = $student['address'] ?? '';
@@ -56,8 +70,8 @@ include __DIR__ . '/../includes/header.php';
 
             <div class="right app-resume-right">
                 <div class="photo app-resume-photo" aria-hidden="true">
-            <?php if (!empty($profile) && file_exists(__DIR__ . '/' . $profile)): ?>
-                <img src="<?php echo htmlspecialchars($profile); ?>" alt="Profile">
+            <?php if ($profileUrl !== null): ?>
+                <img src="<?php echo htmlspecialchars($profileUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="Profile">
             <?php else: ?>
                                 <div class="photo-placeholder app-resume-photo-placeholder">No Photo</div>
             <?php endif; ?>

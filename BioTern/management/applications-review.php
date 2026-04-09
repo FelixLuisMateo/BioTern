@@ -189,6 +189,20 @@ function reviewBindDynamicParams(mysqli_stmt $stmt, $types, &$values)
     return call_user_func_array([$stmt, 'bind_param'], $bind);
 }
 
+function reviewResolveProfileImageUrl(string $profilePath): ?string
+{
+    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
+    if ($clean === '') {
+        return null;
+    }
+    $absolutePath = dirname(__DIR__) . '/' . $clean;
+    if (!file_exists($absolutePath)) {
+        return null;
+    }
+    $mtime = @filemtime($absolutePath);
+    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+}
+
 $applicationsStageTable = ensureApplicationsStagingTable($conn) ? '`student_applications`' : '';
 
 $flashType = '';
@@ -568,6 +582,7 @@ $sql = "
         COALESCE(s.gender, sa.gender) AS gender,
         COALESCE(s.emergency_contact, sa.emergency_contact) AS emergency_contact,
         COALESCE(s.emergency_contact_phone, sa.emergency_contact_phone) AS emergency_contact_phone,
+        COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         COALESCE(s.department_id, sa.department_id) AS department_id,
         COALESCE(s.coordinator_id, sa.coordinator_id) AS coordinator_id,
         COALESCE(s.supervisor_id, sa.supervisor_id) AS supervisor_id,
@@ -575,6 +590,7 @@ $sql = "
         COALESCE(s.supervisor_name, sa.supervisor_name) AS supervisor_name,
         COALESCE(s.internal_total_hours, sa.internal_total_hours) AS internal_total_hours,
         COALESCE(s.external_total_hours, sa.external_total_hours) AS external_total_hours,
+        COALESCE(NULLIF(s.assignment_track, ''), NULLIF(sa.assignment_track, ''), 'internal') AS assignment_track,
         COALESCE(s.school_year, sa.school_year) AS school_year,
         COALESCE(s.semester, sa.semester) AS semester,
         c.name AS course_name,
@@ -630,11 +646,11 @@ include 'includes/header.php';
                 </ul>
             </div>
             <div class="page-header-right ms-auto app-applications-header-actions">
-                <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="applicationsReviewActionsMenu">
+                <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#applicationsReviewActionsMenu" aria-expanded="false" aria-controls="applicationsReviewActionsMenu">
                     <i class="feather-grid me-1"></i>
                     <span>Actions</span>
                 </button>
-                <div class="page-header-actions app-applications-actions-panel" id="applicationsReviewActionsMenu">
+                <div class="page-header-actions app-applications-actions-panel collapse" id="applicationsReviewActionsMenu">
                     <div class="dashboard-actions-panel">
                         <div class="dashboard-actions-meta">
                             <span class="text-muted fs-12">Quick Actions</span>
@@ -797,6 +813,11 @@ include 'includes/header.php';
                                             $submittedAt = formatDisplayDateTime($row['application_submitted_at'] ?? '');
                                             $approvedAt = formatDisplayDateTime($row['approved_at'] ?? '');
                                             $rejectedAt = formatDisplayDateTime($row['rejected_at'] ?? '');
+                                            $assignmentTrack = strtolower(trim((string)($row['assignment_track'] ?? 'internal')));
+                                            if (!in_array($assignmentTrack, ['internal', 'external'], true)) {
+                                                $assignmentTrack = 'internal';
+                                            }
+                                            $assignmentTrackLabel = ucfirst($assignmentTrack);
                                             $firstInitial = strtoupper(substr(trim((string)($row['first_name'] ?? '')), 0, 1));
                                             $lastInitial = strtoupper(substr(trim((string)($row['last_name'] ?? '')), 0, 1));
                                             $initials = trim($firstInitial . $lastInitial);
@@ -809,7 +830,12 @@ include 'includes/header.php';
                                         <tr class="summary-row">
                                             <td data-label="Student">
                                                 <div class="student-block">
-                                                    <span class="student-avatar"><?php echo htmlspecialchars($initials, ENT_QUOTES, 'UTF-8'); ?></span>
+                                                    <?php $studentProfile = reviewResolveProfileImageUrl((string)($row['profile_picture'] ?? '')); ?>
+                                                    <?php if ($studentProfile !== null): ?>
+                                                        <span class="student-avatar"><img src="<?php echo htmlspecialchars($studentProfile, ENT_QUOTES, 'UTF-8'); ?>" alt="Student" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
+                                                    <?php else: ?>
+                                                        <span class="student-avatar"><?php echo htmlspecialchars($initials, ENT_QUOTES, 'UTF-8'); ?></span>
+                                                    <?php endif; ?>
                                                     <div>
                                                         <div class="fw-semibold"><?php echo htmlspecialchars(trim((string)($row['first_name'] . ' ' . $row['last_name'])), ENT_QUOTES, 'UTF-8'); ?></div>
                                                         <small class="text-muted d-block">ID: <?php echo htmlspecialchars((string)($row['student_id'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></small>
@@ -827,6 +853,7 @@ include 'includes/header.php';
                                             </td>
                                             <td data-label="Hours (Int/Ext)">
                                                 <span class="hours-pill"><?php echo (int)($row['internal_total_hours'] ?? 140); ?> / <?php echo (int)($row['external_total_hours'] ?? 250); ?></span>
+                                                <small class="text-muted d-block">Track: <?php echo htmlspecialchars($assignmentTrackLabel, ENT_QUOTES, 'UTF-8'); ?></small>
                                             </td>
                                             <td data-label="Term"><?php echo htmlspecialchars($schoolYearLabel . ' / ' . $semesterLabel, ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td data-label="Submitted"><?php echo htmlspecialchars($submittedAt, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -855,6 +882,7 @@ include 'includes/header.php';
                                                             <div class="line"><strong>School Year:</strong> <?php echo htmlspecialchars($schoolYearLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Coordinator:</strong> <?php echo htmlspecialchars($coordinatorLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Supervisor:</strong> <?php echo htmlspecialchars($supervisorLabel, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                            <div class="line"><strong>Assignment Track:</strong> <?php echo htmlspecialchars($assignmentTrackLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Submitted:</strong> <?php echo htmlspecialchars($submittedAt, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Approval Note:</strong> <?php echo htmlspecialchars((string)($row['approval_notes'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Disciplinary:</strong> <?php echo htmlspecialchars(trim((string)($row['disciplinary_remark'] ?? '')) !== '' ? (string)$row['disciplinary_remark'] : '-', ENT_QUOTES, 'UTF-8'); ?></div>

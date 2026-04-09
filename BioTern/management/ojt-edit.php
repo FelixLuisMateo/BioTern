@@ -11,6 +11,10 @@ if (file_exists($ops_helpers)) {
         require_roles_page(['admin', 'coordinator', 'supervisor']);
     }
 }
+$evaluation_unlock_lib = dirname(__DIR__) . '/lib/evaluation_unlock.php';
+if (file_exists($evaluation_unlock_lib)) {
+    require_once $evaluation_unlock_lib;
+}
 
 function ojt_edit_table_exists(mysqli $conn, string $table): bool {
     $safe = $conn->real_escape_string($table);
@@ -27,6 +31,41 @@ function get_columns(mysqli $conn, string $table): array {
         }
     }
     return $cols;
+}
+
+function ojt_edit_maybe_unlock_evaluation(mysqli $conn, array $student, ?array $internship, int $actorUserId): void
+{
+    if (!function_exists('upsert_evaluation_unlock')) {
+        return;
+    }
+
+    $studentId = (int)($student['id'] ?? 0);
+    if ($studentId <= 0) {
+        return;
+    }
+
+    $track = strtolower(trim((string)($student['assignment_track'] ?? 'internal')));
+    $internalRemaining = (int)($student['internal_total_hours_remaining'] ?? 0);
+    $status = strtolower(trim((string)($internship['status'] ?? '')));
+    $internshipId = (int)($internship['id'] ?? 0);
+
+    $internalPhaseDone = ($track === 'external' && $internalRemaining <= 0);
+    $internshipCompleted = ($status === 'completed');
+    if (!$internalPhaseDone && !$internshipCompleted) {
+        return;
+    }
+
+    upsert_evaluation_unlock(
+        $conn,
+        $studentId,
+        $internshipId,
+        true,
+        $actorUserId,
+        'auto_internal_complete',
+        $internshipCompleted
+            ? 'Auto-unlocked after internship was marked completed in OJT Edit.'
+            : 'Auto-unlocked after internal phase completion (assignment moved to external with zero remaining internal hours).'
+    );
 }
 
 if (empty($_SESSION['ojt_edit_csrf'])) {
@@ -316,6 +355,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                     $internship = $stmt->get_result()->fetch_assoc();
                     $stmt->close();
                 }
+
+                ojt_edit_maybe_unlock_evaluation($conn, $student ?? [], $internship, (int)($_SESSION['user_id'] ?? 0));
         } catch (Throwable $e) {
             $conn->rollback();
             $message = 'Save failed: ' . $e->getMessage();
