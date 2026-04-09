@@ -269,7 +269,6 @@ FROM students s
 LEFT JOIN users u_student ON s.user_id = u_student.id
 LEFT JOIN courses c ON s.course_id = c.id
 LEFT JOIN sections sec ON s.section_id = sec.id
-<<<<<<< HEAD
 LEFT JOIN (
     SELECT i_full.*
     FROM internships i_full
@@ -279,9 +278,6 @@ LEFT JOIN (
         GROUP BY student_id
     ) i_latest ON i_latest.latest_id = i_full.id
 ) i ON s.id = i.student_id
-=======
-LEFT JOIN internships i ON {$internshipJoinConditions}
->>>>>>> 3b57a0ef2c6c7b17368ddbf47f413348f56a469a
 LEFT JOIN users u_supervisor ON i.supervisor_id = u_supervisor.id
 LEFT JOIN users u_coordinator ON i.coordinator_id = u_coordinator.id
 LEFT JOIN (SELECT user_id, 1 AS has_application FROM application_letter GROUP BY user_id) app ON app.user_id = s.id
