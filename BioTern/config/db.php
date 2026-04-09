@@ -1,6 +1,12 @@
 <?php
 mysqli_report(MYSQLI_REPORT_OFF);
 
+$biotern_app_timezone = getenv('BIOTERN_APP_TIMEZONE');
+if (!is_string($biotern_app_timezone) || trim($biotern_app_timezone) === '') {
+    $biotern_app_timezone = 'Asia/Manila';
+}
+@date_default_timezone_set($biotern_app_timezone);
+
 $biotern_project_root = dirname(__DIR__);
 $biotern_include_candidates = [
     $biotern_project_root,
@@ -45,6 +51,17 @@ $resolvedName = '';
 $resolvedPort = '';
 
 $requestedTarget = strtolower(trim(biotern_env_pick(['BIOTERN_DB_TARGET'], '')));
+$vercelEnvRaw = getenv('VERCEL');
+$isVercelRuntime = false;
+if ($vercelEnvRaw !== false) {
+    $vercelEnvNormalized = strtolower(trim((string)$vercelEnvRaw));
+    $isVercelRuntime = in_array($vercelEnvNormalized, ['1', 'true', 'yes', 'on'], true);
+}
+$hasRailwayMysqlEnv = biotern_env_pick(['MYSQLHOST', 'RAILWAY_MYSQL_HOST'], '') !== '';
+if ($requestedTarget === '' && $isVercelRuntime && $hasRailwayMysqlEnv) {
+    // In Vercel deployments with Railway MySQL vars present, prefer remote MySQL by default.
+    $requestedTarget = 'railway';
+}
 $targetRemoteFirst = in_array($requestedTarget, ['vercel', 'remote', 'railway', 'cloud'], true);
 
 if ($databaseUrl !== '') {
@@ -258,6 +275,13 @@ if (!defined('DB_PORT')) {
 }
 
 $conn->set_charset('utf8mb4');
+
+// Keep SQL NOW()/CURRENT_TIMESTAMP aligned with PH (UTC+08) unless overridden.
+$biotern_mysql_tz = biotern_env_pick(['BIOTERN_DB_TIMEZONE', 'DB_TIMEZONE'], '+08:00');
+if ($biotern_mysql_tz === '') {
+    $biotern_mysql_tz = '+08:00';
+}
+@mysqli_query($conn, "SET time_zone = '" . mysqli_real_escape_string($conn, $biotern_mysql_tz) . "'");
 
 
 
