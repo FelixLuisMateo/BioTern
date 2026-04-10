@@ -150,7 +150,7 @@ include 'includes/header.php';
     <div class="page-header page-header-with-middle">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title">
-                <h5 class="m-b-10">Reports - Disciplinary Acts</h5>
+                <h5 class="m-b-10">Disciplinary Acts</h5>
             </div>
             <ul class="breadcrumb">
                 <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>

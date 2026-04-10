@@ -17,25 +17,6 @@
     gap: 1rem;
 }
 
-.appearance-settings-page .appearance-hero {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 14px;
-}
-
-.appearance-settings-page .appearance-hero-copy h3 {
-    margin: 0;
-    color: var(--settings-text);
-    font-size: 1.2rem;
-}
-
-.appearance-settings-page .appearance-hero-copy p {
-    margin: 6px 0 0;
-    color: var(--settings-muted);
-    max-width: 760px;
-}
-
 .appearance-settings-page .appearance-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -133,10 +114,6 @@
 }
 
 @media (max-width: 767.98px) {
-    .appearance-settings-page .appearance-hero {
-        flex-direction: column;
-    }
-
     .appearance-settings-page .appearance-select-wrap,
     .appearance-settings-page .appearance-select-wrap .biotern-select-wrap {
         width: 100%;

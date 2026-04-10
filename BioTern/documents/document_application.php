@@ -104,16 +104,33 @@ include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header dashboard-page-header">
+        <div class="page-header dashboard-page-header page-header-with-middle">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="mb-0">Application Letter</h5>
+                    <h5 class="m-b-10">Application Letter</h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                     <li class="breadcrumb-item">Documents</li>
                     <li class="breadcrumb-item">Application Builder</li>
                 </ul>
+            </div>
+            <div class="page-header-middle">
+                <p class="page-header-statement">Use one workspace to fill application data, preview the letter, and generate a print-ready copy.</p>
+            </div>
+            <div class="page-header-right ms-auto">
+                <div class="d-md-none d-flex align-items-center">
+                    <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#documentApplicationActionsCollapse" aria-expanded="false" aria-controls="documentApplicationActionsCollapse">
+                        <i class="feather-more-horizontal"></i>
+                    </button>
+                </div>
+                <div class="page-header-right-items collapse d-md-flex" id="documentApplicationActionsCollapse">
+                    <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                        <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                        <a href="document_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>MOA</a>
+                        <a href="document_dau_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>DAU MOA</a>
+                    </div>
+                </div>
             </div>
         </div>
 

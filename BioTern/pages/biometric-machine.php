@@ -1948,6 +1948,7 @@ $page_title = 'BioTern || F20H Machine Manager';
 $page_body_class = 'page-biometric-machine';
 $page_styles = [
     'assets/css/layout/page_shell.css',
+    'assets/css/modules/pages/page-biometric-console.css',
     'assets/css/modules/pages/page-biometric-machine.css',
 ];
 $page_scripts = [
@@ -1967,14 +1968,19 @@ include __DIR__ . '/../includes/header.php';
                     <li class="breadcrumb-item">F20H Machine Manager</li>
                 </ul>
             </div>
-            <div class="page-header-right ms-auto text-end">
-                <div>
-                    <span class="badge bg-soft-<?php echo machine_h((string)($bridgeRuntimeStatus['badge_class'] ?? 'secondary')); ?> text-<?php echo machine_h((string)($bridgeRuntimeStatus['badge_class'] ?? 'secondary')); ?>">
-                        <?php echo machine_h((string)($bridgeRuntimeStatus['label'] ?? 'Bridge Status Unknown')); ?>
-                    </span>
+            <div class="page-header-right ms-auto bio-console-header-actions">
+                <div class="page-header-right-items">
+                    <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                        <a href="fingerprint_mapping.php" class="btn btn-light-brand">
+                            <i class="feather-link me-2"></i>
+                            <span>Fingerprint Mapping</span>
+                        </a>
+                        <a href="attendance.php" class="btn btn-outline-secondary">
+                            <i class="feather-clock me-2"></i>
+                            <span>Attendance DTR</span>
+                        </a>
+                    </div>
                 </div>
-                <small class="text-muted d-block mt-1"><?php echo machine_h((string)($bridgeRuntimeStatus['detail'] ?? '')); ?></small>
-                <small class="text-muted d-block">Background mode: Scheduled Task (no open PowerShell needed). If installed without admin rights, it runs after Windows sign-in.</small>
             </div>
         </div>
 
@@ -1985,6 +1991,31 @@ include __DIR__ . '/../includes/header.php';
             </div>
         <?php endif; ?>
 
+        <div class="card bio-console-hero mb-3">
+            <div class="card-body">
+                <div class="bio-console-hero-grid">
+                    <div>
+                        <span class="bio-console-eyebrow">Device Operations</span>
+                        <h3>Manage machine users, sync pipelines, and F20H data flow in one place</h3>
+                        <p>Use this console to inspect bridge health, read machine users, process logs into attendance, and keep the device side aligned with BioTern.</p>
+                        <div class="bio-console-pill-list">
+                            <span class="bio-console-pill">Connector: <?php echo machine_h($connectorIp !== '' ? $connectorIp : 'Not set'); ?><?php echo $connectorPort !== '' ? (':' . machine_h($connectorPort)) : ''; ?></span>
+                            <span class="bio-console-pill">Sync mode: <?php echo machine_h($syncModeLabel); ?></span>
+                            <span class="bio-console-pill">Open anomalies: <?php echo (int)$openAnomalyCount; ?></span>
+                        </div>
+                    </div>
+                    <div class="bio-console-hero-side machine-hero-status">
+                        <span class="badge bg-soft-<?php echo machine_h((string)($bridgeRuntimeStatus['badge_class'] ?? 'secondary')); ?> text-<?php echo machine_h((string)($bridgeRuntimeStatus['badge_class'] ?? 'secondary')); ?>">
+                            <?php echo machine_h((string)($bridgeRuntimeStatus['label'] ?? 'Bridge Status Unknown')); ?>
+                        </span>
+                        <h6>Bridge Worker Status</h6>
+                        <p><?php echo machine_h((string)($bridgeRuntimeStatus['detail'] ?? '')); ?></p>
+                        <small>Background mode: Scheduled Task (no open PowerShell needed). If installed without admin rights, it runs after Windows sign-in.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="machine-info-note" role="note" aria-label="F20H data handling notice">
             <span class="machine-info-note-icon" aria-hidden="true"><i class="feather-info"></i></span>
             <div class="machine-info-note-body">
@@ -1994,7 +2025,7 @@ include __DIR__ . '/../includes/header.php';
 
         <div class="row g-3 mb-3">
             <div class="col-md-4">
-                <div class="card stretch stretch-full">
+                <div class="card stretch stretch-full machine-kpi-card">
                     <div class="card-body">
                         <div class="text-muted fs-12 mb-1">Connector Target</div>
                         <div class="fw-bold"><?php echo machine_h($connectorIp !== '' ? $connectorIp : 'Not set'); ?></div>
@@ -2003,18 +2034,18 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card stretch stretch-full">
+                <div class="card stretch stretch-full machine-kpi-card">
                     <div class="card-body">
                         <div class="text-muted fs-12 mb-1">Loaded Machine Users</div>
                         <div class="fs-3 fw-bold"><?php echo count($loadedUserRows); ?></div>
                         <div class="text-muted"><?php echo $cloudRuntime
                             ? 'Cloud mode: Read All Users uses bridge cache uploaded by your bridge computer.'
-                            : 'Use â€œRead All Usersâ€ to refresh this page view.'; ?></div>
+                            : 'Use "Read All Users" to refresh this page view.'; ?></div>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card stretch stretch-full">
+                <div class="card stretch stretch-full machine-kpi-card">
                     <div class="card-body">
                         <div class="text-muted fs-12 mb-1">Selected Machine User</div>
                         <div class="fs-3 fw-bold"><?php echo machine_h($selectedUserId > 0 ? (string)$selectedUserId : '-'); ?></div>
@@ -2023,7 +2054,7 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card stretch stretch-full">
+                <div class="card stretch stretch-full machine-kpi-card">
                     <div class="card-body">
                         <div class="text-muted fs-12 mb-1">Last Sync Status</div>
                         <div class="fs-4 fw-bold"><?php echo machine_h($latestSyncRun['status'] ?? 'No runs yet'); ?></div>
@@ -2032,7 +2063,7 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card stretch stretch-full">
+                <div class="card stretch stretch-full machine-kpi-card">
                     <div class="card-body">
                         <div class="text-muted fs-12 mb-1">Open Anomalies</div>
                         <div class="fs-3 fw-bold"><?php echo $openAnomalyCount; ?></div>
@@ -2041,7 +2072,7 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card stretch stretch-full">
+                <div class="card stretch stretch-full machine-kpi-card">
                     <div class="card-body">
                         <div class="text-muted fs-12 mb-1">Last Sync Totals</div>
                         <div class="fw-bold">
@@ -2054,7 +2085,7 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card stretch stretch-full">
+                <div class="card stretch stretch-full machine-kpi-card">
                     <div class="card-body">
                         <div class="text-muted fs-12 mb-1">Last Ingest Event</div>
                         <div class="fw-bold"><?php echo machine_h((string)($ingestSummary['last_received_at'] ?? 'No ingest yet')); ?></div>
@@ -2064,7 +2095,7 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card stretch stretch-full">
+                <div class="card stretch stretch-full machine-kpi-card">
                     <div class="card-body">
                         <div class="text-muted fs-12 mb-1">Ingest Today</div>
                         <div class="fs-3 fw-bold"><?php echo machine_h((string)($ingestSummary['total_today'] ?? 0)); ?></div>
@@ -2073,7 +2104,7 @@ include __DIR__ . '/../includes/header.php';
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="card stretch stretch-full">
+                <div class="card stretch stretch-full machine-kpi-card">
                     <div class="card-body">
                         <div class="text-muted fs-12 mb-1">Last Ingest HTTP Status</div>
                         <div class="fs-3 fw-bold"><?php echo machine_h((string)($ingestSummary['last_http_status'] ?? 0)); ?></div>
@@ -3009,134 +3040,10 @@ include __DIR__ . '/../includes/header.php';
 </div>
 </main>
 
-<div class="toast-container position-fixed top-0 end-0 p-3" id="machineQueueToastContainer" style="z-index: 1080;"></div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var toastContainer = document.getElementById('machineQueueToastContainer');
-    if (!toastContainer) {
-        return;
-    }
-
-    var seenCompletedIds = {};
-    var autoRefreshTriggered = false;
-
-    function trimText(value) {
-        var text = (value || '').toString().trim();
-        if (text.length > 180) {
-            return text.slice(0, 180) + '...';
-        }
-        return text;
-    }
-
-    function escapeHtml(value) {
-        return (value || '').toString()
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
-    function showQueueToast(item) {
-        var id = Number(item && item.id ? item.id : 0);
-        if (!id || seenCompletedIds[id]) {
-            return;
-        }
-        seenCompletedIds[id] = true;
-
-        var status = ((item && item.status) || '').toString().toLowerCase();
-        var commandName = ((item && item.command_name) || 'command').toString();
-        var resultText = trimText(item && item.result_text ? item.result_text : '');
-        var completedAt = ((item && item.completed_at) || '').toString();
-        var isSuccess = status === 'succeeded';
-
-        var title = isSuccess ? 'Queue Completed' : 'Queue Failed';
-        var tone = isSuccess ? 'success' : 'danger';
-        var body = '#' + id + ' ' + commandName + (isSuccess ? ' completed.' : ' failed.');
-
-        if (resultText !== '') {
-            body += ' ' + resultText;
-        }
-        if (completedAt !== '') {
-            body += ' (' + completedAt + ')';
-        }
-
-        var wrapper = document.createElement('div');
-        wrapper.className = 'toast align-items-center text-bg-' + tone + ' border-0 mb-2';
-        wrapper.setAttribute('role', 'alert');
-        wrapper.setAttribute('aria-live', 'assertive');
-        wrapper.setAttribute('aria-atomic', 'true');
-        wrapper.innerHTML = ''
-            + '<div class="d-flex">'
-            + '  <div class="toast-body">'
-            + '    <div class="fw-semibold mb-1">' + escapeHtml(title) + '</div>'
-            + '    <div>' + escapeHtml(body) + '</div>'
-            + '  </div>'
-            + '  <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>'
-            + '</div>';
-
-        toastContainer.appendChild(wrapper);
-
-        if (window.bootstrap && window.bootstrap.Toast) {
-            var toast = new window.bootstrap.Toast(wrapper, { delay: isSuccess ? 6000 : 9000 });
-            wrapper.addEventListener('hidden.bs.toast', function () {
-                wrapper.remove();
-            });
-            toast.show();
-        } else {
-            wrapper.className = 'alert alert-' + tone + ' mb-2 shadow-sm';
-            wrapper.innerHTML = '<div class="fw-semibold mb-1">' + escapeHtml(title) + '</div><div>' + escapeHtml(body) + '</div>';
-            window.setTimeout(function () {
-                wrapper.remove();
-            }, isSuccess ? 6000 : 9000);
-        }
-
-        if (isSuccess) {
-            var shouldRefresh = ['rename_user', 'delete_user', 'clear_users'].indexOf(commandName) >= 0;
-            if (shouldRefresh && !autoRefreshTriggered) {
-                autoRefreshTriggered = true;
-                window.setTimeout(function () {
-                    try {
-                        var url = new URL(window.location.href);
-                        url.searchParams.set('load_users', '1');
-                        if (url.searchParams.get('selected_user_id')) {
-                            url.searchParams.set('load_user', '1');
-                        }
-                        window.location.href = url.toString();
-                    } catch (error) {
-                        window.location.reload();
-                    }
-                }, 1200);
-            }
-        }
-    }
-
-    async function pollQueueStatus() {
-        try {
-            var response = await fetch('biometric-machine.php?queue_watch_status=1&_ts=' + Date.now(), {
-                method: 'GET',
-                credentials: 'same-origin',
-                cache: 'no-store'
-            });
-            if (!response.ok) {
-                return;
-            }
-
-            var payload = await response.json();
-            if (!payload || !payload.success || !Array.isArray(payload.completed)) {
-                return;
-            }
-
-            payload.completed.forEach(showQueueToast);
-        } catch (error) {
-            // Keep polling silent if a transient network error occurs.
-        }
-    }
-
-    pollQueueStatus();
-    window.setInterval(pollQueueStatus, 4000);
-});
-</script>
+<div
+    class="toast-container position-fixed top-0 end-0 p-3"
+    id="machineQueueToastContainer"
+    style="z-index: 1080;"
+    data-machine-queue-watch-url="biometric-machine.php?queue_watch_status=1"></div>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

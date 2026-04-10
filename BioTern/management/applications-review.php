@@ -1076,8 +1076,12 @@ include 'includes/header.php';
                                                 <span class="badge bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?> text-capitalize"><?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?></span>
                                             </td>
                                             <td data-label="Hours (Int/Ext)">
-                                                <span class="hours-pill"><?php echo (int)($row['internal_total_hours'] ?? 140); ?> / <?php echo (int)($row['external_total_hours'] ?? 250); ?></span>
-                                                <small class="text-muted d-block">Track: <?php echo htmlspecialchars($assignmentTrackLabel, ENT_QUOTES, 'UTF-8'); ?></small>
+                                                <div class="apps-review-hours-stack">
+                                                    <span class="hours-pill">
+                                                        <span class="hours-pill-value"><?php echo (int)($row['internal_total_hours'] ?? 140); ?> / <?php echo (int)($row['external_total_hours'] ?? 250); ?></span>
+                                                    </span>
+                                                    <small class="apps-review-hours-track">Track: <?php echo htmlspecialchars($assignmentTrackLabel, ENT_QUOTES, 'UTF-8'); ?></small>
+                                                </div>
                                             </td>
                                             <td data-label="Term"><?php echo htmlspecialchars($schoolYearLabel . ' / ' . $semesterLabel, ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td data-label="Submitted"><?php echo htmlspecialchars($submittedAt, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -1136,20 +1140,26 @@ include 'includes/header.php';
                                                                     <?php endforeach; ?>
                                                                 </select>
                                                             </div>
-                                                            <select class="form-control form-control-sm" name="coordinator_id" title="Coordinator">
-                                                                <option value="0">Coordinator: Unassigned</option>
-                                                                <?php foreach ($coordinatorOptions as $coor): ?>
-                                                                    <?php $coorId = (int)($coor['id'] ?? 0); ?>
-                                                                    <option value="<?php echo $coorId; ?>" <?php echo $coorId === $selectedCoordinatorId ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)($coor['full_name'] ?? ('Coordinator #' . $coorId)), ENT_QUOTES, 'UTF-8'); ?></option>
-                                                                <?php endforeach; ?>
-                                                            </select>
-                                                            <select class="form-control form-control-sm" name="supervisor_id" title="Supervisor">
-                                                                <option value="0">Supervisor: Unassigned</option>
-                                                                <?php foreach ($supervisorOptions as $sup): ?>
-                                                                    <?php $supId = (int)($sup['id'] ?? 0); ?>
-                                                                    <option value="<?php echo $supId; ?>" <?php echo $supId === $selectedSupervisorId ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)($sup['full_name'] ?? ('Supervisor #' . $supId)), ENT_QUOTES, 'UTF-8'); ?></option>
-                                                                <?php endforeach; ?>
-                                                            </select>
+                                                            <div class="field-wrap">
+                                                                <label class="field-label">Coordinator</label>
+                                                                <select class="form-control form-control-sm" name="coordinator_id" title="Coordinator">
+                                                                    <option value="0">Unassigned</option>
+                                                                    <?php foreach ($coordinatorOptions as $coor): ?>
+                                                                        <?php $coorId = (int)($coor['id'] ?? 0); ?>
+                                                                        <option value="<?php echo $coorId; ?>" <?php echo $coorId === $selectedCoordinatorId ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)($coor['full_name'] ?? ('Coordinator #' . $coorId)), ENT_QUOTES, 'UTF-8'); ?></option>
+                                                                    <?php endforeach; ?>
+                                                                </select>
+                                                            </div>
+                                                            <div class="field-wrap">
+                                                                <label class="field-label">Supervisor</label>
+                                                                <select class="form-control form-control-sm" name="supervisor_id" title="Supervisor">
+                                                                    <option value="0">Unassigned</option>
+                                                                    <?php foreach ($supervisorOptions as $sup): ?>
+                                                                        <?php $supId = (int)($sup['id'] ?? 0); ?>
+                                                                        <option value="<?php echo $supId; ?>" <?php echo $supId === $selectedSupervisorId ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)($sup['full_name'] ?? ('Supervisor #' . $supId)), ENT_QUOTES, 'UTF-8'); ?></option>
+                                                                    <?php endforeach; ?>
+                                                                </select>
+                                                            </div>
                                                             <div class="field-wrap">
                                                                 <label class="field-label">Internal OJT Hours</label>
                                                                 <input type="number" class="form-control form-control-sm" name="internal_total_hours" min="0" required value="<?php echo (int)($row['internal_total_hours'] ?? 140); ?>" title="Internal OJT Hours">
@@ -1158,8 +1168,14 @@ include 'includes/header.php';
                                                                 <label class="field-label">External OJT Hours</label>
                                                                 <input type="number" class="form-control form-control-sm" name="external_total_hours" min="0" required value="<?php echo (int)($row['external_total_hours'] ?? 250); ?>" title="External OJT Hours">
                                                             </div>
-                                                            <input type="text" class="form-control form-control-sm approval-note" name="approval_notes" placeholder="Add note (optional)">
-                                                            <input type="text" class="form-control form-control-sm disciplinary-note" name="disciplinary_remark" placeholder="Disciplinary remark (if misconduct)">
+                                                            <div class="field-wrap approval-note">
+                                                                <label class="field-label">Approval Note</label>
+                                                                <input type="text" class="form-control form-control-sm" name="approval_notes" placeholder="Add note (optional)">
+                                                            </div>
+                                                            <div class="field-wrap disciplinary-note">
+                                                                <label class="field-label">Disciplinary Remark</label>
+                                                                <input type="text" class="form-control form-control-sm" name="disciplinary_remark" placeholder="Disciplinary remark (if misconduct)">
+                                                            </div>
                                                             <div class="action-buttons">
                                                                 <button type="submit" name="decision" value="approve" class="btn btn-sm btn-success">Approve</button>
                                                                 <button type="submit" name="decision" value="reject" class="btn btn-sm btn-danger">Reject</button>

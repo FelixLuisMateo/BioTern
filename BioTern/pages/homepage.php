@@ -479,11 +479,37 @@ include 'includes/header.php';
                     <span class="mobile-summary-meta">Avg <?php echo $avg_completion_percentage; ?>% completion</span>
                 </div>
             </div>
+            <div class="dashboard-mobile-stat-board d-md-none" aria-label="Mobile dashboard section switcher">
+                <button type="button" class="dashboard-mobile-stat-btn is-active" data-mobile-panel-btn="kpi" aria-pressed="true">
+                    <span class="dashboard-mobile-stat-label">Today Glance</span>
+                    <strong class="dashboard-mobile-stat-value"><?php echo $today_attendance; ?></strong>
+                </button>
+                <button type="button" class="dashboard-mobile-stat-btn" data-mobile-panel-btn="students" aria-pressed="false">
+                    <span class="dashboard-mobile-stat-label">Students</span>
+                    <strong class="dashboard-mobile-stat-value"><?php echo $active_students; ?></strong>
+                </button>
+                <button type="button" class="dashboard-mobile-stat-btn" data-mobile-panel-btn="activities" aria-pressed="false">
+                    <span class="dashboard-mobile-stat-label">Activities</span>
+                    <strong class="dashboard-mobile-stat-value"><?php echo count($recent_activities); ?></strong>
+                </button>
+                <button type="button" class="dashboard-mobile-stat-btn" data-mobile-panel-btn="attendance" aria-pressed="false">
+                    <span class="dashboard-mobile-stat-label">Attendance</span>
+                    <strong class="dashboard-mobile-stat-value"><?php echo $attendance_total; ?></strong>
+                </button>
+                <button type="button" class="dashboard-mobile-stat-btn" data-mobile-panel-btn="coordinators" aria-pressed="false">
+                    <span class="dashboard-mobile-stat-label">Coordinators</span>
+                    <strong class="dashboard-mobile-stat-value"><?php echo count($coordinators); ?></strong>
+                </button>
+                <button type="button" class="dashboard-mobile-stat-btn" data-mobile-panel-btn="supervisors" aria-pressed="false">
+                    <span class="dashboard-mobile-stat-label">Supervisors</span>
+                    <strong class="dashboard-mobile-stat-value"><?php echo count($supervisors); ?></strong>
+                </button>
+            </div>
             <!-- [ Main Content ] start -->
             <div class="main-content dashboard-shell widgets-preloading">
                 <div class="row">
                     <!-- [KPI Strip] start -->
-                    <div class="col-12 dashboard-movable" data-move-key="kpi-strip">
+                    <div class="col-12 dashboard-movable" data-move-key="kpi-strip" data-mobile-panel="kpi">
                         <div class="card stretch stretch-full kpi-strip">
                             <div class="card-header">
                                 <h5 class="card-title">Today at a Glance</h5>
@@ -540,7 +566,7 @@ include 'includes/header.php';
                     <!-- [KPI Strip] end -->
 
                     <!-- [Active Students] start -->
-                    <div class="col-xxl-4 section-tight dashboard-movable" data-move-key="active-students">
+                    <div class="col-xxl-4 section-tight dashboard-movable" data-move-key="active-students" data-mobile-panel="students">
                         <div class="card dash-card stretch stretch-full">
                             <div class="dash-card-header">
                                 <h6 class="dash-card-title">Active Students</h6>
@@ -599,7 +625,7 @@ include 'includes/header.php';
                     <!-- [Active Students] end -->
 
                     <!-- [Recent Activities & Logs] start (replaces Payment Record) -->
-                    <div class="col-xxl-8 section-tight dashboard-movable" data-move-key="recent-activities">
+                    <div class="col-xxl-8 section-tight dashboard-movable" data-move-key="recent-activities" data-mobile-panel="activities">
                         <div class="card dash-card stretch stretch-full">
                             <div class="dash-card-header">
                                 <h6 class="dash-card-title">Recent Activities</h6>
@@ -676,7 +702,7 @@ include 'includes/header.php';
                     
 
                     <!-- [Latest Attendance Records] start -->
-                    <div class="col-xxl-8 section-tight dashboard-movable" data-move-key="latest-attendance">
+                    <div class="col-xxl-8 section-tight dashboard-movable" data-move-key="latest-attendance" data-mobile-panel="attendance">
                         <div class="card dash-card stretch stretch-full">
                             <div class="dash-card-header">
                                 <h6 class="dash-card-title">Latest Attendance</h6>
@@ -743,7 +769,7 @@ include 'includes/header.php';
                     </div>
                     <!-- [Latest Attendance Records] end -->
                     <!--! BEGIN: [Coordinators List] !-->
-                    <div class="col-xxl-4 dashboard-movable" data-move-key="coordinators">
+                    <div class="col-xxl-4 dashboard-movable" data-move-key="coordinators" data-mobile-panel="coordinators">
                         <div class="card dash-card stretch stretch-full">
                             <div class="dash-card-header">
                                 <h6 class="dash-card-title">Coordinators</h6>
@@ -777,7 +803,7 @@ include 'includes/header.php';
                     </div>
                     <!--! END: [Coordinators List] !-->
                     <!--! BEGIN: [Supervisors List] !-->
-                    <div class="col-xxl-4 dashboard-movable" data-move-key="supervisors">
+                    <div class="col-xxl-4 dashboard-movable" data-move-key="supervisors" data-mobile-panel="supervisors">
                         <div class="card dash-card stretch stretch-full">
                             <div class="dash-card-header">
                                 <h6 class="dash-card-title">Supervisors</h6>
@@ -819,6 +845,50 @@ include 'includes/header.php';
                 data-ojt-completed="<?php echo isset($ojt_status_counts['completed']) ? intval($ojt_status_counts['completed']) : 0; ?>"
                 data-ojt-cancelled="<?php echo isset($ojt_status_counts['cancelled']) ? intval($ojt_status_counts['cancelled']) : 0; ?>"
                 hidden></div>
+            <script>
+            (function () {
+                function initMobileDashboardPanels() {
+                    var body = document.body;
+                    if (!body || !window.matchMedia('(max-width: 991.98px)').matches) {
+                        return;
+                    }
+
+                    var buttons = Array.prototype.slice.call(document.querySelectorAll('[data-mobile-panel-btn]'));
+                    var panels = Array.prototype.slice.call(document.querySelectorAll('.dashboard-movable[data-mobile-panel]'));
+                    if (!buttons.length || !panels.length) {
+                        return;
+                    }
+
+                    function activatePanel(panelKey) {
+                        body.classList.add('mobile-dashboard-filtered');
+                        buttons.forEach(function (btn) {
+                            var isActive = btn.getAttribute('data-mobile-panel-btn') === panelKey;
+                            btn.classList.toggle('is-active', isActive);
+                            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                        });
+
+                        panels.forEach(function (panel) {
+                            var isActivePanel = panel.getAttribute('data-mobile-panel') === panelKey;
+                            panel.classList.toggle('is-mobile-panel-active', isActivePanel);
+                        });
+                    }
+
+                    buttons.forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            activatePanel(btn.getAttribute('data-mobile-panel-btn'));
+                        });
+                    });
+
+                    activatePanel('kpi');
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initMobileDashboardPanels);
+                } else {
+                    initMobileDashboardPanels();
+                }
+            })();
+            </script>
             <!-- [ Main Content ] end -->
 </div> <!-- .nxl-content -->
 </main>

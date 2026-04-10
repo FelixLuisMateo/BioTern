@@ -550,6 +550,7 @@ $page_title = 'Fingerprint Mapping';
 $page_body_class = 'page-fingerprint-mapping';
 $page_styles = [
     'assets/css/layout/page_shell.css',
+    'assets/css/modules/pages/page-biometric-console.css',
 ];
 $page_scripts = [
     'assets/js/modules/pages/biometric-management-runtime.js',
@@ -558,98 +559,6 @@ $base_href = '';
 include __DIR__ . '/../includes/header.php';
 ob_end_flush();
 ?>
-<style>
-    .fingerprint-map-card {
-        overflow: hidden;
-    }
-
-    .fingerprint-map-card .card-body {
-        padding: 1rem;
-    }
-
-    .fingerprint-form .fm-actions {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-
-    .fingerprint-form .fm-actions .btn {
-        min-width: 140px;
-    }
-
-    .fingerprint-form .submit-wrap {
-        display: flex;
-        align-items: flex-start;
-        padding-top: 1.72rem;
-    }
-
-    .fingerprint-form .submit-wrap .btn {
-        min-height: 42px;
-        line-height: 1.15;
-    }
-
-    .fingerprint-actions {
-        display: inline-flex;
-        gap: 0.45rem;
-        align-items: center;
-        justify-content: flex-end;
-        flex-wrap: wrap;
-    }
-
-    .fingerprint-actions .btn {
-        min-width: 88px;
-    }
-
-    .fingerprint-actions form {
-        margin: 0;
-    }
-
-    @media (max-width: 1199.98px) {
-        .fingerprint-form .fm-actions {
-            display: grid;
-            width: 100%;
-            grid-template-columns: 1fr;
-        }
-
-        .fingerprint-form .fm-actions .btn,
-        .fingerprint-form .submit-wrap .btn {
-            width: 100%;
-            min-width: 0;
-        }
-
-        .fingerprint-form .submit-wrap {
-            padding-top: 0;
-        }
-    }
-
-    @media (max-width: 991.98px) {
-        .fingerprint-actions {
-            width: 100%;
-            display: grid;
-            grid-template-columns: 1fr;
-            justify-items: stretch;
-        }
-
-        .fingerprint-actions .btn {
-            width: 100%;
-            min-width: 0;
-        }
-    }
-
-    @media (max-width: 767.98px) {
-        .fingerprint-map-card .card-header {
-            padding: 0.75rem 1rem;
-        }
-
-        .fingerprint-map-card .card-body {
-            padding: 0.85rem;
-        }
-
-        .fingerprint-form .form-label {
-            margin-bottom: 0.35rem;
-        }
-    }
-</style>
 <main class="nxl-container">
     <div class="nxl-content">
         <div class="page-header">
@@ -661,6 +570,43 @@ ob_end_flush();
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                     <li class="breadcrumb-item">Fingerprint Mapping</li>
                 </ul>
+            </div>
+            <div class="page-header-right ms-auto bio-console-header-actions">
+                <div class="page-header-right-items">
+                    <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                        <a href="biometric-machine.php" class="btn btn-light-brand">
+                            <i class="feather-cpu me-2"></i>
+                            <span>F20H Manager</span>
+                        </a>
+                        <a href="attendance.php" class="btn btn-outline-secondary">
+                            <i class="feather-clock me-2"></i>
+                            <span>Attendance DTR</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bio-console-shell">
+        <div class="card bio-console-hero">
+            <div class="card-body">
+                <div class="bio-console-hero-grid">
+                    <div>
+                        <span class="bio-console-eyebrow">Biometric Access</span>
+                        <h3>Link each fingerprint to the correct BioTern account</h3>
+                        <p>Review detected F20H fingerprint IDs, assign them to students or authorized personnel, and keep unmapped scans from turning into attendance confusion.</p>
+                        <div class="bio-console-pill-list">
+                            <span class="bio-console-pill">Latest detected ID: <?php echo $latestDetectedFingerId > 0 ? $latestDetectedFingerId : 'N/A'; ?></span>
+                            <span class="bio-console-pill">Latest mapped ID: <?php echo $latestMappedFingerId > 0 ? $latestMappedFingerId : 'N/A'; ?></span>
+                            <span class="bio-console-pill">Unmapped detected: <?php echo (int)$unmappedDetectedCount; ?></span>
+                        </div>
+                    </div>
+                    <div class="bio-console-note-surface">
+                        <span class="badge bg-soft-info text-info">Mapping Workflow</span>
+                        <h6>Best results come from the latest machine logs</h6>
+                        <p>Read users and logs in the F20H Machine Manager first, then finish the mapping here so attendance sync can recognize each fingerprint quickly.</p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -678,53 +624,52 @@ ob_end_flush();
 
         <div class="row g-3 mb-4">
             <div class="col-xl-3">
-                <div class="card stretch stretch-full">
+                <div class="card stretch stretch-full bio-console-stat-card">
                     <div class="card-body">
-                        <div class="text-muted fs-12 mb-1">Student Mappings</div>
-                        <div class="fs-3 fw-bold"><?php echo count($studentMappings); ?></div>
+                        <span class="bio-console-stat-label">Student Mappings</span>
+                        <span class="bio-console-stat-value"><?php echo count($studentMappings); ?></span>
+                        <span class="bio-console-stat-meta">Students already matched with a machine fingerprint.</span>
                     </div>
                 </div>
             </div>
             <div class="col-xl-3">
-                <div class="card stretch stretch-full">
+                <div class="card stretch stretch-full bio-console-stat-card">
                     <div class="card-body">
-                        <div class="text-muted fs-12 mb-1">Authorized Personnel Mappings</div>
-                        <div class="fs-3 fw-bold"><?php echo count($personnelMappings); ?></div>
+                        <span class="bio-console-stat-label">Authorized Personnel</span>
+                        <span class="bio-console-stat-value"><?php echo count($personnelMappings); ?></span>
+                        <span class="bio-console-stat-meta">Admins, coordinators, and supervisors with linked prints.</span>
                     </div>
                 </div>
             </div>
             <div class="col-xl-3">
-                <div class="card stretch stretch-full">
+                <div class="card stretch stretch-full bio-console-stat-card">
                     <div class="card-body">
-                        <div class="text-muted fs-12 mb-1">Available Student Users</div>
-                        <div class="fs-3 fw-bold"><?php echo count($availableStudentUsers); ?></div>
+                        <span class="bio-console-stat-label">Available Students</span>
+                        <span class="bio-console-stat-value"><?php echo count($availableStudentUsers); ?></span>
+                        <span class="bio-console-stat-meta">Student-linked accounts still waiting for a fingerprint.</span>
                     </div>
                 </div>
             </div>
             <div class="col-xl-3">
-                <div class="card stretch stretch-full">
+                <div class="card stretch stretch-full bio-console-stat-card">
                     <div class="card-body">
-                        <div class="text-muted fs-12 mb-1">Detected Unmapped Prints</div>
-                        <div class="fs-3 fw-bold"><?php echo $unmappedDetectedCount; ?></div>
+                        <span class="bio-console-stat-label">Detected Unmapped Prints</span>
+                        <span class="bio-console-stat-value"><?php echo $unmappedDetectedCount; ?></span>
+                        <span class="bio-console-stat-meta">Finger IDs seen in device logs that still need assignment.</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card mb-4 fingerprint-map-card">
+        <div class="card mb-4 fingerprint-map-card bio-console-panel">
             <div class="card-header"><strong>Add or Update Student Mapping</strong></div>
             <div class="card-body">
-            <div class="alert alert-info py-2 mb-3">
-                Latest detected Finger ID: <strong><?php echo $latestDetectedFingerId > 0 ? $latestDetectedFingerId : 'N/A'; ?></strong>
-                <span class="mx-2">|</span>
-                Latest mapped Finger ID: <strong><?php echo $latestMappedFingerId > 0 ? $latestMappedFingerId : 'N/A'; ?></strong>
-            </div>
             <?php if (!empty($availableFingerIds)): ?>
-                <div class="alert alert-secondary py-2 mb-3">
-                    <div class="fw-semibold mb-1">Available Finger IDs to map</div>
-                    <div class="d-flex flex-wrap gap-2">
+                <div class="bio-console-inline-note mb-3">
+                    <div class="bio-console-inline-note-title">Available Finger IDs To Map</div>
+                    <div class="bio-console-chip-list">
                         <?php foreach ($availableFingerIds as $item): ?>
-                            <span class="badge bg-soft-warning text-warning">
+                            <span class="bio-console-chip">
                                 ID <?php echo (int)$item['finger_id']; ?>
                                 <?php if ($item['machine_user_name'] !== ''): ?>
                                     | Name: <?php echo htmlspecialchars($item['machine_user_name'], ENT_QUOTES, 'UTF-8'); ?>
@@ -818,7 +763,7 @@ ob_end_flush();
             </div>
         </div>
 
-        <div class="card mb-4 fingerprint-map-card">
+        <div class="card mb-4 fingerprint-map-card bio-console-panel">
             <div class="card-header"><strong>Authorized Personnel Mapping (Admin, Coordinator, Supervisor)</strong></div>
             <div class="card-body">
                 <?php if ($editFingerId > 0): ?>
@@ -864,7 +809,7 @@ ob_end_flush();
             </div>
         </div>
 
-        <div class="card mb-4 fingerprint-map-card">
+        <div class="card mb-4 fingerprint-map-card bio-console-panel">
             <div class="card-header"><strong>Current Student Mappings</strong></div>
             <div class="card-body border-bottom">
                 <form method="get" class="row g-2 align-items-end fingerprint-form">
@@ -898,7 +843,7 @@ ob_end_flush();
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0 bio-console-table">
                         <thead>
                             <tr>
                                 <th>Fingerprint ID</th>
@@ -960,11 +905,11 @@ ob_end_flush();
             </div>
         </div>
 
-        <div class="card mb-4">
+        <div class="card mb-4 bio-console-panel">
             <div class="card-header"><strong>Authorized Personnel Mappings</strong></div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0 bio-console-table">
                         <thead>
                             <tr>
                                 <th>Fingerprint ID</th>
@@ -1015,11 +960,11 @@ ob_end_flush();
             </div>
         </div>
 
-        <div class="card mt-4">
+        <div class="card mt-4 bio-console-panel">
             <div class="card-header"><strong>Detected Fingerprints From Machine Logs</strong></div>
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0 bio-console-table">
                         <thead>
                             <tr>
                                 <th>Fingerprint ID</th>
@@ -1081,53 +1026,9 @@ ob_end_flush();
                 </div>
             </div>
         </div>
+        </div>
     </div>
 </main>
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        function syncSectionsByCourse(courseSelectId, sectionSelectId) {
-            var courseSelect = document.getElementById(courseSelectId);
-            var sectionSelect = document.getElementById(sectionSelectId);
-            if (!courseSelect || !sectionSelect) {
-                return;
-            }
-
-            var selectedCourse = parseInt(courseSelect.value || '0', 10);
-            var optionElements = sectionSelect.querySelectorAll('option');
-            optionElements.forEach(function (opt, index) {
-                if (index === 0) {
-                    opt.hidden = false;
-                    return;
-                }
-
-                var optCourse = parseInt(opt.getAttribute('data-course-id') || '0', 10);
-                var visible = selectedCourse <= 0 || optCourse === selectedCourse;
-                opt.hidden = !visible;
-            });
-
-            var currentOption = sectionSelect.options[sectionSelect.selectedIndex];
-            if (currentOption && currentOption.hidden) {
-                sectionSelect.value = '0';
-            }
-        }
-
-        var addCourse = document.getElementById('add_course_id');
-        if (addCourse) {
-            addCourse.addEventListener('change', function () {
-                syncSectionsByCourse('add_course_id', 'add_section_id');
-            });
-            syncSectionsByCourse('add_course_id', 'add_section_id');
-        }
-
-        var mapCourse = document.getElementById('filter_course_id');
-        if (mapCourse) {
-            mapCourse.addEventListener('change', function () {
-                syncSectionsByCourse('filter_course_id', 'filter_section_id');
-            });
-            syncSectionsByCourse('filter_course_id', 'filter_section_id');
-        }
-    });
-    </script>
 <?php
 include __DIR__ . '/../includes/footer.php';
 $conn->close();

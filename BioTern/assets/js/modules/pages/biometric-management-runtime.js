@@ -1,4 +1,30 @@
 document.addEventListener('DOMContentLoaded', function () {
+    function syncSectionsByCourse(courseSelectId, sectionSelectId) {
+        var courseSelect = document.getElementById(courseSelectId);
+        var sectionSelect = document.getElementById(sectionSelectId);
+        if (!courseSelect || !sectionSelect) {
+            return;
+        }
+
+        var selectedCourse = parseInt(courseSelect.value || '0', 10);
+        var optionElements = sectionSelect.querySelectorAll('option');
+        optionElements.forEach(function (option, index) {
+            if (index === 0) {
+                option.hidden = false;
+                return;
+            }
+
+            var optionCourse = parseInt(option.getAttribute('data-course-id') || '0', 10);
+            var visible = selectedCourse <= 0 || optionCourse === selectedCourse;
+            option.hidden = !visible;
+        });
+
+        var currentOption = sectionSelect.options[sectionSelect.selectedIndex];
+        if (currentOption && currentOption.hidden) {
+            sectionSelect.value = '0';
+        }
+    }
+
     document.querySelectorAll('form[data-confirm]').forEach(function (form) {
         form.addEventListener('submit', function (event) {
             var message = form.getAttribute('data-confirm');
@@ -195,6 +221,134 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function initMachineQueueWatch() {
+        var toastContainer = document.getElementById('machineQueueToastContainer');
+        if (!toastContainer) {
+            return;
+        }
+
+        var watchUrl = toastContainer.getAttribute('data-machine-queue-watch-url') || 'biometric-machine.php?queue_watch_status=1';
+        var seenCompletedIds = {};
+        var autoRefreshTriggered = false;
+
+        function trimText(value) {
+            var text = (value || '').toString().trim();
+            if (text.length > 180) {
+                return text.slice(0, 180) + '...';
+            }
+            return text;
+        }
+
+        function escapeHtml(value) {
+            return (value || '').toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function showQueueToast(item) {
+            var id = Number(item && item.id ? item.id : 0);
+            if (!id || seenCompletedIds[id]) {
+                return;
+            }
+            seenCompletedIds[id] = true;
+
+            var status = ((item && item.status) || '').toString().toLowerCase();
+            var commandName = ((item && item.command_name) || 'command').toString();
+            var resultText = trimText(item && item.result_text ? item.result_text : '');
+            var completedAt = ((item && item.completed_at) || '').toString();
+            var isSuccess = status === 'succeeded';
+
+            var title = isSuccess ? 'Queue Completed' : 'Queue Failed';
+            var tone = isSuccess ? 'success' : 'danger';
+            var body = '#' + id + ' ' + commandName + (isSuccess ? ' completed.' : ' failed.');
+
+            if (resultText !== '') {
+                body += ' ' + resultText;
+            }
+            if (completedAt !== '') {
+                body += ' (' + completedAt + ')';
+            }
+
+            var wrapper = document.createElement('div');
+            wrapper.className = 'toast align-items-center text-bg-' + tone + ' border-0 mb-2';
+            wrapper.setAttribute('role', 'alert');
+            wrapper.setAttribute('aria-live', 'assertive');
+            wrapper.setAttribute('aria-atomic', 'true');
+            wrapper.innerHTML = ''
+                + '<div class="d-flex">'
+                + '  <div class="toast-body">'
+                + '    <div class="fw-semibold mb-1">' + escapeHtml(title) + '</div>'
+                + '    <div>' + escapeHtml(body) + '</div>'
+                + '  </div>'
+                + '  <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>'
+                + '</div>';
+
+            toastContainer.appendChild(wrapper);
+
+            if (window.bootstrap && window.bootstrap.Toast) {
+                var toast = new window.bootstrap.Toast(wrapper, { delay: isSuccess ? 6000 : 9000 });
+                wrapper.addEventListener('hidden.bs.toast', function () {
+                    wrapper.remove();
+                });
+                toast.show();
+            } else {
+                wrapper.className = 'alert alert-' + tone + ' mb-2 shadow-sm';
+                wrapper.innerHTML = '<div class="fw-semibold mb-1">' + escapeHtml(title) + '</div><div>' + escapeHtml(body) + '</div>';
+                window.setTimeout(function () {
+                    wrapper.remove();
+                }, isSuccess ? 6000 : 9000);
+            }
+
+            if (isSuccess) {
+                var shouldRefresh = ['rename_user', 'delete_user', 'clear_users'].indexOf(commandName) >= 0;
+                if (shouldRefresh && !autoRefreshTriggered) {
+                    autoRefreshTriggered = true;
+                    window.setTimeout(function () {
+                        try {
+                            var url = new URL(window.location.href);
+                            url.searchParams.set('load_users', '1');
+                            if (url.searchParams.get('selected_user_id')) {
+                                url.searchParams.set('load_user', '1');
+                            }
+                            window.location.href = url.toString();
+                        } catch (error) {
+                            window.location.reload();
+                        }
+                    }, 1200);
+                }
+            }
+        }
+
+        async function pollQueueStatus() {
+            try {
+                var separator = watchUrl.indexOf('?') === -1 ? '?' : '&';
+                var response = await fetch(watchUrl + separator + '_ts=' + Date.now(), {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    cache: 'no-store'
+                });
+                if (!response.ok) {
+                    return;
+                }
+
+                var payload = await response.json();
+                if (!payload || !payload.success || !Array.isArray(payload.completed)) {
+                    return;
+                }
+
+                payload.completed.forEach(showQueueToast);
+            } catch (error) {
+                // Keep polling silent if a transient network error occurs.
+            }
+        }
+
+        pollQueueStatus();
+        window.setInterval(pollQueueStatus, 4000);
+    }
+
     if (presetSelect) {
         presetSelect.addEventListener('change', applyPreset);
     }
@@ -234,5 +388,22 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    var addCourseSelect = document.getElementById('add_course_id');
+    if (addCourseSelect) {
+        addCourseSelect.addEventListener('change', function () {
+            syncSectionsByCourse('add_course_id', 'add_section_id');
+        });
+        syncSectionsByCourse('add_course_id', 'add_section_id');
+    }
+
+    var filterCourseSelect = document.getElementById('filter_course_id');
+    if (filterCourseSelect) {
+        filterCourseSelect.addEventListener('change', function () {
+            syncSectionsByCourse('filter_course_id', 'filter_section_id');
+        });
+        syncSectionsByCourse('filter_course_id', 'filter_section_id');
+    }
+
     refreshBridgeWorkerCommand();
+    initMachineQueueWatch();
 });

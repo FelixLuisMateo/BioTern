@@ -64,7 +64,7 @@ include 'includes/header.php';
 <div class="page-header page-header-with-middle">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title report-page-title">
-            <h5 class="m-b-10">Reports - OJT Programs</h5>
+            <h5 class="m-b-10">OJT Programs</h5>
         </div>
         <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>

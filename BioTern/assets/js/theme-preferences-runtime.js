@@ -159,6 +159,15 @@
           ? normalizeSurfacesMode(serverPrefs.surfaces)
           : "linked",
     };
+    var defaultThemePrefs = {
+      skin: "light",
+      menu: "auto",
+      font: "app-font-family-montserrat",
+      scheme: "blue",
+      navigation: "light",
+      header: "light",
+      surfaces: "linked",
+    };
 
     var darkBtn =
       document.querySelector(".nxl-header .dark-light-theme .dark-button") ||
@@ -1146,37 +1155,15 @@
 
     if (pageReset) {
       pageReset.addEventListener("click", function () {
-        runtimePrefs = {
-          skin: "light",
-          menu: "auto",
-          font: "app-font-family-montserrat",
-          scheme: "blue",
-          navigation: "light",
-          header: "light",
-          surfaces: "linked",
-        };
-        applySurfaceMode("linked");
+        runtimePrefs = Object.assign({}, defaultThemePrefs);
+        applySurfaceMode(defaultThemePrefs.surfaces);
         setDark(false, false);
-        applyMenuMode("auto");
-        applyFont("app-font-family-montserrat");
-        applyScheme("blue");
-        applyNavigationMode("light");
-        applyHeaderMode("light");
-        saveThemePreferences({
-          skin: "light",
-          menu: "auto",
-          font: "app-font-family-montserrat",
-          scheme: "blue",
-          navigation: "light",
-          header: "light",
-          surfaces: "linked",
-        }).then(function (result) {
-          if (result && result.ok) {
-            showThemeToast("success", "Theme settings reset to defaults");
-          } else {
-            showThemeToast("error", "Unable to reset settings");
-          }
-        });
+        applyMenuMode(defaultThemePrefs.menu);
+        applyFont(defaultThemePrefs.font);
+        applyScheme(defaultThemePrefs.scheme);
+        applyNavigationMode(defaultThemePrefs.navigation);
+        applyHeaderMode(defaultThemePrefs.header);
+        saveThemePreferences(defaultThemePrefs);
         syncCustomizerInputs();
       });
     }

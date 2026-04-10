@@ -4,11 +4,99 @@
  * - management/courses.php
  */
 
-/* Prevent last-row action button border from getting visually clipped. */
-    .courses-table tbody tr:last-child td {
-        padding-bottom: 14px;
-    }
+.app-data-card .card-header {
+    padding: 0.95rem 1.15rem;
+    border-bottom: 1px solid var(--biotern-data-cell-border, rgba(226, 232, 240, 0.95));
+}
 
-    .courses-table .action-cell .btn {
-        line-height: 1.2;
-    }
+.app-data-card .card-title {
+    font-size: 1.02rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+
+.courses-table tbody tr:last-child td {
+    padding-bottom: 14px;
+}
+
+.courses-table .action-cell .btn {
+    line-height: 1.2;
+}
+
+.app-courses-id-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    padding: 0.18rem 0.48rem;
+    border-radius: 999px;
+    border: 1px solid var(--biotern-data-cell-border, rgba(226, 232, 240, 0.95));
+    background: var(--biotern-data-head-bg, rgba(248, 250, 252, 0.98));
+    font-weight: 700;
+    font-size: 0.76rem;
+}
+
+.app-courses-code-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 0.2rem 0.58rem;
+    border-radius: 9px;
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.26);
+    background: rgba(var(--bs-primary-rgb), 0.1);
+    color: var(--bs-primary);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.app-courses-name-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.22rem;
+    min-width: 0;
+}
+
+.app-courses-name {
+    color: inherit;
+    font-weight: 700;
+    font-size: 0.93rem;
+}
+
+.app-courses-meta,
+.app-courses-created {
+    color: var(--biotern-data-muted, #64748b);
+    font-size: 0.77rem;
+    font-weight: 600;
+}
+
+.app-courses-head {
+    font-weight: 600;
+}
+
+.app-courses-edit-btn {
+    min-width: 76px;
+    font-weight: 700;
+}
+
+html.app-skin-dark .app-data-card .card-header {
+    border-bottom-color: rgba(129, 153, 199, 0.16);
+}
+
+html.app-skin-dark .app-courses-id-pill {
+    border-color: rgba(129, 153, 199, 0.25);
+    background: rgba(30, 41, 59, 0.72);
+}
+
+html.app-skin-dark .app-courses-code-pill {
+    border-color: rgba(var(--bs-primary-rgb), 0.44);
+    background: rgba(var(--bs-primary-rgb), 0.22);
+    color: #dbeafe;
+}
+
+html.app-skin-dark .app-courses-meta,
+html.app-skin-dark .app-courses-created {
+    color: #94a3b8;
+}

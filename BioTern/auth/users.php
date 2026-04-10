@@ -332,39 +332,35 @@ include __DIR__ . '/../includes/header.php';
         <div class="alert alert-<?php echo e($flash_type); ?> py-2"><?php echo e($flash_message); ?></div>
     <?php endif; ?>
 
-    <div class="row g-1 mb-1">
-        <div class="col-md-3">
-            <div class="card stat-card app-users-stat-card">
-                <div class="card-body py-1 px-3">
-                    <div class="stat-label">Total Users</div>
-                    <div class="h5 mb-0"><?php echo $stats['total']; ?></div>
-                </div>
+    <div class="app-stats-grid app-users-stats-dashboard mb-2">
+        <article class="app-stat-card app-users-stat-card">
+            <div class="app-stat-card-header">
+                <span class="app-stat-label">Total Users</span>
+                <span class="app-stat-icon"><i class="feather-users"></i></span>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card app-users-stat-card">
-                <div class="card-body py-1 px-3">
-                    <div class="stat-label">Active</div>
-                    <div class="h5 mb-0 text-success"><?php echo $stats['active']; ?></div>
-                </div>
+            <strong class="app-stat-value"><?php echo $stats['total']; ?></strong>
+        </article>
+        <article class="app-stat-card app-users-stat-card">
+            <div class="app-stat-card-header">
+                <span class="app-stat-label">Active</span>
+                <span class="app-stat-icon"><i class="feather-user-check"></i></span>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card app-users-stat-card">
-                <div class="card-body py-1 px-3">
-                    <div class="stat-label">Inactive</div>
-                    <div class="h5 mb-0 text-danger"><?php echo $stats['inactive']; ?></div>
-                </div>
+            <strong class="app-stat-value"><?php echo $stats['active']; ?></strong>
+        </article>
+        <article class="app-stat-card app-users-stat-card">
+            <div class="app-stat-card-header">
+                <span class="app-stat-label">Inactive</span>
+                <span class="app-stat-icon"><i class="feather-user-x"></i></span>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card app-users-stat-card">
-                <div class="card-body py-1 px-3">
-                    <div class="stat-label">Admins</div>
-                    <div class="h5 mb-0"><?php echo $stats['admins']; ?></div>
-                </div>
+            <strong class="app-stat-value"><?php echo $stats['inactive']; ?></strong>
+        </article>
+        <article class="app-stat-card app-users-stat-card">
+            <div class="app-stat-card-header">
+                <span class="app-stat-label">Admins</span>
+                <span class="app-stat-icon"><i class="feather-shield"></i></span>
             </div>
-        </div>
+            <strong class="app-stat-value"><?php echo $stats['admins']; ?></strong>
+        </article>
     </div>
 
     <section class="app-users-filter-section">

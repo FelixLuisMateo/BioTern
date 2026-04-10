@@ -1,0 +1,218 @@
+body.apps-activity-page .main-content {
+        padding-top: 0 !important;
+    }
+
+    body.apps-activity-page .content-sidebar,
+    body.apps-activity-page .content-area {
+        border-color: #e2e8f0 !important;
+    }
+
+    body.apps-activity-page .content-sidebar-header,
+    body.apps-activity-page .content-area-header {
+        background: #ffffff !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+    }
+
+    body.apps-activity-page .nxl-content-sidebar-item .nav-link {
+        border-radius: 8px;
+        margin: 0 0.35rem;
+        color: #1f2937;
+        font-weight: 600;
+    }
+
+    body.apps-activity-page .nxl-content-sidebar-item .nav-link.active {
+        background: #eef2ff;
+        color: #1d4ed8;
+    }
+
+    body.apps-activity-page .activity-list-pane,
+    body.apps-activity-page .activity-detail-pane {
+        max-height: calc(100vh - 240px);
+        overflow-y: auto;
+    }
+
+    body.apps-activity-page .activity-list-pane {
+        border-right: 1px solid #e2e8f0;
+        background: #ffffff;
+    }
+
+    body.apps-activity-page .activity-detail-pane {
+        background: #ffffff;
+    }
+
+    body.apps-activity-page .activity-row {
+        border-bottom: 1px solid #eef2f7;
+        transition: background-color 0.16s ease;
+    }
+
+    body.apps-activity-page .activity-row:hover {
+        background: #f8fafc;
+    }
+
+    body.apps-activity-page .activity-row.activity-row-active {
+        background: #eff6ff;
+    }
+
+    body.apps-activity-page .activity-title {
+        color: #0f172a;
+    }
+
+    body.apps-activity-page .activity-meta {
+        color: #475569;
+    }
+
+    body.apps-activity-page .activity-body {
+        color: #111827;
+        white-space: pre-wrap;
+        line-height: 1.5;
+    }
+
+    body.apps-activity-page .account-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 16px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #ffffff;
+    }
+
+    body.apps-activity-page .account-toolbar a {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 14px;
+        border-radius: 999px;
+        border: 1px solid #dbe3ee;
+        background: #f8fafc;
+        color: #1d4ed8;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    body.apps-activity-page .activity-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        padding: 16px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #ffffff;
+    }
+
+    body.apps-activity-page .activity-summary-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #f8fafc;
+        padding: 16px;
+    }
+
+    body.apps-activity-page .activity-summary-label {
+        color: #64748b;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 700;
+    }
+
+    body.apps-activity-page .activity-summary-value {
+        margin-top: 8px;
+        font-size: 24px;
+        line-height: 1;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    body.apps-activity-page .activity-summary-note {
+        margin-top: 8px;
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    html.app-skin-dark body.apps-activity-page .content-sidebar,
+    html.app-skin-dark body.apps-activity-page .content-area {
+        border-color: #1b2436 !important;
+    }
+
+    html.app-skin-dark body.apps-activity-page .content-sidebar-header,
+    html.app-skin-dark body.apps-activity-page .content-area-header {
+        background: #0f172a !important;
+        border-bottom-color: #1b2436 !important;
+    }
+
+    html.app-skin-dark body.apps-activity-page .nxl-content-sidebar-item .nav-link {
+        color: #dbe5f5 !important;
+    }
+
+    html.app-skin-dark body.apps-activity-page .nxl-content-sidebar-item .nav-link.active {
+        background: #1c2740 !important;
+        color: #8fb4ff !important;
+    }
+
+    html.app-skin-dark body.apps-activity-page .activity-list-pane {
+        border-right-color: #1b2436 !important;
+        background: #0f172a;
+    }
+
+    html.app-skin-dark body.apps-activity-page .activity-detail-pane {
+        background: #0f172a;
+    }
+
+    html.app-skin-dark body.apps-activity-page .activity-row {
+        border-bottom-color: #1b2436;
+    }
+
+    html.app-skin-dark body.apps-activity-page .activity-row:hover {
+        background: #162238;
+    }
+
+    html.app-skin-dark body.apps-activity-page .activity-row.activity-row-active {
+        background: #1b2a46;
+    }
+
+    html.app-skin-dark body.apps-activity-page .activity-title,
+    html.app-skin-dark body.apps-activity-page .activity-body {
+        color: #e6edf8 !important;
+    }
+
+    html.app-skin-dark body.apps-activity-page .activity-meta,
+    html.app-skin-dark body.apps-activity-page .text-muted {
+        color: #9fb0cc !important;
+    }
+
+    html.app-skin-dark body.apps-activity-page .account-toolbar,
+    html.app-skin-dark body.apps-activity-page .activity-summary-grid {
+        background: #0f172a;
+        border-bottom-color: #1b2436;
+    }
+
+    html.app-skin-dark body.apps-activity-page .account-toolbar a {
+        border-color: #334155;
+        background: #111c31;
+        color: #93c5fd;
+    }
+
+    html.app-skin-dark body.apps-activity-page .activity-summary-card {
+        border-color: #334155;
+        background: #111c31;
+    }
+
+    html.app-skin-dark body.apps-activity-page .activity-summary-value {
+        color: #e6edf8;
+    }
+
+    html.app-skin-dark body.apps-activity-page .activity-summary-note,
+    html.app-skin-dark body.apps-activity-page .activity-summary-label {
+        color: #9fb0cc;
+    }
+
+    @media (max-width: 991.98px) {
+        body.apps-activity-page .activity-summary-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        body.apps-activity-page .activity-summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }

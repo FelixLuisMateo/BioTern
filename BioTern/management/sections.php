@@ -247,14 +247,14 @@ include 'includes/header.php';
         </div>
     </div>
 
-    <div class="card stretch stretch-full">
+    <div class="card stretch stretch-full app-data-card app-data-toolbar app-academic-list-card app-mobile-inline-list-card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Sections</h5>
             <span class="badge bg-primary text-white px-3 py-1 text-center fw-semibold app-minw-72"><?php echo count($sections); ?> total</span>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
+        <div class="card-body p-0 pb-3">
+            <div class="table-responsive app-data-table-wrap">
+                <table class="table table-hover mb-0 app-data-table app-academic-list-table">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -271,11 +271,16 @@ include 'includes/header.php';
                     <?php if (!empty($sections)): ?>
                         <?php foreach ($sections as $sec): ?>
                             <tr>
-                                <td><?php echo (int)$sec['id']; ?></td>
-                                <td><?php echo htmlspecialchars((string)($sec['code'] ?? '')); ?></td>
-                                <td><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></td>
-                                <td><?php echo htmlspecialchars((string)($sec['course_name'] ?? '-')); ?></td>
-                                <?php if ($hasSectionDepartment): ?><td><?php echo htmlspecialchars((string)($sec['department_name'] ?? '-')); ?></td><?php endif; ?>
+                                <td><span class="app-academic-id-pill"><?php echo (int)$sec['id']; ?></span></td>
+                                <td><span class="app-academic-code-pill"><?php echo htmlspecialchars((string)($sec['code'] ?? '')); ?></span></td>
+                                <td>
+                                    <div class="app-academic-name-cell">
+                                        <span class="app-academic-name"><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></span>
+                                        <span class="app-academic-meta"><?php echo htmlspecialchars((string)($sec['course_name'] ?? '-')); ?></span>
+                                    </div>
+                                </td>
+                                <td><span class="app-academic-head"><?php echo htmlspecialchars((string)($sec['course_name'] ?? '-')); ?></span></td>
+                                <?php if ($hasSectionDepartment): ?><td><span class="app-academic-created"><?php echo htmlspecialchars((string)($sec['department_name'] ?? '-')); ?></span></td><?php endif; ?>
                                 <?php if ($hasSectionStatus || $hasSectionIsActive): ?>
                                     <td>
                                         <?php
@@ -284,15 +289,15 @@ include 'includes/header.php';
                                             : (string)($sec['is_active'] ?? '0');
                                         ?>
                                         <?php if ($activeFlag === '1'): ?>
-                                            <span class="badge bg-success">Active</span>
+                                            <span class="app-academic-status-pill is-active">Active</span>
                                         <?php else: ?>
-                                            <span class="badge bg-secondary">Inactive</span>
+                                            <span class="app-academic-status-pill is-inactive">Inactive</span>
                                         <?php endif; ?>
                                     </td>
                                 <?php endif; ?>
-                                <?php if ($hasSectionCreatedAt): ?><td><?php echo htmlspecialchars((string)($sec['created_at'] ?? '-')); ?></td><?php endif; ?>
-                                <td>
-                                    <a href="sections-edit.php?id=<?php echo (int)$sec['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <?php if ($hasSectionCreatedAt): ?><td><span class="app-academic-created"><?php echo htmlspecialchars((string)($sec['created_at'] ?? '-')); ?></span></td><?php endif; ?>
+                                <td class="action-cell">
+                                    <a href="sections-edit.php?id=<?php echo (int)$sec['id']; ?>" class="btn btn-sm btn-outline-primary app-academic-edit-btn">Edit</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -305,6 +310,75 @@ include 'includes/header.php';
                     <?php endif; ?>
                     </tbody>
                 </table>
+            </div>
+            <div class="app-mobile-list app-ojt-mobile-list">
+                <?php if (!empty($sections)): ?>
+                    <?php foreach ($sections as $sec): ?>
+                        <details class="app-mobile-item app-ojt-mobile-item">
+                            <summary class="app-mobile-summary app-ojt-mobile-summary">
+                                <div class="app-mobile-summary-main app-ojt-mobile-summary-main">
+                                    <div class="app-mobile-summary-text app-ojt-mobile-summary-text">
+                                        <span class="app-mobile-name app-ojt-mobile-name"><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></span>
+                                        <span class="app-mobile-subtext app-ojt-mobile-subtext">Code: <?php echo htmlspecialchars((string)($sec['code'] ?? '-')); ?></span>
+                                    </div>
+                                </div>
+                                <?php
+                                $summaryActive = $hasSectionStatus
+                                    ? (string)($sec['status'] ?? '0') === '1'
+                                    : ((string)($sec['is_active'] ?? '0') === '1');
+                                ?>
+                                <span class="app-ojt-mobile-status-dot <?php echo $summaryActive ? 'status-active' : 'status-review'; ?>" aria-hidden="true"></span>
+                            </summary>
+                            <div class="app-mobile-details app-ojt-mobile-details">
+                                <div class="app-mobile-row app-ojt-mobile-row">
+                                    <span class="app-mobile-label app-ojt-mobile-label">ID</span>
+                                    <span class="app-mobile-value app-ojt-mobile-value"><?php echo (int)$sec['id']; ?></span>
+                                </div>
+                                <div class="app-mobile-row app-ojt-mobile-row">
+                                    <span class="app-mobile-label app-ojt-mobile-label">Course</span>
+                                    <span class="app-mobile-value app-ojt-mobile-value"><?php echo htmlspecialchars((string)($sec['course_name'] ?? '-')); ?></span>
+                                </div>
+                                <?php if ($hasSectionDepartment): ?>
+                                    <div class="app-mobile-row app-ojt-mobile-row">
+                                        <span class="app-mobile-label app-ojt-mobile-label">Department</span>
+                                        <span class="app-mobile-value app-ojt-mobile-value"><?php echo htmlspecialchars((string)($sec['department_name'] ?? '-')); ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($hasSectionStatus || $hasSectionIsActive): ?>
+                                    <?php
+                                    $activeFlag = $hasSectionStatus
+                                        ? (string)($sec['status'] ?? '0')
+                                        : (string)($sec['is_active'] ?? '0');
+                                    ?>
+                                    <div class="app-mobile-row app-ojt-mobile-row">
+                                        <span class="app-mobile-label app-ojt-mobile-label">Status</span>
+                                        <span class="app-mobile-value app-ojt-mobile-value">
+                                            <?php if ($activeFlag === '1'): ?>
+                                                <span class="app-academic-status-pill is-active">Active</span>
+                                            <?php else: ?>
+                                                <span class="app-academic-status-pill is-inactive">Inactive</span>
+                                            <?php endif; ?>
+                                        </span>
+                                    </div>
+                                <?php endif; ?>
+                                <?php if ($hasSectionCreatedAt): ?>
+                                    <div class="app-mobile-row app-ojt-mobile-row">
+                                        <span class="app-mobile-label app-ojt-mobile-label">Created</span>
+                                        <span class="app-mobile-value app-ojt-mobile-value"><?php echo htmlspecialchars((string)($sec['created_at'] ?? '-')); ?></span>
+                                    </div>
+                                <?php endif; ?>
+                                <div class="app-mobile-row app-mobile-row-stack app-ojt-mobile-row app-ojt-mobile-row-stack">
+                                    <span class="app-mobile-label app-ojt-mobile-label">Actions</span>
+                                    <div class="app-ojt-mobile-actions">
+                                        <a href="sections-edit.php?id=<?php echo (int)$sec['id']; ?>" class="btn btn-sm btn-outline-primary app-academic-edit-btn">Edit</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="app-data-empty">No sections found.</div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

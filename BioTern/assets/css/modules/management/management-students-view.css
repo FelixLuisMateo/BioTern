@@ -57,13 +57,13 @@
             letter-spacing: 0.01em;
         }
         .attendance-clocked-out-alert {
-            background-color: #e8f4ff !important;
-            border: 1px solid #8ec5ff !important;
-            color: #0a3761 !important;
+            background: var(--biotern-surface-muted) !important;
+            border: 1px solid var(--biotern-border) !important;
+            color: var(--biotern-text) !important;
         }
         .attendance-clocked-out-alert i,
         .attendance-clocked-out-alert span {
-            color: #0a3761 !important;
+            color: var(--biotern-text) !important;
         }
         /* Section: profile contact list */
         /* Used by management/students-view.php: location/phone/email list */
@@ -130,3 +130,250 @@
                 max-width: 100%;
             }
         }
+
+/* Section: compact modern shell for Student View (mirrors OJT view density) */
+.app-students-view-main-content {
+    margin-top: 0.7rem;
+}
+
+.app-students-view-layout-row {
+    --bs-gutter-x: 0.85rem;
+    --bs-gutter-y: 0.85rem;
+}
+
+.app-students-view-profile-card,
+.app-students-view-detail-card {
+    border: 1px solid var(--biotern-border);
+    background: var(--biotern-surface);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.app-students-view-profile-card .card-body {
+    padding: 0.92rem 1rem;
+}
+
+.app-students-view-detail-card .card-header {
+    background: transparent;
+    border-bottom: 0;
+}
+
+.app-students-view-tabs-shell {
+    border-bottom: 1px solid var(--biotern-border);
+    padding: 0.58rem 0.72rem;
+    background: var(--biotern-surface);
+}
+
+.app-students-view-tabs {
+    border-bottom: 0 !important;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.app-students-view-tab-item {
+    flex: 1 1 170px;
+    max-width: 240px;
+}
+
+.app-students-view-tabs-shell .app-students-view-tabs .app-students-view-tab-link {
+    display: block;
+    margin: 0;
+    border: 1px solid var(--biotern-border) !important;
+    border-radius: 999px !important;
+    background: var(--biotern-surface-muted) !important;
+    color: var(--biotern-text) !important;
+    font-weight: 700;
+    font-size: 0.83rem;
+    line-height: 1.1;
+    padding: 0.44rem 0.82rem;
+    text-align: center;
+}
+
+.app-students-view-tabs-shell .app-students-view-tabs .app-students-view-tab-link:hover,
+.app-students-view-tabs-shell .app-students-view-tabs .app-students-view-tab-link:focus,
+.app-students-view-tabs-shell .app-students-view-tabs .app-students-view-tab-link.active {
+    border-color: var(--biotern-border) !important;
+    background: var(--biotern-surface) !important;
+    color: var(--biotern-text) !important;
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.16);
+}
+
+.app-students-view-tab-pane {
+    padding: 0.9rem 1rem;
+}
+
+.app-students-view-profile-details {
+    margin-bottom: 0.9rem !important;
+}
+
+.app-students-view-profile-details .row.g-3 {
+    --bs-gutter-x: 0.65rem;
+    --bs-gutter-y: 0.56rem;
+}
+
+.app-students-view-profile-details .p-3.border.rounded {
+    padding: 0.64rem 0.72rem !important;
+    border-color: var(--biotern-border) !important;
+    background: var(--biotern-surface-muted);
+}
+
+.app-students-view-profile-details .p-3.border.rounded .small {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--biotern-text-muted);
+}
+
+.app-students-view-profile-details .p-3.border.rounded .fw-semibold {
+    font-size: 0.88rem;
+    line-height: 1.28;
+}
+
+.app-students-view-recent-activity {
+    padding: 0.9rem 1rem 0.35rem;
+}
+
+.app-students-view-recent-activity .activity-feed {
+    margin-bottom: 0;
+}
+
+.app-students-view-recent-activity .activity-feed .feed-item {
+    border: 1px solid var(--biotern-border);
+    border-radius: 10px;
+    background: var(--biotern-surface-muted);
+    padding: 0.56rem 0.68rem;
+    margin-bottom: 0.52rem;
+}
+
+.app-students-view-recent-activity .activity-feed .feed-item.feed-item-info {
+    border-color: var(--biotern-border);
+    background: var(--biotern-surface-muted);
+}
+
+.app-students-view-recent-activity .activity-feed .feed-item .text .text-primary {
+    color: inherit !important;
+}
+
+.app-students-view-evaluation-wrap {
+    padding: 0.9rem 1rem;
+}
+
+.app-students-view-evaluation-wrap .alert {
+    padding: 0.72rem 0.82rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+.app-students-view-evaluation-wrap .border.rounded {
+    padding: 0.68rem 0.74rem !important;
+    border-color: var(--biotern-border) !important;
+    background: var(--biotern-surface-muted);
+}
+
+.app-students-view-evaluation-wrap .text-center.py-5 {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+}
+
+/* Section: neutralize legacy primary/info blue classes within Student View */
+.app-students-view-page-header .btn-primary,
+.app-students-view-main-content .btn-primary,
+.app-students-view-main-content .btn-info {
+    background: var(--biotern-btn-bg, var(--biotern-surface-muted)) !important;
+    border-color: var(--biotern-border) !important;
+    color: var(--biotern-btn-text, var(--biotern-text)) !important;
+}
+
+.app-students-view-page-header .btn-primary:hover,
+.app-students-view-page-header .btn-primary:focus,
+.app-students-view-main-content .btn-primary:hover,
+.app-students-view-main-content .btn-primary:focus,
+.app-students-view-main-content .btn-info:hover,
+.app-students-view-main-content .btn-info:focus {
+    background: var(--biotern-btn-hover-bg, var(--biotern-surface)) !important;
+    border-color: var(--biotern-border) !important;
+    color: var(--biotern-btn-text, var(--biotern-text)) !important;
+}
+
+.app-students-view-main-content .btn-outline-primary {
+    color: var(--biotern-text) !important;
+    border-color: var(--biotern-border) !important;
+}
+
+.app-students-view-main-content .btn-outline-primary:hover,
+.app-students-view-main-content .btn-outline-primary:focus {
+    color: var(--biotern-text) !important;
+    border-color: var(--biotern-border) !important;
+    background: var(--biotern-surface-muted) !important;
+}
+
+.app-students-view-main-content .badge.bg-soft-primary,
+.app-students-view-main-content .badge.bg-soft-info {
+    background: var(--biotern-surface-muted) !important;
+    border: 1px solid var(--biotern-border) !important;
+    color: var(--biotern-text) !important;
+}
+
+.app-students-view-main-content .alert-soft-info-message {
+    background: var(--biotern-surface-muted) !important;
+    border: 1px solid var(--biotern-border) !important;
+    color: var(--biotern-text) !important;
+}
+
+.app-students-view-main-content .app-students-view-neutral-alert {
+    background: var(--biotern-surface-muted) !important;
+    border: 1px solid var(--biotern-border) !important;
+    color: var(--biotern-text) !important;
+}
+
+.app-students-view-main-content .text-primary,
+.app-students-view-main-content .text-info,
+.app-students-view-main-content a.text-primary,
+.app-students-view-main-content a.text-info {
+    color: var(--biotern-text) !important;
+}
+
+html.app-skin-dark .app-students-view-profile-card,
+html.app-skin-dark .app-students-view-detail-card {
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+}
+
+html.app-skin-dark .app-students-view-tabs-shell {
+    border-bottom-color: #243246;
+    background: var(--biotern-surface);
+}
+
+html.app-skin-dark .app-students-view-tabs-shell .app-students-view-tabs .app-students-view-tab-link {
+    background: var(--biotern-surface-muted) !important;
+    border-color: #243246 !important;
+    color: var(--biotern-text) !important;
+}
+
+html.app-skin-dark .app-students-view-tabs-shell .app-students-view-tabs .app-students-view-tab-link:hover,
+html.app-skin-dark .app-students-view-tabs-shell .app-students-view-tabs .app-students-view-tab-link:focus,
+html.app-skin-dark .app-students-view-tabs-shell .app-students-view-tabs .app-students-view-tab-link.active {
+    background: var(--biotern-surface) !important;
+    border-color: #334155 !important;
+    color: #f8fafc !important;
+    box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.22);
+}
+
+html.app-skin-dark .app-students-view-profile-details .p-3.border.rounded,
+html.app-skin-dark .app-students-view-recent-activity .activity-feed .feed-item,
+html.app-skin-dark .app-students-view-evaluation-wrap .border.rounded {
+    border-color: #243246 !important;
+    background: var(--biotern-surface-muted);
+}
+
+@media (max-width: 991.98px) {
+    .app-students-view-tab-item {
+        flex: 0 0 auto;
+        max-width: none;
+    }
+
+    .app-students-view-tab-pane,
+    .app-students-view-recent-activity,
+    .app-students-view-evaluation-wrap {
+        padding: 0.75rem 0.82rem;
+    }
+}

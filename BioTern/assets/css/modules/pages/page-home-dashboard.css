@@ -1048,13 +1048,14 @@ html.app-theme-gray:not(.app-skin-dark) {
     }
 
     body.mobile-bottom-nav.dashboard-home .dashboard-page-header {
-        margin: 0.75rem 0.85rem 0.45rem !important;
-        border-radius: 16px !important;
-        min-height: 54px !important;
-        padding: 0.75rem 0.85rem !important;
-        background: var(--dash-card-bg) !important;
-        border: 1px solid var(--dash-card-border) !important;
-        box-shadow: var(--dash-card-shadow) !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        min-height: 66px !important;
+        padding: 14px 16px !important;
+        background: transparent !important;
+        border: 0 !important;
+        border-bottom: 0 !important;
+        box-shadow: none !important;
     }
 
     body.mobile-bottom-nav.dashboard-home .dashboard-page-header .page-header-title h5 {
@@ -1249,8 +1250,13 @@ html.app-theme-gray:not(.app-skin-dark) {
 
 @media (max-width: 575.98px) {
     body.mobile-bottom-nav.dashboard-home .dashboard-page-header {
-        margin: 0.65rem 0.75rem 0.4rem !important;
-        padding: 0.7rem 0.8rem !important;
+        margin: 0 !important;
+        padding: 14px 16px !important;
+        border: 0 !important;
+        border-bottom: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
     }
 
     body.mobile-bottom-nav.dashboard-home .main-content.dashboard-shell {

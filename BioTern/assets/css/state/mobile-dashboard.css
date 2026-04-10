@@ -1,0 +1,151 @@
+/* Mobile Dashboard Redesign
+ * Purpose: show all dashboard stats as tappable buttons and switch to full-detail panels on mobile.
+ */
+
+@media (max-width: 991.98px) {
+  body.mobile-bottom-nav #toggle-dashboard-layout,
+  body.mobile-bottom-nav #toggle-dashboard-layout-mobile,
+  body.mobile-bottom-nav #reset-dashboard-layout {
+    display: none !important;
+  }
+
+  body.mobile-bottom-nav .dashboard-mobile-summary {
+    display: none !important;
+  }
+
+  body.mobile-bottom-nav .dashboard-mobile-stat-board {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    padding: 10px 12px 6px !important;
+    margin: 0 0 8px !important;
+  }
+
+  body.mobile-bottom-nav .dashboard-mobile-stat-btn {
+    border: 1px solid var(--biotern-border, rgba(15, 23, 42, 0.09)) !important;
+    border-radius: 12px !important;
+    background: var(--biotern-surface-muted, #f8fafc) !important;
+    min-height: 104px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    text-align: left !important;
+    padding: 12px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease !important;
+  }
+
+  body.mobile-bottom-nav .dashboard-mobile-stat-btn.is-active {
+    border-color: var(--biotern-primary, #3454d1) !important;
+    box-shadow: 0 8px 20px rgba(52, 84, 209, 0.16) !important;
+    transform: translateY(-1px) !important;
+  }
+
+  body.mobile-bottom-nav .dashboard-mobile-stat-label {
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+    color: var(--biotern-text-muted, #6b7280) !important;
+  }
+
+  body.mobile-bottom-nav .dashboard-mobile-stat-value {
+    font-size: 1.65rem !important;
+    line-height: 1 !important;
+    font-weight: 800 !important;
+    color: var(--biotern-text, #28323d) !important;
+  }
+
+  body.mobile-bottom-nav .dashboard-shell {
+    padding: 4px 0 12px !important;
+  }
+
+  body.mobile-bottom-nav .dashboard-shell > .row {
+    margin: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+  }
+
+  body.mobile-bottom-nav .dashboard-movable {
+    max-width: 100% !important;
+    padding: 0 12px !important;
+    margin: 0 0 14px !important;
+  }
+
+  body.mobile-bottom-nav.mobile-dashboard-filtered .dashboard-movable[data-mobile-panel] {
+    display: none !important;
+  }
+
+  body.mobile-bottom-nav.mobile-dashboard-filtered .dashboard-movable[data-mobile-panel].is-mobile-panel-active {
+    display: block !important;
+  }
+
+  body.mobile-bottom-nav .kpi-strip .card-header {
+    padding: 14px 0 10px !important;
+    background: transparent !important;
+    border: 0 !important;
+  }
+
+  body.mobile-bottom-nav .kpi-strip .card-body {
+    padding: 0 !important;
+  }
+
+  body.mobile-bottom-nav .kpi-strip .row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    margin: 0 !important;
+  }
+
+  body.mobile-bottom-nav .kpi-strip .col-sm-6,
+  body.mobile-bottom-nav .kpi-strip .col-xl-3 {
+    all: unset !important;
+    display: block !important;
+  }
+
+  body.mobile-bottom-nav .kpi-tile {
+    min-height: 120px !important;
+    border-radius: 12px !important;
+    padding: 12px !important;
+    border: 1px solid var(--biotern-border, rgba(15, 23, 42, 0.09)) !important;
+    background: var(--biotern-surface-muted, #f8fafc) !important;
+  }
+
+  body.mobile-bottom-nav .kpi-tile .kpi-value {
+    font-size: 1.5rem !important;
+  }
+
+  body.mobile-bottom-nav .kpi-progress {
+    display: none !important;
+  }
+
+  body.mobile-bottom-nav .dash-card {
+    border-radius: 12px !important;
+    border: 1px solid var(--biotern-border, rgba(15, 23, 42, 0.09)) !important;
+    box-shadow: none !important;
+  }
+
+  body.mobile-bottom-nav .dash-card-header {
+    padding: 12px 14px !important;
+  }
+
+  body.mobile-bottom-nav .dash-card-body {
+    padding: 8px 0 !important;
+  }
+
+  body.mobile-bottom-nav .dash-list-item {
+    padding: 10px 14px !important;
+  }
+
+  html.app-skin-dark body.mobile-bottom-nav .dashboard-mobile-stat-btn,
+  html.app-skin-dark body.mobile-bottom-nav .kpi-tile {
+    background: var(--biotern-surface-muted, #111827) !important;
+  }
+
+  html.app-skin-dark body.mobile-bottom-nav .dashboard-mobile-stat-value,
+  html.app-skin-dark body.mobile-bottom-nav .kpi-tile .kpi-value {
+    color: #f3f4f6 !important;
+  }
+}
+

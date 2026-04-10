@@ -1004,234 +1004,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$page_title = 'Data Transfer';
+$page_title = 'BioTern || Data Transfer';
+$page_body_class = 'page-transfer-tools page-data-transfer';
+$page_styles = [
+    'assets/css/modules/pages/page-transfer-tools.css',
+];
+$page_scripts = [
+    'assets/js/modules/pages/transfer-tools-runtime.js',
+];
 include dirname(__DIR__) . '/includes/header.php';
 ?>
-<style>
-.transfer-shell {
-    max-width: 1180px;
-    margin: 0 auto;
-}
-.transfer-hero {
-    background: linear-gradient(135deg, #0f4c81 0%, #1f7a8c 48%, #dceff2 100%);
-    color: #fff;
-    border: 0;
-    overflow: hidden;
-}
-.transfer-hero .card-body {
-    padding: 2rem;
-}
-.transfer-kpis {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
-.transfer-kpi {
-    background: rgba(255, 255, 255, 0.14);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 1rem;
-    padding: 1rem 1.1rem;
-}
-.transfer-kpi-label {
-    display: block;
-    font-size: 0.76rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    opacity: 0.82;
-}
-.transfer-kpi-value {
-    display: block;
-    font-size: 1rem;
-    font-weight: 700;
-    margin-top: 0.25rem;
-    word-break: break-word;
-}
-.transfer-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1.7fr) minmax(290px, 0.95fr);
-    gap: 1.5rem;
-}
-.transfer-stack {
-    display: grid;
-    gap: 1.5rem;
-}
-.transfer-panel {
-    border: 1px solid #e5ebf2;
-    border-radius: 1rem;
-    box-shadow: 0 18px 40px rgba(16, 24, 40, 0.06);
-}
-.transfer-panel .card-body {
-    padding: 1.5rem;
-}
-.transfer-badge {
-    display: inline-flex;
-    align-items: center;
-    background: #edf6ff;
-    color: #0f4c81;
-    border-radius: 999px;
-    padding: 0.35rem 0.75rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-}
-.transfer-mode {
-    border: 1px solid #e8edf4;
-    border-radius: 0.9rem;
-    padding: 1rem;
-    background: #fff;
-    height: 100%;
-}
-.transfer-step {
-    border: 1px solid #edf1f5;
-    border-radius: 1rem;
-    padding: 1rem;
-    background: #fbfcfe;
-}
-.transfer-step + .transfer-step {
-    margin-top: 0.9rem;
-}
-.transfer-step-number {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    background: #0f4c81;
-    color: #fff;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    margin-bottom: 0.75rem;
-}
-.transfer-divider {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    color: #7b8794;
-    margin: 1.25rem 0;
-}
-.transfer-divider::before,
-.transfer-divider::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: #e8edf3;
-}
-.transfer-help {
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-}
-.transfer-note-list,
-.transfer-checklist {
-    margin: 0;
-    padding-left: 1.1rem;
-}
-.transfer-note-list li,
-.transfer-checklist li {
-    margin-bottom: 0.55rem;
-}
-.app-skin-dark .transfer-panel {
-    background: #16202b;
-    border-color: #253243;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-}
-.app-skin-dark .transfer-panel .text-muted,
-.app-skin-dark .transfer-mode .text-muted,
-.app-skin-dark .transfer-step .text-muted,
-.app-skin-dark .transfer-help .text-muted,
-.app-skin-dark .form-text,
-.app-skin-dark .transfer-divider,
-.app-skin-dark .transfer-checklist,
-.app-skin-dark .transfer-note-list {
-    color: #aab8c5 !important;
-}
-.app-skin-dark .transfer-panel h4,
-.app-skin-dark .transfer-panel h5,
-.app-skin-dark .transfer-panel h6,
-.app-skin-dark .transfer-panel label,
-.app-skin-dark .transfer-panel .form-label,
-.app-skin-dark .transfer-panel .form-check-label {
-    color: #ecf3fb;
-}
-.app-skin-dark .transfer-mode,
-.app-skin-dark .transfer-step {
-    background: #1b2632;
-    border-color: #2a394b;
-}
-.app-skin-dark .transfer-help {
-    background: linear-gradient(180deg, #182330 0%, #131c27 100%);
-}
-.app-skin-dark .transfer-badge {
-    background: rgba(70, 155, 255, 0.14);
-    color: #9fd0ff;
-}
-.app-skin-dark .transfer-divider::before,
-.app-skin-dark .transfer-divider::after {
-    background: #334354;
-}
-.app-skin-dark #sql_text,
-.app-skin-dark #students_file,
-.app-skin-dark #sql_file,
-.app-skin-dark .form-control {
-    background-color: #0f1720;
-    border-color: #334354;
-    color: #edf4fb;
-}
-.app-skin-dark .form-control::placeholder {
-    color: #7e92a8;
-}
-.app-skin-dark .btn-light {
-    background: #243244;
-    border-color: #334354;
-    color: #edf4fb;
-}
-.app-skin-dark .btn-outline-primary,
-.app-skin-dark .btn-outline-secondary {
-    color: #cfe7ff;
-    border-color: #45617f;
-}
-.transfer-risk-high {
-    border-color: #f4b5b1;
-    background: #fff6f5;
-}
-.transfer-risk-low {
-    border-color: #b9ebcd;
-    background: #f4fff8;
-}
-.transfer-risk-medium {
-    border-color: #f1deac;
-    background: #fffaf0;
-}
-.app-skin-dark .transfer-risk-high {
-    background: #2f1b1c;
-    border-color: #7a3d40;
-}
-.app-skin-dark .transfer-risk-low {
-    background: #13271d;
-    border-color: #2e6a46;
-}
-.app-skin-dark .transfer-risk-medium {
-    background: #2b2417;
-    border-color: #7e6840;
-}
-@media (max-width: 991.98px) {
-    .transfer-grid {
-        grid-template-columns: 1fr;
-    }
-    .transfer-hero .card-body {
-        padding: 1.5rem;
-    }
-}
+<main class="nxl-container">
+<div class="nxl-content">
+    <div class="page-header">
+        <div class="page-header-left d-flex align-items-center">
+            <div class="page-header-title">
+                <h5 class="m-b-10">Data Transfer</h5>
+            </div>
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                <li class="breadcrumb-item">Data Transfer</li>
+            </ul>
+        </div>
+        <div class="page-header-right ms-auto transfer-page-header-actions">
+            <div class="page-header-right-items">
+                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                    <a href="import-students-excel.php" class="btn btn-light-brand">
+                        <i class="feather-upload me-2"></i>
+                        <span>Excel Import</span>
+                    </a>
+                    <a href="homepage.php" class="btn btn-outline-secondary">
+                        <i class="feather-arrow-left me-2"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 
-.transfer-status-alert {
-    margin-top: 72px;
-}
-
-@media (max-width: 991.98px) {
-    .transfer-status-alert {
-        margin-top: 12px;
-    }
-}
-</style>
-<div class="container-xxl py-4">
+<div class="container-xxl py-4 transfer-page-wrap">
     <?php if ($statusType !== ''): ?>
         <div class="alert alert-<?php echo $statusType === 'success' ? 'success' : 'danger'; ?> alert-dismissible fade show mb-4 transfer-status-alert" role="alert">
             <strong><?php echo $statusType === 'success' ? 'Success:' : 'Import error:'; ?></strong>
@@ -1267,6 +1078,10 @@ include dirname(__DIR__) . '/includes/header.php';
                 <span class="transfer-badge">Railway Database Transfer Center</span>
                 <h2 class="mt-3 mb-2 text-white">Move your data with a clearer step-by-step workflow</h2>
                 <p class="mb-0 text-white-50">This page helps you import SQL into the current database connection, update students from spreadsheet files, and understand which option is safest before you run anything.</p>
+                <div class="transfer-hero-actions">
+                    <a href="import-students-excel.php" class="btn btn-light-brand">Open Excel Import</a>
+                    <a href="homepage.php" class="btn btn-light">Back to Dashboard</a>
+                </div>
                 <div class="transfer-kpis">
                     <div class="transfer-kpi">
                         <span class="transfer-kpi-label">Connected Host</span>
@@ -1510,20 +1325,6 @@ include dirname(__DIR__) . '/includes/header.php';
         </div>
     </div>
 </div>
-
-<?php if ($statusType !== ''): ?>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    if (typeof bootstrap === 'undefined') {
-        return;
-    }
-    var toastEl = document.getElementById('importStatusToast');
-    if (!toastEl) {
-        return;
-    }
-    var toast = new bootstrap.Toast(toastEl);
-    toast.show();
-});
-</script>
-<?php endif; ?>
+</div>
+</main>
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>

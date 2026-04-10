@@ -400,7 +400,7 @@ include 'includes/header.php';
 <main class="nxl-container">
     <div class="nxl-content">
             <!-- Page Header -->
-            <div class="page-header">
+            <div class="page-header app-students-view-page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
                         <h5 class="m-b-10">Student Profile</h5>
@@ -421,7 +421,7 @@ include 'includes/header.php';
                                 <i class="feather-eye me-2"></i>
                                 <span>Follow</span>
                             </a>
-                            <a href="students.php" class="btn btn-primary">
+                            <a href="students.php" class="btn btn-outline-secondary">
                                 <i class="feather-arrow-left me-2"></i>
                                 <span>Back to List</span>
                             </a>
@@ -432,10 +432,10 @@ include 'includes/header.php';
 
             <!-- Main Content -->
             <div class="main-content app-students-view-main-content">
-                <div class="row">
+                <div class="row app-students-view-layout-row">
                     <!-- Student Card Left Side -->
                     <div class="col-xxl-4 col-xl-6">
-                        <div class="card stretch stretch-full">
+                        <div class="card stretch stretch-full app-students-view-profile-card">
                             <div class="card-body">
                                 <?php
 if ($eval_flash_message !== ''): ?>
@@ -510,7 +510,7 @@ if ($is_clocked_in): ?>
                                         </div>
                                     <?php
 elseif ($has_attendance_today): ?>
-                                        <div class="alert alert-soft-info-message attendance-clocked-out-alert p-2 mb-3" role="alert">
+                                        <div class="alert attendance-clocked-out-alert p-2 mb-3" role="alert">
                                             <i class="feather-clock me-2"></i>
                                             <span class="fs-12 fw-bold">Student has attendance today and is currently clocked out</span>
                                         </div>
@@ -546,14 +546,14 @@ echo htmlspecialchars($student['email']); ?></a>
                                         <span>Delete</span>
                                     </a>
                                     <a href="students-edit.php?id=<?php
-echo $student['id']; ?>" class="w-50 btn btn-primary">
+echo $student['id']; ?>" class="w-50 btn btn-outline-secondary">
                                         <i class="feather-edit me-2"></i>
                                         <span>Edit Profile</span>
                                     </a>
                                 </div>
                                 <div class="d-grid gap-2 text-center pt-2">
                                     <a href="ojt-view.php?id=<?php
-echo $student['id']; ?>" class="btn btn-info">
+echo $student['id']; ?>" class="btn btn-outline-secondary">
                                         <i class="feather-file me-2"></i>
                                         <span>OJT Document View</span>
                                     </a>
@@ -569,24 +569,24 @@ echo $student['id']; ?>" class="btn btn-success" target="_blank">
 
                     <!-- Detailed Information Right Side -->
                     <div class="col-xxl-8 col-xl-6">
-                        <div class="card border-top-0">
-                            <div class="card-header p-0">
-                                <ul class="nav nav-tabs flex-wrap w-100 text-center customers-nav-tabs" id="myTab" role="tablist">
-                                    <li class="nav-item flex-fill border-top" role="presentation">
-                                        <a href="javascript:void(0);" class="nav-link active" data-bs-toggle="tab" data-bs-target="#overviewTab" role="tab">Overview</a>
+                        <div class="card border-top-0 app-students-view-detail-card">
+                            <div class="card-header p-0 app-students-view-tabs-shell">
+                                <ul class="nav nav-tabs w-100 text-center app-students-view-tabs" id="myTab" role="tablist">
+                                    <li class="nav-item app-students-view-tab-item" role="presentation">
+                                        <a href="javascript:void(0);" class="nav-link active app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#overviewTab" role="tab">Overview</a>
                                     </li>
-                                    <li class="nav-item flex-fill border-top" role="presentation">
-                                        <a href="javascript:void(0);" class="nav-link" data-bs-toggle="tab" data-bs-target="#activityTab" role="tab">Attendance</a>
+                                    <li class="nav-item app-students-view-tab-item" role="presentation">
+                                        <a href="javascript:void(0);" class="nav-link app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#activityTab" role="tab">Attendance</a>
                                     </li>
-                                    <li class="nav-item flex-fill border-top" role="presentation">
-                                        <a href="javascript:void(0);" class="nav-link" data-bs-toggle="tab" data-bs-target="#evaluationTab" role="tab">Evaluation</a>
+                                    <li class="nav-item app-students-view-tab-item" role="presentation">
+                                        <a href="javascript:void(0);" class="nav-link app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#evaluationTab" role="tab">Evaluation</a>
                                     </li>
                                 </ul>
                             </div>
                             <div class="tab-content">
                                 <!-- Overview Tab -->
-                                <div class="tab-pane fade show active p-4" id="overviewTab" role="tabpanel">
-                                    <div class="profile-details mb-5">
+                                <div class="tab-pane fade show active app-students-view-tab-pane" id="overviewTab" role="tabpanel">
+                                    <div class="profile-details app-students-view-profile-details mb-4">
                                         <div class="mb-4 d-flex align-items-center justify-content-between">
                                             <h5 class="fw-bold mb-0">Profile Details:</h5>
                                             <a href="students-edit.php?id=<?php
@@ -747,8 +747,8 @@ echo formatDate($student['biometric_registered_at']); ?></div>
                                 </div>
 
                                 <!-- Attendance Tab -->
-                                <div class="tab-pane fade" id="activityTab" role="tabpanel">
-                                    <div class="recent-activity p-4 pb-0">
+                                <div class="tab-pane fade app-students-view-tab-pane" id="activityTab" role="tabpanel">
+                                    <div class="recent-activity app-students-view-recent-activity">
                                         <div class="mb-4 pb-2 d-flex justify-content-between">
                                             <h5 class="fw-bold">Recent Attendance Records:</h5>
                                             <a href="students-dtr.php?id=<?php
@@ -779,10 +779,10 @@ echo date('M d, Y', strtotime($activity['date'])); ?>
 echo formatDateTime($activity['created_at']); ?>]</span>
                                                             </span>
                                                             <span class="text">
-                                                                Morning: <a href="javascript:void(0);" class="fw-bold text-primary"><?php
+                                                                Morning: <a href="javascript:void(0);" class="fw-bold"><?php
 echo formatTimeRange($activity['morning_time_in'], $activity['morning_time_out']); ?></a>
                                                                 &nbsp;|&nbsp;
-                                                                Afternoon: <a href="javascript:void(0);" class="fw-bold text-primary"><?php
+                                                                Afternoon: <a href="javascript:void(0);" class="fw-bold"><?php
 echo formatTimeRange($activity['afternoon_time_in'], $activity['afternoon_time_out']); ?></a>
                                                                 &nbsp;|&nbsp;
                                                                 Total: <strong><?php
@@ -808,8 +808,8 @@ endif; ?>
                                 </div>
 
                                 <!-- Evaluation Tab -->
-                                <div class="tab-pane fade" id="evaluationTab" role="tabpanel">
-                                    <div class="p-4">
+                                <div class="tab-pane fade app-students-view-tab-pane" id="evaluationTab" role="tabpanel">
+                                    <div class="app-students-view-evaluation-wrap">
                                         <div class="mb-4 d-flex align-items-center justify-content-between">
                                             <h5 class="fw-bold mb-0">Supervisor Evaluation:</h5>
                                             <?php
@@ -835,7 +835,7 @@ if ($is_evaluation_unlocked): ?>
                                             </div>
                                         <?php
 else: ?>
-                                            <div class="alert alert-dismissible alert-soft-info-message p-4 mb-4" role="alert">
+                                            <div class="alert alert-dismissible app-students-view-neutral-alert p-4 mb-4" role="alert">
                                                 <div class="d-flex">
                                                     <div class="me-3 d-none d-md-block"><i class="feather-info fs-1"></i></div>
                                                     <div>

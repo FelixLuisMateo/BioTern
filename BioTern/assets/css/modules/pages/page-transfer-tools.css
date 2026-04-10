@@ -1,0 +1,548 @@
+/*
+ * Shared transfer/import page styles
+ * Used by:
+ * - tools/import-sql.php
+ * - tools/import-students-excel.php
+ */
+
+.page-transfer-tools .nxl-content {
+    padding-bottom: 4.5rem;
+}
+
+.transfer-page-wrap,
+.excel-import-page-wrap {
+    padding-top: 0.25rem;
+}
+
+.transfer-page-header-actions .page-header-right-items-wrapper,
+.excel-import-page-header-actions .page-header-right-items-wrapper {
+    flex-wrap: wrap;
+}
+
+.transfer-shell {
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.excel-import-shell {
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.transfer-hero,
+.excel-import-hero {
+    color: #fff;
+    border: 0;
+    overflow: hidden;
+    border-radius: 18px;
+    box-shadow: 0 22px 44px rgba(15, 23, 42, 0.16);
+}
+
+.transfer-hero {
+    background: linear-gradient(135deg, #0f4c81 0%, #1f7a8c 48%, #dceff2 100%);
+}
+
+.excel-import-hero {
+    background: linear-gradient(135deg, #195b42 0%, #2f855a 50%, #e0f3e8 100%);
+}
+
+.transfer-hero .card-body,
+.excel-import-hero .card-body {
+    padding: 2rem;
+}
+
+.transfer-hero-actions,
+.excel-import-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 1rem;
+}
+
+.transfer-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.transfer-kpi {
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 1rem;
+    padding: 1rem 1.1rem;
+}
+
+.transfer-kpi-label {
+    display: block;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.82;
+}
+
+.transfer-kpi-value {
+    display: block;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-top: 0.25rem;
+    word-break: break-word;
+}
+
+.transfer-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(290px, 0.95fr);
+    gap: 1.5rem;
+}
+
+.transfer-stack {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.transfer-panel,
+.excel-import-card {
+    border: 1px solid #e5ebf2;
+    border-radius: 1rem;
+    box-shadow: 0 18px 40px rgba(16, 24, 40, 0.06);
+    overflow: hidden;
+}
+
+.transfer-panel .card-body {
+    padding: 1.5rem;
+}
+
+.excel-import-card .card-body {
+    padding: 1.5rem;
+}
+
+.transfer-badge,
+.excel-import-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.transfer-badge {
+    background: #edf6ff;
+    color: #0f4c81;
+}
+
+.excel-import-badge {
+    background: #eefbf3;
+    color: #195b42;
+}
+
+.transfer-mode {
+    border: 1px solid #e8edf4;
+    border-radius: 0.9rem;
+    padding: 1rem;
+    background: #fff;
+    height: 100%;
+}
+
+.transfer-step,
+.excel-import-step {
+    border: 1px solid #edf1f5;
+    border-radius: 1rem;
+    padding: 1rem;
+    background: #fbfcfe;
+}
+
+.transfer-step + .transfer-step,
+.excel-import-step + .excel-import-step {
+    margin-top: 0.9rem;
+}
+
+.transfer-step-number {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: #0f4c81;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+
+.transfer-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: #7b8794;
+    margin: 1.25rem 0;
+}
+
+.transfer-divider::before,
+.transfer-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #e8edf3;
+}
+
+.transfer-help {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.transfer-note-list,
+.transfer-checklist {
+    margin: 0;
+    padding-left: 1.1rem;
+}
+
+.transfer-note-list li,
+.transfer-checklist li {
+    margin-bottom: 0.55rem;
+}
+
+.transfer-risk-high {
+    border-color: #f4b5b1;
+    background: #fff6f5;
+}
+
+.transfer-risk-low {
+    border-color: #b9ebcd;
+    background: #f4fff8;
+}
+
+.transfer-risk-medium {
+    border-color: #f1deac;
+    background: #fffaf0;
+}
+
+.transfer-status-alert {
+    margin-top: 0;
+}
+
+.excel-import-stat {
+    border: 1px solid #e6edf4;
+    border-radius: 1rem;
+    padding: 1rem;
+    background: #fbfdff;
+}
+
+.excel-import-stat-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #195b42;
+    line-height: 1;
+}
+
+.excel-import-table {
+    width: 100%;
+    font-size: 0.92rem;
+    table-layout: fixed;
+}
+
+.excel-import-table td,
+.excel-import-table th {
+    white-space: normal;
+    vertical-align: top;
+    word-break: break-word;
+}
+
+.excel-import-table th:nth-child(1),
+.excel-import-table td:nth-child(1) {
+    width: 25%;
+}
+
+.excel-import-table th:nth-child(2),
+.excel-import-table td:nth-child(2) {
+    width: 14%;
+}
+
+.excel-import-table th:nth-child(3),
+.excel-import-table td:nth-child(3) {
+    width: 10%;
+}
+
+.excel-import-table th:nth-child(4),
+.excel-import-table td:nth-child(4) {
+    width: 23%;
+}
+
+.excel-import-table th:nth-child(5),
+.excel-import-table td:nth-child(5) {
+    width: 20%;
+}
+
+.excel-import-table th:nth-child(6),
+.excel-import-table td:nth-child(6) {
+    width: 8%;
+}
+
+.excel-import-section-link {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    text-decoration: none;
+    color: inherit;
+    padding: 0.95rem 1rem;
+    border-radius: 0.85rem;
+    border: 1px solid transparent;
+    background: rgba(15, 23, 42, 0.02);
+    cursor: pointer;
+}
+
+.excel-import-section-link:hover {
+    border-color: #9dd7b3;
+    background: #f3fbf6;
+    color: inherit;
+}
+
+.excel-import-section-link.active {
+    border-color: #2f855a;
+    background: #eefbf3;
+}
+
+.excel-import-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    justify-content: flex-end;
+}
+
+.excel-import-chip,
+.excel-import-chip-clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid #d7e7dc;
+    background: #fff;
+    color: #195b42;
+    text-decoration: none;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.excel-import-chip.active {
+    background: #195b42;
+    color: #fff;
+    border-color: #195b42;
+}
+
+.excel-import-chip-clear {
+    border-color: #d6dde8;
+    color: #475467;
+}
+
+.excel-import-review-grid {
+    display: grid;
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.excel-import-review-table-wrap {
+    width: 100%;
+}
+
+.excel-import-student-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.excel-import-results-empty {
+    display: none;
+    padding: 1rem 1.25rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 1rem;
+    background: #f8fafc;
+    color: #475467;
+}
+
+.excel-import-filter-note {
+    font-size: 0.92rem;
+}
+
+html.app-skin-dark .transfer-panel,
+html.app-skin-dark .excel-import-card {
+    background: #16202b;
+    border-color: #253243;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+html.app-skin-dark .transfer-panel .text-muted,
+html.app-skin-dark .transfer-mode .text-muted,
+html.app-skin-dark .transfer-step .text-muted,
+html.app-skin-dark .transfer-help .text-muted,
+html.app-skin-dark .form-text,
+html.app-skin-dark .transfer-divider,
+html.app-skin-dark .transfer-checklist,
+html.app-skin-dark .transfer-note-list,
+html.app-skin-dark .excel-import-card .text-muted {
+    color: #aab8c5 !important;
+}
+
+html.app-skin-dark .transfer-panel h4,
+html.app-skin-dark .transfer-panel h5,
+html.app-skin-dark .transfer-panel h6,
+html.app-skin-dark .transfer-panel label,
+html.app-skin-dark .transfer-panel .form-label,
+html.app-skin-dark .transfer-panel .form-check-label,
+html.app-skin-dark .excel-import-card h4,
+html.app-skin-dark .excel-import-card h5,
+html.app-skin-dark .excel-import-card h6,
+html.app-skin-dark .excel-import-card label,
+html.app-skin-dark .excel-import-card p,
+html.app-skin-dark .excel-import-card li,
+html.app-skin-dark .excel-import-card .table {
+    color: #eaf2fb;
+}
+
+html.app-skin-dark .transfer-mode,
+html.app-skin-dark .transfer-step,
+html.app-skin-dark .excel-import-step,
+html.app-skin-dark .excel-import-stat {
+    background: #1b2632;
+    border-color: #2a394b;
+}
+
+html.app-skin-dark .transfer-help {
+    background: linear-gradient(180deg, #182330 0%, #131c27 100%);
+}
+
+html.app-skin-dark .transfer-badge {
+    background: rgba(70, 155, 255, 0.14);
+    color: #9fd0ff;
+}
+
+html.app-skin-dark .excel-import-badge {
+    background: rgba(53, 180, 104, 0.14);
+    color: #9ff0be;
+}
+
+html.app-skin-dark .excel-import-stat-value {
+    color: #9ff0be;
+}
+
+html.app-skin-dark .transfer-divider::before,
+html.app-skin-dark .transfer-divider::after {
+    background: #334354;
+}
+
+html.app-skin-dark #sql_text,
+html.app-skin-dark #students_file,
+html.app-skin-dark #sql_file,
+html.app-skin-dark .form-control,
+html.app-skin-dark .form-select {
+    background-color: #0f1720;
+    border-color: #334354;
+    color: #edf4fb;
+}
+
+html.app-skin-dark .form-control::placeholder {
+    color: #7e92a8;
+}
+
+html.app-skin-dark .btn-light {
+    background: #243244;
+    border-color: #334354;
+    color: #edf4fb;
+}
+
+html.app-skin-dark .btn-outline-primary,
+html.app-skin-dark .btn-outline-secondary,
+html.app-skin-dark .btn-outline-success {
+    color: #cfe7ff;
+    border-color: #45617f;
+}
+
+html.app-skin-dark .transfer-risk-high {
+    background: #2f1b1c;
+    border-color: #7a3d40;
+}
+
+html.app-skin-dark .transfer-risk-low {
+    background: #13271d;
+    border-color: #2e6a46;
+}
+
+html.app-skin-dark .transfer-risk-medium {
+    background: #2b2417;
+    border-color: #7e6840;
+}
+
+html.app-skin-dark .excel-import-section-link {
+    background: #192433;
+}
+
+html.app-skin-dark .excel-import-section-link:hover {
+    background: #1f2d3f;
+    border-color: #5aa475;
+}
+
+html.app-skin-dark .excel-import-section-link.active {
+    background: rgba(53, 180, 104, 0.12);
+    border-color: #5aa475;
+}
+
+html.app-skin-dark .excel-import-chip,
+html.app-skin-dark .excel-import-chip-clear {
+    background: #182230;
+    border-color: #314255;
+    color: #9ff0be;
+}
+
+html.app-skin-dark .excel-import-chip.active {
+    background: #2f855a;
+    color: #fff;
+    border-color: #2f855a;
+}
+
+html.app-skin-dark .excel-import-chip-clear {
+    color: #d4dbe5;
+}
+
+html.app-skin-dark .excel-import-results-empty {
+    background: #182230;
+    border-color: #314255;
+    color: #d4dbe5;
+}
+
+@media (max-width: 1199.98px) {
+    .excel-import-review-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .excel-import-chip-row {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .transfer-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .transfer-hero .card-body,
+    .excel-import-hero .card-body {
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .excel-import-table {
+        table-layout: auto;
+    }
+
+    .excel-import-student-toolbar {
+        align-items: flex-start;
+    }
+
+    .excel-import-chip-row {
+        width: 100%;
+    }
+}

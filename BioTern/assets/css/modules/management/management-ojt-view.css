@@ -4,21 +4,358 @@
  * - management/ojt-view.php
  */
 
-body { background: #f5f7fb; }
+body { background: var(--biotern-body-bg); }
+
+.app-ojt-view-main-content {
+    margin-top: 0.75rem;
+}
+
+.app-ojt-view-main-content .tab-content > .tab-pane > .card,
+.app-ojt-view-main-content .tab-content > .tab-pane > .row,
+.app-ojt-view-main-content .tab-content > .tab-pane > .card + .row,
+.app-ojt-view-main-content .tab-content > .tab-pane > .row + .row {
+    margin-bottom: 0.75rem;
+}
+
+.app-ojt-view-surface-card.card-body {
+    padding: 0.95rem 1rem;
+    border-radius: 12px;
+}
+
+.app-ojt-view-main-content,
+.app-ojt-view-main-content * {
+    font-family: inherit;
+}
+
+.app-ojt-view-main-content h5,
+.app-ojt-view-main-content h6 {
+    letter-spacing: 0.01em;
+}
+
+.app-ojt-view-overview-card {
+    padding: 0.8rem 0.9rem !important;
+}
+
+.app-ojt-view-overview-card .app-ojt-view-kpi-card {
+    padding: 0.65rem 0.75rem !important;
+    border-color: var(--biotern-border) !important;
+    background: var(--biotern-surface-muted);
+}
+
+.app-ojt-view-overview-card .app-ojt-view-kpi-card .fs-5 {
+    font-size: 1.08rem !important;
+    line-height: 1.2;
+}
+
+.app-ojt-view-overview-card .app-ojt-view-overview-actions {
+    gap: 0.45rem !important;
+}
+
+.app-ojt-view-overview-card .app-ojt-view-overview-actions .btn {
+    min-height: 34px;
+    padding: 0.34rem 0.64rem;
+    font-size: 0.79rem;
+    font-weight: 700;
+}
+
+.app-ojt-view-overview-card .app-ojt-view-workflow-form {
+    padding: 0.62rem !important;
+    border-color: var(--biotern-border) !important;
+    background: var(--biotern-surface-muted);
+}
+
+.app-ojt-view-mini-card {
+    padding: 0.78rem 0.88rem !important;
+}
+
+.app-ojt-view-mini-card .list-group {
+    gap: 0.4rem;
+}
+
+.app-ojt-view-mini-card .list-group-item {
+    border: 1px solid var(--biotern-border);
+    border-radius: 10px;
+    padding: 0.58rem 0.7rem;
+    background: var(--biotern-surface-muted);
+}
+
+.app-ojt-view-mini-card .table.table-sm {
+    margin-bottom: 0;
+}
+
+.app-ojt-view-mini-card .table.table-sm th {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--biotern-text-muted);
+    padding-top: 0.46rem;
+    padding-bottom: 0.46rem;
+}
+
+.app-ojt-view-mini-card .table.table-sm td {
+    font-size: 0.84rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+.app-ojt-view-main-content .document-pane .app-ojt-view-document-card {
+    padding: 0.85rem 0.95rem !important;
+}
+
+.app-ojt-view-main-content .document-pane .app-ojt-view-document-card h5 {
+    font-size: 1rem;
+    line-height: 1.25;
+}
+
+.app-ojt-view-main-content .document-pane .mb-4 {
+    margin-bottom: 0.7rem !important;
+}
+
+.app-ojt-view-main-content .document-pane .mb-3 {
+    margin-bottom: 0.58rem !important;
+}
+
+.app-ojt-view-main-content .document-pane .app-ojt-view-document-form .row.g-3 {
+    --bs-gutter-x: 0.65rem;
+    --bs-gutter-y: 0.58rem;
+}
+
+.app-ojt-view-main-content .document-pane .app-ojt-view-document-form .row.app-ojt-view-form-grid {
+    --bs-gutter-x: 0.65rem;
+    --bs-gutter-y: 0.55rem;
+}
+
+.app-ojt-view-main-content .document-pane .app-ojt-view-document-form .form-check-inline {
+    margin-right: 0.45rem;
+}
+
+.app-ojt-view-main-content .document-pane .app-ojt-view-document-form .form-check-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.app-ojt-view-main-content .document-pane .app-ojt-view-form-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--biotern-text-muted);
+    margin-bottom: 0.24rem;
+}
+
+.app-ojt-view-main-content .document-pane .app-ojt-view-document-form .form-control,
+.app-ojt-view-main-content .document-pane .app-ojt-view-document-form .form-select {
+    min-height: 38px;
+    font-size: 0.86rem;
+    padding: 0.38rem 0.6rem;
+    border-color: var(--biotern-border);
+}
+
+.app-ojt-view-main-content .document-pane .app-ojt-view-document-form textarea.form-control {
+    min-height: 74px;
+}
+
+.app-ojt-view-main-content .document-pane .app-ojt-view-document-form .form-control::placeholder {
+    color: var(--biotern-text-muted);
+    opacity: 0.82;
+}
+
+.app-ojt-view-main-content .document-pane .app-ojt-view-document-form-actions .btn {
+    min-height: 36px;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.app-ojt-view-main-content #printDocsSelection > [class*="col-"] {
+    display: flex;
+}
+
+.app-ojt-view-main-content #printDocsSelection .app-ojt-view-print-doc-option {
+    min-height: 40px;
+    height: 100%;
+}
+
+/* Section: neutralize legacy primary/info blue classes within OJT View */
+.app-ojt-view-main-content .btn-primary,
+.app-ojt-view-main-content .btn-info {
+    background: var(--biotern-btn-bg, var(--biotern-surface-muted)) !important;
+    border-color: var(--biotern-border) !important;
+    color: var(--biotern-btn-text, var(--biotern-text)) !important;
+}
+
+.app-ojt-view-main-content .btn-primary:hover,
+.app-ojt-view-main-content .btn-primary:focus,
+.app-ojt-view-main-content .btn-info:hover,
+.app-ojt-view-main-content .btn-info:focus {
+    background: var(--biotern-btn-hover-bg, var(--biotern-surface)) !important;
+    border-color: var(--biotern-border) !important;
+    color: var(--biotern-btn-text, var(--biotern-text)) !important;
+}
+
+.app-ojt-view-main-content .btn-outline-primary {
+    color: var(--biotern-text) !important;
+    border-color: var(--biotern-border) !important;
+}
+
+.app-ojt-view-main-content .btn-outline-primary:hover,
+.app-ojt-view-main-content .btn-outline-primary:focus {
+    color: var(--biotern-text) !important;
+    border-color: var(--biotern-border) !important;
+    background: var(--biotern-surface-muted) !important;
+}
+
+.app-ojt-view-main-content .badge.bg-soft-primary,
+.app-ojt-view-main-content .badge.bg-soft-info {
+    background: var(--biotern-surface-muted) !important;
+    border: 1px solid var(--biotern-border) !important;
+    color: var(--biotern-text) !important;
+}
+
+.app-ojt-view-main-content .alert-soft-info-message {
+    background: var(--biotern-surface-muted) !important;
+    border: 1px solid var(--biotern-border) !important;
+    color: var(--biotern-text) !important;
+}
+
+.app-ojt-view-main-content .text-primary,
+.app-ojt-view-main-content .text-info,
+.app-ojt-view-main-content a.text-primary,
+.app-ojt-view-main-content a.text-info {
+    color: var(--biotern-text) !important;
+}
+
+html.app-skin-dark .app-ojt-view-overview-card .app-ojt-view-kpi-card,
+html.app-skin-dark .app-ojt-view-overview-card .app-ojt-view-workflow-form,
+html.app-skin-dark .app-ojt-view-mini-card .list-group-item {
+    border-color: #243246 !important;
+    background: var(--biotern-surface-muted);
+}
+
+.app-ojt-view-profile-grid .app-ojt-view-surface-card.card-body {
+    padding: 0.9rem 0.95rem;
+}
+
+.app-ojt-view-lead-info .row,
+.app-ojt-view-general-info .row {
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0.42rem 0;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.app-ojt-view-lead-info .row:last-child,
+.app-ojt-view-general-info .row:last-child {
+    border-bottom: 0;
+}
+
+.app-ojt-view-lead-info .row > .col-lg-2,
+.app-ojt-view-general-info .row > .col-lg-2 {
+    flex: 0 0 132px;
+    max-width: 132px;
+    font-size: 0.73rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.app-ojt-view-lead-info .row > .col-lg-10,
+.app-ojt-view-general-info .row > .col-lg-10 {
+    flex: 1 1 0;
+    max-width: calc(100% - 132px);
+    font-size: 0.88rem;
+    line-height: 1.3;
+    font-weight: 500;
+    color: var(--biotern-text);
+}
+
+.app-ojt-view-workflow-form {
+    min-height: 100%;
+}
+
+.app-skin-dark .app-ojt-view-lead-info .row,
+.app-skin-dark .app-ojt-view-general-info .row {
+    border-bottom-color: #243246;
+}
+
+.app-ojt-view-tabs-shell {
+    background: var(--biotern-surface) !important;
+    border: 1px solid var(--biotern-border) !important;
+    border-radius: 12px !important;
+    padding: 0.6rem 0.75rem !important;
+    margin-top: 0.2rem;
+    margin-bottom: 0.35rem !important;
+}
+
+.app-ojt-view-tabs-wrap {
+    width: 100%;
+}
+
+.app-ojt-view-tabs {
+    border-bottom: 0 !important;
+    gap: 0.45rem;
+}
+
+.app-ojt-view-tabs .nav-item {
+    margin-bottom: 0;
+}
+
+.app-ojt-view-tabs-shell .app-ojt-view-tabs .nav-link {
+    border: 1px solid var(--biotern-border) !important;
+    border-radius: 999px !important;
+    background: var(--biotern-surface-muted) !important;
+    color: var(--biotern-text) !important;
+    font-size: 0.84rem;
+    font-weight: 700;
+    line-height: 1.1;
+    padding: 0.46rem 0.82rem;
+}
+
+.app-ojt-view-tabs-shell .app-ojt-view-tabs .nav-link:hover,
+.app-ojt-view-tabs-shell .app-ojt-view-tabs .nav-link:focus {
+    background: var(--biotern-surface) !important;
+    color: var(--biotern-text) !important;
+    border-color: var(--biotern-border) !important;
+}
+
+.app-ojt-view-tabs-shell .app-ojt-view-tabs .nav-link.active {
+    background: var(--biotern-surface) !important;
+    color: var(--biotern-text) !important;
+    border-color: var(--biotern-border) !important;
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.14);
+}
+
+html.app-skin-dark .app-ojt-view-tabs-shell {
+    border-color: #243246 !important;
+    background: var(--biotern-surface) !important;
+}
+
+html.app-skin-dark .app-ojt-view-tabs-shell .app-ojt-view-tabs .nav-link {
+    background: var(--biotern-surface-muted);
+    color: var(--biotern-text);
+    border-color: #243246 !important;
+}
+
+html.app-skin-dark .app-ojt-view-tabs-shell .app-ojt-view-tabs .nav-link:hover,
+html.app-skin-dark .app-ojt-view-tabs-shell .app-ojt-view-tabs .nav-link:focus,
+html.app-skin-dark .app-ojt-view-tabs-shell .app-ojt-view-tabs .nav-link.active,
+html.app-skin-dark .app-ojt-view-tabs-shell .app-ojt-view-tabs .nav-item .nav-link:hover,
+html.app-skin-dark .app-ojt-view-tabs-shell .app-ojt-view-tabs .nav-item .nav-link.active {
+    background: var(--biotern-surface) !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+    box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.22);
+}
     .card,
     .app-ojt-view-surface-card { border: 1px solid #e8edf6; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04); }
     .page-header .m-b-10,
     .app-ojt-view-page-header .m-b-10 { margin-bottom: 4px !important; }
-    .nav-tabs-custom-style .nav-link,
     .app-ojt-view-tabs .nav-link { font-weight: 600; }
         .list-group-item { border-color: #edf1f7; }
     .app-skin-dark .list-group-item { border-color: #253252; background: #111a2e; color: #d8e2f4; }
     .app-skin-dark .text-muted { color: #9ab0d0 !important; }
     .app-skin-dark .app-ojt-view-surface-card { box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35); }
-    .app-skin-dark .nav-tabs-custom-style .nav-link,
-    .app-skin-dark .app-ojt-view-tabs .nav-link { color: #c4d3ea; }
-    .app-skin-dark .nav-tabs-custom-style .nav-link.active,
-    .app-skin-dark .app-ojt-view-tabs .nav-link.active { color: #fff; background: #22314b; border-color: #314c72; }
         .app-skin-dark .border { border-color: #253252 !important; }
         .app-skin-dark .table { color: #d8e2f4; }
         .app-skin-dark .table-sm > :not(caption) > * > * { border-color: #253252; }
@@ -47,19 +384,19 @@ body { background: #f5f7fb; }
             justify-content: space-between;
             gap: 8px;
             width: 100%;
-            border: 1px solid #2a3a57;
+            border: 1px solid var(--biotern-border);
             border-radius: 10px;
             padding: 10px 12px;
-            background: #0f1a33;
+            background: var(--biotern-surface-muted);
             cursor: pointer;
             transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
-            color: #dbe5f1;
+            color: var(--biotern-text);
             min-height: 44px;
         }
         .print-doc-option:hover,
         .app-ojt-view-print-doc-option:hover {
-            border-color: #3c5ea6;
-            box-shadow: 0 0 0 2px rgba(76, 124, 245, 0.12);
+            border-color: var(--biotern-border);
+            box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.16);
             transform: translateY(-1px);
         }
         .print-doc-option .print-doc-check,
@@ -79,17 +416,17 @@ body { background: #f5f7fb; }
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .04em;
-            color: #8ea6cc;
+            color: var(--biotern-text-muted);
         }
         .print-doc-option.is-checked,
         .app-ojt-view-print-doc-option.is-checked {
-            border-color: #4c7cf5;
-            box-shadow: 0 0 0 2px rgba(76, 124, 245, 0.2);
-            background: #132244;
+            border-color: var(--biotern-border);
+            box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.22);
+            background: var(--biotern-surface);
         }
         .print-doc-option.is-checked .print-doc-state,
         .app-ojt-view-print-doc-option.is-checked .app-ojt-view-print-doc-state {
-            color: #b9ccff;
+            color: var(--biotern-text);
         }
         .print-doc-actions .btn,
         .app-ojt-view-print-doc-actions .btn {
@@ -115,11 +452,19 @@ body { background: #f5f7fb; }
             }
             .page-header-right-items-wrapper .btn,
             .app-ojt-view-page-header-actions .btn { width: 100%; }
-            .nav-tabs-custom-style,
+
+            .app-ojt-view-lead-info .row > .col-lg-2,
+            .app-ojt-view-general-info .row > .col-lg-2 {
+                flex: 0 0 120px;
+                max-width: 120px;
+            }
+
+            .app-ojt-view-lead-info .row > .col-lg-10,
+            .app-ojt-view-general-info .row > .col-lg-10 {
+                max-width: calc(100% - 120px);
+            }
             .app-ojt-view-tabs { flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; padding-bottom: 6px; scrollbar-width: thin; }
-            .nav-tabs-custom-style .nav-item,
             .app-ojt-view-tabs .nav-item { flex: 0 0 auto; }
-            .nav-tabs-custom-style .nav-link,
             .app-ojt-view-tabs .nav-link { border-radius: 999px; margin-right: 6px; }
             .lead-info .row,
             .general-info .row,
@@ -193,6 +538,32 @@ body { background: #f5f7fb; }
             .app-ojt-view-page-header-actions { grid-template-columns: 1fr !important; }
             .card.card-body,
             .app-ojt-view-surface-card.card-body { padding: 12px; border-radius: 14px; }
+
+            .app-ojt-view-profile-grid .app-ojt-view-surface-card.card-body {
+                padding: 0.8rem 0.8rem;
+            }
+
+            .app-ojt-view-lead-info .row,
+            .app-ojt-view-general-info .row {
+                display: block;
+                padding: 0.4rem 0;
+                margin-bottom: 0 !important;
+            }
+
+            .app-ojt-view-lead-info .row > .col-lg-2,
+            .app-ojt-view-general-info .row > .col-lg-2,
+            .app-ojt-view-lead-info .row > .col-lg-10,
+            .app-ojt-view-general-info .row > .col-lg-10 {
+                flex: 0 0 100%;
+                max-width: 100%;
+                width: 100%;
+            }
+
+            .app-ojt-view-lead-info .row > .col-lg-2,
+            .app-ojt-view-general-info .row > .col-lg-2 {
+                margin-bottom: 0.2rem;
+                font-size: 0.68rem;
+            }
             .tab-pane .table-responsive table thead { display: none; }
             .tab-pane .table-responsive table,
             .tab-pane .table-responsive tbody,
