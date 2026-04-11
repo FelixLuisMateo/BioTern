@@ -89,7 +89,7 @@ function f20h_log_ingest_event(array $event): void
 
 function f20h_ingest_token(): string
 {
-    $headerToken = trim((string) ($_SERVER['HTTP_X_API_TOKEN'] ?? $_SERVER['HTTP_X_BIOTERN_TOKEN'] ?? ''));
+    $headerToken = trim((string) ($_SERVER['HTTP_X_API_TOKEN'] ?? $_SERVER['HTTP_X_BIOTERN_TOKEN'] ?? $_SERVER['HTTP_X_BRIDGE_TOKEN'] ?? ''));
     if ($headerToken !== '') {
         return $headerToken;
     }
@@ -98,14 +98,68 @@ function f20h_ingest_token(): string
     return $bodyToken;
 }
 
-function f20h_expected_token(array $machineConfig): string
+function f20h_token_candidates(array $machineConfig): array
 {
+    $candidates = [];
+
     $envToken = getenv('BIOTERN_API_TOKEN');
-    if ($envToken !== false && trim((string) $envToken) !== '') {
-        return trim((string) $envToken);
+    if (is_string($envToken) && trim((string)$envToken) !== '') {
+        $candidates[] = trim((string)$envToken);
     }
 
-    return trim((string) ($machineConfig['ingestToken'] ?? ''));
+    $machineToken = trim((string)($machineConfig['ingestToken'] ?? ''));
+    if ($machineToken !== '') {
+        $candidates[] = $machineToken;
+    }
+
+    try {
+        $db = biometric_shared_db();
+        $db->query("CREATE TABLE IF NOT EXISTS biometric_bridge_profile (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            profile_name VARCHAR(100) NOT NULL DEFAULT 'default',
+            bridge_enabled TINYINT(1) NOT NULL DEFAULT 1,
+            bridge_token VARCHAR(255) NOT NULL DEFAULT '',
+            cloud_base_url VARCHAR(255) NOT NULL DEFAULT '',
+            ingest_path VARCHAR(255) NOT NULL DEFAULT '/api/f20h_ingest.php',
+            ingest_api_token VARCHAR(255) NOT NULL DEFAULT '',
+            poll_seconds INT NOT NULL DEFAULT 30,
+            ip_address VARCHAR(100) NOT NULL DEFAULT '',
+            gateway VARCHAR(100) NOT NULL DEFAULT '',
+            mask VARCHAR(100) NOT NULL DEFAULT '255.255.255.0',
+            port INT NOT NULL DEFAULT 5001,
+            device_number INT NOT NULL DEFAULT 1,
+            communication_password VARCHAR(255) NOT NULL DEFAULT '0',
+            output_path VARCHAR(255) NOT NULL DEFAULT '',
+            updated_by INT NOT NULL DEFAULT 0,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uniq_profile_name (profile_name)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        $profileRes = $db->query("SELECT bridge_token, ingest_api_token FROM biometric_bridge_profile WHERE profile_name = 'default' LIMIT 1");
+        if ($profileRes instanceof mysqli_result) {
+            $profileRow = $profileRes->fetch_assoc() ?: [];
+            $profileRes->close();
+
+            $dbBridge = trim((string)($profileRow['bridge_token'] ?? ''));
+            $dbIngest = trim((string)($profileRow['ingest_api_token'] ?? ''));
+            if ($dbBridge !== '') {
+                $candidates[] = $dbBridge;
+            }
+            if ($dbIngest !== '') {
+                $candidates[] = $dbIngest;
+            }
+        }
+
+        $db->close();
+    } catch (Throwable $ignored) {
+        // Keep ingest resilient even when profile lookup is unavailable.
+    }
+
+    return array_values(array_unique(array_filter($candidates, static function ($value): bool {
+        return trim((string)$value) !== '';
+    })));
 }
 
 function f20h_decode_payload(): array
@@ -180,9 +234,20 @@ function f20h_normalize_event(array $event): ?array
 }
 
 $machineConfig = loadBiometricMachineConfig();
-$expectedToken = f20h_expected_token($machineConfig);
 $providedToken = f20h_ingest_token();
-if ($expectedToken !== '' && !hash_equals($expectedToken, $providedToken)) {
+$tokenCandidates = f20h_token_candidates($machineConfig);
+$tokenRequired = !empty($tokenCandidates);
+$authorized = !$tokenRequired;
+if ($tokenRequired) {
+    foreach ($tokenCandidates as $candidate) {
+        if (hash_equals((string)$candidate, $providedToken)) {
+            $authorized = true;
+            break;
+        }
+    }
+}
+
+if (!$authorized) {
     f20h_log_ingest_event([
         'source_ip' => f20h_request_ip(),
         'source_node' => f20h_request_node(),
@@ -217,7 +282,7 @@ if ($normalized === []) {
     f20h_log_ingest_event([
         'source_ip' => f20h_request_ip(),
         'source_node' => f20h_request_node(),
-        'token_status' => ($expectedToken === '' ? 'disabled' : 'valid'),
+        'token_status' => ($tokenRequired ? 'valid' : 'disabled'),
         'http_status' => 422,
         'events_received' => count($events),
         'events_accepted' => 0,
@@ -244,7 +309,7 @@ try {
     f20h_log_ingest_event([
         'source_ip' => f20h_request_ip(),
         'source_node' => f20h_request_node(),
-        'token_status' => ($expectedToken === '' ? 'disabled' : 'valid'),
+        'token_status' => ($tokenRequired ? 'valid' : 'disabled'),
         'http_status' => 200,
         'events_received' => count($events),
         'events_accepted' => $inserted,
@@ -265,7 +330,7 @@ try {
     f20h_log_ingest_event([
         'source_ip' => f20h_request_ip(),
         'source_node' => f20h_request_node(),
-        'token_status' => ($expectedToken === '' ? 'disabled' : 'valid'),
+        'token_status' => ($tokenRequired ? 'valid' : 'disabled'),
         'http_status' => 500,
         'events_received' => count($events),
         'events_accepted' => 0,
