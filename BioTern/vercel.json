@@ -56,6 +56,10 @@
       "dest": "/legacy_router.php?file=bridge_profile.php"
     },
     {
+      "src": "^/bridge_health\\.php$",
+      "dest": "/legacy_router.php?file=bridge_health.php"
+    },
+    {
       "src": "^/bridge_commands_claim\\.php$",
       "dest": "/legacy_router.php?file=bridge_commands_claim.php"
     },

@@ -211,7 +211,7 @@ function status_badge_html($status)
     if ($raw === '0' || strcasecmp($raw, 'inactive') === 0) {
         return '<span class="badge bg-soft-danger text-danger">Inactive</span>';
     }
-    return '<span class="badge bg-soft-primary text-primary">' . htmlspecialchars($raw !== '' ? ucfirst($raw) : 'Unknown') . '</span>';
+    return '<span class="badge bg-soft-secondary text-secondary">' . htmlspecialchars($raw !== '' ? ucfirst($raw) : 'Unknown') . '</span>';
 }
 
 function ojt_table_exists(mysqli $conn, string $table): bool
@@ -225,8 +225,8 @@ function ojt_stage_badge(string $stage): string
 {
     $map = [
         'Applied' => 'bg-soft-warning text-warning',
-        'Endorsed' => 'bg-soft-info text-info',
-        'Accepted' => 'bg-soft-primary text-primary',
+        'Endorsed' => 'bg-soft-warning text-warning',
+        'Accepted' => 'bg-soft-success text-success',
         'Ongoing' => 'bg-soft-success text-success',
         'Completed' => 'bg-soft-success text-success',
         'Dropped' => 'bg-soft-danger text-danger',
@@ -1124,10 +1124,10 @@ include 'includes/header.php';
                 </div>
             </div>
             <!-- [ page-header ] end -->
-            <div class="bg-white py-3 border-bottom rounded-0 p-md-0 mb-0">
+            <div class="py-3 rounded-0 p-md-0 mb-0 app-ojt-view-tabs-shell">
                 <div class="d-flex align-items-center justify-content-between">
-                    <div class="nav-tabs-wrapper page-content-left-sidebar-wrapper">
-                        <ul class="nav nav-tabs nav-tabs-custom-style app-ojt-view-tabs" id="myTab" role="tablist">
+                    <div class="app-ojt-view-tabs-wrap">
+                        <ul class="nav nav-tabs app-ojt-view-tabs" id="myTab" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#profileTab">Profile</button>
                             </li>
@@ -1165,102 +1165,106 @@ include 'includes/header.php';
                                 $profile_img_src = $profile_img_url;
                             }
                             ?>
-                            <div class="card app-ojt-view-surface-card card-body lead-info app-ojt-student-info-card app-ojt-view-lead-info">
-                                <div class="mb-4 d-flex align-items-center justify-content-between">
-                                    <h5 class="fw-bold mb-0">
-                                        <span class="d-block mb-2">Student Information :</span>
-                                        <span class="fs-12 fw-normal text-muted d-block">Live data from students table</span>
-                                    </h5>
-                                    <a href="students-view.php?id=<?php echo intval($student['id']); ?>" class="btn btn-sm btn-light-brand">Open Student View</a>
+                            <div class="row g-3 app-ojt-view-profile-grid">
+                                <div class="col-xl-6">
+                                    <div class="card app-ojt-view-surface-card card-body lead-info app-ojt-student-info-card app-ojt-view-lead-info h-100">
+                                        <div class="mb-3 d-flex align-items-center justify-content-between">
+                                            <h5 class="fw-bold mb-0">
+                                                <span class="d-block mb-1">Student Information</span>
+                                                <span class="fs-12 fw-normal text-muted d-block">Live data from students table</span>
+                                            </h5>
+                                            <a href="students-view.php?id=<?php echo intval($student['id']); ?>" class="btn btn-sm btn-light-brand">Open Student View</a>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Profile</div>
+                                            <div class="col-lg-10"><img src="<?php echo htmlspecialchars($profile_img_src); ?>" alt="profile" class="img-fluid rounded-circle app-avatar-56"></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Name</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(display_text($full_name)); ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Student ID</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['student_id'] ?? '')); ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Course</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['course_name'] ?? '')); ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Email</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['email'] ?? '')); ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Phone</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['phone'] ?? '')); ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Gender</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(display_text(isset($student['gender']) ? ucfirst((string)$student['gender']) : '')); ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Date of Birth</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['date_of_birth'] ?? '')); ?></div>
+                                        </div>
+                                        <div class="row mb-0">
+                                            <div class="col-lg-2 fw-medium">Address</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['address'] ?? '')); ?></div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Profile</div>
-                                    <div class="col-lg-10"><img src="<?php echo htmlspecialchars($profile_img_src); ?>" alt="profile" class="img-fluid rounded-circle app-avatar-56"></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Name</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($full_name)); ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Student ID</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['student_id'] ?? '')); ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Course</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['course_name'] ?? '')); ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Email</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['email'] ?? '')); ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Phone</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['phone'] ?? '')); ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Gender</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text(isset($student['gender']) ? ucfirst((string)$student['gender']) : '')); ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Date of Birth</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['date_of_birth'] ?? '')); ?></div>
-                                </div>
-                                <div class="row mb-0">
-                                    <div class="col-lg-2 fw-medium">Address</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['address'] ?? '')); ?></div>
+                                <div class="col-xl-6">
+                                    <div class="card app-ojt-view-surface-card card-body general-info app-ojt-view-general-info h-100">
+                                        <div class="mb-3 d-flex align-items-center justify-content-between">
+                                            <h5 class="fw-bold mb-0">
+                                                <span class="d-block mb-1">General Information</span>
+                                                <span class="fs-12 fw-normal text-muted d-block">Live data from students table</span>
+                                            </h5>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Status</div>
+                                            <div class="col-lg-10"><?php echo status_badge_html($student['status'] ?? ''); ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Supervisor</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['supervisor_name'] ?? '')); ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Coordinator</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['coordinator_name'] ?? '')); ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Emergency Contact</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['emergency_contact'] ?? '')); ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Total Hours</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['internal_total_hours'] ?? '')); ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Hours Remaining</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['internal_total_hours_remaining'] ?? '')); ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Biometric Registered</div>
+                                            <div class="col-lg-10"><?php echo !empty($student['biometric_registered']) ? 'Yes' : 'No'; ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Biometric Registered At</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(format_dt($student['biometric_registered_at'] ?? '')); ?></div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-lg-2 fw-medium">Created At</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(format_dt($student['created_at'] ?? '')); ?></div>
+                                        </div>
+                                        <div class="row mb-0">
+                                            <div class="col-lg-2 fw-medium">Updated At</div>
+                                            <div class="col-lg-10"><?php echo htmlspecialchars(format_dt($student['updated_at'] ?? '')); ?></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <hr>
-                            <div class="card app-ojt-view-surface-card card-body general-info app-ojt-view-general-info">
-                                <div class="mb-4 d-flex align-items-center justify-content-between">
-                                    <h5 class="fw-bold mb-0">
-                                        <span class="d-block mb-2">General Information :</span>
-                                        <span class="fs-12 fw-normal text-muted d-block">Live data from students table</span>
-                                    </h5>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Status</div>
-                                    <div class="col-lg-10"><?php echo status_badge_html($student['status'] ?? ''); ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Supervisor</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['supervisor_name'] ?? '')); ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Coordinator</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['coordinator_name'] ?? '')); ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Emergency Contact</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['emergency_contact'] ?? '')); ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Total Hours</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['internal_total_hours'] ?? '')); ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Hours Remaining</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(display_text($student['internal_total_hours_remaining'] ?? '')); ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Biometric Registered</div>
-                                    <div class="col-lg-10"><?php echo !empty($student['biometric_registered']) ? 'Yes' : 'No'; ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Biometric Registered At</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(format_dt($student['biometric_registered_at'] ?? '')); ?></div>
-                                </div>
-                                <div class="row mb-4">
-                                    <div class="col-lg-2 fw-medium">Created At</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(format_dt($student['created_at'] ?? '')); ?></div>
-                                </div>
-                                <div class="row mb-0">
-                                    <div class="col-lg-2 fw-medium">Updated At</div>
-                                    <div class="col-lg-10"><?php echo htmlspecialchars(format_dt($student['updated_at'] ?? '')); ?></div>
-                                </div>
-                            </div>
-                            <hr>
-                            <div class="card app-ojt-view-surface-card card-body mb-3">
+                            <div class="card app-ojt-view-surface-card card-body mb-3 app-ojt-view-overview-card">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h5 class="fw-bold mb-0">Internship Monitoring Overview</h5>
                                 <div class="d-flex gap-2 overview-actions app-ojt-view-overview-actions">
@@ -1271,25 +1275,25 @@ include 'includes/header.php';
                             </div>
                                 <div class="row g-3 mb-3">
                                     <div class="col-md-3">
-                                        <div class="p-3 border rounded">
+                                        <div class="p-3 border rounded app-ojt-view-kpi-card">
                                             <div class="text-muted fs-12">Pipeline Stage</div>
                                             <div class="mt-2"><?php echo ojt_stage_badge($pipeline_stage); ?></div>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
-                                        <div class="p-3 border rounded">
+                                        <div class="p-3 border rounded app-ojt-view-kpi-card">
                                             <div class="text-muted fs-12">Required Hours</div>
                                             <div class="fs-5 fw-semibold"><?php echo htmlspecialchars((string)($internship_data['required_hours'] ?? 0)); ?></div>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
-                                        <div class="p-3 border rounded">
+                                        <div class="p-3 border rounded app-ojt-view-kpi-card">
                                             <div class="text-muted fs-12">Rendered Hours</div>
                                             <div class="fs-5 fw-semibold"><?php echo number_format((float)$attendance_summary['total_hours'], 2); ?></div>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
-                                        <div class="p-3 border rounded">
+                                        <div class="p-3 border rounded app-ojt-view-kpi-card">
                                             <div class="text-muted fs-12">Pending Attendance</div>
                                             <div class="fs-5 fw-semibold"><?php echo intval($attendance_summary['pending_count']); ?></div>
                                         </div>
@@ -1297,7 +1301,7 @@ include 'includes/header.php';
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-8">
-                                        <div class="p-3 border rounded">
+                                        <div class="p-3 border rounded app-ojt-view-kpi-card">
                                             <h6 class="fw-bold">Document Completion</h6>
                                             <div class="d-flex flex-wrap gap-2">
                                                 <span class="badge <?php echo document_status_badge_class((string)$document_completion['application']); ?>">Application <?php echo document_status_label((string)$document_completion['application']); ?></span>
@@ -1314,7 +1318,7 @@ include 'includes/header.php';
                                         </div>
                                     </div>
                                     <div class="col-md-4">
-                                        <div class="p-3 border rounded">
+                                        <div class="p-3 border rounded app-ojt-view-kpi-card">
                                             <h6 class="fw-bold">Risk Flags</h6>
                                             <?php if (count($risk_flags) === 0): ?>
                                                 <span class="badge bg-soft-success text-success">No active risk</span>
@@ -1330,7 +1334,7 @@ include 'includes/header.php';
                                 </div>
                                 <div class="row g-3 mt-1">
                                     <?php foreach (['application' => 'Application', 'endorsement' => 'Endorsement', 'moa' => 'MOA', 'dau_moa' => 'Dau MOA'] as $doc_key => $doc_label): ?>
-                                        <div class="col-md-3">
+                                        <div class="col-md-6 col-xl-6">
                                             <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="p-2 border rounded app-ojt-view-workflow-form">
                                                 <input type="hidden" name="save_document_workflow" value="1">
                                                 <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
@@ -1401,7 +1405,7 @@ include 'includes/header.php';
                             </div>
                             <div class="row g-3">
                                 <div class="col-lg-6">
-                                    <div class="card app-ojt-view-surface-card card-body h-100">
+                                    <div class="card app-ojt-view-surface-card card-body h-100 app-ojt-view-mini-card">
                                         <h6 class="fw-bold mb-3">Student Timeline</h6>
                                         <?php if (!$profile_timeline): ?>
                                             <div class="text-muted">No timeline events.</div>
@@ -1418,7 +1422,7 @@ include 'includes/header.php';
                                     </div>
                                 </div>
                                 <div class="col-lg-6">
-                                    <div class="card app-ojt-view-surface-card card-body h-100">
+                                    <div class="card app-ojt-view-surface-card card-body h-100 app-ojt-view-mini-card">
                                         <h6 class="fw-bold mb-3">Edit Audit Trail</h6>
                                         <?php if (!$audit_trail): ?>
                                             <div class="text-muted">No OJT edit audit entries.</div>
@@ -1440,7 +1444,7 @@ include 'includes/header.php';
                             </div>
                             <div class="row g-3 mt-1">
                                 <div class="col-lg-6">
-                                    <div class="card app-ojt-view-surface-card card-body h-100">
+                                    <div class="card app-ojt-view-surface-card card-body h-100 app-ojt-view-mini-card">
                                         <h6 class="fw-bold mb-3">Attendance Event Audit (Latest 10)</h6>
                                         <?php if (!$attendance_audit_rows): ?>
                                             <div class="text-muted">No attendance audit records.</div>
@@ -1471,7 +1475,7 @@ include 'includes/header.php';
                                     </div>
                                 </div>
                                 <div class="col-lg-6">
-                                    <div class="card app-ojt-view-surface-card card-body h-100">
+                                    <div class="card app-ojt-view-surface-card card-body h-100 app-ojt-view-mini-card">
                                         <h6 class="fw-bold mb-3">Supervisor Review Notes</h6>
                                         <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="mb-3">
                                             <input type="hidden" name="save_review_note" value="1">
@@ -1526,7 +1530,7 @@ include 'includes/header.php';
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="active_tab" value="applicationTab">
 
-                                    <div class="row g-3">
+                                    <div class="row g-2 app-ojt-view-form-grid">
                                         <div class="col-md-4">
                                             <label class="form-label app-ojt-view-form-label">Date</label>
                                             <input type="date" name="date" class="form-control" value="<?php echo htmlspecialchars($app_letter['date']); ?>">
@@ -1574,7 +1578,7 @@ include 'includes/header.php';
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="active_tab" value="moaTab">
 
-                                    <div class="row g-3">
+                                    <div class="row g-2 app-ojt-view-form-grid">
                                         <div class="col-md-6">
                                             <label class="form-label app-ojt-view-form-label">Company Name</label>
                                             <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($moa_data['company_name']); ?>">
@@ -1686,12 +1690,12 @@ include 'includes/header.php';
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="active_tab" value="endorsementTab">
 
-                                    <div class="row g-3">
-                                        <div class="col-12">
+                                    <div class="row g-2 app-ojt-view-form-grid">
+                                        <div class="col-md-6">
                                             <label class="form-label app-ojt-view-form-label">Recipient Name</label>
                                             <input type="text" name="recipient_name" class="form-control" value="<?php echo htmlspecialchars($endorsement_data['recipient_name']); ?>" placeholder="e.g. Mr. Mark G. Sison">
                                         </div>
-                                        <div class="col-12">
+                                        <div class="col-md-6">
                                             <label class="form-label app-ojt-view-form-label d-block mb-2">Recipient Title</label>
                                             <?php $rt = strtolower((string)($endorsement_data['recipient_title'] ?? 'auto')); ?>
                                             <div class="form-check form-check-inline">
@@ -1711,19 +1715,19 @@ include 'includes/header.php';
                                                 <label class="form-check-label" for="rt_none">None</label>
                                             </div>
                                         </div>
-                                        <div class="col-12">
+                                        <div class="col-md-6">
                                             <label class="form-label app-ojt-view-form-label">Recipient Position</label>
                                             <input type="text" name="recipient_position" class="form-control" value="<?php echo htmlspecialchars($endorsement_data['recipient_position']); ?>" placeholder="e.g. Supervisor/Manager">
                                         </div>
-                                        <div class="col-12">
+                                        <div class="col-md-6">
                                             <label class="form-label app-ojt-view-form-label">Company Name</label>
                                             <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($endorsement_data['company_name']); ?>" placeholder="Company name">
                                         </div>
-                                        <div class="col-12">
+                                        <div class="col-md-6">
                                             <label class="form-label app-ojt-view-form-label">Company Address</label>
                                             <textarea name="company_address" class="form-control" rows="2" placeholder="Company address"><?php echo htmlspecialchars($endorsement_data['company_address']); ?></textarea>
                                         </div>
-                                        <div class="col-12">
+                                        <div class="col-md-6">
                                             <label class="form-label app-ojt-view-form-label">Students to Endorse (one per line)</label>
                                             <textarea name="students_to_endorse" class="form-control" rows="3"><?php echo htmlspecialchars($endorsement_data['students_to_endorse']); ?></textarea>
                                         </div>
@@ -1753,7 +1757,7 @@ include 'includes/header.php';
                                     <input type="hidden" name="user_id" value="<?php echo intval($selected_student_id); ?>">
                                     <input type="hidden" name="active_tab" value="commentTab">
 
-                                    <div class="row g-3">
+                                    <div class="row g-2 app-ojt-view-form-grid">
                                         <div class="col-md-6">
                                             <label class="form-label app-ojt-view-form-label">Barangay Name</label>
                                             <input type="text" name="company_name" class="form-control" value="<?php echo htmlspecialchars($dau_moa_data['company_name']); ?>" placeholder="Barangay name">

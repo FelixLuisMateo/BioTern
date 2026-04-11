@@ -30,14 +30,6 @@ include 'includes/header.php';
         <div class="main-content settings-shell theme-customizer-page">
             <div class="settings-layout">
                 <section class="settings-main">
-                    <div class="settings-intro-card appearance-hero">
-                        <div class="appearance-hero-copy">
-                            <h3>Appearance Studio</h3>
-                            <p>Tune color mode, typography, and surface styling in one place. Changes are applied live and saved automatically as your default interface preferences.</p>
-                        </div>
-                        <div class="settings-badge">Auto Save Active</div>
-                    </div>
-
                     <div class="appearance-grid">
                         <article class="card theme-setting-card appearance-card">
                             <div class="card-header d-flex align-items-center justify-content-between">
@@ -115,7 +107,6 @@ include 'includes/header.php';
 
                                 <div class="appearance-actions-inline">
                                     <button type="button" class="btn btn-light" id="theme-page-reset">Reset Defaults</button>
-                                    <button type="button" class="btn btn-primary" id="theme-page-save">Save Now</button>
                                 </div>
                             </div>
                         </article>

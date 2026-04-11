@@ -234,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $message_type = "warning";
                 // If the time field is already set, prevent duplicate clock-in
                 } elseif (!empty($record[$db_column])) {
-                    $message = " Ã¢â‚¬â€ " . ucfirst(str_replace('_', ' ', $clock_type)) . " has already been recorded. Cannot clock in twice.";
+                    $message = ucfirst(str_replace('_', ' ', $clock_type)) . " has already been recorded. Cannot clock in twice.";
                     $message_type = "warning";
                 } else {
                     // Update existing attendance record with this new time
@@ -538,7 +538,7 @@ include 'includes/header.php';
                                                     if ($record['morning_time_in'] && $record['morning_time_out']) {
                                                         $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' - ' . date('h:i A', strtotime($record['morning_time_out']));
                                                     } elseif ($record['morning_time_in']) {
-                                                        $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' Ã¢Å“â€œ';
+                                                        $morning = date('h:i A', strtotime($record['morning_time_in'])) . ' OK';
                                                     }
                                                     echo $morning ? '<span class="badge-time badge-morning">' . $morning . '</span>' : '-';
                                                 ?>
@@ -549,7 +549,7 @@ include 'includes/header.php';
                                                     if ($record['break_time_in'] && $record['break_time_out']) {
                                                         $break = date('h:i A', strtotime($record['break_time_in'])) . ' - ' . date('h:i A', strtotime($record['break_time_out']));
                                                     } elseif ($record['break_time_in']) {
-                                                        $break = date('h:i A', strtotime($record['break_time_in'])) . ' Ã¢Å“â€œ';
+                                                        $break = date('h:i A', strtotime($record['break_time_in'])) . ' OK';
                                                     }
                                                     echo $break ? '<span class="badge-time badge-break">' . $break . '</span>' : '-';
                                                 ?>
@@ -560,7 +560,7 @@ include 'includes/header.php';
                                                     if ($record['afternoon_time_in'] && $record['afternoon_time_out']) {
                                                         $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' - ' . date('h:i A', strtotime($record['afternoon_time_out']));
                                                     } elseif ($record['afternoon_time_in']) {
-                                                        $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' Ã¢Å“â€œ';
+                                                        $afternoon = date('h:i A', strtotime($record['afternoon_time_in'])) . ' OK';
                                                     }
                                                     echo $afternoon ? '<span class="badge-time badge-afternoon">' . $afternoon . '</span>' : '-';
                                                 ?>

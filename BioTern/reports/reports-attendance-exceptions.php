@@ -319,7 +319,7 @@ include 'includes/header.php';
 <div class="main-content">
     <div class="page-header page-header-with-middle">
         <div class="page-header-left d-flex align-items-center">
-            <div class="page-header-title"><h5 class="m-b-10">Reports - Attendance Exceptions</h5></div>
+            <div class="page-header-title"><h5 class="m-b-10">Attendance Exceptions</h5></div>
             <ul class="breadcrumb">
                 <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                 <li class="breadcrumb-item"><a href="reports-ojt.php">Reports</a></li>

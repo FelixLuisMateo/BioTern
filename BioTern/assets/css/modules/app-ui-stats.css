@@ -1,0 +1,159 @@
+/* SMACSS Module: reusable stats components */
+:root {
+  --biotern-stat-radius: 12px;
+  --biotern-stat-gap: 12px;
+  --biotern-stat-pad: 12px;
+  --biotern-stat-surface: var(--biotern-surface-muted, #f8fafc);
+  --biotern-stat-border: var(--biotern-border, rgba(15, 23, 42, 0.08));
+  --biotern-stat-title: var(--biotern-text-muted, #64748b);
+  --biotern-stat-value: var(--biotern-text, #0f172a);
+  --biotern-stat-meta: var(--biotern-text-muted, #64748b);
+}
+
+.app-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--biotern-stat-gap);
+}
+
+.app-stats-grid.app-stats-grid-compact {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.app-stat-card {
+  position: relative;
+  border-radius: var(--biotern-stat-radius);
+  border: 1px solid var(--biotern-stat-border);
+  background: var(--biotern-stat-surface);
+  padding: var(--biotern-stat-pad);
+  min-height: 98px;
+  overflow: hidden;
+}
+
+.app-stat-card::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--app-stat-accent, rgba(var(--bs-primary-rgb), 0.85));
+}
+
+.app-stat-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.app-stat-label {
+  display: block;
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--biotern-stat-title);
+  font-weight: 700;
+}
+
+.app-stat-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--app-stat-accent, rgba(var(--bs-primary-rgb), 0.85)) 14%, transparent);
+  color: var(--app-stat-accent-text, var(--bs-primary));
+  flex: 0 0 28px;
+}
+
+.app-stat-icon i {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.app-stat-value {
+  display: block;
+  margin-top: 7px;
+  font-size: clamp(1rem, 1.45vw, 1.55rem);
+  line-height: 1.15;
+  font-weight: 800;
+  color: var(--biotern-stat-value);
+}
+
+.app-stat-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 0.76rem;
+  color: var(--biotern-stat-meta);
+}
+
+.app-stat-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.14rem 0.42rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.app-stat-card.is-primary {
+  --app-stat-accent: rgba(var(--bs-primary-rgb), 0.92);
+  --app-stat-accent-text: var(--bs-primary);
+}
+
+.app-stat-card.is-success {
+  --app-stat-accent: rgba(var(--bs-success-rgb, 25, 135, 84), 0.9);
+  --app-stat-accent-text: rgb(var(--bs-success-rgb, 25, 135, 84));
+}
+
+.app-stat-card.is-warning {
+  --app-stat-accent: rgba(var(--bs-warning-rgb, 255, 193, 7), 0.95);
+  --app-stat-accent-text: #b45309;
+}
+
+.app-stat-card.is-danger {
+  --app-stat-accent: rgba(var(--bs-danger-rgb, 220, 53, 69), 0.92);
+  --app-stat-accent-text: rgb(var(--bs-danger-rgb, 220, 53, 69));
+}
+
+.app-stat-card.is-info {
+  --app-stat-accent: rgba(var(--bs-info-rgb, 13, 202, 240), 0.9);
+  --app-stat-accent-text: rgb(var(--bs-info-rgb, 13, 202, 240));
+}
+
+.app-stat-trend.is-up {
+  color: rgb(var(--bs-success-rgb, 25, 135, 84));
+  border-color: color-mix(in srgb, rgb(var(--bs-success-rgb, 25, 135, 84)) 35%, transparent);
+  background: color-mix(in srgb, rgb(var(--bs-success-rgb, 25, 135, 84)) 12%, transparent);
+}
+
+.app-stat-trend.is-down {
+  color: rgb(var(--bs-danger-rgb, 220, 53, 69));
+  border-color: color-mix(in srgb, rgb(var(--bs-danger-rgb, 220, 53, 69)) 35%, transparent);
+  background: color-mix(in srgb, rgb(var(--bs-danger-rgb, 220, 53, 69)) 12%, transparent);
+}
+
+html.app-skin-dark .app-stat-card {
+  --biotern-stat-surface: color-mix(in srgb, var(--biotern-surface, #0f172a) 86%, #1e293b 14%);
+  --biotern-stat-border: color-mix(in srgb, var(--biotern-border, #334155) 82%, transparent);
+  --biotern-stat-title: color-mix(in srgb, var(--bs-body-color, #dbe7ff) 72%, transparent);
+  --biotern-stat-value: var(--bs-body-color, #f8fafc);
+  --biotern-stat-meta: color-mix(in srgb, var(--bs-body-color, #dbe7ff) 62%, transparent);
+}
+
+@media (max-width: 767.98px) {
+  .app-stats-grid,
+  .app-stats-grid.app-stats-grid-compact {
+    grid-template-columns: 1fr;
+  }
+
+  .app-stat-card {
+    min-height: 92px;
+  }
+}

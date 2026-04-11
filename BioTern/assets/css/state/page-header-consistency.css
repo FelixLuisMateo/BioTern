@@ -22,9 +22,18 @@ body .page-header .btn.btn-sm {
 }
 
 @media (min-width: 992px) {
-  body .page-header {
-    position: static !important;
-    top: auto !important;
+  body .page-header,
+  body .page-header.page-header-with-middle,
+  body .page-header.dashboard-page-header,
+  body .page-header.app-ojt-page-header,
+  body .page-header.app-ojt-view-page-header,
+  body .page-header.app-ojt-edit-page-header,
+  body .page-header.app-applications-header,
+  body .page-header.app-students-header,
+  body .page-header.app-ojt-workflow-page-header,
+  body .page-header.page-header-condensed-actions {
+    position: sticky !important;
+    top: 80px !important;
     left: auto !important;
     right: auto !important;
     display: flex !important;
@@ -33,6 +42,8 @@ body .page-header .btn.btn-sm {
     justify-content: space-between !important;
     gap: 0.75rem !important;
     overflow: visible !important;
+    z-index: 1026 !important;
+    align-self: start;
   }
 
   body.settings-page .nxl-content,
@@ -47,6 +58,16 @@ body .page-header .btn.btn-sm {
     top: 80px !important;
     z-index: 1026 !important;
     align-self: start;
+  }
+
+  body.app-page-ojt-dashboard .nxl-content {
+    padding-top: 0 !important;
+  }
+
+  body.app-page-ojt-dashboard .nxl-content > .page-header,
+  body.app-page-ojt-dashboard .nxl-content > .app-ojt-page-header {
+    margin-top: 0 !important;
+    border-radius: 0 !important;
   }
 
   body .page-header .page-header-left {
@@ -246,7 +267,10 @@ body .page-header .btn.btn-sm {
 
 @media (min-width: 992px) {
   body .page-header.page-header-with-middle {
-    position: relative !important;
+    position: sticky !important;
+    top: 80px !important;
+    z-index: 1026 !important;
+    align-self: start;
   }
 
   body .page-header.page-header-with-middle .page-header-middle {
@@ -283,8 +307,22 @@ body .page-header .btn.btn-sm {
 }
 
 @media (max-width: 991.98px) {
+  body.mobile-bottom-nav .nxl-content > .page-header,
+  body.mobile-bottom-nav .nxl-content > .app-ojt-page-header,
+  body.mobile-bottom-nav .nxl-content > .app-students-header,
+  body.mobile-bottom-nav .nxl-content > .app-applications-header,
+  body.mobile-bottom-nav .nxl-content > .dashboard-page-header {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: calc(50% - 50vw) !important;
+    margin-right: calc(50% - 50vw) !important;
+    border-radius: 0 !important;
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+  }
+
   body.mobile-bottom-nav .page-header {
-    position: static !important;
+    position: relative !important;
     top: auto !important;
     left: auto !important;
     right: auto !important;
@@ -294,9 +332,12 @@ body .page-header .btn.btn-sm {
     align-items: center !important;
     justify-content: space-between !important;
     gap: 0.65rem !important;
-    min-height: 56px !important;
-    padding: 12px 14px !important;
+    min-height: 66px !important;
+    padding: 14px 16px !important;
     overflow: visible !important;
+    border-radius: 0 !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
   }
 
   body.mobile-bottom-nav .page-header .page-header-left {
@@ -305,9 +346,10 @@ body .page-header .btn.btn-sm {
     min-width: 0 !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: flex-start !important;
-    text-align: left !important;
+    justify-content: center !important;
+    text-align: center !important;
     gap: 0.35rem !important;
+    padding: 0 56px 0 12px !important;
   }
 
   body.mobile-bottom-nav .page-header .page-header-left .breadcrumb {
@@ -318,17 +360,21 @@ body .page-header .btn.btn-sm {
     margin: 0 !important;
     font-size: 1.05rem !important;
     line-height: 1.2 !important;
-    text-align: left !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    text-align: center !important;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    padding: 0 8px !important;
   }
 
   body.mobile-bottom-nav .page-header .page-header-right {
     flex: 0 0 auto !important;
     width: auto !important;
-    margin-left: auto !important;
-    position: relative !important;
+    margin-left: 0 !important;
+    position: absolute !important;
+    right: 16px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: flex-end !important;
@@ -363,6 +409,9 @@ body .page-header .btn.btn-sm {
     font-size: 0 !important;
     line-height: 0 !important;
     white-space: nowrap !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
   }
 
   body.mobile-bottom-nav .page-header .page-header-actions-toggle i,
@@ -377,6 +426,15 @@ body .page-header .btn.btn-sm {
   body.mobile-bottom-nav .page-header .page-header-right-open-toggle span,
   body.mobile-bottom-nav .page-header .app-page-header-auto-toggle i,
   body.mobile-bottom-nav .page-header .app-page-header-auto-toggle span {
+    display: inline-flex !important;
+  }
+
+  body.mobile-bottom-nav .page-header .page-header-actions-toggle span,
+  body.mobile-bottom-nav .page-header .app-students-actions-toggle span,
+  body.mobile-bottom-nav .page-header .app-ojt-actions-toggle span,
+  body.mobile-bottom-nav .page-header .app-applications-actions-toggle span,
+  body.mobile-bottom-nav .page-header .page-header-right-open-toggle span,
+  body.mobile-bottom-nav .page-header .app-page-header-auto-toggle span {
     display: none !important;
   }
 
@@ -386,11 +444,7 @@ body .page-header .btn.btn-sm {
   body.mobile-bottom-nav .page-header .app-applications-actions-toggle::after,
   body.mobile-bottom-nav .page-header .page-header-right-open-toggle::after,
   body.mobile-bottom-nav .page-header .app-page-header-auto-toggle::after {
-    content: "...";
-    letter-spacing: 2px;
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 1;
+    display: none !important;
   }
 
   body.mobile-bottom-nav .page-header .page-header-actions,

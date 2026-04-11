@@ -68,14 +68,14 @@ include 'includes/header.php';
         <div class="alert alert-<?php echo h($message_type); ?> py-2"><?php echo h($message); ?></div>
     <?php endif; ?>
 
-    <div class="card stretch stretch-full">
+    <div class="card stretch stretch-full app-data-card app-data-toolbar app-academic-list-card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Coordinators</h5>
             <span class="badge bg-primary text-white px-3 py-1 fw-semibold"><?php echo count($rows); ?> total</span>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
+            <div class="table-responsive app-data-table-wrap">
+                <table class="table table-hover mb-0 app-data-table app-academic-list-table">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -95,23 +95,28 @@ include 'includes/header.php';
                         <?php endif; ?>
                         <?php foreach ($rows as $r): ?>
                             <tr>
-                                <td><?php echo (int)$r['id']; ?></td>
-                                <td><?php echo h(trim(($r['first_name'] ?? '') . ' ' . ($r['middle_name'] ?? '') . ' ' . ($r['last_name'] ?? ''))); ?></td>
-                                <td><?php echo h($r['user_name'] ?? '-'); ?></td>
-                                <td><?php echo h($r['email'] ?? '-'); ?></td>
-                                <td><?php echo h($r['phone'] ?? '-'); ?></td>
-                                <td><?php echo h($r['department_name'] ?? '-'); ?></td>
-                                <td><?php echo h($r['office_location'] ?? '-'); ?></td>
+                                <td><span class="app-academic-id-pill"><?php echo (int)$r['id']; ?></span></td>
+                                <td>
+                                    <div class="app-academic-name-cell">
+                                        <span class="app-academic-name"><?php echo h(trim(($r['first_name'] ?? '') . ' ' . ($r['middle_name'] ?? '') . ' ' . ($r['last_name'] ?? ''))); ?></span>
+                                        <span class="app-academic-meta"><?php echo h($r['email'] ?? '-'); ?></span>
+                                    </div>
+                                </td>
+                                <td><span class="app-academic-created"><?php echo h($r['user_name'] ?? '-'); ?></span></td>
+                                <td><span class="app-academic-created"><?php echo h($r['email'] ?? '-'); ?></span></td>
+                                <td><span class="app-academic-created"><?php echo h($r['phone'] ?? '-'); ?></span></td>
+                                <td><span class="app-academic-head"><?php echo h($r['department_name'] ?? '-'); ?></span></td>
+                                <td><span class="app-academic-created"><?php echo h($r['office_location'] ?? '-'); ?></span></td>
                                 <td>
                                     <?php if ((int)($r['is_active'] ?? 0) === 1): ?>
-                                        <span class="badge bg-success">Active</span>
+                                        <span class="app-academic-status-pill is-active">Active</span>
                                     <?php else: ?>
-                                        <span class="badge bg-secondary">Inactive</span>
+                                        <span class="app-academic-status-pill is-inactive">Inactive</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td class="action-cell">
                                     <div class="d-flex gap-2">
-                                        <a href="coordinators-edit.php?id=<?php echo (int)$r['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <a href="coordinators-edit.php?id=<?php echo (int)$r['id']; ?>" class="btn btn-sm btn-outline-primary app-academic-edit-btn">Edit</a>
                                         <form method="post" data-confirm-message="Delete this coordinator?">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>">

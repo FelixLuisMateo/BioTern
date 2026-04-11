@@ -90,6 +90,7 @@ $stored_remaining_hours = $assignment_track === 'external'
 $total_hours_remaining = $stored_remaining_hours !== null
     ? max(0, (float)$stored_remaining_hours)
     : max(0, $total_hours_target - $month_total_hours);
+$total_hours_completed = max(0, $total_hours_target - $total_hours_remaining);
 
 function h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -107,6 +108,12 @@ function fmt_hours_hm($hours_value) {
     return str_pad((string)$hours, 2, '0', STR_PAD_LEFT) . 'h:' . str_pad((string)$minutes, 2, '0', STR_PAD_LEFT) . 'm';
 }
 
+function fmt_hours_compact($hours_value) {
+    $formatted = number_format((float)$hours_value, 2, '.', '');
+    $formatted = rtrim(rtrim($formatted, '0'), '.');
+    return $formatted !== '' ? $formatted : '0';
+}
+
 function status_badge($status) {
     $s = strtolower((string)$status);
     if ($s === 'approved') return '<span class="badge bg-soft-success text-success">Approved</span>';
@@ -121,7 +128,7 @@ include 'includes/header.php';
 <main class="nxl-container">
     <div class="nxl-content">
 
-<div class="page-header">
+<div class="page-header app-students-dtr-page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
             <h5 class="m-b-10">Student Daily Time Record</h5>
@@ -131,32 +138,57 @@ include 'includes/header.php';
             <li class="breadcrumb-item">DTR</li>
         </ul>
     </div>
+    <div class="page-header-right ms-auto">
+        <div class="page-header-right-items">
+            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                <a href="students-dtr.php?id=<?php echo intval($student_id); ?>&month=<?php echo h($prev_month_input); ?>" class="btn btn-light-brand">
+                    <i class="feather-corner-up-left me-2"></i>
+                    <span>Last Month</span>
+                </a>
+                <a href="students-view.php?id=<?php echo intval($student_id); ?>" class="btn btn-outline-secondary">
+                    <i class="feather-arrow-left me-2"></i>
+                    <span>Back to Profile</span>
+                </a>
+                <button type="button" class="btn btn-primary" data-action="print-page">
+                    <i class="feather-printer me-2"></i>
+                    <span>Print DTR</span>
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="main-content">
     <?php if ($month_invalid): ?>
         <div class="alert alert-info py-2">Invalid month format detected. Showing current month instead.</div>
     <?php endif; ?>
-    <div class="card stretch stretch-full mb-3">
+    <div class="card stretch stretch-full mb-3 app-students-dtr-hero-card">
         <div class="card-body">
             <div class="toolbar app-students-dtr-toolbar">
-                <div>
+                <div class="app-students-dtr-hero-copy">
+                    <p class="app-students-dtr-overline">Attendance Overview</p>
                     <h5 class="mb-1"><?php echo h($student_name); ?></h5>
+                    <p class="app-students-dtr-copy-note mb-0">Review daily logs, selected month totals, and overall OJT hour progress without wasting space.</p>
                     <div class="student-meta-highlight app-students-dtr-meta-highlight">
                         <span class="chip app-students-dtr-chip">Student ID: <?php echo h($student['student_id']); ?></span>
                         <span class="chip app-students-dtr-chip">Course: <?php echo h($student['course_name'] ?? 'N/A'); ?></span>
                         <span class="chip app-students-dtr-chip">Track: <?php echo h(strtoupper((string)($student['assignment_track'] ?? 'internal'))); ?></span>
                     </div>
                 </div>
-                <div class="d-flex gap-2 align-items-center">
-                    <form method="get" action="" class="d-flex gap-2 align-items-center">
+                <div class="app-students-dtr-toolbar-side">
+                    <form method="get" action="" class="d-flex gap-2 align-items-center app-students-dtr-filter-form">
                         <input type="hidden" name="id" value="<?php echo intval($student_id); ?>">
-                        <input type="month" name="month" class="form-control" value="<?php echo h($month_input); ?>">
+                        <label class="app-students-dtr-filter-label" for="students-dtr-month">Month</label>
+                        <input id="students-dtr-month" type="month" name="month" class="form-control" value="<?php echo h($month_input); ?>">
                         <button type="submit" class="btn btn-light-brand">Load</button>
                     </form>
-                    <a href="students-dtr.php?id=<?php echo intval($student_id); ?>&month=<?php echo h($prev_month_input); ?>" class="btn btn-outline-dark">Last Month</a>
-                    <a href="students-view.php?id=<?php echo intval($student_id); ?>" class="btn btn-outline-primary">Back</a>
-                    <button type="button" class="btn btn-primary" data-action="print-page">Print</button>
+                    <div class="app-students-dtr-hours-chip">
+                        <p class="app-students-dtr-hours-chip-label mb-0">Hours (<?php echo h(strtoupper($assignment_track)); ?>)</p>
+                        <div class="app-students-dtr-hours-chip-pill">
+                            <span class="app-students-dtr-hours-chip-value"><?php echo h(fmt_hours_compact($total_hours_completed)); ?> / <?php echo h(fmt_hours_compact($total_hours_target)); ?></span>
+                        </div>
+                        <p class="app-students-dtr-hours-chip-meta mb-0">Remaining: <?php echo h(fmt_hours_hm($total_hours_remaining)); ?></p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -183,7 +215,7 @@ include 'includes/header.php';
         </div>
         <div class="col-md-3 col-6">
             <div class="dtr-summary-card app-students-dtr-summary-card">
-                <div class="dtr-summary-label app-students-dtr-summary-label">Total Hours</div>
+                <div class="dtr-summary-label app-students-dtr-summary-label">Logged This Month</div>
                 <div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h(fmt_hours_hm($month_total_hours)); ?></div>
             </div>
         </div>

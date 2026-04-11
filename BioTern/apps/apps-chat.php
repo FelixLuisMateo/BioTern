@@ -112,7 +112,7 @@ function chat_avatar_path(string $profilePicture, int $userId = 0): string
         return $normalized;
     }
 
-    // No picture stored â€“ use a numbered default avatar so different users look distinct
+    // No picture stored - use a numbered default avatar so different users look distinct
     $num = $userId > 0 ? (($userId % 12) + 1) : 1;
     return 'assets/images/avatar/' . $num . '.png';
 }
@@ -429,7 +429,7 @@ function chat_normalize_messages(array $messages, int $currentUserId): array
         $createdAt = (string)($message['created_at'] ?? '');
         $ts = $createdAt !== '' ? strtotime($createdAt) : 0;
         $timeExact = $ts > 0
-            ? (date('Y-m-d', $ts) === $todayDate ? date('g:i A', $ts) : date('M j Â· g:i A', $ts))
+            ? (date('Y-m-d', $ts) === $todayDate ? date('g:i A', $ts) : date('M j | g:i A', $ts))
             : '';
         $timeFull = $ts > 0 ? date('F j, Y \a\t g:i A', $ts) : '';
         $readAt = (string)($message['read_at'] ?? '');

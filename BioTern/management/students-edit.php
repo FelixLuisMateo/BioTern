@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 /** @var mysqli $conn */
 
 require_once dirname(__DIR__) . '/includes/auth-session.php';
@@ -144,7 +145,7 @@ if ($departments_result && $departments_result->num_rows > 0) {
 
 // Fetch sections for dropdown
 $sections = [];
-$sections_result = $conn->query("SELECT id, name FROM sections ORDER BY name ASC");
+$sections_result = $conn->query("SELECT id, code, name FROM sections ORDER BY code ASC, name ASC");
 if ($sections_result && $sections_result->num_rows > 0) {
     while ($row = $sections_result->fetch_assoc()) {
         $sections[] = $row;
@@ -529,7 +530,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         }
                     }
 
-                    $success_message = "ÃƒÂ¯Ã‚Â¿Ã‚Â½ Student information updated successfully!";
+                    $success_message = "Student information updated successfully!";
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
                     $stmt->bind_param("i", $student_id);
@@ -817,7 +818,7 @@ include 'includes/header.php';
                                                     <?php foreach ($sections as $section): ?>
                                                         <option value="<?php echo (int)$section['id']; ?>"
                                                             <?php echo ((int)($student['section_id'] ?? 0) === (int)$section['id']) ? 'selected' : ''; ?>>
-                                                            <?php echo htmlspecialchars($section['name']); ?>
+                                                            <?php echo htmlspecialchars(biotern_format_section_label((string)($section['code'] ?? ''), (string)($section['name'] ?? ''))); ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>

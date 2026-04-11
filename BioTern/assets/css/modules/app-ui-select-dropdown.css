@@ -39,15 +39,19 @@ html.app-theme-blue .biotern-select-wrap {
 
 html.app-skin-dark:not(.app-theme-gray) .biotern-select-wrap,
 html.app-theme-blue.app-skin-dark .biotern-select-wrap {
+    --biotern-select-trigger-text: #e8edf5;
+    --biotern-select-menu-bg: #141b2d;
     --biotern-select-trigger-border: rgba(var(--biotern-primary-rgb), 0.3);
     --biotern-select-menu-border: rgba(var(--biotern-primary-rgb), 0.24);
     --biotern-select-menu-shadow: 0 18px 36px rgba(2, 8, 23, 0.42), 0 0 0 1px rgba(var(--biotern-primary-rgb), 0.08);
+    --biotern-select-option-text: #dce6f6;
     --biotern-select-option-hover-bg: rgba(var(--biotern-primary-rgb), 0.18);
     --biotern-select-option-hover-border: rgba(var(--biotern-primary-rgb), 0.32);
     --biotern-select-option-selected-bg: rgba(var(--biotern-primary-rgb), 0.26);
     --biotern-select-option-selected-border: rgba(var(--biotern-primary-rgb), 0.4);
     --biotern-select-option-selected-text: #eef4ff;
     --biotern-select-focus-ring: rgba(var(--biotern-primary-rgb), 0.24);
+    --biotern-select-icon-color: #b9c5db;
 }
 
 .biotern-select-wrap.is-open {
@@ -165,6 +169,8 @@ html.app-theme-blue.app-skin-dark .biotern-select-wrap {
     text-align: left;
     white-space: normal;
     cursor: pointer;
+    opacity: 1 !important;
+    -webkit-text-fill-color: var(--biotern-select-option-text);
 }
 
 .biotern-select-option:hover,
@@ -179,11 +185,24 @@ html.app-theme-blue.app-skin-dark .biotern-select-wrap {
     border-color: var(--biotern-select-option-selected-border);
     color: var(--biotern-select-option-selected-text);
     font-weight: 600;
+    opacity: 1 !important;
+    -webkit-text-fill-color: var(--biotern-select-option-selected-text);
 }
 
 .biotern-select-option:disabled {
     opacity: 0.55;
     cursor: not-allowed;
+}
+
+html.app-skin-dark .biotern-select-option:not(:disabled) {
+    color: var(--biotern-select-option-text) !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: var(--biotern-select-option-text);
+}
+
+html.app-skin-dark .biotern-select-option.is-selected:not(:disabled) {
+    color: var(--biotern-select-option-selected-text) !important;
+    -webkit-text-fill-color: var(--biotern-select-option-selected-text);
 }
 .app-skin-dark .biotern-select-wrap .biotern-select-trigger:focus-visible,
 .app-skin-dark .biotern-select-wrap.is-open .biotern-select-trigger {

@@ -45,6 +45,20 @@ function parseUsDateInput(value) {
     return candidate;
 }
 
+function parseDateInputValue(value) {
+    const raw = String(value || '').trim();
+    if (raw === '') return null;
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        const candidate = new Date(raw + 'T00:00:00');
+        if (!Number.isNaN(candidate.getTime())) {
+            return candidate;
+        }
+    }
+
+    return parseUsDateInput(raw);
+}
+
 function validateDobAgeField(field) {
     if (!field) return true;
     const raw = String(field.value || '').trim();
@@ -53,9 +67,9 @@ function validateDobAgeField(field) {
         return false;
     }
 
-    const parsed = parseUsDateInput(raw);
+    const parsed = parseDateInputValue(raw);
     if (!parsed) {
-        field.setCustomValidity('Use format mm/dd/yyyy.');
+        field.setCustomValidity('Please enter a valid date of birth.');
         return false;
     }
 
@@ -470,15 +484,6 @@ function setupFloatingTextFields() {
             const dobInput = document.getElementById('studentDateOfBirth');
             if (dobInput) {
                 dobInput.addEventListener('input', function() {
-                    const digits = String(this.value || '').replace(/\D/g, '').substring(0, 8);
-                    let formatted = digits;
-                    if (digits.length > 2) {
-                        formatted = digits.substring(0, 2) + '/' + digits.substring(2);
-                    }
-                    if (digits.length > 4) {
-                        formatted = digits.substring(0, 2) + '/' + digits.substring(2, 4) + '/' + digits.substring(4);
-                    }
-                    this.value = formatted;
                     validateDobAgeField(this);
                 });
 
@@ -926,7 +931,7 @@ function setupFloatingTextFields() {
             // Fallback: if no course->department mapping exists yet, keep all departments visible.
             if (!ids.length) {
                 const deptSelect = document.getElementById('studentDepartmentSelect');
-                if (!deptSelect) return [];
+                if (!deptSelect || typeof deptSelect.options === 'undefined') return [];
                 return Array.prototype.slice.call(deptSelect.options)
                     .filter(function(opt, idx) { return idx > 0 && String(opt.value || '').trim() !== ''; })
                     .map(function(opt) { return String(opt.value); });
@@ -947,9 +952,17 @@ function setupFloatingTextFields() {
 
         function filterDepartmentOptions(courseId) {
             const deptSelect = document.getElementById('studentDepartmentSelect');
-            if (!deptSelect) return [];
-            const selectedBefore = deptSelect.value;
             const allowedDepartmentIds = getCourseAllowedDepartmentIds(courseId);
+            if (!deptSelect) return allowedDepartmentIds;
+            if (typeof deptSelect.options === 'undefined') {
+                if (allowedDepartmentIds.length === 1) {
+                    deptSelect.value = allowedDepartmentIds[0];
+                } else {
+                    deptSelect.value = '';
+                }
+                return allowedDepartmentIds;
+            }
+            const selectedBefore = deptSelect.value;
             const allowedSet = new Set(allowedDepartmentIds.map(function(id) { return String(id); }));
             const allDepartmentIds = [];
 
@@ -994,6 +1007,15 @@ function setupFloatingTextFields() {
             const dId = String(departmentId || '');
             let inserted = 0;
 
+            function formatSectionCode(value) {
+                const normalized = String(value || '').trim();
+                const match = normalized.match(/^([A-Za-z]+)([0-9]+[A-Za-z]*)$/);
+                if (!match) {
+                    return normalized.replace(/\s*-\s*/g, ' - ');
+                }
+                return match[1].toUpperCase() + ' - ' + match[2].toUpperCase();
+            }
+
             sectionRecords.forEach(function(rec) {
                 const matchesCourse = (cId === '') || (String(rec.course_id) === cId);
                 const matchesDept = (dId === '' || dId === '0') || (String(rec.department_id) === dId);
@@ -1001,7 +1023,7 @@ function setupFloatingTextFields() {
 
                 const code = (rec.code || '').trim();
                 const name = (rec.name || '').trim();
-                const formattedCode = code.replace(/\s*-\s*/g, ' - ');
+                const formattedCode = formatSectionCode(code);
                 const formattedName = name.replace(/\s*-\s*/g, ' - ');
                 const label = code && name
                     ? (code.toLowerCase() === name.toLowerCase()
@@ -1061,7 +1083,7 @@ function setupFloatingTextFields() {
         function setupAcademicFilters() {
             const courseSelect = document.getElementById('studentCourseSelect');
             const deptSelect = document.getElementById('studentDepartmentSelect');
-            if (!courseSelect || !deptSelect) return;
+            if (!courseSelect) return;
 
             function applyFilters() {
                 const selectedCourse = courseSelect.options[courseSelect.selectedIndex] || null;
@@ -1070,7 +1092,7 @@ function setupFloatingTextFields() {
                 const isAct = courseCode === 'ACT';
 
                 const allowedDeptIds = filterDepartmentOptions(courseId);
-                const selectedDeptId = deptSelect.value || '';
+                const selectedDeptId = deptSelect ? (deptSelect.value || '') : '';
 
                 filterSectionOptions(courseId, selectedDeptId);
                 filterRoleOptionsByDept('studentCoordinatorSelect', allowedDeptIds, selectedDeptId, isAct);
@@ -1079,10 +1101,35 @@ function setupFloatingTextFields() {
 
             if (courseSelect.dataset.academicBound !== '1') {
                 courseSelect.addEventListener('change', applyFilters);
-                deptSelect.addEventListener('change', applyFilters);
+                if (deptSelect && typeof deptSelect.addEventListener === 'function' && typeof deptSelect.options !== 'undefined') {
+                    deptSelect.addEventListener('change', applyFilters);
+                }
                 courseSelect.dataset.academicBound = '1';
             }
             applyFilters();
+        }
+
+        function setupSelectValueTitles() {
+            const selects = document.querySelectorAll('#studentForm select.form-control');
+            if (!selects.length) return;
+
+            selects.forEach(function(select) {
+                if (!select || select.dataset.titleBound === '1') return;
+
+                const syncTitle = function() {
+                    const selectedOption = select.options[select.selectedIndex] || null;
+                    const text = selectedOption ? String(selectedOption.textContent || '').trim() : '';
+                    select.title = text;
+                    if (text !== '') {
+                        select.setAttribute('aria-label', text);
+                    }
+                };
+
+                select.addEventListener('change', syncTitle);
+                select.addEventListener('focus', syncTitle);
+                syncTitle();
+                select.dataset.titleBound = '1';
+            });
         }
 
         // New function to handle password visibility toggle for both password and confirm password
@@ -1121,6 +1168,51 @@ function setupFloatingTextFields() {
                     }
                 });
             });
+        }
+
+        function setupPasswordStrengthIndicator() {
+            const passwordInput = document.getElementById('studentPassword');
+            const indicator = document.getElementById('studentPasswordStrength');
+            if (!passwordInput || !indicator) return;
+
+            const text = indicator.querySelector('.password-strength-text');
+
+            function scorePassword(value) {
+                const password = String(value || '');
+                if (password.length === 0) {
+                    return { level: '', label: 'Password strength: Not entered' };
+                }
+
+                let score = 0;
+                if (password.length >= 8) score += 1;
+                if (password.length >= 12) score += 1;
+                if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
+                if (/\d/.test(password)) score += 1;
+                if (/[^A-Za-z0-9]/.test(password)) score += 1;
+
+                if (score <= 1) {
+                    return { level: 'weak', label: 'Password strength: Weak' };
+                }
+                if (score <= 2) {
+                    return { level: 'fair', label: 'Password strength: Fair' };
+                }
+                if (score <= 3) {
+                    return { level: 'good', label: 'Password strength: Good' };
+                }
+                return { level: 'strong', label: 'Password strength: Strong' };
+            }
+
+            function syncIndicator() {
+                const result = scorePassword(passwordInput.value);
+                indicator.dataset.strength = result.level;
+                if (text) {
+                    text.textContent = result.label;
+                }
+            }
+
+            passwordInput.addEventListener('input', syncIndicator);
+            passwordInput.addEventListener('change', syncIndicator);
+            syncIndicator();
         }
 
         /* Role carousel: arrow buttons + touch drag support */
@@ -1163,3 +1255,6 @@ function setupFloatingTextFields() {
                 }
             });
         })();
+
+        setupPasswordStrengthIndicator();
+        setupSelectValueTitles();

@@ -49,6 +49,22 @@ function parseStudentDateOfBirthToSql(?string $rawDate): ?string {
     return null;
 }
 
+function normalizeStudentGender(?string $rawValue): ?string {
+    $value = strtolower(trim((string)$rawValue));
+    if ($value === '') {
+        return null;
+    }
+
+    if (in_array($value, ['m', 'male'], true)) {
+        return 'male';
+    }
+    if (in_array($value, ['f', 'female'], true)) {
+        return 'female';
+    }
+
+    return null;
+}
+
 function calculateAgeFromSqlDate(string $dateValue): int {
     try {
         $dob = new DateTime($dateValue);
@@ -506,7 +522,7 @@ if ($role === 'student') {
     // New fields - now accepting IDs
     $phone = getPost('phone');
     $date_of_birth_raw = getPost('date_of_birth');
-    $gender = getPost('gender');
+    $gender = normalizeStudentGender(getPost('gender'));
     $supervisor_id = getPost('supervisor_id') ? (int)getPost('supervisor_id') : null;
     $coordinator_id = getPost('coordinator_id') ? (int)getPost('coordinator_id') : null;
     if ($supervisor_id !== null && $supervisor_id <= 0) {
@@ -539,6 +555,9 @@ if ($role === 'student') {
     $age = calculateAgeFromSqlDate($date_of_birth);
     if ($age < 17) {
         studentApplicationRedirect('error', 'Student applicants must be at least 17 years old.');
+    }
+    if ($gender === null) {
+        studentApplicationRedirect('error', 'Please select a valid gender.');
     }
 
     // Use account_email if provided, otherwise use email
@@ -777,54 +796,22 @@ if ($role === 'student') {
         $supervisor_name = isset($sup_row['full_name']) ? (string)$sup_row['full_name'] : null;
     }
 
-    // Hash password
+    // Hash password for staging; user account is created only after approval.
     $pwdHash = password_hash($password ?: bin2hex(random_bytes(4)), PASSWORD_DEFAULT);
+    $user_id = 0;
 
-    // Create a users record first (required for FK constraint)
-    $full_name = trim($first_name . ' ' . $last_name);
-    $createUserErrorCode = null;
-    $createUserErrorMessage = null;
-    $user_id = createUser(
-        $mysqli,
-        $username,
-        $final_email,
-        $password ?: bin2hex(random_bytes(4)),
-        'student',
-        $createUserErrorCode,
-        $createUserErrorMessage
-    );
-    if ($user_id) {
-        $updates = [];
-        if (tableHasColumn($mysqli, 'users', 'is_active')) {
-            $updates[] = 'is_active = 0';
-        }
-        if (tableHasColumn($mysqli, 'users', 'application_status')) {
-            $updates[] = "application_status = 'pending'";
-        }
-        if (tableHasColumn($mysqli, 'users', 'application_submitted_at')) {
-            $updates[] = 'application_submitted_at = NOW()';
-        }
-        if ($updates !== []) {
-            $sql = 'UPDATE users SET ' . implode(', ', $updates) . ' WHERE id = ? LIMIT 1';
-            $u = $mysqli->prepare($sql);
-            if ($u) {
-                $u->bind_param('i', $user_id);
-                $u->execute();
-                $u->close();
+    $existingUserStmt = $mysqli->prepare("SELECT id, COALESCE(application_status, 'approved') AS application_status FROM users WHERE email = ? LIMIT 1");
+    if ($existingUserStmt) {
+        $existingUserStmt->bind_param('s', $final_email);
+        $existingUserStmt->execute();
+        $existingUserRow = $existingUserStmt->get_result()->fetch_assoc();
+        $existingUserStmt->close();
+        if ($existingUserRow) {
+            $existingStatus = strtolower(trim((string)($existingUserRow['application_status'] ?? 'approved')));
+            if (in_array($existingStatus, ['pending', 'approved'], true)) {
+                studentApplicationRedirect('exists', 'An application or account already exists for that email address.');
             }
         }
-    }
-
-    if (!$user_id) {
-        if ((int)$createUserErrorCode === 1062) {
-            studentApplicationRedirect('exists', 'An application or account already exists for that email address.');
-        }
-
-        $genericMessage = 'We could not finish your application submission. Please try again.';
-        if (!empty($createUserErrorMessage)) {
-            $genericMessage .= ' ' . $createUserErrorMessage;
-        }
-        studentApplicationRedirect('error', $genericMessage);
     }
 
     if (!ensureStudentApplicationsTable($mysqli)) {
@@ -843,7 +830,7 @@ if ($role === 'student') {
             status, submitted_at, reviewed_at, reviewed_by,
             approval_notes, disciplinary_remark, created_student_user_id
         ) VALUES (
-            ?, ?, ?, ?, ?,
+            NULLIF(?, 0), ?, ?, ?, ?,
             ?, ?, ?,
             ?, NULLIF(?, 0), NULLIF(?, 0), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''),
             NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''),
@@ -886,7 +873,8 @@ if ($role === 'student') {
             reviewed_by = NULL,
             approval_notes = NULL,
             disciplinary_remark = NULL,
-            created_student_user_id = NULL
+                created_student_user_id = NULL,
+                user_id = COALESCE(student_applications.user_id, VALUES(user_id))
     ";
 
     $stageStmt = $mysqli->prepare($stageSql);
@@ -899,7 +887,7 @@ if ($role === 'student') {
     $supervisorIdForApp = !empty($supervisor_id) ? (int)$supervisor_id : 0;
     $coordinatorIdForApp = !empty($coordinator_id) ? (int)$coordinator_id : 0;
     $stageStmt->bind_param(
-        'isssssssiiisssssssisisiiisss',
+        'isssssssiiissssssssisisiisss',
         $user_id,
         $username,
         $final_email,

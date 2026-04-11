@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
@@ -117,6 +118,29 @@ function formatDisplayDateTime($rawValue)
     return date('M d, Y h:i A', $timestamp);
 }
 
+function formatGenderLabel($rawValue): string
+{
+    $value = strtolower(trim((string)$rawValue));
+    if ($value === '') {
+        return '-';
+    }
+
+    if (in_array($value, ['m', 'male'], true)) {
+        return 'Male';
+    }
+    if (in_array($value, ['f', 'female'], true)) {
+        return 'Female';
+    }
+    if (in_array($value, ['n', 'nb', 'nonbinary', 'non-binary'], true)) {
+        return 'Non-binary';
+    }
+    if (in_array($value, ['prefer not to say', 'prefer_not_to_say', 'na', 'n/a'], true)) {
+        return 'Prefer not to say';
+    }
+
+    return ucwords(str_replace(['_', '-'], ' ', $value));
+}
+
 function ensureApplicationsStagingTable(mysqli $conn)
 {
     $ok = $conn->query("CREATE TABLE IF NOT EXISTS student_applications (
@@ -165,7 +189,13 @@ function ensureApplicationsStagingTable(mysqli $conn)
         KEY idx_student_app_submitted (submitted_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    return (bool)$ok;
+    if ($ok) {
+        return true;
+    }
+
+    // Some production DB users may not have CREATE privilege; treat existing table as usable.
+    $existsRes = $conn->query("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'student_applications' LIMIT 1");
+    return (bool)($existsRes && $existsRes->num_rows > 0);
 }
 
 function reviewTableHasColumn(mysqli $conn, $table, $column)
@@ -213,6 +243,7 @@ if (isset($_SESSION['flash_message'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $applicationId = isset($_POST['application_id']) ? (int)$_POST['application_id'] : 0;
     $userId = isset($_POST['user_id']) ? (int)$_POST['user_id'] : 0;
     $decision = strtolower(trim((string)($_POST['decision'] ?? '')));
     $notes = trim((string)($_POST['approval_notes'] ?? ''));
@@ -228,19 +259,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $coordinatorName = $coordinatorId > 0 && isset($coordinatorNameMap[$coordinatorId]) ? $coordinatorNameMap[$coordinatorId] : null;
     $supervisorName = $supervisorId > 0 && isset($supervisorNameMap[$supervisorId]) ? $supervisorNameMap[$supervisorId] : null;
     $stagedApplication = null;
-    if ($applicationsStageTable !== '' && $userId > 0) {
-        $stagedStmt = $conn->prepare("SELECT * FROM {$applicationsStageTable} WHERE user_id = ? LIMIT 1");
+    if ($applicationsStageTable !== '' && $applicationId > 0) {
+        $stagedStmt = $conn->prepare("SELECT * FROM {$applicationsStageTable} WHERE id = ? LIMIT 1");
         if ($stagedStmt) {
-            $stagedStmt->bind_param('i', $userId);
+            $stagedStmt->bind_param('i', $applicationId);
             $stagedStmt->execute();
             $stagedApplication = $stagedStmt->get_result()->fetch_assoc();
             $stagedStmt->close();
         }
     }
+    if ($userId <= 0 && $stagedApplication && !empty($stagedApplication['user_id'])) {
+        $userId = (int)$stagedApplication['user_id'];
+    }
     $stagedDateOfBirth = $stagedApplication ? trim((string)($stagedApplication['date_of_birth'] ?? '')) : '';
     $stagedGender = $stagedApplication ? trim((string)($stagedApplication['gender'] ?? '')) : '';
 
-    if ($userId <= 0 || !in_array($decision, ['approve', 'reject'], true)) {
+    $isLegacyMode = ($applicationsStageTable === '');
+    if (
+        !in_array($decision, ['approve', 'reject'], true)
+        || ($isLegacyMode ? ($userId <= 0) : ($applicationId <= 0 || !$stagedApplication))
+    ) {
         $flashType = 'danger';
         $flashMessage = 'Invalid request.';
     } elseif ($internalHours < 0 || $externalHours < 0) {
@@ -250,6 +288,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($decision === 'approve') {
             $conn->begin_transaction();
             try {
+                if ($userId <= 0 && $stagedApplication) {
+                    $stagedEmail = trim((string)($stagedApplication['email'] ?? ''));
+                    $stagedUsername = trim((string)($stagedApplication['username'] ?? ''));
+                    $stagedPasswordHash = trim((string)($stagedApplication['password_hash'] ?? ''));
+                    $stagedFirstName = trim((string)($stagedApplication['first_name'] ?? ''));
+                    $stagedLastName = trim((string)($stagedApplication['last_name'] ?? ''));
+                    $stagedFullName = trim($stagedFirstName . ' ' . $stagedLastName);
+
+                    if ($stagedEmail === '' || $stagedUsername === '' || $stagedPasswordHash === '') {
+                        throw new Exception('Pending application is missing required account fields.');
+                    }
+
+                    $existingUserStmt = $conn->prepare("SELECT id FROM users WHERE email = ? OR username = ? LIMIT 1");
+                    if ($existingUserStmt) {
+                        $existingUserStmt->bind_param('ss', $stagedEmail, $stagedUsername);
+                        $existingUserStmt->execute();
+                        $existingUserRow = $existingUserStmt->get_result()->fetch_assoc();
+                        $existingUserStmt->close();
+                        if ($existingUserRow) {
+                            $userId = (int)($existingUserRow['id'] ?? 0);
+                        }
+                    }
+
+                    if ($userId <= 0) {
+                        $insertUserStmt = $conn->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, 'student', 1, NOW(), NOW())");
+                        if (!$insertUserStmt) {
+                            throw new Exception('Unable to create user account for approved application. ' . (string)$conn->error);
+                        }
+                        $insertUserStmt->bind_param('ssss', $stagedFullName, $stagedUsername, $stagedEmail, $stagedPasswordHash);
+                        if (!$insertUserStmt->execute()) {
+                            $insertUserError = (string)$insertUserStmt->error;
+                            $insertUserStmt->close();
+                            throw new Exception('Unable to create user account for approved application. ' . $insertUserError);
+                        }
+                        $userId = (int)$conn->insert_id;
+                        $insertUserStmt->close();
+                    }
+                }
+
+                if ($userId <= 0) {
+                    throw new Exception('Unable to resolve user account for this application.');
+                }
+
                 $stmt = $conn->prepare("UPDATE users SET application_status = 'approved', is_active = 1, approved_by = ?, approved_at = NOW(), rejected_at = NULL, approval_notes = ?, disciplinary_remark = ? WHERE id = ? LIMIT 1");
                 if (!$stmt) {
                     throw new Exception('Unable to update application status.');
@@ -265,15 +346,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$studentStmt) {
                     throw new Exception('Unable to update student hour settings.');
                 }
+
+                $studentExistsForUser = false;
+                $studentExistsStmt = $conn->prepare("SELECT id FROM students WHERE user_id = ? LIMIT 1");
+                if ($studentExistsStmt) {
+                    $studentExistsStmt->bind_param('i', $userId);
+                    $studentExistsStmt->execute();
+                    $studentExistsForUser = (bool)$studentExistsStmt->get_result()->fetch_assoc();
+                    $studentExistsStmt->close();
+                }
+
                 $studentStmt->bind_param('iisisiiiissi', $departmentId, $coordinatorId, $coordinatorName, $supervisorId, $supervisorName, $internalHours, $externalHours, $internalHours, $externalHours, $stagedDateOfBirth, $stagedGender, $userId);
                 if (!$studentStmt->execute()) {
+                    $studentError = (string)$studentStmt->error;
                     $studentStmt->close();
-                    throw new Exception('Unable to save updated assignment and hour settings.');
+                    throw new Exception('Unable to save updated assignment and hour settings. ' . $studentError);
                 }
                 $studentUpdatedRows = (int)$studentStmt->affected_rows;
                 $studentStmt->close();
 
-                if ($studentUpdatedRows === 0 && $stagedApplication) {
+                if (!$studentExistsForUser && $stagedApplication) {
                     $assignmentTrack = strtolower((string)($stagedApplication['assignment_track'] ?? 'internal'));
                     if (!in_array($assignmentTrack, ['internal', 'external'], true)) {
                         $assignmentTrack = 'internal';
@@ -354,15 +446,99 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $studentPlaceholders[] = 'NOW()';
                     }
 
+                    // Legacy-approval compatibility: if a student row already exists by student_id/email,
+                    // update that record instead of forcing a fresh insert.
+                    $existingStudentId = 0;
+                    $stagedStudentCode = trim((string)($stagedApplication['student_id'] ?? ''));
+                    $stagedEmail = trim((string)($stagedApplication['email'] ?? ''));
+
+                    if ($stagedStudentCode !== '' && reviewTableHasColumn($conn, 'students', 'student_id')) {
+                        $existingByCodeStmt = $conn->prepare("SELECT id FROM students WHERE student_id = ? LIMIT 1");
+                        if ($existingByCodeStmt) {
+                            $existingByCodeStmt->bind_param('s', $stagedStudentCode);
+                            $existingByCodeStmt->execute();
+                            $existingByCodeRow = $existingByCodeStmt->get_result()->fetch_assoc();
+                            $existingByCodeStmt->close();
+                            if ($existingByCodeRow && !empty($existingByCodeRow['id'])) {
+                                $existingStudentId = (int)$existingByCodeRow['id'];
+                            }
+                        }
+                    }
+
+                    if ($existingStudentId <= 0 && $stagedEmail !== '' && reviewTableHasColumn($conn, 'students', 'email')) {
+                        $existingByEmailStmt = $conn->prepare("SELECT id FROM students WHERE email = ? LIMIT 1");
+                        if ($existingByEmailStmt) {
+                            $existingByEmailStmt->bind_param('s', $stagedEmail);
+                            $existingByEmailStmt->execute();
+                            $existingByEmailRow = $existingByEmailStmt->get_result()->fetch_assoc();
+                            $existingByEmailStmt->close();
+                            if ($existingByEmailRow && !empty($existingByEmailRow['id'])) {
+                                $existingStudentId = (int)$existingByEmailRow['id'];
+                            }
+                        }
+                    }
+
+                    if ($existingStudentId > 0) {
+                        $updateAssignments = [];
+                        foreach ($studentColumns as $columnName) {
+                            if ($columnName === 'created_at') {
+                                continue;
+                            }
+                            $updateAssignments[] = $columnName . ' = ?';
+                        }
+                        if (reviewTableHasColumn($conn, 'students', 'updated_at')) {
+                            $updateAssignments[] = 'updated_at = NOW()';
+                        }
+
+                        $updateStudentSql = 'UPDATE students SET ' . implode(', ', $updateAssignments) . ' WHERE id = ? LIMIT 1';
+                        $updateStudentStmt = $conn->prepare($updateStudentSql);
+                        if ($updateStudentStmt) {
+                            $updateTypes = '';
+                            $updateValues = [];
+                            foreach ($studentColumns as $idx => $columnName) {
+                                if ($columnName === 'created_at') {
+                                    continue;
+                                }
+                                $updateTypes .= 's';
+                                $updateValues[] = $studentValues[$idx] ?? '';
+                            }
+                            $updateTypes .= 'i';
+                            $updateValues[] = $existingStudentId;
+
+                            if (!reviewBindDynamicParams($updateStudentStmt, $updateTypes, $updateValues) || !$updateStudentStmt->execute()) {
+                                $updateStudentErr = (string)$updateStudentStmt->error;
+                                $updateStudentStmt->close();
+                                throw new Exception('Unable to update existing student record for approval. ' . $updateStudentErr);
+                            }
+                            $updateStudentStmt->close();
+                            $studentExistsForUser = true;
+                        }
+                    }
+
+                    $upsertAssignments = [];
+                    foreach ($studentColumns as $columnName) {
+                        if ($columnName === 'created_at') {
+                            continue;
+                        }
+                        $upsertAssignments[] = $columnName . ' = VALUES(' . $columnName . ')';
+                    }
+                    if (reviewTableHasColumn($conn, 'students', 'updated_at')) {
+                        $upsertAssignments[] = 'updated_at = NOW()';
+                    }
+
                     $insertStudentSql = 'INSERT INTO students (' . implode(', ', $studentColumns) . ') VALUES (' . implode(', ', $studentPlaceholders) . ')';
+                    if (!empty($upsertAssignments)) {
+                        $insertStudentSql .= ' ON DUPLICATE KEY UPDATE ' . implode(', ', $upsertAssignments);
+                    }
                     $insertStudentStmt = $conn->prepare($insertStudentSql);
                     if (!$insertStudentStmt) {
-                        throw new Exception('Unable to create approved student record.');
+                        throw new Exception('Unable to create approved student record. ' . (string)$conn->error);
                     }
                     reviewBindDynamicParams($insertStudentStmt, $studentTypes, $studentValues);
                     if (!$insertStudentStmt->execute()) {
+                        $insertStudentError = (string)$insertStudentStmt->error;
                         $insertStudentStmt->close();
-                        throw new Exception('Unable to create approved student record.');
+                        throw new Exception('Unable to create approved student record. ' . $insertStudentError);
                     }
                     $insertStudentStmt->close();
                 }
@@ -378,9 +554,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if ($applicationsStageTable !== '') {
-                    $stageApproveStmt = $conn->prepare("UPDATE {$applicationsStageTable} SET status = 'approved', reviewed_at = NOW(), reviewed_by = ?, approval_notes = ?, disciplinary_remark = ?, created_student_user_id = ? WHERE user_id = ?");
+                    $stageApproveStmt = $conn->prepare("UPDATE {$applicationsStageTable} SET user_id = NULLIF(?, 0), status = 'approved', reviewed_at = NOW(), reviewed_by = ?, approval_notes = ?, disciplinary_remark = ?, created_student_user_id = ? WHERE id = ?");
                     if ($stageApproveStmt) {
-                        $stageApproveStmt->bind_param('issii', $currentUserId, $notes, $disciplinaryRemark, $userId, $userId);
+                        $stageApproveStmt->bind_param('iissii', $userId, $currentUserId, $notes, $disciplinaryRemark, $userId, $applicationId);
                         $stageApproveStmt->execute();
                         $stageApproveStmt->close();
                     }
@@ -482,17 +658,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $conn->begin_transaction();
             try {
-                $stmt = $conn->prepare("UPDATE users SET application_status = 'rejected', is_active = 0, approved_by = ?, approved_at = NULL, rejected_at = NOW(), approval_notes = ?, disciplinary_remark = ? WHERE id = ? LIMIT 1");
-                if (!$stmt) {
-                    throw new Exception('Unable to reject application.');
-                }
-                $stmt->bind_param('issi', $currentUserId, $notes, $disciplinaryRemark, $userId);
-                if (!$stmt->execute()) {
-                    $stmt->close();
-                    throw new Exception('Unable to reject application.');
-                }
+                if ($userId > 0) {
+                    $stmt = $conn->prepare("UPDATE users SET application_status = 'rejected', is_active = 0, approved_by = ?, approved_at = NULL, rejected_at = NOW(), approval_notes = ?, disciplinary_remark = ? WHERE id = ? LIMIT 1");
+                    if (!$stmt) {
+                        throw new Exception('Unable to reject application.');
+                    }
+                    $stmt->bind_param('issi', $currentUserId, $notes, $disciplinaryRemark, $userId);
+                    if (!$stmt->execute()) {
+                        $stmt->close();
+                        throw new Exception('Unable to reject application.');
+                    }
 
-                $stmt->close();
+                    $stmt->close();
+                }
 
                 $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ? WHERE user_id = ? LIMIT 1");
                 if (!$studentStmt) {
@@ -507,9 +685,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $studentStmt->close();
 
                 if ($applicationsStageTable !== '') {
-                    $stageRejectStmt = $conn->prepare("UPDATE {$applicationsStageTable} SET status = 'rejected', reviewed_at = NOW(), reviewed_by = ?, approval_notes = ?, disciplinary_remark = ?, created_student_user_id = NULL WHERE user_id = ?");
+                    $stageRejectStmt = $conn->prepare("UPDATE {$applicationsStageTable} SET user_id = NULLIF(?, 0), status = 'rejected', reviewed_at = NOW(), reviewed_by = ?, approval_notes = ?, disciplinary_remark = ?, created_student_user_id = NULL WHERE id = ?");
                     if ($stageRejectStmt) {
-                        $stageRejectStmt->bind_param('issi', $currentUserId, $notes, $disciplinaryRemark, $userId);
+                        $stageRejectStmt->bind_param('iissi', $userId, $currentUserId, $notes, $disciplinaryRemark, $applicationId);
                         $stageRejectStmt->execute();
                         $stageRejectStmt->close();
                     }
@@ -554,56 +732,102 @@ $sectionFilter = isset($_GET['section_id']) ? (int)$_GET['section_id'] : 0;
 $coordinatorFilter = isset($_GET['coordinator_id']) ? (int)$_GET['coordinator_id'] : 0;
 $supervisorFilter = isset($_GET['supervisor_id']) ? (int)$_GET['supervisor_id'] : 0;
 
-$stagedJoinSql = $applicationsStageTable !== ''
-    ? " LEFT JOIN {$applicationsStageTable} sa ON sa.user_id = u.id "
-    : " LEFT JOIN (SELECT NULL AS user_id) sa ON 1 = 0 ";
-$effectiveStatusSql = "COALESCE(sa.status, u.application_status)";
-
-$sql = "
-    SELECT
-        u.id AS user_id,
-        u.username,
-        u.email,
-        u.role,
-        {$effectiveStatusSql} AS application_status,
-        COALESCE(sa.submitted_at, u.application_submitted_at) AS application_submitted_at,
-        u.approved_at,
-        u.rejected_at,
-        COALESCE(sa.approval_notes, u.approval_notes) AS approval_notes,
-        COALESCE(sa.disciplinary_remark, u.disciplinary_remark) AS disciplinary_remark,
-        COALESCE(s.student_id, sa.student_id) AS student_id,
-        COALESCE(s.first_name, sa.first_name) AS first_name,
-        COALESCE(s.middle_name, sa.middle_name) AS middle_name,
-        COALESCE(s.last_name, sa.last_name) AS last_name,
-        COALESCE(s.address, sa.address) AS address,
-        COALESCE(s.phone, sa.phone) AS phone,
-        COALESCE(s.date_of_birth, sa.date_of_birth) AS date_of_birth,
-        COALESCE(s.gender, sa.gender) AS gender,
-        COALESCE(s.emergency_contact, sa.emergency_contact) AS emergency_contact,
-        COALESCE(s.emergency_contact_phone, sa.emergency_contact_phone) AS emergency_contact_phone,
-        COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
-        COALESCE(s.department_id, sa.department_id) AS department_id,
-        COALESCE(s.coordinator_id, sa.coordinator_id) AS coordinator_id,
-        COALESCE(s.supervisor_id, sa.supervisor_id) AS supervisor_id,
-        COALESCE(s.coordinator_name, sa.coordinator_name) AS coordinator_name,
-        COALESCE(s.supervisor_name, sa.supervisor_name) AS supervisor_name,
-        COALESCE(s.internal_total_hours, sa.internal_total_hours) AS internal_total_hours,
-        COALESCE(s.external_total_hours, sa.external_total_hours) AS external_total_hours,
-        COALESCE(NULLIF(s.assignment_track, ''), NULLIF(sa.assignment_track, ''), 'internal') AS assignment_track,
-        COALESCE(s.school_year, sa.school_year) AS school_year,
-        COALESCE(s.semester, sa.semester) AS semester,
-        c.name AS course_name,
-        d.name AS department_name,
-        COALESCE(sec.code, sa.section_code_snapshot) AS section_code,
-        COALESCE(sec.name, sa.section_name_snapshot) AS section_name
-    FROM users u
-    LEFT JOIN students s ON s.user_id = u.id
-    {$stagedJoinSql}
-    LEFT JOIN courses c ON c.id = COALESCE(s.course_id, sa.course_id)
-    LEFT JOIN departments d ON d.id = COALESCE(s.department_id, sa.department_id)
-    LEFT JOIN sections sec ON sec.id = COALESCE(s.section_id, sa.section_id)
-    WHERE u.role = 'student'
-";
+if ($applicationsStageTable !== '') {
+    $effectiveStatusSql = "sa.status";
+    $sql = "
+        SELECT
+            sa.id AS application_id,
+            COALESCE(u.id, 0) AS user_id,
+            COALESCE(u.username, sa.username) AS username,
+            COALESCE(u.email, sa.email) AS email,
+            COALESCE(u.role, 'student') AS role,
+            {$effectiveStatusSql} AS application_status,
+            COALESCE(sa.submitted_at, u.application_submitted_at) AS application_submitted_at,
+            u.approved_at,
+            u.rejected_at,
+            COALESCE(sa.approval_notes, u.approval_notes) AS approval_notes,
+            COALESCE(sa.disciplinary_remark, u.disciplinary_remark) AS disciplinary_remark,
+            COALESCE(s.student_id, sa.student_id) AS student_id,
+            COALESCE(s.first_name, sa.first_name) AS first_name,
+            COALESCE(s.middle_name, sa.middle_name) AS middle_name,
+            COALESCE(s.last_name, sa.last_name) AS last_name,
+            COALESCE(s.address, sa.address) AS address,
+            COALESCE(s.phone, sa.phone) AS phone,
+            COALESCE(s.date_of_birth, sa.date_of_birth) AS date_of_birth,
+            COALESCE(NULLIF(TRIM(s.gender), ''), NULLIF(TRIM(sa.gender), '')) AS gender,
+            COALESCE(s.emergency_contact, sa.emergency_contact) AS emergency_contact,
+            COALESCE(s.emergency_contact_phone, sa.emergency_contact_phone) AS emergency_contact_phone,
+            COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
+            COALESCE(s.department_id, sa.department_id) AS department_id,
+            COALESCE(s.coordinator_id, sa.coordinator_id) AS coordinator_id,
+            COALESCE(s.supervisor_id, sa.supervisor_id) AS supervisor_id,
+            COALESCE(s.coordinator_name, sa.coordinator_name) AS coordinator_name,
+            COALESCE(s.supervisor_name, sa.supervisor_name) AS supervisor_name,
+            COALESCE(s.internal_total_hours, sa.internal_total_hours) AS internal_total_hours,
+            COALESCE(s.external_total_hours, sa.external_total_hours) AS external_total_hours,
+            COALESCE(NULLIF(s.assignment_track, ''), NULLIF(sa.assignment_track, ''), 'internal') AS assignment_track,
+            COALESCE(s.school_year, sa.school_year) AS school_year,
+            COALESCE(s.semester, sa.semester) AS semester,
+            c.name AS course_name,
+            d.name AS department_name,
+            COALESCE(sec.code, sa.section_code_snapshot) AS section_code,
+            COALESCE(sec.name, sa.section_name_snapshot) AS section_name
+        FROM {$applicationsStageTable} sa
+        LEFT JOIN users u ON u.id = sa.user_id
+        LEFT JOIN students s ON s.user_id = u.id
+        LEFT JOIN courses c ON c.id = COALESCE(s.course_id, sa.course_id)
+        LEFT JOIN departments d ON d.id = COALESCE(s.department_id, sa.department_id)
+        LEFT JOIN sections sec ON sec.id = COALESCE(s.section_id, sa.section_id)
+        WHERE 1 = 1
+    ";
+} else {
+    $effectiveStatusSql = "COALESCE(u.application_status, 'approved')";
+    $sql = "
+        SELECT
+            u.id AS application_id,
+            u.id AS user_id,
+            u.username,
+            u.email,
+            u.role,
+            {$effectiveStatusSql} AS application_status,
+            u.application_submitted_at,
+            u.approved_at,
+            u.rejected_at,
+            u.approval_notes,
+            u.disciplinary_remark,
+            s.student_id,
+            s.first_name,
+            s.middle_name,
+            s.last_name,
+            s.address,
+            s.phone,
+            s.date_of_birth,
+            NULLIF(TRIM(s.gender), '') AS gender,
+            s.emergency_contact,
+            s.emergency_contact_phone,
+            COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
+            s.department_id,
+            s.coordinator_id,
+            s.supervisor_id,
+            s.coordinator_name,
+            s.supervisor_name,
+            s.internal_total_hours,
+            s.external_total_hours,
+            COALESCE(NULLIF(s.assignment_track, ''), 'internal') AS assignment_track,
+            s.school_year,
+            s.semester,
+            c.name AS course_name,
+            d.name AS department_name,
+            sec.code AS section_code,
+            sec.name AS section_name
+        FROM users u
+        LEFT JOIN students s ON s.user_id = u.id
+        LEFT JOIN courses c ON c.id = s.course_id
+        LEFT JOIN departments d ON d.id = s.department_id
+        LEFT JOIN sections sec ON sec.id = s.section_id
+        WHERE u.role = 'student'
+    ";
+}
 
 if ($statusFilter !== 'all') {
     $sql .= " AND {$effectiveStatusSql} = '" . $conn->real_escape_string($statusFilter) . "'";
@@ -622,7 +846,9 @@ if ($supervisorFilter > 0) {
     $sql .= " AND COALESCE(s.supervisor_id, sa.supervisor_id) = " . (int)$supervisorFilter;
 }
 
-$sql .= " ORDER BY COALESCE(sa.submitted_at, u.application_submitted_at, u.created_at) DESC, u.id DESC";
+$sql .= $applicationsStageTable !== ''
+    ? " ORDER BY COALESCE(sa.submitted_at, sa.created_at) DESC, sa.id DESC"
+    : " ORDER BY COALESCE(u.application_submitted_at, u.created_at) DESC, u.id DESC";
 $applications = $conn->query($sql);
 
 $page_title = 'BioTern || Student Applications';
@@ -706,7 +932,7 @@ include 'includes/header.php';
                                         $secId = (int)($sec['id'] ?? 0);
                                         $secCode = trim((string)($sec['code'] ?? ''));
                                         $secName = trim((string)($sec['name'] ?? ''));
-                                        $secLabel = $secCode !== '' && $secName !== '' ? ($secCode . ' - ' . $secName) : ($secCode !== '' ? $secCode : $secName);
+                                        $secLabel = biotern_format_section_label($secCode, $secName);
                                     ?>
                                     <option value="<?php echo $secId; ?>" <?php echo $sectionFilter === $secId ? 'selected' : ''; ?>><?php echo htmlspecialchars($secLabel !== '' ? $secLabel : ('Section #' . $secId), ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php endforeach; ?>
@@ -790,13 +1016,9 @@ include 'includes/header.php';
 
                                             $courseLabel = $courseName !== '' ? $courseName : 'To be assigned';
                                             $departmentLabel = $departmentName !== '' ? $departmentName : 'To be assigned';
-                                            $sectionLabel = 'To be assigned';
-                                            if ($sectionCode !== '' && $sectionName !== '') {
-                                                $sectionLabel = $sectionCode . ' - ' . $sectionName;
-                                            } elseif ($sectionCode !== '') {
-                                                $sectionLabel = $sectionCode;
-                                            } elseif ($sectionName !== '') {
-                                                $sectionLabel = $sectionName;
+                                            $sectionLabel = biotern_format_section_label($sectionCode, $sectionName);
+                                            if ($sectionLabel === '') {
+                                                $sectionLabel = 'To be assigned';
                                             }
                                             $semesterLabel = $semesterValue !== '' ? $semesterValue : 'Not set';
                                             $schoolYearLabel = $schoolYearValue !== '' ? $schoolYearValue : 'Not set';
@@ -805,7 +1027,7 @@ include 'includes/header.php';
                                             $addressLabel = $addressValue !== '' ? $addressValue : '-';
                                             $phoneLabel = $phoneValue !== '' ? $phoneValue : '-';
                                             $dateOfBirthLabel = $dateOfBirthValue !== '' ? $dateOfBirthValue : '-';
-                                            $genderLabel = $genderValue !== '' ? ucfirst(strtolower($genderValue)) : '-';
+                                            $genderLabel = formatGenderLabel($genderValue);
                                             $emergencyContactLabel = $emergencyContactNameOnly !== '' ? $emergencyContactNameOnly : '-';
                                             $emergencyContactPhoneLabel = $emergencyContactPhoneValue !== '' ? $emergencyContactPhoneValue : '-';
 
@@ -851,8 +1073,12 @@ include 'includes/header.php';
                                                 <span class="badge bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?> text-capitalize"><?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?></span>
                                             </td>
                                             <td data-label="Hours (Int/Ext)">
-                                                <span class="hours-pill"><?php echo (int)($row['internal_total_hours'] ?? 140); ?> / <?php echo (int)($row['external_total_hours'] ?? 250); ?></span>
-                                                <small class="text-muted d-block">Track: <?php echo htmlspecialchars($assignmentTrackLabel, ENT_QUOTES, 'UTF-8'); ?></small>
+                                                <div class="apps-review-hours-stack">
+                                                    <span class="hours-pill">
+                                                        <span class="hours-pill-value"><?php echo (int)($row['internal_total_hours'] ?? 140); ?> / <?php echo (int)($row['external_total_hours'] ?? 250); ?></span>
+                                                    </span>
+                                                    <small class="apps-review-hours-track">Track: <?php echo htmlspecialchars($assignmentTrackLabel, ENT_QUOTES, 'UTF-8'); ?></small>
+                                                </div>
                                             </td>
                                             <td data-label="Term"><?php echo htmlspecialchars($schoolYearLabel . ' / ' . $semesterLabel, ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td data-label="Submitted"><?php echo htmlspecialchars($submittedAt, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -892,6 +1118,7 @@ include 'includes/header.php';
                                                             <?php endif; ?>
                                                         </div>
                                                         <form method="post" class="action-form">
+                                                            <input type="hidden" name="application_id" value="<?php echo (int)($row['application_id'] ?? 0); ?>">
                                                             <input type="hidden" name="user_id" value="<?php echo (int)$row['user_id']; ?>">
                                                             <div class="field-wrap wide-field">
                                                                 <label class="field-label">Department</label>
@@ -910,20 +1137,26 @@ include 'includes/header.php';
                                                                     <?php endforeach; ?>
                                                                 </select>
                                                             </div>
-                                                            <select class="form-control form-control-sm" name="coordinator_id" title="Coordinator">
-                                                                <option value="0">Coordinator: Unassigned</option>
-                                                                <?php foreach ($coordinatorOptions as $coor): ?>
-                                                                    <?php $coorId = (int)($coor['id'] ?? 0); ?>
-                                                                    <option value="<?php echo $coorId; ?>" <?php echo $coorId === $selectedCoordinatorId ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)($coor['full_name'] ?? ('Coordinator #' . $coorId)), ENT_QUOTES, 'UTF-8'); ?></option>
-                                                                <?php endforeach; ?>
-                                                            </select>
-                                                            <select class="form-control form-control-sm" name="supervisor_id" title="Supervisor">
-                                                                <option value="0">Supervisor: Unassigned</option>
-                                                                <?php foreach ($supervisorOptions as $sup): ?>
-                                                                    <?php $supId = (int)($sup['id'] ?? 0); ?>
-                                                                    <option value="<?php echo $supId; ?>" <?php echo $supId === $selectedSupervisorId ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)($sup['full_name'] ?? ('Supervisor #' . $supId)), ENT_QUOTES, 'UTF-8'); ?></option>
-                                                                <?php endforeach; ?>
-                                                            </select>
+                                                            <div class="field-wrap">
+                                                                <label class="field-label">Coordinator</label>
+                                                                <select class="form-control form-control-sm" name="coordinator_id" title="Coordinator">
+                                                                    <option value="0">Unassigned</option>
+                                                                    <?php foreach ($coordinatorOptions as $coor): ?>
+                                                                        <?php $coorId = (int)($coor['id'] ?? 0); ?>
+                                                                        <option value="<?php echo $coorId; ?>" <?php echo $coorId === $selectedCoordinatorId ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)($coor['full_name'] ?? ('Coordinator #' . $coorId)), ENT_QUOTES, 'UTF-8'); ?></option>
+                                                                    <?php endforeach; ?>
+                                                                </select>
+                                                            </div>
+                                                            <div class="field-wrap">
+                                                                <label class="field-label">Supervisor</label>
+                                                                <select class="form-control form-control-sm" name="supervisor_id" title="Supervisor">
+                                                                    <option value="0">Unassigned</option>
+                                                                    <?php foreach ($supervisorOptions as $sup): ?>
+                                                                        <?php $supId = (int)($sup['id'] ?? 0); ?>
+                                                                        <option value="<?php echo $supId; ?>" <?php echo $supId === $selectedSupervisorId ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)($sup['full_name'] ?? ('Supervisor #' . $supId)), ENT_QUOTES, 'UTF-8'); ?></option>
+                                                                    <?php endforeach; ?>
+                                                                </select>
+                                                            </div>
                                                             <div class="field-wrap">
                                                                 <label class="field-label">Internal OJT Hours</label>
                                                                 <input type="number" class="form-control form-control-sm" name="internal_total_hours" min="0" required value="<?php echo (int)($row['internal_total_hours'] ?? 140); ?>" title="Internal OJT Hours">
@@ -932,8 +1165,14 @@ include 'includes/header.php';
                                                                 <label class="field-label">External OJT Hours</label>
                                                                 <input type="number" class="form-control form-control-sm" name="external_total_hours" min="0" required value="<?php echo (int)($row['external_total_hours'] ?? 250); ?>" title="External OJT Hours">
                                                             </div>
-                                                            <input type="text" class="form-control form-control-sm approval-note" name="approval_notes" placeholder="Add note (optional)">
-                                                            <input type="text" class="form-control form-control-sm disciplinary-note" name="disciplinary_remark" placeholder="Disciplinary remark (if misconduct)">
+                                                            <div class="field-wrap approval-note">
+                                                                <label class="field-label">Approval Note</label>
+                                                                <input type="text" class="form-control form-control-sm" name="approval_notes" placeholder="Add note (optional)">
+                                                            </div>
+                                                            <div class="field-wrap disciplinary-note">
+                                                                <label class="field-label">Disciplinary Remark</label>
+                                                                <input type="text" class="form-control form-control-sm" name="disciplinary_remark" placeholder="Disciplinary remark (if misconduct)">
+                                                            </div>
                                                             <div class="action-buttons">
                                                                 <button type="submit" name="decision" value="approve" class="btn btn-sm btn-success">Approve</button>
                                                                 <button type="submit" name="decision" value="reject" class="btn btn-sm btn-danger">Reject</button>

@@ -16,6 +16,19 @@ function normalized_upload_path(string $path): string
     return ltrim(str_replace('\\', '/', trim($path)), '/');
 }
 
+function users_table_has_column(mysqli $conn, string $table, string $column): bool
+{
+    $stmt = $conn->prepare("SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('ss', $table, $column);
+    $stmt->execute();
+    $exists = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
+    return $exists;
+}
+
 $allowed_roles = ['admin', 'coordinator', 'supervisor', 'student'];
 $current_user_id = (int) (
     $_SESSION['user_id'] ??
@@ -182,6 +195,11 @@ $where = [];
 $types = '';
 $params = [];
 
+$has_application_status = users_table_has_column($conn, 'users', 'application_status');
+if ($has_application_status) {
+    $where[] = "NOT (role = 'student' AND application_status = 'pending')";
+}
+
 if ($search !== '') {
     $where[] = '(name LIKE ? OR username LIKE ? OR email LIKE ?)';
     $types .= 'sss';
@@ -241,6 +259,13 @@ $stats_query = "
         SUM(CASE WHEN role = 'admin' THEN 1 ELSE 0 END) AS admins
     FROM users
 ";
+$stats_where = [];
+if ($has_application_status) {
+    $stats_where[] = "NOT (role = 'student' AND application_status = 'pending')";
+}
+if (!empty($stats_where)) {
+    $stats_query .= ' WHERE ' . implode(' AND ', $stats_where);
+}
 $stats_res = $conn->query($stats_query);
 if ($stats_res) {
     $stats_data = $stats_res->fetch_assoc();
@@ -306,39 +331,39 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <div class="main-content users-admin-page">
-    <div class="row g-1 mb-1">
-        <div class="col-md-3">
-            <div class="card stat-card app-users-stat-card">
-                <div class="card-body py-1 px-3">
-                    <div class="stat-label">Total Users</div>
-                    <div class="h5 mb-0"><?php echo $stats['total']; ?></div>
-                </div>
+    <?php if ($flash_message !== ''): ?>
+        <div class="alert alert-<?php echo e($flash_type); ?> py-2"><?php echo e($flash_message); ?></div>
+    <?php endif; ?>
+
+    <div class="app-stats-grid app-users-stats-dashboard mb-2">
+        <article class="app-stat-card app-users-stat-card">
+            <div class="app-stat-card-header">
+                <span class="app-stat-label">Total Users</span>
+                <span class="app-stat-icon"><i class="feather-users"></i></span>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card app-users-stat-card">
-                <div class="card-body py-1 px-3">
-                    <div class="stat-label">Active</div>
-                    <div class="h5 mb-0 text-success"><?php echo $stats['active']; ?></div>
-                </div>
+            <strong class="app-stat-value"><?php echo $stats['total']; ?></strong>
+        </article>
+        <article class="app-stat-card app-users-stat-card">
+            <div class="app-stat-card-header">
+                <span class="app-stat-label">Active</span>
+                <span class="app-stat-icon"><i class="feather-user-check"></i></span>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card app-users-stat-card">
-                <div class="card-body py-1 px-3">
-                    <div class="stat-label">Inactive</div>
-                    <div class="h5 mb-0 text-danger"><?php echo $stats['inactive']; ?></div>
-                </div>
+            <strong class="app-stat-value"><?php echo $stats['active']; ?></strong>
+        </article>
+        <article class="app-stat-card app-users-stat-card">
+            <div class="app-stat-card-header">
+                <span class="app-stat-label">Inactive</span>
+                <span class="app-stat-icon"><i class="feather-user-x"></i></span>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card stat-card app-users-stat-card">
-                <div class="card-body py-1 px-3">
-                    <div class="stat-label">Admins</div>
-                    <div class="h5 mb-0"><?php echo $stats['admins']; ?></div>
-                </div>
+            <strong class="app-stat-value"><?php echo $stats['inactive']; ?></strong>
+        </article>
+        <article class="app-stat-card app-users-stat-card">
+            <div class="app-stat-card-header">
+                <span class="app-stat-label">Admins</span>
+                <span class="app-stat-icon"><i class="feather-shield"></i></span>
             </div>
-        </div>
+            <strong class="app-stat-value"><?php echo $stats['admins']; ?></strong>
+        </article>
     </div>
 
     <section class="app-users-filter-section">

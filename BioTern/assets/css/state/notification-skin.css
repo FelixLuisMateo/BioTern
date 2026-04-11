@@ -1,88 +1,210 @@
 /* Unified notification skin: alerts, toasts, and SweetAlert popups */
 :root {
-  --biotern-notify-bg: #ffffff;
-  --biotern-notify-text: #0f172a;
+  --biotern-notify-bg: color-mix(
+    in srgb,
+    var(--biotern-surface-muted, #f8fafc) 88%,
+    var(--biotern-primary-soft, rgba(52, 84, 209, 0.12)) 12%
+  );
+  --biotern-notify-text: #1e293b;
   --biotern-notify-muted: #475569;
-  --biotern-notify-border: rgba(15, 23, 42, 0.12);
-  --biotern-notify-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
+  --biotern-notify-border: rgba(148, 163, 184, 0.32);
+  --biotern-notify-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
+  --biotern-notify-close-filter: none;
 
   --biotern-notify-success: #10b981;
-  --biotern-notify-info: #0ea5e9;
+  --biotern-notify-info: #3b82f6;
   --biotern-notify-warning: #f59e0b;
   --biotern-notify-danger: #ef4444;
 }
 
 html.app-skin-dark {
-  --biotern-notify-bg: #0f172a;
-  --biotern-notify-text: #e2e8f0;
-  --biotern-notify-muted: #94a3b8;
-  --biotern-notify-border: rgba(148, 163, 184, 0.26);
-  --biotern-notify-shadow: 0 18px 42px rgba(2, 6, 23, 0.62);
+  --biotern-notify-bg: color-mix(
+    in srgb,
+    var(--biotern-surface-muted, #121a2d) 84%,
+    var(--biotern-primary-soft, rgba(52, 84, 209, 0.24)) 16%
+  );
+  --biotern-notify-text: #dbe8ff;
+  --biotern-notify-muted: #9fb0cc;
+  --biotern-notify-border: rgba(129, 153, 199, 0.34);
+  --biotern-notify-shadow: 0 18px 42px rgba(2, 6, 23, 0.56);
+  --biotern-notify-close-filter: invert(1) grayscale(100%) brightness(220%);
 }
 
-.alert {
+.alert,
+.toast,
+.app-theme-toast-static {
   border-radius: 12px;
   border: 1px solid var(--biotern-notify-border);
   background: var(--biotern-notify-bg);
   color: var(--biotern-notify-text);
   box-shadow: var(--biotern-notify-shadow);
-  padding: 0.78rem 0.92rem;
 }
 
-.alert .alert-link {
+.alert {
+  --biotern-notify-accent: var(--biotern-notify-info);
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.72rem;
+  min-height: 56px;
+  padding: 0.72rem 0.92rem !important;
+  line-height: 1.38;
+  border-left: 4px solid var(--biotern-notify-accent);
+}
+
+.alert::before {
+  content: "i";
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--biotern-notify-accent) 16%, transparent);
+  color: var(--biotern-notify-accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+.alert > .btn-close {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.82rem;
+}
+
+.alert-dismissible {
+  padding-right: 3rem !important;
+}
+
+.alert-link {
   color: inherit;
   text-decoration: underline;
 }
 
-.alert-dismissible .btn-close {
-  opacity: 0.7;
-}
-
-.alert-dismissible .btn-close:hover {
-  opacity: 1;
-}
-
 .alert-success,
+.alert-primary {
+  --biotern-notify-accent: var(--biotern-notify-success);
+}
+
+.alert-success::before,
+.alert-primary::before {
+  content: "+";
+}
+
+.alert-info {
+  --biotern-notify-accent: var(--biotern-notify-info);
+}
+
+.alert-warning {
+  --biotern-notify-accent: var(--biotern-notify-warning);
+}
+
+.alert-warning::before {
+  content: "!";
+}
+
 .alert-primary,
 .alert-info,
 .alert-warning,
 .alert-danger {
+  --biotern-notify-accent: var(--biotern-notify-danger);
+}
+
+.alert-danger::before {
+  content: "!";
+}
+
+.alert .btn-close,
+.alert .btn-close-white,
+.toast .btn-close,
+.toast .btn-close-white {
+  filter: var(--biotern-notify-close-filter) !important;
+  opacity: 0.76;
+}
+
+.alert .btn-close:hover,
+.alert .btn-close-white:hover,
+.toast .btn-close:hover,
+.toast .btn-close-white:hover {
+  opacity: 1;
   border-left: 1px solid var(--biotern-notify-border);
 }
 
 .toast {
-  border-radius: 12px;
-  border: 1px solid var(--biotern-notify-border);
-  background: var(--biotern-notify-bg);
-  color: var(--biotern-notify-text);
-  box-shadow: var(--biotern-notify-shadow);
+  --biotern-notify-accent: var(--biotern-notify-info);
+  border-left: 4px solid var(--biotern-notify-accent) !important;
+  background: var(--biotern-notify-bg) !important;
+  color: var(--biotern-notify-text) !important;
   overflow: hidden;
 }
 
+.toast.text-bg-success,
+.toast.bg-success {
+  --biotern-notify-accent: var(--biotern-notify-success);
+}
+
+.toast.text-bg-info,
+.toast.bg-info,
+.toast.text-bg-primary,
+.toast.bg-primary {
+  --biotern-notify-accent: var(--biotern-notify-info);
+}
+
+.toast.text-bg-warning,
+.toast.bg-warning {
+  --biotern-notify-accent: var(--biotern-notify-warning);
+}
+
+.toast.text-bg-danger,
+.toast.bg-danger {
+  --biotern-notify-accent: var(--biotern-notify-danger);
+}
+
+.toast.text-bg-success,
+.toast.text-bg-info,
+.toast.text-bg-primary,
+.toast.text-bg-warning,
+.toast.text-bg-danger,
+.toast[class*="text-bg-"] {
+  background: var(--biotern-notify-bg) !important;
+  color: var(--biotern-notify-text) !important;
+}
+
 .toast .toast-header {
-  border-bottom: 1px solid var(--biotern-notify-border);
-  background: color-mix(in srgb, var(--biotern-notify-bg) 88%, #94a3b8 12%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  background: color-mix(in srgb, var(--biotern-notify-bg) 90%, #ffffff 10%);
   color: var(--biotern-notify-text);
   font-weight: 700;
 }
 
 .toast .toast-header small,
+.toast .toast-body,
+.toast .text-muted {
+  color: var(--biotern-notify-muted) !important;
+}
+
 .toast .toast-body {
-  color: var(--biotern-notify-muted);
+  line-height: 1.42;
 }
 
-.toast .btn-close {
-  opacity: 0.72;
+.toast .fw-semibold,
+.toast strong {
+  color: var(--biotern-notify-text);
 }
 
-.toast .btn-close:hover {
-  opacity: 1;
+.toast > .d-flex {
+  align-items: flex-start;
 }
 
-.toast-container {
-  z-index: 10050;
+.toast-notification {
+  width: min(380px, calc(100vw - 1.5rem));
+  max-width: min(380px, calc(100vw - 1.5rem)) !important;
 }
 
+.toast-container,
 .app-toast-fixed {
   z-index: 10050;
 }
@@ -101,7 +223,7 @@ html.app-skin-dark {
 
 .swal2-title {
   color: var(--biotern-notify-text) !important;
-  font-size: 1.08rem !important;
+  font-size: 1.05rem !important;
   font-weight: 700 !important;
 }
 
@@ -128,14 +250,10 @@ html.app-skin-dark {
   width: min(380px, calc(100vw - 1.5rem)) !important;
   border-radius: 14px !important;
   border: 1px solid var(--biotern-notify-border) !important;
+  border-left: 4px solid var(--biotern-notify-success) !important;
   background: var(--biotern-notify-bg) !important;
   box-shadow: var(--biotern-notify-shadow) !important;
   padding: 0.84rem 0.92rem 0.72rem !important;
-}
-
-html.app-skin-dark .swal2-popup.swal2-toast.app-theme-toast {
-  background: #12161f !important;
-  border-color: rgba(148, 163, 184, 0.3) !important;
 }
 
 .swal2-popup.swal2-toast.app-theme-toast .swal2-title,
@@ -154,8 +272,27 @@ html.app-skin-dark .swal2-popup.swal2-toast.app-theme-toast {
   border: 0 !important;
   border-radius: 999px !important;
   box-shadow: none !important;
+}
+
+.swal2-popup.swal2-toast.app-theme-toast .swal2-icon.swal2-success {
   background: color-mix(in srgb, var(--biotern-notify-success) 16%, transparent) !important;
   color: var(--biotern-notify-success) !important;
+}
+
+.swal2-popup.swal2-toast.app-theme-toast .swal2-icon.swal2-error {
+  background: color-mix(in srgb, var(--biotern-notify-danger) 16%, transparent) !important;
+  color: var(--biotern-notify-danger) !important;
+}
+
+.swal2-popup.swal2-toast.app-theme-toast .swal2-icon.swal2-warning {
+  background: color-mix(in srgb, var(--biotern-notify-warning) 16%, transparent) !important;
+  color: var(--biotern-notify-warning) !important;
+}
+
+.swal2-popup.swal2-toast.app-theme-toast .swal2-icon.swal2-info,
+.swal2-popup.swal2-toast.app-theme-toast .swal2-icon.swal2-question {
+  background: color-mix(in srgb, var(--biotern-notify-info) 16%, transparent) !important;
+  color: var(--biotern-notify-info) !important;
 }
 
 .swal2-popup.swal2-toast.app-theme-toast .swal2-icon-content {
@@ -189,11 +326,7 @@ html.app-skin-dark .swal2-popup.swal2-toast.app-theme-toast {
   max-width: min(370px, calc(100vw - 1.2rem));
   min-height: 56px;
   padding: 0.72rem 0.86rem;
-  border: 1px solid rgba(148, 163, 184, 0.32);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--biotern-surface-muted, #f8fafc) 92%, #ffffff 8%);
-  color: #0f172a;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+  border-left: 4px solid var(--biotern-notify-success);
 }
 
 .app-theme-toast-static-icon {

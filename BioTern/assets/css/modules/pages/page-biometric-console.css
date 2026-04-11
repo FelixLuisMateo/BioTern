@@ -1,0 +1,428 @@
+/*
+ * Shared biometric console styles
+ * Used by:
+ * - pages/fingerprint_mapping.php
+ * - pages/biometric-machine.php
+ */
+
+.page-fingerprint-mapping .nxl-content,
+.page-biometric-machine .nxl-content {
+    padding-bottom: 4.5rem;
+}
+
+.bio-console-shell {
+    display: grid;
+    gap: 1rem;
+}
+
+.bio-console-header-actions .page-header-right-items-wrapper {
+    flex-wrap: wrap;
+}
+
+.bio-console-hero {
+    border: 0;
+    border-radius: 18px;
+    overflow: hidden;
+    color: #fff;
+    box-shadow: 0 22px 44px rgba(15, 23, 42, 0.18);
+}
+
+.page-fingerprint-mapping .bio-console-hero {
+    background: linear-gradient(135deg, #0f4c81 0%, #3454d1 52%, #dbeafe 100%);
+}
+
+.page-biometric-machine .bio-console-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 48%, #dbeafe 100%);
+}
+
+.bio-console-hero .card-body {
+    padding: 1.35rem 1.5rem;
+}
+
+.bio-console-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.92fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.bio-console-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.73rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.bio-console-hero h3,
+.bio-console-hero h4,
+.bio-console-hero h5 {
+    margin: 0.7rem 0 0.45rem;
+    color: #fff;
+}
+
+.bio-console-hero p {
+    margin: 0;
+    max-width: 58ch;
+    color: rgba(255, 255, 255, 0.82);
+    line-height: 1.55;
+}
+
+.bio-console-pill-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 1rem;
+}
+
+.bio-console-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 36px;
+    padding: 0.48rem 0.82rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.bio-console-hero-side,
+.bio-console-note-surface {
+    padding: 1rem 1.05rem;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(8px);
+}
+
+.bio-console-note-surface h6,
+.bio-console-hero-side h6 {
+    margin-bottom: 0.45rem;
+    color: #fff;
+}
+
+.bio-console-note-surface p,
+.bio-console-hero-side p,
+.bio-console-hero-side small {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.bio-console-note-surface .badge,
+.bio-console-hero-side .badge {
+    margin-bottom: 0.65rem;
+}
+
+.bio-console-stat-card,
+.bio-console-panel,
+.page-biometric-machine .card:not(.bio-console-hero),
+.page-fingerprint-mapping .card:not(.bio-console-hero) {
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 16px;
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+
+.bio-console-stat-card .card-body,
+.bio-console-panel .card-body {
+    padding: 1rem 1.05rem;
+}
+
+.bio-console-panel .card-header,
+.page-biometric-machine .card:not(.bio-console-hero) .card-header,
+.page-fingerprint-mapping .card:not(.bio-console-hero) .card-header {
+    padding: 0.9rem 1.05rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(248, 250, 252, 0.86);
+}
+
+.bio-console-panel .card-title,
+.page-biometric-machine .card-title,
+.page-fingerprint-mapping .card-title {
+    letter-spacing: 0.01em;
+}
+
+.bio-console-stat-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #64748b;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.bio-console-stat-value {
+    display: block;
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #0f172a;
+}
+
+.bio-console-stat-meta {
+    display: block;
+    margin-top: 0.5rem;
+    color: #5f6f86;
+    font-size: 0.86rem;
+    line-height: 1.4;
+}
+
+.bio-console-inline-note {
+    padding: 0.9rem 1rem;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: linear-gradient(180deg, #f8fbff 0%, #f1f6ff 100%);
+}
+
+.bio-console-inline-note-title {
+    margin-bottom: 0.55rem;
+    color: #17345a;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.bio-console-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.bio-console-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 34px;
+    padding: 0.42rem 0.72rem;
+    border-radius: 999px;
+    border: 1px solid rgba(90, 118, 170, 0.18);
+    background: #fff;
+    color: #17345a;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.bio-console-form-grid {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.bio-console-table {
+    margin-bottom: 0;
+}
+
+.bio-console-table th {
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #64748b;
+    background: rgba(248, 250, 252, 0.94);
+}
+
+.bio-console-table td,
+.bio-console-table th {
+    vertical-align: middle;
+}
+
+.bio-console-table tbody tr:hover {
+    background: rgba(239, 246, 255, 0.72);
+}
+
+.bio-console-empty {
+    padding: 1.1rem;
+    border: 1px dashed rgba(148, 163, 184, 0.3);
+    border-radius: 14px;
+    background: rgba(248, 250, 252, 0.86);
+    color: #64748b;
+    text-align: center;
+}
+
+.fingerprint-map-card {
+    overflow: hidden;
+}
+
+.fingerprint-map-card .card-body {
+    padding: 1rem;
+}
+
+.fingerprint-form .fm-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.fingerprint-form .fm-actions .btn {
+    min-width: 140px;
+}
+
+.fingerprint-form .submit-wrap {
+    display: flex;
+    align-items: flex-start;
+    padding-top: 1.72rem;
+}
+
+.fingerprint-form .submit-wrap .btn {
+    min-height: 42px;
+    line-height: 1.15;
+}
+
+.fingerprint-actions {
+    display: inline-flex;
+    gap: 0.45rem;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.fingerprint-actions .btn {
+    min-width: 88px;
+}
+
+.fingerprint-actions form,
+.machine-inline-actions form {
+    margin: 0;
+}
+
+.machine-hero-status small {
+    display: block;
+    margin-top: 0.35rem;
+}
+
+.machine-kpi-card .card-body {
+    min-height: 120px;
+}
+
+html.app-skin-dark .bio-console-stat-card,
+html.app-skin-dark .bio-console-panel,
+html.app-skin-dark .page-biometric-machine .card:not(.bio-console-hero),
+html.app-skin-dark .page-fingerprint-mapping .card:not(.bio-console-hero) {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(12, 20, 36, 0.96));
+    border-color: rgba(129, 153, 199, 0.22);
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.38);
+}
+
+html.app-skin-dark .bio-console-panel .card-header,
+html.app-skin-dark .page-biometric-machine .card:not(.bio-console-hero) .card-header,
+html.app-skin-dark .page-fingerprint-mapping .card:not(.bio-console-hero) .card-header {
+    background: rgba(30, 41, 59, 0.72);
+    border-bottom-color: rgba(129, 153, 199, 0.16);
+}
+
+html.app-skin-dark .bio-console-stat-label,
+html.app-skin-dark .bio-console-table th,
+html.app-skin-dark .bio-console-inline-note-title {
+    color: #9fb0cc;
+}
+
+html.app-skin-dark .bio-console-stat-value,
+html.app-skin-dark .bio-console-panel h4,
+html.app-skin-dark .bio-console-panel h5,
+html.app-skin-dark .bio-console-panel h6,
+html.app-skin-dark .page-biometric-machine h4,
+html.app-skin-dark .page-biometric-machine h5,
+html.app-skin-dark .page-biometric-machine h6,
+html.app-skin-dark .page-fingerprint-mapping h4,
+html.app-skin-dark .page-fingerprint-mapping h5,
+html.app-skin-dark .page-fingerprint-mapping h6 {
+    color: #f8fbff;
+}
+
+html.app-skin-dark .bio-console-stat-meta,
+html.app-skin-dark .bio-console-inline-note,
+html.app-skin-dark .bio-console-empty,
+html.app-skin-dark .bio-console-table td,
+html.app-skin-dark .page-biometric-machine .text-muted,
+html.app-skin-dark .page-fingerprint-mapping .text-muted {
+    color: #9fb0cc !important;
+}
+
+html.app-skin-dark .bio-console-inline-note,
+html.app-skin-dark .bio-console-empty {
+    background: rgba(15, 23, 42, 0.72);
+    border-color: rgba(129, 153, 199, 0.2);
+}
+
+html.app-skin-dark .bio-console-chip {
+    background: rgba(15, 23, 42, 0.86);
+    border-color: rgba(129, 153, 199, 0.24);
+    color: #dbe8ff;
+}
+
+html.app-skin-dark .bio-console-table th {
+    background: rgba(30, 41, 59, 0.84);
+}
+
+html.app-skin-dark .bio-console-table tbody tr:hover {
+    background: rgba(30, 41, 59, 0.56);
+}
+
+@media (max-width: 1199.98px) {
+    .bio-console-hero-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fingerprint-form .fm-actions {
+        display: grid;
+        width: 100%;
+        grid-template-columns: 1fr;
+    }
+
+    .fingerprint-form .fm-actions .btn,
+    .fingerprint-form .submit-wrap .btn {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .fingerprint-form .submit-wrap {
+        padding-top: 0;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .fingerprint-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr;
+        justify-items: stretch;
+    }
+
+    .fingerprint-actions .btn {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .bio-console-hero .card-body {
+        padding: 1rem;
+    }
+
+    .bio-console-panel .card-header,
+    .page-biometric-machine .card:not(.bio-console-hero) .card-header,
+    .page-fingerprint-mapping .card:not(.bio-console-hero) .card-header {
+        padding: 0.8rem 0.9rem;
+    }
+
+    .fingerprint-map-card .card-body {
+        padding: 0.85rem;
+    }
+
+    .fingerprint-form .form-label {
+        margin-bottom: 0.35rem;
+    }
+
+    .bio-console-chip-list,
+    .bio-console-pill-list {
+        gap: 0.42rem;
+    }
+}

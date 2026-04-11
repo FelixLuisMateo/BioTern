@@ -4,336 +4,579 @@
  * - management/students-dtr.php
  */
 
-/* Section: summary cards + desktop table */
-/* Used by management/students-dtr.php: top summary and attendance table */
+.app-students-dtr-page-header .page-header-right-items-wrapper {
+    flex-wrap: wrap;
+}
+
+.app-students-dtr-hero-card,
+.app-students-dtr-summary-card,
+.app-students-dtr-day-card,
+.dtr-summary-card,
+.dtr-day-card {
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+}
+
+.app-students-dtr-hero-card {
+    overflow: hidden;
+    background: linear-gradient(135deg, #f9fbff 0%, #eef4ff 100%);
+}
+
+.app-students-dtr-hero-card .card-body {
+    padding: 1rem 1.1rem;
+}
+
+.app-students-dtr-toolbar,
+.toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(290px, 0.95fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.app-students-dtr-overline {
+    margin: 0 0 0.35rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #4f6fa6;
+}
+
+.app-students-dtr-copy-note {
+    margin-top: 0.45rem;
+    color: #5f6f86;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    max-width: 56ch;
+}
+
+.app-students-dtr-toolbar-side {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.app-students-dtr-filter-form {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.65rem;
+    align-items: center;
+    padding: 0.82rem 0.95rem;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.82);
+}
+
+.app-students-dtr-filter-label {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.app-students-dtr-filter-form .form-control {
+    min-height: 40px;
+}
+
+.app-students-dtr-hours-chip {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.92rem 1rem;
+    border: 1px solid rgba(90, 118, 170, 0.24);
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.96);
+    color: #edf4ff;
+}
+
+.app-students-dtr-hours-chip-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(219, 232, 255, 0.76);
+}
+
+.app-students-dtr-hours-chip-pill {
+    display: inline-flex;
+    align-self: flex-start;
+    align-items: center;
+    justify-content: center;
+    min-width: 112px;
+    padding: 0.42rem 0.8rem;
+    border: 1px solid rgba(129, 153, 199, 0.34);
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(29, 78, 216, 0.18), rgba(14, 165, 233, 0.1));
+}
+
+.app-students-dtr-hours-chip-value {
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.01em;
+}
+
+.app-students-dtr-hours-chip-meta {
+    font-size: 0.82rem;
+    color: rgba(219, 232, 255, 0.8);
+}
+
+.app-students-dtr-meta-highlight,
+.student-meta-highlight {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.7rem;
+}
+
+.app-students-dtr-meta-highlight .app-students-dtr-chip,
+.app-students-dtr-meta-highlight .chip,
+.student-meta-highlight .app-students-dtr-chip,
+.student-meta-highlight .chip {
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    color: #1f3c6b;
+    border-radius: 999px;
+    padding: 0.42rem 0.78rem;
+    font-weight: 700;
+    font-size: 0.78rem;
+    line-height: 1.2;
+}
+
 .app-students-dtr-summary-card,
 .dtr-summary-card {
-        border: 1px solid #e9ecef;
-        border-radius: 12px;
-        padding: 14px;
-        background: #fff;
-        height: 100%;
-    }
-    .app-students-dtr-summary-label,
-    .dtr-summary-label {
-        font-size: 12px;
-        color: #6c757d;
-        margin-bottom: 6px;
-    }
-    .app-students-dtr-summary-value,
-    .dtr-summary-value {
-        font-size: 22px;
-        font-weight: 700;
-        line-height: 1.1;
-    }
-    .app-students-dtr-table th,
-    .dtr-table th {
-        white-space: nowrap;
-        font-size: 12px;
-    }
-    .app-students-dtr-table td,
-    .dtr-table td {
-        vertical-align: middle;
-        font-size: 12px;
-    }
-    /* Section: toolbar and student meta chips */
-    /* Used by management/students-dtr.php: header controls and context chips */
+    padding: 1rem;
+    height: 100%;
+}
+
+.app-students-dtr-summary-label,
+.dtr-summary-label {
+    font-size: 0.76rem;
+    color: #6b7a90;
+    margin-bottom: 0.35rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+.app-students-dtr-summary-value,
+.dtr-summary-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #12263f;
+}
+
+.card .app-students-dtr-table,
+.card .dtr-table {
+    margin-bottom: 0;
+}
+
+.app-students-dtr-table th,
+.dtr-table th {
+    white-space: nowrap;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7a90;
+    background: rgba(241, 245, 249, 0.9);
+}
+
+.app-students-dtr-table td,
+.dtr-table td {
+    vertical-align: middle;
+    font-size: 0.83rem;
+    color: #243447;
+}
+
+.app-students-dtr-table tbody tr:hover,
+.dtr-table tbody tr:hover {
+    background: rgba(239, 246, 255, 0.78);
+}
+
+.app-students-dtr-mobile-list,
+.dtr-mobile-list {
+    display: none;
+}
+
+.app-students-dtr-day-top,
+.dtr-day-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+.app-students-dtr-day-title,
+.dtr-day-title {
+    margin: 0;
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: #17345a;
+    line-height: 1.35;
+}
+
+.app-students-dtr-slot-grid,
+.dtr-slot-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.app-students-dtr-slot,
+.dtr-slot {
+    border: 1px solid rgba(226, 232, 240, 0.92);
+    border-radius: 12px;
+    padding: 0.72rem 0.78rem;
+    background: #fbfdff;
+}
+
+.app-students-dtr-slot-label,
+.dtr-slot-label {
+    margin: 0;
+    font-size: 0.68rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+}
+
+.app-students-dtr-slot-value,
+.dtr-slot-value {
+    margin: 0.24rem 0 0;
+    font-size: 0.94rem;
+    font-weight: 700;
+    color: #102a43;
+}
+
+.app-students-dtr-hours-row,
+.dtr-hours-row {
+    margin-top: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-top: 1px dashed rgba(148, 163, 184, 0.4);
+    padding-top: 0.8rem;
+}
+
+.app-students-dtr-hours-label,
+.dtr-hours-label {
+    margin: 0;
+    font-size: 0.76rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+.app-students-dtr-hours-value,
+.dtr-hours-value {
+    margin: 0;
+    padding: 0.34rem 0.68rem;
+    border-radius: 999px;
+    border: 1px solid rgba(90, 118, 170, 0.22);
+    background: linear-gradient(135deg, #f7fbff, #edf4ff);
+    color: #12375f;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.app-students-dtr-empty-note,
+.dtr-empty-note {
+    margin: 0;
+    font-size: 0.82rem;
+    color: #7b8798;
+    font-style: italic;
+}
+
+html.app-skin-dark .app-students-dtr-hero-card,
+html.app-skin-dark .app-students-dtr-summary-card,
+html.app-skin-dark .app-students-dtr-day-card,
+html.app-skin-dark .dtr-summary-card,
+html.app-skin-dark .dtr-day-card {
+    border-color: rgba(129, 153, 199, 0.24);
+    background: linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(12, 20, 36, 0.98));
+    box-shadow: 0 18px 36px rgba(2, 6, 23, 0.42);
+}
+
+html.app-skin-dark .app-students-dtr-hero-card {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(16, 30, 58, 0.98));
+}
+
+html.app-skin-dark .app-students-dtr-overline {
+    color: #93c5fd;
+}
+
+html.app-skin-dark .app-students-dtr-copy-note {
+    color: #9fb0cc;
+}
+
+html.app-skin-dark .app-students-dtr-filter-form {
+    background: rgba(15, 23, 42, 0.86);
+    border-color: rgba(129, 153, 199, 0.26);
+}
+
+html.app-skin-dark .app-students-dtr-filter-label {
+    color: #9fb0cc;
+}
+
+html.app-skin-dark .app-students-dtr-hours-chip {
+    border-color: rgba(129, 153, 199, 0.3);
+    background: rgba(7, 13, 25, 0.92);
+}
+
+html.app-skin-dark .app-students-dtr-hours-chip-pill {
+    border-color: rgba(96, 165, 250, 0.28);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.24), rgba(14, 165, 233, 0.14));
+}
+
+html.app-skin-dark .app-students-dtr-meta-highlight .app-students-dtr-chip,
+html.app-skin-dark .app-students-dtr-meta-highlight .chip,
+html.app-skin-dark .student-meta-highlight .app-students-dtr-chip,
+html.app-skin-dark .student-meta-highlight .chip {
+    background: rgba(15, 23, 42, 0.72);
+    border-color: rgba(129, 153, 199, 0.24);
+    color: #dbe8ff;
+}
+
+html.app-skin-dark .app-students-dtr-summary-label,
+html.app-skin-dark .dtr-summary-label {
+    color: #91a3bf;
+}
+
+html.app-skin-dark .app-students-dtr-summary-value,
+html.app-skin-dark .dtr-summary-value {
+    color: #f8fbff;
+}
+
+html.app-skin-dark .app-students-dtr-table th,
+html.app-skin-dark .dtr-table th {
+    background: rgba(30, 41, 59, 0.82);
+    color: #9fb0cc;
+}
+
+html.app-skin-dark .app-students-dtr-table td,
+html.app-skin-dark .dtr-table td {
+    color: #d8e4f5;
+}
+
+html.app-skin-dark .app-students-dtr-table tbody tr:hover,
+html.app-skin-dark .dtr-table tbody tr:hover {
+    background: rgba(30, 41, 59, 0.6);
+}
+
+html.app-skin-dark .app-students-dtr-day-title,
+html.app-skin-dark .dtr-day-title {
+    color: #edf4ff;
+}
+
+html.app-skin-dark .app-students-dtr-slot,
+html.app-skin-dark .dtr-slot {
+    background: rgba(15, 23, 42, 0.84);
+    border-color: rgba(129, 153, 199, 0.2);
+}
+
+html.app-skin-dark .app-students-dtr-slot-label,
+html.app-skin-dark .dtr-slot-label {
+    color: #9fb0cc;
+}
+
+html.app-skin-dark .app-students-dtr-slot-value,
+html.app-skin-dark .dtr-slot-value {
+    color: #edf4ff;
+}
+
+html.app-skin-dark .app-students-dtr-hours-row,
+html.app-skin-dark .dtr-hours-row {
+    border-top-color: rgba(129, 153, 199, 0.22);
+}
+
+html.app-skin-dark .app-students-dtr-hours-label,
+html.app-skin-dark .dtr-hours-label {
+    color: #9fb0cc;
+}
+
+html.app-skin-dark .app-students-dtr-hours-value,
+html.app-skin-dark .dtr-hours-value {
+    border-color: rgba(96, 165, 250, 0.22);
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.94));
+    color: #f8fbff;
+}
+
+html.app-skin-dark .app-students-dtr-empty-note,
+html.app-skin-dark .dtr-empty-note {
+    color: #8fa0ba;
+}
+
+@media (max-width: 991.98px) {
     .app-students-dtr-toolbar,
     .toolbar {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
+        grid-template-columns: 1fr;
     }
-    .app-students-dtr-meta-highlight,
-    .student-meta-highlight {
-        display: inline-flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 6px;
+
+    .app-students-dtr-copy-note {
+        max-width: none;
     }
+}
+
+@media (max-width: 767.98px) {
+    .app-students-dtr-hero-card .card-body {
+        padding: 0.9rem;
+    }
+
+    .app-students-dtr-toolbar-side {
+        gap: 0.75rem;
+    }
+
+    .app-students-dtr-filter-form {
+        grid-template-columns: 1fr;
+    }
+
+    .app-students-dtr-filter-form .btn,
+    .app-students-dtr-filter-form .form-control {
+        width: 100%;
+    }
+
+    .app-students-dtr-hours-chip {
+        padding: 0.85rem 0.9rem;
+    }
+
     .app-students-dtr-meta-highlight .app-students-dtr-chip,
     .app-students-dtr-meta-highlight .chip,
     .student-meta-highlight .app-students-dtr-chip,
     .student-meta-highlight .chip {
-        background: #edf4ff;
-        border: 1px solid #b9d4ff;
-        color: #1f3c6b;
-        border-radius: 999px;
-        padding: 6px 10px;
-        font-weight: 700;
-        font-size: 12px;
+        width: 100%;
     }
-    /* Section: mobile day cards */
-    /* Used by management/students-dtr.php: responsive mobile DTR list */
-    .app-students-dtr-mobile-list,
-    .dtr-mobile-list {
+
+    .app-students-dtr-summary-card,
+    .dtr-summary-card {
+        padding: 0.9rem;
+    }
+
+    .app-students-dtr-summary-value,
+    .dtr-summary-value {
+        font-size: 1.12rem;
+    }
+
+    .app-students-dtr-desktop-table,
+    .dtr-desktop-table {
         display: none;
     }
 
-    @media (max-width: 767.98px) {
-        .app-students-dtr-toolbar,
-        .toolbar {
-            align-items: stretch;
-        }
-        .app-students-dtr-toolbar > div,
-        .toolbar > div {
-            width: 100%;
-        }
-        .app-students-dtr-toolbar .d-flex,
-        .toolbar .d-flex {
-            width: 100%;
-            flex-wrap: wrap;
-        }
-        .app-students-dtr-toolbar form,
-        .toolbar form {
-            width: 100%;
-            flex-wrap: wrap;
-        }
-        .app-students-dtr-toolbar input[type="month"],
-        .app-students-dtr-toolbar form button,
-        .app-students-dtr-toolbar .btn,
-        .toolbar input[type="month"],
-        .toolbar form button,
-        .toolbar .btn {
-            width: 100%;
-        }
-        .app-students-dtr-summary-card,
-        .dtr-summary-card {
-            border: 0;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%);
-            box-shadow: 0 6px 16px rgba(31, 60, 107, 0.08);
-        }
-        .app-students-dtr-meta-highlight .app-students-dtr-chip,
-        .app-students-dtr-meta-highlight .chip,
-        .student-meta-highlight .app-students-dtr-chip,
-        .student-meta-highlight .chip {
-            width: 100%;
-        }
-        .app-students-dtr-desktop-table,
-        .dtr-desktop-table {
-            display: none;
-        }
-        .app-students-dtr-mobile-list,
-        .dtr-mobile-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 12px;
-            background: linear-gradient(180deg, #f7faff 0%, #ffffff 100%);
-        }
-        .app-students-dtr-day-card,
-        .dtr-day-card {
-            border: 1px solid #dbe8ff;
-            border-radius: 14px;
-            background: #fff;
-            padding: 12px;
-            box-shadow: 0 6px 18px rgba(15, 34, 62, 0.06);
-        }
-        .app-students-dtr-day-top,
-        .dtr-day-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
-        .app-students-dtr-day-title,
-        .dtr-day-title {
-            margin: 0;
-            font-size: 14px;
-            font-weight: 700;
-            color: #17345a;
-            line-height: 1.3;
-        }
-        .app-students-dtr-slot-grid,
-        .dtr-slot-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-top: 8px;
-        }
-        .app-students-dtr-slot,
-        .dtr-slot {
-            border: 1px solid #edf2fb;
-            border-radius: 10px;
-            padding: 8px;
-            background: #fbfdff;
-        }
-        .app-students-dtr-slot-label,
-        .dtr-slot-label {
-            margin: 0;
-            font-size: 11px;
-            color: #627089;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-        }
-        .app-students-dtr-slot-value,
-        .dtr-slot-value {
-            margin: 2px 0 0;
-            font-size: 13px;
-            font-weight: 700;
-            color: #1d2f4d;
-        }
-        .app-students-dtr-hours-row,
-        .dtr-hours-row {
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-top: 1px dashed #d8e4f8;
-            padding-top: 8px;
-        }
-        .app-students-dtr-hours-label,
-        .dtr-hours-label {
-            margin: 0;
-            font-size: 12px;
-            color: #61708a;
-        }
-        .app-students-dtr-hours-value,
-        .dtr-hours-value {
-            margin: 0;
-            font-size: 14px;
-            font-weight: 700;
-            color: #12375f;
-        }
-        .app-students-dtr-empty-note,
-        .dtr-empty-note {
-            margin: 8px 0 0;
-            font-size: 12px;
-            color: #8b94a7;
-        font-style: italic;
-        }
+    .app-students-dtr-mobile-list,
+    .dtr-mobile-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        padding: 0.95rem;
+        background: linear-gradient(180deg, #f7faff 0%, #ffffff 100%);
     }
 
-    .app-skin-dark .app-students-dtr-summary-card,
-    .app-skin-dark .dtr-summary-card {
-        background: linear-gradient(135deg, #1c2432 0%, #111827 100%);
-        border-color: #2a3448;
-    }
-    .app-skin-dark .app-students-dtr-summary-label,
-    .app-skin-dark .dtr-summary-label {
-        color: #93a4bf;
-    }
-    .app-skin-dark .app-students-dtr-summary-value,
-    .app-skin-dark .dtr-summary-value {
-        color: #e5edf8;
-    }
-    .app-skin-dark .app-students-dtr-meta-highlight .app-students-dtr-chip,
-    .app-skin-dark .app-students-dtr-meta-highlight .chip,
-    .app-skin-dark .student-meta-highlight .app-students-dtr-chip,
-    .app-skin-dark .student-meta-highlight .chip {
-        background: #1b2a42;
-        border-color: #30496f;
-        color: #c9dbf8;
-    }
-    .app-skin-dark .app-students-dtr-mobile-list,
-    .app-skin-dark .dtr-mobile-list {
-        background: linear-gradient(180deg, #111827 0%, #0f172a 100%);
-    }
-    .app-skin-dark .app-students-dtr-day-card,
-    .app-skin-dark .dtr-day-card {
-        background: #1a2332;
-        border-color: #2e3a51;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
-    }
-    .app-skin-dark .app-students-dtr-day-title,
-    .app-skin-dark .dtr-day-title {
-        color: #e8eefb;
-    }
-    .app-skin-dark .app-students-dtr-slot,
-    .app-skin-dark .dtr-slot {
-        background: #0f172a;
-        border-color: #2d3a52;
-    }
-    .app-skin-dark .app-students-dtr-slot-label,
-    .app-skin-dark .dtr-slot-label {
-        color: #9aabc6;
-    }
-    .app-skin-dark .app-students-dtr-slot-value,
-    .app-skin-dark .dtr-slot-value {
-        color: #e2eaf8;
-    }
-    .app-skin-dark .app-students-dtr-hours-row,
-    .app-skin-dark .dtr-hours-row {
-        border-top-color: #334155;
-    }
-    .app-skin-dark .app-students-dtr-hours-label,
-    .app-skin-dark .dtr-hours-label {
-        color: #9aabc6;
-    }
-    .app-skin-dark .app-students-dtr-hours-value,
-    .app-skin-dark .dtr-hours-value {
-        color: #f3f7ff;
-    }
-    .app-skin-dark .app-students-dtr-empty-note,
-    .app-skin-dark .dtr-empty-note {
-        color: #8a9ab2;
+    .app-students-dtr-day-card,
+    .dtr-day-card {
+        padding: 0.95rem;
     }
 
-    @media print {
-        body * {
-            visibility: hidden !important;
-        }
-
-        .nxl-content,
-        .nxl-content *,
-        .main-content,
-        .main-content *,
-        .dtr-desktop-table,
-        .dtr-desktop-table * {
-            visibility: visible !important;
-        }
-
-        .nxl-navigation,
-        .nxl-header,
-        .page-header,
-        .toolbar,
-        .app-students-dtr-toolbar,
-        .dtr-mobile-list,
-        .app-students-dtr-mobile-list,
-        .btn,
-        .breadcrumb {
-            display: none !important;
-        }
-
-        .nxl-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            padding: 0 !important;
-            margin: 0 !important;
-            background: #fff;
-        }
-
-        .main-content {
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-
-        .dtr-table,
-        .app-students-dtr-table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-            font-size: 11px !important;
-        }
-
-        .dtr-table th,
-        .dtr-table td,
-        .app-students-dtr-table th,
-        .app-students-dtr-table td {
-            border: 1px solid #222 !important;
-            padding: 6px !important;
-            color: #111 !important;
-            background: #fff !important;
-        }
-
-        .dtr-table th,
-        .app-students-dtr-table th {
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-        }
+    .app-students-dtr-slot-grid,
+    .dtr-slot-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
     }
+
+    .app-students-dtr-hours-row,
+    .dtr-hours-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .app-students-dtr-day-top,
+    .dtr-day-top {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .app-students-dtr-slot-grid,
+    .dtr-slot-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .app-students-dtr-mobile-list,
+    .dtr-mobile-list {
+        padding: 0.8rem;
+    }
+}
+
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+
+    .nxl-content,
+    .nxl-content *,
+    .main-content,
+    .main-content *,
+    .dtr-desktop-table,
+    .dtr-desktop-table * {
+        visibility: visible !important;
+    }
+
+    .nxl-navigation,
+    .nxl-header,
+    .page-header,
+    .toolbar,
+    .app-students-dtr-toolbar,
+    .dtr-mobile-list,
+    .app-students-dtr-mobile-list,
+    .btn,
+    .breadcrumb {
+        display: none !important;
+    }
+
+    .nxl-content {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: #fff;
+    }
+
+    .main-content {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .dtr-table,
+    .app-students-dtr-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 11px !important;
+    }
+
+    .dtr-table th,
+    .dtr-table td,
+    .app-students-dtr-table th,
+    .app-students-dtr-table td {
+        border: 1px solid #222 !important;
+        padding: 6px !important;
+        color: #111 !important;
+        background: #fff !important;
+    }
+
+    .dtr-table th,
+    .app-students-dtr-table th {
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+}

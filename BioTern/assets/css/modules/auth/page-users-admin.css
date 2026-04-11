@@ -3,12 +3,35 @@
     padding-top: 0.1rem;
 }
 
-.users-admin-page .stat-label {
-    font-size: 0.7rem;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
+.app-users-stats-dashboard {
+    margin-bottom: 0.5rem;
+}
+
+.app-users-stats-dashboard .app-users-stat-card {
+    --app-stat-accent: color-mix(in srgb, var(--biotern-data-card-border, rgba(15, 23, 42, 0.08)) 84%, transparent);
+    --app-stat-accent-text: var(--biotern-data-muted, #64748b);
+    border: 2px solid var(--biotern-data-card-border, rgba(15, 23, 42, 0.12));
+    border-radius: 14px;
+    box-shadow: var(--biotern-data-card-shadow, 0 10px 24px rgba(2, 6, 23, 0.06));
+}
+
+.app-users-stats-dashboard .app-stat-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    font-weight: 800;
     color: var(--biotern-data-muted, #64748b);
-    margin-bottom: 0.05rem;
+}
+
+.app-users-stats-dashboard .app-stat-value {
+    font-size: clamp(1.2rem, 1.6vw, 1.75rem);
+    font-weight: 900;
+    color: var(--biotern-data-text, #0f172a);
+}
+
+.app-users-stats-dashboard .app-stat-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
 }
 
 .app-users-stat-card {
@@ -384,6 +407,10 @@ html.app-skin-dark .app-users-stat-card {
     box-shadow: none;
 }
 
+html.app-skin-dark .app-users-stats-dashboard .app-users-stat-card {
+    border-color: rgba(129, 153, 199, 0.28);
+}
+
 html.app-skin-dark .app-users-filter-card,
 html.app-skin-dark .app-users-inline-details {
     border-color: rgba(129, 153, 199, 0.16);
@@ -408,8 +435,12 @@ html.app-skin-dark .app-users-student-submeta,
 html.app-skin-dark .app-users-cell-title,
 html.app-skin-dark .app-users-cell-meta,
 html.app-skin-dark .app-users-inline-detail-label,
-html.app-skin-dark .users-admin-page .stat-label {
+html.app-skin-dark .app-users-stats-dashboard .app-stat-label {
     color: #8ea1bd;
+}
+
+html.app-skin-dark .app-users-stats-dashboard .app-stat-value {
+    color: #f8fafc;
 }
 
 html.app-skin-dark .users-action-menu-portal {

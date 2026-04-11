@@ -121,14 +121,14 @@ include 'includes/header.php';
         </div>
     </div>
 
-    <div class="card">
+    <div class="card app-data-card app-data-toolbar app-academic-list-card app-mobile-inline-list-card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All School Years</h5>
             <span class="badge bg-primary text-white px-3 py-1 fw-semibold"><?php echo count($school_years); ?> total</span>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
+            <div class="table-responsive app-data-table-wrap">
+                <table class="table table-hover mb-0 app-data-table app-academic-list-table">
                     <thead>
                         <tr><th>ID</th><th>Year</th><th>Created</th><th>Actions</th></tr>
                     </thead>
@@ -138,18 +138,56 @@ include 'includes/header.php';
                         <?php else: ?>
                             <?php foreach ($school_years as $sy): ?>
                                 <tr>
-                                    <td><?php echo (int)$sy['id']; ?></td>
-                                    <td><?php echo htmlspecialchars((string)$sy['year']); ?></td>
-                                    <td><?php echo htmlspecialchars((string)($sy['created_at'] ?? '-')); ?></td>
-                                    <td class="d-flex gap-2">
-                                        <a href="school_years.php?edit=<?php echo (int)$sy['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <td><span class="app-academic-id-pill"><?php echo (int)$sy['id']; ?></span></td>
+                                    <td>
+                                        <div class="app-academic-name-cell">
+                                            <span class="app-academic-name"><?php echo htmlspecialchars((string)$sy['year']); ?></span>
+                                        </div>
+                                    </td>
+                                    <td><span class="app-academic-created"><?php echo htmlspecialchars((string)($sy['created_at'] ?? '-')); ?></span></td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                        <a href="school_years.php?edit=<?php echo (int)$sy['id']; ?>" class="btn btn-sm btn-outline-primary app-academic-edit-btn">Edit</a>
                                         <a href="school_years.php?delete=<?php echo (int)$sy['id']; ?>" class="btn btn-sm btn-outline-danger js-confirm-action" data-confirm="Delete this school year?">Delete</a>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
                 </table>
+            </div>
+            <div class="app-mobile-list app-ojt-mobile-list">
+                <?php if (empty($school_years)): ?>
+                    <div class="app-data-empty">No school years found.</div>
+                <?php else: ?>
+                    <?php foreach ($school_years as $sy): ?>
+                        <details class="app-mobile-item app-ojt-mobile-item">
+                            <summary class="app-mobile-summary app-ojt-mobile-summary">
+                                <div class="app-mobile-summary-main app-ojt-mobile-summary-main">
+                                    <div class="app-mobile-summary-text app-ojt-mobile-summary-text">
+                                        <span class="app-mobile-name app-ojt-mobile-name"><?php echo htmlspecialchars((string)$sy['year']); ?></span>
+                                        <span class="app-mobile-subtext app-ojt-mobile-subtext">ID: <?php echo (int)$sy['id']; ?></span>
+                                    </div>
+                                </div>
+                                <span class="app-ojt-mobile-status-dot status-review" aria-hidden="true"></span>
+                            </summary>
+                            <div class="app-mobile-details app-ojt-mobile-details">
+                                <div class="app-mobile-row app-ojt-mobile-row">
+                                    <span class="app-mobile-label app-ojt-mobile-label">Created</span>
+                                    <span class="app-mobile-value app-ojt-mobile-value"><?php echo htmlspecialchars((string)($sy['created_at'] ?? '-')); ?></span>
+                                </div>
+                                <div class="app-mobile-row app-mobile-row-stack app-ojt-mobile-row app-ojt-mobile-row-stack">
+                                    <span class="app-mobile-label app-ojt-mobile-label">Actions</span>
+                                    <div class="app-ojt-mobile-actions">
+                                        <a href="school_years.php?edit=<?php echo (int)$sy['id']; ?>" class="btn btn-sm btn-outline-primary app-academic-edit-btn">Edit</a>
+                                        <a href="school_years.php?delete=<?php echo (int)$sy['id']; ?>" class="btn btn-sm btn-outline-danger js-confirm-action" data-confirm="Delete this school year?">Delete</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </div>
     </div>

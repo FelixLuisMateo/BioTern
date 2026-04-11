@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
@@ -126,9 +127,12 @@ if ($dept_res && $dept_res->num_rows) {
 }
 
 $sections = [];
-$section_res = $db->query("SELECT id, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
+$section_res = $db->query("SELECT id, code, name, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
 if ($section_res && $section_res->num_rows) {
-    while ($r = $section_res->fetch_assoc()) $sections[] = $r;
+    while ($r = $section_res->fetch_assoc()) {
+        $r['section_label'] = biotern_format_section_label((string)($r['code'] ?? ''), (string)($r['name'] ?? ''));
+        $sections[] = $r;
+    }
 }
 
 $supervisors = [];
@@ -311,7 +315,7 @@ $selected_section_label = 'ALL';
 if ($filter_section > 0) {
     foreach ($sections as $sec) {
         if ((int)$sec['id'] === (int)$filter_section) {
-            $selected_section_label = (string)$sec['section_label'];
+            $selected_section_label = biotern_format_section_label((string)($sec['code'] ?? ''), (string)($sec['name'] ?? ''));
             break;
         }
     }
@@ -670,7 +674,7 @@ include 'includes/header.php';
                                                     $student_name = trim((string)($student['first_name'] . ' ' . $student['last_name']));
                                                     $student_id_label = (string)($student['student_id'] ?? '-');
                                                     $course_name = (string)($student['course_name'] ?? 'N/A');
-                                                    $section_name = (string)($student['section_name'] ?? '-');
+                                                    $section_name = biotern_format_section_code((string)($student['section_name'] ?? '-'));
                                                     $supervisor_name = (string)($student['supervisor_name'] ?? '-');
                                                     $coordinator_name = (string)($student['coordinator_name'] ?? '-');
                                                     $last_logged = formatDate($student['created_at']);

@@ -101,10 +101,14 @@ $map = [
   'import_database.php' => 'pages/import_database.php',
   'demo-biometric.php' => 'pages/demo-biometric.php',
   'fingerprint_mapping.php' => 'pages/fingerprint_mapping.php',
+  'ojt-internal-list.php' => 'pages/ojt-internal-list.php',
+  'ojt-external-list.php' => 'pages/ojt-external-list.php',
   'biometric-machine.php' => 'pages/biometric-machine.php',
   'biometric_machine_sync.php' => 'tools/biometric_machine_sync.php',
   'import-sql.php' => 'tools/import-sql.php',
   'import-students-excel.php' => 'tools/import-students-excel.php',
+  'import-ojt-internal.php' => 'tools/import-ojt-internal.php',
+  'import-ojt-external.php' => 'tools/import-ojt-external.php',
   'print_attendance.php' => 'pages/print_attendance.php',
 
   'document_application.php' => 'documents/document_application.php',
@@ -148,6 +152,7 @@ $map = [
   'api-biometric-event.php' => 'api/api-biometric-event.php',
   'f20h_ingest.php' => 'api/f20h_ingest.php',
   'bridge_profile.php' => 'api/bridge_profile.php',
+  'bridge_health.php' => 'api/bridge_health.php',
   'bridge_users_sync.php' => 'api/bridge_users_sync.php',
   'bridge_commands_claim.php' => 'api/bridge_commands_claim.php',
   'bridge_commands_complete.php' => 'api/bridge_commands_complete.php',
@@ -229,6 +234,7 @@ $public_files = [
   'index.php',
   'f20h_ingest.php',
   'bridge_profile.php',
+  'bridge_health.php',
   'bridge_users_sync.php',
   'bridge_commands_claim.php',
   'bridge_commands_complete.php',
@@ -323,6 +329,7 @@ if ($is_logged_in) {
     'applications-review.php',
     'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php',
     'demo-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
+    'ojt-internal-list.php', 'ojt-external-list.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
     'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-attendance-exceptions.php',
     'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
@@ -339,7 +346,7 @@ if ($is_logged_in) {
   ];
   $system_files = [
     'auth-register.php', 'users.php', 'create_admin.php',
-    'import-sql.php', 'import-students-excel.php',
+    'import-sql.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php',
   ];
   $settings_files = [
     'settings-general.php', 'settings-email.php',
