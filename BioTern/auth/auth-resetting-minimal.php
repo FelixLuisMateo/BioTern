@@ -7,6 +7,8 @@ require_once dirname(__DIR__) . '/config/db.php';
 
 $reset_error = '';
 $reset_success = '';
+$reset_toast_type = '';
+$reset_toast_message = '';
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 $route_prefix = $asset_prefix;
@@ -99,6 +101,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+if ($reset_error !== '') {
+    $reset_toast_type = 'error';
+    $reset_toast_message = $reset_error;
+} elseif ($reset_success !== '') {
+    $reset_toast_type = 'success';
+    $reset_toast_message = $reset_success;
+}
 ?>
 <!DOCTYPE html>
 <html lang="zxx">
@@ -116,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/state/notification-skin.css">
 </head>
 
 <body>
@@ -130,13 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <h2 class="fs-20 fw-bolder mb-4">Reset Password</h2>
                         <h4 class="fs-13 fw-bold mb-2">Set your new password</h4>
                         <p class="fs-12 fw-medium text-muted">Enter your new password below to complete your password reset.</p>
-
-                        <?php if ($reset_error !== ''): ?>
-                            <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($reset_error); ?></div>
-                        <?php endif; ?>
-
                         <?php if ($reset_success !== ''): ?>
-                            <div class="alert alert-success" role="alert"><?php echo htmlspecialchars($reset_success); ?></div>
                             <div class="mt-4">
                                 <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login.php" class="btn btn-lg btn-primary w-100">Go to Login</a>
                             </div>
@@ -169,6 +174,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/vendors.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
+    <?php if ($reset_toast_message !== ''): ?>
+    <script>
+        (function () {
+            var payload = {
+                type: <?php echo json_encode($reset_toast_type, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+                message: <?php echo json_encode($reset_toast_message, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+            };
+            if (!payload.message) {
+                return;
+            }
+
+            var variantMap = { success: 'success', info: 'info', warning: 'warning', danger: 'error', error: 'error' };
+            var iconMap = {
+                success: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+                info: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 10v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 7h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+                warning: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 9v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+                error: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M15 9 9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m9 9 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+            };
+
+            var variant = variantMap[payload.type] || 'info';
+            var root = document.body || document.documentElement;
+            if (!root) {
+                return;
+            }
+
+            var toast = document.createElement('div');
+            toast.id = 'authResettingToast';
+            toast.className = 'app-theme-toast-static app-theme-toast-static--' + variant;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+
+            var iconWrap = document.createElement('span');
+            iconWrap.className = 'app-theme-toast-static-icon';
+            var iconEl = document.createElement('span');
+            iconEl.className = 'app-theme-toast-static-icon-glyph';
+            iconEl.setAttribute('aria-hidden', 'true');
+            iconEl.innerHTML = iconMap[variant] || iconMap.info;
+            iconWrap.appendChild(iconEl);
+
+            var textWrap = document.createElement('span');
+            textWrap.className = 'app-theme-toast-static-text';
+            textWrap.textContent = String(payload.message);
+
+            toast.appendChild(iconWrap);
+            toast.appendChild(textWrap);
+            root.appendChild(toast);
+
+            window.setTimeout(function () {
+                if (toast && toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 5200);
+        })();
+    </script>
+    <?php endif; ?>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const eyeSVG = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>';

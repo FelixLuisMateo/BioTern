@@ -5,6 +5,8 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $verify_error = '';
 $verify_message = '';
+$verify_toast_type = '';
+$verify_toast_message = '';
 $otpTtlSeconds = 600;
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
@@ -68,6 +70,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $verify_error = 'Invalid verification code. Please try again.';
     }
 }
+
+if ($verify_error !== '') {
+    $verify_toast_type = 'error';
+    $verify_toast_message = $verify_error;
+} elseif ($verify_message !== '') {
+    $verify_toast_type = 'info';
+    $verify_toast_message = $verify_message;
+}
 ?>
 <!DOCTYPE html>
 <html lang="zxx">
@@ -85,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/state/notification-skin.css">
 </head>
 
 <body>
@@ -105,14 +116,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <h2 class="fs-20 fw-bolder mb-4">Verify</h2>
                     <h4 class="fs-13 fw-bold mb-2">Enter the 6-digit one-time password sent to your account.</h4>
                     <p class="fs-12 fw-medium text-muted"><span>A code has been sent to</span> <strong><?php echo $masked_contact; ?></strong></p>
-
-                    <?php if ($verify_message !== ''): ?>
-                        <div class="alert alert-info" role="alert"><?php echo htmlspecialchars($verify_message, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php endif; ?>
-
-                    <?php if ($verify_error !== ''): ?>
-                        <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($verify_error, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php endif; ?>
 
                     <form method="post" class="w-100 mt-4 pt-2" autocomplete="one-time-code">
                         <div id="otp" class="inputs d-flex flex-row justify-content-center mt-2">
@@ -139,6 +142,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/vendors.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
+    <?php if ($verify_toast_message !== ''): ?>
+    <script>
+    (function () {
+        var payload = {
+            type: <?php echo json_encode($verify_toast_type, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+            message: <?php echo json_encode($verify_toast_message, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+        };
+        if (!payload.message) {
+            return;
+        }
+
+        var variantMap = { success: 'success', info: 'info', warning: 'warning', danger: 'error', error: 'error' };
+        var iconMap = {
+            success: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+            info: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 10v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 7h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+            warning: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 9v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+            error: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M15 9 9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m9 9 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+        };
+
+        var variant = variantMap[payload.type] || 'info';
+        var root = document.body || document.documentElement;
+        if (!root) {
+            return;
+        }
+
+        var toast = document.createElement('div');
+        toast.id = 'authVerifyToast';
+        toast.className = 'app-theme-toast-static app-theme-toast-static--' + variant;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+
+        var iconWrap = document.createElement('span');
+        iconWrap.className = 'app-theme-toast-static-icon';
+        var iconEl = document.createElement('span');
+        iconEl.className = 'app-theme-toast-static-icon-glyph';
+        iconEl.setAttribute('aria-hidden', 'true');
+        iconEl.innerHTML = iconMap[variant] || iconMap.info;
+        iconWrap.appendChild(iconEl);
+
+        var textWrap = document.createElement('span');
+        textWrap.className = 'app-theme-toast-static-text';
+        textWrap.textContent = String(payload.message);
+
+        toast.appendChild(iconWrap);
+        toast.appendChild(textWrap);
+        root.appendChild(toast);
+
+        window.setTimeout(function () {
+            if (toast && toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 5200);
+    })();
+    </script>
+    <?php endif; ?>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             var otpWrap = document.getElementById('otp');

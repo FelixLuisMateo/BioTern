@@ -171,6 +171,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $flash_message = (string)($_SESSION['users_flash_message'] ?? '');
 $flash_type = (string)($_SESSION['users_flash_type'] ?? 'success');
 unset($_SESSION['users_flash_message'], $_SESSION['users_flash_type']);
+$users_toast_type = $flash_type;
+$users_toast_message = $flash_message;
 
 $search = trim((string)($_GET['q'] ?? ''));
 $role_filter = strtolower(trim((string)($_GET['role'] ?? 'all')));
@@ -274,6 +276,7 @@ $page_title = 'BioTern || Users';
 $base_href = '';
 $page_body_class = 'app-page-users-admin';
 $page_styles = [
+    'assets/css/state/notification-skin.css',
     'assets/css/modules/management/management-filters.css',
     'assets/css/modules/app-ui-lists-tables.css',
     'assets/css/modules/auth/page-users-admin.css',
@@ -303,10 +306,6 @@ include __DIR__ . '/../includes/header.php';
 </div>
 
 <div class="main-content users-admin-page">
-    <?php if ($flash_message !== ''): ?>
-        <div class="alert alert-<?php echo e($flash_type); ?> py-2"><?php echo e($flash_message); ?></div>
-    <?php endif; ?>
-
     <div class="row g-1 mb-1">
         <div class="col-md-3">
             <div class="card stat-card app-users-stat-card">
@@ -545,6 +544,61 @@ include __DIR__ . '/../includes/header.php';
 
 </div> <!-- .nxl-content -->
 </main>
+<?php if ($users_toast_message !== ''): ?>
+<script>
+(function () {
+    var payload = {
+        type: <?php echo json_encode($users_toast_type, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+        message: <?php echo json_encode($users_toast_message, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+    };
+    if (!payload.message) {
+        return;
+    }
+
+    var variantMap = { success: 'success', info: 'info', warning: 'warning', danger: 'error', error: 'error' };
+    var iconMap = {
+        success: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        info: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 10v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 7h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        warning: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 9v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+        error: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M15 9 9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m9 9 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    };
+
+    var variant = variantMap[payload.type] || 'info';
+    var root = document.body || document.documentElement;
+    if (!root) {
+        return;
+    }
+
+    var toast = document.createElement('div');
+    toast.id = 'usersPageToast';
+    toast.className = 'app-theme-toast-static app-theme-toast-static--' + variant;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+
+    var iconWrap = document.createElement('span');
+    iconWrap.className = 'app-theme-toast-static-icon';
+    var iconEl = document.createElement('span');
+    iconEl.className = 'app-theme-toast-static-icon-glyph';
+    iconEl.setAttribute('aria-hidden', 'true');
+    iconEl.innerHTML = iconMap[variant] || iconMap.info;
+    iconWrap.appendChild(iconEl);
+
+    var textWrap = document.createElement('span');
+    textWrap.className = 'app-theme-toast-static-text';
+    textWrap.textContent = String(payload.message);
+
+    toast.appendChild(iconWrap);
+    toast.appendChild(textWrap);
+    root.appendChild(toast);
+
+    window.setTimeout(function () {
+        if (toast && toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5200);
+})();
+</script>
+<?php endif; ?>
 <?php
 include __DIR__ . '/../includes/footer.php';
 $conn->close();

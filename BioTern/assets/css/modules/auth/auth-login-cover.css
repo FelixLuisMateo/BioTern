@@ -168,6 +168,23 @@ body.auth-login-page .auth-cover-card .alert {
     border-radius: 14px;
 }
 
+body.auth-login-page .auth-theme-toast-error {
+    top: 18px;
+    right: 18px;
+    background: color-mix(in srgb, var(--auth-card-surface) 88%, #fee2e2 12%);
+    border-color: color-mix(in srgb, var(--biotern-notify-danger, #ef4444) 30%, var(--auth-card-border) 70%);
+}
+
+body.auth-login-page .auth-theme-toast-error .app-theme-toast-static-icon {
+    background: color-mix(in srgb, var(--biotern-notify-danger, #ef4444) 18%, transparent);
+    color: var(--biotern-notify-danger, #ef4444);
+}
+
+html.app-skin-dark body.auth-login-page .auth-theme-toast-error {
+    background: color-mix(in srgb, var(--auth-card-surface) 90%, #7f1d1d 10%);
+    border-color: rgba(248, 113, 113, 0.32);
+}
+
 body.auth-login-page .auth-cover-card .form-control {
     min-height: 50px;
     background: var(--auth-field-bg);
