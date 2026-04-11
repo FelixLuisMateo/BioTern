@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
 $ops_helpers = dirname(__DIR__) . '/lib/ops_helpers.php';
@@ -520,7 +521,7 @@ include 'includes/header.php';
                                     $schoolId = trim((string)($student['student_id'] ?? ''));
                                     $fullName = trim((string)($student['last_name'] ?? '') . ', ' . (string)($student['first_name'] ?? ''));
                                     $course = trim((string)($student['course_name'] ?? '-'));
-                                    $section = trim((string)($student['section_name'] ?? '-'));
+                                    $section = biotern_format_section_code((string)($student['section_name'] ?? '-'));
                                     $track = trim((string)($student['assignment_track'] ?? 'internal'));
                                     $internalDefault = (int)($student['internal_total_hours'] ?? 140);
                                     $externalDefault = (int)($student['external_total_hours'] ?? 250);

@@ -26,6 +26,8 @@ if (!function_exists('esc')) {
 }
 
 $message = '';
+$create_admin_toast_type = '';
+$create_admin_toast_message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = isset($_POST['name']) ? trim((string)$_POST['name']) : '';
     $username = isset($_POST['username']) ? trim((string)$_POST['username']) : '';
@@ -127,14 +129,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+if ($message !== '') {
+    $create_admin_toast_type = (stripos($message, 'successfully') !== false) ? 'success' : 'error';
+    $create_admin_toast_message = $message;
+}
 ?>
 <?php if ($is_admin_session): ?>
 <?php
-$page_title = 'Create Admin';
-$page_styles = ['assets/css/modules/auth/page-create-admin.css'];
+$page_title = 'BioTern || Create Admin';
+$base_href = '';
+$page_body_class = 'app-page-create-admin';
+$page_styles = ['assets/css/state/notification-skin.css', 'assets/css/modules/auth/page-create-admin.css'];
 $page_scripts = ['assets/js/modules/auth/create-admin-page.js'];
-include 'includes/header.php';
+include __DIR__ . '/../includes/header.php';
 ?>
+<main class="nxl-container">
+    <div class="nxl-content">
+
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title"><h5 class="m-b-10">Create Admin</h5></div>
@@ -144,9 +156,12 @@ include 'includes/header.php';
             <li class="breadcrumb-item">Create Admin</li>
         </ul>
     </div>
+    <div class="page-header-right ms-auto">
+        <a href="users.php" class="btn btn-outline-secondary">Back to Users</a>
+    </div>
 </div>
 
-<div class="main-content">
+<div class="main-content create-admin-admin-page">
     <div class="row">
         <div class="col-lg-7 col-xl-6">
             <div class="card stretch stretch-full">
@@ -157,16 +172,6 @@ include 'includes/header.php';
                 </div>
                 <div class="card-body">
                     <p class="text-muted fs-12 mb-4">Creates a new administrator entry in both the <code>users</code> and <code>admin</code> tables.</p>
-
-                    <?php if ($message !== ''): ?>
-                        <?php $mt = (stripos($message, 'successfully') !== false) ? 'success' : 'danger'; ?>
-                        <div class="alert alert-<?php echo $mt; ?> mb-4" role="alert">
-                            <?php echo esc($message); ?>
-                            <?php if ($mt === 'success'): ?>
-                                <div class="mt-1"><a href="users.php" class="alert-link fw-semibold">View Users &rarr;</a></div>
-                            <?php endif; ?>
-                        </div>
-                    <?php endif; ?>
 
                     <form method="post" novalidate class="row g-3" autocomplete="off">
                         <div class="ca-honeypot" aria-hidden="true">
@@ -221,7 +226,66 @@ include 'includes/header.php';
     </div>
 </div>
 
-<?php include 'includes/footer.php'; ?>
+    </div>
+</main>
+
+<?php if ($create_admin_toast_message !== ''): ?>
+<script>
+(function () {
+    var payload = {
+        type: <?php echo json_encode($create_admin_toast_type, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+        message: <?php echo json_encode($create_admin_toast_message, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+    };
+    if (!payload.message) {
+        return;
+    }
+
+    var variantMap = { success: 'success', info: 'info', warning: 'warning', danger: 'error', error: 'error' };
+    var iconMap = {
+        success: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        info: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 10v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 7h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+        warning: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 9v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+        error: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M15 9 9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m9 9 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    };
+
+    var variant = variantMap[payload.type] || 'info';
+    var root = document.body || document.documentElement;
+    if (!root) {
+        return;
+    }
+
+    var toast = document.createElement('div');
+    toast.id = 'createAdminToast';
+    toast.className = 'app-theme-toast-static app-theme-toast-static--' + variant;
+    toast.setAttribute('role', 'alert');
+    toast.setAttribute('aria-live', 'assertive');
+
+    var iconWrap = document.createElement('span');
+    iconWrap.className = 'app-theme-toast-static-icon';
+    var iconEl = document.createElement('span');
+    iconEl.className = 'app-theme-toast-static-icon-glyph';
+    iconEl.setAttribute('aria-hidden', 'true');
+    iconEl.innerHTML = iconMap[variant] || iconMap.info;
+    iconWrap.appendChild(iconEl);
+
+    var textWrap = document.createElement('span');
+    textWrap.className = 'app-theme-toast-static-text';
+    textWrap.textContent = String(payload.message);
+
+    toast.appendChild(iconWrap);
+    toast.appendChild(textWrap);
+    root.appendChild(toast);
+
+    window.setTimeout(function () {
+        if (toast && toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5200);
+})();
+</script>
+<?php endif; ?>
+
+<?php include __DIR__ . '/../includes/footer.php'; ?>
 
 <?php else: ?>
 <!DOCTYPE html>
@@ -235,72 +299,128 @@ include 'includes/header.php';
     <script src="<?php echo esc($asset_prefix); ?>assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="<?php echo esc($asset_prefix); ?>assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo esc($asset_prefix); ?>assets/vendors/css/vendors.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo esc($asset_prefix); ?>assets/css/smacss.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo esc($asset_prefix); ?>assets/css/state/notification-skin.css">
     <link rel="stylesheet" type="text/css" href="<?php echo esc($asset_prefix); ?>assets/css/theme.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo esc($asset_prefix); ?>assets/css/modules/auth/auth-login-cover.css">
     <link rel="stylesheet" type="text/css" href="<?php echo esc($asset_prefix); ?>assets/css/modules/auth/page-create-admin.css">
 </head>
 <body class="auth-login-page create-admin-public" data-ca-post-request="<?php echo $is_post_request ? '1' : '0'; ?>">
     <div class="login-bg-watermark" aria-hidden="true"></div>
-    <div class="create-admin-wrapper">
-        <div class="create-admin-card">
-            <div class="wd-50 mb-4">
-                <img src="<?php echo esc($asset_prefix); ?>assets/images/logo-abbr.png" alt="BioTern" class="img-fluid">
+    <main class="auth-cover-wrapper">
+        <div class="auth-cover-content-inner">
+            <div class="auth-cover-content-wrapper">
+                <div class="auth-img auth-login-visual" aria-hidden="true"></div>
             </div>
-
-            <div class="badge-setup"><span class="dot"></span> Initial Setup</div>
-
-            <h2>Create Admin Account</h2>
-            <p class="subtitle">Set up the first administrator account to access the BioTern dashboard.</p>
-
-            <?php if ($message !== ''): ?>
-                <?php $mt = (stripos($message, 'successfully') !== false) ? 'success' : 'danger'; ?>
-                <div class="alert alert-<?php echo $mt; ?> mb-4" role="alert">
-                    <?php echo esc($message); ?>
-                    <?php if ($mt === 'success'): ?>
-                        <div class="mt-2"><a href="auth-login.php" class="alert-link fw-semibold">Go to Login &rarr;</a></div>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
-
-            <form method="post" novalidate autocomplete="off">
-                <div class="ca-honeypot" aria-hidden="true">
-                    <input type="text" name="fake_username" tabindex="-1" autocomplete="username">
-                    <input type="password" name="fake_password" tabindex="-1" autocomplete="current-password">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label" for="ca_name">Full Name</label>
-                    <input type="text" id="ca_name" name="name" class="form-control" required value="<?php echo isset($_POST['name']) ? esc($_POST['name']) : ''; ?>">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label" for="ca_username">Username</label>
-                    <input type="text" id="ca_username" name="username" class="form-control" autocomplete="off" autocapitalize="off" spellcheck="false" required value="<?php echo isset($_POST['username']) ? esc($_POST['username']) : ''; ?>">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label" for="ca_email">Email Address</label>
-                    <input type="email" id="ca_email" name="email" class="form-control" required value="<?php echo isset($_POST['email']) ? esc($_POST['email']) : ''; ?>">
-                </div>
-                <div class="mb-4">
-                    <label class="form-label" for="ca_password">Password</label>
-                    <div class="input-group">
-                        <input type="password" id="ca_password" name="password" class="form-control" autocomplete="new-password" required>
-                        <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Show password">
-                            <i id="toggleIcon"></i>
-                        </button>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-lg btn-primary w-100">Create Admin Account</button>
-            </form>
-
-            <div class="divider"></div>
-            <p class="footer-note">Already have an account? <a href="auth-login.php">Sign in</a></p>
-
         </div>
-    </div>
+        <div class="auth-cover-sidebar-inner">
+            <div class="auth-cover-card-wrapper">
+                <div class="auth-cover-card p-sm-5 create-admin-card">
+                    <div class="auth-brand-lockup mb-4">
+                        <img src="<?php echo esc($asset_prefix); ?>assets/images/ccstlogo.png" alt="Clark College of Science and Technology" class="auth-brand-lockup-school">
+                        <img src="<?php echo esc($asset_prefix); ?>assets/images/logo-full-header.png" alt="BioTern" class="auth-brand-lockup-app">
+                    </div>
+
+                    <div class="badge-setup"><span class="dot"></span> Initial Setup</div>
+
+                    <h2>Create Admin Account</h2>
+                    <p class="subtitle">Set up the first administrator account to access the BioTern dashboard.</p>
+
+                    <form method="post" novalidate autocomplete="off">
+                        <div class="ca-honeypot" aria-hidden="true">
+                            <input type="text" name="fake_username" tabindex="-1" autocomplete="username">
+                            <input type="password" name="fake_password" tabindex="-1" autocomplete="current-password">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="ca_name">Full Name</label>
+                            <input type="text" id="ca_name" name="name" class="form-control" required value="<?php echo isset($_POST['name']) ? esc($_POST['name']) : ''; ?>">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="ca_username">Username</label>
+                            <input type="text" id="ca_username" name="username" class="form-control" autocomplete="off" autocapitalize="off" spellcheck="false" required value="<?php echo isset($_POST['username']) ? esc($_POST['username']) : ''; ?>">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="ca_email">Email Address</label>
+                            <input type="email" id="ca_email" name="email" class="form-control" required value="<?php echo isset($_POST['email']) ? esc($_POST['email']) : ''; ?>">
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label" for="ca_password">Password</label>
+                            <div class="input-group">
+                                <input type="password" id="ca_password" name="password" class="form-control" autocomplete="new-password" required>
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword" aria-label="Show password">
+                                    <i id="toggleIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-lg btn-primary w-100">Create Admin Account</button>
+                    </form>
+
+                    <div class="divider"></div>
+                    <p class="footer-note">Already have an account? <a href="auth-login.php">Sign in</a></p>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script src="<?php echo esc($asset_prefix); ?>assets/vendors/js/vendors.min.js"></script>
     <script src="<?php echo esc($asset_prefix); ?>assets/js/common-init.min.js"></script>
     <script src="<?php echo esc($asset_prefix); ?>assets/js/theme-customizer-init.min.js"></script>
     <script src="<?php echo esc($asset_prefix); ?>assets/js/modules/auth/create-admin-page.js"></script>
+    <?php if ($create_admin_toast_message !== ''): ?>
+    <script>
+    (function () {
+        var payload = {
+            type: <?php echo json_encode($create_admin_toast_type, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>,
+            message: <?php echo json_encode($create_admin_toast_message, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>
+        };
+        if (!payload.message) {
+            return;
+        }
+
+        var variantMap = { success: 'success', info: 'info', warning: 'warning', danger: 'error', error: 'error' };
+        var iconMap = {
+            success: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+            info: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 10v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 7h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+            warning: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 9v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+            error: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M15 9 9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m9 9 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+        };
+
+        var variant = variantMap[payload.type] || 'info';
+        var root = document.body || document.documentElement;
+        if (!root) {
+            return;
+        }
+
+        var toast = document.createElement('div');
+        toast.id = 'createAdminPublicToast';
+        toast.className = 'app-theme-toast-static app-theme-toast-static--' + variant;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+
+        var iconWrap = document.createElement('span');
+        iconWrap.className = 'app-theme-toast-static-icon';
+        var iconEl = document.createElement('span');
+        iconEl.className = 'app-theme-toast-static-icon-glyph';
+        iconEl.setAttribute('aria-hidden', 'true');
+        iconEl.innerHTML = iconMap[variant] || iconMap.info;
+        iconWrap.appendChild(iconEl);
+
+        var textWrap = document.createElement('span');
+        textWrap.className = 'app-theme-toast-static-text';
+        textWrap.textContent = String(payload.message);
+
+        toast.appendChild(iconWrap);
+        toast.appendChild(textWrap);
+        root.appendChild(toast);
+
+        window.setTimeout(function () {
+            if (toast && toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 5200);
+    })();
+    </script>
+    <?php endif; ?>
 </body>
 </html>
 <?php endif; ?>

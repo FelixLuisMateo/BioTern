@@ -22,6 +22,7 @@ $sectionOptions = [];
 $coordinatorOptions = [];
 $supervisorOptions = [];
 $courseDepartmentMap = [];
+$register_toast = null;
 
 if ($conn && $conn->connect_errno === 0) {
     $conn->query("CREATE TABLE IF NOT EXISTS student_applications (
@@ -218,6 +219,38 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
         }
     }
 }
+
+if (isset($_GET['registered'])) {
+    $reg = (string)$_GET['registered'];
+    $msg = isset($_GET['msg']) ? trim((string)$_GET['msg']) : '';
+
+    if ($reg === 'exists') {
+        $register_toast = [
+            'type' => 'warning',
+            'message' => ($msg !== '' ? $msg : 'An account with that email or username already exists.')
+        ];
+    } elseif ($reg === 'error') {
+        $register_toast = [
+            'type' => 'error',
+            'message' => ($msg !== '' ? $msg : 'An error occurred while registering.')
+        ];
+    } elseif ($reg === 'pending') {
+        $register_toast = [
+            'type' => 'info',
+            'message' => ($msg !== '' ? $msg : 'Application received. Please wait for approval from an administrator, coordinator, or supervisor.')
+        ];
+    } elseif ($reg === 'student') {
+        $register_toast = [
+            'type' => 'info',
+            'message' => 'Application received. Please wait for approval from an administrator, coordinator, or supervisor.'
+        ];
+    } elseif (in_array($reg, ['coordinator', 'supervisor', 'admin'], true)) {
+        $register_toast = [
+            'type' => 'success',
+            'message' => 'Registration successful. You may now log in.'
+        ];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="zxx">
@@ -250,6 +283,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/modules/app-ui-datepicker.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/state/notification-skin.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/modules/auth/auth-register-creative.css">
     <!--! END: Custom CSS-->
     
@@ -290,25 +324,7 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                             <h4 class="fs-13 fw-bold mb-2">Manage your Internship account in one place.</h4>
                             <p class="fs-12 fw-medium text-muted">Let's get you all setup, so you can verify your personal account and begin setting up your profile.</p>
                         </div>
-                        <?php
 
-if (isset($_GET['registered'])) {
-                            $reg = $_GET['registered'];
-                            $msg = isset($_GET['msg']) ? htmlspecialchars($_GET['msg']) : '';
-                            if ($reg === 'exists') {
-                                echo '<div class="alert alert-warning" role="alert">' . ($msg ?: 'An account with that email or username already exists.') . '</div>';
-                            } elseif ($reg === 'error') {
-                                echo '<div class="alert alert-danger" role="alert">' . ($msg ?: 'An error occurred while registering.') . '</div>';
-                            } elseif ($reg === 'pending') {
-                                echo '<div class="alert alert-info" role="alert">' . ($msg ?: 'Application received. Please wait for approval from an administrator, coordinator, or supervisor.') . '</div>';
-                            } elseif ($reg === 'student') {
-                                echo '<div class="alert alert-info" role="alert">Application received. Please wait for approval from an administrator, coordinator, or supervisor.</div>';
-                            } elseif (in_array($reg, ['coordinator','supervisor','admin'], true)) {
-                                echo '<div class="alert alert-success" role="alert">Registration successful. You may now log in.</div>';
-                            }
-                        }
-                        ?>
-                        
                         <!-- STUDENT REGISTRATION FORM -->
                         <form id="studentForm" class="w-100 mt-4 pt-2 show-form" action="" method="post" autocomplete="off" novalidate>
                             <input type="hidden" name="role" value="student">
@@ -445,11 +461,11 @@ for ($y = $currentYear; $y >= $startYear; $y--):
                                     </div>
                                 </div>
                                 <div class="row g-3">
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentCoordinatorSelect">Coordinator</label>
                                         <select name="coordinator_id" id="studentCoordinatorSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Coordinator</option>
-                                            <option value="0">I still don't know yet (To be assigned)</option>
+                                            <option value="0">To be assigned</option>
                                             <?php
 
 foreach ($coordinatorOptions as $coordinator): ?>
@@ -483,11 +499,11 @@ echo htmlspecialchars($defaultLabel); ?>
 endforeach; ?>
                                         </select>
                                     </div>
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentSupervisorSelect">Supervisor</label>
                                         <select name="supervisor_id" id="studentSupervisorSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Supervisor</option>
-                                            <option value="0">I still don't know yet (To be assigned)</option>
+                                            <option value="0">To be assigned</option>
                                             <?php
 
 foreach ($supervisorOptions as $supervisor): ?>
@@ -524,7 +540,7 @@ endforeach; ?>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-12 mb-2">
-                                        <small class="text-muted">Tip: If you are not sure yet, select "I still don't know yet (To be assigned)" and the approver can edit and assign it later.</small>
+                                        <small class="text-muted">Tip: If you are not sure yet, select "To be assigned" and the approver can update it later.</small>
                                     </div>
                                 </div>
                                 <input type="hidden" id="studentInternalTotalHours" name="internal_total_hours" value="140">
@@ -719,6 +735,65 @@ endforeach; ?>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/modules/shared/unified-date-picker.js"></script>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/modules/auth/auth-register-creative.js"></script>
+    <?php if ($register_toast !== null): ?>
+    <script>
+    (function () {
+        var payload = <?php echo json_encode($register_toast, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        if (!payload || !payload.message) {
+            return;
+        }
+
+        var variantMap = {
+            success: 'success',
+            info: 'info',
+            warning: 'warning',
+            danger: 'error',
+            error: 'error'
+        };
+        var iconMap = {
+            success: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 7 9 18l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+            info: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 10v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 7h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+            warning: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 9v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+            error: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M15 9 9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m9 9 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+        };
+
+        var variant = variantMap[payload.type] || 'info';
+        var root = document.body || document.documentElement;
+        if (!root) {
+            return;
+        }
+
+        var toast = document.createElement('div');
+        toast.id = 'authRegisterToast';
+        toast.className = 'app-theme-toast-static app-theme-toast-static--' + variant;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+
+        var iconWrap = document.createElement('span');
+        iconWrap.className = 'app-theme-toast-static-icon';
+
+        var iconEl = document.createElement('span');
+        iconEl.className = 'app-theme-toast-static-icon-glyph';
+        iconEl.setAttribute('aria-hidden', 'true');
+        iconEl.innerHTML = iconMap[variant] || iconMap.info;
+        iconWrap.appendChild(iconEl);
+
+        var textWrap = document.createElement('span');
+        textWrap.className = 'app-theme-toast-static-text';
+        textWrap.textContent = String(payload.message);
+
+        toast.appendChild(iconWrap);
+        toast.appendChild(textWrap);
+        root.appendChild(toast);
+
+        window.setTimeout(function () {
+            if (toast && toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 5200);
+    })();
+    </script>
+    <?php endif; ?>
 </body>
 
 </html>

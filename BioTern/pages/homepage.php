@@ -595,7 +595,7 @@ include 'includes/header.php';
                                                             <?php echo htmlspecialchars(trim($firstName . ' ' . $lastName)); ?>
                                                         </a>
                                                         <div class="dash-list-sub">
-                                                            <?php echo htmlspecialchars((string)($student['student_id'] ?? '')); ?> Ãƒâ€šÃ‚Â· <?php echo htmlspecialchars($internshipType); ?>
+                                                            <?php echo htmlspecialchars((string)($student['student_id'] ?? '')); ?> | <?php echo htmlspecialchars($internshipType); ?>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -610,7 +610,7 @@ include 'includes/header.php';
                                                         <span class="badge bg-soft-secondary text-secondary">No record</span>
                                                     <?php endif; ?>
                                                     <div class="dash-meta-line">
-                                                        <?php echo $attendanceDate; ?><?php echo $attendanceTime ? ' Ãƒâ€šÃ‚Â· ' . $attendanceTime : ''; ?>
+                                                        <?php echo $attendanceDate; ?><?php echo $attendanceTime ? ' | ' . $attendanceTime : ''; ?>
                                                     </div>
                                                 </div>
                                             </div>

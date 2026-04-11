@@ -106,6 +106,9 @@ html.app-skin-dark {
   content: "!";
 }
 
+.alert-primary,
+.alert-info,
+.alert-warning,
 .alert-danger {
   --biotern-notify-accent: var(--biotern-notify-danger);
 }
@@ -127,6 +130,7 @@ html.app-skin-dark {
 .toast .btn-close:hover,
 .toast .btn-close-white:hover {
   opacity: 1;
+  border-left: 1px solid var(--biotern-notify-border);
 }
 
 .toast {
@@ -356,4 +360,56 @@ html.app-skin-dark {
   font-weight: 600;
   line-height: 1.2;
   color: inherit;
+}
+
+.app-theme-toast-static--success {
+  border-color: color-mix(in srgb, var(--biotern-notify-success) 30%, var(--biotern-notify-border) 70%);
+  background: color-mix(in srgb, var(--biotern-notify-bg) 88%, var(--biotern-notify-success) 12%);
+}
+
+.app-theme-toast-static--success .app-theme-toast-static-icon {
+  background: color-mix(in srgb, var(--biotern-notify-success) 18%, transparent);
+  color: var(--biotern-notify-success);
+}
+
+.app-theme-toast-static--info {
+  border-color: color-mix(in srgb, var(--biotern-notify-info) 30%, var(--biotern-notify-border) 70%);
+  background: color-mix(in srgb, var(--biotern-notify-bg) 88%, var(--biotern-notify-info) 12%);
+}
+
+.app-theme-toast-static--info .app-theme-toast-static-icon {
+  background: color-mix(in srgb, var(--biotern-notify-info) 18%, transparent);
+  color: var(--biotern-notify-info);
+}
+
+.app-theme-toast-static--warning {
+  border-color: color-mix(in srgb, var(--biotern-notify-warning) 30%, var(--biotern-notify-border) 70%);
+  background: color-mix(in srgb, var(--biotern-notify-bg) 88%, var(--biotern-notify-warning) 12%);
+}
+
+.app-theme-toast-static--warning .app-theme-toast-static-icon {
+  background: color-mix(in srgb, var(--biotern-notify-warning) 20%, transparent);
+  color: var(--biotern-notify-warning);
+}
+
+.app-theme-toast-static--error {
+  border-color: color-mix(in srgb, var(--biotern-notify-danger) 30%, var(--biotern-notify-border) 70%);
+  background: color-mix(in srgb, var(--biotern-notify-bg) 88%, var(--biotern-notify-danger) 12%);
+}
+
+.app-theme-toast-static--error .app-theme-toast-static-icon {
+  background: color-mix(in srgb, var(--biotern-notify-danger) 18%, transparent);
+  color: var(--biotern-notify-danger);
+}
+
+html.app-skin-dark .app-theme-toast-static {
+  background: color-mix(in srgb, var(--biotern-surface-muted, #121a2d) 84%, #0f172a 16%);
+  color: #dbe8ff;
+  border-color: rgba(129, 153, 199, 0.34);
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.46);
+}
+
+html.app-skin-dark .app-theme-toast-static-icon {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
 }

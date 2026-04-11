@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
 if (session_status() === PHP_SESSION_NONE) {
@@ -359,7 +360,7 @@ $roleWorkspaceLabel = ucfirst((string)($user['role'] ?? 'user')) . ' Workspace';
 $contactPhone = trim((string)($studentProfile['phone'] ?? ''));
 $contactAddress = trim((string)($studentProfile['address'] ?? ''));
 $studentSectionParts = array_filter([
-    trim((string)($studentProfile['section_code'] ?? '')),
+    biotern_format_section_code((string)($studentProfile['section_code'] ?? '')),
     trim((string)($studentProfile['section_name'] ?? '')),
 ]);
 $studentSectionDisplay = !empty($studentSectionParts) ? implode(' | ', $studentSectionParts) : trim((string)($studentProfile['section_name'] ?? ''));
@@ -374,7 +375,7 @@ $studentGenderDisplay = trim((string)($studentProfile['gender'] ?? '')) !== ''
     ? ucwords(strtolower(trim((string)($studentProfile['gender'] ?? ''))))
     : 'Not yet available';
 
-$page_title$page_title = 'BioTern || Profile Details';
+$page_title = 'BioTern || Profile Details';
 $page_body_class = 'apps-account-page';
 $page_styles = [
     'assets/css/modules/pages/page-profile-details.css',

@@ -1007,6 +1007,15 @@ function setupFloatingTextFields() {
             const dId = String(departmentId || '');
             let inserted = 0;
 
+            function formatSectionCode(value) {
+                const normalized = String(value || '').trim();
+                const match = normalized.match(/^([A-Za-z]+)([0-9]+[A-Za-z]*)$/);
+                if (!match) {
+                    return normalized.replace(/\s*-\s*/g, ' - ');
+                }
+                return match[1].toUpperCase() + ' - ' + match[2].toUpperCase();
+            }
+
             sectionRecords.forEach(function(rec) {
                 const matchesCourse = (cId === '') || (String(rec.course_id) === cId);
                 const matchesDept = (dId === '' || dId === '0') || (String(rec.department_id) === dId);
@@ -1014,7 +1023,7 @@ function setupFloatingTextFields() {
 
                 const code = (rec.code || '').trim();
                 const name = (rec.name || '').trim();
-                const formattedCode = code.replace(/\s*-\s*/g, ' - ');
+                const formattedCode = formatSectionCode(code);
                 const formattedName = name.replace(/\s*-\s*/g, ' - ');
                 const label = code && name
                     ? (code.toLowerCase() === name.toLowerCase()
@@ -1098,6 +1107,29 @@ function setupFloatingTextFields() {
                 courseSelect.dataset.academicBound = '1';
             }
             applyFilters();
+        }
+
+        function setupSelectValueTitles() {
+            const selects = document.querySelectorAll('#studentForm select.form-control');
+            if (!selects.length) return;
+
+            selects.forEach(function(select) {
+                if (!select || select.dataset.titleBound === '1') return;
+
+                const syncTitle = function() {
+                    const selectedOption = select.options[select.selectedIndex] || null;
+                    const text = selectedOption ? String(selectedOption.textContent || '').trim() : '';
+                    select.title = text;
+                    if (text !== '') {
+                        select.setAttribute('aria-label', text);
+                    }
+                };
+
+                select.addEventListener('change', syncTitle);
+                select.addEventListener('focus', syncTitle);
+                syncTitle();
+                select.dataset.titleBound = '1';
+            });
         }
 
         // New function to handle password visibility toggle for both password and confirm password
@@ -1225,3 +1257,4 @@ function setupFloatingTextFields() {
         })();
 
         setupPasswordStrengthIndicator();
+        setupSelectValueTitles();

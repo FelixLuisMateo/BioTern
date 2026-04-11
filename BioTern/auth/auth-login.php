@@ -44,6 +44,7 @@ if ($auth_login_css_version === false) {
     $auth_login_css_version = '20260325';
 }
 $login_error = '';
+$login_toast_message = '';
 $next = isset($_GET['next']) ? basename((string)$_GET['next']) : '';
 if ($next !== '' && !preg_match('/^[A-Za-z0-9_-]+\.php$/', $next)) {
     $next = '';
@@ -275,6 +276,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+if ($login_error !== '') {
+    $login_toast_message = $login_error;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -293,6 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css?v=<?php echo rawurlencode((string)$smacss_css_version); ?>">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/state/notification-skin.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/modules/auth/auth-login-cover.css?v=<?php echo rawurlencode((string)$auth_login_css_version); ?>">
 </head>
 <body class="auth-login-page">
@@ -313,14 +319,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <h2 class="fs-25 fw-bolder mb-4">Login</h2>
                     <h4 class="fs-15 fw-bold mb-2">Log in to your Clark College of Science and Technology internship account.</h4>
 
-                    <?php if ($login_error !== ''): ?>
-                        <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($login_error); ?></div>
-                    <?php endif; ?>
-
                     <form action="<?php echo htmlspecialchars($route_prefix . 'auth/auth-login.php', ENT_QUOTES, 'UTF-8'); ?>" method="post" class="w-100 mt-4 pt-2">
                         <input type="hidden" name="next" value="<?php echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-4">
-                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Student ID, Email, or Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Student ID, Email, or Admin Username" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus>
+                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Student ID, Email, or Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Student ID, Email, or Username" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus>
                         </div>
                         <div class="mb-3 input-group">
                             <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Password" required aria-required="true" aria-label="Password" autocomplete="current-password">
@@ -354,5 +356,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/modules/auth/auth-login-cover.js"></script>
+    <?php if ($login_toast_message !== ''): ?>
+    <script>
+    (function () {
+        var message = <?php echo json_encode((string)$login_toast_message, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        if (!message) {
+            return;
+        }
+
+        var root = document.body || document.documentElement;
+        if (!root) {
+            return;
+        }
+
+        var existing = document.getElementById('authLoginErrorToast');
+        if (existing && existing.parentNode) {
+            existing.parentNode.removeChild(existing);
+        }
+
+        var toast = document.createElement('div');
+        toast.id = 'authLoginErrorToast';
+        toast.className = 'app-theme-toast-static auth-theme-toast-error';
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+
+        var iconWrap = document.createElement('span');
+        iconWrap.className = 'app-theme-toast-static-icon';
+
+        var iconEl = document.createElement('span');
+        iconEl.className = 'app-theme-toast-static-icon-glyph';
+        iconEl.setAttribute('aria-hidden', 'true');
+        iconEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 9v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+        iconWrap.appendChild(iconEl);
+
+        var textWrap = document.createElement('span');
+        textWrap.className = 'app-theme-toast-static-text';
+        textWrap.textContent = message;
+
+        toast.appendChild(iconWrap);
+        toast.appendChild(textWrap);
+        root.appendChild(toast);
+
+        window.setTimeout(function () {
+            if (toast && toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 5200);
+    })();
+    </script>
+    <?php endif; ?>
 </body>
 </html>

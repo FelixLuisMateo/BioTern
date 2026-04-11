@@ -1,6 +1,7 @@
 <?php
 ob_start();
 require_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../lib/section_format.php';
 require_once __DIR__ . '/../includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
@@ -74,9 +75,10 @@ if ($courseRes instanceof mysqli_result) {
 }
 
 $sections = [];
-$sectionRes = $conn->query("SELECT id, course_id, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
+$sectionRes = $conn->query("SELECT id, course_id, code, name, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
 if ($sectionRes instanceof mysqli_result) {
     while ($row = $sectionRes->fetch_assoc()) {
+        $row['section_label'] = biotern_format_section_label((string)($row['code'] ?? ''), (string)($row['name'] ?? ''));
         $sections[] = $row;
     }
     $sectionRes->close();
@@ -260,7 +262,7 @@ ob_end_flush();
                                         </td>
                                         <td>
                                             <div><?php echo htmlspecialchars((string)($row['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></div>
-                                            <small class="text-muted"><?php echo htmlspecialchars((string)($row['section_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></small>
+                                            <small class="text-muted"><?php echo htmlspecialchars(biotern_format_section_code((string)($row['section_name'] ?? 'N/A')), ENT_QUOTES, 'UTF-8'); ?></small>
                                         </td>
                                         <td>
                                             <?php if ((int)($row['student_user_id'] ?? 0) > 0 || (int)($row['ojt_user_id'] ?? 0) > 0): ?>
