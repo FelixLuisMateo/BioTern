@@ -161,13 +161,160 @@
         margin-top: 18px;
     }
 
-    .step-actions .btn {
+.step-actions .btn {
         min-width: 140px;
+    }
+
+    .register-identity-grid {
+        --bs-gutter-y: 1.05rem;
+    }
+
+    .register-select-stack {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+    }
+
+    .register-identity-fields > .row + .row {
+        margin-top: 0.45rem;
+    }
+
+    .step-panel[data-step="3"] .row + .row {
+        margin-top: 0.55rem;
+    }
+
+    .step-panel[data-step="3"] .row > [class*="col-"] {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .step-panel[data-step="3"] .invalid-feedback,
+    .step-panel[data-step="3"] .text-danger,
+    .step-panel[data-step="3"] .field-error {
+        display: block;
+        min-height: 1.2rem;
+        margin-top: 0.45rem;
+    }
+
+    .step-panel[data-step="4"] .row + .row {
+        margin-top: 0.75rem;
+    }
+
+    .step-panel[data-step="4"] .input-group.field {
+        align-items: stretch;
+    }
+
+    .register-account-options {
+        margin-top: 1.4rem !important;
+        padding-top: 0.35rem;
+    }
+
+    .register-account-options .custom-control + .custom-control {
+        margin-top: 0.7rem;
+    }
+
+    .password-strength-indicator {
+        margin-top: 0.75rem;
+    }
+
+    .password-strength-bars {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.35rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .password-strength-bars span {
+        display: block;
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.28);
+        transition: background-color 160ms ease, opacity 160ms ease;
+    }
+
+    .password-strength-indicator[data-strength="weak"] .password-strength-bars span:nth-child(-n+1) {
+        background: #ef4444;
+    }
+
+    .password-strength-indicator[data-strength="fair"] .password-strength-bars span:nth-child(-n+2) {
+        background: #f59e0b;
+    }
+
+    .password-strength-indicator[data-strength="good"] .password-strength-bars span:nth-child(-n+3) {
+        background: #3b82f6;
+    }
+
+    .password-strength-indicator[data-strength="strong"] .password-strength-bars span:nth-child(-n+4) {
+        background: #22c55e;
+    }
+
+    .password-strength-text {
+        font-size: 0.76rem;
+        line-height: 1.35;
+        color: #94a3b8;
+    }
+
+    .register-terms-modal .modal-header,
+    .register-terms-modal .modal-footer {
+        border-color: rgba(148, 163, 184, 0.18);
+    }
+
+    .register-terms-subtitle {
+        margin-top: 0.2rem;
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+
+    .register-terms-body {
+        display: grid;
+        gap: 0.95rem;
+    }
+
+    .register-terms-section {
+        padding: 0.9rem 1rem;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 12px;
+        background: rgba(148, 163, 184, 0.06);
+    }
+
+    .register-terms-section h6 {
+        margin: 0 0 0.4rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .register-terms-section p {
+        margin: 0;
+        font-size: 0.86rem;
+        line-height: 1.55;
+        color: #475569;
+    }
+
+    .register-terms-note {
+        padding: 0.8rem 0.95rem;
+        border-radius: 12px;
+        background: rgba(59, 130, 246, 0.08);
+        color: #334155;
+        font-size: 0.84rem;
+        line-height: 1.5;
+    }
+
+    .student-location-row {
+        margin-top: 0.8rem;
+        row-gap: 0.5rem;
     }
 
     .student-location-row .form-label {
         display: block;
-        min-height: 30px;
+        min-height: auto;
+        line-height: 1.25;
+        padding-left: 2px;
+        margin-bottom: 0.55rem !important;
+    }
+
+    .student-location-row .register-select-stack .form-control {
+        margin-top: 0;
     }
 
     @media (max-width: 767px) {
@@ -335,6 +482,29 @@ body {
     min-height: 48px;
 }
 
+.register-auth-card input[type="date"] {
+    color-scheme: dark;
+    padding-right: 2.85rem;
+}
+
+.register-auth-card input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.9;
+    filter: invert(88%) sepia(8%) saturate(351%) hue-rotate(184deg) brightness(93%) contrast(90%);
+}
+
+.register-auth-card input[type="date"]::-webkit-datetime-edit,
+.register-auth-card input[type="date"]::-webkit-datetime-edit-text,
+.register-auth-card input[type="date"]::-webkit-datetime-edit-month-field,
+.register-auth-card input[type="date"]::-webkit-datetime-edit-day-field,
+.register-auth-card input[type="date"]::-webkit-datetime-edit-year-field {
+    color: inherit;
+}
+
+.register-auth-card input[type="date"]:invalid:not(:focus)::-webkit-datetime-edit {
+    color: #94a3b8;
+}
+
 .register-auth-card .mb-2 {
     margin-bottom: 0 !important;
 }
@@ -479,6 +649,10 @@ html.app-skin-dark .floating-field.has-value .floating-field-label {
     flex-direction: column;
 }
 
+.student-location-row {
+    align-items: flex-start;
+}
+
 .student-location-row .form-control {
     width: 100%;
 }
@@ -507,6 +681,46 @@ html.app-skin-dark .register-auth-card .input-group-text {
     background-color: var(--biotern-surface-muted, #1b1f23);
     border-color: var(--biotern-border, #2a2f35);
     color: #e5e7eb;
+}
+
+html.app-skin-dark .register-auth-card input[type="date"] {
+    background-color: var(--biotern-surface-muted, #1b1f23);
+    border-color: var(--biotern-border, #475569);
+    color: #f8fafc;
+}
+
+html.app-skin-dark .register-auth-card input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(84%) sepia(15%) saturate(307%) hue-rotate(188deg) brightness(94%) contrast(95%);
+}
+
+html.app-skin-dark .password-strength-bars span {
+    background: rgba(71, 85, 105, 0.55);
+}
+
+html.app-skin-dark .password-strength-text {
+    color: #b8c0ca;
+}
+
+html.app-skin-dark .register-terms-subtitle {
+    color: #94a3b8;
+}
+
+html.app-skin-dark .register-terms-section {
+    border-color: rgba(71, 85, 105, 0.55);
+    background: rgba(30, 41, 59, 0.42);
+}
+
+html.app-skin-dark .register-terms-section h6 {
+    color: #e2e8f0;
+}
+
+html.app-skin-dark .register-terms-section p {
+    color: #cbd5e1;
+}
+
+html.app-skin-dark .register-terms-note {
+    background: rgba(59, 130, 246, 0.14);
+    color: #dbeafe;
 }
 
 html.app-theme-gray:not(.app-skin-dark) .register-auth-card h2,

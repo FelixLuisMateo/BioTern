@@ -245,9 +245,11 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/select2.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/select2-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/datepicker.min.css">
     <!--! END: Vendors CSS-->
     <!--! BEGIN: Custom CSS-->
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/modules/app-ui-datepicker.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/modules/auth/auth-register-creative.css">
     <!--! END: Custom CSS-->
     
@@ -328,19 +330,17 @@ if (isset($_GET['registered'])) {
                             <!-- Personal Information Section -->
                             <div class="mb-4 step-panel register-identity-fields" data-step="1">
                                 <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
-                                <div class="row g-3 register-field-grid register-field-grid-halves">
-                                    <div class="col-6 mb-2">
+                                <div class="row g-3 register-field-grid register-field-grid-halves register-identity-grid">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <input type="text" name="student_id" class="form-control register-field-input" placeholder="School ID Number" autocomplete="off" required pattern="^05-[0-9]{4,5}$" maxlength="8" title="Use format 05-1234 or 05-12345" value="05-">
                                     </div>
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <input type="text" name="first_name" class="form-control register-field-input" placeholder="First name" autocomplete="given-name" required>
                                     </div>
-                                </div>
-                                <div class="row g-3 register-field-grid register-field-grid-halves">
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <input type="text" name="middle_name" class="form-control register-field-input" placeholder="Middle name" autocomplete="additional-name">
                                     </div>
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <input type="text" name="last_name" class="form-control register-field-input" placeholder="Last name" autocomplete="family-name" required>
                                     </div>
                                 </div>
@@ -352,20 +352,20 @@ if (isset($_GET['registered'])) {
                                     </div>
                                 </div>
                                 <div class="row g-3 student-location-row">
-                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
-                                        <label class="form-label fs-12" for="studentProvinceSelect">Province</label>
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2 register-select-stack">
+                                        <label class="form-label fs-12 mb-1" for="studentProvinceSelect">Province</label>
                                         <select id="studentProvinceSelect" class="form-control" required>
                                             <option value="" selected disabled>Select Province</option>
                                         </select>
                                     </div>
-                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
-                                        <label class="form-label fs-12" for="studentCitySelect">City / Municipality</label>
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2 register-select-stack">
+                                        <label class="form-label fs-12 mb-1" for="studentCitySelect">City / Municipality</label>
                                         <select id="studentCitySelect" class="form-control" required disabled>
                                             <option value="" selected disabled>Select City / Municipality</option>
                                         </select>
                                     </div>
-                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
-                                        <label class="form-label fs-12" for="studentBarangaySelect">Barangay</label>
+                                    <div class="col-12 col-lg-4 col-md-6 mb-2 register-select-stack">
+                                        <label class="form-label fs-12 mb-1" for="studentBarangaySelect">Barangay</label>
                                         <select id="studentBarangaySelect" class="form-control" required disabled>
                                             <option value="" selected disabled>Select Barangay</option>
                                         </select>
@@ -381,7 +381,7 @@ if (isset($_GET['registered'])) {
                             <div class="mb-4 step-panel" data-step="2">
                                 <h5 class="fs-14 fw-bold mb-3">Academic Information</h5>
                                 <div class="row g-3">
-                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentCourseSelect">Course</label>
                                         <select name="course_id" id="studentCourseSelect" class="form-control dynamic-course-select" data-section-target="studentSectionSelect" required>
                                             <option value="" disabled selected>Select Course</option>
@@ -410,42 +410,13 @@ echo htmlspecialchars(
 endforeach; ?>
                                         </select>
                                     </div>
-                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
-                                        <label class="form-label fs-12" for="studentDepartmentSelect">Department</label>
-                                        <select name="department_id" id="studentDepartmentSelect" class="form-control" required>
-                                            <option value="" selected>Select Department</option>
-                                            <option value="0">I still don't know yet (To be assigned)</option>
-                                            <?php
-
-foreach ($departmentOptions as $department): ?>
-                                                <option
-                                                    value="<?php
-
-echo (int)$department['id']; ?>"
-                                                    data-default-label="<?php
-
-echo htmlspecialchars($department['name'] !== '' ? ($department['name'] . ' (' . $department['code'] . ')') : $department['code']); ?>"
-                                                >
-                                                    <?php
-
-echo htmlspecialchars(
-                                                        $department['name'] !== ''
-                                                            ? ($department['name'] . ' (' . $department['code'] . ')')
-                                                            : $department['code']
-                                                    );
-                                                    ?>
-                                                </option>
-                                            <?php
-
-endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="col-12 col-lg-4 col-md-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentSectionSelect">Section</label>
                                         <select name="section" id="studentSectionSelect" class="form-control" required>
                                         </select>
                                     </div>
                                 </div>
+                                <input type="hidden" name="department_id" id="studentDepartmentSelect" value="">
                                 <div class="row g-3">
                                     <div class="col-12 col-md-4 mb-2">
                                         <label class="form-label fs-12" for="studentSchoolYear">School Year</label>
@@ -556,25 +527,9 @@ endforeach; ?>
                                         <small class="text-muted">Tip: If you are not sure yet, select "I still don't know yet (To be assigned)" and the approver can edit and assign it later.</small>
                                     </div>
                                 </div>
-                                <div class="row g-3">
-                                    <div class="col-6 mb-2">
-                                        <label class="form-label fs-12" for="studentInternalTotalHours">Internal Total Hours</label>
-                                        <input type="number" id="studentInternalTotalHours" name="internal_total_hours" class="form-control" placeholder="Internal Total Hours" min="0" value="140" readonly>
-                                    </div>
-                                    <div class="col-6 mb-2">
-                                        <label class="form-label fs-12" for="externalTotalHoursInput">External Total Hours</label>
-                                        <input type="number" name="external_total_hours" id="externalTotalHoursInput" class="form-control" placeholder="External Total Hours" min="0" value="250" readonly>
-                                    </div>
-                                </div>
-                                <div class="row g-3">
-                                    <div class="col-6 mb-2">
-                                        <label class="form-label fs-12" for="finishedInternalSelect">Finished Internal?</label>
-                                        <select name="finished_internal" id="finishedInternalSelect" class="form-control" required>
-                                            <option value="no" selected>No</option>
-                                            <option value="yes">Yes</option>
-                                        </select>
-                                    </div>
-                                </div>
+                                <input type="hidden" id="studentInternalTotalHours" name="internal_total_hours" value="140">
+                                <input type="hidden" name="external_total_hours" id="externalTotalHoursInput" value="250">
+                                <input type="hidden" name="finished_internal" id="finishedInternalSelect" value="no">
                                 <div class="step-actions">
                                     <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>
                                     <button type="button" class="btn btn-primary" data-step-action="next">Next</button>
@@ -585,11 +540,11 @@ endforeach; ?>
                             <div class="mb-4 step-panel" data-step="3">
                                 <h5 class="fs-14 fw-bold mb-3">Additional Information</h5>
                                 <div class="row g-3">
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentDateOfBirth">Date of Birth</label>
-                                        <input type="text" id="studentDateOfBirth" name="date_of_birth" class="form-control" autocomplete="bday" placeholder="mm/dd/yyyy" inputmode="numeric" pattern="^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$" title="Use format mm/dd/yyyy" required>
+                                        <input type="date" id="studentDateOfBirth" name="date_of_birth" class="form-control" autocomplete="bday" data-no-floating="1" required>
                                     </div>
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentGender">Gender</label>
                                         <select id="studentGender" name="gender" class="form-control" autocomplete="off" required>
                                             <option value="" disabled selected>Select Gender</option>
@@ -599,17 +554,17 @@ endforeach; ?>
                                     </div>
                                 </div>
                                 <div class="row g-3">
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentPhone">Phone Number</label>
-                                        <input type="tel" id="studentPhone" name="phone" class="form-control" placeholder="Phone Number" autocomplete="tel" required>
+                                        <input type="tel" id="studentPhone" name="phone" class="form-control" placeholder="Phone Number" autocomplete="tel" data-no-floating="1" required>
                                     </div>
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentEmergencyContact">Emergency Contact Name</label>
-                                        <input type="text" id="studentEmergencyContact" name="emergency_contact" class="form-control" placeholder="Emergency Contact Name" autocomplete="name" required>
+                                        <input type="text" id="studentEmergencyContact" name="emergency_contact" class="form-control" placeholder="Emergency Contact Name" autocomplete="name" data-no-floating="1" required>
                                     </div>
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 mb-2">
                                         <label class="form-label fs-12" for="studentEmergencyContactPhone">Emergency Contact Phone</label>
-                                        <input type="tel" id="studentEmergencyContactPhone" name="emergency_contact_phone" class="form-control" placeholder="Emergency Contact Phone Number" autocomplete="tel" required>
+                                        <input type="tel" id="studentEmergencyContactPhone" name="emergency_contact_phone" class="form-control" placeholder="Emergency Contact Phone Number" autocomplete="tel" data-no-floating="1" required>
                                     </div>
                                 </div>
                                 <div class="step-actions">
@@ -622,35 +577,44 @@ endforeach; ?>
                             <div class="mb-4 step-panel" data-step="4">
                                 <h5 class="fs-14 fw-bold mb-3">Account Information</h5>
                                 <div class="row g-3">
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
                                     </div>
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email" required>
                                     </div>
                                 </div>
                                 <div class="row g-3">
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <div class="input-group field">
                                             <input type="password" name="password" class="form-control password" id="studentPassword" placeholder="Password" autocomplete="new-password" required>
                                             <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentPassword" aria-label="Show password"><i></i></div>
                                         </div>
+                                        <div class="password-strength-indicator" id="studentPasswordStrength" aria-live="polite">
+                                            <div class="password-strength-bars" aria-hidden="true">
+                                                <span></span>
+                                                <span></span>
+                                                <span></span>
+                                                <span></span>
+                                            </div>
+                                            <div class="password-strength-text">Password strength: Not entered</div>
+                                        </div>
                                     </div>
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <div class="input-group field">
                                             <input type="password" name="confirm_password" class="form-control" id="studentConfirmPassword" placeholder="Confirm password" autocomplete="new-password" required>
                                             <div class="input-group-text border-start bg-gray-2 c-pointer show-pass-toggle" data-target="studentConfirmPassword" aria-label="Show password"><i></i></div>
                                         </div>
                                     </div>
                                 </div>
-                            <div class="mt-4">
+                            <div class="register-account-options mt-4">
                                 <div class="custom-control custom-checkbox mb-2">
                                     <input type="checkbox" class="custom-control-input" id="receiveMial">
                                     <label class="custom-control-label c-pointer text-muted" for="receiveMial" style="font-weight: 400 !important">Yes, I want to receive BioTern community emails</label>
                                 </div>
                                 <div class="custom-control custom-checkbox">
                                     <input type="checkbox" class="custom-control-input" id="termsCondition" required>
-                                    <label class="custom-control-label c-pointer text-muted" for="termsCondition" style="font-weight: 400 !important">I agree to all the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms &amp; Conditions</a>.</label>
+                                    <label class="custom-control-label c-pointer text-muted" for="termsCondition" style="font-weight: 400 !important">I have read and agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms &amp; Conditions</a>.</label>
                                 </div>
                             </div>
                             <div class="step-actions">
@@ -663,21 +627,38 @@ endforeach; ?>
                         <!-- Terms & Conditions Modal -->
                         <div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-scrollable">
-                                <div class="modal-content">
+                                <div class="modal-content register-terms-modal">
                                     <div class="modal-header">
-                                        <h5 class="modal-title" id="termsModalLabel">Terms &amp; Conditions</h5>
+                                        <div>
+                                            <h5 class="modal-title" id="termsModalLabel">BioTern Student Application Terms</h5>
+                                            <p class="register-terms-subtitle mb-0">Please review these terms before submitting your application.</p>
+                                        </div>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
-                                    <div class="modal-body">
-                                        <p>By submitting this application, you confirm that the information you provide is accurate and complete. Your account request stays pending until it is reviewed by an authorized school approver.</p>
-                                        <ul>
-                                            <li>Your account can be activated only after approval by an administrator, coordinator, or supervisor.</li>
-                                            <li>You agree that your course, department, section, and internship assignments may be validated and adjusted by school staff.</li>
-                                            <li>If approved, your profile may be linked to biometric/fingerprint records used for attendance and internship tracking.</li>
-                                            <li>Fingerprint and attendance data are used for school operations, monitoring, and required OJT documentation.</li>
-                                            <li>Submitting false, incomplete, or misleading information can result in rejection, suspension, or account deactivation.</li>
-                                        </ul>
-                                        <p class="mb-0">If you have questions about your application or biometric processing, contact the school administrator.</p>
+                                    <div class="modal-body register-terms-body">
+                                        <div class="register-terms-section">
+                                            <h6>1. Accurate Information</h6>
+                                            <p>You confirm that the information you submit is complete, truthful, and belongs to you. Inaccurate, incomplete, or misleading details may cause your application to be delayed, rejected, or cancelled.</p>
+                                        </div>
+                                        <div class="register-terms-section">
+                                            <h6>2. Review and Approval</h6>
+                                            <p>Your application will remain pending until it is reviewed by an authorized BioTern approver such as an administrator, coordinator, or supervisor. Access is not guaranteed until approval is completed.</p>
+                                        </div>
+                                        <div class="register-terms-section">
+                                            <h6>3. Academic and Internship Details</h6>
+                                            <p>Your submitted course, section, coordinator, supervisor, and related internship details may be verified or updated by school staff when needed to match official records or placement decisions.</p>
+                                        </div>
+                                        <div class="register-terms-section">
+                                            <h6>4. Biometric and Attendance Use</h6>
+                                            <p>If your application is approved, your account may be linked to attendance, fingerprint, and internship monitoring records used for school operations, supervision, reporting, and required documentation.</p>
+                                        </div>
+                                        <div class="register-terms-section">
+                                            <h6>5. Student Responsibility</h6>
+                                            <p>You are responsible for protecting your login details and for using the platform appropriately. Abuse, impersonation, or misuse of the system may lead to account restrictions or disciplinary action.</p>
+                                        </div>
+                                        <div class="register-terms-note">
+                                            If you have questions about your application, account approval, or biometric processing, contact the school administrator before submitting.
+                                        </div>
                                     </div>
                                     <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -728,6 +709,7 @@ endforeach; ?>
     <!--! BEGIN: Vendors JS !-->
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/vendors.min.js"></script>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/select2.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/datepicker.min.js"></script>
     <!-- vendors.min.js {always must need to be top} -->
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/js/lslstrength.min.js"></script>
     <!--! END: Vendors JS !-->
@@ -735,6 +717,7 @@ endforeach; ?>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/common-init.min.js"></script>
     <!--! END: Apps Init !-->
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-customizer-init.min.js"></script>
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/modules/shared/unified-date-picker.js"></script>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/modules/auth/auth-register-creative.js"></script>
 </body>
 
