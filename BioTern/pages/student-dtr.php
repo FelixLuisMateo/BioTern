@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -533,7 +534,7 @@ if ($displayName === '') {
 
 $courseSection = array_filter([
     trim((string)($student['course_name'] ?? '')),
-    trim((string)($student['section_code'] ?? '')),
+    biotern_format_section_code((string)($student['section_code'] ?? '')),
     trim((string)($student['section_name'] ?? '')),
 ]);
 $avatarSrc = biotern_avatar_public_src((string)($user['profile_picture'] ?? ''), $currentUserId);

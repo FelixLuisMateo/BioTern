@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 /** @var mysqli $conn */
 
 require_once dirname(__DIR__) . '/includes/auth-session.php';
@@ -817,7 +818,7 @@ include 'includes/header.php';
                                                     <?php foreach ($sections as $section): ?>
                                                         <option value="<?php echo (int)$section['id']; ?>"
                                                             <?php echo ((int)($student['section_id'] ?? 0) === (int)$section['id']) ? 'selected' : ''; ?>>
-                                                            <?php echo htmlspecialchars($section['name']); ?>
+                                                            <?php echo htmlspecialchars(biotern_format_section_label((string)($section['code'] ?? ''), (string)($section['name'] ?? ''))); ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>

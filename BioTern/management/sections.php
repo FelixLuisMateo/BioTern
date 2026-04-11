@@ -17,6 +17,23 @@ function has_col(array $cols, string $name): bool {
     return in_array(strtolower($name), $cols, true);
 }
 
+function format_section_code(string $code): string {
+    $value = trim($code);
+    if ($value === '') {
+        return '';
+    }
+
+    if (strpos($value, ' - ') !== false) {
+        return $value;
+    }
+
+    if (preg_match('/^([A-Za-z]+)([0-9]+[A-Za-z]*)$/', $value, $matches)) {
+        return strtoupper($matches[1]) . ' - ' . strtoupper($matches[2]);
+    }
+
+    return $value;
+}
+
 $sectionCols = get_table_columns($conn, 'sections');
 $courseCols = get_table_columns($conn, 'courses');
 $deptCols = get_table_columns($conn, 'departments');
@@ -225,7 +242,7 @@ include 'includes/header.php';
                     <select id="filter-section" name="section_id" class="form-control">
                         <option value="0">-- All Sections --</option>
                         <?php foreach ($sectionOptions as $secOpt): ?>
-                            <?php $secLabel = trim((string)($secOpt['code'] ?? '')) !== '' ? (string)$secOpt['code'] : (string)($secOpt['name'] ?? ''); ?>
+                            <?php $secLabel = trim((string)($secOpt['code'] ?? '')) !== '' ? format_section_code((string)$secOpt['code']) : (string)($secOpt['name'] ?? ''); ?>
                             <option value="<?php echo (int)$secOpt['id']; ?>" <?php echo ($filter_section === (int)$secOpt['id']) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($secLabel); ?>
                             </option>
@@ -272,7 +289,7 @@ include 'includes/header.php';
                         <?php foreach ($sections as $sec): ?>
                             <tr>
                                 <td><span class="app-academic-id-pill"><?php echo (int)$sec['id']; ?></span></td>
-                                <td><span class="app-academic-code-pill"><?php echo htmlspecialchars((string)($sec['code'] ?? '')); ?></span></td>
+                                <td><span class="app-academic-code-pill"><?php echo htmlspecialchars(format_section_code((string)($sec['code'] ?? ''))); ?></span></td>
                                 <td>
                                     <div class="app-academic-name-cell">
                                         <span class="app-academic-name"><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></span>
@@ -319,7 +336,7 @@ include 'includes/header.php';
                                 <div class="app-mobile-summary-main app-ojt-mobile-summary-main">
                                     <div class="app-mobile-summary-text app-ojt-mobile-summary-text">
                                         <span class="app-mobile-name app-ojt-mobile-name"><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></span>
-                                        <span class="app-mobile-subtext app-ojt-mobile-subtext">Code: <?php echo htmlspecialchars((string)($sec['code'] ?? '-')); ?></span>
+                                        <span class="app-mobile-subtext app-ojt-mobile-subtext">Code: <?php echo htmlspecialchars(format_section_code((string)($sec['code'] ?? '-'))); ?></span>
                                     </div>
                                 </div>
                                 <?php

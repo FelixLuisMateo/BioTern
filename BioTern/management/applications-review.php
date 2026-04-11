@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
@@ -931,7 +932,7 @@ include 'includes/header.php';
                                         $secId = (int)($sec['id'] ?? 0);
                                         $secCode = trim((string)($sec['code'] ?? ''));
                                         $secName = trim((string)($sec['name'] ?? ''));
-                                        $secLabel = $secCode !== '' && $secName !== '' ? ($secCode . ' - ' . $secName) : ($secCode !== '' ? $secCode : $secName);
+                                        $secLabel = biotern_format_section_label($secCode, $secName);
                                     ?>
                                     <option value="<?php echo $secId; ?>" <?php echo $sectionFilter === $secId ? 'selected' : ''; ?>><?php echo htmlspecialchars($secLabel !== '' ? $secLabel : ('Section #' . $secId), ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php endforeach; ?>
