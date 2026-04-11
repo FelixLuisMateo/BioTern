@@ -7,6 +7,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         $canAcademic = !empty($context['can_academic']);
         $canWorkspace = !empty($context['can_workspace']);
         $canSystem = !empty($context['can_system']);
+        $isStudent = !empty($context['is_student']);
 
         $profileAvatar = isset($context['profile_avatar']) && is_string($context['profile_avatar']) && trim($context['profile_avatar']) !== ''
             ? trim($context['profile_avatar'])
@@ -119,23 +120,34 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         }
 
         if ($canWorkspace) {
+            $workspaceItems = [
+                ['label' => 'Chat', 'href' => 'apps-chat.php', 'icon' => 'feather-message-circle'],
+                ['label' => 'Email', 'href' => 'apps-email.php', 'icon' => 'feather-mail'],
+                ['label' => 'Notes', 'href' => 'apps-notes.php', 'icon' => 'feather-edit-2'],
+                ['label' => 'Storage', 'href' => 'apps-storage.php', 'icon' => 'feather-hard-drive'],
+                ['label' => 'Calendar', 'href' => 'apps-calendar.php', 'icon' => 'feather-calendar'],
+            ];
+            $workspaceRoutes = [
+                'apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
+            ];
+
+            if ($isStudent) {
+                $workspaceItems = [
+                    ['label' => 'Chat', 'href' => 'apps-chat.php', 'icon' => 'feather-message-circle'],
+                    ['label' => 'Email', 'href' => 'apps-email.php', 'icon' => 'feather-mail'],
+                ];
+                $workspaceRoutes = ['apps-chat.php', 'apps-email.php'];
+            }
+
             $navGroups[] = [
                 'key' => 'workspace',
                 'label' => 'Workspace',
                 'icon' => 'feather-layers',
-                'routes' => [
-                    'apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
-                ],
+                'routes' => $workspaceRoutes,
                 'sections' => [
                     [
                         'title' => 'Applications',
-                        'items' => [
-                            ['label' => 'Chat', 'href' => 'apps-chat.php', 'icon' => 'feather-message-circle'],
-                            ['label' => 'Email', 'href' => 'apps-email.php', 'icon' => 'feather-mail'],
-                            ['label' => 'Notes', 'href' => 'apps-notes.php', 'icon' => 'feather-edit-2'],
-                            ['label' => 'Storage', 'href' => 'apps-storage.php', 'icon' => 'feather-hard-drive'],
-                            ['label' => 'Calendar', 'href' => 'apps-calendar.php', 'icon' => 'feather-calendar'],
-                        ],
+                        'items' => $workspaceItems,
                     ],
                 ],
             ];

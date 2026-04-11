@@ -110,6 +110,16 @@ if (!function_exists('biotern_theme_sanitize')) {
 }
 
 if (!function_exists('biotern_theme_preferences')) {
+    function biotern_theme_current_user_id(): int
+    {
+        return (int)($_SESSION['user_id'] ?? 0);
+    }
+
+    function biotern_theme_cookie_name_for_user(int $userId): string
+    {
+        return $userId > 0 ? ('biotern_theme_preferences_u_' . $userId) : 'biotern_theme_preferences';
+    }
+
     function biotern_theme_preferences(): array
     {
         if (session_status() === PHP_SESSION_NONE) {
@@ -117,21 +127,50 @@ if (!function_exists('biotern_theme_preferences')) {
         }
 
         $defaults = biotern_theme_defaults();
-        $sessionPrefs = isset($_SESSION['biotern_theme_preferences']) && is_array($_SESSION['biotern_theme_preferences'])
-            ? $_SESSION['biotern_theme_preferences']
-            : [];
+        $userId = biotern_theme_current_user_id();
+
+        $sessionPrefs = [];
+        $legacySessionPrefs = [];
+        if ($userId > 0
+            && isset($_SESSION['biotern_theme_preferences_by_user'])
+            && is_array($_SESSION['biotern_theme_preferences_by_user'])
+            && isset($_SESSION['biotern_theme_preferences_by_user'][$userId])
+            && is_array($_SESSION['biotern_theme_preferences_by_user'][$userId])) {
+            $sessionPrefs = $_SESSION['biotern_theme_preferences_by_user'][$userId];
+        } elseif (isset($_SESSION['biotern_theme_preferences']) && is_array($_SESSION['biotern_theme_preferences'])) {
+            // Backward compatibility with previous single-session key.
+            $legacySessionPrefs = $_SESSION['biotern_theme_preferences'];
+        }
 
         $cookiePrefs = [];
-        if (!empty($_COOKIE['biotern_theme_preferences'])) {
+        $cookieName = biotern_theme_cookie_name_for_user($userId);
+        if (!empty($_COOKIE[$cookieName])) {
+            $decoded = json_decode((string) $_COOKIE[$cookieName], true);
+            if (is_array($decoded)) {
+                $cookiePrefs = $decoded;
+            }
+        } elseif ($cookieName !== 'biotern_theme_preferences' && !empty($_COOKIE['biotern_theme_preferences'])) {
+            // Fallback for older builds that used one global cookie.
             $decoded = json_decode((string) $_COOKIE['biotern_theme_preferences'], true);
             if (is_array($decoded)) {
                 $cookiePrefs = $decoded;
             }
         }
 
-        $merged = array_merge($defaults, $cookiePrefs, $sessionPrefs);
+        // Preference precedence:
+        // 1) defaults
+        // 2) legacy session fallback (only when per-user session is absent)
+        // 3) cookie (per-user cookie should win over legacy fallback)
+        // 4) per-user session (authoritative when present)
+        $merged = array_merge($defaults, $legacySessionPrefs, $cookiePrefs, $sessionPrefs);
         $sanitized = biotern_theme_sanitize($merged);
         $_SESSION['biotern_theme_preferences'] = $sanitized;
+        if (!isset($_SESSION['biotern_theme_preferences_by_user']) || !is_array($_SESSION['biotern_theme_preferences_by_user'])) {
+            $_SESSION['biotern_theme_preferences_by_user'] = [];
+        }
+        if ($userId > 0) {
+            $_SESSION['biotern_theme_preferences_by_user'][$userId] = $sanitized;
+        }
 
         return $sanitized;
     }
@@ -145,9 +184,16 @@ if (!function_exists('biotern_save_theme_preferences')) {
         }
 
         $sanitized = biotern_theme_sanitize($preferences);
+        $userId = biotern_theme_current_user_id();
         $_SESSION['biotern_theme_preferences'] = $sanitized;
+        if (!isset($_SESSION['biotern_theme_preferences_by_user']) || !is_array($_SESSION['biotern_theme_preferences_by_user'])) {
+            $_SESSION['biotern_theme_preferences_by_user'] = [];
+        }
+        if ($userId > 0) {
+            $_SESSION['biotern_theme_preferences_by_user'][$userId] = $sanitized;
+        }
 
-        setcookie('biotern_theme_preferences', json_encode($sanitized), [
+        setcookie(biotern_theme_cookie_name_for_user($userId), json_encode($sanitized), [
             'expires' => time() + (86400 * 30),
             'path' => '/',
             'httponly' => false,

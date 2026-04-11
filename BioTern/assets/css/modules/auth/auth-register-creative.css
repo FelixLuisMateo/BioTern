@@ -443,18 +443,54 @@
         }
 
 /* Auth register page: responsive shell + scheme-aware surfaces */
-body {
+body.auth-register-page {
+    --register-overlay-top: rgba(12, 20, 36, 0.56);
+    --register-overlay-bottom: rgba(12, 20, 36, 0.48);
+    --register-glow-a: rgba(56, 120, 232, 0.2);
+    --register-glow-b: rgba(155, 206, 255, 0.12);
+    --register-card-surface: rgba(255, 255, 255, 0.95);
+    --register-card-border: rgba(17, 24, 39, 0.08);
+    --register-card-shadow: 0 20px 42px rgba(15, 23, 42, 0.26);
+    --register-field-surface: #ffffff;
+    --register-field-border: rgba(148, 163, 184, 0.42);
+    --register-field-text: #0f172a;
     background-color: var(--biotern-body-bg, #0f172a);
     color: var(--bs-body-color, #1f2937);
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0;
+    overflow-x: hidden;
+    position: relative;
+}
+
+body.auth-register-page .register-bg-watermark {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(var(--register-overlay-top), var(--register-overlay-bottom)),
+        radial-gradient(circle at 18% 20%, var(--register-glow-a), transparent 42%),
+        radial-gradient(circle at 82% 84%, var(--register-glow-b), transparent 44%),
+        url("../../../../auth/building.png");
+    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
+    background-size: cover, cover, cover, cover;
+    background-position: center center, center center, center center, center center;
+}
+
+body.auth-register-page .auth-minimal-wrapper {
+    position: relative;
+    z-index: 1;
 }
 
 .register-auth-card {
     width: min(100%, 640px);
     margin: 0 auto;
     border-radius: 16px;
-    border: 1px solid var(--biotern-border, #d1d5db);
-    background: var(--biotern-surface, #ffffff);
-    box-shadow: 0 20px 42px rgba(15, 23, 42, 0.2);
+    border: 1px solid var(--register-card-border);
+    background: var(--register-card-surface);
+    box-shadow: var(--register-card-shadow);
+    backdrop-filter: blur(4px);
 }
 
 .register-auth-card .card-body {
@@ -480,6 +516,23 @@ body {
 .register-auth-card .input-group .form-control,
 .register-auth-card .input-group .input-group-text {
     min-height: 48px;
+}
+
+.register-auth-card .form-control,
+.register-auth-card .form-select,
+.register-auth-card .select2-container--default .select2-selection--single {
+    background-color: var(--register-field-surface);
+    border-color: var(--register-field-border);
+    color: var(--register-field-text);
+}
+
+.register-auth-card .select2-container--default .select2-selection--single {
+    min-height: 48px;
+}
+
+.register-auth-card .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--register-field-text);
+    line-height: 46px;
 }
 
 .register-auth-card input[type="date"] {
@@ -658,9 +711,22 @@ html.app-skin-dark .floating-field.has-value .floating-field-label {
 }
 
 html.app-skin-dark .register-auth-card {
-    background: var(--biotern-surface, #15181b);
-    border-color: var(--biotern-border, #2a2f35);
-    box-shadow: 0 22px 46px rgba(0, 0, 0, 0.48);
+    background: var(--register-card-surface);
+    border-color: var(--register-card-border);
+    box-shadow: var(--register-card-shadow);
+}
+
+html.app-skin-dark body.auth-register-page {
+    --register-overlay-top: rgba(2, 8, 23, 0.76);
+    --register-overlay-bottom: rgba(3, 12, 30, 0.7);
+    --register-glow-a: rgba(30, 64, 175, 0.26);
+    --register-glow-b: rgba(56, 189, 248, 0.16);
+    --register-card-surface: rgba(8, 20, 52, 0.93);
+    --register-card-border: rgba(129, 153, 199, 0.28);
+    --register-card-shadow: 0 24px 56px rgba(2, 6, 23, 0.58);
+    --register-field-surface: rgba(15, 23, 42, 0.9);
+    --register-field-border: rgba(148, 163, 184, 0.24);
+    --register-field-text: #e2e8f0;
 }
 
 html.app-skin-dark .register-auth-card h2,
@@ -678,9 +744,16 @@ html.app-skin-dark .register-auth-card .form-label {
 html.app-skin-dark .register-auth-card .form-control,
 html.app-skin-dark .register-auth-card .form-select,
 html.app-skin-dark .register-auth-card .input-group-text {
-    background-color: var(--biotern-surface-muted, #1b1f23);
-    border-color: var(--biotern-border, #2a2f35);
-    color: #e5e7eb;
+    background-color: var(--register-field-surface);
+    border-color: var(--register-field-border);
+    color: var(--register-field-text);
+}
+
+html.app-skin-dark .register-auth-card .select2-container--default .select2-selection--single,
+html.app-skin-dark .register-auth-card .select2-container--default .select2-selection--single .select2-selection__rendered {
+    background-color: var(--register-field-surface);
+    border-color: var(--register-field-border);
+    color: var(--register-field-text);
 }
 
 html.app-skin-dark .register-auth-card input[type="date"] {

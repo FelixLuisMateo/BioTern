@@ -295,7 +295,8 @@ if (isset($_GET['registered'])) {
 		<![endif]-->
 </head>
 
-<body>
+<body class="auth-register-page">
+    <div class="login-bg-watermark register-bg-watermark" aria-hidden="true"></div>
     
     <!--! ================================================================ !-->
     <!--! [Start] Main Content !-->

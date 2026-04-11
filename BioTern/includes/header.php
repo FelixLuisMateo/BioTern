@@ -482,6 +482,7 @@ if ($header_db instanceof mysqli) {
 </head>
 
 <body<?php echo $page_body_class !== '' ? ' class="' . htmlspecialchars($page_body_class, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>
+    data-theme-user-id="<?php echo (int)$header_user_id_session; ?>"
     data-theme-prefs="<?php echo htmlspecialchars(json_encode($biotern_theme_preferences, JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'); ?>"
     data-theme-api="<?php echo htmlspecialchars((string)$biotern_theme_api_endpoint, ENT_QUOTES, 'UTF-8'); ?>">
     <?php if ($page_render_navigation): ?>

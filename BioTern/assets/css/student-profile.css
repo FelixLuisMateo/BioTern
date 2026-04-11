@@ -3,6 +3,16 @@
     gap: 1rem;
 }
 
+.student-profile-shell {
+    --profile-text: var(--student-text, var(--dash-text, #0f172a));
+    --profile-muted: var(--student-muted, var(--dash-muted, #64748b));
+    --profile-soft-bg: var(--student-soft-bg, var(--dash-item-bg, #f8fafc));
+    --profile-soft-border: var(--student-soft-border, var(--dash-item-border, rgba(15, 23, 42, 0.08)));
+    --profile-accent: var(--student-accent, rgba(var(--bs-primary-rgb), 0.9));
+    --profile-accent-strong: var(--student-accent-strong, rgba(var(--bs-primary-rgb), 1));
+    --profile-accent-soft: var(--student-accent-soft, rgba(var(--bs-primary-rgb), 0.14));
+}
+
 .student-profile-sidebar {
     position: sticky;
     top: 24px;
@@ -19,13 +29,13 @@
     object-fit: cover;
     display: block;
     margin: 0 auto 16px;
-    border: 4px solid rgba(59, 93, 201, 0.14);
+    border: 4px solid var(--profile-accent-soft);
     box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
 }
 
 .student-profile-name {
     margin: 0 0 0.45rem;
-    color: #0f172a;
+    color: var(--profile-text);
     font-size: clamp(1.8rem, 2.2vw, 2.2rem);
     line-height: 1.05;
 }
@@ -35,9 +45,9 @@
     align-items: center;
     padding: 0.5rem 0.85rem;
     border-radius: 999px;
-    background: rgba(59, 93, 201, 0.1);
-    border: 1px solid rgba(59, 93, 201, 0.12);
-    color: #355ed6;
+    background: var(--profile-accent-soft);
+    border: 1px solid var(--profile-soft-border);
+    color: var(--profile-accent-strong);
     font-size: 0.78rem;
     font-weight: 700;
 }
@@ -45,7 +55,7 @@
 .student-profile-copy {
     margin: 1rem auto 0;
     max-width: 18rem;
-    color: #64748b;
+    color: var(--profile-muted);
 }
 
 .student-profile-chip-row {
@@ -56,8 +66,8 @@
     margin-top: 1.25rem;
     padding: 1rem;
     border-radius: 1rem;
-    background: #f8fbff;
-    border: 1px solid rgba(59, 93, 201, 0.1);
+    background: var(--profile-soft-bg);
+    border: 1px solid var(--profile-soft-border);
 }
 
 .student-profile-progress-card--compact {
@@ -73,11 +83,11 @@
 }
 
 .student-profile-progress .progress-bar {
-    background: linear-gradient(90deg, #355ed6 0%, #4a72d8 100%);
+    background: linear-gradient(90deg, var(--profile-accent-strong) 0%, color-mix(in srgb, var(--profile-accent-strong) 78%, #ffffff 22%) 100%);
 }
 
 .student-profile-progress-card small {
-    color: #64748b;
+    color: var(--profile-muted);
 }
 
 .student-profile-actions {
@@ -106,7 +116,7 @@
 }
 
 .student-profile-section-copy {
-    color: #64748b;
+    color: var(--profile-muted);
     text-align: right;
     max-width: 16rem;
     font-size: 0.92rem;
@@ -121,8 +131,8 @@
 .student-profile-field {
     padding: 1rem 1.05rem;
     border-radius: 1rem;
-    background: #f8fbff;
-    border: 1px solid rgba(59, 93, 201, 0.08);
+    background: var(--profile-soft-bg);
+    border: 1px solid var(--profile-soft-border);
 }
 
 .student-profile-field--full {
@@ -136,11 +146,11 @@
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #4a72d8;
+    color: var(--profile-accent);
 }
 
 .student-profile-field strong {
-    color: #0f172a;
+    color: var(--profile-text);
     font-size: 0.98rem;
 }
 
@@ -150,29 +160,29 @@
 
 html.app-skin-dark .student-profile-name,
 html.app-skin-dark .student-profile-field strong {
-    color: #f8fafc;
+    color: var(--profile-text);
 }
 
 html.app-skin-dark .student-profile-copy,
 html.app-skin-dark .student-profile-progress-card small,
 html.app-skin-dark .student-profile-section-copy {
-    color: #a9b8de;
+    color: var(--profile-muted);
 }
 
 html.app-skin-dark .student-profile-role {
-    background: rgba(255, 255, 255, 0.09);
-    border-color: rgba(255, 255, 255, 0.12);
-    color: #f8fbff;
+    background: var(--profile-accent-soft);
+    border-color: var(--profile-soft-border);
+    color: var(--profile-accent-strong);
 }
 
 html.app-skin-dark .student-profile-progress-card,
 html.app-skin-dark .student-profile-field {
-    background: #18223a;
-    border-color: rgba(120, 146, 214, 0.14);
+    background: var(--profile-soft-bg);
+    border-color: var(--profile-soft-border);
 }
 
 html.app-skin-dark .student-profile-field-label {
-    color: #8fb4ff;
+    color: var(--profile-accent);
 }
 
 @media (max-width: 1199.98px) {

@@ -233,8 +233,10 @@ $page_styles = [
 ];
 include 'includes/header.php';
 ?>
-<div class="main-content">
-    <div class="student-home-shell student-profile-shell">
+<main class="nxl-container">
+    <div class="nxl-content">
+        <div class="main-content">
+            <div class="student-home-shell student-profile-shell">
         <div class="row g-4 align-items-start">
             <div class="col-12 col-xl-3">
                 <section class="card student-panel student-profile-sidebar">
@@ -503,4 +505,6 @@ include 'includes/header.php';
         </div>
     </div>
 </div>
+    </div>
+</main>
 <?php include 'includes/footer.php'; ?>

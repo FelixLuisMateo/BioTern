@@ -6,10 +6,11 @@ $nav_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role']
 $nav_is_admin = ($nav_role === 'admin');
 $nav_is_coordinator = ($nav_role === 'coordinator');
 $nav_is_supervisor = ($nav_role === 'supervisor');
+$nav_is_student = ($nav_role === 'student');
 
 $nav_can_internship = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 $nav_can_academic = ($nav_is_admin || $nav_is_coordinator);
-$nav_can_workspace = ($nav_is_admin || $nav_is_coordinator);
+$nav_can_workspace = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor || $nav_is_student);
 $nav_can_system = ($nav_is_admin || $nav_is_coordinator);
 $nav_can_user_accounts = $nav_is_admin;
 
@@ -83,6 +84,11 @@ $nav_active_documents = biotern_nav_any_active($nav_current_file, [
     'document_dtr.php',
     'document_waiver.php',
 ]);
+$nav_active_student = biotern_nav_any_active($nav_current_file, [
+    'student-profile.php',
+    'student-dtr.php',
+    'document_application.php',
+]);
 $nav_active_reports = biotern_nav_any_active($nav_current_file, [
     'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-attendance-exceptions.php',
     'reports-disciplinary-acts.php', 'reports-dtr-manual-input.php',
@@ -106,6 +112,12 @@ $nav_active_settings = biotern_nav_any_active($nav_current_file, [
     'settings-support.php',
     'notifications.php', 'account-settings.php',
 ]);
+$nav_active_student_settings = biotern_nav_any_active($nav_current_file, [
+    'notifications.php', 'account-settings.php',
+]);
+$nav_active_student_tools = biotern_nav_any_active($nav_current_file, [
+    'theme-customizer.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
+]);
 $nav_active_tools = biotern_nav_any_active($nav_current_file, [
     'theme-customizer.php', 'import-sql.php', 'import-students-excel.php',
 ]);
@@ -123,6 +135,14 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                 <li class="nxl-item nxl-caption">
                     <span>Main</span>
                 </li>
+                <?php if ($nav_is_student): ?>
+                <li class="nxl-item<?php echo biotern_nav_is_active('homepage.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="homepage.php" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-airplay"></i></span>
+                        <span class="nxl-mtext">Dashboard</span>
+                    </a>
+                </li>
+                <?php else: ?>
                 <li class="nxl-item nxl-hasmenu<?php echo $nav_active_dashboard ? ' active nxl-trigger' : ''; ?>">
                     <a href="javascript:void(0);" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-airplay"></i></span>
@@ -133,6 +153,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('analytics.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="analytics.php">Analytics</a></li>
                     </ul>
                 </li>
+                <?php endif; ?>
 
                 <?php if ($nav_can_internship): ?>
                 <li class="nxl-item nxl-caption">
@@ -206,6 +227,30 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                 </li>
                 <?php endif; ?>
 
+                <?php if ($nav_is_student): ?>
+                <li class="nxl-item nxl-caption">
+                    <span>Student</span>
+                </li>
+                <li class="nxl-item<?php echo biotern_nav_is_active('student-profile.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="student-profile.php" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-user"></i></span>
+                        <span class="nxl-mtext">My Profile</span>
+                    </a>
+                </li>
+                <li class="nxl-item<?php echo biotern_nav_is_active('student-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="student-dtr.php" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-clock"></i></span>
+                        <span class="nxl-mtext">My DTR</span>
+                    </a>
+                </li>
+                <li class="nxl-item<?php echo biotern_nav_is_active('document_application.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="document_application.php" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-file-text"></i></span>
+                        <span class="nxl-mtext">My Documents</span>
+                    </a>
+                </li>
+                <?php endif; ?>
+
                 <?php if ($nav_can_academic): ?>
                 <li class="nxl-item nxl-caption">
                     <span>Academic</span>
@@ -229,6 +274,20 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                 <li class="nxl-item nxl-caption">
                     <span>Workspace</span>
                 </li>
+                <?php if ($nav_is_student): ?>
+                <li class="nxl-item<?php echo biotern_nav_is_active('apps-chat.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="apps-chat.php" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-message-circle"></i></span>
+                        <span class="nxl-mtext">Chat</span>
+                    </a>
+                </li>
+                <li class="nxl-item<?php echo biotern_nav_is_active('apps-email.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="apps-email.php" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-mail"></i></span>
+                        <span class="nxl-mtext">Email</span>
+                    </a>
+                </li>
+                <?php else: ?>
                 <li class="nxl-item nxl-hasmenu<?php echo $nav_active_apps ? ' active nxl-trigger' : ''; ?>">
                     <a href="javascript:void(0);" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-send"></i></span>
@@ -240,6 +299,39 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('apps-notes.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="apps-notes.php">Notes</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('apps-storage.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="apps-storage.php">Storage</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('apps-calendar.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
+                    </ul>
+                </li>
+                <?php endif; ?>
+                <?php endif; ?>
+
+                <?php if ($nav_is_student): ?>
+                <li class="nxl-item nxl-caption">
+                    <span>Settings</span>
+                </li>
+                <li class="nxl-item nxl-hasmenu<?php echo $nav_active_student_settings ? ' active nxl-trigger' : ''; ?>">
+                    <a href="javascript:void(0);" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-settings"></i></span>
+                        <span class="nxl-mtext">My Settings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                    </a>
+                    <ul class="nxl-submenu">
+                        <li class="nxl-item<?php echo biotern_nav_is_active('notifications.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="notifications.php">Notifications</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('account-settings.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="account-settings.php">Account Settings</a></li>
+                    </ul>
+                </li>
+
+                <li class="nxl-item nxl-caption">
+                    <span>Tools</span>
+                </li>
+                <li class="nxl-item nxl-hasmenu<?php echo $nav_active_student_tools ? ' active nxl-trigger' : ''; ?>">
+                    <a href="javascript:void(0);" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-tool"></i></span>
+                        <span class="nxl-mtext">Student Tools</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                    </a>
+                    <ul class="nxl-submenu">
+                        <li class="nxl-item<?php echo biotern_nav_is_active('apps-notes.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="apps-notes.php">Notes</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('apps-storage.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="apps-storage.php">Storage</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('apps-calendar.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="apps-calendar.php">Calendar</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('theme-customizer.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="theme-customizer.php">Appearance</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>

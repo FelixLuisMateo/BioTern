@@ -118,7 +118,8 @@ $map = [
   'document_resume.php' => 'documents/document_resume.php',
   'document_dtr.php' => 'documents/document_dtr.php',
   'document_waiver.php' => 'documents/document_waiver.php',
-  'student-dtr.php' => 'documents/document_dtr.php',
+  'student-profile.php' => 'pages/student-profile.php',
+  'student-dtr.php' => 'pages/student-dtr.php',
 
   'reports-ojt.php' => 'reports/reports-ojt.php',
   'reports-project.php' => 'reports/reports-project.php',
@@ -344,6 +345,9 @@ if ($is_logged_in) {
   $workspace_files = [
     'apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
   ];
+  $student_workspace_files = [
+    'apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
+  ];
   $system_files = [
     'auth-register.php', 'users.php', 'create_admin.php',
     'import-sql.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php',
@@ -360,8 +364,12 @@ if ($is_logged_in) {
   if (in_array($file, $academic_files, true) && !in_array($current_role, ['admin', 'coordinator'], true)) {
     $deny = true;
   }
-  if (in_array($file, $workspace_files, true) && !in_array($current_role, ['admin', 'coordinator'], true)) {
-    $deny = true;
+  if (in_array($file, $workspace_files, true)) {
+    $workspace_allowed_roles = ['admin', 'coordinator'];
+    $student_workspace_allowed = ($current_role === 'student' && in_array($file, $student_workspace_files, true));
+    if (!in_array($current_role, $workspace_allowed_roles, true) && !$student_workspace_allowed) {
+      $deny = true;
+    }
   }
   if (in_array($file, $system_files, true) && $current_role !== 'admin') {
     $deny = true;

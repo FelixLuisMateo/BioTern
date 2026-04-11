@@ -98,10 +98,36 @@
 
     hydrateThemeRuntimeConfigFromBody();
     var serverPrefs = window.__bioternThemePrefs || {};
+    var themeUserId = 0;
+    try {
+      var bodyThemeUserIdRaw =
+        document && document.body
+          ? document.body.getAttribute("data-theme-user-id")
+          : "0";
+      var parsedThemeUserId = parseInt(bodyThemeUserIdRaw || "0", 10);
+      themeUserId = Number.isFinite(parsedThemeUserId) && parsedThemeUserId > 0 ? parsedThemeUserId : 0;
+    } catch (e) {
+      themeUserId = 0;
+    }
+
+    function themePrefsStorageKey() {
+      return themeUserId > 0
+        ? "biotern_theme_preferences_user_" + String(themeUserId)
+        : "biotern_theme_preferences";
+    }
+
+    function themePrefsCookieName() {
+      return themeUserId > 0
+        ? "biotern_theme_preferences_u_" + String(themeUserId)
+        : "biotern_theme_preferences";
+    }
 
     function loadLocalThemePrefs() {
       try {
-        var stored = storageGet("biotern_theme_preferences", null);
+        var stored = storageGet(themePrefsStorageKey(), null);
+        if (!stored && themeUserId <= 0) {
+          stored = storageGet("biotern_theme_preferences", null);
+        }
         if (!stored) return null;
         var parsed = JSON.parse(stored);
         if (parsed && typeof parsed === "object") return parsed;
@@ -242,9 +268,6 @@
     }
 
     function getSavedSkin() {
-      if (serverPrefs && (serverPrefs.skin === "dark" || serverPrefs.skin === "light")) {
-        return serverPrefs.skin === "dark" ? "app-skin-dark" : "";
-      }
       try {
         var primary = storageGet("app-skin", null);
         if (primary !== null) return primary;
@@ -255,7 +278,14 @@
         var legacy = storageGet("app-skin-dark", null);
         if (legacy !== null) return legacy;
       } catch (e) {
+        if (serverPrefs && (serverPrefs.skin === "dark" || serverPrefs.skin === "light")) {
+          return serverPrefs.skin === "dark" ? "app-skin-dark" : "";
+        }
         return runtimePrefs.skin === "dark" ? "app-skin-dark" : "";
+      }
+
+      if (serverPrefs && (serverPrefs.skin === "dark" || serverPrefs.skin === "light")) {
+        return serverPrefs.skin === "dark" ? "app-skin-dark" : "";
       }
 
       if (runtimePrefs.skin === "dark") return "app-skin-dark";
@@ -531,12 +561,13 @@
         var jsonValue = JSON.stringify(payload || {});
         var cookieValue = encodeURIComponent(jsonValue);
         document.cookie =
-          "biotern_theme_preferences=" +
+          themePrefsCookieName() +
+          "=" +
           cookieValue +
           "; path=/; max-age=" +
           60 * 60 * 24 * 30 +
           "; samesite=Lax";
-        storageSet("biotern_theme_preferences", jsonValue);
+        storageSet(themePrefsStorageKey(), jsonValue);
       } catch (e) {}
     }
 
@@ -717,6 +748,36 @@
         : "blue";
     }
 
+    function syncCustomSelectVisual(selectEl) {
+      if (!selectEl) return;
+      var wrap = selectEl.closest(".biotern-select-wrap");
+      if (!wrap) return;
+
+      var selectedOption = null;
+      if (selectEl.options && selectEl.options.length) {
+        var selectedIndex = selectEl.selectedIndex >= 0 ? selectEl.selectedIndex : 0;
+        selectedOption = selectEl.options[selectedIndex] || null;
+      }
+      var selectedValue = selectedOption ? selectedOption.value : "";
+      var selectedText = selectedOption ? selectedOption.text : "Select";
+
+      var label = wrap.querySelector(".biotern-select-trigger-label");
+      if (label) {
+        label.textContent = selectedText;
+      }
+
+      var menu = wrap.querySelector(".biotern-select-menu");
+      if (menu) {
+        var buttons = menu.querySelectorAll(".biotern-select-option");
+        for (var i = 0; i < buttons.length; i += 1) {
+          var button = buttons[i];
+          var isSelected = button.getAttribute("data-value") === selectedValue;
+          button.classList.toggle("is-selected", isSelected);
+          button.setAttribute("aria-selected", isSelected ? "true" : "false");
+        }
+      }
+    }
+
     function setDark(isDark, persist) {
       var alreadyDark = document.documentElement.classList.contains("app-skin-dark");
       if (alreadyDark === !!isDark) {
@@ -802,6 +863,9 @@
       if (pageMenu) pageMenu.value = menu;
       if (pageFont) pageFont.value = font;
       if (pageScheme) pageScheme.value = scheme;
+      syncCustomSelectVisual(pageMenu);
+      syncCustomSelectVisual(pageFont);
+      syncCustomSelectVisual(pageScheme);
       if (pageNavigation) pageNavigation.value = navigation;
       if (pageHeader) pageHeader.value = header;
       if (navDarkRadio) navDarkRadio.checked = navigation === "dark";

@@ -559,8 +559,10 @@ $page_scripts = [
 ];
 include 'includes/header.php';
 ?>
-<div class="main-content">
-    <div class="student-home-shell student-dtr-shell">
+<main class="nxl-container">
+    <div class="nxl-content">
+        <div class="main-content">
+            <div class="student-home-shell student-dtr-shell">
                 <section class="card student-home-hero border-0 student-dtr-hero-card">
             <div class="card-body">
                 <div class="student-dtr-hero">
@@ -852,5 +854,7 @@ include 'includes/header.php';
         </div>
     </div>
 </div>
+    </div>
+</main>
 <?php include 'includes/footer.php'; ?>
 

@@ -363,10 +363,100 @@ $active_student_rate = $dashboard_stats['active_student_rate'];
 $biometric_registered = $dashboard_stats['biometric_registered'];
 $dashboard_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
 $dashboard_can_review_applications = in_array($dashboard_role, ['admin', 'coordinator', 'supervisor'], true);
+$dashboard_user_id = (int)($_SESSION['user_id'] ?? 0);
+
+$student_dashboard = [
+    'student' => null,
+    'attendance_this_month' => 0,
+    'attendance_pending' => 0,
+    'attendance_approved' => 0,
+    'latest_internship' => null,
+    'recent_attendance' => [],
+];
+
+if ($dashboard_role === 'student' && isset($conn) && $dashboard_user_id > 0) {
+    $student_stmt = $conn->prepare(
+        "SELECT s.id, s.student_id, s.first_name, s.last_name, c.name AS course_name, sec.code AS section_code, sec.name AS section_name
+         FROM students s
+         LEFT JOIN courses c ON c.id = s.course_id
+         LEFT JOIN sections sec ON sec.id = s.section_id
+         WHERE s.user_id = ?
+         LIMIT 1"
+    );
+
+    if ($student_stmt) {
+        $student_stmt->bind_param('i', $dashboard_user_id);
+        $student_stmt->execute();
+        $student_dashboard['student'] = $student_stmt->get_result()->fetch_assoc() ?: null;
+        $student_stmt->close();
+    }
+
+    if (!empty($student_dashboard['student']['id'])) {
+        $student_id = (int)$student_dashboard['student']['id'];
+        $month_start = date('Y-m-01');
+        $month_end = date('Y-m-t');
+
+        $attendance_stmt = $conn->prepare(
+            "SELECT
+                COUNT(*) AS total_count,
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_count,
+                SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved_count
+             FROM attendances
+             WHERE student_id = ? AND attendance_date BETWEEN ? AND ?"
+        );
+
+        if ($attendance_stmt) {
+            $attendance_stmt->bind_param('iss', $student_id, $month_start, $month_end);
+            $attendance_stmt->execute();
+            $attendance_summary = $attendance_stmt->get_result()->fetch_assoc() ?: [];
+            $attendance_stmt->close();
+
+            $student_dashboard['attendance_this_month'] = (int)($attendance_summary['total_count'] ?? 0);
+            $student_dashboard['attendance_pending'] = (int)($attendance_summary['pending_count'] ?? 0);
+            $student_dashboard['attendance_approved'] = (int)($attendance_summary['approved_count'] ?? 0);
+        }
+
+        $internship_stmt = $conn->prepare(
+            "SELECT status, company_name, required_hours, rendered_hours, completion_percentage
+             FROM internships
+             WHERE student_id = ? AND deleted_at IS NULL
+             ORDER BY updated_at DESC, id DESC
+             LIMIT 1"
+        );
+
+        if ($internship_stmt) {
+            $internship_stmt->bind_param('i', $student_id);
+            $internship_stmt->execute();
+            $student_dashboard['latest_internship'] = $internship_stmt->get_result()->fetch_assoc() ?: null;
+            $internship_stmt->close();
+        }
+
+        $recent_attendance_stmt = $conn->prepare(
+            "SELECT attendance_date, status, total_hours
+             FROM attendances
+             WHERE student_id = ?
+             ORDER BY attendance_date DESC, id DESC
+             LIMIT 5"
+        );
+
+        if ($recent_attendance_stmt) {
+            $recent_attendance_stmt->bind_param('i', $student_id);
+            $recent_attendance_stmt->execute();
+            $recent_attendance_result = $recent_attendance_stmt->get_result();
+            while ($recent_attendance_result && ($row = $recent_attendance_result->fetch_assoc())) {
+                $student_dashboard['recent_attendance'][] = $row;
+            }
+            $recent_attendance_stmt->close();
+        }
+    }
+}
 
 $page_title = 'BioTern || Dashboard';
 $page_body_class = 'dashboard-home';
 $page_styles = array('assets/css/modules/pages/page-home-dashboard.css');
+if ($dashboard_role === 'student') {
+    $page_styles[] = 'assets/css/homepage-student.css';
+}
 $page_vendor_scripts = array(
     'assets/vendors/js/daterangepicker.min.js',
     'assets/vendors/js/apexcharts.min.js',
@@ -381,6 +471,104 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
+            <?php if ($dashboard_role === 'student'): ?>
+            <?php
+                $student_name = trim((string)(
+                    ($student_dashboard['student']['first_name'] ?? '') . ' ' . ($student_dashboard['student']['last_name'] ?? '')
+                ));
+                $student_course = trim((string)($student_dashboard['student']['course_name'] ?? ''));
+                $student_section_parts = array_filter([
+                    trim((string)($student_dashboard['student']['section_code'] ?? '')),
+                    trim((string)($student_dashboard['student']['section_name'] ?? '')),
+                ]);
+                $student_section = implode(' | ', $student_section_parts);
+                $student_internship = is_array($student_dashboard['latest_internship']) ? $student_dashboard['latest_internship'] : [];
+                $student_completion = (float)($student_internship['completion_percentage'] ?? 0);
+                $student_status = trim((string)($student_internship['status'] ?? 'Not started'));
+                $student_company = trim((string)($student_internship['company_name'] ?? ''));
+                $student_required_hours = (float)($student_internship['required_hours'] ?? 0);
+                $student_rendered_hours = (float)($student_internship['rendered_hours'] ?? 0);
+            ?>
+            <div class="page-header student-page-header">
+                <div class="page-header-left d-flex align-items-center">
+                    <div class="page-header-title">
+                        <h5 class="m-b-10">Dashboard</h5>
+                    </div>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                        <li class="breadcrumb-item">Dashboard</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="main-content student-home-shell">
+                <div class="student-home-hero card border-0">
+                    <div class="card-body">
+                        <div class="student-home-hero__content">
+                            <div>
+                                <span class="student-home-eyebrow">Student Workspace</span>
+                                <h2><?php echo htmlspecialchars($student_name !== '' ? 'Welcome back, ' . $student_name : 'Welcome back', ENT_QUOTES, 'UTF-8'); ?></h2>
+                                <p>Keep track of your attendance, internship progress, documents, and daily tools in one place.</p>
+                                <div class="student-home-meta">
+                                    <?php if ($student_course !== ''): ?><span><?php echo htmlspecialchars($student_course, ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
+                                    <?php if ($student_section !== ''): ?><span><?php echo htmlspecialchars($student_section, ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
+                                </div>
+                            </div>
+                            <div class="student-home-actions">
+                                <a href="student-dtr.php" class="btn btn-primary"><i class="feather-clock me-1"></i> My DTR</a>
+                                <a href="student-profile.php" class="btn btn-light-brand"><i class="feather-user me-1"></i> My Profile</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 student-home-stats">
+                    <div class="col-xl-3 col-md-6"><div class="card student-metric-card h-100"><div class="card-body"><span class="student-metric-label">Attendance This Month</span><h3><?php echo (int)$student_dashboard['attendance_this_month']; ?></h3><p>Your logged DTR entries for <?php echo date('F Y'); ?>.</p></div></div></div>
+                    <div class="col-xl-3 col-md-6"><div class="card student-metric-card h-100"><div class="card-body"><span class="student-metric-label">Pending Logs</span><h3><?php echo (int)$student_dashboard['attendance_pending']; ?></h3><p>Attendance entries still waiting for approval.</p></div></div></div>
+                    <div class="col-xl-3 col-md-6"><div class="card student-metric-card h-100"><div class="card-body"><span class="student-metric-label">Internship Status</span><h3><?php echo htmlspecialchars($student_status, ENT_QUOTES, 'UTF-8'); ?></h3><p><?php echo htmlspecialchars($student_company !== '' ? $student_company : 'No company assigned yet.', ENT_QUOTES, 'UTF-8'); ?></p></div></div></div>
+                    <div class="col-xl-3 col-md-6"><div class="card student-metric-card h-100"><div class="card-body"><span class="student-metric-label">Completion</span><h3><?php echo number_format($student_completion, 0); ?>%</h3><p><?php echo number_format($student_rendered_hours, 0); ?> of <?php echo number_format($student_required_hours, 0); ?> hours rendered.</p></div></div></div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-xxl-7">
+                        <div class="card student-panel h-100">
+                            <div class="card-header"><h5 class="card-title mb-0">Quick Access</h5></div>
+                            <div class="card-body">
+                                <div class="student-quick-grid">
+                                    <a href="student-profile.php" class="student-shortcut-card"><i class="feather-user"></i><span>My Profile</span><small>Review your student details.</small></a>
+                                    <a href="student-dtr.php" class="student-shortcut-card"><i class="feather-clock"></i><span>My DTR</span><small>Check attendance and hours.</small></a>
+                                    <a href="document_application.php" class="student-shortcut-card"><i class="feather-file-text"></i><span>Documents</span><small>Open your internship documents.</small></a>
+                                    <a href="apps-storage.php" class="student-shortcut-card"><i class="feather-folder"></i><span>Storage</span><small>Manage files and requirements.</small></a>
+                                    <a href="apps-notes.php" class="student-shortcut-card"><i class="feather-edit-3"></i><span>Notes</span><small>Keep reminders and internship notes.</small></a>
+                                    <a href="apps-chat.php" class="student-shortcut-card"><i class="feather-message-circle"></i><span>Chat</span><small>Stay in touch with your team.</small></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xxl-5">
+                        <div class="card student-panel h-100">
+                            <div class="card-header"><h5 class="card-title mb-0">Recent Attendance</h5></div>
+                            <div class="card-body">
+                                <?php if (!empty($student_dashboard['recent_attendance'])): ?>
+                                <div class="student-attendance-list">
+                                    <?php foreach ($student_dashboard['recent_attendance'] as $attendance_row): ?>
+                                    <div class="student-attendance-item">
+                                        <div>
+                                            <strong><?php echo htmlspecialchars(date('F j, Y', strtotime((string)$attendance_row['attendance_date'])), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                            <span><?php echo htmlspecialchars(ucfirst((string)($attendance_row['status'] ?? 'pending')), ENT_QUOTES, 'UTF-8'); ?></span>
+                                        </div>
+                                        <b><?php echo number_format((float)($attendance_row['total_hours'] ?? 0), 2); ?> hrs</b>
+                                    </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php else: ?>
+                                <div class="student-empty-state">No attendance records yet. Your DTR entries will appear here once you start logging them.</div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php else: ?>
             <div class="page-header dashboard-page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
@@ -890,6 +1078,7 @@ include 'includes/header.php';
             })();
             </script>
             <!-- [ Main Content ] end -->
+            <?php endif; ?>
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>

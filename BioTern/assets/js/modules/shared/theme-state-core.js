@@ -105,14 +105,13 @@
       serverPrefs && (serverPrefs.skin === "dark" || serverPrefs.skin === "light")
         ? serverPrefs.skin
         : "";
-    var skin =
-      serverSkin !== ""
+    var skin = hasLocalSkin
+      ? localSkinRaw.indexOf("dark") !== -1
+        ? "dark"
+        : "light"
+      : serverSkin !== ""
         ? serverSkin
-        : hasLocalSkin
-          ? localSkinRaw.indexOf("dark") !== -1
-            ? "dark"
-            : "light"
-          : "light";
+        : "light";
 
     var localNavigation = storageGet("app-navigation", "");
     var navigation =
