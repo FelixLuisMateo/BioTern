@@ -2,6 +2,7 @@
 ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once dirname(__DIR__) . '/tools/biometric_ops.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
@@ -200,9 +201,10 @@ if ($courseRes instanceof mysqli_result) {
 }
 
 $sections = [];
-$sectionRes = $conn->query("SELECT id, course_id, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
+$sectionRes = $conn->query("SELECT id, course_id, code, name, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
 if ($sectionRes instanceof mysqli_result) {
     while ($row = $sectionRes->fetch_assoc()) {
+        $row['section_label'] = biotern_format_section_label((string)($row['code'] ?? ''), (string)($row['name'] ?? ''));
         $sections[] = $row;
     }
     $sectionRes->close();
@@ -223,7 +225,8 @@ $mappingSql = "
         s.course_id,
         s.section_id,
         c.name AS course_name,
-        COALESCE(NULLIF(sec.code, ''), sec.name) AS section_label,
+        sec.code AS section_code,
+        sec.name AS section_name,
         CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')) AS student_name
     FROM fingerprint_user_map m
     LEFT JOIN users u ON u.id = m.user_id
@@ -235,6 +238,7 @@ $mappingSql = "
 $mappingRes = $conn->query($mappingSql);
 if ($mappingRes instanceof mysqli_result) {
     while ($row = $mappingRes->fetch_assoc()) {
+        $row['section_label'] = biotern_format_section_label((string)($row['section_code'] ?? ''), (string)($row['section_name'] ?? ''));
         $mappings[] = $row;
     }
     $mappingRes->close();

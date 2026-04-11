@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
@@ -226,9 +227,12 @@ if ($dept_res && $dept_res->num_rows) {
 }
 
 $sections = [];
-$section_res = $conn->query("SELECT id, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
+$section_res = $conn->query("SELECT id, code, name, COALESCE(NULLIF(code, ''), name) AS section_label FROM sections ORDER BY section_label ASC");
 if ($section_res && $section_res->num_rows) {
-    while ($r = $section_res->fetch_assoc()) $sections[] = $r;
+    while ($r = $section_res->fetch_assoc()) {
+        $r['section_label'] = biotern_format_section_label((string)($r['code'] ?? ''), (string)($r['name'] ?? ''));
+        $sections[] = $r;
+    }
 }
 
 $supervisors = [];
@@ -1091,10 +1095,10 @@ include 'includes/header.php';
                 $missingScheduleLabels = [];
                 foreach ($missingScheduleAttendances as $attendance) {
                     $studentLabel = trim((string)($attendance['first_name'] ?? '') . ' ' . (string)($attendance['last_name'] ?? ''));
-                    $sectionLabel = trim((string)($attendance['section_code'] ?? ''));
-                    if ($sectionLabel === '') {
-                        $sectionLabel = trim((string)($attendance['section_name'] ?? ''));
-                    }
+                    $sectionLabel = biotern_format_section_label(
+                        (string)($attendance['section_code'] ?? ''),
+                        (string)($attendance['section_name'] ?? '')
+                    );
                     $missingScheduleLabels[] = trim($studentLabel . ($sectionLabel !== '' ? (' [' . $sectionLabel . ']') : ''));
                 }
                 $missingScheduleLabels = array_values(array_unique(array_filter($missingScheduleLabels)));

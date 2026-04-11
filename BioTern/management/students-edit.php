@@ -145,7 +145,7 @@ if ($departments_result && $departments_result->num_rows > 0) {
 
 // Fetch sections for dropdown
 $sections = [];
-$sections_result = $conn->query("SELECT id, name FROM sections ORDER BY name ASC");
+$sections_result = $conn->query("SELECT id, code, name FROM sections ORDER BY code ASC, name ASC");
 if ($sections_result && $sections_result->num_rows > 0) {
     while ($row = $sections_result->fetch_assoc()) {
         $sections[] = $row;

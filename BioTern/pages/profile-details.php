@@ -375,7 +375,7 @@ $studentGenderDisplay = trim((string)($studentProfile['gender'] ?? '')) !== ''
     ? ucwords(strtolower(trim((string)($studentProfile['gender'] ?? ''))))
     : 'Not yet available';
 
-$page_title$page_title = 'BioTern || Profile Details';
+$page_title = 'BioTern || Profile Details';
 $page_body_class = 'apps-account-page';
 $page_styles = [
     'assets/css/modules/pages/page-profile-details.css',

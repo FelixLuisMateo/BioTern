@@ -3,6 +3,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 
 require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 $current_user_id = (int)($_SESSION['user_id'] ?? 0);
@@ -64,6 +65,7 @@ $student_query = "
         c.name as course_name,
         c.id as course_id,
         d.name as department_name,
+        sec.code as section_code,
         sec.name as section_name,
         i.id as internship_id,
         i.supervisor_id,
@@ -646,7 +648,7 @@ echo htmlspecialchars($student['department_name'] ?? 'N/A'); ?></div>
                                                 <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Section</div>
                                                     <div class="fw-semibold"><?php
-echo htmlspecialchars($student['section_name'] ?? 'N/A'); ?></div>
+echo htmlspecialchars(biotern_format_section_label((string)($student['section_code'] ?? ''), (string)($student['section_name'] ?? 'N/A'))); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">

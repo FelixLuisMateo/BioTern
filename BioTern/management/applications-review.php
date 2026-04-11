@@ -1016,13 +1016,9 @@ include 'includes/header.php';
 
                                             $courseLabel = $courseName !== '' ? $courseName : 'To be assigned';
                                             $departmentLabel = $departmentName !== '' ? $departmentName : 'To be assigned';
-                                            $sectionLabel = 'To be assigned';
-                                            if ($sectionCode !== '' && $sectionName !== '') {
-                                                $sectionLabel = $sectionCode . ' - ' . $sectionName;
-                                            } elseif ($sectionCode !== '') {
-                                                $sectionLabel = $sectionCode;
-                                            } elseif ($sectionName !== '') {
-                                                $sectionLabel = $sectionName;
+                                            $sectionLabel = biotern_format_section_label($sectionCode, $sectionName);
+                                            if ($sectionLabel === '') {
+                                                $sectionLabel = 'To be assigned';
                                             }
                                             $semesterLabel = $semesterValue !== '' ? $semesterValue : 'Not set';
                                             $schoolYearLabel = $schoolYearValue !== '' ? $schoolYearValue : 'Not set';

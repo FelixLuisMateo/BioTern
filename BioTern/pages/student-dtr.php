@@ -550,7 +550,7 @@ $lastRecordedDateText = $attendanceInsights['last_recorded_date'] !== ''
     : 'No entries yet';
 
 $page_title = 'BioTern || My DTR';
-$page_styles$page_styles = [
+$page_styles = [
     'assets/css/homepage-student.css',
     'assets/css/student-dtr.css',
 ];
