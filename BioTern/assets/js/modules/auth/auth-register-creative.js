@@ -1100,6 +1100,29 @@ function setupFloatingTextFields() {
             applyFilters();
         }
 
+        function setupSelectValueTitles() {
+            const selects = document.querySelectorAll('#studentForm select.form-control');
+            if (!selects.length) return;
+
+            selects.forEach(function(select) {
+                if (!select || select.dataset.titleBound === '1') return;
+
+                const syncTitle = function() {
+                    const selectedOption = select.options[select.selectedIndex] || null;
+                    const text = selectedOption ? String(selectedOption.textContent || '').trim() : '';
+                    select.title = text;
+                    if (text !== '') {
+                        select.setAttribute('aria-label', text);
+                    }
+                };
+
+                select.addEventListener('change', syncTitle);
+                select.addEventListener('focus', syncTitle);
+                syncTitle();
+                select.dataset.titleBound = '1';
+            });
+        }
+
         // New function to handle password visibility toggle for both password and confirm password
         function setupPasswordToggle() {
             const toggles = document.querySelectorAll('.show-pass-toggle');
@@ -1225,3 +1248,4 @@ function setupFloatingTextFields() {
         })();
 
         setupPasswordStrengthIndicator();
+        setupSelectValueTitles();

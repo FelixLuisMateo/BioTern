@@ -445,11 +445,11 @@ for ($y = $currentYear; $y >= $startYear; $y--):
                                     </div>
                                 </div>
                                 <div class="row g-3">
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentCoordinatorSelect">Coordinator</label>
                                         <select name="coordinator_id" id="studentCoordinatorSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Coordinator</option>
-                                            <option value="0">I still don't know yet (To be assigned)</option>
+                                            <option value="0">To be assigned</option>
                                             <?php
 
 foreach ($coordinatorOptions as $coordinator): ?>
@@ -483,11 +483,11 @@ echo htmlspecialchars($defaultLabel); ?>
 endforeach; ?>
                                         </select>
                                     </div>
-                                    <div class="col-6 mb-2">
+                                    <div class="col-12 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentSupervisorSelect">Supervisor</label>
                                         <select name="supervisor_id" id="studentSupervisorSelect" class="form-control" required>
                                             <option value="" disabled selected>Select Supervisor</option>
-                                            <option value="0">I still don't know yet (To be assigned)</option>
+                                            <option value="0">To be assigned</option>
                                             <?php
 
 foreach ($supervisorOptions as $supervisor): ?>
@@ -524,7 +524,7 @@ endforeach; ?>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-12 mb-2">
-                                        <small class="text-muted">Tip: If you are not sure yet, select "I still don't know yet (To be assigned)" and the approver can edit and assign it later.</small>
+                                        <small class="text-muted">Tip: If you are not sure yet, select "To be assigned" and the approver can update it later.</small>
                                     </div>
                                 </div>
                                 <input type="hidden" id="studentInternalTotalHours" name="internal_total_hours" value="140">
