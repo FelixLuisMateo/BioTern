@@ -65,11 +65,14 @@ if (!function_exists('biotern_nav_any_active')) {
 $nav_active_dashboard = biotern_nav_any_active($nav_current_file, ['homepage.php', 'analytics.php']);
 $nav_active_students = biotern_nav_any_active($nav_current_file, [
     'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php',
-    'applications-review.php', 'attendance.php', 'attendance-corrections.php', 'demo-biometric.php', 'print_attendance.php',
-    'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
+    'applications-review.php', 'attendance.php', 'attendance-corrections.php', 'print_attendance.php',
 ]);
 $nav_active_ojt = biotern_nav_any_active($nav_current_file, [
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
+    'ojt-internal-list.php', 'ojt-external-list.php', 'import-ojt-internal.php', 'import-ojt-external.php',
+]);
+$nav_active_machine = biotern_nav_any_active($nav_current_file, [
+    'demo-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
 ]);
 $nav_active_documents = biotern_nav_any_active($nav_current_file, [
     'document_application.php',
@@ -144,9 +147,6 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('students.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="students.php">Students List</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('applications-review.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="applications-review.php">Applications Review</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('attendance.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="attendance.php">Attendance DTR</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('fingerprint_mapping.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="fingerprint_mapping.php">Fingerprint Mapping</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('biometric-machine.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="biometric-machine.php">F20H Machine Manager</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('biometric_machine_sync.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="biometric_machine_sync.php?redirect=biometric-machine.php">Sync Biometric Machine</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu<?php echo $nav_active_ojt ? ' active nxl-trigger' : ''; ?>">
@@ -157,6 +157,21 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                     <ul class="nxl-submenu">
                         <li class="nxl-item<?php echo biotern_nav_is_active('ojt.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt.php">OJT List</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('ojt-create.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('ojt-internal-list.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt-internal-list.php">Internal List</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('ojt-external-list.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt-external-list.php">External List</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('import-ojt-internal.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-ojt-internal.php">Import OJT Internal</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('import-ojt-external.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-ojt-external.php">Import OJT External</a></li>
+                    </ul>
+                </li>
+                <li class="nxl-item nxl-hasmenu<?php echo $nav_active_machine ? ' active nxl-trigger' : ''; ?>">
+                    <a href="javascript:void(0);" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-cpu"></i></span>
+                        <span class="nxl-mtext">Machine Management</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                    </a>
+                    <ul class="nxl-submenu">
+                        <li class="nxl-item<?php echo biotern_nav_is_active('fingerprint_mapping.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="fingerprint_mapping.php">Fingerprint Mapping</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('biometric-machine.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="biometric-machine.php">F20H Machine Manager</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('biometric_machine_sync.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="biometric_machine_sync.php?redirect=biometric-machine.php">Sync Biometric Machine</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu<?php echo $nav_active_documents ? ' active nxl-trigger' : ''; ?>">

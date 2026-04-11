@@ -623,6 +623,12 @@ ob_end_flush();
         <div class="card mb-4 bio-console-panel">
             <div class="card-header"><strong>Unmapped Fingerprints (Priority Queue)</strong></div>
             <div class="card-body border-bottom">
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <a href="ojt-internal-list.php" class="btn btn-sm btn-light-brand">Open Internal List</a>
+                    <a href="ojt-external-list.php" class="btn btn-sm btn-outline-secondary">Open External List</a>
+                    <a href="import-ojt-internal.php" class="btn btn-sm btn-outline-secondary">Import OJT Internal</a>
+                    <a href="import-ojt-external.php" class="btn btn-sm btn-outline-secondary">Import OJT External</a>
+                </div>
                 <form method="get" class="row g-2 align-items-end fingerprint-form">
                     <input type="hidden" name="unmapped_admin_only" value="<?php echo $unmappedAdminOnly ? '1' : '0'; ?>">
                     <div class="col-12 col-md-8 col-xl-8">
@@ -651,16 +657,17 @@ ob_end_flush();
                                 <th>Machine User</th>
                                 <th>Machine Access Hint</th>
                                 <th>Status</th>
+                                <th class="text-end">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                         <?php if ($unmappedDetectedCount === 0): ?>
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-4">No unmapped fingerprints right now.</td>
+                                <td colspan="6" class="text-center text-muted py-4">No unmapped fingerprints right now.</td>
                             </tr>
                         <?php elseif (empty($unmappedDetectedFingerprints)): ?>
                             <tr>
-                                <td colspan="5" class="text-center text-muted py-4">No unmapped fingerprints match your search.</td>
+                                <td colspan="6" class="text-center text-muted py-4">No unmapped fingerprints match your search.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($unmappedDetectedFingerprints as $fingerprint): ?>
@@ -685,6 +692,9 @@ ob_end_flush();
                                         <?php endif; ?>
                                     </td>
                                     <td><span class="badge bg-soft-warning text-warning">Needs Mapping</span></td>
+                                    <td class="text-end">
+                                        <a href="ojt-internal-list.php?map_finger_id=<?php echo (int)$fingerprint['finger_id']; ?>" class="btn btn-sm btn-outline-primary">Map To Student</a>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
