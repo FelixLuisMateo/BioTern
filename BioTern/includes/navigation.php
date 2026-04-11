@@ -70,7 +70,7 @@ $nav_active_students = biotern_nav_any_active($nav_current_file, [
 ]);
 $nav_active_ojt = biotern_nav_any_active($nav_current_file, [
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
-    'ojt-internal-list.php', 'ojt-external-list.php', 'import-ojt-internal.php', 'import-ojt-external.php',
+    'ojt-internal-list.php', 'ojt-external-list.php',
 ]);
 $nav_active_machine = biotern_nav_any_active($nav_current_file, [
     'demo-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
@@ -119,7 +119,7 @@ $nav_active_student_tools = biotern_nav_any_active($nav_current_file, [
     'theme-customizer.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
 ]);
 $nav_active_tools = biotern_nav_any_active($nav_current_file, [
-    'theme-customizer.php', 'import-sql.php', 'import-students-excel.php',
+    'theme-customizer.php', 'import-sql.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php',
 ]);
 ?>
 <nav class="nxl-navigation">
@@ -180,8 +180,6 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('ojt-create.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('ojt-internal-list.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt-internal-list.php">Internal List</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('ojt-external-list.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt-external-list.php">External List</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('import-ojt-internal.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-ojt-internal.php">Import OJT Internal</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('import-ojt-external.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-ojt-external.php">Import OJT External</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu<?php echo $nav_active_machine ? ' active nxl-trigger' : ''; ?>">
@@ -375,6 +373,8 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item<?php echo biotern_nav_is_active('import-students-excel.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-students-excel.php">Excel Import</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('import-ojt-internal.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-ojt-internal.php">Import OJT Internal</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('import-ojt-external.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-ojt-external.php">Import OJT External</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('import-sql.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-sql.php">Data Transfer</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('theme-customizer.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="theme-customizer.php">Appearance</a></li>
                     </ul>
