@@ -1542,6 +1542,11 @@
         border: 0 !important;
         box-shadow: none;
         padding: 0;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: fit-content;
+        max-width: min(240px, 100%);
     }
 
     .msg-bubble.has-media.is-pinned {
@@ -1566,6 +1571,7 @@
     .msg-bubble.has-media .msg-meta {
         margin-top: 0.28rem;
         padding: 0 0.2rem;
+        width: 100%;
     }
 
     /* Ã¢â€â‚¬Ã¢â€â‚¬ Message grouping Ã¢â‚¬â€œ own (right, teal) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */

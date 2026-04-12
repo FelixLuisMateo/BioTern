@@ -185,20 +185,7 @@ function chat_fetch_recent_login_user_ids(mysqli $conn): array
 
 function chat_is_online(array $recentLoginUserIds, int $userId, ?string $lastActivityAt): bool
 {
-    if ($userId > 0 && isset($recentLoginUserIds[$userId])) {
-        return true;
-    }
-
-    if (!$lastActivityAt) {
-        return false;
-    }
-
-    $timestamp = strtotime($lastActivityAt);
-    if ($timestamp === false) {
-        return false;
-    }
-
-    return (time() - $timestamp) <= 300;
+    return $userId > 0 && isset($recentLoginUserIds[$userId]);
 }
 
 function chat_media_kind_from_path(string $path): string
