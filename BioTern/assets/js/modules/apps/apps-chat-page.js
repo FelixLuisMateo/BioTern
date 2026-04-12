@@ -1853,6 +1853,9 @@
                     }
                 }
                 updateSendBtn();
+                if (inputEl) {
+                    inputEl.focus();
+                }
             });
         }
 
