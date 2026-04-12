@@ -146,13 +146,7 @@ function chat_media_url(int $messageId): string
     if ($messageId <= 0) {
         return '';
     }
-
-    $scriptDir = str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '')));
-    if ($scriptDir === '' || $scriptDir === '.' || $scriptDir === '/') {
-        return 'includes/chat-media.php?mid=' . $messageId;
-    }
-
-    return rtrim($scriptDir, '/') . '/../includes/chat-media.php?mid=' . $messageId;
+    return 'chat-media.php?mid=' . $messageId;
 }
 
 function chat_has_table(mysqli $conn, string $table): bool
