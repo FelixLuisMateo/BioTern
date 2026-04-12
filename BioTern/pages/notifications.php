@@ -215,7 +215,13 @@ $page_body_class = 'settings-page notifications-page';
 $page_styles = [
     'assets/css/layout/page_shell.css',
     'assets/css/modules/settings/settings-shell.css',
+    'assets/vendors/css/datepicker.min.css',
+    'assets/css/modules/app-ui-datepicker.css',
     'assets/css/modules/settings/page-notifications.css',
+];
+$page_scripts = [
+    'assets/vendors/js/datepicker.min.js',
+    'assets/js/modules/shared/unified-date-picker.js',
 ];
 include dirname(__DIR__) . '/includes/header.php';
 ?>
@@ -272,11 +278,11 @@ include dirname(__DIR__) . '/includes/header.php';
                                         </div>
                                         <div class="col-lg-2">
                                             <label class="form-label">Start</label>
-                                            <input type="date" name="start" class="form-control" value="<?php echo notifications_h($dateStart); ?>">
+                                            <input type="text" name="start" class="form-control" value="<?php echo notifications_h($dateStart); ?>" data-unified-date="1" placeholder="YYYY-MM-DD" autocomplete="off">
                                         </div>
                                         <div class="col-lg-2">
                                             <label class="form-label">End</label>
-                                            <input type="date" name="end" class="form-control" value="<?php echo notifications_h($dateEnd); ?>">
+                                            <input type="text" name="end" class="form-control" value="<?php echo notifications_h($dateEnd); ?>" data-unified-date="1" placeholder="YYYY-MM-DD" autocomplete="off">
                                         </div>
                                         <div class="col-lg-1 d-flex align-items-end">
                                             <button type="submit" class="btn btn-primary w-100">Apply</button>

@@ -7,6 +7,17 @@
     flex-wrap: wrap;
 }
 
+.notifications-page .settings-panel-card,
+.notifications-page .settings-panel-card .card-body,
+.notifications-filters-card {
+    overflow: visible;
+}
+
+.notifications-filters-card {
+    position: relative;
+    z-index: 2;
+}
+
 .notifications-toolbar-copy strong {
     display: block;
     color: var(--settings-text);
@@ -31,6 +42,52 @@
     border-radius: 12px;
     background: var(--settings-item-bg);
     margin-bottom: 14px;
+}
+
+.notifications-filters-card input[type="date"].form-control {
+    min-height: 42px;
+    font-family: var(--bs-body-font-family, Inter, sans-serif);
+    letter-spacing: normal;
+    font-variant-numeric: tabular-nums;
+}
+
+.notifications-filters-card .ui-date-input {
+    background-image: none !important;
+    background-repeat: no-repeat !important;
+    background-size: 0 0 !important;
+    padding-right: 0.95rem !important;
+}
+
+html.app-skin-dark .notifications-filters-card input[type="date"].form-control {
+    color-scheme: dark;
+    background: var(--settings-item-bg);
+    border-color: var(--settings-item-border);
+    color: var(--settings-text);
+    -webkit-text-fill-color: var(--settings-text);
+    font-family: var(--bs-body-font-family, Inter, sans-serif);
+}
+
+html.app-skin-dark .notifications-filters-card input[type="date"].form-control::-webkit-calendar-picker-indicator {
+    filter: invert(0.92) sepia(0.08) saturate(0.6) hue-rotate(180deg) brightness(1.05);
+    opacity: 0.9;
+    cursor: pointer;
+}
+
+html.app-skin-dark .notifications-filters-card input[type="date"].form-control::-webkit-datetime-edit,
+html.app-skin-dark .notifications-filters-card input[type="date"].form-control::-webkit-datetime-edit-text,
+html.app-skin-dark .notifications-filters-card input[type="date"].form-control::-webkit-datetime-edit-month-field,
+html.app-skin-dark .notifications-filters-card input[type="date"].form-control::-webkit-datetime-edit-day-field,
+html.app-skin-dark .notifications-filters-card input[type="date"].form-control::-webkit-datetime-edit-year-field {
+    color: var(--settings-text);
+    -webkit-text-fill-color: var(--settings-text);
+    font-family: var(--bs-body-font-family, Inter, sans-serif);
+    letter-spacing: normal;
+}
+
+html.app-skin-dark .notifications-filters-card input[type="date"].form-control:focus {
+    background: var(--settings-card-bg);
+    border-color: var(--settings-accent-border);
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.14);
 }
 
 .notifications-filter-pills {
