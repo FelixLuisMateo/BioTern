@@ -298,6 +298,7 @@ body .page-header .btn.btn-sm {
     overflow: hidden !important;
     text-overflow: ellipsis !important;
   }
+
 }
 
 @media (max-width: 991.98px) {
