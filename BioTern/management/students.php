@@ -692,6 +692,10 @@ include 'includes/header.php';
                                                         data-export-coordinator="<?php echo htmlspecialchars($coordinator_name, ENT_QUOTES, 'UTF-8'); ?>"
                                                         data-export-last-logged="<?php echo htmlspecialchars($last_logged, ENT_QUOTES, 'UTF-8'); ?>"
                                                         data-export-status="<?php echo ((int)($student['live_clock_status'] ?? 0) === 1) ? 'Active' : 'Inactive'; ?>"
+                                                        data-print-student-id="<?php echo htmlspecialchars($student_id_label, ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-print-last-name="<?php echo htmlspecialchars((string)($student['last_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-print-first-name="<?php echo htmlspecialchars((string)($student['first_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-print-middle-name="<?php echo htmlspecialchars((string)($student['middle_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                     >
                                                         <td>
                                                             <div class="item-checkbox ms-1">

@@ -140,6 +140,21 @@ function chat_page_url(int $userId = 0, array $extraQuery = []): string
     return $url;
 }
 
+function chat_media_url(int $messageId): string
+{
+    $messageId = (int)$messageId;
+    if ($messageId <= 0) {
+        return '';
+    }
+
+    $scriptDir = str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '')));
+    if ($scriptDir === '' || $scriptDir === '.' || $scriptDir === '/') {
+        return 'includes/chat-media.php?mid=' . $messageId;
+    }
+
+    return rtrim($scriptDir, '/') . '/../includes/chat-media.php?mid=' . $messageId;
+}
+
 function chat_has_table(mysqli $conn, string $table): bool
 {
     $table = trim($table);
@@ -194,6 +209,10 @@ function chat_is_online(array $recentLoginUserIds, int $userId, ?string $lastAct
 
 function chat_media_kind_from_path(string $path): string
 {
+    if (preg_match('~(?:^|/)chat-media\.php(?:$|[?/])~i', $path) === 1 || stripos($path, 'chat-media.php?') !== false) {
+        return 'image';
+    }
+
     $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
     if (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
         return 'image';
@@ -644,6 +663,24 @@ function chat_ensure_message_reactions_table(mysqli $conn): void
     );
 }
 
+function chat_ensure_message_media_table(mysqli $conn): void
+{
+    $conn->query(
+        "CREATE TABLE IF NOT EXISTS chat_message_media (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            message_id BIGINT UNSIGNED NOT NULL,
+            original_name VARCHAR(255) NOT NULL DEFAULT '',
+            media_mime VARCHAR(64) NOT NULL,
+            media_data LONGBLOB NOT NULL,
+            media_size INT UNSIGNED NOT NULL DEFAULT 0,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_chat_message_media_message (message_id),
+            INDEX idx_chat_message_media_created (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+    );
+}
+
 function chat_ensure_message_pins_table(mysqli $conn): void
 {
     $conn->query(
@@ -711,6 +748,7 @@ function chat_ensure_message_reports_table(mysqli $conn): void
 function chat_message_meta(mysqli $conn): array
 {
     chat_ensure_messages_table($conn);
+    chat_ensure_message_media_table($conn);
     chat_ensure_message_reactions_table($conn);
     chat_ensure_message_pins_table($conn);
     chat_ensure_message_reports_table($conn);
@@ -746,6 +784,7 @@ function chat_message_meta(mysqli $conn): array
         'created_at_col' => isset($columns['created_at']) ? 'created_at' : '',
         'updated_at_col' => isset($columns['updated_at']) ? 'updated_at' : '',
         'deleted_at_col' => isset($columns['deleted_at']) ? 'deleted_at' : '',
+        'media_table_ready' => chat_has_table($conn, 'chat_message_media'),
         'reactions_ready' => chat_has_table($conn, 'message_reactions'),
         'pins_ready' => chat_has_table($conn, 'message_pins'),
         'reports_ready' => chat_has_table($conn, 'message_reports'),
@@ -1189,6 +1228,10 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
     // Handle optional media upload
     $uploadedMediaPath = '';
     $mediaUploadError = '';
+    $uploadedMediaBlob = '';
+    $uploadedMediaMime = '';
+    $uploadedMediaName = '';
+    $uploadedMediaSize = 0;
     if (!empty($_FILES['chat_media']['name'])) {
         $file = $_FILES['chat_media'];
         $imageMime = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -1204,47 +1247,18 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
             } elseif (in_array($mime, $imageMime, true) && $file['size'] > $maxImageSize) {
                 $mediaUploadError = 'Image is too large (max 10 MB).';
             } else {
-                $ext = strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION));
-                $safeExt = preg_replace('/[^a-z0-9]/', '', $ext);
-                if ($safeExt === '') {
-                    $mimeToExt = [
-                        'image/jpeg' => 'jpg',
-                        'image/jpg' => 'jpg',
-                        'image/png' => 'png',
-                        'image/gif' => 'gif',
-                        'image/webp' => 'webp',
-                    ];
-                    $safeExt = $mimeToExt[$mime] ?? 'bin';
-                }
-                $originalBase = pathinfo((string)$file['name'], PATHINFO_FILENAME);
-                $originalBase = preg_replace('/[^A-Za-z0-9._-]+/', '_', (string)$originalBase);
-                $originalBase = trim((string)$originalBase, " ._-");
-                if ($originalBase === '') {
-                    $originalBase = 'upload';
-                }
-                if (function_exists('mb_substr')) {
-                    $originalBase = (string)mb_substr($originalBase, 0, 90, 'UTF-8');
+                $blob = @file_get_contents((string)$file['tmp_name']);
+                if (!is_string($blob) || $blob === '') {
+                    $mediaUploadError = 'Could not read the uploaded file.';
                 } else {
-                    $originalBase = substr($originalBase, 0, 90);
-                }
-                $destDir = dirname(__DIR__) . '/uploads/chat_media/';
-                if (!is_dir($destDir)) {
-                    mkdir($destDir, 0755, true);
-                }
-                $fileName = $originalBase . '.' . $safeExt;
-                $suffix = 1;
-                while (is_file($destDir . $fileName) && $suffix < 5000) {
-                    $fileName = $originalBase . '_' . $suffix . '.' . $safeExt;
-                    $suffix++;
-                }
-                $destPath = $destDir . $fileName;
-                if (move_uploaded_file($file['tmp_name'], $destPath)) {
-                    $uploadedMediaPath = 'uploads/chat_media/' . $fileName;
+                    $uploadedMediaBlob = $blob;
+                    $uploadedMediaMime = (string)$mime;
+                    $uploadedMediaName = trim((string)($file['name'] ?? 'image'));
+                    $uploadedMediaSize = (int)($file['size'] ?? strlen($blob));
+                    $uploadedMediaPath = '__chat_media_pending__';
                     if ($draftMessage === '') {
-                        $draftMessage = $fileName; // non-empty placeholder so NOT NULL constraint is satisfied
+                        $draftMessage = $uploadedMediaName !== '' ? $uploadedMediaName : 'Image';
                     }
-                } else {
-                    $mediaUploadError = 'Could not save the uploaded file.';
                 }
             }
         }
@@ -1369,11 +1383,63 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
             if (!$insertStmt) {
                 $errorMessage = 'Failed to prepare the message insert query.';
             } else {
-                $insertStmt->bind_param($bindTypes, ...$bindValues);
-                $executed = $insertStmt->execute();
-                $insertErrNo = (int)$insertStmt->errno;
-                $insertError = (string)$insertStmt->error;
-                $insertStmt->close();
+                $usesBlobMedia = $uploadedMediaBlob !== '' && !empty($messageMeta['media_table_ready']);
+                $executed = false;
+                $insertErrNo = 0;
+                $insertError = '';
+                $messageId = 0;
+
+                if ($usesBlobMedia) {
+                    $conn->begin_transaction();
+                }
+
+                try {
+                    $insertStmt->bind_param($bindTypes, ...$bindValues);
+                    $executed = $insertStmt->execute();
+                    $insertErrNo = (int)$insertStmt->errno;
+                    $insertError = (string)$insertStmt->error;
+                    $messageId = (int)$insertStmt->insert_id;
+                    $insertStmt->close();
+
+                    if ($executed && $usesBlobMedia) {
+                        $mediaStmt = $conn->prepare('INSERT INTO chat_message_media (message_id, original_name, media_mime, media_data, media_size, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE original_name = VALUES(original_name), media_mime = VALUES(media_mime), media_data = VALUES(media_data), media_size = VALUES(media_size), updated_at = NOW()');
+                        if (!$mediaStmt) {
+                            throw new RuntimeException('Failed to prepare media save query.');
+                        }
+                        $null = null;
+                        $mediaStmt->bind_param('issbi', $messageId, $uploadedMediaName, $uploadedMediaMime, $null, $uploadedMediaSize);
+                        $mediaStmt->send_long_data(3, $uploadedMediaBlob);
+                        if (!$mediaStmt->execute()) {
+                            $mediaError = (string)$mediaStmt->error;
+                            $mediaStmt->close();
+                            throw new RuntimeException($mediaError !== '' ? $mediaError : 'Failed to save chat media.');
+                        }
+                        $mediaStmt->close();
+
+                        $mediaUrl = chat_media_url($messageId);
+                        $updateMediaStmt = $conn->prepare('UPDATE messages SET ' . $messageMeta['media_path_col'] . ' = ? WHERE ' . $messageMeta['id_col'] . ' = ? LIMIT 1');
+                        if (!$updateMediaStmt) {
+                            throw new RuntimeException('Failed to update chat media URL.');
+                        }
+                        $updateMediaStmt->bind_param('si', $mediaUrl, $messageId);
+                        if (!$updateMediaStmt->execute()) {
+                            $updateMediaError = (string)$updateMediaStmt->error;
+                            $updateMediaStmt->close();
+                            throw new RuntimeException($updateMediaError !== '' ? $updateMediaError : 'Failed to update chat media URL.');
+                        }
+                        $updateMediaStmt->close();
+                    }
+
+                    if ($usesBlobMedia) {
+                        $conn->commit();
+                    }
+                } catch (Throwable $chatMediaException) {
+                    if ($usesBlobMedia) {
+                        $conn->rollback();
+                    }
+                    $executed = false;
+                    $insertError = $chatMediaException->getMessage();
+                }
 
                 if ($executed) {
                     $successMessage = 'Message sent.';

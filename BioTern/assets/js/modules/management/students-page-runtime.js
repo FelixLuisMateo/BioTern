@@ -33,9 +33,88 @@
   }
 
   function initPrintActions() {
+    function getTableRows() {
+      return Array.prototype.slice.call(
+        document.querySelectorAll("#customerList tbody tr.app-students-table-row")
+      );
+    }
+
+    function getSelectedRows() {
+      return getTableRows().filter(function (row) {
+        var checkbox = row.querySelector(".checkbox");
+        return !!(checkbox && checkbox.checked);
+      });
+    }
+
+    function buildPrintRowMarkup(row, index) {
+      var studentId = (row.dataset.printStudentId || "").trim();
+      var lastName = (row.dataset.printLastName || "").trim();
+      var firstName = (row.dataset.printFirstName || "").trim();
+      var middleName = (row.dataset.printMiddleName || "").trim();
+
+      return (
+        "<tr>" +
+        '<td class="col-index">' +
+        String(index + 1) +
+        "</td>" +
+        "<td>" +
+        escapeHtml(studentId) +
+        "</td>" +
+        "<td>" +
+        escapeHtml(lastName) +
+        "</td>" +
+        "<td>" +
+        escapeHtml(firstName) +
+        "</td>" +
+        "<td>" +
+        escapeHtml(middleName) +
+        "</td>" +
+        "<td></td>" +
+        "</tr>"
+      );
+    }
+
+    function escapeHtml(value) {
+      return String(value || "").replace(/[&<>'\"]/g, function (char) {
+        return {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          "'": "&#39;",
+          '"': "&quot;",
+        }[char];
+      });
+    }
+
+    function syncPrintSheetRows() {
+      var printSheetBody = document.querySelector(".student-list-print-sheet tbody");
+      if (!printSheetBody) return true;
+
+      var selectedRows = getSelectedRows();
+      var sourceRows = selectedRows.length > 0 ? selectedRows : getTableRows();
+
+      if (sourceRows.length === 0) {
+        printSheetBody.innerHTML =
+          "<tr><td class=\"col-index\">1</td><td colspan=\"5\">No students found for current filter.</td></tr>";
+        return false;
+      }
+
+      printSheetBody.innerHTML = sourceRows
+        .map(function (row, index) {
+          return buildPrintRowMarkup(row, index);
+        })
+        .join("");
+
+      return true;
+    }
+
     document.querySelectorAll(".js-print-page").forEach(function (btn) {
       btn.addEventListener("click", function (e) {
         e.preventDefault();
+        if (!syncPrintSheetRows()) {
+          alert("No student rows available to print.");
+          return;
+        }
         window.print();
       });
     });
