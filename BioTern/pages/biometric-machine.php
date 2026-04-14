@@ -1767,6 +1767,11 @@ $syncMode = is_array($connectorConfig) ? strtolower(trim((string)($connectorConf
 if (!in_array($syncMode, ['direct_ingest', 'connector_fallback'], true)) {
     $syncMode = 'direct_ingest';
 }
+$syncModeLabelMap = [
+    'direct_ingest' => 'Direct machine ingest',
+    'connector_fallback' => 'Connector fallback worker',
+];
+$syncModeLabel = $syncModeLabelMap[$syncMode] ?? 'Direct machine ingest';
 $cloudRuntime = machine_is_cloud_runtime();
 $connectorOutputPath = is_array($connectorConfig) ? (string)($connectorConfig['outputPath'] ?? '') : '';
 $autoImportOnIngest = !is_array($connectorConfig) || !array_key_exists('autoImportOnIngest', $connectorConfig) || !empty($connectorConfig['autoImportOnIngest']);

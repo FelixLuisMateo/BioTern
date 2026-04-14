@@ -306,7 +306,43 @@ html.app-skin-dark .hero-card .hero-subtitle {
     text-align: left;
 }
 
-@media (max-width: 1679.98px) {
+@media (max-width: 1439.98px) and (min-width: 1200px) {
+    .hero-wrap {
+        padding: 78px 0 18px;
+    }
+
+    .landing-header .header-wrapper {
+        padding: 0 14px;
+    }
+
+    .landing-header .btn.btn-sm {
+        min-height: 33px;
+        padding: 6px 11px;
+    }
+
+    .hero-body {
+        padding: 1.7rem 1.65rem;
+    }
+
+    .hero-title {
+        font-size: clamp(1.72rem, 2.8vw, 2.2rem);
+    }
+
+    .hero-subtitle {
+        max-width: 54ch;
+        font-size: 0.97rem;
+    }
+
+    .hero-side-panel {
+        padding: 1.45rem 1.4rem;
+    }
+
+    .hero-college-logo {
+        max-width: 148px;
+    }
+}
+
+@media (max-width: 1199.98px) {
     .hero-card .col-lg-8,
     .hero-card .col-lg-4 {
         flex: 0 0 100%;

@@ -2067,9 +2067,13 @@
             padding: 0 !important;
         }
 
+        body.mobile-bottom-nav .btchat-page-wrap {
+            padding-bottom: 0 !important;
+        }
+
         body.mobile-bottom-nav .btchat-page-wrap .nxl-content {
-            height: calc(100dvh - 138px);
-            max-height: calc(100dvh - 138px);
+            height: calc(100dvh - var(--bottom-nav-height, 74px) - env(safe-area-inset-bottom));
+            max-height: calc(100dvh - var(--bottom-nav-height, 74px) - env(safe-area-inset-bottom));
         }
 
         .btchat-main-content {
@@ -2132,7 +2136,7 @@
         }
 
         .btchat-compose {
-            padding: 0.72rem 0.78rem calc(3.6rem + env(safe-area-inset-bottom, 0px));
+            padding: 0.56rem 0.68rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
         }
 
         .msg-bubble {
@@ -2194,8 +2198,13 @@
 
         .btchat-compose-inner {
             gap: 0.4rem;
-            padding: 0.46rem;
-            min-height: 50px;
+            padding: 0.38rem;
+            min-height: 44px;
+        }
+
+        .btchat-compose-input {
+            min-height: 34px;
+            padding: 0.34rem 0.24rem;
         }
 
         .btchat-attach-btn,
@@ -2206,8 +2215,8 @@
         }
 
         .btchat-send-btn {
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
         }
 
         #chat-emoji-picker {
