@@ -206,7 +206,7 @@ if ($isVercelRuntime && biotern_host_is_internal($resolvedHost)) {
     }
 
     if (biotern_host_is_internal($resolvedHost)) {
-        $publicHost = biotern_env_pick(['MYSQLHOST', 'MYSQL_PUBLIC_HOST'], '');
+        $publicHost = biotern_env_pick(['DB_HOST', 'DB_HOST_ONLINE', 'MYSQLHOST', 'MYSQL_PUBLIC_HOST'], '');
         if ($publicHost !== '' && !biotern_host_is_internal($publicHost)) {
             $resolvedHost = $publicHost;
         }

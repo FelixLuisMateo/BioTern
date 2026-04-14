@@ -258,7 +258,7 @@ if ($isVercelRuntime && biotern_unified_host_is_internal($envHost)) {
     }
 
     if (biotern_unified_host_is_internal($envHost)) {
-        $candidateHost = (string)biotern_env_first(['MYSQLHOST', 'MYSQL_PUBLIC_HOST'], '');
+        $candidateHost = (string)biotern_env_first(['DB_HOST', 'DB_HOST_ONLINE', 'MYSQLHOST', 'MYSQL_PUBLIC_HOST'], '');
         if ($candidateHost !== '' && !biotern_unified_host_is_internal($candidateHost)) {
             $envHost = $candidateHost;
         }
