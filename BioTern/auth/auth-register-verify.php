@@ -81,13 +81,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css">
     <style>
-        body { min-height: 100vh; background: #0b1220; color: #fff; display: grid; place-items: center; }
+        html,
+        body.auth-verify-page {
+            min-height: 100vh;
+            background: #0b1220 !important;
+            color: #fff;
+            display: grid;
+            place-items: center;
+        }
         .verify-card { width: min(100%, 480px); background: #121b2f; border: 1px solid rgba(129,153,199,.18); border-radius: 20px; padding: 28px; box-shadow: 0 24px 60px rgba(0,0,0,.28); }
         .verify-card .form-control { min-height: 48px; letter-spacing: .25em; text-align: center; font-weight: 700; }
         .verify-meta { color: #94a3b8; font-size: .92rem; }
     </style>
 </head>
-<body>
+<body class="auth-verify-page">
     <div class="verify-card">
         <h3 class="mb-2">Verify Your Email</h3>
         <p class="verify-meta mb-4">We sent a 6-digit code to <strong><?php echo htmlspecialchars($targetEmail, ENT_QUOTES, 'UTF-8'); ?></strong>. Enter it to continue your student application.</p>

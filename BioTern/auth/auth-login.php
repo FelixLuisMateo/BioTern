@@ -219,8 +219,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->close();
 
                 if (!$user) {
-                    $login_error = 'Invalid Student ID Number, Username, or password.';
-                    log_login_attempt($mysqli, 0, $identifier, '', 'failed', 'invalid_credentials', $client_ip, $client_user_agent);
+                    $stageStmt = $mysqli->prepare("SELECT status FROM student_applications WHERE student_id = ? ORDER BY submitted_at DESC LIMIT 1");
+                    $stageStatus = '';
+                    if ($stageStmt) {
+                        $stageStmt->bind_param('s', $identifier);
+                        $stageStmt->execute();
+                        $stageRow = $stageStmt->get_result()->fetch_assoc();
+                        $stageStmt->close();
+                        if ($stageRow && isset($stageRow['status'])) {
+                            $stageStatus = strtolower((string)$stageRow['status']);
+                        }
+                    }
+
+                    if ($stageStatus === 'pending') {
+                        $login_error = 'Your registration is pending approval.';
+                        log_login_attempt($mysqli, 0, $identifier, 'student', 'failed', 'pending_approval', $client_ip, $client_user_agent);
+                    } elseif ($stageStatus === 'rejected') {
+                        $login_error = 'Your registration was rejected. Please contact an administrator.';
+                        log_login_attempt($mysqli, 0, $identifier, 'student', 'failed', 'rejected_application', $client_ip, $client_user_agent);
+                    } elseif ($stageStatus === 'approved') {
+                        $login_error = 'Your account is pending activation. Please contact an administrator.';
+                        log_login_attempt($mysqli, 0, $identifier, 'student', 'failed', 'pending_activation', $client_ip, $client_user_agent);
+                    } else {
+                        $login_error = 'Invalid Student ID Number, Username, or password.';
+                        log_login_attempt($mysqli, 0, $identifier, '', 'failed', 'invalid_credentials', $client_ip, $client_user_agent);
+                    }
                 } elseif ((int)($user['is_active'] ?? 0) !== 1) {
                     $login_error = 'Your account is inactive.';
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'inactive_account', $client_ip, $client_user_agent);
