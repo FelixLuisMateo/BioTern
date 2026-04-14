@@ -181,6 +181,34 @@ if (!function_exists('biotern_host_is_internal')) {
     }
 }
 
+if ($isVercelRuntime) {
+    // On Vercel, explicit host-style vars should override stale URL-derived values.
+    $explicitHost = biotern_env_pick(['DB_HOST', 'DB_HOST_ONLINE', 'MYSQLHOST', 'MYSQL_PUBLIC_HOST'], '');
+    if ($explicitHost !== '' && !biotern_host_is_internal($explicitHost)) {
+        $resolvedHost = $explicitHost;
+    }
+
+    $explicitUser = biotern_env_pick(['DB_USER', 'DB_USER_ONLINE', 'MYSQLUSER', 'MYSQL_PUBLIC_USER'], '');
+    if ($explicitUser !== '') {
+        $resolvedUser = $explicitUser;
+    }
+
+    $explicitPass = biotern_env_pick(['DB_PASS', 'DB_PASS_ONLINE', 'MYSQLPASSWORD', 'MYSQL_PUBLIC_PASSWORD'], '');
+    if ($explicitPass !== '') {
+        $resolvedPass = $explicitPass;
+    }
+
+    $explicitName = biotern_env_pick(['DB_NAME', 'DB_NAME_ONLINE', 'MYSQLDATABASE', 'MYSQL_PUBLIC_DATABASE'], '');
+    if ($explicitName !== '') {
+        $resolvedName = $explicitName;
+    }
+
+    $explicitPort = biotern_env_pick(['DB_PORT', 'DB_PORT_ONLINE', 'MYSQLPORT', 'MYSQL_PUBLIC_PORT'], '');
+    if ($explicitPort !== '') {
+        $resolvedPort = $explicitPort;
+    }
+}
+
 if ($isVercelRuntime && biotern_host_is_internal($resolvedHost)) {
     // Vercel cannot reach Railway internal DNS; prefer public Railway URL/host if available.
     $publicUrl = biotern_env_pick(['MYSQL_PUBLIC_URL'], '');
