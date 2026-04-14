@@ -236,6 +236,14 @@ if (!function_exists('biotern_host_is_internal')) {
     }
 }
 
+if (!function_exists('biotern_host_is_localhost')) {
+    function biotern_host_is_localhost(string $host): bool
+    {
+        $normalized = strtolower(trim($host));
+        return in_array($normalized, ['127.0.0.1', 'localhost', '::1'], true);
+    }
+}
+
 if ($isVercelRuntime) {
     // On Vercel, explicit host-style vars should override stale URL-derived values.
     $explicitHost = biotern_env_pick(['MYSQL_PUBLIC_HOST', 'RAILWAY_TCP_PROXY_DOMAIN', 'DB_HOST', 'DB_HOST_ONLINE', 'MYSQLHOST'], '');
@@ -356,6 +364,19 @@ biotern_add_profile(
     biotern_env_pick(['DB_PORT'], '3306')
 );
 
+if ($isVercelRuntime) {
+    $vercelProfiles = [];
+    foreach ($connectionProfiles as $profile) {
+        $profileHost = isset($profile['host']) ? (string)$profile['host'] : '';
+        if (biotern_host_is_internal($profileHost) || biotern_host_is_localhost($profileHost)) {
+            continue;
+        }
+        $vercelProfiles[] = $profile;
+    }
+
+    $connectionProfiles = $vercelProfiles;
+}
+
 $isLocalRuntime = biotern_is_local_runtime();
 $primaryHostLower = strtolower((string)$resolvedHost);
 $primaryIsLocalHost = in_array($primaryHostLower, ['127.0.0.1', 'localhost', '::1'], true);
@@ -406,6 +427,11 @@ if ($isLocalRuntime && !$primaryIsLocalHost && !$preferVercel && !$disableLocalF
 $activeProfile = null;
 $lastError = 'Unknown MySQL connection error.';
 $profileCount = count($connectionProfiles);
+
+if ($profileCount === 0) {
+    $safeHost = $resolvedHost !== '' ? $resolvedHost : 'unknown-host';
+    die('Database connection failed. Vercel runtime has no reachable public DB host configured. Resolved host=' . $safeHost . '. Set MYSQL_PUBLIC_URL (preferred) or MYSQL_PUBLIC_HOST/MYSQL_PUBLIC_PORT (or RAILWAY_TCP_PROXY_DOMAIN/RAILWAY_TCP_PROXY_PORT), and remove private mysql.railway.internal values from DATABASE_URL/DB_HOST/MYSQLHOST.');
+}
 
 /** @var mysqli $conn */
 $conn = biotern_open_mysqli(

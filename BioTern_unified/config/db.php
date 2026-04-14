@@ -343,9 +343,26 @@ if ($forceLocalTarget || $shouldTryLocalFallback) {
     }
 }
 
+if ($isVercelRuntime) {
+    $vercelProfiles = [];
+    foreach ($connectionProfiles as $profile) {
+        $profileHost = isset($profile['host']) ? strtolower(trim((string)$profile['host'])) : '';
+        if ($profileHost === '' || biotern_unified_host_is_internal($profileHost) || in_array($profileHost, ['127.0.0.1', 'localhost', '::1'], true)) {
+            continue;
+        }
+        $vercelProfiles[] = $profile;
+    }
+    $connectionProfiles = $vercelProfiles;
+}
+
 $activeProfile = null;
 $lastError = 'Unknown database connection error';
 $conn = null;
+
+if (count($connectionProfiles) === 0) {
+    $safeHost = $envHost !== '' ? $envHost : 'unknown-host';
+    die('Database connection failed. Vercel runtime has no reachable public DB host configured. Resolved host=' . $safeHost . '. Set MYSQL_PUBLIC_URL (preferred) or MYSQL_PUBLIC_HOST/MYSQL_PUBLIC_PORT (or RAILWAY_TCP_PROXY_DOMAIN/RAILWAY_TCP_PROXY_PORT), and remove private mysql.railway.internal values from DATABASE_URL/DB_HOST/MYSQLHOST.');
+}
 
 foreach ($connectionProfiles as $profile) {
     $mysqli = biotern_unified_open_mysqli(
