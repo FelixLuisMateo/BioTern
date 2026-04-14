@@ -31,6 +31,23 @@ if (!function_exists('biotern_mail_env_value')) {
     }
 }
 
+if (!function_exists('biotern_mail_asset_base')) {
+    function biotern_mail_asset_base(): string
+    {
+        $base = trim(biotern_mail_env_value('MAIL_ASSET_BASE_URL', ''));
+        if ($base === '') {
+            $base = trim((string)getenv('APP_URL'));
+        }
+
+        if ($base === '' && !empty($_SERVER['HTTP_HOST'])) {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $base = $scheme . '://' . $_SERVER['HTTP_HOST'];
+        }
+
+        return rtrim($base, '/');
+    }
+}
+
 if (!function_exists('biotern_mail_log_error')) {
     function biotern_mail_log_error(string $reason): string
     {

@@ -69,9 +69,57 @@ function sendResetCodeEmail(string $email, string $code): bool
     global $composer_missing, $conn;
     $subject = 'Your password reset verification code';
     $textBody = "Your verification code is: {$code}\n\nIf you did not request this, please ignore this message.";
-    $htmlBody = '<p>Your verification code is:</p><p style="font-size:24px;font-weight:700;letter-spacing:4px;">'
-        . htmlspecialchars($code, ENT_QUOTES, 'UTF-8')
-        . '</p><p>If you did not request this, please ignore this message.</p>';
+    $safeCode = htmlspecialchars($code, ENT_QUOTES, 'UTF-8');
+    $safeEmail = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
+    $appBaseUrl = biotern_mail_asset_base();
+    $logoHtml = '';
+    if ($appBaseUrl !== '') {
+        $logoUrl = $appBaseUrl . '/assets/images/ccstlogo.png';
+        $logoHtml = '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="School logo" width="40" height="40" style="display:block;border-radius:8px;">';
+    }
+    $htmlBody = '
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b1220;padding:24px 0;font-family:Segoe UI,Arial,sans-serif;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#111a2e;border:1px solid #1f2a44;border-radius:16px;overflow:hidden;">
+                    <tr>
+                        <td style="padding:20px 24px;background:linear-gradient(135deg,#162447,#111a2e);color:#ffffff;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td>
+                                        <div style="font-size:18px;font-weight:700;">BioTern</div>
+                                        <div style="font-size:13px;color:#a3b3cc;">Account Security</div>
+                                    </td>
+                                    <td align="right" style="vertical-align:middle;">' . $logoHtml . '</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:24px;color:#e5e7eb;">
+                            <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Reset your password</div>
+                            <div style="font-size:14px;color:#94a3b8;margin-bottom:18px;">
+                                We received a reset request for <strong style="color:#e5e7eb;">' . $safeEmail . '</strong>.
+                            </div>
+                            <div style="text-align:center;margin:20px 0;">
+                                <div style="display:inline-block;padding:12px 20px;border-radius:12px;background:#0f172a;border:1px solid #263453;font-size:24px;letter-spacing:6px;font-weight:700;color:#ffffff;">
+                                    ' . $safeCode . '
+                                </div>
+                            </div>
+                            <div style="font-size:13px;color:#94a3b8;">
+                                Enter this code to continue. If you did not request this, you can ignore this email.
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:18px 24px;border-top:1px solid #1f2a44;color:#6b7a99;font-size:12px;">
+                            For security, do not share this code with anyone.
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>';
     $errorRef = null;
     $sent = biotern_send_mail($conn, $email, $subject, $textBody, $htmlBody, $errorRef);
     if ($sent) {

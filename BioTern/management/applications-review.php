@@ -685,9 +685,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($email !== '') {
                         $subject = 'Your BioTern application was approved';
                         $textBody = "Hi {$displayName},\n\nYour BioTern student application has been approved. You can now log in using your Student ID Number and password.\n\nThank you.";
-                        $htmlBody = '<p>Hi ' . htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') . ',</p>'
-                            . '<p>Your BioTern student application has been approved. You can now log in using your Student ID Number and password.</p>'
-                            . '<p>Thank you.</p>';
+                        $safeName = htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8');
+                        $appBaseUrl = biotern_mail_asset_base();
+                        $logoHtml = '';
+                        if ($appBaseUrl !== '') {
+                            $logoUrl = $appBaseUrl . '/assets/images/ccstlogo.png';
+                            $logoHtml = '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="School logo" width="40" height="40" style="display:block;border-radius:8px;">';
+                        }
+                        $htmlBody = '
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b1220;padding:24px 0;font-family:Segoe UI,Arial,sans-serif;">
+                            <tr>
+                                <td align="center">
+                                    <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#111a2e;border:1px solid #1f2a44;border-radius:16px;overflow:hidden;">
+                                        <tr>
+                                            <td style="padding:20px 24px;background:linear-gradient(135deg,#162447,#111a2e);color:#ffffff;">
+                                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                                    <tr>
+                                                        <td>
+                                                            <div style="font-size:18px;font-weight:700;">BioTern</div>
+                                                            <div style="font-size:13px;color:#a3b3cc;">Application Status</div>
+                                                        </td>
+                                                        <td align="right" style="vertical-align:middle;">' . $logoHtml . '</td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:24px;color:#e5e7eb;">
+                                                <div style="font-size:18px;font-weight:700;margin-bottom:8px;">You are approved</div>
+                                                <div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">Hi ' . $safeName . ',</div>
+                                                <div style="font-size:14px;color:#e5e7eb;line-height:1.5;">
+                                                    Your BioTern student application has been approved. You can now log in using your Student ID Number and password.
+                                                </div>
+                                                <div style="margin:20px 0 4px;color:#94a3b8;font-size:13px;">
+                                                    If you have questions, reply to this email and our team will help.
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:18px 24px;border-top:1px solid #1f2a44;color:#6b7a99;font-size:12px;">
+                                                Thank you for using BioTern.
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>';
                         $mailRef = null;
                         if (!biotern_send_mail($conn, $email, $subject, $textBody, $htmlBody, $mailRef) && $mailRef) {
                             $flashMessage .= ' Email notification could not be sent. Ref: ' . $mailRef;

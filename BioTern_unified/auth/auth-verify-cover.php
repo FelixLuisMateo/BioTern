@@ -85,6 +85,138 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/theme.min.css">
+    <style>
+        .verify-card {
+            background: rgba(10, 20, 45, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 24px;
+            box-shadow: 0 28px 60px rgba(2, 8, 23, 0.45);
+            color: #e2e8f0;
+        }
+
+        .verify-logo {
+            width: 52px;
+        }
+
+        .verify-title {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.85rem;
+            color: #f8fafc;
+        }
+
+        .verify-copy {
+            font-size: 1.05rem;
+            line-height: 1.65;
+            color: #cbd5e1;
+            margin-bottom: 1.6rem;
+        }
+
+        .verify-copy strong {
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .verify-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: #94a3b8;
+            margin-bottom: 0.7rem;
+        }
+
+        .verify-otp {
+            gap: 0.55rem;
+            margin-top: 0.25rem !important;
+        }
+
+        .verify-otp input {
+            width: 3.4rem;
+            min-width: 3.4rem;
+            height: 4rem;
+            margin: 0 !important;
+            border-radius: 14px !important;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            background: rgba(15, 23, 42, 0.88);
+            color: #e2e8f0;
+            font-size: 1.4rem;
+            font-weight: 800;
+            box-shadow: none;
+        }
+
+        .verify-otp input:focus {
+            border-color: rgba(96, 165, 250, 0.85);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+            background: rgba(15, 23, 42, 0.96);
+            color: #ffffff;
+        }
+
+        .verify-submit {
+            min-height: 3.4rem;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            box-shadow: 0 14px 30px rgba(37, 99, 235, 0.28);
+        }
+
+        .verify-resend {
+            margin-top: 1.45rem !important;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #cbd5e1 !important;
+        }
+
+        .verify-resend a {
+            color: #dbeafe !important;
+            font-weight: 700;
+            text-decoration: none;
+            margin-left: 0.25rem;
+            opacity: 1 !important;
+        }
+
+        .verify-resend a:visited {
+            color: #dbeafe !important;
+        }
+
+        .verify-resend a:hover,
+        .verify-resend a:focus {
+            color: #ffffff !important;
+            text-decoration: underline;
+        }
+
+        .verify-alert {
+            border-radius: 14px;
+            font-size: 0.93rem;
+        }
+
+        @media (max-width: 575.98px) {
+            .verify-card {
+                border-radius: 20px;
+            }
+
+            .verify-title {
+                font-size: 1.7rem;
+            }
+
+            .verify-copy {
+                font-size: 0.98rem;
+            }
+
+            .verify-otp {
+                gap: 0.4rem;
+            }
+
+            .verify-otp input {
+                width: 2.75rem;
+                min-width: 2.75rem;
+                height: 3.4rem;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -98,38 +230,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <div class="auth-cover-sidebar-inner">
             <div class="auth-cover-card-wrapper">
-                <div class="auth-cover-card p-sm-5">
+                <div class="auth-cover-card verify-card p-sm-5">
                     <div class="wd-50 mb-5">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid verify-logo">
                     </div>
-                    <h2 class="fs-20 fw-bolder mb-4">Verify</h2>
-                    <h4 class="fs-13 fw-bold mb-2">Enter the 6-digit one-time password sent to your account.</h4>
-                    <p class="fs-12 fw-medium text-muted"><span>A code has been sent to</span> <strong><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo $masked_contact; ?></strong></p>
+                    <h2 class="verify-title">Verify Your Email</h2>
+                    <p class="verify-copy">We sent a 6-digit code to <strong><?php echo $masked_contact; ?></strong>. Enter it to continue your student application.</p>
 
-                    <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if ($verify_message !== ''): ?>
-                        <div class="alert alert-info" role="alert"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($verify_message, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
+                    <?php if ($verify_message !== ''): ?>
+                        <div class="alert alert-info verify-alert" role="alert"><?php echo htmlspecialchars($verify_message, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php endif; ?>
 
-                    <?php
-require_once dirname(__DIR__) . '/config/db.php';
-if ($verify_error !== ''): ?>
-                        <div class="alert alert-danger" role="alert"><?php
-require_once dirname(__DIR__) . '/config/db.php';
-echo htmlspecialchars($verify_error, ENT_QUOTES, 'UTF-8'); ?></div>
-                    <?php
-require_once dirname(__DIR__) . '/config/db.php';
-endif; ?>
+                    <?php if ($verify_error !== ''): ?>
+                        <div class="alert alert-danger verify-alert" role="alert"><?php echo htmlspecialchars($verify_error, ENT_QUOTES, 'UTF-8'); ?></div>
+                    <?php endif; ?>
 
                     <form method="post" class="w-100 mt-4 pt-2" autocomplete="one-time-code">
-                        <div id="otp" class="inputs d-flex flex-row justify-content-center mt-2">
+                        <label class="verify-label" for="digit1">Verification Code</label>
+                        <div id="otp" class="inputs verify-otp d-flex flex-row justify-content-center mt-2">
                             <input name="digit1" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit1" maxlength="6" autocomplete="one-time-code" required>
                             <input name="digit2" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit2" maxlength="6" required>
                             <input name="digit3" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit3" maxlength="6" required>
@@ -138,11 +256,10 @@ endif; ?>
                             <input name="digit6" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit6" maxlength="6" required>
                         </div>
                         <div class="mt-5">
-                            <button type="submit" class="btn btn-lg btn-primary w-100">Validate</button>
+                            <button type="submit" class="btn btn-lg btn-primary w-100 verify-submit">Verify And Continue</button>
                         </div>
-                        <div class="mt-5 text-muted">
-                            <span>Didn't get the code</span>
-                            <a href="auth-reset-cover.php?resend=1">Resend</a>
+                        <div class="verify-resend text-muted">
+                            <a href="auth-reset-cover.php?resend=1">Resend Code</a>
                         </div>
                     </form>
                 </div>
