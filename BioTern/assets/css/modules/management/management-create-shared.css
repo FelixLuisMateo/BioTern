@@ -26,4 +26,30 @@
     align-items: center;
 }
 
-/* Shared dark file-input styling moved to assets/css/theme/forms-dark.css. */
+.create-form-file-input {
+    display: block;
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 12px;
+    line-height: 24px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.create-form-file-input::file-selector-button {
+    margin: -8px 12px -8px -12px;
+    min-height: 42px;
+    padding: 8px 16px;
+    border-radius: 12px 0 0 12px;
+    line-height: 24px;
+    vertical-align: middle;
+}
+
+.create-form-file-input::-webkit-file-upload-button {
+    margin: -8px 12px -8px -12px;
+    min-height: 42px;
+    padding: 8px 16px;
+    border-radius: 12px 0 0 12px;
+    line-height: 24px;
+    vertical-align: middle;
+}

@@ -137,6 +137,8 @@ $map = [
   'settings-support.php' => 'settings/settings-support.php',
   'account-settings.php' => 'settings/account-settings.php',
   'notifications.php' => 'pages/notifications.php',
+  'profile-details.php' => 'pages/profile-details.php',
+  'activity-feed.php' => 'pages/activity-feed.php',
   'theme-customizer.php' => 'pages/theme-customizer.php',
 
 

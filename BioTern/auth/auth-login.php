@@ -188,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($identifier === '' || $password === '') {
-        $login_error = 'Please enter your email, student ID, or admin username and password.';
+        $login_error = 'Please enter your Student ID Number or Username and password.';
     } else {
         $mysqli = $conn;
 
@@ -205,16 +205,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             ensure_login_logs_schema($mysqli);
 
-            $stmt = $mysqli->prepare("SELECT u.id, u.name, u.username, u.email, u.password, u.role, u.is_active, u.profile_picture, COALESCE(u.application_status, 'approved') AS application_status FROM users u LEFT JOIN students s ON s.user_id = u.id WHERE (u.email = ? OR s.student_id = ? OR (u.role = 'admin' AND u.username = ?)) LIMIT 1");
+            $stmt = $mysqli->prepare("SELECT u.id, u.name, u.username, u.email, u.password, u.role, u.is_active, u.profile_picture, COALESCE(u.application_status, 'approved') AS application_status
+                FROM users u
+                LEFT JOIN students s ON s.user_id = u.id
+                WHERE s.student_id = ?
+                   OR ((u.role = 'admin' OR u.role = 'coordinator' OR u.role = 'supervisor') AND u.username = ?)
+                LIMIT 1");
 
             if ($stmt) {
-                $stmt->bind_param('sss', $identifier, $identifier, $identifier);
+                $stmt->bind_param('ss', $identifier, $identifier);
                 $stmt->execute();
                 $user = $stmt->get_result()->fetch_assoc();
                 $stmt->close();
 
                 if (!$user) {
-                    $login_error = 'Invalid email, student ID, admin username, or password.';
+                    $login_error = 'Invalid Student ID Number, Username, or password.';
                     log_login_attempt($mysqli, 0, $identifier, '', 'failed', 'invalid_credentials', $client_ip, $client_user_agent);
                 } elseif ((int)($user['is_active'] ?? 0) !== 1) {
                     $login_error = 'Your account is inactive.';
@@ -243,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     if (!$passwordMatches) {
-                    $login_error = 'Invalid email, student ID, admin username, or password.';
+                    $login_error = 'Invalid Student ID Number, Username, or password.';
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'invalid_credentials', $client_ip, $client_user_agent);
                 } elseif (strtolower((string)($user['application_status'] ?? 'approved')) === 'pending') {
                     $login_error = 'Your registration is pending approval.';
@@ -322,7 +327,7 @@ if ($login_error !== '') {
                     <form action="<?php echo htmlspecialchars($route_prefix . 'auth/auth-login.php', ENT_QUOTES, 'UTF-8'); ?>" method="post" class="w-100 mt-4 pt-2">
                         <input type="hidden" name="next" value="<?php echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-4">
-                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Student ID, Email, or Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Student ID, Email, or Username" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus>
+                            <input type="text" name="identifier" id="identifier" class="form-control" placeholder="Student ID Number or Username" value="<?php echo isset($_POST['identifier']) ? htmlspecialchars((string)$_POST['identifier']) : ''; ?>" required aria-required="true" aria-label="Student ID Number or Username" autocomplete="username" autocapitalize="none" spellcheck="false" autofocus>
                         </div>
                         <div class="mb-3 input-group">
                             <input type="password" name="password" id="passwordInput" class="form-control" placeholder="Password" required aria-required="true" aria-label="Password" autocomplete="current-password">
@@ -347,6 +352,10 @@ if ($login_error !== '') {
                     <div class="text-center text-muted my-4">or</div>
                     <a href="<?php echo htmlspecialchars($route_prefix . 'auth/auth-register.php?role=student', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-lg btn-outline-primary w-100">Apply as Student</a>
                     <div class="text-center text-muted fs-11 mt-2">Student applications only. Staff accounts are created by the school administrator.</div>
+                    <ul class="text-start text-muted fs-12 mt-3 mb-0 auth-login-guidance">
+                        <li>Students: Login using Student ID Number and password only.</li>
+                        <li>Admin, Coordinator, Supervisor: Login using Username and password only.</li>
+                    </ul>
                 </div>
             </div>
         </div>
