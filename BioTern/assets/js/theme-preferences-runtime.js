@@ -371,13 +371,13 @@
     }
 
     function getSavedScheme() {
-      if (runtimePrefs.scheme) return normalizeScheme(runtimePrefs.scheme);
-      if (serverPrefs.scheme) return normalizeScheme(serverPrefs.scheme);
-
       try {
         var stored = storageGet("app-theme-scheme", null);
         if (stored) return normalizeScheme(stored);
       } catch (e) {}
+
+      if (runtimePrefs.scheme) return normalizeScheme(runtimePrefs.scheme);
+      if (serverPrefs.scheme) return normalizeScheme(serverPrefs.scheme);
       return "blue";
     }
 
