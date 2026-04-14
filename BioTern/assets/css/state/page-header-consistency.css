@@ -299,6 +299,22 @@ body .page-header .btn.btn-sm {
     text-overflow: ellipsis !important;
   }
 
+  body.reports-page .page-header.page-header-with-middle .page-header-middle {
+    width: min(28vw, 380px) !important;
+    max-width: min(28vw, 380px) !important;
+  }
+
+  body.reports-page .page-header.page-header-with-middle .page-header-middle .page-header-statement {
+    font-size: 0.78rem !important;
+    line-height: 1.28 !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+  }
+
 }
 
 @media (max-width: 991.98px) {

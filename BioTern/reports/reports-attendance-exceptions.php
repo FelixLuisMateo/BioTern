@@ -316,7 +316,6 @@ include 'includes/header.php';
 </style>
 <main class="nxl-container">
 <div class="nxl-content">
-<div class="main-content">
     <div class="page-header page-header-with-middle">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title"><h5 class="m-b-10">Attendance Exceptions</h5></div>
@@ -378,7 +377,6 @@ include 'includes/header.php';
             <?php endif; ?>
         </tbody>
     </table></div></div>
-</div>
 </div>
 </main>
 <?php include 'includes/footer.php'; ?>
