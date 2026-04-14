@@ -42,7 +42,7 @@ if (!function_exists('biotern_env_pick')) {
     }
 }
 
-$databaseUrl = biotern_env_pick(['DATABASE_URL', 'MYSQL_URL', 'DB_URL'], '');
+$databaseUrl = biotern_env_pick(['MYSQL_PUBLIC_URL', 'DATABASE_URL', 'MYSQL_URL', 'DB_URL'], '');
 
 $resolvedHost = '';
 $resolvedUser = '';
@@ -57,9 +57,13 @@ if ($vercelEnvRaw !== false) {
     $vercelEnvNormalized = strtolower(trim((string)$vercelEnvRaw));
     $isVercelRuntime = in_array($vercelEnvNormalized, ['1', 'true', 'yes', 'on'], true);
 }
-$hasRailwayMysqlEnv = biotern_env_pick(['MYSQLHOST', 'RAILWAY_MYSQL_HOST'], '') !== '';
+$hasRailwayMysqlEnv = biotern_env_pick(['MYSQLHOST', 'RAILWAY_MYSQL_HOST', 'MYSQL_PUBLIC_HOST'], '') !== '';
 if ($requestedTarget === '' && $isVercelRuntime && $hasRailwayMysqlEnv) {
     // In Vercel deployments with Railway MySQL vars present, prefer remote MySQL by default.
+    $requestedTarget = 'railway';
+}
+if ($requestedTarget === '' && $isVercelRuntime) {
+    // On Vercel, always treat DB target as remote to avoid prioritizing stale DB_HOST values.
     $requestedTarget = 'railway';
 }
 $targetRemoteFirst = in_array($requestedTarget, ['vercel', 'remote', 'railway', 'cloud'], true);
@@ -77,32 +81,32 @@ if ($databaseUrl !== '') {
 
 if ($resolvedHost === '') {
     $hostKeys = $targetRemoteFirst
-        ? ['MYSQLHOST', 'RAILWAY_MYSQL_HOST', 'DB_HOST_ONLINE', 'DB_HOST']
-        : ['DB_HOST', 'MYSQLHOST', 'RAILWAY_MYSQL_HOST', 'DB_HOST_ONLINE'];
+        ? ['MYSQLHOST', 'RAILWAY_MYSQL_HOST', 'MYSQL_PUBLIC_HOST', 'DB_HOST_ONLINE', 'DB_HOST']
+        : ['DB_HOST', 'MYSQLHOST', 'RAILWAY_MYSQL_HOST', 'MYSQL_PUBLIC_HOST', 'DB_HOST_ONLINE'];
     $resolvedHost = biotern_env_pick($hostKeys, '127.0.0.1');
 }
 if ($resolvedUser === '') {
     $userKeys = $targetRemoteFirst
-        ? ['MYSQLUSER', 'RAILWAY_MYSQL_USER', 'DB_USER_ONLINE', 'DB_USER']
-        : ['DB_USER', 'MYSQLUSER', 'RAILWAY_MYSQL_USER', 'DB_USER_ONLINE'];
+        ? ['MYSQLUSER', 'RAILWAY_MYSQL_USER', 'MYSQL_PUBLIC_USER', 'DB_USER_ONLINE', 'DB_USER']
+        : ['DB_USER', 'MYSQLUSER', 'RAILWAY_MYSQL_USER', 'MYSQL_PUBLIC_USER', 'DB_USER_ONLINE'];
     $resolvedUser = biotern_env_pick($userKeys, 'root');
 }
 if ($resolvedPass === '') {
     $passKeys = $targetRemoteFirst
-        ? ['MYSQLPASSWORD', 'RAILWAY_MYSQL_PASSWORD', 'DB_PASS_ONLINE', 'DB_PASS']
-        : ['DB_PASS', 'MYSQLPASSWORD', 'RAILWAY_MYSQL_PASSWORD', 'DB_PASS_ONLINE'];
+        ? ['MYSQLPASSWORD', 'RAILWAY_MYSQL_PASSWORD', 'MYSQL_PUBLIC_PASSWORD', 'DB_PASS_ONLINE', 'DB_PASS']
+        : ['DB_PASS', 'MYSQLPASSWORD', 'RAILWAY_MYSQL_PASSWORD', 'MYSQL_PUBLIC_PASSWORD', 'DB_PASS_ONLINE'];
     $resolvedPass = biotern_env_pick($passKeys, '');
 }
 if ($resolvedName === '') {
     $nameKeys = $targetRemoteFirst
-        ? ['MYSQLDATABASE', 'RAILWAY_MYSQL_DATABASE', 'DB_NAME_ONLINE', 'DB_NAME']
-        : ['DB_NAME', 'MYSQLDATABASE', 'RAILWAY_MYSQL_DATABASE', 'DB_NAME_ONLINE'];
+        ? ['MYSQLDATABASE', 'RAILWAY_MYSQL_DATABASE', 'MYSQL_PUBLIC_DATABASE', 'DB_NAME_ONLINE', 'DB_NAME']
+        : ['DB_NAME', 'MYSQLDATABASE', 'RAILWAY_MYSQL_DATABASE', 'MYSQL_PUBLIC_DATABASE', 'DB_NAME_ONLINE'];
     $resolvedName = biotern_env_pick($nameKeys, 'biotern_db');
 }
 if ($resolvedPort === '') {
     $portKeys = $targetRemoteFirst
-        ? ['MYSQLPORT', 'RAILWAY_MYSQL_PORT', 'DB_PORT_ONLINE', 'DB_PORT']
-        : ['DB_PORT', 'MYSQLPORT', 'RAILWAY_MYSQL_PORT', 'DB_PORT_ONLINE'];
+        ? ['MYSQLPORT', 'RAILWAY_MYSQL_PORT', 'MYSQL_PUBLIC_PORT', 'DB_PORT_ONLINE', 'DB_PORT']
+        : ['DB_PORT', 'MYSQLPORT', 'RAILWAY_MYSQL_PORT', 'MYSQL_PUBLIC_PORT', 'DB_PORT_ONLINE'];
     $resolvedPort = biotern_env_pick($portKeys, '3306');
 }
 
@@ -165,6 +169,90 @@ if (!function_exists('biotern_env_truthy')) {
     }
 }
 
+if (!function_exists('biotern_host_is_internal')) {
+    function biotern_host_is_internal(string $host): bool
+    {
+        $normalized = strtolower(trim($host));
+        if ($normalized === '') {
+            return false;
+        }
+
+        return (bool)preg_match('/(^|\.)internal$/', $normalized);
+    }
+}
+
+if ($isVercelRuntime) {
+    // On Vercel, explicit host-style vars should override stale URL-derived values.
+    $explicitHost = biotern_env_pick(['DB_HOST', 'DB_HOST_ONLINE', 'MYSQLHOST', 'MYSQL_PUBLIC_HOST'], '');
+    if ($explicitHost !== '' && !biotern_host_is_internal($explicitHost)) {
+        $resolvedHost = $explicitHost;
+    }
+
+    $explicitUser = biotern_env_pick(['DB_USER', 'DB_USER_ONLINE', 'MYSQLUSER', 'MYSQL_PUBLIC_USER'], '');
+    if ($explicitUser !== '') {
+        $resolvedUser = $explicitUser;
+    }
+
+    $explicitPass = biotern_env_pick(['DB_PASS', 'DB_PASS_ONLINE', 'MYSQLPASSWORD', 'MYSQL_PUBLIC_PASSWORD'], '');
+    if ($explicitPass !== '') {
+        $resolvedPass = $explicitPass;
+    }
+
+    $explicitName = biotern_env_pick(['DB_NAME', 'DB_NAME_ONLINE', 'MYSQLDATABASE', 'MYSQL_PUBLIC_DATABASE'], '');
+    if ($explicitName !== '') {
+        $resolvedName = $explicitName;
+    }
+
+    $explicitPort = biotern_env_pick(['DB_PORT', 'DB_PORT_ONLINE', 'MYSQLPORT', 'MYSQL_PUBLIC_PORT'], '');
+    if ($explicitPort !== '') {
+        $resolvedPort = $explicitPort;
+    }
+}
+
+if ($isVercelRuntime && biotern_host_is_internal($resolvedHost)) {
+    // Vercel cannot reach Railway internal DNS; prefer public Railway URL/host if available.
+    $publicUrl = biotern_env_pick(['MYSQL_PUBLIC_URL'], '');
+    if ($publicUrl !== '') {
+        $publicParsed = parse_url($publicUrl);
+        if (is_array($publicParsed)) {
+            if (!empty($publicParsed['host'])) {
+                $resolvedHost = (string)$publicParsed['host'];
+            }
+            if (!empty($publicParsed['user'])) {
+                $resolvedUser = (string)$publicParsed['user'];
+            }
+            if (array_key_exists('pass', $publicParsed)) {
+                $resolvedPass = (string)$publicParsed['pass'];
+            }
+            if (!empty($publicParsed['path'])) {
+                $resolvedName = ltrim((string)$publicParsed['path'], '/');
+            }
+            if (!empty($publicParsed['port'])) {
+                $resolvedPort = (string)$publicParsed['port'];
+            }
+        }
+    }
+
+    if (biotern_host_is_internal($resolvedHost)) {
+        $publicHost = biotern_env_pick(['DB_HOST', 'DB_HOST_ONLINE', 'MYSQLHOST', 'MYSQL_PUBLIC_HOST'], '');
+        if ($publicHost !== '' && !biotern_host_is_internal($publicHost)) {
+            $resolvedHost = $publicHost;
+        }
+        if ($resolvedUser === '') {
+            $resolvedUser = biotern_env_pick(['MYSQLUSER', 'MYSQL_PUBLIC_USER', 'DB_USER'], 'root');
+        }
+        if ($resolvedPass === '') {
+            $resolvedPass = biotern_env_pick(['MYSQLPASSWORD', 'MYSQL_PUBLIC_PASSWORD', 'DB_PASS'], '');
+        }
+        if ($resolvedName === '') {
+            $resolvedName = biotern_env_pick(['MYSQLDATABASE', 'MYSQL_PUBLIC_DATABASE', 'DB_NAME'], 'biotern_db');
+        }
+        if ($resolvedPort === '') {
+            $resolvedPort = biotern_env_pick(['MYSQLPORT', 'MYSQL_PUBLIC_PORT', 'DB_PORT'], '3306');
+        }
+    }
+}
+
 $connectionProfiles = [[
     'host' => $resolvedHost,
     'user' => $resolvedUser,
@@ -180,8 +268,8 @@ $dbTarget = $requestedTarget;
 $preferVercel = biotern_env_truthy(['VERCEL', 'BIOTERN_PRIORITIZE_VERCEL']);
 
 $hasRemoteEnvConfig = (
-    biotern_env_pick(['DATABASE_URL', 'MYSQL_URL', 'DB_URL'], '') !== ''
-    || biotern_env_pick(['MYSQLHOST', 'RAILWAY_MYSQL_HOST', 'DB_HOST_ONLINE'], '') !== ''
+    biotern_env_pick(['MYSQL_PUBLIC_URL', 'DATABASE_URL', 'MYSQL_URL', 'DB_URL'], '') !== ''
+    || biotern_env_pick(['MYSQLHOST', 'RAILWAY_MYSQL_HOST', 'MYSQL_PUBLIC_HOST', 'DB_HOST_ONLINE'], '') !== ''
 );
 
 $forceRemoteTarget = in_array($dbTarget, ['vercel', 'remote', 'railway', 'cloud'], true)
@@ -255,7 +343,7 @@ if (!$conn->connect_errno) {
 if (!$activeProfile) {
     $safeHost = $resolvedHost !== '' ? $resolvedHost : 'unknown-host';
     $safeDb = $resolvedName !== '' ? $resolvedName : 'unknown-db';
-    die('Database connection failed. Please verify DB env variables (DB_HOST/DB_USER/DB_PASS/DB_NAME/DB_PORT or MYSQL*/RAILWAY_MYSQL* vars). Current host=' . $safeHost . ', db=' . $safeDb . '. Error: ' . $lastError);
+    die('Database connection failed. Please verify DB env variables (MYSQL_PUBLIC_URL, DATABASE_URL, DB_HOST/DB_USER/DB_PASS/DB_NAME/DB_PORT, or MYSQL*/RAILWAY_MYSQL* vars). Current host=' . $safeHost . ', db=' . $safeDb . '. Error: ' . $lastError);
 }
 
 if (!defined('DB_HOST')) {
