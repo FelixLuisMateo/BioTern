@@ -5,7 +5,13 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once dirname(__DIR__) . '/config/db.php';
 
-require_once dirname(__DIR__) . '/vendor/autoload.php';
+$composer_missing = false;
+$composer_autoload = dirname(__DIR__) . '/vendor/autoload.php';
+if (is_file($composer_autoload)) {
+    require_once $composer_autoload;
+} else {
+    $composer_missing = true;
+}
 
 $reset_message = '';
 $reset_error = '';
@@ -50,6 +56,7 @@ function generateResetCode(): string
 
 function sendResetCodeEmail(string $email, string $code): bool
 {
+    global $composer_missing;
     $mailHost = envValue('MAIL_HOST', '');
     $mailPort = (int)envValue('MAIL_PORT', '587');
     $mailUser = envValue('MAIL_USERNAME', '');
@@ -60,6 +67,11 @@ function sendResetCodeEmail(string $email, string $code): bool
 
     if ($mailHost === '' || $mailUser === '' || $mailPass === '') {
         logOtpMailError('SMTP configuration incomplete: MAIL_HOST/MAIL_USERNAME/MAIL_PASSWORD is missing.');
+        return false;
+    }
+
+    if ($composer_missing || !class_exists('\PHPMailer\PHPMailer\PHPMailer')) {
+        logOtpMailError('PHPMailer is not installed. Run composer install to enable email sending.');
         return false;
     }
 
@@ -158,6 +170,14 @@ if (isset($_GET['resend']) && intval($_GET['resend']) === 1) {
             header('Location: auth-verify-cover.php?resent=1');
             exit;
         }
+        if ($composer_missing) {
+            $reset_error = 'Email system is not installed. Please run composer install on the server.';
+            $reset_toast_type = 'error';
+            $reset_toast_message = $reset_error;
+            unset($_SESSION['password_reset_last_error_ref']);
+            header('Location: auth-verify-cover.php?send_error=1');
+            exit;
+        }
         header('Location: auth-verify-cover.php?send_error=1');
         exit;
     }
@@ -168,23 +188,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['identifier'])) {
     $identifier_value = $identifier;
 
     if ($identifier === '') {
-        $reset_error = 'Please provide your email or username.';
+        $reset_error = 'Please provide your email.';
     } else {
         $mysqli = $conn;
         if ($mysqli->connect_errno) {
             $reset_error = 'Database connection failed.';
         } else {
-            $stmt = $mysqli->prepare('SELECT id, email, username, is_active FROM users WHERE email = ? OR username = ? LIMIT 1');
+            $stmt = $mysqli->prepare('SELECT id, email, is_active FROM users WHERE email = ? LIMIT 1');
             if (!$stmt) {
                 $reset_error = 'Unable to process reset request right now.';
             } else {
-                $stmt->bind_param('ss', $identifier, $identifier);
+                $stmt->bind_param('s', $identifier);
                 $stmt->execute();
                 $user = $stmt->get_result()->fetch_assoc();
                 $stmt->close();
 
                 if (!$user || empty($user['email'])) {
-                    $reset_error = 'No account found for that email/username.';
+                    $reset_error = 'No account found for that email.';
                 } elseif ((int)($user['is_active'] ?? 0) !== 1) {
                     $reset_error = 'This account is inactive.';
                 } else {
@@ -198,12 +218,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['identifier'])) {
                         header('Location: auth-verify-cover.php?sent=1');
                         exit;
                     }
+                    if ($composer_missing) {
+                        $reset_error = 'Email system is not installed. Please run composer install on the server.';
+                    } else {
                     $errorRef = isset($_SESSION['password_reset_last_error_ref']) ? (string)$_SESSION['password_reset_last_error_ref'] : '';
                     $reset_error = 'Unable to send verification code. Check SMTP settings and Gmail App Password.'
                         . ($errorRef !== '' ? ' (Ref: ' . $errorRef . ')' : '');
                 }
             }
         }
+    }
     }
 }
 
@@ -251,11 +275,11 @@ if ($reset_error !== '') {
                     </div>
                     <h2 class="fs-20 fw-bolder mb-4">Reset</h2>
                     <h4 class="fs-13 fw-bold mb-2">Reset your password</h4>
-                    <p class="fs-12 fw-medium text-muted">Enter your email or username and we'll send a verification code to your registered email.</p>
+                    <p class="fs-12 fw-medium text-muted">Enter your email and we'll send a verification code to your registered email.</p>
 
                     <form method="post" action="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-reset-cover.php" class="w-100 mt-4 pt-2">
                         <div class="mb-4">
-                            <input name="identifier" class="form-control" placeholder="Email or Username" value="<?php echo htmlspecialchars($identifier_value, ENT_QUOTES, 'UTF-8'); ?>" required>
+                            <input name="identifier" class="form-control" placeholder="Email" value="<?php echo htmlspecialchars($identifier_value, ENT_QUOTES, 'UTF-8'); ?>" required>
                         </div>
                         <div class="mt-5">
                             <button type="submit" class="btn btn-lg btn-primary w-100">Reset Now</button>

@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/mailer.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
@@ -139,6 +140,33 @@ function formatGenderLabel($rawValue): string
     }
 
     return ucwords(str_replace(['_', '-'], ' ', $value));
+}
+
+function review_application_recipient(mysqli $conn, ?array $stagedApplication, int $userId): array
+{
+    $email = $stagedApplication ? trim((string)($stagedApplication['email'] ?? '')) : '';
+    $name = '';
+    if ($stagedApplication) {
+        $name = trim((string)($stagedApplication['first_name'] ?? '') . ' ' . (string)($stagedApplication['last_name'] ?? ''));
+    }
+
+    if ($email === '' && $userId > 0) {
+        $stmt = $conn->prepare('SELECT name, email FROM users WHERE id = ? LIMIT 1');
+        if ($stmt) {
+            $stmt->bind_param('i', $userId);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if ($row) {
+                $email = trim((string)($row['email'] ?? ''));
+                if ($name === '') {
+                    $name = trim((string)($row['name'] ?? ''));
+                }
+            }
+        }
+    }
+
+    return [$email, $name !== '' ? $name : 'Student'];
 }
 
 function ensureApplicationsStagingTable(mysqli $conn)
@@ -650,6 +678,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $conn->commit();
                 $flashType = 'success';
                 $flashMessage = 'Application approved and student hours updated.';
+
+                $settings = biotern_mail_settings($conn);
+                if ((string)($settings['send_application_updates'] ?? '1') === '1') {
+                    [$email, $displayName] = review_application_recipient($conn, $stagedApplication, $userId);
+                    if ($email !== '') {
+                        $subject = 'Your BioTern application was approved';
+                        $textBody = "Hi {$displayName},\n\nYour BioTern student application has been approved. You can now log in using your Student ID Number and password.\n\nThank you.";
+                        $htmlBody = '<p>Hi ' . htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') . ',</p>'
+                            . '<p>Your BioTern student application has been approved. You can now log in using your Student ID Number and password.</p>'
+                            . '<p>Thank you.</p>';
+                        $mailRef = null;
+                        if (!biotern_send_mail($conn, $email, $subject, $textBody, $htmlBody, $mailRef) && $mailRef) {
+                            $flashMessage .= ' Email notification could not be sent. Ref: ' . $mailRef;
+                        }
+                    }
+                }
             } catch (Throwable $e) {
                 $conn->rollback();
                 $flashType = 'danger';
@@ -696,6 +740,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $conn->commit();
                 $flashType = 'warning';
                 $flashMessage = 'Application rejected and assignments updated.';
+
+                $settings = biotern_mail_settings($conn);
+                if ((string)($settings['send_application_updates'] ?? '1') === '1') {
+                    [$email, $displayName] = review_application_recipient($conn, $stagedApplication, $userId);
+                    if ($email !== '') {
+                        $subject = 'Your BioTern application was rejected';
+                        $textBody = "Hi {$displayName},\n\nYour BioTern student application was rejected. Please contact the school administrator for guidance.\n\nThank you.";
+                        $htmlBody = '<p>Hi ' . htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') . ',</p>'
+                            . '<p>Your BioTern student application was rejected. Please contact the school administrator for guidance.</p>'
+                            . '<p>Thank you.</p>';
+                        $mailRef = null;
+                        if (!biotern_send_mail($conn, $email, $subject, $textBody, $htmlBody, $mailRef) && $mailRef) {
+                            $flashMessage .= ' Email notification could not be sent. Ref: ' . $mailRef;
+                        }
+                    }
+                }
             } catch (Throwable $e) {
                 $conn->rollback();
                 $flashType = 'danger';
