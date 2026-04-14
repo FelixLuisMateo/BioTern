@@ -169,6 +169,61 @@ if (!function_exists('biotern_env_truthy')) {
     }
 }
 
+if (!function_exists('biotern_add_profile')) {
+    function biotern_add_profile(array &$profiles, array &$seen, string $host, string $user, string $pass, string $name, $port): void
+    {
+        $host = trim($host);
+        $user = trim($user);
+        $name = trim($name);
+        $port = (int)$port;
+
+        if ($host === '' || $user === '' || $name === '') {
+            return;
+        }
+        if ($port <= 0) {
+            $port = 3306;
+        }
+
+        $signature = implode('|', [$host, $port, $user, $name, $pass]);
+        if (isset($seen[$signature])) {
+            return;
+        }
+
+        $seen[$signature] = true;
+        $profiles[] = [
+            'host' => $host,
+            'user' => $user,
+            'pass' => $pass,
+            'name' => $name,
+            'port' => $port,
+        ];
+    }
+}
+
+if (!function_exists('biotern_add_url_profile')) {
+    function biotern_add_url_profile(array &$profiles, array &$seen, string $databaseUrl): void
+    {
+        if (trim($databaseUrl) === '') {
+            return;
+        }
+
+        $parsed = parse_url($databaseUrl);
+        if (!is_array($parsed)) {
+            return;
+        }
+
+        biotern_add_profile(
+            $profiles,
+            $seen,
+            isset($parsed['host']) ? (string)$parsed['host'] : '',
+            isset($parsed['user']) ? (string)$parsed['user'] : '',
+            array_key_exists('pass', $parsed) ? (string)$parsed['pass'] : '',
+            isset($parsed['path']) ? ltrim((string)$parsed['path'], '/') : '',
+            isset($parsed['port']) ? (int)$parsed['port'] : 3306
+        );
+    }
+}
+
 if (!function_exists('biotern_host_is_internal')) {
     function biotern_host_is_internal(string $host): bool
     {
@@ -253,13 +308,53 @@ if ($isVercelRuntime && biotern_host_is_internal($resolvedHost)) {
     }
 }
 
-$connectionProfiles = [[
-    'host' => $resolvedHost,
-    'user' => $resolvedUser,
-    'pass' => $resolvedPass,
-    'name' => $resolvedName,
-    'port' => $resolvedPortInt,
-]];
+$connectionProfiles = [];
+$connectionProfileSeen = [];
+
+biotern_add_profile(
+    $connectionProfiles,
+    $connectionProfileSeen,
+    $resolvedHost,
+    $resolvedUser,
+    $resolvedPass,
+    $resolvedName,
+    $resolvedPortInt
+);
+
+if ($targetRemoteFirst || $databaseUrl !== '') {
+    biotern_add_url_profile($connectionProfiles, $connectionProfileSeen, biotern_env_pick(['MYSQL_PUBLIC_URL'], ''));
+    biotern_add_url_profile($connectionProfiles, $connectionProfileSeen, biotern_env_pick(['DATABASE_URL', 'MYSQL_URL', 'DB_URL'], ''));
+
+    biotern_add_profile(
+        $connectionProfiles,
+        $connectionProfileSeen,
+        biotern_env_pick(['MYSQLHOST', 'RAILWAY_MYSQL_HOST', 'MYSQL_PUBLIC_HOST'], ''),
+        biotern_env_pick(['MYSQLUSER', 'RAILWAY_MYSQL_USER', 'MYSQL_PUBLIC_USER'], ''),
+        biotern_env_pick(['MYSQLPASSWORD', 'RAILWAY_MYSQL_PASSWORD', 'MYSQL_PUBLIC_PASSWORD'], ''),
+        biotern_env_pick(['MYSQLDATABASE', 'RAILWAY_MYSQL_DATABASE', 'MYSQL_PUBLIC_DATABASE'], ''),
+        biotern_env_pick(['MYSQLPORT', 'RAILWAY_MYSQL_PORT', 'MYSQL_PUBLIC_PORT'], '3306')
+    );
+
+    biotern_add_profile(
+        $connectionProfiles,
+        $connectionProfileSeen,
+        biotern_env_pick(['DB_HOST_ONLINE'], ''),
+        biotern_env_pick(['DB_USER_ONLINE'], ''),
+        biotern_env_pick(['DB_PASS_ONLINE'], ''),
+        biotern_env_pick(['DB_NAME_ONLINE'], ''),
+        biotern_env_pick(['DB_PORT_ONLINE'], '3306')
+    );
+}
+
+biotern_add_profile(
+    $connectionProfiles,
+    $connectionProfileSeen,
+    biotern_env_pick(['DB_HOST'], ''),
+    biotern_env_pick(['DB_USER'], ''),
+    biotern_env_pick(['DB_PASS'], ''),
+    biotern_env_pick(['DB_NAME'], ''),
+    biotern_env_pick(['DB_PORT'], '3306')
+);
 
 $isLocalRuntime = biotern_is_local_runtime();
 $primaryHostLower = strtolower((string)$resolvedHost);
@@ -292,13 +387,15 @@ if ($isLocalRuntime && !$primaryIsLocalHost && !$preferVercel && !$disableLocalF
         $localPort = 3306;
     }
 
-    $connectionProfiles[] = [
-        'host' => biotern_env_pick(['LOCAL_DB_HOST'], '127.0.0.1'),
-        'user' => biotern_env_pick(['LOCAL_DB_USER'], 'root'),
-        'pass' => biotern_env_pick(['LOCAL_DB_PASS'], ''),
-        'name' => biotern_env_pick(['LOCAL_DB_NAME'], 'biotern_db'),
-        'port' => $localPort,
-    ];
+    biotern_add_profile(
+        $connectionProfiles,
+        $connectionProfileSeen,
+        biotern_env_pick(['LOCAL_DB_HOST'], '127.0.0.1'),
+        biotern_env_pick(['LOCAL_DB_USER'], 'root'),
+        biotern_env_pick(['LOCAL_DB_PASS'], ''),
+        biotern_env_pick(['LOCAL_DB_NAME'], 'biotern_db'),
+        $localPort
+    );
 }
 
 $activeProfile = null;
@@ -343,7 +440,8 @@ if (!$conn->connect_errno) {
 if (!$activeProfile) {
     $safeHost = $resolvedHost !== '' ? $resolvedHost : 'unknown-host';
     $safeDb = $resolvedName !== '' ? $resolvedName : 'unknown-db';
-    die('Database connection failed. Please verify DB env variables (MYSQL_PUBLIC_URL, DATABASE_URL, DB_HOST/DB_USER/DB_PASS/DB_NAME/DB_PORT, or MYSQL*/RAILWAY_MYSQL* vars). Current host=' . $safeHost . ', db=' . $safeDb . '. Error: ' . $lastError);
+    $safePort = $resolvedPortInt > 0 ? (string)$resolvedPortInt : 'unknown-port';
+    die('Database connection failed. Please verify DB env variables (MYSQL_PUBLIC_URL, DATABASE_URL, DB_HOST/DB_USER/DB_PASS/DB_NAME/DB_PORT, or MYSQL*/RAILWAY_MYSQL* vars). Current host=' . $safeHost . ', port=' . $safePort . ', db=' . $safeDb . '. Error: ' . $lastError);
 }
 
 if (!defined('DB_HOST')) {

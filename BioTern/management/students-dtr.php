@@ -149,10 +149,10 @@ include 'includes/header.php';
                     <i class="feather-arrow-left me-2"></i>
                     <span>Back to Profile</span>
                 </a>
-                <button type="button" class="btn btn-primary" data-action="print-page">
+                <a href="document_dtr.php?student_id=<?php echo intval($student_id); ?>&start_date=<?php echo h($month_start); ?>&end_date=<?php echo h($month_end); ?>" target="_blank" rel="noopener" class="btn btn-primary">
                     <i class="feather-printer me-2"></i>
                     <span>Print DTR</span>
-                </button>
+                </a>
             </div>
         </div>
     </div>
