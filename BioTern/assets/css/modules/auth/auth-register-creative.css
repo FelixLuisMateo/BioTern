@@ -483,6 +483,19 @@ body.auth-register-page .auth-minimal-wrapper {
     z-index: 1;
 }
 
+body.auth-register-page .modal {
+    z-index: 1065;
+}
+
+body.auth-register-page .modal-backdrop {
+    z-index: 1060;
+}
+
+body.auth-register-page .modal-backdrop.show {
+    opacity: 0.58;
+    backdrop-filter: none;
+}
+
 .register-auth-card {
     width: min(100%, 640px);
     margin: 0 auto;

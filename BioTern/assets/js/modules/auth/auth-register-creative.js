@@ -15,7 +15,24 @@ function parseJSONDataset(el, key, fallback) {
 const registerDataEl = document.getElementById("registerData");
 const courseDepartmentMap = parseJSONDataset(registerDataEl, "courseMap", {});
 const sectionRecords = parseJSONDataset(registerDataEl, "sectionRecords", []);
+const departmentRecords = parseJSONDataset(registerDataEl, "departments", []);
 const studentDraftStorageKey = 'biotern.studentDraft.v1.' + window.location.pathname;
+
+const departmentLabelMap = (() => {
+    const map = {};
+    (departmentRecords || []).forEach(function(rec) {
+        const id = String(rec.id || '').trim();
+        if (!id) return;
+        const code = String(rec.code || '').trim();
+        const name = String(rec.name || '').trim();
+        let label = name || code || id;
+        if (code && name) {
+            label = code + ' - ' + name;
+        }
+        map[id] = label;
+    });
+    return map;
+})();
 
 function escapeSelector(value) {
     if (window.CSS && typeof window.CSS.escape === 'function') {
@@ -653,13 +670,46 @@ function setupFloatingTextFields() {
             if (!form || !reviewModalEl || !reviewBody || !confirmBtn || !applyBtn || typeof bootstrap === 'undefined') return;
             if (form.dataset.reviewBound === '1') return;
 
+            if (reviewModalEl.parentElement !== document.body) {
+                document.body.appendChild(reviewModalEl);
+            }
+
             const reviewModal = new bootstrap.Modal(reviewModalEl);
             let confirmed = false;
+            let submitAfterHide = false;
+
+            function cleanupStaleBackdrops() {
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('padding-right');
+                document.body.style.removeProperty('overflow');
+                document.querySelectorAll('.modal-backdrop').forEach(function(backdrop) {
+                    backdrop.remove();
+                });
+            }
+
+            reviewModalEl.addEventListener('hidden.bs.modal', function() {
+                cleanupStaleBackdrops();
+
+                if (submitAfterHide) {
+                    submitAfterHide = false;
+                    if (form.requestSubmit) {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
+                }
+            });
 
             function getFieldDisplay(name, fallback) {
                 const fieldSelector = '[name="' + escapeSelector(name) + '"]';
                 const resolvedField = form.querySelector(fieldSelector);
                 if (!resolvedField) return fallback || '-';
+                if (name === 'department_id') {
+                    const deptValue = String(resolvedField.value || '').trim();
+                    if (deptValue && departmentLabelMap[deptValue]) {
+                        return departmentLabelMap[deptValue];
+                    }
+                }
                 if (resolvedField.tagName === 'SELECT') {
                     const opt = resolvedField.options[resolvedField.selectedIndex];
                     if (!opt || !opt.value) return fallback || '-';
@@ -688,7 +738,6 @@ function setupFloatingTextFields() {
                     ['Gender', getFieldDisplay('gender')],
                     ['Emergency Contact', getFieldDisplay('emergency_contact')],
                     ['Emergency Contact Phone', getFieldDisplay('emergency_contact_phone')],
-                    ['Username', getFieldDisplay('username')],
                     ['Account Email', getFieldDisplay('account_email')]
                 ];
 
@@ -710,6 +759,7 @@ function setupFloatingTextFields() {
                     form.reportValidity();
                     return;
                 }
+                cleanupStaleBackdrops();
                 renderReview();
                 reviewModal.show();
             }
@@ -731,12 +781,8 @@ function setupFloatingTextFields() {
             confirmBtn.addEventListener('click', function() {
                 confirmed = true;
                 saveStudentDraft();
+                submitAfterHide = true;
                 reviewModal.hide();
-                if (form.requestSubmit) {
-                    form.requestSubmit();
-                } else {
-                    form.submit();
-                }
             });
 
             form.dataset.reviewBound = '1';
@@ -1025,11 +1071,21 @@ function setupFloatingTextFields() {
                 const name = (rec.name || '').trim();
                 const formattedCode = formatSectionCode(code);
                 const formattedName = name.replace(/\s*-\s*/g, ' - ');
-                const label = code && name
-                    ? (code.toLowerCase() === name.toLowerCase()
-                        ? formattedCode
-                        : (formattedCode + ' - ' + formattedName))
-                    : (formattedCode || formattedName || ('Section #' + rec.id));
+                const normalizedCode = formattedCode.toLowerCase();
+                const normalizedName = formattedName.toLowerCase();
+                let label = '';
+
+                if (formattedCode && formattedName) {
+                    if (normalizedCode === normalizedName) {
+                        label = formattedCode;
+                    } else if (normalizedName.includes(normalizedCode) || normalizedCode.includes(normalizedName)) {
+                        label = formattedName.length >= formattedCode.length ? formattedName : formattedCode;
+                    } else {
+                        label = formattedCode + ' - ' + formattedName;
+                    }
+                } else {
+                    label = formattedCode || formattedName || ('Section #' + rec.id);
+                }
 
                 const option = document.createElement('option');
                 option.value = code || String(rec.id);

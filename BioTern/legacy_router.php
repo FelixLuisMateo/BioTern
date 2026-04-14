@@ -173,6 +173,7 @@ $map = [
   'auth-login.php' => 'auth/auth-login.php',
   'auth-maintenance-cover.php' => 'auth/auth-maintenance-cover.php',
   'auth-register.php' => 'auth/auth-register.php',
+  'auth-register-verify.php' => 'auth/auth-register-verify.php',
   'auth-reset-cover.php' => 'auth/auth-reset-cover.php',
   'auth-resetting-minimal.php' => 'auth/auth-resetting-minimal.php',
   'auth-verify-cover.php' => 'auth/auth-verify-cover.php',

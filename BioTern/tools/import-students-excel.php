@@ -1469,7 +1469,26 @@ function students_excel_import_workbook(mysqli $mysqli, string $path, string $so
         'internships_created' => 0,
         'internships_synced' => 0,
     ];
+    $seenStudentCodes = [];
     foreach ($studentsRows as $index => $row) {
+        $studentCode = trim((string)($row['student_id'] ?? ''));
+        if ($studentCode !== '') {
+            $dupeKey = strtolower($studentCode);
+            if (isset($seenStudentCodes[$dupeKey])) {
+                $errors[] = 'Students row ' . ($index + 2) . ': duplicate student_id ' . $studentCode . ' (skipped).';
+                continue;
+            }
+            $seenStudentCodes[$dupeKey] = true;
+        }
+
+        $email = trim((string)($row['email'] ?? ''));
+        if ($studentCode !== '') {
+            $existingStudent = students_excel_find_student($mysqli, $studentCode, $email, 0);
+            if ($existingStudent) {
+                $errors[] = 'Students row ' . ($index + 2) . ': duplicate student_id ' . $studentCode . ' found in database. Existing record will be updated.';
+            }
+        }
+
         $rowError = '';
         $userId = students_excel_upsert_user($mysqli, $row, $rowError);
         if ($userId <= 0) {
