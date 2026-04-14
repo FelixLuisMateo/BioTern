@@ -141,8 +141,8 @@
     }
 
     .chatlogs-page-jump:focus {
-        border-color: #3b82f6 !important;
-        box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.2) !important;
+        border-color: var(--biotern-primary) !important;
+        box-shadow: 0 0 0 0.2rem rgba(var(--biotern-primary-rgb), 0.2) !important;
     }
 
     .chatlogs-filter .btn-light {
@@ -260,8 +260,8 @@
         border-radius: 50%;
         font-size: 0.62rem;
         font-weight: 700;
-        background: rgba(37,99,235,0.14);
-        color: #2563eb;
+        background: rgba(var(--biotern-primary-rgb),0.14);
+        color: var(--biotern-primary);
         flex-shrink: 0;
     }
 
@@ -344,7 +344,7 @@
 
     .chatlogs-sender-own {
         font-weight: 600;
-        color: #2563eb;
+        color: var(--biotern-primary);
     }
 
     html.app-skin-dark .chatlogs-sender-own {
@@ -353,7 +353,7 @@
 
     .chatlogs-sender-other {
         font-weight: 600;
-        color: #0891b2;
+        color: var(--biotern-primary-hover);
     }
 
     html.app-skin-dark .chatlogs-sender-other {
@@ -417,3 +417,5 @@
             padding-top: 0;
         }
     }
+
+

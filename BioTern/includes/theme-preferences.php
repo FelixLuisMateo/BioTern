@@ -46,13 +46,43 @@ if (!function_exists('biotern_theme_allowed_fonts')) {
     }
 }
 
+if (!function_exists('biotern_theme_normalize_scheme')) {
+    function biotern_theme_normalize_scheme($scheme): string
+    {
+        $value = strtolower(trim((string) $scheme));
+        $value = preg_replace('/[^a-z0-9-]+/', '-', $value);
+        $value = trim((string) $value, '-');
+        return $value !== '' ? $value : 'blue';
+    }
+}
+
+if (!function_exists('biotern_theme_registered_schemes')) {
+    function biotern_theme_registered_schemes(): array
+    {
+        // Register selectable schemes here as slug => label.
+        return [
+            'blue' => 'Blue (Default)',
+            'gray' => 'Gray',
+        ];
+    }
+}
+
+if (!function_exists('biotern_theme_scheme_label')) {
+    function biotern_theme_scheme_label(string $scheme): string
+    {
+        $normalized = biotern_theme_normalize_scheme($scheme);
+        $registered = biotern_theme_registered_schemes();
+        if (isset($registered[$normalized]) && trim((string) $registered[$normalized]) !== '') {
+            return (string) $registered[$normalized];
+        }
+        return ucwords(str_replace('-', ' ', $normalized));
+    }
+}
+
 if (!function_exists('biotern_theme_allowed_schemes')) {
     function biotern_theme_allowed_schemes(): array
     {
-        return [
-            'blue',
-            'gray',
-        ];
+        return array_keys(biotern_theme_registered_schemes());
     }
 }
 
@@ -66,7 +96,7 @@ if (!function_exists('biotern_theme_sanitize')) {
         $font = isset($preferences['font']) ? strtolower(trim((string) $preferences['font'])) : $defaults['font'];
         $navigation = isset($preferences['navigation']) ? strtolower(trim((string) $preferences['navigation'])) : $defaults['navigation'];
         $header = isset($preferences['header']) ? strtolower(trim((string) $preferences['header'])) : $defaults['header'];
-        $scheme = isset($preferences['scheme']) ? strtolower(trim((string) $preferences['scheme'])) : $defaults['scheme'];
+        $scheme = biotern_theme_normalize_scheme($preferences['scheme'] ?? $defaults['scheme']);
         $surfaces = isset($preferences['surfaces']) ? strtolower(trim((string) $preferences['surfaces'])) : $defaults['surfaces'];
 
         if (!in_array($skin, ['light', 'dark'], true)) {
@@ -87,10 +117,6 @@ if (!function_exists('biotern_theme_sanitize')) {
 
         if (!in_array($header, ['light', 'dark'], true)) {
             $header = $defaults['header'];
-        }
-
-        if (!in_array($scheme, biotern_theme_allowed_schemes(), true)) {
-            $scheme = $defaults['scheme'];
         }
 
         if (!in_array($surfaces, ['linked', 'independent'], true)) {

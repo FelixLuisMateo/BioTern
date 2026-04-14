@@ -23,6 +23,38 @@
         studentMode: false
     };
 
+    function normalizeHexColor(value, fallback) {
+        var raw = String(value || '').trim();
+        var safeFallback = String(fallback || '#64748b');
+        if (/^#[0-9a-fA-F]{6}$/.test(raw)) {
+            return raw;
+        }
+        if (/^#[0-9a-fA-F]{3}$/.test(raw)) {
+            return '#' + raw.charAt(1) + raw.charAt(1) + raw.charAt(2) + raw.charAt(2) + raw.charAt(3) + raw.charAt(3);
+        }
+        var rgbMatch = raw.match(/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})/i);
+        if (!rgbMatch) {
+            return safeFallback;
+        }
+        var toHex = function (valuePart) {
+            var num = Math.max(0, Math.min(255, parseInt(valuePart, 10) || 0));
+            var hex = num.toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        };
+        return '#' + toHex(rgbMatch[1]) + toHex(rgbMatch[2]) + toHex(rgbMatch[3]);
+    }
+
+    function resolveDefaultAccentColor() {
+        var fallback = '#64748b';
+        if (!window.getComputedStyle || !document.documentElement) {
+            return fallback;
+        }
+        var raw = window.getComputedStyle(document.documentElement).getPropertyValue('--biotern-primary');
+        return normalizeHexColor(raw, fallback);
+    }
+
+    var DEFAULT_ACCENT_COLOR = resolveDefaultAccentColor();
+
     function escapeHtml(value) {
         return String(value || '')
             .replace(/&/g, '&amp;')
@@ -208,7 +240,7 @@
             return [
                 '<button type="button" class="app-notes-list-item',
                 Number(state.selectedId) === Number(note.id) ? ' is-selected' : '',
-                '" data-note-id="', escapeHtml(note.id), '" style="--note-accent:', escapeHtml(note.accent_color || '#2563eb'), '">',
+                '" data-note-id="', escapeHtml(note.id), '" style="--note-accent:', escapeHtml(note.accent_color || DEFAULT_ACCENT_COLOR), '">',
                 '<div class="app-notes-list-top">',
                 '<h4 class="app-notes-list-title">', escapeHtml(note.title || 'Untitled note'), '</h4>',
                 '<span class="app-notes-editor-time">', escapeHtml(formatDateTime(note.updated_at)), '</span>',
@@ -298,7 +330,7 @@
         category.value = note.category || 'internship';
         type.value = note.note_type || 'text';
         if (color) {
-            color.value = note.accent_color || '#2563eb';
+            color.value = normalizeHexColor(note.accent_color, DEFAULT_ACCENT_COLOR);
         }
         updated.textContent = 'Updated ' + formatDateTime(note.updated_at);
         kicker.textContent = note.is_deleted ? 'In trash' : (note.is_archived ? 'Archived note' : 'Active note');
@@ -653,7 +685,7 @@
 
         if (color) {
             color.addEventListener('input', function () {
-                var note = updateSelectedLocal({ accent_color: color.value || '#2563eb' });
+                var note = updateSelectedLocal({ accent_color: normalizeHexColor(color.value, DEFAULT_ACCENT_COLOR) });
                 if (note) {
                     renderList();
                     setStatus('Unsaved');

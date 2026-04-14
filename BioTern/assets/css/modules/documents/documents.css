@@ -434,9 +434,9 @@ html.app-skin-dark .select2-container--open .biotern-doc-select2-dropdown .selec
 
 .file-edit-active #letter_content,
 .file-edit-active #moa_content {
-    outline: 2px dashed #3b82f6;
+    outline: 2px dashed var(--biotern-primary);
     outline-offset: 6px;
-    background: rgba(59, 130, 246, 0.04);
+    background: rgba(var(--biotern-primary-rgb), 0.04);
 }
 #letter_content[contenteditable="true"],
 #moa_content[contenteditable="true"] {

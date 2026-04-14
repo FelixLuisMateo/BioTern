@@ -941,16 +941,29 @@
             var left = rect.left + (rect.width / 2) - (menuW / 2);
             var top = rect.top - menuH - 12;
             var placement = 'top';
+            var viewportPadding = 8;
+            var headerBottomLimit = viewportPadding;
 
-            if (left < 8) {
-                left = 8;
+            if (headerEl) {
+                var headerRect = headerEl.getBoundingClientRect();
+                if (headerRect && isFinite(headerRect.bottom)) {
+                    headerBottomLimit = Math.max(headerBottomLimit, headerRect.bottom + 10);
+                }
             }
-            if (left + menuW > window.innerWidth - 8) {
-                left = window.innerWidth - menuW - 8;
+
+            if (left < viewportPadding) {
+                left = viewportPadding;
             }
-            if (top < 8) {
+            if (left + menuW > window.innerWidth - viewportPadding) {
+                left = window.innerWidth - menuW - viewportPadding;
+            }
+            if (top < headerBottomLimit) {
                 top = rect.bottom + 12;
                 placement = 'bottom';
+            }
+
+            if (top + menuH > window.innerHeight - viewportPadding) {
+                top = Math.max(headerBottomLimit, window.innerHeight - menuH - viewportPadding);
             }
 
             var arrowLeft = rect.left + (rect.width / 2) - left;
@@ -1394,6 +1407,9 @@
                 if (msg.media_path && displayMsg === msg.media_path.split('/').pop()) {
                     displayMsg = '';
                 }
+                if (msg.media_path && looksLikeStandaloneMediaFilename(displayMsg)) {
+                    displayMsg = '';
+                }
 
                 // Meta (time): only on last/only of a group
                 var metaHtml = '';
@@ -1754,6 +1770,12 @@
             return '';
         }
 
+        function looksLikeStandaloneMediaFilename(value) {
+            var text = String(value || '').trim();
+            if (!text || /\s/.test(text)) { return false; }
+            return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(text);
+        }
+
         function renderEmojiPicker() {
             if (!emojiGridEl) { return; }
             var query = emojiSearchEl ? emojiSearchEl.value.trim() : '';
@@ -1831,6 +1853,9 @@
                     }
                 }
                 updateSendBtn();
+                if (inputEl) {
+                    inputEl.focus();
+                }
             });
         }
 

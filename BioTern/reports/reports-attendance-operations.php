@@ -35,14 +35,13 @@ if (table_exists($conn, 'biometric_event_queue')) {
     }
 }
 
-$page_body_class = trim(($page_body_class ?? '') . ' reports-page');
-$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-shell.css']);
+$page_body_class = trim(($page_body_class ?? '') . ' reports-page reports-attendance-operations-page');
+$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-attendance-operations-page.css', 'assets/css/modules/reports/reports-shell.css']);
 $page_title = 'BioTern || Attendance Operations Report';
 include 'includes/header.php';
 ?>
 <main class="nxl-container">
 <div class="nxl-content">
-<div class="main-content">
     <div class="page-header page-header-with-middle">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title">
@@ -130,7 +129,6 @@ include 'includes/header.php';
             </table>
         </div>
     </div>
-</div>
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>

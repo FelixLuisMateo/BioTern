@@ -22,7 +22,7 @@ body.apps-email-page .main-content {
 
     body.apps-email-page .nxl-content-sidebar-item .nav-link.active {
         background: #eef2ff;
-        color: #1d4ed8;
+        color: var(--biotern-primary-hover);
     }
 
     body.apps-email-page .email-list-pane,
@@ -50,7 +50,7 @@ body.apps-email-page .main-content {
     }
 
     body.apps-email-page .email-row.email-row-active {
-        background: #eff6ff;
+        background: var(--biotern-surface-muted);
     }
 
     body.apps-email-page .email-person-name {
@@ -187,3 +187,5 @@ body.apps-email-page .email-body-content {
     html.app-skin-dark body.apps-email-page .text-muted {
         color: #9fb0cc !important;
     }
+
+

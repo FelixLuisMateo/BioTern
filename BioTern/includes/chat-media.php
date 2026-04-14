@@ -20,6 +20,27 @@ if (!($conn instanceof mysqli)) {
     exit;
 }
 
+$messageColumns = [];
+$columnRes = $conn->query("SHOW COLUMNS FROM messages");
+if ($columnRes instanceof mysqli_result) {
+    while ($row = $columnRes->fetch_assoc()) {
+        $field = strtolower((string)($row['Field'] ?? ''));
+        if ($field !== '') {
+            $messageColumns[$field] = true;
+        }
+    }
+    $columnRes->free();
+}
+
+$senderCol = isset($messageColumns['from_user_id']) ? 'from_user_id' : (isset($messageColumns['sender_id']) ? 'sender_id' : '');
+$recipientCol = isset($messageColumns['to_user_id']) ? 'to_user_id' : (isset($messageColumns['recipient_id']) ? 'recipient_id' : '');
+$messageIdCol = isset($messageColumns['id']) ? 'id' : '';
+
+if ($senderCol === '' || $recipientCol === '' || $messageIdCol === '') {
+    http_response_code(500);
+    exit;
+}
+
 $conn->query(
     "CREATE TABLE IF NOT EXISTS chat_message_media (
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -38,9 +59,9 @@ $conn->query(
 $stmt = $conn->prepare(
     "SELECT cmm.media_mime, cmm.media_data, cmm.updated_at
      FROM chat_message_media cmm
-     INNER JOIN messages m ON m.id = cmm.message_id
+     INNER JOIN messages m ON m." . $messageIdCol . " = cmm.message_id
      WHERE cmm.message_id = ?
-       AND (m.from_user_id = ? OR m.to_user_id = ?)
+       AND (m." . $senderCol . " = ? OR m." . $recipientCol . " = ?)
      LIMIT 1"
 );
 

@@ -146,13 +146,7 @@ function chat_media_url(int $messageId): string
     if ($messageId <= 0) {
         return '';
     }
-
-    $scriptDir = str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '')));
-    if ($scriptDir === '' || $scriptDir === '.' || $scriptDir === '/') {
-        return 'includes/chat-media.php?mid=' . $messageId;
-    }
-
-    return rtrim($scriptDir, '/') . '/../includes/chat-media.php?mid=' . $messageId;
+    return 'chat-media.php?mid=' . $messageId;
 }
 
 function chat_has_table(mysqli $conn, string $table): bool
@@ -191,20 +185,7 @@ function chat_fetch_recent_login_user_ids(mysqli $conn): array
 
 function chat_is_online(array $recentLoginUserIds, int $userId, ?string $lastActivityAt): bool
 {
-    if ($userId > 0 && isset($recentLoginUserIds[$userId])) {
-        return true;
-    }
-
-    if (!$lastActivityAt) {
-        return false;
-    }
-
-    $timestamp = strtotime($lastActivityAt);
-    if ($timestamp === false) {
-        return false;
-    }
-
-    return (time() - $timestamp) <= 300;
+    return $userId > 0 && isset($recentLoginUserIds[$userId]);
 }
 
 function chat_media_kind_from_path(string $path): string

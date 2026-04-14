@@ -53,7 +53,7 @@ if ($summary_result && $summary_result->num_rows > 0) {
 
 $total_ojt = array_sum($status_summary);
 
-$page_body_class = trim(($page_body_class ?? '') . ' reports-page');
+$page_body_class = trim(($page_body_class ?? '') . ' reports-page reports-ojt-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-ojt-page.css', 'assets/css/modules/reports/reports-shell.css']);
 $page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-progress-bars.js']);
 $page_title = 'BioTern || OJT Report';

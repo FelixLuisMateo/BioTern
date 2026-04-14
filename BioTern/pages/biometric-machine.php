@@ -1767,6 +1767,11 @@ $syncMode = is_array($connectorConfig) ? strtolower(trim((string)($connectorConf
 if (!in_array($syncMode, ['direct_ingest', 'connector_fallback'], true)) {
     $syncMode = 'direct_ingest';
 }
+$syncModeLabelMap = [
+    'direct_ingest' => 'Direct machine ingest',
+    'connector_fallback' => 'Connector fallback worker',
+];
+$syncModeLabel = $syncModeLabelMap[$syncMode] ?? 'Direct machine ingest';
 $cloudRuntime = machine_is_cloud_runtime();
 $connectorOutputPath = is_array($connectorConfig) ? (string)($connectorConfig['outputPath'] ?? '') : '';
 $autoImportOnIngest = !is_array($connectorConfig) || !array_key_exists('autoImportOnIngest', $connectorConfig) || !empty($connectorConfig['autoImportOnIngest']);
@@ -2016,11 +2021,8 @@ include __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-        <div class="machine-info-note" role="note" aria-label="F20H data handling notice">
-            <span class="machine-info-note-icon" aria-hidden="true"><i class="feather-info"></i></span>
-            <div class="machine-info-note-body">
-                Fingerprint templates stay on the F20H. BioTern only manages machine user records, mappings, and attendance events. Card numbers are masked for non-admin views.
-            </div>
+        <div class="alert alert-info machine-info-note" role="note" aria-label="F20H data handling notice">
+            Fingerprint templates stay on the F20H. BioTern only manages machine user records, mappings, and attendance events. Card numbers are masked for non-admin views.
         </div>
 
         <div class="row g-3 mb-3">

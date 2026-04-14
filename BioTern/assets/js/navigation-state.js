@@ -15,6 +15,10 @@
         return document.querySelector(".nxl-navigation .navbar-content");
     };
 
+    SidebarNavigationState.prototype.getNavigationRoot = function () {
+        return document.querySelector(".nxl-navigation");
+    };
+
     SidebarNavigationState.prototype.persistScroll = function () {
         var scrollContainer = this.getScrollContainer();
         if (!scrollContainer) {
@@ -102,6 +106,62 @@
         });
     };
 
+    SidebarNavigationState.prototype.syncMobileNavLock = function () {
+        var nav = this.getNavigationRoot();
+        var isMobile = window.matchMedia
+            ? window.matchMedia("(max-width: 991.98px)").matches
+            : window.innerWidth <= 991;
+        var isOpen = !!(nav && nav.classList.contains("mob-navigation-active") && isMobile);
+
+        document.documentElement.classList.toggle("mobile-nav-open", isOpen);
+        if (document.body) {
+            document.body.classList.toggle("mobile-nav-open", isOpen);
+        }
+    };
+
+    SidebarNavigationState.prototype.bindMobileNavLock = function () {
+        var self = this;
+        var nav = this.getNavigationRoot();
+
+        if (!nav) {
+            return;
+        }
+
+        if (this._mobileNavLockBound) {
+            this.syncMobileNavLock();
+            return;
+        }
+
+        this._mobileNavLockBound = true;
+
+        this._mobileNavLockObserver = new MutationObserver(function () {
+            self.syncMobileNavLock();
+        });
+        this._mobileNavLockObserver.observe(nav, {
+            attributes: true,
+            attributeFilter: ["class"]
+        });
+
+        window.addEventListener("resize", function () {
+            self.syncMobileNavLock();
+        });
+
+        document.addEventListener("click", function (event) {
+            var target = event.target;
+            if (!target) {
+                return;
+            }
+
+            if (target.closest("#mobile-collapse") || target.closest(".nxl-menu-overlay")) {
+                setTimeout(function () {
+                    self.syncMobileNavLock();
+                }, 0);
+            }
+        });
+
+        this.syncMobileNavLock();
+    };
+
     SidebarNavigationState.prototype.init = function () {
         var nav = this.getNav();
         if (!nav) {
@@ -112,6 +172,7 @@
         this.applyRouteActiveState(nav);
         this.restoreScroll();
         this.bindEvents();
+        this.bindMobileNavLock();
     };
 
     function boot() {

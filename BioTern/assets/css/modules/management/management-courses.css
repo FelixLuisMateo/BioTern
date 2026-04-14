@@ -93,7 +93,7 @@ html.app-skin-dark .app-courses-id-pill {
 html.app-skin-dark .app-courses-code-pill {
     border-color: rgba(var(--bs-primary-rgb), 0.44);
     background: rgba(var(--bs-primary-rgb), 0.22);
-    color: #dbeafe;
+    color: var(--biotern-primary-soft);
 }
 
 html.app-skin-dark .app-courses-meta,

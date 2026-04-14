@@ -40,7 +40,7 @@
         line-height: 1.1;
     }
 
-    .logs-kpi.total .logs-kpi-value { color: #2563eb; }
+    .logs-kpi.total .logs-kpi-value { color: var(--biotern-primary); }
     .logs-kpi.success .logs-kpi-value { color: #059669; }
     .logs-kpi.failed .logs-kpi-value { color: #dc2626; }
 
@@ -154,7 +154,7 @@
     }
 
     html.app-skin-dark .logs-pill.bg-soft-primary {
-        background-color: rgba(37, 99, 235, 0.22) !important;
+        background-color: rgba(var(--biotern-primary-rgb), 0.22) !important;
         color: #8eb8ff !important;
     }
 
@@ -163,3 +163,5 @@
             grid-template-columns: 1fr;
         }
     }
+
+

@@ -1,7 +1,7 @@
-﻿/* Chat page theme tokens aligned with theme.css/ui.css */
+/* Chat page theme tokens aligned with theme.css/ui.css */
     :root {
-        --chat-accent: var(--biotern-primary, #3454d1);
-        --chat-accent-strong: var(--biotern-primary-hover, #2f46b8);
+        --chat-accent: var(--biotern-primary);
+        --chat-accent-strong: var(--biotern-primary-hover);
         --chat-accent-soft: color-mix(in srgb, var(--chat-accent) 72%, #7dd3fc 28%);
         --chat-on-accent: var(--biotern-primary-contrast, #ffffff);
         --chat-shell-bg: color-mix(in srgb, var(--biotern-body-bg) 92%, #ffffff 8%);
@@ -13,7 +13,7 @@
         --chat-search-border: color-mix(in srgb, var(--biotern-border, #e5e7eb) 88%, transparent);
         --chat-search-color: var(--bs-body-color, #1f2937);
         --chat-search-placeholder: color-mix(in srgb, var(--bs-body-color, #1f2937) 55%, transparent);
-        --chat-item-hover: color-mix(in srgb, var(--biotern-primary, #3454d1) 12%, transparent);
+        --chat-item-hover: color-mix(in srgb, var(--biotern-primary) 12%, transparent);
         --chat-name-color: var(--bs-body-color, #111827);
         --chat-time-color: color-mix(in srgb, var(--bs-body-color, #111827) 68%, transparent);
         --chat-snippet-color: color-mix(in srgb, var(--bs-body-color, #111827) 76%, transparent);
@@ -197,7 +197,7 @@
         color: var(--chat-search-placeholder);
     }
 
-    /* Explicit dark-mode overrides Ã¢â‚¬â€œ beat the app theme's input rules */
+    /* Explicit dark-mode overrides to beat app theme input rules */
     html.app-skin-dark .btchat-search {
         background-color: var(--chat-search-bg) !important;
         border-color: var(--chat-search-border) !important;
@@ -677,6 +677,7 @@
 
     .chat-contact-value.preview {
         display: -webkit-box;
+        line-clamp: 2;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
@@ -1542,6 +1543,11 @@
         border: 0 !important;
         box-shadow: none;
         padding: 0;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        width: fit-content;
+        max-width: min(240px, 100%);
     }
 
     .msg-bubble.has-media.is-pinned {
@@ -1566,19 +1572,20 @@
     .msg-bubble.has-media .msg-meta {
         margin-top: 0.28rem;
         padding: 0 0.2rem;
+        width: 100%;
     }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Message grouping Ã¢â‚¬â€œ own (right, teal) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* Message grouping - own (right, teal) */
     .msg-row.own .msg-bubble.msg-group-first  { border-radius: 14px 14px 6px 14px; }
     .msg-row.own .msg-bubble.msg-group-middle { border-radius: 14px 6px 6px 14px; }
     .msg-row.own .msg-bubble.msg-group-last   { border-radius: 6px 14px 14px 14px; }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Message grouping Ã¢â‚¬â€œ other (left, gray) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* Message grouping - other (left, gray) */
     .msg-row:not(.own) .msg-bubble.msg-group-first  { border-radius: 14px 14px 14px 6px; }
     .msg-row:not(.own) .msg-bubble.msg-group-middle { border-radius: 6px 14px 14px 6px; }
     .msg-row:not(.own) .msg-bubble.msg-group-last   { border-radius: 6px 14px 14px 14px; }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Thread avatar (left side, other's messages) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* Thread avatar (left side, other messages) */
     .msg-thread-avatar {
         width: 28px;
         height: 28px;
@@ -1618,7 +1625,7 @@
         visibility: hidden;
     }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Date separator Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* Date separator */
     .msg-date-sep {
         display: flex;
         align-items: center;
@@ -1637,7 +1644,7 @@
         background: var(--chat-header-border);
     }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Sent / Seen status Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* Sent / Seen status */
     .msg-seen {
         text-align: right;
         font-size: 0.74rem;
@@ -1647,7 +1654,7 @@
         font-weight: 600;
     }
 
-    /* Ã¢â€â‚¬Ã¢â€â‚¬ Scroll-to-bottom button Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
+    /* Scroll-to-bottom button */
     #chat-scroll-btn {
         position: absolute;
         bottom: 5.5rem;
@@ -2061,9 +2068,13 @@
             padding: 0 !important;
         }
 
+        body.mobile-bottom-nav .btchat-page-wrap {
+            padding-bottom: 0 !important;
+        }
+
         body.mobile-bottom-nav .btchat-page-wrap .nxl-content {
-            height: calc(100dvh - 138px);
-            max-height: calc(100dvh - 138px);
+            height: calc(100dvh - var(--bottom-nav-height, 74px) - env(safe-area-inset-bottom));
+            max-height: calc(100dvh - var(--bottom-nav-height, 74px) - env(safe-area-inset-bottom));
         }
 
         .btchat-main-content {
@@ -2126,7 +2137,7 @@
         }
 
         .btchat-compose {
-            padding: 0.72rem 0.78rem calc(3.6rem + env(safe-area-inset-bottom, 0px));
+            padding: 0.56rem 0.68rem calc(0.6rem + env(safe-area-inset-bottom, 0px));
         }
 
         .msg-bubble {
@@ -2188,8 +2199,13 @@
 
         .btchat-compose-inner {
             gap: 0.4rem;
-            padding: 0.46rem;
-            min-height: 50px;
+            padding: 0.38rem;
+            min-height: 44px;
+        }
+
+        .btchat-compose-input {
+            min-height: 34px;
+            padding: 0.34rem 0.24rem;
         }
 
         .btchat-attach-btn,
@@ -2200,8 +2216,8 @@
         }
 
         .btchat-send-btn {
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
         }
 
         #chat-emoji-picker {
@@ -2276,4 +2292,5 @@
             font-size: 0.78rem;
         }
     }
+
 

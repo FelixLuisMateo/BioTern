@@ -149,6 +149,7 @@ $map = [
   'storage_files.php' => 'api/storage_files.php',
   'calendar_events.php' => 'api/calendar_events.php',
   'avatar-image.php' => 'includes/avatar-image.php',
+  'chat-media.php' => 'includes/chat-media.php',
 
   'api-biometric-event.php' => 'api/api-biometric-event.php',
   'f20h_ingest.php' => 'api/f20h_ingest.php',

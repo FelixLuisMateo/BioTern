@@ -1,0 +1,409 @@
+/* Internal OJT list page specific layout and theme-safe color overrides */
+
+.page-ojt-internal-list .bio-console-shell {
+    max-width: 1640px;
+    margin: 0 auto;
+    width: 100%;
+    gap: 1rem;
+}
+
+.page-ojt-internal-list .bio-console-header-actions .page-header-right-items-wrapper {
+    gap: 0.5rem;
+}
+
+.page-ojt-internal-list .bio-console-header-actions .btn,
+.page-ojt-internal-list .fingerprint-form .btn,
+.page-ojt-internal-list .bio-console-table .btn {
+    border-radius: 12px;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.page-ojt-internal-list .bio-console-header-actions .btn-light-brand,
+.page-ojt-internal-list .bio-console-header-actions .btn-outline-secondary,
+.page-ojt-internal-list .fingerprint-form .btn-light,
+.page-ojt-internal-list .fingerprint-form .btn-outline-secondary {
+    background: var(--biotern-surface-muted, #f8fafc) !important;
+    border-color: var(--biotern-border, rgba(148, 163, 184, 0.28)) !important;
+    color: var(--bs-body-color, #0f172a) !important;
+    box-shadow: none !important;
+}
+
+.page-ojt-internal-list .bio-console-header-actions .btn-light-brand:hover,
+.page-ojt-internal-list .bio-console-header-actions .btn-outline-secondary:hover,
+.page-ojt-internal-list .bio-console-header-actions .btn-light-brand:focus,
+.page-ojt-internal-list .bio-console-header-actions .btn-outline-secondary:focus,
+.page-ojt-internal-list .bio-console-header-actions .btn-light-brand:active,
+.page-ojt-internal-list .bio-console-header-actions .btn-outline-secondary:active,
+.page-ojt-internal-list .fingerprint-form .btn-light:hover,
+.page-ojt-internal-list .fingerprint-form .btn-outline-secondary:hover,
+.page-ojt-internal-list .fingerprint-form .btn-light:focus,
+.page-ojt-internal-list .fingerprint-form .btn-outline-secondary:focus,
+.page-ojt-internal-list .fingerprint-form .btn-light:active,
+.page-ojt-internal-list .fingerprint-form .btn-outline-secondary:active {
+    background: color-mix(in srgb, var(--biotern-surface-muted, #f8fafc) 90%, #0f172a 10%) !important;
+    border-color: var(--biotern-border, rgba(148, 163, 184, 0.38)) !important;
+    color: var(--bs-body-color, #0f172a) !important;
+}
+
+.page-ojt-internal-list .fingerprint-form .btn-primary {
+    background: var(--biotern-primary, #64748b);
+    border-color: var(--biotern-primary, #64748b);
+    color: var(--biotern-primary-contrast, #ffffff);
+}
+
+.page-ojt-internal-list .fingerprint-form .btn-primary:hover {
+    background: var(--biotern-primary-hover, #475569);
+    border-color: var(--biotern-primary-hover, #475569);
+    color: var(--biotern-primary-contrast, #ffffff);
+}
+
+.page-ojt-internal-list .bio-console-table .btn-outline-primary {
+    background: transparent;
+    border-color: rgba(var(--biotern-primary-rgb), 0.34);
+    color: var(--biotern-primary-hover, #334155);
+}
+
+.page-ojt-internal-list .bio-console-table .btn-outline-primary:hover {
+    background: rgba(var(--biotern-primary-rgb), 0.14);
+    border-color: rgba(var(--biotern-primary-rgb), 0.4);
+    color: var(--biotern-primary-hover, #334155);
+}
+
+.page-ojt-internal-list .bio-console-panel {
+    border-color: var(--biotern-border, rgba(148, 163, 184, 0.22));
+    background: var(--biotern-surface, #ffffff);
+}
+
+.page-ojt-internal-list .bio-console-panel .card-header {
+    background: var(--biotern-surface-muted, #f8fafc);
+    color: var(--bs-body-color, #0f172a);
+    border-bottom-color: var(--biotern-border, rgba(148, 163, 184, 0.18));
+}
+
+.page-ojt-internal-list .fingerprint-form {
+    row-gap: 0.65rem;
+}
+
+.page-ojt-internal-list .fingerprint-form .form-control,
+.page-ojt-internal-list .fingerprint-form .form-select {
+    min-height: 42px;
+}
+
+.page-ojt-internal-list .fingerprint-form .fm-actions {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.page-ojt-internal-list .fingerprint-form .fm-actions .btn {
+    flex: 1 1 124px;
+    min-width: 0;
+}
+
+.page-ojt-internal-list .bio-console-table {
+    margin-bottom: 0;
+}
+
+.page-ojt-internal-list .bio-console-table thead th {
+    white-space: nowrap;
+}
+
+.page-ojt-internal-list .bio-console-table tbody td {
+    vertical-align: top;
+}
+
+.page-ojt-internal-list .bio-console-table tbody tr:hover {
+    background: rgba(var(--biotern-primary-rgb), 0.08);
+}
+
+.page-ojt-internal-list .bio-console-table td .fw-semibold,
+.page-ojt-internal-list .bio-console-table td small,
+.page-ojt-internal-list .bio-console-table td .small {
+    word-break: break-word;
+}
+
+.page-ojt-internal-list .app-ojt-internal-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 0.25rem 0.72rem;
+    border: 1px solid var(--biotern-border, rgba(148, 163, 184, 0.25));
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--bs-body-color, #0f172a);
+    background: var(--biotern-surface-muted, #f8fafc);
+}
+
+.page-ojt-internal-list .app-ojt-internal-status-ongoing {
+    border-color: rgba(var(--biotern-primary-rgb), 0.34);
+    background: rgba(var(--biotern-primary-rgb), 0.14);
+    color: var(--biotern-primary-hover, #334155);
+}
+
+.page-ojt-internal-list .app-ojt-internal-status-finished {
+    border-color: rgba(16, 185, 129, 0.34);
+    background: rgba(16, 185, 129, 0.14);
+    color: #0f766e;
+}
+
+.page-ojt-internal-list .app-ojt-internal-status-not-started {
+    border-color: rgba(245, 158, 11, 0.34);
+    background: rgba(245, 158, 11, 0.14);
+    color: #9a6700;
+}
+
+html.app-skin-dark body.page-ojt-internal-list .bio-console-panel {
+    background: var(--biotern-surface, #0f172a);
+    border-color: var(--biotern-border, rgba(129, 153, 199, 0.22));
+}
+
+html.app-skin-dark body.page-ojt-internal-list .bio-console-panel .card-header {
+    background: var(--biotern-surface-muted, #111827);
+    color: var(--bs-body-color, #e5e7eb);
+    border-bottom-color: var(--biotern-border, rgba(129, 153, 199, 0.2));
+}
+
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn-light-brand,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn-outline-secondary,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn-light,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn-outline-secondary {
+    background: var(--biotern-surface, rgba(15, 23, 42, 0.92)) !important;
+    border-color: var(--biotern-border, rgba(129, 153, 199, 0.26)) !important;
+    color: var(--bs-body-color, #e5e7eb) !important;
+    box-shadow: none !important;
+}
+
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn-light-brand:hover,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn-outline-secondary:hover,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn-light-brand:focus,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn-outline-secondary:focus,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn-light-brand:active,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn-outline-secondary:active,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn-light:hover,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn-outline-secondary:hover,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn-light:focus,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn-outline-secondary:focus,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn-light:active,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn-outline-secondary:active {
+    background: color-mix(in srgb, var(--biotern-surface, #0f172a) 85%, #ffffff 15%) !important;
+    border-color: var(--biotern-border, rgba(129, 153, 199, 0.34)) !important;
+    color: var(--bs-body-color, #e5e7eb) !important;
+}
+
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn-primary {
+    background: var(--biotern-primary, #9aa0a6);
+    border-color: var(--biotern-primary, #9aa0a6);
+    color: var(--biotern-primary-contrast, #0f1113);
+}
+
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn-primary:hover {
+    background: var(--biotern-primary-hover, #b4b9be);
+    border-color: var(--biotern-primary-hover, #b4b9be);
+    color: var(--biotern-primary-contrast, #0f1113);
+}
+
+html.app-skin-dark body.page-ojt-internal-list .bio-console-table .btn-outline-primary {
+    border-color: rgba(var(--biotern-primary-rgb), 0.4);
+    color: var(--biotern-primary-soft, #e2e8f0);
+}
+
+html.app-skin-dark body.page-ojt-internal-list .bio-console-table .btn-outline-primary:hover {
+    background: rgba(var(--biotern-primary-rgb), 0.2);
+    border-color: rgba(var(--biotern-primary-rgb), 0.46);
+    color: var(--biotern-primary-soft, #e2e8f0);
+}
+
+html.app-skin-dark body.page-ojt-internal-list .bio-console-table tbody tr:hover {
+    background: rgba(var(--biotern-primary-rgb), 0.16);
+}
+
+html.app-skin-dark body.page-ojt-internal-list .app-ojt-internal-status {
+    border-color: var(--biotern-border, rgba(129, 153, 199, 0.24));
+    background: var(--biotern-surface-muted, rgba(30, 41, 59, 0.72));
+    color: var(--bs-body-color, #e5e7eb);
+}
+
+html.app-skin-dark body.page-ojt-internal-list .app-ojt-internal-status-ongoing {
+    border-color: rgba(var(--biotern-primary-rgb), 0.36);
+    background: rgba(var(--biotern-primary-rgb), 0.2);
+    color: var(--biotern-primary-soft, #e2e8f0);
+}
+
+html.app-skin-dark body.page-ojt-internal-list .app-ojt-internal-status-finished {
+    border-color: rgba(16, 185, 129, 0.34);
+    background: rgba(16, 185, 129, 0.2);
+    color: #6ee7b7;
+}
+
+html.app-skin-dark body.page-ojt-internal-list .app-ojt-internal-status-not-started {
+    border-color: rgba(245, 158, 11, 0.34);
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+}
+
+/* Final neutral button sweep for this page to prevent theme blue tint bleed. */
+body.page-ojt-internal-list .bio-console-header-actions .btn.btn-light-brand,
+body.page-ojt-internal-list .bio-console-header-actions .btn.btn-outline-secondary,
+body.page-ojt-internal-list .fingerprint-form .btn.btn-light,
+body.page-ojt-internal-list .fingerprint-form .btn.btn-outline-secondary {
+    background-color: #f3f4f6 !important;
+    border-color: #c5ccd6 !important;
+    color: #1f2937 !important;
+    box-shadow: none !important;
+}
+
+body.page-ojt-internal-list .bio-console-header-actions .btn.btn-light-brand:hover,
+body.page-ojt-internal-list .bio-console-header-actions .btn.btn-outline-secondary:hover,
+body.page-ojt-internal-list .bio-console-header-actions .btn.btn-light-brand:focus,
+body.page-ojt-internal-list .bio-console-header-actions .btn.btn-outline-secondary:focus,
+body.page-ojt-internal-list .bio-console-header-actions .btn.btn-light-brand:active,
+body.page-ojt-internal-list .bio-console-header-actions .btn.btn-outline-secondary:active,
+body.page-ojt-internal-list .fingerprint-form .btn.btn-light:hover,
+body.page-ojt-internal-list .fingerprint-form .btn.btn-outline-secondary:hover,
+body.page-ojt-internal-list .fingerprint-form .btn.btn-light:focus,
+body.page-ojt-internal-list .fingerprint-form .btn.btn-outline-secondary:focus,
+body.page-ojt-internal-list .fingerprint-form .btn.btn-light:active,
+body.page-ojt-internal-list .fingerprint-form .btn.btn-outline-secondary:active {
+    background-color: #e5e7eb !important;
+    border-color: #9ca3af !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+}
+
+body.page-ojt-internal-list .fingerprint-form .btn.btn-primary {
+    background-color: #4b5563 !important;
+    border-color: #4b5563 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+body.page-ojt-internal-list .fingerprint-form .btn.btn-primary:hover,
+body.page-ojt-internal-list .fingerprint-form .btn.btn-primary:focus,
+body.page-ojt-internal-list .fingerprint-form .btn.btn-primary:active {
+    background-color: #374151 !important;
+    border-color: #374151 !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+}
+
+body.page-ojt-internal-list .bio-console-table .btn.btn-outline-primary {
+    background-color: transparent !important;
+    border-color: #9ca3af !important;
+    color: #374151 !important;
+    box-shadow: none !important;
+}
+
+body.page-ojt-internal-list .bio-console-table .btn.btn-outline-primary:hover,
+body.page-ojt-internal-list .bio-console-table .btn.btn-outline-primary:focus,
+body.page-ojt-internal-list .bio-console-table .btn.btn-outline-primary:active {
+    background-color: #e5e7eb !important;
+    border-color: #6b7280 !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+}
+
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn.btn-light-brand,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn.btn-outline-secondary,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn.btn-light,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn.btn-outline-secondary {
+    background-color: #232830 !important;
+    border-color: #444b58 !important;
+    color: #f3f4f6 !important;
+}
+
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn.btn-light-brand:hover,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn.btn-outline-secondary:hover,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn.btn-light-brand:focus,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn.btn-outline-secondary:focus,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn.btn-light-brand:active,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-header-actions .btn.btn-outline-secondary:active,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn.btn-light:hover,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn.btn-outline-secondary:hover,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn.btn-light:focus,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn.btn-outline-secondary:focus,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn.btn-light:active,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn.btn-outline-secondary:active {
+    background-color: #2f3640 !important;
+    border-color: #6b7280 !important;
+    color: #f9fafb !important;
+    box-shadow: none !important;
+}
+
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn.btn-primary {
+    background-color: #8a9099 !important;
+    border-color: #8a9099 !important;
+    color: #111318 !important;
+}
+
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn.btn-primary:hover,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn.btn-primary:focus,
+html.app-skin-dark body.page-ojt-internal-list .fingerprint-form .btn.btn-primary:active {
+    background-color: #a2a8b1 !important;
+    border-color: #a2a8b1 !important;
+    color: #111318 !important;
+}
+
+html.app-skin-dark body.page-ojt-internal-list .bio-console-table .btn.btn-outline-primary {
+    border-color: #8c95a3 !important;
+    color: #e5e7eb !important;
+}
+
+html.app-skin-dark body.page-ojt-internal-list .bio-console-table .btn.btn-outline-primary:hover,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-table .btn.btn-outline-primary:focus,
+html.app-skin-dark body.page-ojt-internal-list .bio-console-table .btn.btn-outline-primary:active {
+    background-color: #2f3640 !important;
+    border-color: #b1b8c3 !important;
+    color: #f9fafb !important;
+}
+
+body.page-ojt-internal-list .bio-console-table tbody tr:hover {
+    background-color: #edf1f5 !important;
+}
+
+html.app-skin-dark body.page-ojt-internal-list .bio-console-table tbody tr:hover {
+    background-color: #2a3039 !important;
+}
+
+body.page-ojt-internal-list .app-ojt-internal-status-ongoing {
+    border-color: #9ca3af !important;
+    background-color: #e5e7eb !important;
+    color: #374151 !important;
+}
+
+html.app-skin-dark body.page-ojt-internal-list .app-ojt-internal-status-ongoing {
+    border-color: #6b7280 !important;
+    background-color: #313844 !important;
+    color: #e5e7eb !important;
+}
+
+@media (max-width: 991.98px) {
+    .page-ojt-internal-list .bio-console-table thead th,
+    .page-ojt-internal-list .bio-console-table tbody td {
+        padding-left: 0.7rem;
+        padding-right: 0.7rem;
+    }
+
+    .page-ojt-internal-list .bio-console-table tbody td {
+        font-size: 0.84rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .page-ojt-internal-list .bio-console-shell {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .page-ojt-internal-list .fingerprint-form .fm-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .page-ojt-internal-list .fingerprint-form .fm-actions .btn {
+        width: 100%;
+    }
+}
