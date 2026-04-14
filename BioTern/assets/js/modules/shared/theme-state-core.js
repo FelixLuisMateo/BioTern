@@ -32,13 +32,56 @@
     "app-font-family-montserrat-alt",
     "app-font-family-roboto-slab",
   ];
+  var THEME_CLASS_PREFIX = "app-theme-";
 
   function normalizeMenuPreference(value) {
     return value === "mini" || value === "expanded" ? value : "auto";
   }
 
   function normalizeScheme(value) {
-    return value === "blue" || value === "gray" ? value : "blue";
+    var normalized = String(value == null ? "" : value).toLowerCase().trim();
+    normalized = normalized.replace(/[^a-z0-9-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+    return normalized || "blue";
+  }
+
+  function clearSchemeClasses(root) {
+    if (!root || !root.classList) {
+      return;
+    }
+    var classesToRemove = [];
+    for (var i = 0; i < root.classList.length; i += 1) {
+      var className = root.classList.item(i);
+      if (className && className.indexOf(THEME_CLASS_PREFIX) === 0) {
+        classesToRemove.push(className);
+      }
+    }
+    for (var j = 0; j < classesToRemove.length; j += 1) {
+      root.classList.remove(classesToRemove[j]);
+    }
+  }
+
+  function getActiveScheme(root) {
+    var target = root || document.documentElement;
+    if (!target || !target.classList) {
+      return "blue";
+    }
+    for (var i = 0; i < target.classList.length; i += 1) {
+      var className = target.classList.item(i);
+      if (className && className.indexOf(THEME_CLASS_PREFIX) === 0) {
+        return normalizeScheme(className.substring(THEME_CLASS_PREFIX.length));
+      }
+    }
+    return "blue";
+  }
+
+  function applySchemeClass(root, scheme) {
+    if (!root || !root.classList) {
+      return normalizeScheme(scheme);
+    }
+    var nextScheme = normalizeScheme(scheme);
+    clearSchemeClasses(root);
+    root.classList.add(THEME_CLASS_PREFIX + nextScheme);
+    return nextScheme;
   }
 
   function normalizeSurfacesMode(value) {
@@ -202,7 +245,7 @@
     var surfaces = normalizeSurfacesMode(prefs.surfaces);
     var effectiveNavigation = surfaces === "independent" ? prefs.navigation : prefs.skin;
     var effectiveHeader = surfaces === "independent" ? prefs.header : prefs.skin;
-    root.classList.remove("app-skin-dark", "app-navigation-dark", "app-header-dark", "app-theme-gray");
+    root.classList.remove("app-skin-dark", "app-navigation-dark", "app-header-dark");
     if (prefs.skin === "dark") {
       root.classList.add("app-skin-dark");
     }
@@ -212,9 +255,7 @@
     if (effectiveHeader === "dark") {
       root.classList.add("app-header-dark");
     }
-    if (normalizeScheme(prefs.scheme) === "gray") {
-      root.classList.add("app-theme-gray");
-    }
+    applySchemeClass(root, prefs.scheme);
     applyFontClass(root, prefs.font);
   }
 
@@ -262,6 +303,9 @@
     allowedFonts: ALLOWED_FONTS.slice(),
     normalizeMenuPreference: normalizeMenuPreference,
     normalizeScheme: normalizeScheme,
+    clearSchemeClasses: clearSchemeClasses,
+    getActiveScheme: getActiveScheme,
+    applySchemeClass: applySchemeClass,
     normalizeSurfacesMode: normalizeSurfacesMode,
     readCookie: readCookie,
     readPreferencesCookie: readPreferencesCookie,

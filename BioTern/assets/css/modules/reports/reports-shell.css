@@ -7,8 +7,8 @@ body.reports-page {
     --report-muted: color-mix(in srgb, var(--bs-body-color, #0f172a) 66%, transparent);
     --report-hero-bg: linear-gradient(
         135deg,
-        color-mix(in srgb, var(--biotern-primary, #2563eb) 10%, transparent),
-        color-mix(in srgb, var(--biotern-secondary, #0ea5e9) 8%, transparent)
+        color-mix(in srgb, var(--biotern-primary) 10%, transparent),
+        color-mix(in srgb, var(--biotern-secondary, var(--biotern-primary-hover)) 8%, transparent)
     );
 }
 
@@ -28,7 +28,7 @@ html.app-skin-dark body.reports-page {
     --report-muted: color-mix(in srgb, var(--bs-body-color, #dbe7ff) 72%, transparent);
     --report-hero-bg: linear-gradient(
         135deg,
-        color-mix(in srgb, var(--biotern-primary, #3b82f6) 22%, #0f172a 78%),
+        color-mix(in srgb, var(--biotern-primary, var(--biotern-primary)) 22%, #0f172a 78%),
         color-mix(in srgb, var(--biotern-secondary, #14b8a6) 16%, #0f172a 84%)
     );
 }
@@ -116,5 +116,6 @@ body.reports-page .chatlogs-table-card tbody tr:nth-child(odd) {
 
 body.reports-page .chatlogs-thread-row:hover,
 body.reports-page .chatlogs-table-card .table-hover > tbody > tr:hover > * {
-    background: color-mix(in srgb, var(--report-surface-soft) 74%, var(--biotern-primary, #2563eb) 8%) !important;
+    background: color-mix(in srgb, var(--report-surface-soft) 74%, var(--biotern-primary) 8%) !important;
 }
+

@@ -260,10 +260,19 @@ if ($theme_navigation === 'dark') {
 if ($theme_header === 'dark') {
     $html_classes[] = 'app-header-dark';
 }
-$theme_scheme = strtolower(trim((string)($biotern_theme_preferences['scheme'] ?? 'blue')));
-if ($theme_scheme === 'gray') {
-    $html_classes[] = 'app-theme-gray';
+$theme_scheme = (string)($biotern_theme_preferences['scheme'] ?? 'blue');
+if (function_exists('biotern_theme_normalize_scheme')) {
+    $theme_scheme = biotern_theme_normalize_scheme($theme_scheme);
+} else {
+    $theme_scheme = strtolower(trim($theme_scheme));
+    $theme_scheme = preg_replace('/[^a-z0-9-]+/', '-', $theme_scheme);
+    $theme_scheme = trim((string)$theme_scheme, '-');
+    if ($theme_scheme === '') {
+        $theme_scheme = 'blue';
+    }
 }
+$biotern_theme_preferences['scheme'] = $theme_scheme;
+$html_classes[] = 'app-theme-' . $theme_scheme;
 $html_class_attr = implode(' ', $html_classes);
 $page_body_class = isset($page_body_class) && is_string($page_body_class) ? trim($page_body_class) : '';
 $header_script_name = (string)($_SERVER['SCRIPT_NAME'] ?? '');

@@ -16,9 +16,23 @@ body .page-header .page-header-actions .btn {
 }
 
 body .page-header .btn.btn-sm {
-  min-height: 32px !important;
-  padding: 0.35rem 0.75rem !important;
-  font-size: 0.76rem !important;
+  min-height: var(--biotern-btn-min-height, 38px) !important;
+  padding: var(--biotern-btn-pad-y, 0.5rem) var(--biotern-btn-pad-x, 0.9rem) !important;
+  font-size: var(--biotern-btn-font-size, 0.82rem) !important;
+  border-radius: var(--biotern-btn-radius, 10px) !important;
+}
+
+body .page-header .page-header-quick .badge,
+body .page-header .page-header-actions-toggle {
+  min-height: var(--biotern-btn-min-height, 38px) !important;
+  padding: var(--biotern-btn-pad-y, 0.5rem) var(--biotern-btn-pad-x, 0.9rem) !important;
+  font-size: var(--biotern-btn-font-size, 0.82rem) !important;
+  font-weight: 600 !important;
+  border-radius: var(--biotern-btn-radius, 10px) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1.2 !important;
 }
 
 @media (min-width: 992px) {

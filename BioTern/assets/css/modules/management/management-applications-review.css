@@ -204,7 +204,7 @@ html.app-skin-dark .apps-review-toolbar .form-label {
 
 .application-detail-box {
     border-top: 1px dashed rgba(140, 160, 190, 0.25);
-    background: linear-gradient(180deg, #f8fbff 0%, #f3f7fd 100%);
+    background: linear-gradient(180deg, var(--biotern-surface-muted) 0%, #f3f7fd 100%);
     padding: 12px;
 }
 

@@ -1,6 +1,10 @@
 /* Combined mobile styles: mobile.min.css + mobile-bottom-nav.css */
 
 @media (max-width:991.98px) {
+    html:has(.nxl-navigation.mob-navigation-active),body:has(.nxl-navigation.mob-navigation-active),html.mobile-nav-open,body.mobile-nav-open {
+        overflow:hidden!important;
+        height:100%
+    }
     .nxl-header {
         left:0!important;
         right:0!important;
@@ -33,13 +37,15 @@
         left:-260px!important;
         width:260px!important;
         height:calc(100vh - 64px)!important;
+        overflow:hidden!important;
         z-index:2000
     }
     .nxl-navigation.mob-navigation-active {
         left:0!important
     }
     .nxl-navigation .navbar-wrapper {
-        height:100%!important
+        height:100%!important;
+        overflow:hidden
     }
     .nxl-navigation .m-header {
         height:64px;
@@ -47,7 +53,49 @@
     }
     .nxl-navigation .navbar-content {
         height:calc(100% - 64px)!important;
-        overflow-y:auto
+        overflow-y:auto;
+        scrollbar-width:none;
+        -ms-overflow-style:none
+    }
+    .nxl-navigation .navbar-content.ps {
+        overflow:hidden!important
+    }
+    .nxl-navigation .navbar-content::-webkit-scrollbar {
+        width:0!important;
+        height:0!important
+    }
+    .nxl-navigation .navbar-content .nxl-item.nxl-hasmenu>.nxl-link {
+        display:flex;
+        align-items:center;
+        justify-content:flex-start;
+        min-height:42px;
+        gap:12px
+    }
+    .nxl-navigation .navbar-content .nxl-item.nxl-hasmenu>.nxl-link .nxl-mtext {
+        flex:1 1 auto;
+        min-width:0;
+        line-height:1.2;
+        white-space:nowrap
+    }
+    .nxl-navigation .navbar-content .nxl-item.nxl-hasmenu>.nxl-link .nxl-arrow {
+        float:none!important;
+        margin-left:auto;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        align-self:center;
+        transform-origin:center center;
+        width:18px;
+        min-width:18px;
+        line-height:1
+    }
+    .nxl-navigation .navbar-content .nxl-item.nxl-hasmenu>.nxl-link .nxl-arrow i {
+        font-size:15px;
+        line-height:1;
+        display:block
+    }
+    .nxl-navigation .navbar-content .nxl-item.nxl-hasmenu.nxl-trigger>.nxl-link>.nxl-arrow {
+        transform:rotate(90deg)
     }
     .nxl-container {
         margin-left:0!important;

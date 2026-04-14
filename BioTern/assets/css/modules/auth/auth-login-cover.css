@@ -91,7 +91,7 @@ body.auth-login-page .auth-login-visual::after {
     inset: 0;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 28%),
-        radial-gradient(circle at top right, rgba(96, 165, 250, 0.16), transparent 34%),
+        radial-gradient(circle at top right, rgba(var(--biotern-primary-rgb), 0.16), transparent 34%),
         radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.08), transparent 38%);
 }
 
@@ -200,7 +200,7 @@ body.auth-login-page .auth-cover-card .form-control::placeholder {
 
 body.auth-login-page .auth-cover-card .form-control:focus,
 body.auth-login-page .auth-cover-card .form-check-input:focus {
-    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.14);
+    box-shadow: 0 0 0 0.2rem rgba(var(--biotern-primary-rgb), 0.14);
 }
 
 body.auth-login-page .auth-cover-card .input-group {
@@ -238,15 +238,15 @@ body.auth-login-page .auth-cover-card .btn-lg {
 
 body.auth-login-page .auth-cover-card .btn-outline-primary {
     color: #2740b7;
-    background: rgba(52, 84, 209, 0.06);
-    border-color: rgba(52, 84, 209, 0.22);
+    background: rgba(var(--biotern-primary-rgb), 0.06);
+    border-color: rgba(var(--biotern-primary-rgb), 0.22);
 }
 
 body.auth-login-page .auth-cover-card .btn-outline-primary:hover,
 body.auth-login-page .auth-cover-card .btn-outline-primary:focus {
     color: #1f35a0;
-    background: rgba(52, 84, 209, 0.12);
-    border-color: rgba(52, 84, 209, 0.3);
+    background: rgba(var(--biotern-primary-rgb), 0.12);
+    border-color: rgba(var(--biotern-primary-rgb), 0.3);
 }
 
 html.app-skin-dark body.auth-login-page {
@@ -291,15 +291,15 @@ html.app-skin-dark body.auth-login-page .auth-cover-card .input-group .btn:focus
 
 html.app-skin-dark body.auth-login-page .auth-cover-card .btn-outline-primary {
     color: #f8fafc;
-    background: rgba(96, 165, 250, 0.08);
+    background: rgba(var(--biotern-primary-rgb), 0.08);
     border-color: rgba(148, 163, 184, 0.26);
 }
 
 html.app-skin-dark body.auth-login-page .auth-cover-card .btn-outline-primary:hover,
 html.app-skin-dark body.auth-login-page .auth-cover-card .btn-outline-primary:focus {
     color: #ffffff;
-    background: rgba(96, 165, 250, 0.16);
-    border-color: rgba(147, 197, 253, 0.36);
+    background: rgba(var(--biotern-primary-rgb), 0.16);
+    border-color: rgba(var(--biotern-primary-rgb), 0.36);
 }
 
 html.app-theme-gray body.auth-login-page .login-bg-watermark {
@@ -440,3 +440,5 @@ html.app-theme-gray:not(.app-skin-dark) body.auth-login-page {
         border-right: 0;
     }
 }
+
+
