@@ -206,7 +206,7 @@ if (!function_exists('biotern_unified_host_is_internal')) {
 }
 
 $envHost = (string)biotern_env_first(
-    ['DB_HOST', 'DB_HOST_ONLINE', 'MYSQLHOST', 'RAILWAY_MYSQL_HOST', 'MYSQL_PUBLIC_HOST'],
+    ['DB_HOST', 'DB_HOST_ONLINE', 'MYSQL_PUBLIC_HOST', 'RAILWAY_TCP_PROXY_DOMAIN', 'MYSQLHOST', 'RAILWAY_MYSQL_HOST'],
     (string)($biotern_mysql_url['host'] ?? '127.0.0.1')
 );
 $envUser = (string)biotern_env_first(
@@ -222,7 +222,7 @@ $envName = (string)biotern_env_first(
     (string)($biotern_mysql_url['database'] ?? 'biotern_db')
 );
 $envPort = (int)biotern_env_first(
-    ['DB_PORT', 'DB_PORT_ONLINE', 'MYSQLPORT', 'RAILWAY_MYSQL_PORT', 'MYSQL_PUBLIC_PORT'],
+    ['DB_PORT', 'DB_PORT_ONLINE', 'MYSQL_PUBLIC_PORT', 'RAILWAY_TCP_PROXY_PORT', 'MYSQLPORT', 'RAILWAY_MYSQL_PORT'],
     (string)($biotern_mysql_url['port'] ?? 3306)
 );
 if ($envPort <= 0) {
@@ -232,7 +232,7 @@ if ($envPort <= 0) {
 $isVercelRuntime = biotern_unified_env_truthy(['VERCEL']);
 if ($isVercelRuntime) {
     // On Vercel, explicit host-style vars should override stale URL-derived values.
-    $explicitHost = (string)biotern_env_first(['DB_HOST', 'DB_HOST_ONLINE', 'MYSQLHOST', 'MYSQL_PUBLIC_HOST'], '');
+    $explicitHost = (string)biotern_env_first(['MYSQL_PUBLIC_HOST', 'RAILWAY_TCP_PROXY_DOMAIN', 'DB_HOST', 'DB_HOST_ONLINE', 'MYSQLHOST'], '');
     if ($explicitHost !== '' && !biotern_unified_host_is_internal($explicitHost)) {
         $envHost = $explicitHost;
     }
@@ -252,7 +252,7 @@ if ($isVercelRuntime) {
         $envName = $explicitName;
     }
 
-    $explicitPort = (string)biotern_env_first(['DB_PORT', 'DB_PORT_ONLINE', 'MYSQLPORT', 'MYSQL_PUBLIC_PORT'], '');
+    $explicitPort = (string)biotern_env_first(['MYSQL_PUBLIC_PORT', 'RAILWAY_TCP_PROXY_PORT', 'DB_PORT', 'DB_PORT_ONLINE', 'MYSQLPORT'], '');
     if ($explicitPort !== '') {
         $envPort = (int)$explicitPort;
         if ($envPort <= 0) {
@@ -263,7 +263,7 @@ if ($isVercelRuntime) {
 
 if ($isVercelRuntime && biotern_unified_host_is_internal($envHost)) {
     // Vercel cannot resolve Railway internal DNS; switch to public URL/host vars when present.
-    $publicUrl = (string)biotern_env_first(['MYSQL_PUBLIC_URL'], '');
+    $publicUrl = (string)biotern_env_first(['MYSQL_PUBLIC_URL', 'RAILWAY_MYSQL_PUBLIC_URL', 'DB_PUBLIC_URL'], '');
     if ($publicUrl !== '') {
         $publicParts = @parse_url($publicUrl);
         if (is_array($publicParts)) {
@@ -289,14 +289,14 @@ if ($isVercelRuntime && biotern_unified_host_is_internal($envHost)) {
     }
 
     if (biotern_unified_host_is_internal($envHost)) {
-        $candidateHost = (string)biotern_env_first(['DB_HOST', 'DB_HOST_ONLINE', 'MYSQLHOST', 'MYSQL_PUBLIC_HOST'], '');
+        $candidateHost = (string)biotern_env_first(['MYSQL_PUBLIC_HOST', 'RAILWAY_TCP_PROXY_DOMAIN', 'DB_HOST', 'DB_HOST_ONLINE', 'MYSQLHOST'], '');
         if ($candidateHost !== '' && !biotern_unified_host_is_internal($candidateHost)) {
             $envHost = $candidateHost;
         }
         $envUser = (string)biotern_env_first(['MYSQLUSER', 'MYSQL_PUBLIC_USER', 'DB_USER'], $envUser ?: 'root');
         $envPass = (string)biotern_env_first(['MYSQLPASSWORD', 'MYSQL_PUBLIC_PASSWORD', 'DB_PASS'], $envPass ?? '');
         $envName = (string)biotern_env_first(['MYSQLDATABASE', 'MYSQL_PUBLIC_DATABASE', 'DB_NAME'], $envName ?: 'biotern_db');
-        $envPort = (int)biotern_env_first(['MYSQLPORT', 'MYSQL_PUBLIC_PORT', 'DB_PORT'], (string)($envPort > 0 ? $envPort : 3306));
+        $envPort = (int)biotern_env_first(['MYSQL_PUBLIC_PORT', 'RAILWAY_TCP_PROXY_PORT', 'MYSQLPORT', 'DB_PORT'], (string)($envPort > 0 ? $envPort : 3306));
         if ($envPort <= 0) {
             $envPort = 3306;
         }
@@ -310,6 +310,8 @@ $forceLocalTarget = in_array($requestedTarget, ['local', 'xampp'], true);
 
 $isLocalRuntime = biotern_unified_is_local_runtime();
 $primaryIsLocal = in_array(strtolower($envHost), ['127.0.0.1', 'localhost', '::1'], true);
+$primaryIsInternal = biotern_unified_host_is_internal($envHost);
+$shouldTryLocalFallback = $isLocalRuntime && !$primaryIsLocal && (!$forceRemoteTarget || $primaryIsInternal);
 
 $localProfile = [
     'host' => (string)biotern_env_first(['LOCAL_DB_HOST'], '127.0.0.1'),
@@ -331,19 +333,36 @@ $remoteProfile = [
 ];
 
 $connectionProfiles = [];
-if ($forceLocalTarget || ($isLocalRuntime && !$forceRemoteTarget && !$primaryIsLocal)) {
+if ($forceLocalTarget || $shouldTryLocalFallback) {
     $connectionProfiles[] = $localProfile;
     $connectionProfiles[] = $remoteProfile;
 } else {
     $connectionProfiles[] = $remoteProfile;
-    if ($isLocalRuntime && !$forceRemoteTarget && !$primaryIsLocal) {
+    if ($shouldTryLocalFallback) {
         $connectionProfiles[] = $localProfile;
     }
+}
+
+if ($isVercelRuntime) {
+    $vercelProfiles = [];
+    foreach ($connectionProfiles as $profile) {
+        $profileHost = isset($profile['host']) ? strtolower(trim((string)$profile['host'])) : '';
+        if ($profileHost === '' || biotern_unified_host_is_internal($profileHost) || in_array($profileHost, ['127.0.0.1', 'localhost', '::1'], true)) {
+            continue;
+        }
+        $vercelProfiles[] = $profile;
+    }
+    $connectionProfiles = $vercelProfiles;
 }
 
 $activeProfile = null;
 $lastError = 'Unknown database connection error';
 $conn = null;
+
+if (count($connectionProfiles) === 0) {
+    $safeHost = $envHost !== '' ? $envHost : 'unknown-host';
+    die('Database connection failed. Vercel runtime has no reachable public DB host configured. Resolved host=' . $safeHost . '. Set MYSQL_PUBLIC_URL (preferred) or MYSQL_PUBLIC_HOST/MYSQL_PUBLIC_PORT (or RAILWAY_TCP_PROXY_DOMAIN/RAILWAY_TCP_PROXY_PORT), and remove private mysql.railway.internal values from DATABASE_URL/DB_HOST/MYSQLHOST.');
+}
 
 foreach ($connectionProfiles as $profile) {
     $mysqli = biotern_unified_open_mysqli(
