@@ -1,4 +1,25 @@
 .report-page-title { border-right: 0 !important; padding-right: 0 !important; }
+body.reports-ojt-page .page-header.page-header-with-middle .page-header-middle {
+    width: min(24vw, 340px) !important;
+    max-width: min(24vw, 340px) !important;
+}
+
+body.reports-ojt-page .page-header.page-header-with-middle .page-header-middle .page-header-statement {
+    margin: 0;
+    text-align: center;
+    font-size: 0.78rem !important;
+    line-height: 1.28;
+    white-space: normal !important;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+body.reports-ojt-page .page-header.page-header-with-middle .page-header-right .page-header-right-items-wrapper {
+    flex-wrap: nowrap;
+}
+
 .report-hero { border: 1px solid rgba(80, 102, 144, 0.15); background: linear-gradient(135deg, rgba(26, 64, 132, 0.08), rgba(24, 153, 132, 0.08)); border-radius: 14px; padding: 1.1rem 1.25rem; margin-bottom: 1rem; }
 .report-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
 .report-kpi { border: 1px solid rgba(80, 102, 144, 0.14); border-radius: 12px; padding: 0.85rem 1rem; background: #fff; text-align: center; }

@@ -192,7 +192,6 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
 <div class="nxl-content">
-<div class="main-content">
     <div class="page-header page-header-with-middle">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title">
@@ -352,7 +351,6 @@ include 'includes/header.php';
             </div>
         </div>
     </div>
-</div>
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
