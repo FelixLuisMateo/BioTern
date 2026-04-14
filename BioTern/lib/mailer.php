@@ -65,6 +65,8 @@ if (!function_exists('biotern_mail_settings')) {
             'mail_from_name' => biotern_mail_env_value('MAIL_FROM_NAME', 'BioTern'),
             'mail_from_email' => biotern_mail_env_value('MAIL_FROM_ADDRESS', ''),
             'reply_to_email' => '',
+            'mail_http_endpoint' => biotern_mail_env_value('MAIL_HTTP_ENDPOINT', ''),
+            'mail_http_token' => biotern_mail_env_value('MAIL_HTTP_TOKEN', ''),
             'enable_email_notifications' => '1',
             'send_application_updates' => '1',
         ];
@@ -100,6 +102,67 @@ if (!function_exists('biotern_mail_settings')) {
     }
 }
 
+if (!function_exists('biotern_send_mail_http')) {
+    function biotern_send_mail_http(array $settings, string $to, string $subject, string $textBody, string $htmlBody, ?string &$errorRef = null): bool
+    {
+        $errorRef = null;
+        $endpoint = trim((string)($settings['mail_http_endpoint'] ?? ''));
+        if ($endpoint === '') {
+            return false;
+        }
+
+        $payload = json_encode([
+            'to' => $to,
+            'subject' => $subject,
+            'text' => $textBody,
+            'html' => $htmlBody
+        ]);
+        if ($payload === false) {
+            $errorRef = biotern_mail_log_error('Failed to encode email payload for HTTP mail endpoint.');
+            return false;
+        }
+
+        $headers = [
+            'Content-Type: application/json',
+            'Accept: application/json'
+        ];
+        $token = trim((string)($settings['mail_http_token'] ?? ''));
+        if ($token !== '') {
+            $headers[] = 'Authorization: Bearer ' . $token;
+            $headers[] = 'X-Mail-Token: ' . $token;
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'POST',
+                'header' => implode("\r\n", $headers),
+                'content' => $payload,
+                'timeout' => 12,
+                'ignore_errors' => true
+            ]
+        ]);
+
+        $response = @file_get_contents($endpoint, false, $context);
+        $status = 0;
+        if (isset($http_response_header) && is_array($http_response_header)) {
+            foreach ($http_response_header as $line) {
+                if (preg_match('#^HTTP/\\S+\\s+(\\d+)#', $line, $m)) {
+                    $status = (int)$m[1];
+                    break;
+                }
+            }
+        }
+
+        if ($status >= 200 && $status < 300) {
+            return true;
+        }
+
+        $detail = $response ? (string)$response : 'No response body.';
+        $errorRef = biotern_mail_log_error('HTTP mail endpoint failed (status ' . $status . '). ' . $detail);
+        return false;
+    }
+}
+
 if (!function_exists('biotern_send_mail')) {
     function biotern_send_mail(mysqli $conn, string $to, string $subject, string $textBody, string $htmlBody, ?string &$errorRef = null): bool
     {
@@ -110,15 +173,32 @@ if (!function_exists('biotern_send_mail')) {
         }
 
         $autoload = dirname(__DIR__) . '/vendor/autoload.php';
-        if (!is_file($autoload)) {
-            $errorRef = biotern_mail_log_error('Composer autoload not found for mail send.');
-            return false;
+        if (is_file($autoload)) {
+            require_once $autoload;
+        } else {
+            $manualMailerPath = dirname(__DIR__) . '/lib/phpmailer/PHPMailer.php';
+            $manualExceptionPath = dirname(__DIR__) . '/lib/phpmailer/Exception.php';
+            $manualSmtpPath = dirname(__DIR__) . '/lib/phpmailer/SMTP.php';
+            if (is_file($manualMailerPath) && is_file($manualExceptionPath) && is_file($manualSmtpPath)) {
+                require_once $manualExceptionPath;
+                require_once $manualSmtpPath;
+                require_once $manualMailerPath;
+            } else {
+                $errorRef = biotern_mail_log_error('PHPMailer not installed. Missing vendor/autoload.php and lib/phpmailer source files.');
+                return false;
+            }
         }
-        require_once $autoload;
 
         $settings = biotern_mail_settings($conn);
         if (($settings['enable_email_notifications'] ?? '1') !== '1') {
             return false;
+        }
+
+        if (!defined('BIOTERN_MAIL_PROXY') && !empty($settings['mail_http_endpoint'])) {
+            $sent = biotern_send_mail_http($settings, $to, $subject, $textBody, $htmlBody, $errorRef);
+            if ($sent) {
+                return true;
+            }
         }
 
         $host = trim((string)($settings['smtp_host'] ?? ''));
@@ -167,4 +247,3 @@ if (!function_exists('biotern_send_mail')) {
         }
     }
 }
-

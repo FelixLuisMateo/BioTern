@@ -4,13 +4,23 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/mailer.php';
 
 $composer_missing = false;
 $composer_autoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (is_file($composer_autoload)) {
     require_once $composer_autoload;
 } else {
-    $composer_missing = true;
+    $manualMailerPath = dirname(__DIR__) . '/lib/phpmailer/PHPMailer.php';
+    $manualExceptionPath = dirname(__DIR__) . '/lib/phpmailer/Exception.php';
+    $manualSmtpPath = dirname(__DIR__) . '/lib/phpmailer/SMTP.php';
+    if (is_file($manualMailerPath) && is_file($manualExceptionPath) && is_file($manualSmtpPath)) {
+        require_once $manualExceptionPath;
+        require_once $manualSmtpPath;
+        require_once $manualMailerPath;
+    } else {
+        $composer_missing = true;
+    }
 }
 
 $reset_message = '';
@@ -56,94 +66,25 @@ function generateResetCode(): string
 
 function sendResetCodeEmail(string $email, string $code): bool
 {
-    global $composer_missing;
-    $mailHost = envValue('MAIL_HOST', '');
-    $mailPort = (int)envValue('MAIL_PORT', '587');
-    $mailUser = envValue('MAIL_USERNAME', '');
-    $mailPass = preg_replace('/\s+/', '', envValue('MAIL_PASSWORD', ''));
-    $mailEnc = strtolower(envValue('MAIL_ENCRYPTION', 'tls'));
-    $fromAddress = envValue('MAIL_FROM_ADDRESS', $mailUser !== '' ? $mailUser : 'no-reply@localhost');
-    $fromName = envValue('MAIL_FROM_NAME', 'BioTern');
-
-    if ($mailHost === '' || $mailUser === '' || $mailPass === '') {
-        logOtpMailError('SMTP configuration incomplete: MAIL_HOST/MAIL_USERNAME/MAIL_PASSWORD is missing.');
-        return false;
-    }
-
-    if ($composer_missing || !class_exists('\PHPMailer\PHPMailer\PHPMailer')) {
-        logOtpMailError('PHPMailer is not installed. Run composer install to enable email sending.');
-        return false;
-    }
-
+    global $composer_missing, $conn;
     $subject = 'Your password reset verification code';
     $textBody = "Your verification code is: {$code}\n\nIf you did not request this, please ignore this message.";
     $htmlBody = '<p>Your verification code is:</p><p style="font-size:24px;font-weight:700;letter-spacing:4px;">'
         . htmlspecialchars($code, ENT_QUOTES, 'UTF-8')
         . '</p><p>If you did not request this, please ignore this message.</p>';
-
-    $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
-
-    try {
-        $mail->isSMTP();
-        $mail->Host = $mailHost;
-        $mail->Port = $mailPort > 0 ? $mailPort : 587;
-        $mail->SMTPAuth = true;
-        $mail->Username = $mailUser;
-        $mail->Password = $mailPass;
-        $mail->CharSet = 'UTF-8';
-
-        if ($mailEnc === 'ssl') {
-            $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
-        } else {
-            $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-        }
-
-        $mail->setFrom($fromAddress, $fromName);
-        $mail->addAddress($email);
-        $mail->Subject = $subject;
-        $mail->Body = $htmlBody;
-        $mail->AltBody = $textBody;
-        $mail->isHTML(true);
-
-        $sent = $mail->send();
-        if ($sent) {
-            unset($_SESSION['password_reset_last_error_ref']);
-        }
-
-        return $sent;
-    } catch (\Throwable $e) {
-        logOtpMailError('PHPMailer error: ' . $e->getMessage());
-        return false;
+    $errorRef = null;
+    $sent = biotern_send_mail($conn, $email, $subject, $textBody, $htmlBody, $errorRef);
+    if ($sent) {
+        unset($_SESSION['password_reset_last_error_ref']);
+        return true;
     }
-}
-
-function envValue(string $key, string $default = ''): string
-{
-    static $env = null;
-    if ($env === null) {
-        $env = [];
-        $envPath = dirname(__DIR__) . '/.env';
-        if (is_file($envPath)) {
-            $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            if (is_array($lines)) {
-                foreach ($lines as $line) {
-                    $line = trim((string)$line);
-                    if ($line === '' || str_starts_with($line, '#') || strpos($line, '=') === false) {
-                        continue;
-                    }
-                    [$k, $v] = explode('=', $line, 2);
-                    $k = trim($k);
-                    $v = trim($v);
-                    if ($v !== '' && (($v[0] === '"' && substr($v, -1) === '"') || ($v[0] === "'" && substr($v, -1) === "'"))) {
-                        $v = substr($v, 1, -1);
-                    }
-                    $env[$k] = $v;
-                }
-            }
-        }
+    if ($errorRef) {
+        $_SESSION['password_reset_last_error_ref'] = $errorRef;
     }
-
-    return array_key_exists($key, $env) ? (string)$env[$key] : $default;
+    if (!class_exists('\PHPMailer\PHPMailer\PHPMailer')) {
+        $composer_missing = true;
+    }
+    return false;
 }
 
 function storeResetSession(string $email, int $userId, string $code, bool $sent): void
