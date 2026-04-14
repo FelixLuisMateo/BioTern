@@ -437,7 +437,7 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     $cloudBaseUrl = (string)($profile['cloud_base_url'] ?? '');
     $ingestPath = (string)($profile['ingest_path'] ?? '/api/f20h_ingest.php');
     $ingestApiToken = (string)($profile['ingest_api_token'] ?? '');
-    $pollSeconds = max(3, (int)($profile['poll_seconds'] ?? 30));
+    $pollSeconds = max(5, (int)($profile['poll_seconds'] ?? 30));
     $ipAddress = (string)($profile['ip_address'] ?? '');
     $gateway = (string)($profile['gateway'] ?? '');
     $mask = (string)($profile['mask'] ?? '255.255.255.0');
@@ -1080,6 +1080,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new RuntimeException('Direct machine commands are disabled in cloud runtime. Use F20H direct ingest by posting events to /api/f20h_ingest.php, then run Sync Now to reconcile logs into attendance.');
         }
 
+        if (machine_is_cloud_runtime() && in_array($action, ['open_restart_bridge_shell', 'open_bridge_log_tail_shell'], true)) {
+            throw new RuntimeException('Bridge shell launcher actions are available only on the local Windows bridge computer.');
+        }
+
         switch ($action) {
             case 'open_restart_bridge_shell':
                 machine_open_restart_bridge_shell(dirname(__DIR__));
@@ -1441,7 +1445,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $cloudBaseUrl = rtrim(trim((string)($_POST['cloud_base_url'] ?? '')), '/');
                 $ingestPath = trim((string)($_POST['ingest_path'] ?? '/api/f20h_ingest.php'));
                 $ingestApiToken = trim((string)($_POST['ingest_api_token'] ?? ''));
-                $pollSeconds = max(3, (int)($_POST['poll_seconds'] ?? 30));
+                $pollSeconds = max(5, (int)($_POST['poll_seconds'] ?? 30));
                 $bridgeIp = trim((string)($_POST['bridge_ip'] ?? ''));
                 $bridgeGateway = trim((string)($_POST['bridge_gateway'] ?? ''));
                 $bridgeMask = trim((string)($_POST['bridge_mask'] ?? '255.255.255.0'));
@@ -2128,7 +2132,7 @@ include __DIR__ . '/../includes/header.php';
                             <input type="hidden" name="machine_action" value="sync">
                             <button type="submit" class="btn btn-primary w-100"><?php echo $cloudRuntime || $syncMode === 'direct_ingest' ? 'Process Ingest Queue' : 'Sync Now'; ?></button>
                         </form>
-                        <?php if ($isAdmin): ?>
+                        <?php if ($isAdmin && !$cloudRuntime): ?>
                             <form method="post" class="mt-2">
                                 <input type="hidden" name="machine_action" value="open_restart_bridge_shell">
                                 <button type="submit" class="btn btn-outline-dark w-100">Open PowerShell: Restart Bridge Worker</button>
@@ -2137,6 +2141,8 @@ include __DIR__ . '/../includes/header.php';
                                 <input type="hidden" name="machine_action" value="open_bridge_log_tail_shell">
                                 <button type="submit" class="btn btn-outline-secondary w-100">Open PowerShell: Bridge Log Tail</button>
                             </form>
+                        <?php elseif ($isAdmin && $cloudRuntime): ?>
+                            <div class="alert alert-info mt-2 mb-0 fs-12">Windows shell launchers are hidden in cloud runtime. Run restart/log tail from your local bridge PC.</div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -2402,7 +2408,7 @@ include __DIR__ . '/../includes/header.php';
                                     </div>
                                     <div class="col-sm-6">
                                         <label class="form-label">Poll Seconds</label>
-                                        <input type="number" name="poll_seconds" id="bridgePollSecondsField" class="form-control" value="<?php echo machine_h((string)$bridgePollSeconds); ?>" min="3" max="300">
+                                        <input type="number" name="poll_seconds" id="bridgePollSecondsField" class="form-control" value="<?php echo machine_h((string)$bridgePollSeconds); ?>" min="5" max="300">
                                     </div>
                                     <div class="col-sm-6">
                                         <label class="form-label">F20H IP</label>
