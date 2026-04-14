@@ -2021,11 +2021,8 @@ include __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-        <div class="machine-info-note" role="note" aria-label="F20H data handling notice">
-            <span class="machine-info-note-icon" aria-hidden="true"><i class="feather-info"></i></span>
-            <div class="machine-info-note-body">
-                Fingerprint templates stay on the F20H. BioTern only manages machine user records, mappings, and attendance events. Card numbers are masked for non-admin views.
-            </div>
+        <div class="alert alert-info machine-info-note" role="note" aria-label="F20H data handling notice">
+            Fingerprint templates stay on the F20H. BioTern only manages machine user records, mappings, and attendance events. Card numbers are masked for non-admin views.
         </div>
 
         <div class="row g-3 mb-3">

@@ -154,9 +154,9 @@
 
 .page-fingerprint-mapping .bio-console-pill,
 .page-biometric-machine .bio-console-pill {
-    background: rgba(59, 130, 246, 0.12);
-    border-color: rgba(59, 130, 246, 0.24);
-    color: #1e3a8a;
+    background: rgba(var(--biotern-primary-rgb), 0.12);
+    border-color: rgba(var(--biotern-primary-rgb), 0.24);
+    color: var(--biotern-primary-hover);
 }
 
 .page-fingerprint-mapping .bio-console-hero-side,
@@ -326,7 +326,7 @@
     padding: 0.9rem 1rem;
     border-radius: 14px;
     border: 1px solid rgba(148, 163, 184, 0.22);
-    background: linear-gradient(180deg, #f8fbff 0%, #f1f6ff 100%);
+    background: linear-gradient(180deg, var(--biotern-surface-muted) 0%, #f1f6ff 100%);
 }
 
 .bio-console-inline-note-title {
@@ -503,7 +503,7 @@ html.app-skin-dark .page-biometric-machine h6,
 html.app-skin-dark .page-fingerprint-mapping h4,
 html.app-skin-dark .page-fingerprint-mapping h5,
 html.app-skin-dark .page-fingerprint-mapping h6 {
-    color: #f8fbff;
+    color: var(--biotern-surface-muted);
 }
 
 html.app-skin-dark .bio-console-stat-meta,
@@ -562,7 +562,7 @@ html.app-skin-dark .page-fingerprint-mapping .bio-console-hero h5,
 html.app-skin-dark .page-biometric-machine .bio-console-hero h3,
 html.app-skin-dark .page-biometric-machine .bio-console-hero h4,
 html.app-skin-dark .page-biometric-machine .bio-console-hero h5 {
-    color: #f8fbff;
+    color: var(--biotern-surface-muted);
 }
 
 html.app-skin-dark .page-fingerprint-mapping .bio-console-hero p,
@@ -572,7 +572,7 @@ html.app-skin-dark .page-biometric-machine .bio-console-hero p {
 
 html.app-skin-dark .page-fingerprint-mapping .bio-console-pill,
 html.app-skin-dark .page-biometric-machine .bio-console-pill {
-    background: rgba(59, 130, 246, 0.2);
+    background: rgba(var(--biotern-primary-rgb), 0.2);
     border-color: rgba(129, 153, 199, 0.28);
     color: #dbe8ff;
 }
@@ -589,7 +589,7 @@ html.app-skin-dark .page-fingerprint-mapping .bio-console-hero-side h6,
 html.app-skin-dark .page-fingerprint-mapping .bio-console-note-surface h6,
 html.app-skin-dark .page-biometric-machine .bio-console-hero-side h6,
 html.app-skin-dark .page-biometric-machine .bio-console-note-surface h6 {
-    color: #f8fbff;
+    color: var(--biotern-surface-muted);
 }
 
 html.app-skin-dark .page-fingerprint-mapping .bio-console-hero-side p,

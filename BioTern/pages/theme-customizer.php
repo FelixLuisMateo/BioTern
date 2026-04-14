@@ -11,6 +11,39 @@ $page_scripts = [
     'assets/js/theme-customizer-init.min.js',
 ];
 include 'includes/header.php';
+
+$theme_scheme_options = function_exists('biotern_theme_registered_schemes')
+    ? biotern_theme_registered_schemes()
+    : [
+        'blue' => 'Blue (Default)',
+        'gray' => 'Gray',
+    ];
+if (!is_array($theme_scheme_options) || empty($theme_scheme_options)) {
+    $theme_scheme_options = [
+        'blue' => 'Blue (Default)',
+        'gray' => 'Gray',
+    ];
+}
+
+$theme_scheme_current_raw = (string)($biotern_theme_preferences['scheme'] ?? 'blue');
+if (function_exists('biotern_theme_normalize_scheme')) {
+    $theme_scheme_current = biotern_theme_normalize_scheme($theme_scheme_current_raw);
+} else {
+    $theme_scheme_current = strtolower(trim($theme_scheme_current_raw));
+    $theme_scheme_current = preg_replace('/[^a-z0-9-]+/', '-', $theme_scheme_current);
+    $theme_scheme_current = trim((string)$theme_scheme_current, '-');
+    if ($theme_scheme_current === '') {
+        $theme_scheme_current = 'blue';
+    }
+}
+
+if (!array_key_exists($theme_scheme_current, $theme_scheme_options)) {
+    if (function_exists('biotern_theme_scheme_label')) {
+        $theme_scheme_options[$theme_scheme_current] = biotern_theme_scheme_label($theme_scheme_current) . ' (Custom)';
+    } else {
+        $theme_scheme_options[$theme_scheme_current] = ucwords(str_replace('-', ' ', $theme_scheme_current)) . ' (Custom)';
+    }
+}
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
@@ -60,8 +93,16 @@ include 'includes/header.php';
                                         </div>
                                         <div class="appearance-select-wrap">
                                             <select id="theme-page-scheme" class="form-select" data-ui-select="custom">
-                                                <option value="blue">Blue (Default)</option>
-                                                <option value="gray">Gray</option>
+                                                <?php foreach ($theme_scheme_options as $theme_scheme_value => $theme_scheme_label): ?>
+                                                    <?php
+                                                    $theme_scheme_value = (string)$theme_scheme_value;
+                                                    $theme_scheme_label = trim((string)$theme_scheme_label);
+                                                    if ($theme_scheme_label === '') {
+                                                        $theme_scheme_label = ucwords(str_replace('-', ' ', $theme_scheme_value));
+                                                    }
+                                                    ?>
+                                                    <option value="<?php echo htmlspecialchars($theme_scheme_value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $theme_scheme_value === $theme_scheme_current ? ' selected' : ''; ?>><?php echo htmlspecialchars($theme_scheme_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                                                <?php endforeach; ?>
                                             </select>
                                         </div>
                                     </div>

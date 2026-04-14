@@ -4,12 +4,12 @@
   --app-workspace-surface-2: rgba(248, 250, 252, 0.98);
   --app-workspace-surface-3: rgba(241, 245, 249, 0.98);
   --app-workspace-border: rgba(15, 23, 42, 0.08);
-  --app-workspace-border-strong: rgba(52, 84, 209, 0.24);
+  --app-workspace-border-strong: rgba(var(--biotern-primary-rgb), 0.24);
   --app-workspace-text: #0f172a;
   --app-workspace-muted: #64748b;
   --app-workspace-soft: #94a3b8;
-  --app-workspace-primary: #3454d1;
-  --app-workspace-primary-soft: rgba(52, 84, 209, 0.12);
+  --app-workspace-primary: var(--biotern-primary);
+  --app-workspace-primary-soft: rgba(var(--biotern-primary-rgb), 0.12);
   --app-workspace-hover: rgba(15, 23, 42, 0.032);
   --app-workspace-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
@@ -237,3 +237,5 @@ body.apps-calendar-page .app-calendar-create-button:hover,
 body.apps-calendar-page .app-calendar-create-button:focus-visible {
   box-shadow: none !important;
 }
+
+

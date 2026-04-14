@@ -100,7 +100,7 @@ body { background: #f5f7fb; }
         border: 1px solid #dfe8f5;
         border-radius: 14px;
         padding: 1rem 1rem 0.4rem;
-        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        background: linear-gradient(180deg, #ffffff 0%, var(--biotern-surface-muted) 100%);
         box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
         margin-bottom: 14px !important;
     }
@@ -127,7 +127,7 @@ body { background: #f5f7fb; }
         font-weight: 800;
         letter-spacing: 0.09em;
         text-transform: uppercase;
-        color: #1e3a8a;
+        color: var(--biotern-primary-hover);
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
@@ -135,7 +135,7 @@ body { background: #f5f7fb; }
     }
     .filter-panel-sub,
     .app-ojt-filter-panel-sub { font-size: 0.78rem; color: #64748b; margin: 0; }
-    .filter-toggle-btn { border-color: #d5deed; color: #1e293b; background: #f8fbff; }
+    .filter-toggle-btn { border-color: #d5deed; color: #1e293b; background: var(--biotern-surface-muted); }
     .filter-toggle-btn:hover,
     .filter-toggle-btn:focus { background-color: #eef4ff; color: #0f172a; border-color: #b8c7e2; }
     .filter-form {
@@ -316,7 +316,7 @@ body { background: #f5f7fb; }
         }
         .app-skin-dark .filter-panel .form-control::placeholder { color: #9fb2d1; }
         .app-skin-dark .filter-panel-label,
-        .app-skin-dark .app-ojt-filter-panel-label { color: #dbeafe; }
+        .app-skin-dark .app-ojt-filter-panel-label { color: var(--biotern-primary-soft); }
         .app-skin-dark .filter-panel-sub,
         .app-skin-dark .app-ojt-filter-panel-sub { color: #94a3b8; }
         .app-skin-dark .filter-toggle-btn {
@@ -432,7 +432,7 @@ html.app-skin-dark .app-page-ojt-dashboard {
 
 .app-page-ojt-dashboard .filter-panel-label,
 .app-page-ojt-dashboard .app-ojt-filter-panel-label {
-    color: var(--biotern-primary-soft-text, #1d4ed8);
+    color: var(--biotern-primary-soft-text, var(--biotern-primary-hover));
 }
 
 .app-page-ojt-dashboard .filter-panel-sub,
@@ -1446,8 +1446,8 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
         }
 
         .app-ojt-mobile-status-dot.status-complete {
-            background: #2563eb;
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
+            background: var(--biotern-primary);
+            box-shadow: 0 0 0 4px rgba(var(--biotern-primary-rgb), 0.2);
         }
 
         .app-ojt-mobile-status-dot.status-review {
@@ -1958,3 +1958,5 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
                 text-align: center;
             }
         }
+
+

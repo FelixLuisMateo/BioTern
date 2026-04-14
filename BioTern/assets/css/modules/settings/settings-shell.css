@@ -6,9 +6,9 @@
     --settings-item-border: var(--biotern-border, rgba(15, 23, 42, 0.08));
     --settings-text: var(--bs-body-color, #0f172a);
     --settings-muted: var(--bs-secondary-color, rgba(71, 85, 105, 0.85));
-    --settings-accent-bg: var(--biotern-primary-soft, rgba(52, 84, 209, 0.12));
-    --settings-accent-border: rgba(var(--biotern-primary-rgb, 52, 84, 209), 0.2);
-    --settings-accent-text: var(--biotern-primary, #3454d1);
+    --settings-accent-bg: var(--biotern-primary-soft, rgba(var(--biotern-primary-rgb), 0.12));
+    --settings-accent-border: rgba(var(--biotern-primary-rgb), 0.2);
+    --settings-accent-text: var(--biotern-primary);
 }
 
 html.app-skin-dark {
@@ -19,8 +19,8 @@ html.app-skin-dark {
     --settings-item-border: var(--biotern-border, rgba(255, 255, 255, 0.08));
     --settings-text: var(--bs-body-color, #f8fafc);
     --settings-muted: var(--bs-secondary-color, rgba(203, 213, 245, 0.7));
-    --settings-accent-bg: var(--biotern-primary-soft, rgba(52, 84, 209, 0.18));
-    --settings-accent-border: rgba(var(--biotern-primary-rgb, 52, 84, 209), 0.28);
+    --settings-accent-bg: var(--biotern-primary-soft, rgba(var(--biotern-primary-rgb), 0.18));
+    --settings-accent-border: rgba(var(--biotern-primary-rgb), 0.28);
     --settings-accent-text: var(--biotern-primary-contrast, #ffffff);
 }
 
@@ -174,7 +174,7 @@ html.app-skin-dark {
 .settings-page .form-select:focus {
     background: var(--settings-item-bg);
     border-color: var(--settings-accent-border);
-    box-shadow: 0 0 0 0.2rem rgba(var(--biotern-primary-rgb, 52, 84, 209), 0.14);
+    box-shadow: 0 0 0 0.2rem rgba(var(--biotern-primary-rgb), 0.14);
     color: var(--settings-text);
 }
 
@@ -210,9 +210,9 @@ html.app-skin-dark {
 }
 
 html.app-skin-dark:not(.app-theme-gray) .settings-page {
-    --settings-accent-bg: rgba(var(--biotern-primary-rgb, 52, 84, 209), 0.22);
-    --settings-accent-border: rgba(var(--biotern-primary-rgb, 52, 84, 209), 0.34);
-    --settings-accent-text: #f8fbff;
+    --settings-accent-bg: rgba(var(--biotern-primary-rgb), 0.22);
+    --settings-accent-border: rgba(var(--biotern-primary-rgb), 0.34);
+    --settings-accent-text: var(--biotern-surface-muted);
 }
 
 .settings-page .badge.bg-soft-primary,
@@ -304,3 +304,5 @@ html.app-skin-dark:not(.app-theme-gray) .settings-page {
         grid-template-columns: 1fr;
     }
 }
+
+

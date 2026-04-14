@@ -17,6 +17,38 @@
     border-color: rgba(148, 163, 184, 0.28) !important;
 }
 
+.machine-config-pane .input-group {
+    flex-wrap: nowrap;
+}
+
+.machine-config-pane .input-group .form-control[readonly] {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.79rem;
+    line-height: 1.25;
+    color: #0f172a;
+    background: rgba(248, 250, 252, 0.92);
+    border-color: rgba(148, 163, 184, 0.3);
+    text-overflow: ellipsis;
+}
+
+.machine-config-pane .input-group .btn {
+    white-space: nowrap;
+    min-width: 66px;
+    flex: 0 0 auto;
+}
+
+.machine-endpoint-box code {
+    display: inline-block;
+    width: fit-content;
+    max-width: 100%;
+    padding: 0.18rem 0.44rem;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 0.45rem;
+    background: rgba(255, 255, 255, 0.88);
+    color: #0f172a;
+    word-break: break-all;
+}
+
 .machine-compact-form .form-label {
     margin-bottom: 0.2rem;
     font-size: 0.78rem;
@@ -33,39 +65,45 @@
     font-size: 0.88rem;
 }
 
+.machine-compact-form .form-check {
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding-left: 1.45rem;
+}
+
+.machine-compact-form .form-check .form-check-input {
+    margin-top: 0;
+}
+
 .machine-config-grid .text-muted,
 .machine-config-pane .text-muted {
     font-size: 0.78rem;
 }
 
 .machine-info-note {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.7rem;
     margin-bottom: 0.9rem;
-    padding: 0.72rem 0.86rem;
-    border: 1px solid rgba(148, 163, 184, 0.32);
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--biotern-surface-muted, #f8fafc) 88%, var(--biotern-primary-soft, rgba(52, 84, 209, 0.12)) 12%);
-    color: var(--bs-body-color, #1e293b);
 }
 
-.machine-info-note-icon {
-    width: 22px;
-    height: 22px;
-    flex: 0 0 22px;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: color-mix(in srgb, var(--biotern-primary, #3454d1) 16%, transparent);
-    color: var(--biotern-primary, #3454d1);
-    margin-top: 1px;
+.page-biometric-machine .bio-console-header-actions .btn.btn-light-brand,
+.page-biometric-machine .bio-console-header-actions .btn.btn-outline-secondary {
+    background-color: #f3f4f6 !important;
+    border-color: #c5ccd6 !important;
+    color: #1f2937 !important;
+    box-shadow: none !important;
 }
 
-.machine-info-note-body {
-    line-height: 1.38;
-    font-size: 0.9rem;
+.page-biometric-machine .bio-console-header-actions .btn.btn-light-brand:hover,
+.page-biometric-machine .bio-console-header-actions .btn.btn-outline-secondary:hover,
+.page-biometric-machine .bio-console-header-actions .btn.btn-light-brand:focus,
+.page-biometric-machine .bio-console-header-actions .btn.btn-outline-secondary:focus,
+.page-biometric-machine .bio-console-header-actions .btn.btn-light-brand:active,
+.page-biometric-machine .bio-console-header-actions .btn.btn-outline-secondary:active {
+    background-color: #e5e7eb !important;
+    border-color: #9ca3af !important;
+    color: #111827 !important;
+    box-shadow: none !important;
 }
 
 .page-biometric-machine .nxl-content {
@@ -102,8 +140,8 @@
 }
 
 .machine-section-toggle {
-    background: #2563eb;
-    border: 1px solid #2563eb;
+    background: var(--biotern-primary);
+    border: 1px solid var(--biotern-primary);
     color: #fff;
     border-radius: 999px;
     letter-spacing: 0.02em;
@@ -111,8 +149,8 @@
 
 .machine-section-toggle:hover,
 .machine-section-toggle:focus {
-    background: #1d4ed8;
-    border-color: #1d4ed8;
+    background: var(--biotern-primary-hover);
+    border-color: var(--biotern-primary-hover);
     color: #fff;
 }
 
@@ -199,67 +237,128 @@
 }
 
 html.app-skin-dark .quick-router-panel {
-    background: rgba(15, 23, 42, 0.72);
-    border-color: rgba(148, 163, 184, 0.22);
-    color: #e5eefc;
+    background: var(--biotern-surface) !important;
+    border-color: var(--biotern-border) !important;
+    color: var(--bs-body-color) !important;
+}
+
+html.app-skin-dark .page-biometric-machine .bio-console-header-actions .btn.btn-light-brand,
+html.app-skin-dark .page-biometric-machine .bio-console-header-actions .btn.btn-outline-secondary {
+    background-color: #232830 !important;
+    border-color: #444b58 !important;
+    color: #f3f4f6 !important;
+    box-shadow: none !important;
+}
+
+html.app-skin-dark .page-biometric-machine .bio-console-header-actions .btn.btn-light-brand:hover,
+html.app-skin-dark .page-biometric-machine .bio-console-header-actions .btn.btn-outline-secondary:hover,
+html.app-skin-dark .page-biometric-machine .bio-console-header-actions .btn.btn-light-brand:focus,
+html.app-skin-dark .page-biometric-machine .bio-console-header-actions .btn.btn-outline-secondary:focus,
+html.app-skin-dark .page-biometric-machine .bio-console-header-actions .btn.btn-light-brand:active,
+html.app-skin-dark .page-biometric-machine .bio-console-header-actions .btn.btn-outline-secondary:active {
+    background-color: #2f3640 !important;
+    border-color: #6b7280 !important;
+    color: #f9fafb !important;
+    box-shadow: none !important;
 }
 
 html.app-skin-dark .machine-config-pane {
-    background: rgba(15, 23, 42, 0.86);
-    border-color: rgba(148, 163, 184, 0.35);
-    color: #e5eefc;
+    background: var(--biotern-surface-muted) !important;
+    border-color: var(--biotern-border) !important;
+    color: var(--bs-body-color) !important;
 }
 
 html.app-skin-dark .machine-endpoint-box {
-    background: rgba(30, 41, 59, 0.88);
-    border-color: rgba(148, 163, 184, 0.35) !important;
+    background: var(--biotern-surface) !important;
+    border-color: var(--biotern-border) !important;
 }
 
-html.app-skin-dark .machine-info-note {
-    border-color: rgba(129, 153, 199, 0.34);
-    background: color-mix(in srgb, var(--biotern-surface-muted, #121a2d) 84%, var(--biotern-primary-soft, rgba(52, 84, 209, 0.24)) 16%);
-    color: #dbe8ff;
+html.app-skin-dark .machine-config-pane .input-group .form-control[readonly] {
+    color: var(--bs-body-color) !important;
+    background: var(--biotern-surface) !important;
+    border-color: var(--biotern-border) !important;
 }
 
-html.app-skin-dark .machine-info-note-icon {
-    background: rgba(96, 165, 250, 0.18);
-    color: #93c5fd;
+html.app-skin-dark .machine-endpoint-box code {
+    background: var(--biotern-surface-muted) !important;
+    border-color: var(--biotern-border) !important;
+    color: var(--bs-body-color) !important;
 }
 
 html.app-skin-dark .machine-compact-form .form-control,
 html.app-skin-dark .machine-compact-form .form-select {
-    background: rgba(15, 23, 42, 0.9);
-    border-color: rgba(148, 163, 184, 0.36);
-    color: #e2e8f0;
+    background: var(--biotern-surface) !important;
+    border-color: var(--biotern-border) !important;
+    color: var(--bs-body-color) !important;
 }
 
 html.app-skin-dark .machine-compact-form .form-control::placeholder {
-    color: rgba(148, 163, 184, 0.8);
+    color: color-mix(in srgb, var(--bs-body-color) 58%, transparent) !important;
 }
 
 html.app-skin-dark .page-biometric-machine .table thead th {
-    color: #9fb0cc;
-    background: rgba(30, 41, 59, 0.84);
-    border-bottom-color: rgba(129, 153, 199, 0.22);
+    color: var(--bs-secondary-color) !important;
+    background: var(--biotern-surface-muted) !important;
+    border-bottom-color: var(--biotern-border) !important;
 }
 
 html.app-skin-dark .page-biometric-machine .table tbody td {
-    border-bottom-color: rgba(129, 153, 199, 0.14);
+    border-bottom-color: var(--biotern-border) !important;
+}
+
+html.app-skin-dark .page-biometric-machine .card:not(.bio-console-hero) {
+    background: var(--biotern-surface) !important;
+    border-color: var(--biotern-border) !important;
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24) !important;
+}
+
+html.app-skin-dark .page-biometric-machine .card:not(.bio-console-hero) .card-header {
+    background: var(--biotern-surface-muted) !important;
+    border-bottom-color: var(--biotern-border) !important;
+}
+
+html.app-skin-dark .page-biometric-machine .bio-console-hero,
+html.app-skin-dark .page-biometric-machine .bio-console-hero-side,
+html.app-skin-dark .page-biometric-machine .bio-console-note-surface {
+    background: var(--biotern-surface) !important;
+    border-color: var(--biotern-border) !important;
+    color: var(--bs-body-color) !important;
+}
+
+html.app-skin-dark .page-biometric-machine .bio-console-eyebrow,
+html.app-skin-dark .page-biometric-machine .bio-console-hero p,
+html.app-skin-dark .page-biometric-machine .bio-console-hero-side p,
+html.app-skin-dark .page-biometric-machine .bio-console-note-surface p,
+html.app-skin-dark .page-biometric-machine .text-muted {
+    color: var(--bs-secondary-color) !important;
 }
 
 html.app-skin-dark .machine-section-toggle {
-    background: #1d4ed8;
-    border-color: #1d4ed8;
-    color: #eff6ff;
+    background: var(--biotern-primary-hover);
+    border-color: var(--biotern-primary-hover);
+    color: var(--biotern-surface-muted);
 }
 
 html.app-skin-dark .machine-section-toggle:hover {
-    background: #1e40af;
-    border-color: #1e40af;
+    background: var(--biotern-primary-hover);
+    border-color: var(--biotern-primary-hover);
     color: #f8fafc;
 }
 
 html.app-skin-dark .quick-router-panel .text-muted,
 html.app-skin-dark .quick-router-panel small {
-    color: rgba(226, 232, 240, 0.78) !important;
+    color: var(--bs-secondary-color) !important;
 }
+
+@media (max-width: 767.98px) {
+    .machine-config-pane {
+        padding: 0.72rem;
+    }
+
+    .machine-config-pane .input-group .btn {
+        min-width: 62px;
+        padding-left: 0.65rem;
+        padding-right: 0.65rem;
+    }
+}
+

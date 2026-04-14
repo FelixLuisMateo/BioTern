@@ -69,7 +69,7 @@
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--biotern-primary-soft-text, #1d4ed8);
+    color: var(--biotern-primary-soft-text, var(--biotern-primary-hover));
 }
 
 .app-users-filter-sub {
@@ -489,4 +489,6 @@ html.app-skin-dark .users-action-menu-portal .dropdown-item:focus {
         min-width: 0;
     }
 }
+
+
 

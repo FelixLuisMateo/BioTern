@@ -1,5 +1,4 @@
 :root {
-    --biotern-primary: #3454d1;
     --biotern-ink: #1f2937;
     --biotern-soft: #e9edf7;
     --biotern-accent: #25b865;
@@ -7,7 +6,7 @@
 
 body {
     background:
-        radial-gradient(900px 420px at 8% 16%, rgba(52, 84, 209, 0.14), transparent 65%),
+        radial-gradient(900px 420px at 8% 16%, rgba(var(--biotern-primary-rgb), 0.14), transparent 65%),
         radial-gradient(760px 380px at 92% 84%, rgba(37, 184, 101, 0.1), transparent 65%),
         #f7f9fc;
     color: var(--biotern-ink);
@@ -54,7 +53,7 @@ body.landing-public .nxl-content {
 
 html.app-skin-dark body {
     background:
-        radial-gradient(900px 420px at 8% 16%, rgba(52, 84, 209, 0.18), transparent 65%),
+        radial-gradient(900px 420px at 8% 16%, rgba(var(--biotern-primary-rgb), 0.18), transparent 65%),
         radial-gradient(760px 380px at 92% 84%, rgba(37, 184, 101, 0.12), transparent 65%),
         #0a122b;
     color: #e6ecff;
@@ -159,7 +158,7 @@ html.app-skin-dark .landing-brand-logo-full {
 .hero-card {
     position: relative;
     border-radius: 18px;
-    border: 1px solid rgba(52, 84, 209, 0.18);
+    border: 1px solid rgba(var(--biotern-primary-rgb), 0.18);
     background: linear-gradient(130deg, #ffffff 0%, #f6f9ff 56%, #eef3ff 100%);
     box-shadow: 0 24px 52px rgba(20, 39, 80, 0.12);
     overflow: hidden;
@@ -274,7 +273,7 @@ html.app-skin-dark .hero-card .hero-subtitle {
     align-items: center;
     justify-content: center;
     gap: 1.15rem;
-    border-left: 1px solid rgba(52, 84, 209, 0.12);
+    border-left: 1px solid rgba(var(--biotern-primary-rgb), 0.12);
     background: rgba(255, 255, 255, 0.42);
 }
 
@@ -343,6 +342,14 @@ html.app-skin-dark .hero-card .hero-subtitle {
 }
 
 @media (max-width: 1199.98px) {
+    body.landing-public .nxl-header,
+    .landing-header {
+        position: relative !important;
+        top: 0;
+        left: 0;
+        right: 0;
+    }
+
     .hero-card .col-lg-8,
     .hero-card .col-lg-4 {
         flex: 0 0 100%;
@@ -365,7 +372,7 @@ html.app-skin-dark .hero-card .hero-subtitle {
     .hero-side-panel {
         padding: 1.05rem 1.6rem 1.2rem;
         border-left: 0;
-        border-top: 1px solid rgba(52, 84, 209, 0.12);
+        border-top: 1px solid rgba(var(--biotern-primary-rgb), 0.12);
         flex-direction: row;
         align-items: center;
         justify-content: flex-start;
@@ -388,7 +395,50 @@ html.app-skin-dark .hero-card .hero-subtitle {
     }
 }
 
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    body.landing-public .nxl-content {
+        display: block;
+        flex: 0 0 auto;
+    }
+
+    .hero-wrap {
+        display: block;
+        flex: 0 0 auto;
+        min-height: auto;
+        align-items: stretch;
+        padding: 18px 0 18px;
+    }
+
+    .hero-wrap > .container {
+        display: block;
+    }
+
+    .landing-header .header-wrapper {
+        min-height: 62px;
+        padding: 0 16px;
+    }
+
+    .landing-header .header-right > .d-flex {
+        gap: 10px !important;
+    }
+
+    .landing-header .btn.btn-sm {
+        min-height: 36px;
+        padding: 7px 13px;
+        font-size: 12px;
+        line-height: 1.2;
+    }
+}
+
 @media (max-width: 991.98px) {
+    body.landing-public .nxl-header,
+    .landing-header {
+        position: relative !important;
+        top: 0;
+        left: 0;
+        right: 0;
+    }
+
     body.landing-public {
         overflow-y: auto;
     }
@@ -404,7 +454,7 @@ html.app-skin-dark .hero-card .hero-subtitle {
     .hero-wrap {
         min-height: auto;
         display: block;
-        padding: 72px 0 24px;
+        padding: 14px 0 24px;
     }
 
     .hero-wrap > .container {
@@ -503,7 +553,7 @@ html.app-skin-dark .hero-card .hero-subtitle {
     .hero-side-panel {
         padding: 1.2rem 1.45rem 1.35rem;
         border-left: 0;
-        border-top: 1px solid rgba(52, 84, 209, 0.12);
+        border-top: 1px solid rgba(var(--biotern-primary-rgb), 0.12);
         gap: 0.95rem;
     }
 
@@ -520,9 +570,9 @@ html.app-skin-dark .hero-card .hero-subtitle {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(52, 84, 209, 0.08);
+    background: rgba(var(--biotern-primary-rgb), 0.08);
     color: #2c44a6;
-    border: 1px solid rgba(52, 84, 209, 0.16);
+    border: 1px solid rgba(var(--biotern-primary-rgb), 0.16);
     border-radius: 999px;
     padding: 6px 12px;
     font-size: 12px;
@@ -588,7 +638,7 @@ html.app-skin-dark .feature-card .text-muted {
     align-items: center;
     justify-content: center;
     font-size: 18px;
-    background: rgba(52, 84, 209, 0.12);
+    background: rgba(var(--biotern-primary-rgb), 0.12);
     color: var(--biotern-primary);
 }
 
@@ -615,7 +665,7 @@ html.app-skin-dark .landing-footer .text-muted {
 
 @media (max-width: 575.98px) {
     .hero-wrap {
-        padding: 68px 0 20px;
+        padding: 10px 0 20px;
     }
 
     .hero-card {
@@ -884,3 +934,70 @@ html.app-theme-gray.app-skin-dark .landing-footer a:hover,
 html.app-theme-gray:not(.app-skin-dark) .landing-footer a:hover {
     color: var(--biotern-primary) !important;
 }
+
+/* New theme alignment for landing CTAs and header controls on non-blue themes. */
+html[class*="app-theme-"]:not(.app-theme-blue):not(.app-skin-dark) .landing-header .btn.btn-primary,
+html[class*="app-theme-"]:not(.app-theme-blue):not(.app-skin-dark) .hero-cta .btn.btn-primary {
+    background-color: #616872 !important;
+    border-color: #616872 !important;
+    color: #ffffff !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue):not(.app-skin-dark) .landing-header .btn.btn-primary:hover,
+html[class*="app-theme-"]:not(.app-theme-blue):not(.app-skin-dark) .landing-header .btn.btn-primary:focus,
+html[class*="app-theme-"]:not(.app-theme-blue):not(.app-skin-dark) .hero-cta .btn.btn-primary:hover,
+html[class*="app-theme-"]:not(.app-theme-blue):not(.app-skin-dark) .hero-cta .btn.btn-primary:focus {
+    background-color: #4b5560 !important;
+    border-color: #4b5560 !important;
+    color: #ffffff !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue):not(.app-skin-dark) .landing-header .btn.btn-light-brand,
+html[class*="app-theme-"]:not(.app-theme-blue):not(.app-skin-dark) .hero-cta .btn.btn-light-brand {
+    background-color: #f3f4f6 !important;
+    border-color: #c5ccd6 !important;
+    color: #1f2937 !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue):not(.app-skin-dark) .landing-header .btn.btn-light-brand:hover,
+html[class*="app-theme-"]:not(.app-theme-blue):not(.app-skin-dark) .landing-header .btn.btn-light-brand:focus,
+html[class*="app-theme-"]:not(.app-theme-blue):not(.app-skin-dark) .hero-cta .btn.btn-light-brand:hover,
+html[class*="app-theme-"]:not(.app-theme-blue):not(.app-skin-dark) .hero-cta .btn.btn-light-brand:focus {
+    background-color: #e5e7eb !important;
+    border-color: #9ca3af !important;
+    color: #111827 !important;
+}
+
+html[class*="app-theme-"].app-skin-dark:not(.app-theme-blue) .landing-header .btn.btn-primary,
+html[class*="app-theme-"].app-skin-dark:not(.app-theme-blue) .hero-cta .btn.btn-primary {
+    background-color: #8a9099 !important;
+    border-color: #8a9099 !important;
+    color: #111318 !important;
+}
+
+html[class*="app-theme-"].app-skin-dark:not(.app-theme-blue) .landing-header .btn.btn-primary:hover,
+html[class*="app-theme-"].app-skin-dark:not(.app-theme-blue) .landing-header .btn.btn-primary:focus,
+html[class*="app-theme-"].app-skin-dark:not(.app-theme-blue) .hero-cta .btn.btn-primary:hover,
+html[class*="app-theme-"].app-skin-dark:not(.app-theme-blue) .hero-cta .btn.btn-primary:focus {
+    background-color: #a2a8b1 !important;
+    border-color: #a2a8b1 !important;
+    color: #111318 !important;
+}
+
+html[class*="app-theme-"].app-skin-dark:not(.app-theme-blue) .landing-header .btn.btn-light-brand,
+html[class*="app-theme-"].app-skin-dark:not(.app-theme-blue) .hero-cta .btn.btn-light-brand {
+    background-color: #232830 !important;
+    border-color: #444b58 !important;
+    color: #f3f4f6 !important;
+}
+
+html[class*="app-theme-"].app-skin-dark:not(.app-theme-blue) .landing-header .btn.btn-light-brand:hover,
+html[class*="app-theme-"].app-skin-dark:not(.app-theme-blue) .landing-header .btn.btn-light-brand:focus,
+html[class*="app-theme-"].app-skin-dark:not(.app-theme-blue) .hero-cta .btn.btn-light-brand:hover,
+html[class*="app-theme-"].app-skin-dark:not(.app-theme-blue) .hero-cta .btn.btn-light-brand:focus {
+    background-color: #2f3640 !important;
+    border-color: #6b7280 !important;
+    color: #f9fafb !important;
+}
+
+

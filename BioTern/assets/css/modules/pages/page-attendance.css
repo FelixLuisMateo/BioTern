@@ -57,7 +57,7 @@ footer.footer {
     border: 1px solid #dfe7f3;
     border-radius: 14px;
     padding: 1rem 1rem 0.4rem;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    background: linear-gradient(180deg, #ffffff 0%, var(--biotern-surface-muted) 100%);
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
@@ -83,7 +83,7 @@ footer.footer {
     font-weight: 800;
     letter-spacing: 0.09em;
     text-transform: uppercase;
-    color: #1e3a8a;
+    color: var(--biotern-primary-hover);
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -99,7 +99,7 @@ footer.footer {
 .filter-toggle-btn {
     border-color: #d5deed;
     color: #1e293b;
-    background: #f8fbff;
+    background: var(--biotern-surface-muted);
 }
 
 .filter-toggle-btn:hover,
@@ -120,7 +120,7 @@ html.app-skin-dark .filter-panel-head {
 }
 
 html.app-skin-dark .filter-panel-label {
-    color: #dbeafe;
+    color: var(--biotern-primary-soft);
 }
 
 html.app-skin-dark .filter-panel-sub {

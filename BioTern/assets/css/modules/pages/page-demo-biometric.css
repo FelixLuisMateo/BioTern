@@ -136,7 +136,7 @@
             padding: 0.68rem 0.85rem;
             border: 1px solid #c7d6e5;
             border-radius: 11px;
-            background-color: #f8fbff;
+            background-color: var(--biotern-surface-muted);
             color: #0f3154;
             font-size: 14px;
             transition: 0.2s ease;
@@ -204,8 +204,8 @@
         html.app-skin-dark .form-group-custom select {
             background: #122d49 !important;
             border-color: #365a7f !important;
-            color: #f8fbff !important;
-            -webkit-text-fill-color: #f8fbff !important;
+            color: var(--biotern-surface-muted) !important;
+            -webkit-text-fill-color: var(--biotern-surface-muted) !important;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23d9edff' d='M6 9L1.5 4.5h9z'/%3E%3C/svg%3E");
         }
 
@@ -218,7 +218,7 @@
 
         html.app-skin-dark .form-group-custom select option {
             background: #122d49;
-            color: #f8fbff;
+            color: var(--biotern-surface-muted);
         }
 
         html.app-skin-dark .clock-btn {
@@ -255,8 +255,8 @@
 
         html.app-skin-dark .form-group-custom input[type="date"],
         html.app-skin-dark .form-group-custom input[type="time"] {
-            color: #f8fbff !important;
-            -webkit-text-fill-color: #f8fbff !important;
+            color: var(--biotern-surface-muted) !important;
+            -webkit-text-fill-color: var(--biotern-surface-muted) !important;
         }
 
         html.app-skin-dark .form-group-custom input[type="date"]::-webkit-datetime-edit,
@@ -269,8 +269,8 @@
         html.app-skin-dark .form-group-custom input[type="time"]::-webkit-datetime-edit-minute-field,
         html.app-skin-dark .form-group-custom input[type="time"]::-webkit-datetime-edit-ampm-field,
         html.app-skin-dark .form-group-custom input[type="time"]::-webkit-datetime-edit-text {
-            color: #f8fbff !important;
-            -webkit-text-fill-color: #f8fbff !important;
+            color: var(--biotern-surface-muted) !important;
+            -webkit-text-fill-color: var(--biotern-surface-muted) !important;
         }
 
         html.app-skin-dark .form-group-custom input[type="date"]::-webkit-calendar-picker-indicator,
@@ -485,7 +485,7 @@
             letter-spacing: 2px;
             padding: 0.85rem 1rem;
             border: 1px dashed #9ec2e2;
-            background: linear-gradient(180deg, #f2f8ff 0%, #f8fbff 100%);
+            background: linear-gradient(180deg, #f2f8ff 0%, var(--biotern-surface-muted) 100%);
             border-radius: 11px;
             margin: 0.35rem 0 1rem;
             color: #0e355a;
