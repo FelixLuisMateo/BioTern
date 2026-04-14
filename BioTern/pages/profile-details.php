@@ -385,27 +385,45 @@ $page_scripts = [
 ];
 include 'includes/header.php';
 ?>
-<div class="main-content d-flex">
-    <div class="content-area w-100" data-scrollbar-target="#psScrollbarInit">
-        <div class="content-area-header bg-white sticky-top">
-            <div class="page-header-left d-flex align-items-center gap-2">
-                <h5 class="mb-0">Profile Details</h5>
+<main class="nxl-container">
+    <div class="nxl-content">
+<div class="page-header">
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title">
+            <h5 class="m-b-10">Profile Details</h5>
+        </div>
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+            <li class="breadcrumb-item">Profile Details</li>
+        </ul>
+    </div>
+    <div class="page-header-right ms-auto">
+        <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="profileActionsMenu">
+            <i class="feather-grid me-1"></i>
+            <span>Actions</span>
+        </button>
+        <div class="page-header-actions" id="profileActionsMenu">
+            <div class="dashboard-actions-panel">
+                <div class="dashboard-actions-meta">
+                    <span class="text-muted fs-12">Quick Actions</span>
+                </div>
+                <div class="dashboard-actions-grid page-header-right-items-wrapper">
+                    <a class="btn btn-light-brand" href="profile-details.php"><i class="feather-user me-2"></i>Profile Details</a>
+                    <a class="btn btn-light-brand" href="profile-details.php#account-settings"><i class="feather-settings me-2"></i>Settings</a>
+                    <a class="btn btn-light-brand" href="activity-feed.php"><i class="feather-activity me-2"></i>Activity Feed</a>
+                </div>
             </div>
         </div>
-
+    </div>
+</div>
+<div class="main-content d-flex">
+    <div class="content-area w-100" data-scrollbar-target="#psScrollbarInit">
         <div class="content-area-body p-3 profile-shell">
             <?php if ($profile_flash_message !== ''): ?>
             <div class="alert alert-<?php echo htmlspecialchars($profile_flash_type, ENT_QUOTES, 'UTF-8'); ?> py-2 mb-3">
                 <?php echo htmlspecialchars($profile_flash_message, ENT_QUOTES, 'UTF-8'); ?>
             </div>
             <?php endif; ?>
-
-            <div class="profile-nav">
-                <a class="profile-nav-link" href="profile-details.php"><i class="feather-user"></i><span>Profile Details</span></a>
-                <a class="profile-nav-link" href="profile-details.php#account-settings"><i class="feather-settings"></i><span>Account Settings</span></a>
-                <a class="profile-nav-link" href="activity-feed.php"><i class="feather-activity"></i><span>Activity Feed</span></a>
-                <a class="profile-nav-link" href="notifications.php"><i class="feather-bell"></i><span>Notifications</span></a>
-            </div>
 
             <div class="profile-hero">
                 <div class="profile-persona">
@@ -463,7 +481,7 @@ include 'includes/header.php';
                 <div class="col-lg-7">
                     <div class="card profile-panel">
                         <div class="card-header">
-                            <h6 class="mb-0"><span>💼</span> My Account</h6>
+                            <h6 class="mb-0">My Account</h6>
                         </div>
                         <div class="card-body">
                             <div class="profile-grid">
@@ -495,20 +513,6 @@ include 'includes/header.php';
                                     <div class="profile-field-label">Member Since</div>
                                     <div class="profile-field-value"><?php echo htmlspecialchars($memberSinceDisplay, ENT_QUOTES, 'UTF-8'); ?></div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card profile-panel mt-3">
-                        <div class="card-header">
-                            <h6 class="mb-0">Quick Access</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="d-grid gap-2">
-                                <a class="btn btn-primary profile-action-btn" href="profile-details.php#account-settings">Open Account Settings</a>
-                                <a class="btn btn-outline-primary profile-action-btn" href="notifications.php">Open My Notifications</a>
-                                <a class="btn btn-outline-secondary profile-action-btn" href="activity-feed.php">Open My Activity Feed</a>
-                                <a class="btn btn-outline-dark profile-action-btn" href="auth-login-cover.php?logout=1">Logout</a>
                             </div>
                         </div>
                     </div>
@@ -570,122 +574,25 @@ include 'includes/header.php';
                     <?php endif; ?>
                 </div>
 
-                <div class="col-lg-5" id="account-settings">
-                    <div class="card profile-panel">
-                        <div class="card-header">
-                            <h6 class="mb-0">Individual Account Settings</h6>
-                        </div>
-                        <div class="card-body">
-                            <p class="profile-action-note mb-3">Quick actions for your own account.</p>
-                            <div class="profile-status-list mb-3">
-                                <div class="profile-status-item">
-                                    <div class="profile-status-copy">
-                                        <strong>Account access</strong>
-                                        <span>Your user account is currently <?php echo ((int)($user['is_active'] ?? 0) === 1) ? 'enabled and ready to use.' : 'restricted and may need admin review.'; ?></span>
-                                    </div>
-                                    <span class="badge <?php echo ((int)($user['is_active'] ?? 0) === 1) ? 'bg-soft-success text-success' : 'bg-soft-danger text-danger'; ?> profile-inline-badge"><?php echo ((int)($user['is_active'] ?? 0) === 1) ? 'Active' : 'Inactive'; ?></span>
-                                </div>
-                                <div class="profile-status-item">
-                                    <div class="profile-status-copy">
-                                        <strong>Contact channel</strong>
-                                        <span><?php echo htmlspecialchars($contactPhone !== '' ? $contactPhone : 'No phone number saved in your linked student record yet.', ENT_QUOTES, 'UTF-8'); ?></span>
-                                    </div>
-                                    <span class="badge bg-soft-primary text-primary profile-inline-badge"><?php echo $contactPhone !== '' ? 'Saved' : 'Missing'; ?></span>
-                                </div>
-                                <div class="profile-status-item">
-                                    <div class="profile-status-copy">
-                                        <strong>Address record</strong>
-                                        <span><?php echo htmlspecialchars($contactAddress !== '' ? profile_details_preview($contactAddress, 72) : 'Add an address to keep your records complete.', ENT_QUOTES, 'UTF-8'); ?></span>
-                                    </div>
-                                    <span class="badge bg-soft-warning text-warning profile-inline-badge"><?php echo $contactAddress !== '' ? 'On file' : 'Review'; ?></span>
-                                </div>
-                            </div>
-                            <?php if (is_array($studentProfile)): ?>
-                            <form method="post" class="mb-3">
-                                <input type="hidden" name="action" value="update_student_profile">
-                                <input type="hidden" name="student_record_id" value="<?php echo (int)($studentProfile['id'] ?? 0); ?>">
-                                <div class="profile-subtitle">Student Details</div>
-                                <div class="profile-grid mb-3">
-                                    <div class="profile-field">
-                                        <div class="profile-field-label">Student Email</div>
-                                        <input type="email" name="student_email" class="form-control profile-password-input" value="<?php echo htmlspecialchars((string)($studentProfile['student_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Student email">
-                                    </div>
-                                    <div class="profile-field">
-                                        <div class="profile-field-label">Phone</div>
-                                        <input type="text" name="phone" class="form-control profile-password-input" value="<?php echo htmlspecialchars((string)($studentProfile['phone'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Phone number">
-                                    </div>
-                                    <div class="profile-field">
-                                        <div class="profile-field-label">Birth Date</div>
-                                        <input type="date" name="date_of_birth" class="form-control profile-password-input" value="<?php echo htmlspecialchars((string)($studentProfile['date_of_birth'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                    </div>
-                                    <div class="profile-field">
-                                        <div class="profile-field-label">Gender</div>
-                                        <select name="gender" class="form-control profile-password-input">
-                                            <option value="">Select gender</option>
-                                            <option value="male" <?php echo strtolower((string)($studentProfile['gender'] ?? '')) === 'male' ? 'selected' : ''; ?>>Male</option>
-                                            <option value="female" <?php echo strtolower((string)($studentProfile['gender'] ?? '')) === 'female' ? 'selected' : ''; ?>>Female</option>
-                                            <option value="other" <?php echo strtolower((string)($studentProfile['gender'] ?? '')) === 'other' ? 'selected' : ''; ?>>Other</option>
-                                        </select>
-                                    </div>
-                                    <div class="profile-field full">
-                                        <div class="profile-field-label">Emergency Contact</div>
-                                        <input type="text" name="emergency_contact" class="form-control profile-password-input" value="<?php echo htmlspecialchars((string)($studentProfile['emergency_contact'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Emergency contact person and number">
-                                    </div>
-                                    <div class="profile-field full">
-                                        <div class="profile-field-label">Address</div>
-                                        <textarea name="address" class="form-control profile-password-input" rows="3" placeholder="Home address"><?php echo htmlspecialchars((string)($studentProfile['address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
-                                    </div>
-                                </div>
-                                <button type="submit" class="btn btn-primary profile-action-btn w-100 mb-3">Save Student Details</button>
-                            </form>
-
-                            <div class="profile-section-divider"></div>
-                            <?php endif; ?>
-                            <form method="post" enctype="multipart/form-data" class="mb-3">
-                                <input type="hidden" name="action" value="upload_profile_picture">
-                                <label class="form-label mb-2" style="font-weight: 600; display: flex; align-items: center; gap: 6px;">Update Profile Photo</label>
-                                <input type="file" name="profile_picture" class="form-control profile-upload-input mb-3" accept="image/*" required>
-                                <button type="submit" class="btn btn-primary profile-action-btn w-100 mb-3">
-                                    Upload Photo
-                                </button>
-                                <div class="profile-upload-status">
-                                    Current source: <?php echo htmlspecialchars($profile_picture_src !== '' ? $profile_picture_src : 'Default avatar', ENT_QUOTES, 'UTF-8'); ?>
-                                </div>
-                            </form>
-
-                            <div class="profile-section-divider"></div>
-
-                            <form method="post" class="mb-3">
-                                <input type="hidden" name="action" value="change_password">
-                                <div class="profile-subtitle">Change Password</div>
-                                <input type="password" name="current_password" class="form-control profile-password-input mb-2" placeholder="Current password" autocomplete="current-password" required>
-                                <input type="password" name="new_password" class="form-control profile-password-input mb-2" placeholder="New password" autocomplete="new-password" minlength="8" required>
-                                <input type="password" name="confirm_password" class="form-control profile-password-input mb-2" placeholder="Confirm new password" autocomplete="new-password" minlength="8" required>
-                                <div class="profile-password-toggle">
-                                    <input type="checkbox" id="toggle-password-visibility" class="profile-password-toggle-input">
-                                    <label for="toggle-password-visibility" class="profile-password-toggle-label">
-                                        <span class="profile-password-toggle-switch" aria-hidden="true"></span>
-                                        <span class="profile-password-toggle-text">Show passwords</span>
-                                    </label>
-                                </div>
-                                <button type="submit" class="btn btn-outline-primary profile-action-btn w-100">Change Password</button>
-                                <div class="profile-password-hint">Use at least 8 characters with uppercase, lowercase, and a number.</div>
-                            </form>
-
-                            <div class="profile-section-divider"></div>
-
-                            <div class="profile-subtitle">Account Workspace</div>
-                            <div class="d-grid gap-2">
-                                <a class="btn btn-outline-primary profile-action-btn" href="notifications.php">Review notifications and alerts</a>
-                                <a class="btn btn-outline-secondary profile-action-btn" href="activity-feed.php">Review recent account activity</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
 </div>
+</div>
+    <footer class="footer">
+        <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
+            <span>Copyright &copy;</span>
+            <span class="app-current-year"></span>
+        </p>
+        <p><span>By: <a href="#">ACT 2A</a> </span><span>Distributed by: <a href="#">Group 5</a></span></p>
+        <div class="d-flex align-items-center gap-4">
+            <a href="#" class="fs-11 fw-semibold text-uppercase">Help</a>
+            <a href="#" class="fs-11 fw-semibold text-uppercase">Terms</a>
+            <a href="#" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+        </div>
+    </footer>
+</main>
 
+<?php $page_render_footer = false; ?>
 <?php include 'includes/footer.php'; ?>
 
