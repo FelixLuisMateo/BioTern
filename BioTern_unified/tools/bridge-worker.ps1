@@ -10,6 +10,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$MinPollSeconds = 5
 
 function Resolve-BridgeBool {
     param($Value, [bool]$Default = $true)
@@ -45,12 +46,59 @@ $connectorDllPath = Join-Path $WorkspaceRoot 'tools\device_connector\bin\Release
 $bridgeLogPath = Join-Path $WorkspaceRoot 'tools\bridge-worker.log'
 $bridgePendingIngestPath = Join-Path $WorkspaceRoot 'tools\bridge-pending-ingest.json'
 $bridgeBackfillStatePath = Join-Path $WorkspaceRoot 'tools\bridge-backfill-state.json'
+$bridgeProfileCachePath = Join-Path $WorkspaceRoot 'tools\bridge-profile-cache.json'
 $bridgeHoldingRootPath = Join-Path $WorkspaceRoot 'tools\bridge-holding'
 $bridgeHoldingPendingPath = Join-Path $bridgeHoldingRootPath 'pending'
 $bridgeHoldingUploadedPath = Join-Path $bridgeHoldingRootPath 'uploaded'
 $bridgeNodeName = $env:COMPUTERNAME
 if ([string]::IsNullOrWhiteSpace($bridgeNodeName)) {
     $bridgeNodeName = [System.Net.Dns]::GetHostName()
+}
+
+$script:BridgeWorkerMutex = $null
+$script:BridgeWorkerMutexAcquired = $false
+
+function Enter-BridgeWorkerSingleInstance {
+    $mutexNameCandidates = @(
+        'Global\BioTernBridgeWorkerMainLoop',
+        'Local\BioTernBridgeWorkerMainLoop'
+    )
+
+    foreach ($mutexName in $mutexNameCandidates) {
+        try {
+            $script:BridgeWorkerMutex = New-Object System.Threading.Mutex($false, $mutexName)
+            $script:BridgeWorkerMutexAcquired = $script:BridgeWorkerMutex.WaitOne(0)
+            if ($script:BridgeWorkerMutexAcquired) {
+                return $true
+            }
+        } catch {
+            $script:BridgeWorkerMutex = $null
+            $script:BridgeWorkerMutexAcquired = $false
+        }
+    }
+
+    return $false
+}
+
+function Exit-BridgeWorkerSingleInstance {
+    if ($script:BridgeWorkerMutex -ne $null -and $script:BridgeWorkerMutexAcquired) {
+        try {
+            $script:BridgeWorkerMutex.ReleaseMutex() | Out-Null
+        } catch {
+            # no-op
+        }
+    }
+
+    if ($script:BridgeWorkerMutex -ne $null) {
+        try {
+            $script:BridgeWorkerMutex.Dispose()
+        } catch {
+            # no-op
+        }
+    }
+
+    $script:BridgeWorkerMutex = $null
+    $script:BridgeWorkerMutexAcquired = $false
 }
 
 function Write-BridgeLog {
@@ -105,6 +153,37 @@ function Get-BridgeConfigRemote {
     }
 
     throw 'Unable to load bridge profile from any known endpoint.'
+}
+
+function Read-BridgeProfileCache {
+    if (-not (Test-Path $bridgeProfileCachePath)) {
+        return $null
+    }
+
+    try {
+        $raw = Get-Content -Path $bridgeProfileCachePath -Raw -ErrorAction Stop
+        if ([string]::IsNullOrWhiteSpace($raw)) {
+            return $null
+        }
+
+        return ($raw | ConvertFrom-Json -ErrorAction Stop)
+    } catch {
+        return $null
+    }
+}
+
+function Save-BridgeProfileCache {
+    param(
+        [Parameter(Mandatory = $true)]
+        $Profile
+    )
+
+    if ($null -eq $Profile) {
+        return
+    }
+
+    $json = $Profile | ConvertTo-Json -Depth 20
+    Set-Content -Path $bridgeProfileCachePath -Value $json -Encoding UTF8
 }
 
 function Get-ApiBaseCandidates {
@@ -751,7 +830,7 @@ function Invoke-BridgeHistoricalBackfill {
 
     $state = Read-BridgeBackfillState
 
-    $scanIntervalMinutes = 720
+    $scanIntervalMinutes = 10
     if ($BridgeConfig.PSObject -and $BridgeConfig.PSObject.Properties['backfill_scan_interval_minutes']) {
         $scanIntervalMinutes = [int]$BridgeConfig.backfill_scan_interval_minutes
     }
@@ -775,15 +854,33 @@ function Invoke-BridgeHistoricalBackfill {
         }
     }
 
-    $beginTime = '2000-01-01 00:00:00'
-    if ($BridgeConfig.PSObject -and $BridgeConfig.PSObject.Properties['backfill_start_time']) {
-        $candidateBegin = [string]$BridgeConfig.backfill_start_time
-        if (-not [string]::IsNullOrWhiteSpace($candidateBegin)) {
-            $beginTime = $candidateBegin.Trim()
+    $endTime = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+    $beginTime = ''
+
+    if ($state -and $state.ContainsKey('last_scan_end_time') -and $null -ne $state['last_scan_end_time']) {
+        $lastEndText = [string]$state['last_scan_end_time']
+        if (-not [string]::IsNullOrWhiteSpace($lastEndText)) {
+            try {
+                $lastEnd = [DateTime]::Parse($lastEndText, [System.Globalization.CultureInfo]::InvariantCulture)
+                $beginTime = $lastEnd.AddMinutes(-15).ToString('yyyy-MM-dd HH:mm:ss')
+            } catch {
+                $beginTime = ''
+            }
         }
     }
 
-    $endTime = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+    if ([string]::IsNullOrWhiteSpace($beginTime)) {
+        if ($BridgeConfig.PSObject -and $BridgeConfig.PSObject.Properties['backfill_start_time']) {
+            $candidateBegin = [string]$BridgeConfig.backfill_start_time
+            if (-not [string]::IsNullOrWhiteSpace($candidateBegin)) {
+                $beginTime = $candidateBegin.Trim()
+            }
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace($beginTime)) {
+        $beginTime = (Get-Date).AddDays(-7).ToString('yyyy-MM-dd 00:00:00')
+    }
 
     $rawHistory = Get-ConnectorHistoricalLogRaw -BeginTime $beginTime -EndTime $endTime
     $historyJson = ConvertFrom-BridgeRawJsonPayload -RawText $rawHistory
@@ -792,6 +889,7 @@ function Invoke-BridgeHistoricalBackfill {
 
     if ($historyEvents.Count -eq 0) {
         $state['last_scan_utc'] = (Get-Date).ToUniversalTime().ToString('o')
+        $state['last_scan_end_time'] = $endTime
         $state['last_scan_count'] = 0
         Save-BridgeBackfillState -State $state
         return
@@ -808,6 +906,7 @@ function Invoke-BridgeHistoricalBackfill {
     Save-BridgePendingEvents -Events $mergedEvents
 
     $state['last_scan_utc'] = (Get-Date).ToUniversalTime().ToString('o')
+    $state['last_scan_end_time'] = $endTime
     $state['last_scan_count'] = $historyEvents.Count
     $state['last_scan_added'] = [Math]::Max(0, ($mergedEvents.Count - $beforeCount))
     Save-BridgeBackfillState -State $state
@@ -1017,39 +1116,62 @@ function Publish-Ingest {
     Write-BridgeLog "Ingest success. Uploaded=$($eventsToUpload.Count) Received=$($response.received) Inserted=$($response.inserted)"
 }
 
-Write-BridgeLog 'Bridge worker started.'
+if (-not (Enter-BridgeWorkerSingleInstance)) {
+    Write-Host 'Another bridge-worker instance is already running. Exiting this duplicate instance.'
+    exit 0
+}
 
-while ($true) {
-    try {
-        $apiResult = Get-BridgeConfigRemote
-        if (-not $apiResult.success) {
-            throw "Bridge profile fetch failed: $($apiResult.message)"
+try {
+    Write-BridgeLog 'Bridge worker started.'
+
+    while ($true) {
+        try {
+            $bridgeConfig = $null
+            try {
+                $apiResult = Get-BridgeConfigRemote
+                if (-not $apiResult.success) {
+                    throw "Bridge profile fetch failed: $($apiResult.message)"
+                }
+
+                $bridgeConfig = $apiResult.PSObject.Properties['profile'].Value
+                Save-BridgeProfileCache -Profile $bridgeConfig
+            } catch {
+                $cachedProfile = Read-BridgeProfileCache
+                if ($null -eq $cachedProfile) {
+                    throw
+                }
+
+                $bridgeConfig = $cachedProfile
+                Write-BridgeLog ("Bridge profile fetch failed; using cached profile. " + $_.Exception.Message)
+            }
+
+            if (-not $bridgeConfig.bridge_enabled) {
+                Write-BridgeLog 'Bridge disabled in cloud profile. Sleeping.'
+                Start-Sleep -Seconds ([Math]::Max($MinPollSeconds, $DefaultPollSeconds))
+                continue
+            }
+
+            Update-ConnectorConfig -BridgeConfig $bridgeConfig
+            Invoke-BridgeCommandQueue -BridgeConfig $bridgeConfig
+            $connectorOutput = Invoke-ConnectorSync
+            Write-BridgeLog (($connectorOutput -join ' ') -replace '\s+', ' ')
+            Save-BridgeRecoverySnapshot -BridgeConfig $bridgeConfig
+            Invoke-BridgeHistoricalBackfill -BridgeConfig $bridgeConfig
+            Publish-Ingest -BridgeConfig $bridgeConfig
+            Publish-UserCache -BridgeConfig $bridgeConfig
+
+            $pollSeconds = [int]($bridgeConfig.poll_seconds)
+            if ($pollSeconds -lt $MinPollSeconds) {
+                $pollSeconds = $MinPollSeconds
+            }
+            Start-Sleep -Seconds $pollSeconds
         }
-
-        $bridgeConfig = $apiResult.PSObject.Properties['profile'].Value
-        if (-not $bridgeConfig.bridge_enabled) {
-            Write-BridgeLog 'Bridge disabled in cloud profile. Sleeping.'
-            Start-Sleep -Seconds ([Math]::Max(3, $DefaultPollSeconds))
-            continue
+        catch {
+            Write-BridgeLog ("Bridge loop error: " + $_.Exception.Message)
+            Start-Sleep -Seconds 20
         }
-
-        Update-ConnectorConfig -BridgeConfig $bridgeConfig
-        Invoke-BridgeCommandQueue -BridgeConfig $bridgeConfig
-        $connectorOutput = Invoke-ConnectorSync
-        Write-BridgeLog (($connectorOutput -join ' ') -replace '\s+', ' ')
-        Save-BridgeRecoverySnapshot -BridgeConfig $bridgeConfig
-        Invoke-BridgeHistoricalBackfill -BridgeConfig $bridgeConfig
-        Publish-Ingest -BridgeConfig $bridgeConfig
-        Publish-UserCache -BridgeConfig $bridgeConfig
-
-        $pollSeconds = [int]($bridgeConfig.poll_seconds)
-        if ($pollSeconds -lt 3) {
-            $pollSeconds = 3
-        }
-        Start-Sleep -Seconds $pollSeconds
     }
-    catch {
-        Write-BridgeLog ("Bridge loop error: " + $_.Exception.Message)
-        Start-Sleep -Seconds 20
-    }
+}
+finally {
+    Exit-BridgeWorkerSingleInstance
 }
