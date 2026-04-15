@@ -125,11 +125,25 @@ function bridge_manual_send_kit_zip(string $workspaceRoot): void
 
     $readme = "BioTern Bridge Kit\r\n"
         . "=================\r\n\r\n"
-        . "1) Extract this folder on a Windows PC connected to the same LAN as your F20H.\r\n"
-        . "2) Open the BioTern website and save Bridge Profile first (token, URL, F20H IP).\r\n"
-        . "3) Run install-bridge-worker-task.ps1 with your SiteBaseUrl and BridgeToken.\r\n"
-        . "4) Verify with manage-bridge-worker-task.ps1 -Action status.\r\n"
-        . "5) Keep that bridge PC signed in for user-logon mode task execution.\r\n";
+        . "DETAILED SETUP\r\n"
+        . "--------------\r\n"
+        . "1) Extract this ZIP on a Windows PC connected to the same LAN as your F20H.\r\n"
+        . "2) Open the extracted BioTernBridgeKit folder. Confirm these exist:\r\n"
+        . "   - tools\\install-bridge-worker-task.ps1\r\n"
+        . "   - tools\\manage-bridge-worker-task.ps1\r\n"
+        . "   - tools\\bridge-worker.ps1\r\n"
+        . "   - tools\\device_connector\\bin\\Release\\net9.0-windows\\BioTernMachineConnector.exe\r\n"
+        . "3) In website Machine Manager, save Bridge Profile first (token, URL, F20H IP, gateway).\r\n"
+        . "4) In the extracted folder, open PowerShell and run install command from Bridge Setup Manual page.\r\n"
+        . "5) Check status: powershell -NoProfile -ExecutionPolicy Bypass -File .\\tools\\manage-bridge-worker-task.ps1 -Action status -TaskName BioTernBridgeWorker\r\n"
+        . "6) If status is Running, open website and click Read All Users / Process Ingest Queue.\r\n"
+        . "7) Keep bridge account signed in for user-logon mode task execution.\r\n\r\n"
+        . "TROUBLESHOOTING\r\n"
+        . "---------------\r\n"
+        . "- If scripts are blocked: run PowerShell as current user and set process policy only:\r\n"
+        . "  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force\r\n"
+        . "- If machine not reachable: verify F20H IP/gateway and laptop network are on same router/subnet.\r\n"
+        . "- If domain changes (e.g. ClarkCollege.edu.ph): re-run install with new SiteBaseUrl.\r\n";
     $zip->addFromString('BioTernBridgeKit/README-SETUP.txt', $readme);
     $zip->close();
 
@@ -201,6 +215,8 @@ $installCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools
 
 $statusCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\manage-bridge-worker-task.ps1" -Action status -TaskName "BioTernBridgeWorker"';
 $restartCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\manage-bridge-worker-task.ps1" -Action restart -TaskName "BioTernBridgeWorker"';
+$execPolicyCommand = 'Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force';
+$openFolderHint = 'Open the extracted folder that contains the tools folder, then open PowerShell in that folder.';
 
 $page_title = 'BioTern || Bridge Setup Manual';
 $page_body_class = 'page-bridge-setup-manual';
@@ -255,6 +271,25 @@ include __DIR__ . '/../includes/header.php';
         </div>
 
         <div class="row g-3">
+            <div class="col-12">
+                <div class="card stretch stretch-full">
+                    <div class="card-header"><h6 class="card-title mb-0">Zero-Miss Walkthrough (Follow Exactly)</h6></div>
+                    <div class="card-body">
+                        <ol class="mb-0">
+                            <li>Open <strong>F20H Machine Manager</strong> and save Bridge Profile first: Bridge Token, Cloud URL, F20H IP, Gateway, Mask, Port, Device Number.</li>
+                            <li>Click <strong>Download Full Bridge Kit (ZIP)</strong> on this page.</li>
+                            <li>Go to your Downloads folder, right click ZIP, choose <strong>Extract All</strong>.</li>
+                            <li>Open extracted folder then open <strong>BioTernBridgeKit</strong>.</li>
+                            <li>Inside that folder, make sure there is a <strong>tools</strong> folder and connector EXE file.</li>
+                            <li>Choose installation method below: Method A (right click script) or Method B (PowerShell command).</li>
+                            <li>After install, run <strong>Status</strong> command and confirm task state is <strong>Running</strong>.</li>
+                            <li>Go back to F20H Machine Manager and click <strong>Read All Users</strong> and <strong>Process Ingest Queue</strong>.</li>
+                            <li>If task is not running, use <strong>Restart</strong> command then check status again.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
             <div class="col-xl-6">
                 <div class="card stretch stretch-full">
                     <div class="card-header"><h6 class="card-title mb-0">Step 1: Download Needed Files</h6></div>
@@ -272,21 +307,72 @@ include __DIR__ . '/../includes/header.php';
 
             <div class="col-xl-6">
                 <div class="card stretch stretch-full">
-                    <div class="card-header"><h6 class="card-title mb-0">Step 2: Install Bridge Auto-Start</h6></div>
+                    <div class="card-header"><h6 class="card-title mb-0">Step 2: After Extracting ZIP (Important)</h6></div>
                     <div class="card-body">
-                        <label class="form-label">Run once on bridge PC</label>
-                        <div class="input-group mb-2">
-                            <input type="text" class="form-control" id="bridgeManualInstallCmd" value="<?php echo bridge_manual_h($installCommand); ?>" readonly>
-                            <button type="button" class="btn btn-outline-secondary" data-copy-target="bridgeManualInstallCmd">Copy</button>
+                        <ol class="mb-3">
+                            <li>Right click the ZIP and choose <strong>Extract All</strong>.</li>
+                            <li>Open the extracted folder and then open the inner <strong>BioTernBridgeKit</strong> folder.</li>
+                            <li>Confirm these files exist before running commands:</li>
+                        </ol>
+                        <div class="border rounded p-3 bg-light mb-3">
+                            <div>tools\install-bridge-worker-task.ps1</div>
+                            <div>tools\manage-bridge-worker-task.ps1</div>
+                            <div>tools\bridge-worker.ps1</div>
+                            <div>tools\device_connector\bin\Release\net9.0-windows\BioTernMachineConnector.exe</div>
                         </div>
-                        <small class="text-muted">This installs and starts BioTernBridgeWorker as a scheduled background task.</small>
+                        <p class="text-muted mb-0"><?php echo bridge_manual_h($openFolderHint); ?></p>
                     </div>
                 </div>
             </div>
 
             <div class="col-xl-6">
                 <div class="card stretch stretch-full">
-                    <div class="card-header"><h6 class="card-title mb-0">Step 3: Verify and Maintain</h6></div>
+                    <div class="card-header"><h6 class="card-title mb-0">Step 3: Install Bridge Auto-Start</h6></div>
+                    <div class="card-body">
+                        <div class="alert alert-light border mb-3">
+                            <div class="fw-semibold mb-1">Method A: Right click script (quick)</div>
+                            <ol class="mb-0">
+                                <li>Open extracted <strong>BioTernBridgeKit</strong> folder.</li>
+                                <li>Open <strong>tools</strong> folder.</li>
+                                <li>Right click <strong>install-bridge-worker-task.ps1</strong>.</li>
+                                <li>Click <strong>Run with PowerShell</strong>.</li>
+                                <li>If a security prompt appears, allow/Run anyway.</li>
+                                <li>If it closes too quickly or fails, use Method B below.</li>
+                            </ol>
+                        </div>
+
+                        <div class="alert alert-light border mb-3">
+                            <div class="fw-semibold mb-1">Method B: PowerShell command (recommended)</div>
+                            <ol class="mb-0">
+                                <li>Inside extracted <strong>BioTernBridgeKit</strong> folder, hold <strong>Shift</strong> and right click empty space.</li>
+                                <li>Choose <strong>Open PowerShell window here</strong> (or open terminal in current folder).</li>
+                                <li>If scripts are blocked, run the execution-policy command below first.</li>
+                                <li>Run install command from this page.</li>
+                                <li>Run status command and verify task is Running.</li>
+                            </ol>
+                        </div>
+
+                        <label class="form-label">Run this first if scripts are blocked</label>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" id="bridgeManualExecPolicyCmd" value="<?php echo bridge_manual_h($execPolicyCommand); ?>" readonly>
+                            <button type="button" class="btn btn-outline-secondary" data-copy-target="bridgeManualExecPolicyCmd">Copy</button>
+                        </div>
+                        <small class="text-muted d-block mb-3">Run only in current PowerShell window. It does not permanently change policy.</small>
+
+                        <label class="form-label">Run once on bridge PC</label>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" id="bridgeManualInstallCmd" value="<?php echo bridge_manual_h($installCommand); ?>" readonly>
+                            <button type="button" class="btn btn-outline-secondary" data-copy-target="bridgeManualInstallCmd">Copy</button>
+                        </div>
+                        <small class="text-muted d-block">This installs and starts BioTernBridgeWorker as a scheduled background task.</small>
+                        <small class="text-muted">If right-click method does not pass parameters correctly on your PC, use this command method.</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-6">
+                <div class="card stretch stretch-full">
+                    <div class="card-header"><h6 class="card-title mb-0">Step 4: Verify and Maintain</h6></div>
                     <div class="card-body">
                         <label class="form-label">Check status anytime</label>
                         <div class="input-group mb-2">
@@ -304,15 +390,34 @@ include __DIR__ . '/../includes/header.php';
 
             <div class="col-xl-6">
                 <div class="card stretch stretch-full">
-                    <div class="card-header"><h6 class="card-title mb-0">Step 4: Full Checklist</h6></div>
+                    <div class="card-header"><h6 class="card-title mb-0">Step 5: Full Checklist</h6></div>
                     <div class="card-body">
                         <ol class="mb-0">
                             <li>Open website and save Bridge Profile first (URL/token/F20H network).</li>
                             <li>Extract Bridge Kit on new Windows PC.</li>
+                            <li>Open extracted folder, confirm required files are present.</li>
+                            <li>Try Method A: right click install-bridge-worker-task.ps1, Run with PowerShell.</li>
+                            <li>If Method A fails/unknown result, use Method B command flow.</li>
+                            <li>If PowerShell blocks scripts, run temporary execution policy command.</li>
                             <li>Run install command from this page once.</li>
                             <li>Run status command and confirm task is Running.</li>
                             <li>Go to F20H Machine Manager and click Read All Users / Process Ingest Queue.</li>
                             <li>If changing to a new domain (e.g. ClarkCollege.edu.ph), re-run install using new SiteBaseUrl.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="card stretch stretch-full">
+                    <div class="card-header"><h6 class="card-title mb-0">Troubleshooting (If You Get Stuck)</h6></div>
+                    <div class="card-body">
+                        <ol class="mb-0">
+                            <li>If command says script is blocked: run the execution policy command above, then retry install.</li>
+                            <li>If status is not Running: run Restart command, then check status again.</li>
+                            <li>If bridge says device connection failed: verify F20H IP/gateway in Machine Manager matches current router.</li>
+                            <li>If using a new website domain: update Bridge Profile cloud URL, then re-run install command.</li>
+                            <li>If still failing: open F20H Machine Manager and check Bridge Worker Status detail text for exact error.</li>
                         </ol>
                     </div>
                 </div>
