@@ -80,7 +80,7 @@ if ($verify_error !== '') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="zxx">
+<html lang="en">
 
 <head>
     <meta charset="utf-8">
@@ -89,48 +89,51 @@ if ($verify_error !== '') {
     <meta name="description" content="">
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
-    <title>BioTern || Verify Cover</title>
+    <title>BioTern || Verify Code</title>
     <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/modules/shared/theme-state-core.js"></script>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/state/notification-skin.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/modules/auth/auth-login-cover.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/modules/auth/auth-recovery-cover.css">
 </head>
 
-<body>
+<body class="auth-login-page auth-recovery-page">
+    <div class="login-bg-watermark recovery-bg-watermark" aria-hidden="true"></div>
     <main class="auth-cover-wrapper">
         <div class="auth-cover-content-inner">
             <div class="auth-cover-content-wrapper">
-                <div class="auth-img">
-                    <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/auth/auth-cover-verify-bg.svg" alt="" class="img-fluid">
-                </div>
+                <div class="auth-img auth-login-visual" aria-hidden="true"></div>
             </div>
         </div>
         <div class="auth-cover-sidebar-inner">
             <div class="auth-cover-card-wrapper">
-                <div class="auth-cover-card p-sm-5">
-                    <div class="wd-50 mb-5">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+                <div class="auth-cover-card p-sm-5 auth-recovery-card">
+                    <div class="auth-brand-lockup mb-5">
+                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/ccstlogo.png" alt="Clark College of Science and Technology" class="auth-brand-lockup-school">
+                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-full-header.png" alt="BioTern" class="auth-brand-lockup-app">
                     </div>
-                    <h2 class="fs-20 fw-bolder mb-4">Verify</h2>
-                    <h4 class="fs-13 fw-bold mb-2">Enter the 6-digit one-time password sent to your account.</h4>
-                    <p class="fs-12 fw-medium text-muted"><span>A code has been sent to</span> <strong><?php echo $masked_contact; ?></strong></p>
+                    <h2 class="fs-25 fw-bolder mb-3">Verify Code</h2>
+                    <h4 class="fs-15 fw-bold mb-2">Enter the 6-digit verification code sent to your account.</h4>
+                    <p class="fs-12 fw-medium text-muted"><span>Code sent to</span> <strong><?php echo $masked_contact; ?></strong></p>
 
                     <form method="post" class="w-100 mt-4 pt-2" autocomplete="one-time-code">
-                        <div id="otp" class="inputs d-flex flex-row justify-content-center mt-2">
-                            <input name="digit1" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit1" maxlength="6" autocomplete="one-time-code" required>
-                            <input name="digit2" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit2" maxlength="6" required>
-                            <input name="digit3" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit3" maxlength="6" required>
-                            <input name="digit4" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit4" maxlength="6" required>
-                            <input name="digit5" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit5" maxlength="6" required>
-                            <input name="digit6" class="m-2 text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit6" maxlength="6" required>
+                        <div id="otp" class="auth-otp-grid mt-2">
+                            <input name="digit1" class="text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit1" maxlength="1" autocomplete="one-time-code" required>
+                            <input name="digit2" class="text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit2" maxlength="1" required>
+                            <input name="digit3" class="text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit3" maxlength="1" required>
+                            <input name="digit4" class="text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit4" maxlength="1" required>
+                            <input name="digit5" class="text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit5" maxlength="1" required>
+                            <input name="digit6" class="text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit6" maxlength="1" required>
                         </div>
                         <div class="mt-5">
-                            <button type="submit" class="btn btn-lg btn-primary w-100">Validate</button>
+                            <button type="submit" class="btn btn-lg btn-primary w-100">Validate Code</button>
                         </div>
-                        <div class="mt-5 text-muted">
-                            <span>Didn't get the code</span>
+                        <div class="auth-recovery-links mt-4">
+                            <span class="text-muted">Didn't get the code?</span>
                             <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-reset-cover.php?resend=1">Resend</a>
                         </div>
                     </form>
