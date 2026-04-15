@@ -246,6 +246,7 @@ $public_files = [
   'auth-login.php',
   'auth-login-cover.php',
   'auth-register.php',
+  'auth-register-verify.php',
   'auth-reset-cover.php',
   'auth-resetting-minimal.php',
   'auth-verify-cover.php',

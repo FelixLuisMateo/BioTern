@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/mailer.php';
+require_once dirname(__DIR__) . '/lib/student-registration-verification.php';
 // Simple registration handler for demo purposes.
 // IMPORTANT: Review and secure before using in production.
 
@@ -620,10 +621,18 @@ if ($role === 'student') {
 
     if (!isset($_POST['registration_email_verified']) || $_POST['registration_email_verified'] !== '1') {
         $code = generateRegistrationCode();
+        $verifyToken = biotern_student_reg_generate_token();
+        $verifyExpiresAt = time() + 900;
+
+        if (!biotern_student_reg_store_pending($mysqli, $verifyToken, $final_email, $code, $_POST, $verifyExpiresAt)) {
+            studentApplicationRedirect('error', 'Unable to start email verification right now. Please try again.');
+        }
+
         $_SESSION['student_registration_pending_post'] = $_POST;
         $_SESSION['student_registration_verify_code'] = $code;
         $_SESSION['student_registration_verify_email'] = $final_email;
-        $_SESSION['student_registration_verify_expires_at'] = time() + 900;
+        $_SESSION['student_registration_verify_expires_at'] = $verifyExpiresAt;
+        $_SESSION['student_registration_verify_token'] = $verifyToken;
 
         $subject = 'Verify your BioTern student application';
         $text = "Your BioTern verification code is: {$code}\n\nEnter this code to continue your student application. This code expires in 15 minutes.";
@@ -687,7 +696,7 @@ if ($role === 'student') {
             studentApplicationRedirect('error', $msg);
         }
 
-        header('Location: auth-register-verify.php');
+        header('Location: auth-register-verify.php?token=' . rawurlencode($verifyToken));
         exit;
     }
     $username_seed = $student_id ?: ($final_email ?: ($first_name . '.' . $last_name));

@@ -5,18 +5,55 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/mailer.php';
+require_once dirname(__DIR__) . '/lib/student-registration-verification.php';
 
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 $route_prefix = $asset_prefix;
 
-$pending = $_SESSION['student_registration_pending_post'] ?? null;
-if (!is_array($pending) || empty($pending['account_email']) && empty($pending['email'])) {
+$tokenFromRequest = trim((string)($_GET['token'] ?? $_POST['token'] ?? ($_SESSION['student_registration_verify_token'] ?? '')));
+$verifyToken = biotern_student_reg_normalize_token($tokenFromRequest);
+
+$pending = null;
+$targetEmail = '';
+$expectedCode = '';
+$expiresAt = 0;
+
+if ($verifyToken !== '' && $conn instanceof mysqli && !$conn->connect_errno) {
+    $pendingRecord = biotern_student_reg_load_pending($conn, $verifyToken);
+    if (is_array($pendingRecord)) {
+        $pending = $pendingRecord['pending_post'] ?? null;
+        $targetEmail = trim((string)($pendingRecord['target_email'] ?? ''));
+        $expectedCode = trim((string)($pendingRecord['verify_code'] ?? ''));
+        $expiresAt = (int)($pendingRecord['expires_at'] ?? 0);
+
+        // Keep legacy session state populated for backward compatibility.
+        $_SESSION['student_registration_verify_token'] = $verifyToken;
+        $_SESSION['student_registration_pending_post'] = $pending;
+        $_SESSION['student_registration_verify_email'] = $targetEmail;
+        $_SESSION['student_registration_verify_code'] = $expectedCode;
+        $_SESSION['student_registration_verify_expires_at'] = $expiresAt;
+    }
+}
+
+if (!is_array($pending)) {
+    $pending = $_SESSION['student_registration_pending_post'] ?? null;
+}
+if ($targetEmail === '') {
+    $targetEmail = trim((string)($pending['account_email'] ?? $pending['email'] ?? ($_SESSION['student_registration_verify_email'] ?? '')));
+}
+if ($expectedCode === '') {
+    $expectedCode = trim((string)($_SESSION['student_registration_verify_code'] ?? ''));
+}
+if ($expiresAt <= 0) {
+    $expiresAt = (int)($_SESSION['student_registration_verify_expires_at'] ?? 0);
+}
+
+if (!is_array($pending) || $targetEmail === '') {
     header('Location: ' . $route_prefix . 'auth-register.php?registered=error&msg=' . urlencode('No pending email verification found. Please register again.'));
     exit;
 }
 
-$targetEmail = trim((string)($pending['account_email'] ?? $pending['email'] ?? ''));
 $error = '';
 $message = '';
 
@@ -24,77 +61,104 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = strtolower(trim((string)($_POST['action'] ?? 'verify')));
     if ($action === 'resend') {
         $code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $newExpiresAt = time() + 900;
+
+        if ($verifyToken !== '' && $conn instanceof mysqli && !$conn->connect_errno) {
+            if (!biotern_student_reg_update_code($conn, $verifyToken, $code, $newExpiresAt)) {
+                $error = 'Unable to refresh your verification request. Please register again.';
+            }
+        }
+
         $_SESSION['student_registration_verify_code'] = $code;
         $_SESSION['student_registration_verify_email'] = $targetEmail;
-        $_SESSION['student_registration_verify_expires_at'] = time() + 900;
+        $_SESSION['student_registration_verify_expires_at'] = $newExpiresAt;
 
-        $subject = 'Verify your BioTern student application';
-        $text = "Your BioTern verification code is: {$code}\n\nEnter this code to continue your student application. This code expires in 15 minutes.";
-        $safeCode = htmlspecialchars($code, ENT_QUOTES, 'UTF-8');
-        $safeEmail = htmlspecialchars($targetEmail, ENT_QUOTES, 'UTF-8');
-        $appBaseUrl = biotern_mail_asset_base();
-        $logoHtml = '';
-        if ($appBaseUrl !== '') {
-            $logoUrl = $appBaseUrl . '/assets/images/ccstlogo.png';
-            $logoHtml = '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="School logo" width="40" height="40" style="display:block;border-radius:8px;">';
-        }
-        $html = '
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b1220;padding:24px 0;font-family:Segoe UI,Arial,sans-serif;">
-            <tr>
-                <td align="center">
-                    <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#111a2e;border:1px solid #1f2a44;border-radius:16px;overflow:hidden;">
-                        <tr>
-                            <td style="padding:20px 24px;background:linear-gradient(135deg,#162447,#111a2e);color:#ffffff;">
-                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                    <tr>
-                                        <td>
-                                            <div style="font-size:18px;font-weight:700;">BioTern</div>
-                                            <div style="font-size:13px;color:#a3b3cc;">Student Application</div>
-                                        </td>
-                                        <td align="right" style="vertical-align:middle;">' . $logoHtml . '</td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding:24px;color:#e5e7eb;">
-                                <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Verify your email</div>
-                                <div style="font-size:14px;color:#94a3b8;margin-bottom:18px;">
-                                    We sent a 6-digit code to <strong style="color:#e5e7eb;">' . $safeEmail . '</strong>.
-                                </div>
-                                <div style="text-align:center;margin:20px 0;">
-                                    <div style="display:inline-block;padding:12px 20px;border-radius:12px;background:#0f172a;border:1px solid #263453;font-size:24px;letter-spacing:6px;font-weight:700;color:#ffffff;">
-                                        ' . $safeCode . '
+        if ($error === '') {
+            $subject = 'Verify your BioTern student application';
+            $text = "Your BioTern verification code is: {$code}\n\nEnter this code to continue your student application. This code expires in 15 minutes.";
+            $safeCode = htmlspecialchars($code, ENT_QUOTES, 'UTF-8');
+            $safeEmail = htmlspecialchars($targetEmail, ENT_QUOTES, 'UTF-8');
+            $appBaseUrl = biotern_mail_asset_base();
+            $logoHtml = '';
+            if ($appBaseUrl !== '') {
+                $logoUrl = $appBaseUrl . '/assets/images/ccstlogo.png';
+                $logoHtml = '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="School logo" width="40" height="40" style="display:block;border-radius:8px;">';
+            }
+            $html = '
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b1220;padding:24px 0;font-family:Segoe UI,Arial,sans-serif;">
+                <tr>
+                    <td align="center">
+                        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#111a2e;border:1px solid #1f2a44;border-radius:16px;overflow:hidden;">
+                            <tr>
+                                <td style="padding:20px 24px;background:linear-gradient(135deg,#162447,#111a2e);color:#ffffff;">
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td>
+                                                <div style="font-size:18px;font-weight:700;">BioTern</div>
+                                                <div style="font-size:13px;color:#a3b3cc;">Student Application</div>
+                                            </td>
+                                            <td align="right" style="vertical-align:middle;">' . $logoHtml . '</td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:24px;color:#e5e7eb;">
+                                    <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Verify your email</div>
+                                    <div style="font-size:14px;color:#94a3b8;margin-bottom:18px;">
+                                        We sent a 6-digit code to <strong style="color:#e5e7eb;">' . $safeEmail . '</strong>.
                                     </div>
-                                </div>
-                                <div style="font-size:13px;color:#94a3b8;">
-                                    Enter this code to continue your student application. This code expires in 15 minutes.
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding:18px 24px;border-top:1px solid #1f2a44;color:#6b7a99;font-size:12px;">
-                                If you did not request this, you can ignore this email.
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>';
-        $mailRef = null;
-        if (biotern_send_mail($conn, $targetEmail, $subject, $text, $html, $mailRef)) {
-            $message = 'A new verification code was sent to your email.';
-        } else {
-            $error = 'Unable to resend the verification email right now.';
-            if ($mailRef) {
-                $error .= ' Reference: ' . $mailRef;
+                                    <div style="text-align:center;margin:20px 0;">
+                                        <div style="display:inline-block;padding:12px 20px;border-radius:12px;background:#0f172a;border:1px solid #263453;font-size:24px;letter-spacing:6px;font-weight:700;color:#ffffff;">
+                                            ' . $safeCode . '
+                                        </div>
+                                    </div>
+                                    <div style="font-size:13px;color:#94a3b8;">
+                                        Enter this code to continue your student application. This code expires in 15 minutes.
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:18px 24px;border-top:1px solid #1f2a44;color:#6b7a99;font-size:12px;">
+                                    If you did not request this, you can ignore this email.
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>';
+            $mailRef = null;
+            if (biotern_send_mail($conn, $targetEmail, $subject, $text, $html, $mailRef)) {
+                $message = 'A new verification code was sent to your email.';
+            } else {
+                $error = 'Unable to resend the verification email right now.';
+                if ($mailRef) {
+                    $error .= ' Reference: ' . $mailRef;
+                }
             }
         }
     } else {
         $code = trim((string)($_POST['verification_code'] ?? ''));
-        $expected = (string)($_SESSION['student_registration_verify_code'] ?? '');
-        $expiresAt = (int)($_SESSION['student_registration_verify_expires_at'] ?? 0);
-        $expectedEmail = trim((string)($_SESSION['student_registration_verify_email'] ?? ''));
+
+        if ($verifyToken !== '' && $conn instanceof mysqli && !$conn->connect_errno) {
+            $pendingRecord = biotern_student_reg_load_pending($conn, $verifyToken);
+            if (is_array($pendingRecord)) {
+                $pending = $pendingRecord['pending_post'] ?? $pending;
+                $targetEmail = trim((string)($pendingRecord['target_email'] ?? $targetEmail));
+                $expectedCode = trim((string)($pendingRecord['verify_code'] ?? $expectedCode));
+                $expiresAt = (int)($pendingRecord['expires_at'] ?? $expiresAt);
+
+                $_SESSION['student_registration_pending_post'] = $pending;
+                $_SESSION['student_registration_verify_email'] = $targetEmail;
+                $_SESSION['student_registration_verify_code'] = $expectedCode;
+                $_SESSION['student_registration_verify_expires_at'] = $expiresAt;
+                $_SESSION['student_registration_verify_token'] = $verifyToken;
+            }
+        }
+
+        $expected = $expectedCode !== '' ? $expectedCode : (string)($_SESSION['student_registration_verify_code'] ?? '');
+        $expiresAt = $expiresAt > 0 ? $expiresAt : (int)($_SESSION['student_registration_verify_expires_at'] ?? 0);
+        $expectedEmail = $targetEmail !== '' ? $targetEmail : trim((string)($_SESSION['student_registration_verify_email'] ?? ''));
 
         if ($code === '' || !preg_match('/^\d{6}$/', $code)) {
             $error = 'Enter the 6-digit verification code.';
@@ -106,11 +170,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST = $pending;
             $_POST['role'] = 'student';
             $_POST['registration_email_verified'] = '1';
+            if ($verifyToken !== '' && $conn instanceof mysqli && !$conn->connect_errno) {
+                biotern_student_reg_consume($conn, $verifyToken);
+            }
             unset(
                 $_SESSION['student_registration_verify_code'],
                 $_SESSION['student_registration_verify_email'],
                 $_SESSION['student_registration_verify_expires_at'],
-                $_SESSION['student_registration_pending_post']
+                $_SESSION['student_registration_pending_post'],
+                $_SESSION['student_registration_verify_token']
             );
             require_once dirname(__DIR__) . '/api/register_submit.php';
             exit;
@@ -201,6 +269,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="alert alert-success"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></div>
         <?php endif; ?>
         <form method="post" class="mb-3">
+            <?php if ($verifyToken !== ''): ?>
+                <input type="hidden" name="token" value="<?php echo htmlspecialchars($verifyToken, ENT_QUOTES, 'UTF-8'); ?>">
+            <?php endif; ?>
             <div class="mb-3">
                 <label class="form-label">Verification Code</label>
                 <input type="text" name="verification_code" class="form-control" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" required>
@@ -209,6 +280,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         <form method="post" class="d-grid">
             <input type="hidden" name="action" value="resend">
+            <?php if ($verifyToken !== ''): ?>
+                <input type="hidden" name="token" value="<?php echo htmlspecialchars($verifyToken, ENT_QUOTES, 'UTF-8'); ?>">
+            <?php endif; ?>
             <button type="submit" class="btn btn-outline-light">Resend Code</button>
         </form>
     </div>
