@@ -111,7 +111,7 @@ if ($reset_error !== '') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="zxx">
+<html lang="en">
 
 <head>
     <meta charset="utf-8">
@@ -120,51 +120,60 @@ if ($reset_error !== '') {
     <meta name="description" content="">
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
-    <title>BioTern || Resetting Minimal</title>
+    <title>BioTern || Create New Password</title>
     <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/modules/shared/theme-state-core.js"></script>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/state/notification-skin.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/modules/auth/auth-login-cover.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/modules/auth/auth-recovery-cover.css">
 </head>
 
-<body>
-    <main class="auth-minimal-wrapper">
-        <div class="auth-minimal-inner">
-            <div class="minimal-card-wrapper">
-                <div class="card mb-4 mt-5 mx-4 mx-sm-0 position-relative">
-                    <div class="wd-50 bg-white p-2 rounded-circle shadow-lg position-absolute translate-middle top-0 start-50">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+<body class="auth-login-page auth-recovery-page">
+    <div class="login-bg-watermark recovery-bg-watermark" aria-hidden="true"></div>
+    <main class="auth-cover-wrapper">
+        <div class="auth-cover-content-inner">
+            <div class="auth-cover-content-wrapper">
+                <div class="auth-img auth-login-visual" aria-hidden="true"></div>
+            </div>
+        </div>
+        <div class="auth-cover-sidebar-inner">
+            <div class="auth-cover-card-wrapper">
+                <div class="auth-cover-card p-sm-5 auth-recovery-card">
+                    <div class="auth-brand-lockup mb-5">
+                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/ccstlogo.png" alt="Clark College of Science and Technology" class="auth-brand-lockup-school">
+                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-full-header.png" alt="BioTern" class="auth-brand-lockup-app">
                     </div>
-                    <div class="card-body p-sm-5">
-                        <h2 class="fs-20 fw-bolder mb-4">Reset Password</h2>
-                        <h4 class="fs-13 fw-bold mb-2">Set your new password</h4>
-                        <p class="fs-12 fw-medium text-muted">Enter your new password below to complete your password reset.</p>
-                        <?php if ($reset_success !== ''): ?>
-                            <div class="mt-4">
-                                <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login.php" class="btn btn-lg btn-primary w-100">Go to Login</a>
-                            </div>
-                        <?php else: ?>
-                            <form action="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-resetting-minimal.php" method="post" class="w-100 mt-4 pt-2">
-                                <div class="mb-4 input-group">
-                                    <input type="password" name="new_password" id="newPasswordInput" class="form-control" placeholder="New Password" minlength="8" required>
-                                    <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword" aria-label="Show new password"><i></i></button>
-                                </div>
-                                <div class="mb-4 input-group">
-                                    <input type="password" name="confirm_password" id="confirmPasswordInput" class="form-control" placeholder="Confirm Password" minlength="8" required>
-                                    <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword" aria-label="Show confirm password"><i></i></button>
-                                </div>
-                                <div class="mt-5">
-                                    <button type="submit" class="btn btn-lg btn-primary w-100" <?php echo (!$isVerified || $contact === '') ? 'disabled' : ''; ?>>Save Change</button>
-                                </div>
-                            </form>
-                        <?php endif; ?>
+                    <h2 class="fs-25 fw-bolder mb-3">Create New Password</h2>
+                    <h4 class="fs-15 fw-bold mb-2">Set a secure password for your account.</h4>
+                    <p class="fs-12 fw-medium text-muted">Use at least 8 characters with uppercase, lowercase, and numbers.</p>
 
-                        <div class="mt-5 text-muted">
-                            <span>Remembered your password?</span>
-                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login.php" class="fw-bold">Back to Login</a>
+                    <?php if ($reset_success !== ''): ?>
+                        <div class="mt-4">
+                            <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login.php" class="btn btn-lg btn-primary w-100">Go to Login</a>
                         </div>
+                    <?php else: ?>
+                        <form action="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-resetting-minimal.php" method="post" class="w-100 mt-4 pt-2" novalidate>
+                            <div class="mb-4 input-group">
+                                <input type="password" name="new_password" id="newPasswordInput" class="form-control" placeholder="New Password" minlength="8" autocomplete="new-password" required>
+                                <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword" aria-label="Show new password"><i></i></button>
+                            </div>
+                            <div class="mb-4 input-group">
+                                <input type="password" name="confirm_password" id="confirmPasswordInput" class="form-control" placeholder="Confirm Password" minlength="8" autocomplete="new-password" required>
+                                <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword" aria-label="Show confirm password"><i></i></button>
+                            </div>
+                            <div class="mt-5">
+                                <button type="submit" class="btn btn-lg btn-primary w-100" <?php echo (!$isVerified || $contact === '') ? 'disabled' : ''; ?>>Save New Password</button>
+                            </div>
+                        </form>
+                    <?php endif; ?>
+
+                    <div class="auth-recovery-links mt-4">
+                        <span class="text-muted">Remembered your password?</span>
+                        <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login.php" class="fw-bold">Back to Login</a>
                     </div>
                 </div>
             </div>

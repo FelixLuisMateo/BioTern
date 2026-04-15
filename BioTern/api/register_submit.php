@@ -34,6 +34,29 @@ function getCurrentSchoolYearLabel($timestamp = null) {
     return sprintf('%d-%d', $startYear, $startYear + 1);
 }
 
+function getGeneralSettingValue(mysqli $mysqli, string $key, string $fallback = ''): string {
+    static $cache = null;
+
+    if ($cache === null) {
+        $cache = [];
+        $tableCheck = $mysqli->query("SHOW TABLES LIKE 'system_settings'");
+        if ($tableCheck instanceof mysqli_result && $tableCheck->num_rows > 0) {
+            $stmt = $mysqli->prepare("SELECT `key`, `value` FROM system_settings WHERE category = 'general'");
+            if ($stmt) {
+                $stmt->execute();
+                $result = $stmt->get_result();
+                while ($row = $result->fetch_assoc()) {
+                    $cache[(string)($row['key'] ?? '')] = trim((string)($row['value'] ?? ''));
+                }
+                $stmt->close();
+            }
+        }
+    }
+
+    $value = trim((string)($cache[$key] ?? ''));
+    return $value !== '' ? $value : $fallback;
+}
+
 function parseStudentDateOfBirthToSql(?string $rawDate): ?string {
     $value = trim((string)$rawDate);
     if ($value === '') {
@@ -717,12 +740,21 @@ if ($role === 'student') {
     $internal_total_hours_remaining = $finished_internal_yes ? 0 : $internal_total_hours;
     $external_total_hours_remaining = $finished_internal_yes ? $external_total_hours : 0;
     $assignment_track = $finished_internal_yes ? 'external' : 'internal';
+    $default_school_year = getGeneralSettingValue($mysqli, 'default_school_year', getCurrentSchoolYearLabel());
+    if (!preg_match('/^\d{4}-\d{4}$/', $default_school_year)) {
+        $default_school_year = getCurrentSchoolYearLabel();
+    }
     $school_year = $school_year_posted && preg_match('/^\d{4}-\d{4}$/', (string)$school_year_posted)
         ? (string)$school_year_posted
-        : getCurrentSchoolYearLabel();
+        : $default_school_year;
+
+    $default_semester = getGeneralSettingValue($mysqli, 'default_semester', '2nd Semester');
+    if (!in_array($default_semester, ['1st Semester', '2nd Semester', 'Summer'], true)) {
+        $default_semester = '2nd Semester';
+    }
     $semester = trim((string)$semester);
     if (!in_array($semester, ['1st Semester', '2nd Semester', 'Summer'], true)) {
-        $semester = '';
+        $semester = $default_semester;
     }
     $coordinator_name = null;
     $supervisor_name = null;

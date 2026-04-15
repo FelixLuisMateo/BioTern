@@ -171,7 +171,35 @@
             if (!state.image) {
                 return;
             }
-            hiddenInput.value = canvas.toDataURL('image/png');
+
+            // Prefer compressed output to keep request payload small on serverless platforms.
+            var croppedData = '';
+            try {
+                croppedData = canvas.toDataURL('image/webp', 0.9);
+            } catch (errWebp) {
+                croppedData = '';
+            }
+            if (!croppedData || croppedData.indexOf('data:image/') !== 0) {
+                try {
+                    croppedData = canvas.toDataURL('image/jpeg', 0.9);
+                } catch (errJpeg) {
+                    croppedData = '';
+                }
+            }
+            if (!croppedData || croppedData.indexOf('data:image/') !== 0) {
+                croppedData = canvas.toDataURL('image/png');
+            }
+
+            hiddenInput.value = croppedData;
+
+            // Clear original file to avoid submitting both raw upload and cropped data.
+            // This prevents 413/large payload failures when source image is big.
+            try {
+                fileInput.value = '';
+            } catch (errReset) {
+                // Ignore if browser blocks programmatic reset.
+            }
+
             setStatus('Crop is ready. Upload photo to save changes.');
         }
 
@@ -282,6 +310,15 @@
         form.addEventListener('submit', function () {
             if (state.image && !hiddenInput.value) {
                 applyCrop();
+            }
+
+            // If a crop is prepared, submit only cropped payload.
+            if (hiddenInput.value) {
+                try {
+                    fileInput.value = '';
+                } catch (errResetSubmit) {
+                    // Ignore if browser blocks programmatic reset.
+                }
             }
         });
 

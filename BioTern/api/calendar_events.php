@@ -36,6 +36,10 @@ $conn->query("CREATE TABLE IF NOT EXISTS calendar_events (
     end_at DATETIME NOT NULL,
     color VARCHAR(20) DEFAULT '#0d6efd',
     is_all_day TINYINT(1) NOT NULL DEFAULT 0,
+    attendance_multiplier DECIMAL(6,2) NULL,
+    apply_when_not_late TINYINT(1) NOT NULL DEFAULT 0,
+    late_grace_minutes INT NULL,
+    applies_to_weekday VARCHAR(16) NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME DEFAULT NULL,
@@ -43,6 +47,27 @@ $conn->query("CREATE TABLE IF NOT EXISTS calendar_events (
     KEY idx_calendar_events_user_range (user_id, start_at, end_at),
     KEY idx_calendar_events_deleted (deleted_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$calendarColumns = [];
+$calendarColumnsRes = $conn->query("SHOW COLUMNS FROM calendar_events");
+if ($calendarColumnsRes instanceof mysqli_result) {
+    while ($calendarColumn = $calendarColumnsRes->fetch_assoc()) {
+        $calendarColumns[strtolower((string)($calendarColumn['Field'] ?? ''))] = true;
+    }
+    $calendarColumnsRes->close();
+}
+if (!isset($calendarColumns['attendance_multiplier'])) {
+    $conn->query("ALTER TABLE calendar_events ADD COLUMN attendance_multiplier DECIMAL(6,2) NULL AFTER is_all_day");
+}
+if (!isset($calendarColumns['apply_when_not_late'])) {
+    $conn->query("ALTER TABLE calendar_events ADD COLUMN apply_when_not_late TINYINT(1) NOT NULL DEFAULT 0 AFTER attendance_multiplier");
+}
+if (!isset($calendarColumns['late_grace_minutes'])) {
+    $conn->query("ALTER TABLE calendar_events ADD COLUMN late_grace_minutes INT NULL AFTER apply_when_not_late");
+}
+if (!isset($calendarColumns['applies_to_weekday'])) {
+    $conn->query("ALTER TABLE calendar_events ADD COLUMN applies_to_weekday VARCHAR(16) NULL AFTER late_grace_minutes");
+}
 
 function respond_json(int $status, array $payload): void
 {
@@ -136,10 +161,21 @@ function map_calendar_event(array $event): array
         'date' => substr($startAt, 0, 10),
         'color' => (string)($event['color'] ?? '#0d6efd'),
         'is_all_day' => (int)($event['is_all_day'] ?? 0),
+        'attendance_multiplier' => isset($event['attendance_multiplier']) ? (float)$event['attendance_multiplier'] : null,
+        'apply_when_not_late' => (int)($event['apply_when_not_late'] ?? 0),
+        'late_grace_minutes' => isset($event['late_grace_minutes']) && $event['late_grace_minutes'] !== null ? (int)$event['late_grace_minutes'] : null,
+        'applies_to_weekday' => trim((string)($event['applies_to_weekday'] ?? '')),
         'type' => (string)($event['type'] ?? 'custom'),
         'category' => (string)($event['category'] ?? 'Saved Event'),
         'person' => isset($event['person']) && is_array($event['person']) ? $event['person'] : null,
     ];
+}
+
+function normalize_weekday_key(?string $raw): string
+{
+    $value = strtolower(trim((string)$raw));
+    $allowed = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    return in_array($value, $allowed, true) ? $value : '';
 }
 
 function build_ph_events(int $year): array
@@ -275,7 +311,7 @@ if ($method === 'GET') {
     // Check if fetching a single event by ID
     $eventId = !empty($_GET['id']) ? (int)$_GET['id'] : 0;
     if ($eventId > 0) {
-        $stmt = $conn->prepare("SELECT id, title, location, description, start_at, end_at, color, is_all_day
+        $stmt = $conn->prepare("SELECT id, title, location, description, start_at, end_at, color, is_all_day, attendance_multiplier, apply_when_not_late, late_grace_minutes, applies_to_weekday
             FROM calendar_events
             WHERE id = ? AND deleted_at IS NULL
             LIMIT 1");
@@ -301,6 +337,10 @@ if ($method === 'GET') {
             'end_at' => (string)$event['end_at'],
             'color' => (string)($event['color'] ?? '#0d6efd'),
             'is_all_day' => (int)($event['is_all_day'] ?? 0),
+            'attendance_multiplier' => $event['attendance_multiplier'] ?? null,
+            'apply_when_not_late' => $event['apply_when_not_late'] ?? 0,
+            'late_grace_minutes' => $event['late_grace_minutes'] ?? null,
+            'applies_to_weekday' => $event['applies_to_weekday'] ?? '',
             'type' => 'custom',
             'category' => 'Saved Event',
         ])]);
@@ -309,9 +349,10 @@ if ($method === 'GET') {
     // Otherwise, fetch events by date range or all events
     $from = normalize_datetime((string)($_GET['from'] ?? ''));
     $to = normalize_datetime((string)($_GET['to'] ?? ''));
+    $includeBirthdays = in_array(strtolower(trim((string)($_GET['include_birthdays'] ?? '0'))), ['1', 'true', 'yes', 'on'], true);
 
     if ($from !== null && $to !== null) {
-        $stmt = $conn->prepare("SELECT id, title, location, description, start_at, end_at, color, is_all_day
+                $stmt = $conn->prepare("SELECT id, title, location, description, start_at, end_at, color, is_all_day, attendance_multiplier, apply_when_not_late, late_grace_minutes, applies_to_weekday
             FROM calendar_events
             WHERE deleted_at IS NULL
               AND start_at <= ?
@@ -322,7 +363,7 @@ if ($method === 'GET') {
         }
         $stmt->bind_param('ss', $to, $from);
     } else {
-        $stmt = $conn->prepare("SELECT id, title, location, description, start_at, end_at, color, is_all_day
+        $stmt = $conn->prepare("SELECT id, title, location, description, start_at, end_at, color, is_all_day, attendance_multiplier, apply_when_not_late, late_grace_minutes, applies_to_weekday
             FROM calendar_events
             WHERE deleted_at IS NULL
             ORDER BY start_at ASC
@@ -345,6 +386,10 @@ if ($method === 'GET') {
             'end_at' => (string)$row['end_at'],
             'color' => (string)($row['color'] ?? '#0d6efd'),
             'is_all_day' => (int)($row['is_all_day'] ?? 0),
+            'attendance_multiplier' => $row['attendance_multiplier'] ?? null,
+            'apply_when_not_late' => $row['apply_when_not_late'] ?? 0,
+            'late_grace_minutes' => $row['late_grace_minutes'] ?? null,
+            'applies_to_weekday' => $row['applies_to_weekday'] ?? '',
             'type' => 'custom',
             'category' => 'Saved Event',
         ]);
@@ -363,7 +408,9 @@ if ($method === 'GET') {
 
     foreach ($years as $year) {
         $events = array_merge($events, filter_derived_events(build_ph_events($year), $from, $to));
-        $events = array_merge($events, filter_derived_events(build_ojt_birthday_events($conn, $year), $from, $to));
+        if ($includeBirthdays) {
+            $events = array_merge($events, filter_derived_events(build_ojt_birthday_events($conn, $year), $from, $to));
+        }
     }
 
     usort($events, static function (array $left, array $right): int {
@@ -374,7 +421,11 @@ if ($method === 'GET') {
         return strcasecmp((string)($left['title'] ?? ''), (string)($right['title'] ?? ''));
     });
 
-    respond_json(200, ['success' => true, 'events' => $events]);
+    respond_json(200, [
+        'success' => true,
+        'events' => $events,
+        'include_birthdays' => $includeBirthdays ? 1 : 0,
+    ]);
 }
 
 if ($method !== 'POST') {
@@ -462,6 +513,14 @@ if ($action === 'create') {
     $description = trim((string)($data['description'] ?? ''));
     $color = trim((string)($data['color'] ?? '#0d6efd'));
     $isAllDay = !empty($data['is_all_day']) ? 1 : 0;
+    $attendanceMultiplier = isset($data['attendance_multiplier']) && $data['attendance_multiplier'] !== ''
+        ? (float)$data['attendance_multiplier']
+        : null;
+    $applyWhenNotLate = !empty($data['apply_when_not_late']) ? 1 : 0;
+    $lateGraceMinutes = isset($data['late_grace_minutes']) && $data['late_grace_minutes'] !== ''
+        ? max(0, (int)$data['late_grace_minutes'])
+        : null;
+    $appliesToWeekday = normalize_weekday_key((string)($data['applies_to_weekday'] ?? ''));
     $startAt = normalize_datetime((string)($data['start_at'] ?? ''));
     $endAt = normalize_datetime((string)($data['end_at'] ?? ''));
 
@@ -471,14 +530,18 @@ if ($action === 'create') {
     if (strtotime($endAt) < strtotime($startAt)) {
         respond_json(400, ['success' => false, 'message' => 'End time must be after start time']);
     }
+    if ($attendanceMultiplier !== null && $attendanceMultiplier <= 0) {
+        $attendanceMultiplier = null;
+    }
 
     $stmt = $conn->prepare("INSERT INTO calendar_events
-        (user_id, title, location, description, start_at, end_at, color, is_all_day)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        (user_id, title, location, description, start_at, end_at, color, is_all_day, attendance_multiplier, apply_when_not_late, late_grace_minutes, applies_to_weekday)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     if (!$stmt) {
         respond_json(500, ['success' => false, 'message' => 'Failed to prepare create query']);
     }
-    $stmt->bind_param('issssssi', $userId, $title, $location, $description, $startAt, $endAt, $color, $isAllDay);
+    $weekdayValue = $appliesToWeekday !== '' ? $appliesToWeekday : null;
+    $stmt->bind_param('issssssidiis', $userId, $title, $location, $description, $startAt, $endAt, $color, $isAllDay, $attendanceMultiplier, $applyWhenNotLate, $lateGraceMinutes, $weekdayValue);
     if (!$stmt->execute()) {
         $stmt->close();
         respond_json(500, ['success' => false, 'message' => 'Failed to create event']);
@@ -496,6 +559,14 @@ if ($action === 'update') {
     $description = trim((string)($data['description'] ?? ''));
     $color = trim((string)($data['color'] ?? '#0d6efd'));
     $isAllDay = !empty($data['is_all_day']) ? 1 : 0;
+    $attendanceMultiplier = isset($data['attendance_multiplier']) && $data['attendance_multiplier'] !== ''
+        ? (float)$data['attendance_multiplier']
+        : null;
+    $applyWhenNotLate = !empty($data['apply_when_not_late']) ? 1 : 0;
+    $lateGraceMinutes = isset($data['late_grace_minutes']) && $data['late_grace_minutes'] !== ''
+        ? max(0, (int)$data['late_grace_minutes'])
+        : null;
+    $appliesToWeekday = normalize_weekday_key((string)($data['applies_to_weekday'] ?? ''));
     $startAt = normalize_datetime((string)($data['start_at'] ?? ''));
     $endAt = normalize_datetime((string)($data['end_at'] ?? ''));
 
@@ -505,15 +576,20 @@ if ($action === 'update') {
     if (strtotime($endAt) < strtotime($startAt)) {
         respond_json(400, ['success' => false, 'message' => 'End time must be after start time']);
     }
+    if ($attendanceMultiplier !== null && $attendanceMultiplier <= 0) {
+        $attendanceMultiplier = null;
+    }
 
     $stmt = $conn->prepare("UPDATE calendar_events
-        SET title = ?, location = ?, description = ?, start_at = ?, end_at = ?, color = ?, is_all_day = ?
+        SET title = ?, location = ?, description = ?, start_at = ?, end_at = ?, color = ?, is_all_day = ?,
+            attendance_multiplier = ?, apply_when_not_late = ?, late_grace_minutes = ?, applies_to_weekday = ?
         WHERE id = ? AND deleted_at IS NULL
         LIMIT 1");
     if (!$stmt) {
         respond_json(500, ['success' => false, 'message' => 'Failed to prepare update query']);
     }
-    $stmt->bind_param('ssssssii', $title, $location, $description, $startAt, $endAt, $color, $isAllDay, $eventId);
+    $weekdayValue = $appliesToWeekday !== '' ? $appliesToWeekday : null;
+    $stmt->bind_param('ssssssidiisi', $title, $location, $description, $startAt, $endAt, $color, $isAllDay, $attendanceMultiplier, $applyWhenNotLate, $lateGraceMinutes, $weekdayValue, $eventId);
     if (!$stmt->execute()) {
         $stmt->close();
         respond_json(500, ['success' => false, 'message' => 'Failed to update event']);

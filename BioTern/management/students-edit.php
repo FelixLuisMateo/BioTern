@@ -17,6 +17,20 @@ $current_role = strtolower(trim((string) (
 $can_edit_sensitive_hours = in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
 $can_edit_hours = true;
 
+function biotern_student_edit_ensure_runtime_dir(string $path): bool
+{
+    if (is_dir($path)) {
+        return true;
+    }
+
+    $parent = dirname($path);
+    if (!is_dir($parent) || !is_writable($parent)) {
+        return false;
+    }
+
+    return @mkdir($path, 0755, true) || is_dir($path);
+}
+
 // Ensure new student assignment/hour fields exist.
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours INT(11) DEFAULT NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours_remaining INT(11) DEFAULT NULL");
@@ -35,18 +49,12 @@ if ($student_id == 0) {
 // Use project-root uploads so files resolve from both legacy and organized routes.
 $project_root = dirname(__DIR__);
 $uploads_dir = $project_root . '/uploads/profile_pictures';
-if (!is_dir($uploads_dir)) {
-    mkdir($uploads_dir, 0755, true);
-}
+$uploads_available = biotern_student_edit_ensure_runtime_dir($uploads_dir);
 // Ensure other upload folders exist
 $uploads_manual_dtr = $project_root . '/uploads/manual_dtr';
-if (!is_dir($uploads_manual_dtr)) {
-    mkdir($uploads_manual_dtr, 0755, true);
-}
+$uploads_available = biotern_student_edit_ensure_runtime_dir($uploads_manual_dtr) && $uploads_available;
 $uploads_documents = $project_root . '/uploads/documents';
-if (!is_dir($uploads_documents)) {
-    mkdir($uploads_documents, 0755, true);
-}
+$uploads_available = biotern_student_edit_ensure_runtime_dir($uploads_documents) && $uploads_available;
 
 // Fetch Student Details
 $student_query = "
@@ -196,6 +204,9 @@ $success_message = '';
 $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $lock_conflict_detected = false;
+    $lock_conflict_message = '';
+
     // Handle profile picture upload
     $profile_picture_path = $student['profile_picture'] ?? '';
     
@@ -342,12 +353,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
-    // Validation
-    if (empty($first_name) || empty($last_name) || empty($email)) {
-        $error_message = "First Name, Last Name, and Email are required fields!";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error_message = "Invalid email format!";
-    } elseif ($original_updated_at !== '') {
+    if ($original_updated_at !== '') {
         $lock_stmt = $conn->prepare("SELECT updated_at FROM students WHERE id = ? LIMIT 1");
         if ($lock_stmt) {
             $lock_stmt->bind_param("i", $student_id);
@@ -356,9 +362,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $lock_stmt->close();
             $current_updated_at = (string)($lock_row['updated_at'] ?? '');
             if ($current_updated_at !== '' && $current_updated_at !== $original_updated_at) {
-                $error_message = "This student record was updated by another user. Please refresh and review the latest data before saving again.";
+                $lock_conflict_detected = true;
+                $lock_conflict_message = 'Note: This record was updated recently by another process/user. Your latest changes were saved.';
             }
         }
+    }
+
+    // Validation
+    if (empty($first_name) || empty($last_name) || empty($email)) {
+        $error_message = "First Name, Last Name, and Email are required fields!";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error_message = "Invalid email format!";
     } elseif ($assignment_track === 'external' && ($internal_total_hours_remaining === null || $internal_total_hours_remaining > 0)) {
         $error_message = "Cannot assign student to External unless Internal is completed (Internal Total Hours Remaining must be 0).";
     } else {
@@ -531,6 +545,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     }
 
                     $success_message = "Student information updated successfully!";
+                    if ($lock_conflict_detected && $lock_conflict_message !== '') {
+                        $success_message .= ' ' . $lock_conflict_message;
+                    }
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
                     $stmt->bind_param("i", $student_id);

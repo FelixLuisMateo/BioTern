@@ -28,6 +28,27 @@ try {
         die("Connection failed: " . $conn->connect_error);
     }
     section_schedule_ensure_columns($conn);
+
+    $calendarColumns = [];
+    $calendarColumnsRes = $conn->query("SHOW COLUMNS FROM calendar_events");
+    if ($calendarColumnsRes instanceof mysqli_result) {
+        while ($calendarColumn = $calendarColumnsRes->fetch_assoc()) {
+            $calendarColumns[strtolower((string)($calendarColumn['Field'] ?? ''))] = true;
+        }
+        $calendarColumnsRes->close();
+    }
+    if (!isset($calendarColumns['attendance_multiplier'])) {
+        $conn->query("ALTER TABLE calendar_events ADD COLUMN attendance_multiplier DECIMAL(6,2) NULL AFTER color");
+    }
+    if (!isset($calendarColumns['apply_when_not_late'])) {
+        $conn->query("ALTER TABLE calendar_events ADD COLUMN apply_when_not_late TINYINT(1) NOT NULL DEFAULT 0 AFTER attendance_multiplier");
+    }
+    if (!isset($calendarColumns['late_grace_minutes'])) {
+        $conn->query("ALTER TABLE calendar_events ADD COLUMN late_grace_minutes INT NULL AFTER apply_when_not_late");
+    }
+    if (!isset($calendarColumns['applies_to_weekday'])) {
+        $conn->query("ALTER TABLE calendar_events ADD COLUMN applies_to_weekday VARCHAR(16) NULL AFTER late_grace_minutes");
+    }
 } catch (Exception $e) {
     die("Database Error: " . $e->getMessage());
 }
@@ -426,10 +447,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             $avatar_html .= '<div><div class="fw-bold">' . htmlspecialchars(($attendance['first_name'] ?? '') . ' ' . ($attendance['last_name'] ?? '')) . '</div><small class="text-muted">' . htmlspecialchars($attendance['student_number'] ?? '') . '</small></div></a>';
             echo '<td>' . $avatar_html . '</td>';
             echo '<td><span class="badge bg-soft-primary text-primary">' . date('Y-m-d', strtotime($attendance['attendance_date'])) . '</span></td>';
-            echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_in'] ? date('h:i A', strtotime($attendance['morning_time_in'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-success text-success">' . ( $attendance['morning_time_out'] ? date('h:i A', strtotime($attendance['morning_time_out'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_in'] ? date('h:i A', strtotime($attendance['afternoon_time_in'])) : '-' ) . '</span></td>';
-            echo '<td><span class="badge bg-soft-warning text-warning">' . ( $attendance['afternoon_time_out'] ? date('h:i A', strtotime($attendance['afternoon_time_out'])) : '-' ) . '</span></td>';
+            echo '<td>' . attendanceDisplayTimeHtml($attendance, 'morning_time_in', 'bg-soft-success text-success') . '</td>';
+            echo '<td>' . attendanceDisplayTimeHtml($attendance, 'morning_time_out', 'bg-soft-success text-success') . '</td>';
+            echo '<td>' . attendanceDisplayTimeHtml($attendance, 'afternoon_time_in', 'bg-soft-warning text-warning') . '</td>';
+            echo '<td>' . attendanceDisplayTimeHtml($attendance, 'afternoon_time_out', 'bg-soft-warning text-warning') . '</td>';
             echo '<td>' . attendance_hours_cell_html($attendance) . '</td>';
             echo '<td>' . attendance_status_cell_html($attendance) . '</td>';
             echo '<td>' . getSourceBadge($attendance['source'] ?? 'manual', $attendance) . '</td>';
@@ -453,6 +474,108 @@ function formatTime($time) {
         return date('h:i A', strtotime($time));
     }
     return '-';
+}
+
+function attendanceDateWeekdayKey(?string $date): string {
+    $date = trim((string)$date);
+    if ($date === '') {
+        return '';
+    }
+    $timestamp = strtotime($date);
+    if ($timestamp === false) {
+        return '';
+    }
+    return strtolower((string)date('l', $timestamp));
+}
+
+function attendanceScheduleDisplayFallback(array $attendance, string $column): ?string {
+    if (strtolower(trim((string)($attendance['source'] ?? ''))) !== 'biometric') {
+        return null;
+    }
+
+    $schedule = attendance_effective_schedule($attendance);
+    if (($schedule['window_source'] ?? 'none') === 'none') {
+        return null;
+    }
+
+    $session = section_schedule_inferred_session($schedule);
+    $scheduleIn = section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? ''));
+    $scheduleOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
+
+    if ($session === 'morning_only') {
+        if ($column === 'morning_time_in') {
+            return $scheduleIn;
+        }
+        if ($column === 'morning_time_out') {
+            return $scheduleOut;
+        }
+        return null;
+    }
+
+    if ($session === 'afternoon_only') {
+        if ($column === 'afternoon_time_in') {
+            return $scheduleIn;
+        }
+        if ($column === 'afternoon_time_out') {
+            return $scheduleOut;
+        }
+        return null;
+    }
+
+    // For whole-day schedules, only show fallback on start/end edge columns.
+    if ($column === 'morning_time_in') {
+        return $scheduleIn;
+    }
+    if ($column === 'afternoon_time_out') {
+        return $scheduleOut;
+    }
+
+    return null;
+}
+
+function attendanceResolvedTime(array $attendance, string $column): array {
+    $raw = trim((string)($attendance[$column] ?? ''));
+    if ($raw !== '' && $raw !== '00:00:00') {
+        return ['time' => $raw, 'is_schedule' => false];
+    }
+
+    $fallback = attendanceScheduleDisplayFallback($attendance, $column);
+    if ($fallback !== null && $fallback !== '') {
+        return ['time' => $fallback, 'is_schedule' => true];
+    }
+
+    return ['time' => null, 'is_schedule' => false];
+}
+
+function attendanceScheduledClassLabel(array $attendance): string
+{
+    $schedule = attendance_effective_schedule($attendance);
+    $scheduleIn = section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? ''));
+    $scheduleOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
+
+    if ($scheduleIn === '' || $scheduleOut === '') {
+        return 'Scheduled class time';
+    }
+
+    $from = date('g:i A', strtotime($scheduleIn));
+    $to = date('g:i A', strtotime($scheduleOut));
+    return 'Scheduled class: ' . $from . ' to ' . $to;
+}
+
+function attendanceDisplayTimeHtml(array $attendance, string $column, string $badgeClass): string {
+    $resolved = attendanceResolvedTime($attendance, $column);
+    if ($resolved['time'] === null) {
+        return '<span class="badge ' . $badgeClass . '">-</span>';
+    }
+
+    $timeLabel = date('h:i A', strtotime((string)$resolved['time']));
+    if (!$resolved['is_schedule']) {
+        return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8') . '</span>';
+    }
+
+    $scheduledLabel = attendanceScheduledClassLabel($attendance);
+    return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8') . '</span>'
+        . '<div class="fs-11 text-muted mt-1">' . htmlspecialchars($scheduledLabel, ENT_QUOTES, 'UTF-8') . '</div>';
 }
 
 function resolve_attendance_profile_image_url(string $profilePath): ?string {
@@ -689,7 +812,106 @@ function attendance_window_metrics(array $attendance): array {
         'official_hours' => $officialHours,
         'early_hours' => $earlyHours,
         'overtime_hours' => $overtimeHours,
+        'late_after' => $lateAfter,
     ];
+}
+
+function attendanceCalendarBonusRulesForDate(string $dateKey): array {
+    static $cache = [];
+    global $conn;
+
+    if ($dateKey === '') {
+        return [];
+    }
+    if (isset($cache[$dateKey])) {
+        return $cache[$dateKey];
+    }
+    if (!($conn instanceof mysqli)) {
+        $cache[$dateKey] = [];
+        return $cache[$dateKey];
+    }
+
+    $sql = "
+        SELECT
+            id,
+            title,
+            attendance_multiplier,
+            apply_when_not_late,
+            late_grace_minutes,
+            applies_to_weekday
+        FROM calendar_events
+        WHERE deleted_at IS NULL
+          AND attendance_multiplier IS NOT NULL
+          AND attendance_multiplier > 0
+          AND DATE(start_at) <= ?
+          AND DATE(end_at) >= ?
+        ORDER BY attendance_multiplier DESC, id DESC
+    ";
+
+    $rules = [];
+    $stmt = $conn->prepare($sql);
+    if ($stmt) {
+        $stmt->bind_param('ss', $dateKey, $dateKey);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        while ($row = $result->fetch_assoc()) {
+            $rules[] = $row;
+        }
+        $stmt->close();
+    }
+
+    $cache[$dateKey] = $rules;
+    return $cache[$dateKey];
+}
+
+function attendanceMultiplierContext(array $attendance, ?array $metrics = null): array {
+    $dateKey = substr((string)($attendance['attendance_date'] ?? ''), 0, 10);
+    $rules = attendanceCalendarBonusRulesForDate($dateKey);
+    if ($rules === []) {
+        return ['multiplier' => 1.0, 'rule' => null];
+    }
+
+    $metrics = is_array($metrics) ? $metrics : attendance_window_metrics($attendance);
+    $weekday = attendanceDateWeekdayKey($dateKey);
+
+    foreach ($rules as $rule) {
+        $ruleWeekday = strtolower(trim((string)($rule['applies_to_weekday'] ?? '')));
+        if ($ruleWeekday !== '' && $ruleWeekday !== $weekday) {
+            continue;
+        }
+
+        $requiresNotLate = (int)($rule['apply_when_not_late'] ?? 0) === 1;
+        if ($requiresNotLate) {
+            $firstPunch = trim((string)($metrics['first_punch'] ?? ''));
+            if ($firstPunch === '') {
+                continue;
+            }
+
+            $lateAfter = trim((string)($metrics['late_after'] ?? ''));
+            if ($lateAfter === '') {
+                continue;
+            }
+
+            $lateSeconds = strtotime($firstPunch) - strtotime($lateAfter);
+            $lateMinutes = $lateSeconds > 0 ? (int)floor($lateSeconds / 60) : 0;
+            $graceMinutes = max(0, (int)($rule['late_grace_minutes'] ?? 0));
+            if ($lateMinutes > $graceMinutes) {
+                continue;
+            }
+        }
+
+        $multiplier = (float)($rule['attendance_multiplier'] ?? 1);
+        if ($multiplier <= 0) {
+            continue;
+        }
+
+        return [
+            'multiplier' => $multiplier,
+            'rule' => $rule,
+        ];
+    }
+
+    return ['multiplier' => 1.0, 'rule' => null];
 }
 
 function attendance_format_hours_label(float $hours): string {
@@ -700,18 +922,8 @@ function attendance_hours_cell_html(array $attendance): string {
     $computedHours = isset($attendance['computed_total_hours'])
         ? (float)$attendance['computed_total_hours']
         : calculateAttendanceRowHours($attendance);
-    $metrics = attendance_window_metrics($attendance);
 
-    $meta = ['Scheduled ' . attendance_format_hours_label((float)$metrics['official_hours'])];
-    if ((float)$metrics['early_hours'] > 0) {
-        $meta[] = 'Early ' . attendance_format_hours_label((float)$metrics['early_hours']);
-    }
-    if ((float)$metrics['overtime_hours'] > 0) {
-        $meta[] = 'OT ' . attendance_format_hours_label((float)$metrics['overtime_hours']);
-    }
-
-    return '<span class="badge bg-soft-secondary text-secondary">' . attendance_format_hours_label($computedHours) . '</span>'
-        . '<div class="fs-11 text-muted mt-1">' . htmlspecialchars(implode(' | ', $meta), ENT_QUOTES, 'UTF-8') . '</div>';
+    return '<span class="badge bg-soft-secondary text-secondary">' . attendance_format_hours_label($computedHours) . '</span>';
 }
 
 function attendance_status_cell_html(array $attendance): string {
@@ -741,7 +953,14 @@ function attendance_status_cell_html(array $attendance): string {
 }
 
 function calculateAttendanceRowHours(array $attendance): float {
-    return round(attendance_credited_seconds($attendance) / 3600, 2);
+    $baseHours = round(attendance_credited_seconds($attendance) / 3600, 2);
+    if ($baseHours <= 0) {
+        return 0.0;
+    }
+
+    $bonus = attendanceMultiplierContext($attendance);
+    $multiplier = max(1.0, (float)($bonus['multiplier'] ?? 1));
+    return round($baseHours * $multiplier, 2);
 }
 
 function synchronizeAttendanceProgress(mysqli $conn, array &$attendances): void {
@@ -1428,14 +1647,10 @@ echo $attendance['student_number'] ?? 'N/A'; ?></span>
                                                         </td>
                                                         <td><span class="badge bg-soft-primary text-primary"><?php
 echo date('Y-m-d', strtotime($attendance['attendance_date'])); ?></span></td>
-                                                        <td><span class="badge bg-soft-success text-success"><?php
-echo formatTime($attendance['morning_time_in']); ?></span></td>
-                                                        <td><span class="badge bg-soft-success text-success"><?php
-echo formatTime($attendance['morning_time_out']); ?></span></td>
-                                                        <td><span class="badge bg-soft-warning text-warning"><?php
-echo formatTime($attendance['afternoon_time_in']); ?></span></td>
-                                                        <td><span class="badge bg-soft-warning text-warning"><?php
-echo formatTime($attendance['afternoon_time_out']); ?></span></td>
+                                                        <td><?php echo attendanceDisplayTimeHtml($attendance, 'morning_time_in', 'bg-soft-success text-success'); ?></td>
+                                                        <td><?php echo attendanceDisplayTimeHtml($attendance, 'morning_time_out', 'bg-soft-success text-success'); ?></td>
+                                                        <td><?php echo attendanceDisplayTimeHtml($attendance, 'afternoon_time_in', 'bg-soft-warning text-warning'); ?></td>
+                                                        <td><?php echo attendanceDisplayTimeHtml($attendance, 'afternoon_time_out', 'bg-soft-warning text-warning'); ?></td>
                                                         <td>
                                                             <?php
 echo attendance_hours_cell_html($attendance); ?>

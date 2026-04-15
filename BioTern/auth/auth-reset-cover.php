@@ -229,7 +229,7 @@ if ($reset_error !== '') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="zxx">
+<html lang="en">
 
 <head>
     <meta charset="utf-8">
@@ -238,44 +238,48 @@ if ($reset_error !== '') {
     <meta name="description" content="">
     <meta name="keyword" content="">
     <meta name="author" content="ACT 2A Group 5">
-    <title>BioTern || Reset Cover</title>
+    <title>BioTern || Reset Password</title>
     <link rel="shortcut icon" type="image/x-icon" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/favicon.ico">
+    <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/modules/shared/theme-state-core.js"></script>
     <script src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/js/theme-preload-init.min.js"></script>
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/smacss.css">
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/state/notification-skin.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/modules/auth/auth-login-cover.css">
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/css/modules/auth/auth-recovery-cover.css">
 </head>
 
-<body>
+<body class="auth-login-page auth-recovery-page">
+    <div class="login-bg-watermark recovery-bg-watermark" aria-hidden="true"></div>
     <main class="auth-cover-wrapper">
         <div class="auth-cover-content-inner">
             <div class="auth-cover-content-wrapper">
-                <div class="auth-img">
-                    <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/auth/auth-cover-reset-bg.svg" alt="" class="img-fluid">
-                </div>
+                <div class="auth-img auth-login-visual" aria-hidden="true"></div>
             </div>
         </div>
         <div class="auth-cover-sidebar-inner">
             <div class="auth-cover-card-wrapper">
-                <div class="auth-cover-card p-sm-5">
-                    <div class="wd-50 mb-5">
-                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-abbr.png" alt="" class="img-fluid">
+                <div class="auth-cover-card p-sm-5 auth-recovery-card">
+                    <div class="auth-brand-lockup mb-5">
+                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/ccstlogo.png" alt="Clark College of Science and Technology" class="auth-brand-lockup-school">
+                        <img src="<?php echo htmlspecialchars($asset_prefix, ENT_QUOTES, 'UTF-8'); ?>assets/images/logo-full-header.png" alt="BioTern" class="auth-brand-lockup-app">
                     </div>
-                    <h2 class="fs-20 fw-bolder mb-4">Reset</h2>
-                    <h4 class="fs-13 fw-bold mb-2">Reset your password</h4>
-                    <p class="fs-12 fw-medium text-muted">Enter your email and we'll send a verification code to your registered email.</p>
+                    <h2 class="fs-25 fw-bolder mb-3">Reset Password</h2>
+                    <h4 class="fs-15 fw-bold mb-2">We will send a verification code to your registered email.</h4>
+                    <p class="fs-12 fw-medium text-muted mb-0">Enter your account email to continue the recovery flow.</p>
 
-                    <form method="post" action="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-reset-cover.php" class="w-100 mt-4 pt-2">
+                    <form method="post" action="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-reset-cover.php" class="w-100 mt-4 pt-2" novalidate>
                         <div class="mb-4">
-                            <input name="identifier" class="form-control" placeholder="Email" value="<?php echo htmlspecialchars($identifier_value, ENT_QUOTES, 'UTF-8'); ?>" required>
+                            <input type="email" name="identifier" id="identifier" class="form-control" placeholder="Account Email" value="<?php echo htmlspecialchars($identifier_value, ENT_QUOTES, 'UTF-8'); ?>" required autocomplete="email" spellcheck="false">
                         </div>
                         <div class="mt-5">
-                            <button type="submit" class="btn btn-lg btn-primary w-100">Reset Now</button>
+                            <button type="submit" class="btn btn-lg btn-primary w-100">Send Verification Code</button>
                         </div>
                     </form>
-                    <div class="mt-5 text-muted">
-                        <span>Remembered your password?</span>
+
+                    <div class="auth-recovery-links mt-4">
+                        <span class="text-muted">Remembered your password?</span>
                         <a href="<?php echo htmlspecialchars($route_prefix, ENT_QUOTES, 'UTF-8'); ?>auth-login.php" class="fw-bold">Back to Login</a>
                     </div>
                 </div>

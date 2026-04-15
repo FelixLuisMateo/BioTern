@@ -1,6 +1,9 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/section_schedule.php';
 /** @var mysqli $conn */
+
+section_schedule_ensure_columns($conn);
 
 $message = '';
 $message_type = 'info';
@@ -70,6 +73,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $department_id = $hasSectionDepartment ? (int)$defaultDepartmentId : 0;
     $status_text = strtolower(trim((string)($_POST['status'] ?? 'active')));
     $status_flag = ($status_text === 'inactive') ? 0 : 1;
+    $attendance_session = section_schedule_normalize_session((string)($_POST['attendance_session'] ?? 'whole_day'));
+    $schedule_time_in = section_schedule_normalize_time_input((string)($_POST['schedule_time_in'] ?? ''));
+    $schedule_time_out = section_schedule_normalize_time_input((string)($_POST['schedule_time_out'] ?? ''));
+    $late_after_time = section_schedule_normalize_time_input((string)($_POST['late_after_time'] ?? ''));
+    $weekly_schedule = section_schedule_normalize_weekly_input(
+        $_POST['weekly_schedule'] ?? [],
+        [
+            'attendance_session' => $attendance_session,
+            'schedule_time_in' => $schedule_time_in ?? '',
+            'schedule_time_out' => $schedule_time_out ?? '',
+            'late_after_time' => $late_after_time ?? '',
+        ]
+    );
+    $weekly_schedule_json = section_schedule_encode_weekly($weekly_schedule);
     $selectedCourseCode = (string)($courseCodeById[$course_id] ?? '');
     $yearThreeCourses = ['HTM', 'HMT', 'BSOA', 'BSE'];
 
@@ -132,6 +149,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $columns = ['code', 'name', 'course_id'];
                 $values = ["'" . $conn->real_escape_string($code) . "'", "'" . $conn->real_escape_string($name) . "'", (string)$course_id];
 
+                $columns[] = 'attendance_session';
+                $values[] = "'" . $conn->real_escape_string($attendance_session) . "'";
+                $columns[] = 'schedule_time_in';
+                $values[] = $schedule_time_in !== null ? ("'" . $conn->real_escape_string($schedule_time_in) . "'") : 'NULL';
+                $columns[] = 'schedule_time_out';
+                $values[] = $schedule_time_out !== null ? ("'" . $conn->real_escape_string($schedule_time_out) . "'") : 'NULL';
+                $columns[] = 'late_after_time';
+                $values[] = $late_after_time !== null ? ("'" . $conn->real_escape_string($late_after_time) . "'") : 'NULL';
+                $columns[] = 'weekly_schedule_json';
+                $values[] = "'" . $conn->real_escape_string($weekly_schedule_json) . "'";
+
                 if ($hasSectionDepartment) {
                     $columns[] = 'department_id';
                     $values[] = (string)$department_id;
@@ -188,6 +216,114 @@ $page_title = 'Create Section';
 $page_styles = ['assets/css/modules/management/management-create-shared.css'];
 $page_scripts = ['assets/js/modules/management/management-sections-create-runtime.js'];
 include 'includes/header.php';
+?>
+<style>
+    .create-form-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .create-form-actions .btn {
+        width: auto !important;
+        min-width: 140px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .section-time-field {
+        position: relative;
+    }
+
+    .section-time-field .form-control[type="time"] {
+        padding-right: 3rem;
+    }
+
+    .section-time-trigger {
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 0;
+        background: transparent;
+        color: inherit;
+        opacity: 0.7;
+        cursor: pointer;
+    }
+
+    .section-time-trigger:hover,
+    .section-time-trigger:focus {
+        opacity: 1;
+    }
+
+    .weekly-schedule-card {
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .weekly-schedule-grid {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .weekly-schedule-row {
+        display: grid;
+        grid-template-columns: 120px minmax(160px, 1fr) repeat(3, minmax(150px, 1fr));
+        gap: 0.75rem;
+        align-items: end;
+    }
+
+    .weekly-schedule-day {
+        font-weight: 600;
+        padding-bottom: 0.65rem;
+    }
+
+    .weekly-schedule-head {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        opacity: 0.75;
+    }
+
+    @media (max-width: 991.98px) {
+        .weekly-schedule-row {
+            grid-template-columns: 1fr;
+            padding: 0.75rem;
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            border-radius: 10px;
+        }
+
+        .weekly-schedule-head {
+            display: none;
+        }
+
+        .weekly-schedule-day {
+            padding-bottom: 0;
+        }
+    }
+</style>
+<?php
+$defaultSectionSchedule = section_schedule_from_row([
+    'attendance_session' => section_schedule_normalize_session((string)($_POST['attendance_session'] ?? 'whole_day')),
+    'schedule_time_in' => (string)($_POST['schedule_time_in'] ?? '08:00'),
+    'schedule_time_out' => (string)($_POST['schedule_time_out'] ?? '17:00'),
+    'late_after_time' => (string)($_POST['late_after_time'] ?? '08:00'),
+    'weekly_schedule_json' => section_schedule_encode_weekly(
+        section_schedule_normalize_weekly_input(
+            $_POST['weekly_schedule'] ?? [],
+            [
+                'attendance_session' => (string)($_POST['attendance_session'] ?? 'whole_day'),
+                'schedule_time_in' => (string)($_POST['schedule_time_in'] ?? '08:00'),
+                'schedule_time_out' => (string)($_POST['schedule_time_out'] ?? '17:00'),
+                'late_after_time' => (string)($_POST['late_after_time'] ?? '08:00'),
+            ]
+        )
+    ),
+]);
+$defaultWeeklySchedule = $defaultSectionSchedule['weekly_schedule'] ?? [];
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
@@ -248,6 +384,100 @@ include 'includes/header.php';
                             <option value="inactive">Inactive</option>
                         </select>
                     </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Attendance Session</label>
+                        <select name="attendance_session" class="form-select">
+                            <option value="whole_day" <?php echo $defaultSectionSchedule['attendance_session'] === 'whole_day' ? 'selected' : ''; ?>>Whole day</option>
+                            <option value="morning_only" <?php echo $defaultSectionSchedule['attendance_session'] === 'morning_only' ? 'selected' : ''; ?>>Morning only</option>
+                            <option value="afternoon_only" <?php echo $defaultSectionSchedule['attendance_session'] === 'afternoon_only' ? 'selected' : ''; ?>>Afternoon only</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Scheduled Time In</label>
+                        <div class="section-time-field">
+                            <input type="time" name="schedule_time_in" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$defaultSectionSchedule['schedule_time_in']); ?>" step="60">
+                            <button type="button" class="section-time-trigger js-time-trigger" aria-label="Choose scheduled time in">
+                                <i class="feather-clock"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Scheduled Time Out</label>
+                        <div class="section-time-field">
+                            <input type="time" name="schedule_time_out" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$defaultSectionSchedule['schedule_time_out']); ?>" step="60">
+                            <button type="button" class="section-time-trigger js-time-trigger" aria-label="Choose scheduled time out">
+                                <i class="feather-clock"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Late After</label>
+                        <div class="section-time-field">
+                            <input type="time" name="late_after_time" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$defaultSectionSchedule['late_after_time']); ?>" step="60">
+                            <button type="button" class="section-time-trigger js-time-trigger" aria-label="Choose late after time">
+                                <i class="feather-clock"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="weekly-schedule-card">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div>
+                            <h6 class="mb-1">Monday to Saturday Schedule</h6>
+                            <small class="text-muted">Set the actual class hours for each weekday so attendance follows them automatically.</small>
+                        </div>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="copyDefaultScheduleButton">Copy Default To All Days</button>
+                    </div>
+                    <div class="weekly-schedule-grid">
+                        <div class="weekly-schedule-row weekly-schedule-head">
+                            <div>Day</div>
+                            <div>Session</div>
+                            <div>Time In</div>
+                            <div>Late After</div>
+                            <div>Time Out</div>
+                        </div>
+                        <?php foreach (section_schedule_weekday_order() as $dayKey): ?>
+                            <?php $daySchedule = $defaultWeeklySchedule[$dayKey] ?? section_schedule_empty_day($defaultSectionSchedule); ?>
+                            <div class="weekly-schedule-row">
+                                <div class="weekly-schedule-day"><?php echo htmlspecialchars(section_schedule_weekday_label($dayKey)); ?></div>
+                                <div>
+                                    <label class="form-label d-lg-none">Session</label>
+                                    <select name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][attendance_session]" class="form-select js-day-session">
+                                        <option value="whole_day" <?php echo $daySchedule['attendance_session'] === 'whole_day' ? 'selected' : ''; ?>>Whole day</option>
+                                        <option value="morning_only" <?php echo $daySchedule['attendance_session'] === 'morning_only' ? 'selected' : ''; ?>>Morning only</option>
+                                        <option value="afternoon_only" <?php echo $daySchedule['attendance_session'] === 'afternoon_only' ? 'selected' : ''; ?>>Afternoon only</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label d-lg-none">Time In</label>
+                                    <div class="section-time-field">
+                                        <input type="time" name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][schedule_time_in]" class="form-control js-section-time js-weekly-time-in" value="<?php echo htmlspecialchars((string)$daySchedule['schedule_time_in']); ?>" step="60">
+                                        <button type="button" class="section-time-trigger js-time-trigger" aria-label="Choose <?php echo htmlspecialchars(section_schedule_weekday_label($dayKey)); ?> time in">
+                                            <i class="feather-clock"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="form-label d-lg-none">Late After</label>
+                                    <div class="section-time-field">
+                                        <input type="time" name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][late_after_time]" class="form-control js-section-time js-weekly-late" value="<?php echo htmlspecialchars((string)$daySchedule['late_after_time']); ?>" step="60">
+                                        <button type="button" class="section-time-trigger js-time-trigger" aria-label="Choose <?php echo htmlspecialchars(section_schedule_weekday_label($dayKey)); ?> late after time">
+                                            <i class="feather-clock"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="form-label d-lg-none">Time Out</label>
+                                    <div class="section-time-field">
+                                        <input type="time" name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][schedule_time_out]" class="form-control js-section-time js-weekly-time-out" value="<?php echo htmlspecialchars((string)$daySchedule['schedule_time_out']); ?>" step="60">
+                                        <button type="button" class="section-time-trigger js-time-trigger" aria-label="Choose <?php echo htmlspecialchars(section_schedule_weekday_label($dayKey)); ?> time out">
+                                            <i class="feather-clock"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
                 <?php if ($hasSectionDepartment): ?>
                     <input type="hidden" name="department_id" value="<?php echo (int)$defaultDepartmentId; ?>">
@@ -262,6 +492,54 @@ include 'includes/header.php';
 </div>
 </div> <!-- .nxl-content -->
 </main>
+<script>
+    (function () {
+        document.querySelectorAll('.js-time-trigger').forEach(function (trigger) {
+            trigger.addEventListener('click', function () {
+                const input = this.parentElement ? this.parentElement.querySelector('.js-section-time') : null;
+                if (!input) {
+                    return;
+                }
+
+                if (typeof input.showPicker === 'function') {
+                    input.showPicker();
+                } else {
+                    input.focus();
+                    input.click();
+                }
+            });
+        });
+
+        const copyDefaultsButton = document.getElementById('copyDefaultScheduleButton');
+        if (copyDefaultsButton) {
+            copyDefaultsButton.addEventListener('click', function () {
+                const defaultSession = document.querySelector('select[name="attendance_session"]');
+                const defaultTimeIn = document.querySelector('input[name="schedule_time_in"]');
+                const defaultLateAfter = document.querySelector('input[name="late_after_time"]');
+                const defaultTimeOut = document.querySelector('input[name="schedule_time_out"]');
+
+                document.querySelectorAll('.weekly-schedule-row').forEach(function (row) {
+                    const session = row.querySelector('.js-day-session');
+                    const timeIn = row.querySelector('.js-weekly-time-in');
+                    const lateAfter = row.querySelector('.js-weekly-late');
+                    const timeOut = row.querySelector('.js-weekly-time-out');
+                    if (session && defaultSession) {
+                        session.value = defaultSession.value;
+                    }
+                    if (timeIn && defaultTimeIn) {
+                        timeIn.value = defaultTimeIn.value;
+                    }
+                    if (lateAfter && defaultLateAfter) {
+                        lateAfter.value = defaultLateAfter.value;
+                    }
+                    if (timeOut && defaultTimeOut) {
+                        timeOut.value = defaultTimeOut.value;
+                    }
+                });
+            });
+        }
+    })();
+</script>
 <?php
 include 'includes/footer.php';
 $conn->close();

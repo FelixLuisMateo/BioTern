@@ -23,6 +23,38 @@ $coordinatorOptions = [];
 $supervisorOptions = [];
 $courseDepartmentMap = [];
 $register_toast = null;
+$register_default_school_year = '';
+$register_default_semester = '';
+
+if ($conn && $conn->connect_errno === 0) {
+    $settingsStmt = $conn->prepare(
+        "SELECT `key`, `value` FROM system_settings WHERE category = 'general' AND `key` IN ('default_school_year', 'default_semester')"
+    );
+    if ($settingsStmt) {
+        $settingsStmt->execute();
+        $settingsResult = $settingsStmt->get_result();
+        while ($settingsRow = $settingsResult->fetch_assoc()) {
+            $settingsKey = trim((string)($settingsRow['key'] ?? ''));
+            $settingsValue = trim((string)($settingsRow['value'] ?? ''));
+            if ($settingsKey === 'default_school_year') {
+                $register_default_school_year = $settingsValue;
+            } elseif ($settingsKey === 'default_semester') {
+                $register_default_semester = $settingsValue;
+            }
+        }
+        $settingsStmt->close();
+    }
+}
+
+$register_year_now = (int)date('Y');
+$register_month_now = (int)date('n');
+$register_school_year_start = $register_month_now >= 7 ? $register_year_now : ($register_year_now - 1);
+if ($register_default_school_year === '' || !preg_match('/^\d{4}-\d{4}$/', $register_default_school_year)) {
+    $register_default_school_year = sprintf('%d-%d', $register_school_year_start, $register_school_year_start + 1);
+}
+if (!in_array($register_default_semester, ['1st Semester', '2nd Semester', 'Summer'], true)) {
+    $register_default_semester = '2nd Semester';
+}
 
 if ($conn && $conn->connect_errno === 0) {
     $conn->query("CREATE TABLE IF NOT EXISTS student_applications (
@@ -437,29 +469,14 @@ endforeach; ?>
                                 <input type="hidden" name="department_id" id="studentDepartmentSelect" value="">
                                 <div class="row g-3">
                                     <div class="col-12 col-md-4 mb-2">
-                                        <label class="form-label fs-12" for="studentSchoolYear">School Year</label>
-                                        <select name="school_year" id="studentSchoolYear" class="form-control" required>
-                                            <?php
-
-$currentYear = (int)date('Y');
-$startYear = 2005;
-for ($y = $currentYear; $y >= $startYear; $y--):
-    $label = $y . '-' . ($y + 1);
-?>
-                                                <option value="<?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $y === $currentYear ? 'selected' : ''; ?>>
-                                                    <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
-                                                </option>
-                                            <?php endfor; ?>
-                                        </select>
+                                        <label class="form-label fs-12" for="studentSchoolYearDisplay">School Year</label>
+                                        <input type="text" id="studentSchoolYearDisplay" class="form-control" value="<?php echo htmlspecialchars($register_default_school_year, ENT_QUOTES, 'UTF-8'); ?>" readonly>
+                                        <input type="hidden" name="school_year" id="studentSchoolYear" value="<?php echo htmlspecialchars($register_default_school_year, ENT_QUOTES, 'UTF-8'); ?>">
                                     </div>
                                     <div class="col-12 col-md-4 mb-2">
-                                        <label class="form-label fs-12" for="studentSemester">Semester</label>
-                                        <select name="semester" id="studentSemester" class="form-control" required>
-                                            <option value="" disabled selected>Select Semester</option>
-                                            <option value="1st Semester">1st Semester</option>
-                                            <option value="2nd Semester">2nd Semester</option>
-                                            <option value="Summer">Summer</option>
-                                        </select>
+                                        <label class="form-label fs-12" for="studentSemesterDisplay">Semester</label>
+                                        <input type="text" id="studentSemesterDisplay" class="form-control" value="<?php echo htmlspecialchars($register_default_semester, ENT_QUOTES, 'UTF-8'); ?>" readonly>
+                                        <input type="hidden" name="semester" id="studentSemester" value="<?php echo htmlspecialchars($register_default_semester, ENT_QUOTES, 'UTF-8'); ?>">
                                     </div>
                                 </div>
                                 <div class="row g-3">

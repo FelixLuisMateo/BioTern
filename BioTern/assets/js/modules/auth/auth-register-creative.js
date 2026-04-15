@@ -1140,12 +1140,27 @@ function setupFloatingTextFields() {
             let inserted = 0;
 
             function formatSectionCode(value) {
-                const normalized = String(value || '').trim();
-                const match = normalized.match(/^([A-Za-z]+)([0-9]+[A-Za-z]*)$/);
-                if (!match) {
-                    return normalized.replace(/\s*-\s*/g, ' - ');
+                const normalized = String(value || '')
+                    .replace(/\s*-\s*/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+                let match = normalized.match(/^(\d+[A-Za-z]*)\s+([A-Za-z][A-Za-z0-9]*)$/);
+                if (match) {
+                    return match[2].toUpperCase() + ' ' + match[1].toUpperCase();
                 }
-                return match[1].toUpperCase() + ' - ' + match[2].toUpperCase();
+
+                match = normalized.match(/^([A-Za-z][A-Za-z0-9]*)\s+(\d+[A-Za-z]*)$/);
+                if (match) {
+                    return match[1].toUpperCase() + ' ' + match[2].toUpperCase();
+                }
+
+                match = normalized.match(/^([A-Za-z]+)([0-9]+[A-Za-z]*)$/);
+                if (match) {
+                    return match[1].toUpperCase() + ' ' + match[2].toUpperCase();
+                }
+
+                return normalized;
             }
 
             sectionRecords.forEach(function(rec) {
