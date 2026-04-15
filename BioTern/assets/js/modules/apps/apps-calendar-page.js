@@ -8,7 +8,8 @@ document.addEventListener('DOMContentLoaded', function () {
         currentDate: new Date(),
         selectedDateKey: formatDateKey(new Date()),
         events: [],
-        editingEventId: 0
+        editingEventId: 0,
+        includeBirthdays: false
     };
 
     var monthLabel = root.querySelector('[data-month-label]');
@@ -21,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var endpoint = root.getAttribute('data-events-endpoint') || 'calendar_events.php';
     var canManageEvents = root.getAttribute('data-can-manage-events') === '1';
     var navButtons = Array.prototype.slice.call(root.querySelectorAll('[data-action]'));
+    var birthdaysFilterButton = root.querySelector('[data-filter-birthdays]');
     var jumpMonth = root.querySelector('[data-jump-month]');
     var jumpYear = root.querySelector('[data-jump-year]');
     var addEventButton = root.querySelector('[data-add-event]');
@@ -41,11 +43,16 @@ document.addEventListener('DOMContentLoaded', function () {
     var endTimeInput = document.getElementById('appCalendarEventEndTime');
     var colorInput = document.getElementById('appCalendarEventColor');
     var allDayInput = document.getElementById('appCalendarEventAllDay');
+    var attendanceMultiplierInput = document.getElementById('appCalendarAttendanceMultiplier');
+    var appliesToWeekdayInput = document.getElementById('appCalendarAppliesToWeekday');
+    var lateGraceMinutesInput = document.getElementById('appCalendarLateGraceMinutes');
+    var applyWhenNotLateInput = document.getElementById('appCalendarApplyWhenNotLate');
     var descriptionInput = document.getElementById('appCalendarEventDescription');
 
     buildJumpControls();
     buildTimeOptions();
     bindEventForm();
+    bindFilters();
 
     navButtons.forEach(function (button) {
         button.addEventListener('click', function () {
@@ -79,7 +86,41 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     syncJumpControls();
+    updateBirthdaysFilterButton();
     loadEvents().then(render).catch(renderError);
+
+    function bindFilters() {
+        if (!birthdaysFilterButton) {
+            return;
+        }
+
+        birthdaysFilterButton.addEventListener('click', function () {
+            state.includeBirthdays = !state.includeBirthdays;
+            updateBirthdaysFilterButton();
+            loadEvents().then(render).catch(renderError);
+        });
+    }
+
+    function updateBirthdaysFilterButton() {
+        if (!birthdaysFilterButton) {
+            return;
+        }
+
+        if (state.includeBirthdays) {
+            birthdaysFilterButton.textContent = 'Hide Birthdays';
+            birthdaysFilterButton.classList.remove('btn-outline-secondary');
+            birthdaysFilterButton.classList.add('btn-success');
+            birthdaysFilterButton.setAttribute('data-filter-birthdays', '1');
+            birthdaysFilterButton.setAttribute('aria-pressed', 'true');
+            return;
+        }
+
+        birthdaysFilterButton.textContent = 'Show Birthdays';
+        birthdaysFilterButton.classList.remove('btn-success');
+        birthdaysFilterButton.classList.add('btn-outline-secondary');
+        birthdaysFilterButton.setAttribute('data-filter-birthdays', '0');
+        birthdaysFilterButton.setAttribute('aria-pressed', 'false');
+    }
 
     function bindEventForm() {
         if (!eventForm) {
@@ -173,6 +214,18 @@ document.addEventListener('DOMContentLoaded', function () {
         if (colorInput) {
             colorInput.value = '#2563eb';
         }
+        if (attendanceMultiplierInput) {
+            attendanceMultiplierInput.value = '';
+        }
+        if (appliesToWeekdayInput) {
+            appliesToWeekdayInput.value = '';
+        }
+        if (lateGraceMinutesInput) {
+            lateGraceMinutesInput.value = '';
+        }
+        if (applyWhenNotLateInput) {
+            applyWhenNotLateInput.checked = false;
+        }
         state.editingEventId = 0;
         if (eventIdInput) {
             eventIdInput.value = '';
@@ -242,6 +295,20 @@ document.addEventListener('DOMContentLoaded', function () {
         if (allDayInput) {
             allDayInput.checked = !!Number(event.is_all_day || 0);
         }
+        if (attendanceMultiplierInput) {
+            attendanceMultiplierInput.value = event.attendance_multiplier ? String(event.attendance_multiplier) : '';
+        }
+        if (appliesToWeekdayInput) {
+            appliesToWeekdayInput.value = event.applies_to_weekday || '';
+        }
+        if (lateGraceMinutesInput) {
+            lateGraceMinutesInput.value = event.late_grace_minutes !== null && event.late_grace_minutes !== undefined
+                ? String(event.late_grace_minutes)
+                : '';
+        }
+        if (applyWhenNotLateInput) {
+            applyWhenNotLateInput.checked = !!Number(event.apply_when_not_late || 0);
+        }
 
         syncAllDayFields();
         panelElement.hidden = false;
@@ -302,7 +369,11 @@ document.addEventListener('DOMContentLoaded', function () {
             start_at: startAt,
             end_at: endAt,
             color: colorInput ? (colorInput.value || '#2563eb') : '#2563eb',
-            is_all_day: allDayInput && allDayInput.checked ? 1 : 0
+            is_all_day: allDayInput && allDayInput.checked ? 1 : 0,
+            attendance_multiplier: attendanceMultiplierInput ? (attendanceMultiplierInput.value || '') : '',
+            applies_to_weekday: appliesToWeekdayInput ? (appliesToWeekdayInput.value || '') : '',
+            late_grace_minutes: lateGraceMinutesInput ? (lateGraceMinutesInput.value || '') : '',
+            apply_when_not_late: applyWhenNotLateInput && applyWhenNotLateInput.checked ? 1 : 0
         };
 
         if (!payload.title || !payload.start_at || !payload.end_at) {
@@ -450,7 +521,8 @@ document.addEventListener('DOMContentLoaded', function () {
         var firstVisible = days[0].key;
         var lastVisible = days[days.length - 1].key;
         return endpoint + '?from=' + encodeURIComponent(firstVisible + ' 00:00:00')
-            + '&to=' + encodeURIComponent(lastVisible + ' 23:59:59');
+            + '&to=' + encodeURIComponent(lastVisible + ' 23:59:59')
+            + '&include_birthdays=' + (state.includeBirthdays ? '1' : '0');
     }
 
     function loadEvents() {

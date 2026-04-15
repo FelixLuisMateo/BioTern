@@ -23,12 +23,20 @@ function format_section_code(string $code): string {
         return '';
     }
 
-    if (strpos($value, ' - ') !== false) {
-        return $value;
+    $value = preg_replace('/\s*-\s*/', ' ', $value);
+    $value = preg_replace('/\s+/', ' ', (string)$value);
+    $value = trim((string)$value);
+
+    if (preg_match('/^(\d+[A-Za-z]*)\s+([A-Za-z][A-Za-z0-9]*)$/', $value, $matches)) {
+        return strtoupper((string)$matches[2]) . ' ' . strtoupper((string)$matches[1]);
+    }
+
+    if (preg_match('/^([A-Za-z][A-Za-z0-9]*)\s+(\d+[A-Za-z]*)$/', $value, $matches)) {
+        return strtoupper((string)$matches[1]) . ' ' . strtoupper((string)$matches[2]);
     }
 
     if (preg_match('/^([A-Za-z]+)([0-9]+[A-Za-z]*)$/', $value, $matches)) {
-        return strtoupper($matches[1]) . ' - ' . strtoupper($matches[2]);
+        return strtoupper($matches[1]) . ' ' . strtoupper($matches[2]);
     }
 
     return $value;
