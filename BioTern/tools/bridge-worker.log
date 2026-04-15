@@ -18974,3 +18974,321 @@
 [2026-04-15 22:25:17] User cache sync success. Users=11
 [2026-04-15 22:25:23] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
 [2026-04-15 22:25:23] No new F20H logs to upload.
+[2026-04-15 22:25:24] User cache sync success. Users=11
+[2026-04-15 22:25:44] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:25:44] No new F20H logs to upload.
+[2026-04-15 22:25:45] User cache sync success. Users=11
+[2026-04-15 22:27:38] Bridge worker started.
+[2026-04-15 22:27:48] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.100.201 via gateway 192.168.100.1.
+[2026-04-15 22:27:49] Fallback connector network succeeded on 192.168.100.201.
+[2026-04-15 22:27:49] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 57 Device disconnected.
+[2026-04-15 22:27:50] Holding station replay queued events: 1
+[2026-04-15 22:27:53] Ingest success. Uploaded= Received=1 Inserted=1
+[2026-04-15 22:27:55] User cache sync success. Users=11
+[2026-04-15 22:28:20] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:28:21] Historical backfill scan complete. SourceEvents=2 AddedToPending=2
+[2026-04-15 22:28:24] Ingest success. Uploaded=2 Received=2 Inserted=0
+[2026-04-15 22:28:25] User cache sync success. Users=11
+[2026-04-15 22:28:33] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:28:33] No new F20H logs to upload.
+[2026-04-15 22:28:35] User cache sync success. Users=11
+[2026-04-15 22:28:44] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:28:44] No new F20H logs to upload.
+[2026-04-15 22:28:46] User cache sync success. Users=11
+[2026-04-15 22:29:16] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:29:16] No new F20H logs to upload.
+[2026-04-15 22:29:17] User cache sync success. Users=11
+[2026-04-15 22:29:24] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:29:24] No new F20H logs to upload.
+[2026-04-15 22:29:24] User cache sync success. Users=11
+[2026-04-15 22:29:30] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:29:32] No new F20H logs to upload.
+[2026-04-15 22:29:35] User cache sync success. Users=11
+[2026-04-15 22:29:50] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:29:50] No new F20H logs to upload.
+[2026-04-15 22:29:51] User cache sync success. Users=11
+[2026-04-15 22:29:58] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:29:58] No new F20H logs to upload.
+[2026-04-15 22:30:00] User cache sync success. Users=11
+[2026-04-15 22:30:07] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:30:07] No new F20H logs to upload.
+[2026-04-15 22:30:07] User cache sync success. Users=11
+[2026-04-15 22:30:14] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:30:14] No new F20H logs to upload.
+[2026-04-15 22:30:14] User cache sync success. Users=11
+[2026-04-15 22:30:26] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:30:26] No new F20H logs to upload.
+[2026-04-15 22:30:27] User cache sync success. Users=11
+[2026-04-15 22:30:33] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:30:33] No new F20H logs to upload.
+[2026-04-15 22:30:34] User cache sync success. Users=11
+[2026-04-15 22:30:40] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:30:41] No new F20H logs to upload.
+[2026-04-15 22:30:41] User cache sync success. Users=11
+[2026-04-15 22:30:47] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:30:47] No new F20H logs to upload.
+[2026-04-15 22:30:48] User cache sync success. Users=11
+[2026-04-15 22:30:54] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:30:54] No new F20H logs to upload.
+[2026-04-15 22:30:55] User cache sync success. Users=11
+[2026-04-15 22:31:01] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:31:01] No new F20H logs to upload.
+[2026-04-15 22:31:02] User cache sync success. Users=11
+[2026-04-15 22:31:08] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:31:08] No new F20H logs to upload.
+[2026-04-15 22:31:09] User cache sync success. Users=11
+[2026-04-15 22:31:15] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:31:15] No new F20H logs to upload.
+[2026-04-15 22:31:16] User cache sync success. Users=11
+[2026-04-15 22:31:22] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:31:22] No new F20H logs to upload.
+[2026-04-15 22:31:23] User cache sync success. Users=11
+[2026-04-15 22:31:30] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:31:30] No new F20H logs to upload.
+[2026-04-15 22:31:31] User cache sync success. Users=11
+[2026-04-15 22:31:37] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:31:37] No new F20H logs to upload.
+[2026-04-15 22:31:38] User cache sync success. Users=11
+[2026-04-15 22:31:44] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:31:44] No new F20H logs to upload.
+[2026-04-15 22:31:45] User cache sync success. Users=11
+[2026-04-15 22:31:52] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:31:52] No new F20H logs to upload.
+[2026-04-15 22:31:53] User cache sync success. Users=11
+[2026-04-15 22:32:33] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:32:34] No new F20H logs to upload.
+[2026-04-15 22:32:45] User cache sync success. Users=11
+[2026-04-15 22:32:55] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:32:55] No new F20H logs to upload.
+[2026-04-15 22:32:56] User cache sync success. Users=11
+[2026-04-15 22:33:02] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:33:02] No new F20H logs to upload.
+[2026-04-15 22:33:03] User cache sync success. Users=11
+[2026-04-15 22:33:09] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:33:09] No new F20H logs to upload.
+[2026-04-15 22:33:10] User cache sync success. Users=11
+[2026-04-15 22:33:17] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:33:17] No new F20H logs to upload.
+[2026-04-15 22:33:18] User cache sync success. Users=11
+[2026-04-15 22:33:25] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:33:25] No new F20H logs to upload.
+[2026-04-15 22:33:26] User cache sync success. Users=11
+[2026-04-15 22:33:32] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:33:32] No new F20H logs to upload.
+[2026-04-15 22:33:33] User cache sync success. Users=11
+[2026-04-15 22:33:39] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:33:39] No new F20H logs to upload.
+[2026-04-15 22:33:40] User cache sync success. Users=11
+[2026-04-15 22:33:46] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:33:46] No new F20H logs to upload.
+[2026-04-15 22:33:47] User cache sync success. Users=11
+[2026-04-15 22:33:53] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:33:53] No new F20H logs to upload.
+[2026-04-15 22:33:54] User cache sync success. Users=11
+[2026-04-15 22:34:00] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:34:00] No new F20H logs to upload.
+[2026-04-15 22:34:01] User cache sync success. Users=11
+[2026-04-15 22:34:07] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:34:07] No new F20H logs to upload.
+[2026-04-15 22:34:07] User cache sync success. Users=11
+[2026-04-15 22:34:13] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:34:13] No new F20H logs to upload.
+[2026-04-15 22:34:14] User cache sync success. Users=11
+[2026-04-15 22:34:20] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:34:20] No new F20H logs to upload.
+[2026-04-15 22:34:21] User cache sync success. Users=11
+[2026-04-15 22:34:27] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:34:27] No new F20H logs to upload.
+[2026-04-15 22:34:28] User cache sync success. Users=11
+[2026-04-15 22:34:34] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:34:34] No new F20H logs to upload.
+[2026-04-15 22:34:35] User cache sync success. Users=11
+[2026-04-15 22:34:41] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:34:41] No new F20H logs to upload.
+[2026-04-15 22:34:42] User cache sync success. Users=11
+[2026-04-15 22:34:48] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:34:48] No new F20H logs to upload.
+[2026-04-15 22:34:49] User cache sync success. Users=11
+[2026-04-15 22:34:55] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:34:55] No new F20H logs to upload.
+[2026-04-15 22:34:56] User cache sync success. Users=11
+[2026-04-15 22:35:02] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:35:02] No new F20H logs to upload.
+[2026-04-15 22:35:03] User cache sync success. Users=11
+[2026-04-15 22:35:09] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:35:09] No new F20H logs to upload.
+[2026-04-15 22:35:10] User cache sync success. Users=11
+[2026-04-15 22:35:16] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:35:16] No new F20H logs to upload.
+[2026-04-15 22:35:17] User cache sync success. Users=11
+[2026-04-15 22:35:23] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:35:23] No new F20H logs to upload.
+[2026-04-15 22:35:23] User cache sync success. Users=11
+[2026-04-15 22:35:30] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:35:30] No new F20H logs to upload.
+[2026-04-15 22:35:30] User cache sync success. Users=11
+[2026-04-15 22:35:36] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:35:37] No new F20H logs to upload.
+[2026-04-15 22:35:37] User cache sync success. Users=11
+[2026-04-15 22:35:43] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:35:43] No new F20H logs to upload.
+[2026-04-15 22:35:44] User cache sync success. Users=11
+[2026-04-15 22:35:50] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:35:50] No new F20H logs to upload.
+[2026-04-15 22:35:51] User cache sync success. Users=11
+[2026-04-15 22:35:57] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:35:57] No new F20H logs to upload.
+[2026-04-15 22:35:58] User cache sync success. Users=11
+[2026-04-15 22:36:04] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:36:04] No new F20H logs to upload.
+[2026-04-15 22:36:05] User cache sync success. Users=11
+[2026-04-15 22:36:11] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:36:11] No new F20H logs to upload.
+[2026-04-15 22:36:12] User cache sync success. Users=11
+[2026-04-15 22:36:18] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:36:18] No new F20H logs to upload.
+[2026-04-15 22:36:19] User cache sync success. Users=11
+[2026-04-15 22:36:25] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:36:25] No new F20H logs to upload.
+[2026-04-15 22:36:26] User cache sync success. Users=11
+[2026-04-15 22:36:32] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:36:32] No new F20H logs to upload.
+[2026-04-15 22:36:33] User cache sync success. Users=11
+[2026-04-15 22:36:40] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:36:40] No new F20H logs to upload.
+[2026-04-15 22:36:40] User cache sync success. Users=11
+[2026-04-15 22:36:46] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:36:46] No new F20H logs to upload.
+[2026-04-15 22:36:47] User cache sync success. Users=11
+[2026-04-15 22:36:53] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:36:54] No new F20H logs to upload.
+[2026-04-15 22:36:54] User cache sync success. Users=11
+[2026-04-15 22:37:00] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:37:00] No new F20H logs to upload.
+[2026-04-15 22:37:01] User cache sync success. Users=11
+[2026-04-15 22:37:07] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:37:07] No new F20H logs to upload.
+[2026-04-15 22:37:08] User cache sync success. Users=11
+[2026-04-15 22:37:14] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:37:14] No new F20H logs to upload.
+[2026-04-15 22:37:15] User cache sync success. Users=11
+[2026-04-15 22:37:21] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 57 Device disconnected.
+[2026-04-15 22:37:21] Holding station replay queued events: 1
+[2026-04-15 22:37:24] Ingest success. Uploaded= Received=1 Inserted=1
+[2026-04-15 22:37:26] User cache sync success. Users=11
+[2026-04-15 22:37:33] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 57 Device disconnected.
+[2026-04-15 22:37:33] Holding station replay queued events: 1
+[2026-04-15 22:37:36] Ingest success. Uploaded= Received=1 Inserted=1
+[2026-04-15 22:37:39] User cache sync success. Users=11
+[2026-04-15 22:37:46] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:37:46] No new F20H logs to upload.
+[2026-04-15 22:37:47] User cache sync success. Users=11
+[2026-04-15 22:37:53] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:37:53] No new F20H logs to upload.
+[2026-04-15 22:37:54] User cache sync success. Users=11
+[2026-04-15 22:38:00] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:38:00] No new F20H logs to upload.
+[2026-04-15 22:38:01] User cache sync success. Users=11
+[2026-04-15 22:38:07] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:38:07] No new F20H logs to upload.
+[2026-04-15 22:38:08] User cache sync success. Users=11
+[2026-04-15 22:38:14] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:38:14] No new F20H logs to upload.
+[2026-04-15 22:38:15] User cache sync success. Users=11
+[2026-04-15 22:38:21] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:38:21] Historical backfill scan complete. SourceEvents=4 AddedToPending=4
+[2026-04-15 22:38:24] Ingest success. Uploaded=4 Received=4 Inserted=0
+[2026-04-15 22:38:25] User cache sync success. Users=11
+[2026-04-15 22:38:31] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:38:31] No new F20H logs to upload.
+[2026-04-15 22:38:32] User cache sync success. Users=11
+[2026-04-15 22:38:38] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:38:38] No new F20H logs to upload.
+[2026-04-15 22:38:39] User cache sync success. Users=11
+[2026-04-15 22:38:45] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:38:45] No new F20H logs to upload.
+[2026-04-15 22:38:45] User cache sync success. Users=11
+[2026-04-15 22:38:52] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:38:52] No new F20H logs to upload.
+[2026-04-15 22:38:53] User cache sync success. Users=11
+[2026-04-15 22:38:59] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:38:59] No new F20H logs to upload.
+[2026-04-15 22:39:00] User cache sync success. Users=11
+[2026-04-15 22:39:06] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:39:06] No new F20H logs to upload.
+[2026-04-15 22:39:07] User cache sync success. Users=11
+[2026-04-15 22:39:13] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:39:13] No new F20H logs to upload.
+[2026-04-15 22:39:14] User cache sync success. Users=11
+[2026-04-15 22:39:20] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:39:20] No new F20H logs to upload.
+[2026-04-15 22:39:21] User cache sync success. Users=11
+[2026-04-15 22:39:27] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:39:27] No new F20H logs to upload.
+[2026-04-15 22:39:28] User cache sync success. Users=11
+[2026-04-15 22:39:34] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:39:34] No new F20H logs to upload.
+[2026-04-15 22:39:35] User cache sync success. Users=11
+[2026-04-15 22:39:48] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:39:48] No new F20H logs to upload.
+[2026-04-15 22:39:50] User cache sync success. Users=11
+[2026-04-15 22:39:59] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:39:59] No new F20H logs to upload.
+[2026-04-15 22:40:00] User cache sync success. Users=11
+[2026-04-15 22:40:18] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:40:19] No new F20H logs to upload.
+[2026-04-15 22:40:20] User cache sync success. Users=11
+[2026-04-15 22:40:26] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:40:26] No new F20H logs to upload.
+[2026-04-15 22:40:27] User cache sync success. Users=11
+[2026-04-15 22:40:33] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:40:33] No new F20H logs to upload.
+[2026-04-15 22:40:49] User cache sync success. Users=11
+[2026-04-15 22:40:59] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:40:59] No new F20H logs to upload.
+[2026-04-15 22:41:00] User cache sync success. Users=11
+[2026-04-15 22:41:06] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:41:06] No new F20H logs to upload.
+[2026-04-15 22:41:07] User cache sync success. Users=11
+[2026-04-15 22:41:14] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:41:14] No new F20H logs to upload.
+[2026-04-15 22:41:15] User cache sync success. Users=11
+[2026-04-15 22:41:21] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:41:21] No new F20H logs to upload.
+[2026-04-15 22:41:22] User cache sync success. Users=11
+[2026-04-15 22:41:29] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:41:29] No new F20H logs to upload.
+[2026-04-15 22:41:30] User cache sync success. Users=11
+[2026-04-15 22:41:36] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:41:36] No new F20H logs to upload.
+[2026-04-15 22:41:37] User cache sync success. Users=11
+[2026-04-15 22:41:43] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:41:43] No new F20H logs to upload.
+[2026-04-15 22:41:44] User cache sync success. Users=11
+[2026-04-15 22:41:52] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:41:52] No new F20H logs to upload.
+[2026-04-15 22:41:53] User cache sync success. Users=11
+[2026-04-15 22:42:00] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:42:00] No new F20H logs to upload.
+[2026-04-15 22:42:01] User cache sync success. Users=11
+[2026-04-15 22:42:07] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:42:07] No new F20H logs to upload.
+[2026-04-15 22:42:08] User cache sync success. Users=11
+[2026-04-15 22:42:15] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:42:15] No new F20H logs to upload.
+[2026-04-15 22:42:16] User cache sync success. Users=11
+[2026-04-15 22:42:23] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:42:23] No new F20H logs to upload.
+[2026-04-15 22:42:24] User cache sync success. Users=11
+[2026-04-15 22:42:30] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:42:30] No new F20H logs to upload.
+[2026-04-15 22:42:31] User cache sync success. Users=11
+[2026-04-15 22:42:37] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:42:37] No new F20H logs to upload.
+[2026-04-15 22:42:38] User cache sync success. Users=11
+[2026-04-15 22:42:45] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:42:45] No new F20H logs to upload.
+[2026-04-15 22:42:45] User cache sync success. Users=11
+[2026-04-15 22:42:52] Connected to 192.168.100.201:5001. Logs saved to: C:\var\task\user\attendance.txt Payload length: 2 Device disconnected.
+[2026-04-15 22:42:52] No new F20H logs to upload.
+[2026-04-15 22:42:53] User cache sync success. Users=11

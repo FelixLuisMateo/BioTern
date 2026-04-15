@@ -539,6 +539,32 @@ function attendanceResolvedTime(array $attendance, string $column): array {
     return ['time' => null, 'is_schedule' => false];
 }
 
+function attendanceIsMorningAbsentForWholeDay(array $attendance): bool {
+    if (strtolower(trim((string)($attendance['source'] ?? ''))) !== 'biometric') {
+        return false;
+    }
+
+    $schedule = attendance_effective_schedule($attendance);
+    if (($schedule['window_source'] ?? 'none') === 'none') {
+        return false;
+    }
+
+    $session = section_schedule_inferred_session($schedule);
+    if ($session !== 'whole_day') {
+        return false;
+    }
+
+    $morningIn = trim((string)($attendance['morning_time_in'] ?? ''));
+    $morningOut = trim((string)($attendance['morning_time_out'] ?? ''));
+    $afternoonIn = trim((string)($attendance['afternoon_time_in'] ?? ''));
+    $afternoonOut = trim((string)($attendance['afternoon_time_out'] ?? ''));
+
+    $hasMorning = ($morningIn !== '' && $morningIn !== '00:00:00') || ($morningOut !== '' && $morningOut !== '00:00:00');
+    $hasAfternoon = ($afternoonIn !== '' && $afternoonIn !== '00:00:00') || ($afternoonOut !== '' && $afternoonOut !== '00:00:00');
+
+    return !$hasMorning && $hasAfternoon;
+}
+
 function attendanceScheduledClassLabel(array $attendance): string
 {
     $schedule = attendance_effective_schedule($attendance);
@@ -555,6 +581,10 @@ function attendanceScheduledClassLabel(array $attendance): string
 }
 
 function attendanceDisplayTimeHtml(array $attendance, string $column, string $badgeClass): string {
+    if (($column === 'morning_time_in' || $column === 'morning_time_out') && attendanceIsMorningAbsentForWholeDay($attendance)) {
+        return '<span class="badge bg-soft-danger text-danger">Absent</span>';
+    }
+
     $resolved = attendanceResolvedTime($attendance, $column);
     if ($resolved['time'] === null) {
         return '<span class="badge ' . $badgeClass . '">-</span>';

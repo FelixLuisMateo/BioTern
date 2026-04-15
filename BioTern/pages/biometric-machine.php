@@ -493,7 +493,7 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     if ($hasPresetColumn) {
         $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
             (profile_name, selected_bridge_preset, router_name, bridge_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
-            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 selected_bridge_preset = VALUES(selected_bridge_preset),
                 router_name = VALUES(router_name),
@@ -542,7 +542,7 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     if (!$stmt) {
         $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
             (profile_name, router_name, bridge_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
-            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 router_name = VALUES(router_name),
                 bridge_name = VALUES(bridge_name),
@@ -1134,7 +1134,7 @@ if ((int)($_GET['queue_watch_status'] ?? 0) === 1) {
 if ((int)($_GET['load_users'] ?? 0) === 1) {
     try {
         if (machine_is_cloud_runtime()) {
-            $bridgeProfile = machine_load_bridge_profile($conn);
+            $bridgeProfile = machine_fetch_bridge_profile($conn);
             $bridgePollSeconds = max(5, (int)($bridgeProfile['poll_seconds'] ?? 30));
             machine_require_bridge_online_for_user_reads($conn, $bridgePollSeconds);
             machine_load_user_list_from_bridge_cache(
@@ -1157,7 +1157,7 @@ if ((int)($_GET['load_users'] ?? 0) === 1) {
 if ($selectedUserId > 0 && (int)($_GET['load_user'] ?? 0) === 1) {
     try {
         if (machine_is_cloud_runtime()) {
-            $bridgeProfile = machine_load_bridge_profile($conn);
+            $bridgeProfile = machine_fetch_bridge_profile($conn);
             $bridgePollSeconds = max(5, (int)($bridgeProfile['poll_seconds'] ?? 30));
             machine_require_bridge_online_for_user_reads($conn, $bridgePollSeconds);
             machine_load_user_list_from_bridge_cache(
@@ -1305,7 +1305,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $importMessage = (string)($importStats['message'] ?? 'Biometric sync complete.');
                 $flashLevel = 'success';
                 if ($cloudRuntime && (int)($importStats['raw_inserted'] ?? 0) === 0 && (int)($importStats['processed_logs'] ?? 0) === 0) {
-                    $bridgeProfile = machine_load_bridge_profile($conn);
+                    $bridgeProfile = machine_fetch_bridge_profile($conn);
                     $bridgePollSeconds = max(5, (int)($bridgeProfile['poll_seconds'] ?? 30));
                     $bridgeStatus = machine_fetch_bridge_runtime_status($conn, $bridgePollSeconds);
                     $flashLevel = !empty($bridgeStatus['is_online']) ? 'warning' : 'danger';
@@ -1321,7 +1321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             case 'list_users':
                 if (machine_is_cloud_runtime()) {
-                    $bridgeProfile = machine_load_bridge_profile($conn);
+                    $bridgeProfile = machine_fetch_bridge_profile($conn);
                     $bridgePollSeconds = max(5, (int)($bridgeProfile['poll_seconds'] ?? 30));
                     machine_require_bridge_online_for_user_reads($conn, $bridgePollSeconds);
                     $cacheMeta = machine_load_user_list_from_bridge_cache(
@@ -1348,7 +1348,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Enter a valid user ID.');
                 }
                 if (machine_is_cloud_runtime()) {
-                    $bridgeProfile = machine_load_bridge_profile($conn);
+                    $bridgeProfile = machine_fetch_bridge_profile($conn);
                     $bridgePollSeconds = max(5, (int)($bridgeProfile['poll_seconds'] ?? 30));
                     machine_require_bridge_online_for_user_reads($conn, $bridgePollSeconds);
                     $cacheMeta = machine_load_user_list_from_bridge_cache(
