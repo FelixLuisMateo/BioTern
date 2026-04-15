@@ -2403,6 +2403,10 @@ include __DIR__ . '/../includes/header.php';
             <div class="page-header-right ms-auto bio-console-header-actions">
                 <div class="page-header-right-items">
                     <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                        <a href="bridge-setup-manual.php" class="btn btn-outline-secondary">
+                            <i class="feather-book-open me-2"></i>
+                            <span>Bridge Setup Manual</span>
+                        </a>
                         <a href="fingerprint_mapping.php" class="btn btn-light-brand">
                             <i class="feather-link me-2"></i>
                             <span>Fingerprint Mapping</span>
