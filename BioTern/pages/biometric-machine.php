@@ -1694,6 +1694,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Ingest API token is required.');
                 }
 
+                $presetNetworkDefaults = [
+                    'laptop_router_1' => ['ip' => '192.168.100.201', 'gateway' => '192.168.100.1', 'mask' => '255.255.255.0', 'port' => 5001, 'device_number' => 1],
+                    'laptop_router_2' => ['ip' => '192.168.110.201', 'gateway' => '192.168.110.1', 'mask' => '255.255.255.0', 'port' => 5001, 'device_number' => 1],
+                    'computer_router_2' => ['ip' => '192.168.110.201', 'gateway' => '192.168.110.1', 'mask' => '255.255.255.0', 'port' => 5001, 'device_number' => 1],
+                ];
+                if ($selectedBridgePreset !== 'laptop_custom' && isset($presetNetworkDefaults[$selectedBridgePreset])) {
+                    $presetDefaults = $presetNetworkDefaults[$selectedBridgePreset];
+                    $matchesPreset =
+                        strcasecmp($bridgeIp, (string)$presetDefaults['ip']) === 0
+                        && strcasecmp($bridgeGateway, (string)$presetDefaults['gateway']) === 0
+                        && strcasecmp($bridgeMask, (string)$presetDefaults['mask']) === 0
+                        && $bridgePort === (int)$presetDefaults['port']
+                        && $bridgeDeviceNo === (int)$presetDefaults['device_number'];
+                    if (!$matchesPreset) {
+                        $selectedBridgePreset = 'laptop_custom';
+                    }
+                }
+
                 machine_save_bridge_profile($conn, [
                     'selected_bridge_preset' => $selectedBridgePreset,
                     'router_name' => $routerName,
@@ -2424,6 +2442,26 @@ include __DIR__ . '/../includes/header.php';
                         </span>
                         <h6>Bridge Worker Status</h6>
                         <p><?php echo machine_h((string)($bridgeRuntimeStatus['detail'] ?? '')); ?></p>
+                        <?php if ($isAdmin): ?>
+                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                <?php if ($bridgeEnabled): ?>
+                                    <form method="post" class="d-inline">
+                                        <input type="hidden" name="machine_action" value="pause_bridge_for_enrollment">
+                                        <button type="submit" class="btn btn-warning btn-sm">Pause Bridge for Enrollment</button>
+                                    </form>
+                                <?php else: ?>
+                                    <form method="post" class="d-inline">
+                                        <input type="hidden" name="machine_action" value="resume_bridge_after_enrollment">
+                                        <button type="submit" class="btn btn-success btn-sm">Resume Bridge Sync</button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                            <small class="d-block mb-2 text-muted">
+                                <?php echo $bridgeEnabled
+                                    ? 'Bridge is active. Pause before manual enrollment on F20H.'
+                                    : 'Bridge is paused for enrollment mode. Resume after enrolling users.'; ?>
+                            </small>
+                        <?php endif; ?>
                         <small>Background mode: Scheduled Task (no open PowerShell needed). If installed without admin rights, it runs after Windows sign-in.</small>
                     </div>
                 </div>
@@ -2879,18 +2917,6 @@ include __DIR__ . '/../includes/header.php';
                                         <button type="submit" class="btn btn-outline-primary btn-sm" formaction="" formmethod="post" name="machine_action" value="quick_fill_bridge_router_2">Fill Shared Bridge (Router 2)</button>
                                         <button type="submit" class="btn btn-outline-info btn-sm" formaction="" formmethod="post" name="machine_action" value="test_bridge_profile">Test Shared Bridge</button>
                                         <small class="text-muted align-self-center">Laptop worker fetches this profile from /bridge_profile.php using the bridge token.</small>
-                                    </div>
-                                    <div class="col-12">
-                                        <div class="alert alert-light border mb-0 d-flex flex-wrap align-items-center gap-2">
-                                            <strong>Enrollment Mode:</strong>
-                                            <?php if ($bridgeEnabled): ?>
-                                                <button type="submit" class="btn btn-warning btn-sm" formaction="" formmethod="post" name="machine_action" value="pause_bridge_for_enrollment">Pause Bridge for Enrollment</button>
-                                                <span class="text-muted">Recommended before adding fingerprints/users on F20H. Resume after enrollment to continue sync.</span>
-                                            <?php else: ?>
-                                                <button type="submit" class="btn btn-success btn-sm" formaction="" formmethod="post" name="machine_action" value="resume_bridge_after_enrollment">Resume Bridge Sync</button>
-                                                <span class="text-muted">Bridge is currently paused for enrollment. Click Resume when finished.</span>
-                                            <?php endif; ?>
-                                        </div>
                                     </div>
                                 </form>
                             <?php endif; ?>
