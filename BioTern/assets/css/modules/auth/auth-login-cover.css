@@ -168,21 +168,21 @@ body.auth-login-page .auth-cover-card .alert {
     border-radius: 14px;
 }
 
-body.auth-login-page .auth-theme-toast-error {
-    top: 18px;
-    right: 18px;
-    background: color-mix(in srgb, var(--auth-card-surface) 88%, #fee2e2 12%);
-    border-color: color-mix(in srgb, var(--biotern-notify-danger, #ef4444) 30%, var(--auth-card-border) 70%);
+body.auth-login-page .auth-login-form-error {
+    margin-bottom: 1rem;
+    font-size: 0.84rem;
 }
 
-body.auth-login-page .auth-theme-toast-error .app-theme-toast-static-icon {
-    background: color-mix(in srgb, var(--biotern-notify-danger, #ef4444) 18%, transparent);
-    color: var(--biotern-notify-danger, #ef4444);
+body.auth-login-page .auth-login-field-feedback {
+    margin-top: 0.46rem;
 }
 
-html.app-skin-dark body.auth-login-page .auth-theme-toast-error {
-    background: color-mix(in srgb, var(--auth-card-surface) 90%, #7f1d1d 10%);
-    border-color: rgba(248, 113, 113, 0.32);
+body.auth-login-page .auth-cover-card .form-control.is-invalid {
+    border-color: color-mix(in srgb, var(--biotern-notify-danger, #ef4444) 68%, var(--auth-field-border) 32%);
+}
+
+body.auth-login-page .auth-cover-card .form-control.is-invalid:focus {
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--biotern-notify-danger, #ef4444) 16%, transparent);
 }
 
 body.auth-login-page .auth-cover-card .form-control {

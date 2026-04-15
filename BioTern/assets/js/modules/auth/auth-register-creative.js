@@ -16,6 +16,31 @@ const registerDataEl = document.getElementById("registerData");
 const courseDepartmentMap = parseJSONDataset(registerDataEl, "courseMap", {});
 const sectionRecords = parseJSONDataset(registerDataEl, "sectionRecords", []);
 const studentDraftStorageKey = 'biotern.studentDraft.v1.' + window.location.pathname;
+let customSelectRefreshQueued = false;
+
+function refreshCustomSelectDropdown() {
+    if (
+        !window.BioTernSelectDropdown ||
+        typeof window.BioTernSelectDropdown.refresh !== 'function'
+    ) {
+        return;
+    }
+
+    if (customSelectRefreshQueued) {
+        return;
+    }
+    customSelectRefreshQueued = true;
+
+    const schedule =
+        typeof window.requestAnimationFrame === 'function'
+            ? window.requestAnimationFrame.bind(window)
+            : function(cb) { return window.setTimeout(cb, 0); };
+
+    schedule(function() {
+        customSelectRefreshQueued = false;
+        window.BioTernSelectDropdown.refresh();
+    });
+}
 
 function escapeSelector(value) {
     if (window.CSS && typeof window.CSS.escape === 'function') {
@@ -328,9 +353,11 @@ function setupFloatingTextFields() {
                                 let feedback = anchor.parentElement ? anchor.parentElement.querySelector('.invalid-feedback') : null;
                                 if (!feedback) {
                                     feedback = document.createElement('div');
-                                    feedback.className = 'invalid-feedback d-block';
+                                    feedback.className = 'invalid-feedback';
                                     if (anchor.parentElement) anchor.parentElement.appendChild(feedback);
                                 }
+                                feedback.classList.add('d-block', 'app-theme-notify-inline', 'app-theme-notify-inline--error');
+                                feedback.setAttribute('role', 'alert');
                                 feedback.textContent = msg;
                             };
 
@@ -440,6 +467,7 @@ function setupFloatingTextFields() {
             if (STUDENT_ONLY_REGISTRATION) {
                 selectRole('student');
             }
+            refreshCustomSelectDropdown();
 
             const studentIdInput = document.querySelector('#studentForm input[name="student_id"]');
             if (studentIdInput) {
@@ -621,6 +649,8 @@ function setupFloatingTextFields() {
             if (typeof form._showStep === 'function' && Number(draft.activeStep) > 0) {
                 form._showStep(Number(draft.activeStep));
             }
+
+            refreshCustomSelectDropdown();
         }
 
         function setupStudentDraftPersistence() {
@@ -751,6 +781,7 @@ function setupFloatingTextFields() {
             opt.disabled = true;
             opt.selected = true;
             selectEl.appendChild(opt);
+            refreshCustomSelectDropdown();
         }
 
         function fillSelectOptions(selectEl, placeholder, records, codeKey, nameKey) {
@@ -773,6 +804,8 @@ function setupFloatingTextFields() {
                 option.setAttribute('data-name', name);
                 selectEl.appendChild(option);
             });
+
+            refreshCustomSelectDropdown();
         }
 
         function setupStudentPhilippineAddress() {
@@ -787,7 +820,10 @@ function setupFloatingTextFields() {
                 return;
             }
 
-            const psgcBase = 'https://psgc.gitlab.io/api';
+            const psgcBases = [
+                'https://psgc.gitlab.io/api',
+                'https://psgc.cloud/api'
+            ];
 
             function selectedName(selectEl) {
                 if (!selectEl) return '';
@@ -810,13 +846,32 @@ function setupFloatingTextFields() {
             }
 
             function fetchList(endpoint) {
-                return fetch(psgcBase + endpoint)
-                    .then(function(response) {
-                        if (!response.ok) {
-                            throw new Error('Request failed with status ' + response.status);
+                const normalizedEndpoint = String(endpoint || '');
+                let providerIndex = 0;
+
+                function attempt(lastError) {
+                    if (providerIndex >= psgcBases.length) {
+                        return Promise.reject(lastError || new Error('Address API unavailable'));
+                    }
+
+                    const base = String(psgcBases[providerIndex++] || '').replace(/\/+$/, '');
+                    return fetch(base + normalizedEndpoint, {
+                        headers: {
+                            'Accept': 'application/json'
                         }
-                        return response.json();
-                    });
+                    })
+                        .then(function(response) {
+                            if (!response.ok) {
+                                throw new Error('Request failed with status ' + response.status);
+                            }
+                            return response.json();
+                        })
+                        .catch(function(err) {
+                            return attempt(err);
+                        });
+                }
+
+                return attempt(null);
             }
 
             const draft = getStudentDraft();
@@ -948,6 +1003,7 @@ function setupFloatingTextFields() {
             placeholder.selected = true;
             placeholder.textContent = text;
             selectEl.appendChild(placeholder);
+            refreshCustomSelectDropdown();
         }
 
         function filterDepartmentOptions(courseId) {
@@ -1045,6 +1101,8 @@ function setupFloatingTextFields() {
                 emptyOption.textContent = 'No sections found in database';
                 sectionSelect.appendChild(emptyOption);
             }
+
+            refreshCustomSelectDropdown();
         }
 
         function filterRoleOptionsByDept(selectId, allowedDepartmentIds, selectedDepartmentId, isAct) {
@@ -1078,6 +1136,7 @@ function setupFloatingTextFields() {
             });
 
             select.value = '';
+            refreshCustomSelectDropdown();
         }
 
         function setupAcademicFilters() {

@@ -397,6 +397,32 @@
     }
   }
 
+  function refreshState(state) {
+    if (!state || !state.select) {
+      return;
+    }
+
+    if (!document.body || !document.body.contains(state.select)) {
+      destroyState(state);
+      return;
+    }
+
+    if (
+      state.select.classList.contains("select2-hidden-accessible") ||
+      !shouldEnhance(state.select)
+    ) {
+      destroyState(state);
+      return;
+    }
+
+    buildOptions(state);
+    syncState(state);
+
+    if (state.wrap && state.wrap.classList.contains("is-open")) {
+      attachMenuToBody(state);
+    }
+  }
+
   function initSelect(select) {
     if (!isEligible(select)) {
       return;
@@ -478,12 +504,27 @@
           if (mutation.target.classList.contains("select2-hidden-accessible")) {
             destroySelect(mutation.target);
           } else {
-            initSelect(mutation.target);
+            var attributeState = findStateBySelect(mutation.target);
+            if (attributeState) {
+              refreshState(attributeState);
+            } else {
+              initSelect(mutation.target);
+            }
           }
           continue;
         }
 
         if (mutation.type !== "childList") {
+          continue;
+        }
+
+        if (mutation.target && mutation.target.tagName === "SELECT") {
+          var targetState = findStateBySelect(mutation.target);
+          if (targetState) {
+            refreshState(targetState);
+          } else {
+            initSelect(mutation.target);
+          }
           continue;
         }
 
@@ -555,6 +596,9 @@
           return;
         }
         bindSelect2Compat();
+        for (var i = states.length - 1; i >= 0; i -= 1) {
+          refreshState(states[i]);
+        }
         initAll();
       }
     };
