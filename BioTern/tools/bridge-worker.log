@@ -16163,3 +16163,38 @@
 [2026-04-15 19:23:06] Bridge loop error: Device connection failed.
 [2026-04-15 19:23:33] Bridge loop error: Device connection failed.
 [2026-04-15 19:23:59] Bridge loop error: Device connection failed.
+[2026-04-15 19:24:46] Bridge loop error: Device connection failed.
+[2026-04-15 19:25:47] Bridge loop error: Device connection failed.
+[2026-04-15 19:26:16] Bridge loop error: Device connection failed.
+[2026-04-15 19:26:43] Bridge loop error: Device connection failed.
+[2026-04-15 19:27:10] Bridge loop error: Device connection failed.
+[2026-04-15 19:27:37] Bridge loop error: Device connection failed.
+[2026-04-15 19:28:10] Bridge loop error: Device connection failed.
+[2026-04-15 19:28:38] Bridge loop error: Device connection failed.
+[2026-04-15 19:29:16] Bridge loop error: Device connection failed.
+[2026-04-15 19:29:45] Bridge loop error: Device connection failed.
+[2026-04-15 19:30:52] Bridge loop error: Device connection failed.
+[2026-04-15 19:31:19] Bridge loop error: Device connection failed.
+[2026-04-15 19:31:46] Bridge loop error: Device connection failed.
+[2026-04-15 19:32:13] Bridge loop error: Device connection failed.
+[2026-04-15 19:32:40] Bridge loop error: Device connection failed.
+[2026-04-15 19:33:09] Bridge loop error: Device connection failed.
+[2026-04-15 19:33:37] Bridge loop error: Device connection failed.
+[2026-04-15 19:34:05] Bridge loop error: Device connection failed.
+[2026-04-15 19:34:34] Bridge loop error: Device connection failed.
+[2026-04-15 19:35:05] Bridge loop error: Device connection failed.
+[2026-04-15 19:35:35] Bridge loop error: Device connection failed.
+[2026-04-15 19:35:56] Executing bridge command #5: rename_user
+[2026-04-15 19:36:03] Bridge command #5 failed: Device connection failed.
+[2026-04-15 19:36:03] Executing bridge command #6: rename_user
+[2026-04-15 19:36:09] Bridge command #6 failed: Device connection failed.
+[2026-04-15 19:36:15] Bridge loop error: Device connection failed.
+[2026-04-15 19:36:48] Bridge loop error: Device connection failed.
+[2026-04-15 19:37:35] Bridge loop error: Device connection failed.
+[2026-04-15 19:38:04] Bridge loop error: Device connection failed.
+[2026-04-15 19:38:32] Bridge loop error: Device connection failed.
+[2026-04-15 19:39:02] Bridge loop error: Device connection failed.
+[2026-04-15 19:39:59] Bridge loop error: Device connection failed.
+[2026-04-15 19:40:26] Bridge loop error: Device connection failed.
+[2026-04-15 19:40:52] Bridge loop error: Device connection failed.
+[2026-04-15 19:41:19] Bridge loop error: Device connection failed.

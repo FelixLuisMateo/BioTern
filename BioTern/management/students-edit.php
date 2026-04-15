@@ -204,6 +204,9 @@ $success_message = '';
 $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $lock_conflict_detected = false;
+    $lock_conflict_message = '';
+
     // Handle profile picture upload
     $profile_picture_path = $student['profile_picture'] ?? '';
     
@@ -350,12 +353,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
-    // Validation
-    if (empty($first_name) || empty($last_name) || empty($email)) {
-        $error_message = "First Name, Last Name, and Email are required fields!";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error_message = "Invalid email format!";
-    } elseif ($original_updated_at !== '') {
+    if ($original_updated_at !== '') {
         $lock_stmt = $conn->prepare("SELECT updated_at FROM students WHERE id = ? LIMIT 1");
         if ($lock_stmt) {
             $lock_stmt->bind_param("i", $student_id);
@@ -364,9 +362,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $lock_stmt->close();
             $current_updated_at = (string)($lock_row['updated_at'] ?? '');
             if ($current_updated_at !== '' && $current_updated_at !== $original_updated_at) {
-                $error_message = "This student record was updated by another user. Please refresh and review the latest data before saving again.";
+                $lock_conflict_detected = true;
+                $lock_conflict_message = 'Note: This record was updated recently by another process/user. Your latest changes were saved.';
             }
         }
+    }
+
+    // Validation
+    if (empty($first_name) || empty($last_name) || empty($email)) {
+        $error_message = "First Name, Last Name, and Email are required fields!";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error_message = "Invalid email format!";
     } elseif ($assignment_track === 'external' && ($internal_total_hours_remaining === null || $internal_total_hours_remaining > 0)) {
         $error_message = "Cannot assign student to External unless Internal is completed (Internal Total Hours Remaining must be 0).";
     } else {
@@ -539,6 +545,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     }
 
                     $success_message = "Student information updated successfully!";
+                    if ($lock_conflict_detected && $lock_conflict_message !== '') {
+                        $success_message .= ' ' . $lock_conflict_message;
+                    }
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
                     $stmt->bind_param("i", $student_id);
