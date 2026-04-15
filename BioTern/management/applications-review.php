@@ -340,11 +340,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     if ($userId <= 0) {
-                        $insertUserStmt = $conn->prepare("INSERT INTO users (name, username, email, password, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, 'student', 1, NOW(), NOW())");
+                        $defaultProfilePicture = '';
+                        $insertUserStmt = $conn->prepare("INSERT INTO users (name, username, email, password, role, is_active, profile_picture, created_at, updated_at) VALUES (?, ?, ?, ?, 'student', 1, ?, NOW(), NOW())");
                         if (!$insertUserStmt) {
                             throw new Exception('Unable to create user account for approved application. ' . (string)$conn->error);
                         }
-                        $insertUserStmt->bind_param('ssss', $stagedFullName, $stagedUsername, $stagedEmail, $stagedPasswordHash);
+                        $insertUserStmt->bind_param('sssss', $stagedFullName, $stagedUsername, $stagedEmail, $stagedPasswordHash, $defaultProfilePicture);
                         if (!$insertUserStmt->execute()) {
                             $insertUserError = (string)$insertUserStmt->error;
                             $insertUserStmt->close();
