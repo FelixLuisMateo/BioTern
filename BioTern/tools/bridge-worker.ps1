@@ -6,7 +6,7 @@ param(
     [string]$BridgeToken,
     [string]$WorkspaceRoot = "",
     [int]$DefaultPollSeconds = 30,
-    $PreferLocalConnectorNetwork = $true
+    $PreferLocalConnectorNetwork = $false
 )
 
 $ErrorActionPreference = 'Stop'
@@ -34,7 +34,7 @@ function Resolve-BridgeBool {
     return $Default
 }
 
-$PreferLocalConnectorNetwork = Resolve-BridgeBool -Value $PreferLocalConnectorNetwork -Default $true
+$PreferLocalConnectorNetwork = Resolve-BridgeBool -Value $PreferLocalConnectorNetwork -Default $false
 
 if ([string]::IsNullOrWhiteSpace($WorkspaceRoot)) {
     $WorkspaceRoot = Split-Path -Parent $PSScriptRoot
@@ -57,6 +57,39 @@ if ([string]::IsNullOrWhiteSpace($bridgeNodeName)) {
 
 $script:BridgeWorkerMutex = $null
 $script:BridgeWorkerMutexAcquired = $false
+$script:PreferredNetworkOverride = $null
+
+function Set-PreferredNetworkOverride {
+    param(
+        [string]$Ip,
+        [string]$Gateway,
+        [int]$TtlSeconds = 1800
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Ip) -or [string]::IsNullOrWhiteSpace($Gateway)) {
+        $script:PreferredNetworkOverride = $null
+        return
+    }
+
+    $script:PreferredNetworkOverride = [pscustomobject]@{
+        ip = $Ip
+        gateway = $Gateway
+        expires_at = (Get-Date).AddSeconds([Math]::Max(60, $TtlSeconds))
+    }
+}
+
+function Get-PreferredNetworkOverride {
+    if ($null -eq $script:PreferredNetworkOverride) {
+        return $null
+    }
+
+    if ((Get-Date) -gt [datetime]$script:PreferredNetworkOverride.expires_at) {
+        $script:PreferredNetworkOverride = $null
+        return $null
+    }
+
+    return $script:PreferredNetworkOverride
+}
 
 function Enter-BridgeWorkerSingleInstance {
     $mutexNameCandidates = @(
@@ -204,13 +237,62 @@ function Get-ApiBaseCandidates {
     return $bases | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
 }
 
+function Read-TextFileWithRetry {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [int]$MaxAttempts = 6,
+        [int]$DelayMilliseconds = 150
+    )
+
+    if (-not (Test-Path $Path)) {
+        return $null
+    }
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        try {
+            return Get-Content -Path $Path -Raw -ErrorAction Stop
+        } catch {
+            if ($attempt -ge $MaxAttempts) {
+                throw
+            }
+            Start-Sleep -Milliseconds $DelayMilliseconds
+        }
+    }
+
+    return $null
+}
+
+function Write-TextFileWithRetry {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [string]$Content,
+        [int]$MaxAttempts = 6,
+        [int]$DelayMilliseconds = 150
+    )
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        try {
+            Set-Content -Path $Path -Value $Content -Encoding UTF8 -ErrorAction Stop
+            return
+        } catch {
+            if ($attempt -ge $MaxAttempts) {
+                throw
+            }
+            Start-Sleep -Milliseconds $DelayMilliseconds
+        }
+    }
+}
+
 function Update-ConnectorConfig {
     param($BridgeConfig)
 
     $existingConfig = $null
     if (Test-Path $connectorConfigPath) {
         try {
-            $existingRaw = Get-Content -Path $connectorConfigPath -Raw
+            $existingRaw = Read-TextFileWithRetry -Path $connectorConfigPath
             if (-not [string]::IsNullOrWhiteSpace($existingRaw)) {
                 $existingConfig = $existingRaw | ConvertFrom-Json -ErrorAction Stop
             }
@@ -255,7 +337,7 @@ function Update-ConnectorConfig {
     $cfg.autoImportOnIngest = $false
 
     $json = $cfg | ConvertTo-Json -Depth 5
-    Set-Content -Path $connectorConfigPath -Value $json -Encoding UTF8
+    Write-TextFileWithRetry -Path $connectorConfigPath -Content $json
 }
 
 function Invoke-ConnectorCommand {
@@ -286,6 +368,129 @@ function Invoke-ConnectorCommand {
 
 function Invoke-ConnectorSync {
     return (Invoke-ConnectorCommand -Command 'sync')
+}
+
+function Get-BridgeFallbackConfig {
+    param($BridgeConfig)
+
+    $ip = ([string]($BridgeConfig.ip_address)).Trim()
+    $gateway = ([string]($BridgeConfig.gateway)).Trim()
+
+    if ([string]::IsNullOrWhiteSpace($ip) -or [string]::IsNullOrWhiteSpace($gateway)) {
+        return $null
+    }
+
+    $fallbackIp = ''
+    $fallbackGateway = ''
+    $fallbackPreset = ''
+
+    if ($ip -eq '192.168.110.201' -or $gateway -eq '192.168.110.1') {
+        $fallbackIp = '192.168.100.201'
+        $fallbackGateway = '192.168.100.1'
+        $fallbackPreset = 'laptop_router_1'
+    } elseif ($ip -eq '192.168.100.201' -or $gateway -eq '192.168.100.1') {
+        $fallbackIp = '192.168.110.201'
+        $fallbackGateway = '192.168.110.1'
+        $fallbackPreset = 'laptop_router_2'
+    } else {
+        return $null
+    }
+
+    $fallback = $BridgeConfig | ConvertTo-Json -Depth 20 | ConvertFrom-Json -ErrorAction SilentlyContinue
+    if ($null -eq $fallback) {
+        return $null
+    }
+
+    if ($fallback.PSObject.Properties['ip_address']) {
+        $fallback.ip_address = $fallbackIp
+    } else {
+        $fallback | Add-Member -NotePropertyName 'ip_address' -NotePropertyValue $fallbackIp -Force
+    }
+
+    if ($fallback.PSObject.Properties['gateway']) {
+        $fallback.gateway = $fallbackGateway
+    } else {
+        $fallback | Add-Member -NotePropertyName 'gateway' -NotePropertyValue $fallbackGateway -Force
+    }
+
+    # selected_bridge_preset is informational for UI; network IP/gateway drive connector behavior.
+
+    return $fallback
+}
+
+function Get-BridgeConfigWithNetwork {
+    param(
+        $BridgeConfig,
+        [Parameter(Mandatory = $true)]
+        [string]$Ip,
+        [Parameter(Mandatory = $true)]
+        [string]$Gateway
+    )
+
+    $patched = $BridgeConfig | ConvertTo-Json -Depth 20 | ConvertFrom-Json -ErrorAction SilentlyContinue
+    if ($null -eq $patched) {
+        return $null
+    }
+
+    if ($patched.PSObject.Properties['ip_address']) {
+        $patched.ip_address = $Ip
+    } else {
+        $patched | Add-Member -NotePropertyName 'ip_address' -NotePropertyValue $Ip -Force
+    }
+
+    if ($patched.PSObject.Properties['gateway']) {
+        $patched.gateway = $Gateway
+    } else {
+        $patched | Add-Member -NotePropertyName 'gateway' -NotePropertyValue $Gateway -Force
+    }
+
+    return $patched
+}
+
+function Invoke-ConnectorSyncWithFallback {
+    param($BridgeConfig)
+
+    $override = Get-PreferredNetworkOverride
+    if ($null -ne $override) {
+        $overrideConfig = Get-BridgeConfigWithNetwork -BridgeConfig $BridgeConfig -Ip ([string]$override.ip) -Gateway ([string]$override.gateway)
+        if ($null -ne $overrideConfig) {
+            Update-ConnectorConfig -BridgeConfig $overrideConfig
+            try {
+                return (Invoke-ConnectorSync)
+            } catch {
+                Write-BridgeLog ("Preferred network override failed on {0}; clearing override." -f [string]$override.ip)
+                Set-PreferredNetworkOverride -Ip '' -Gateway ''
+                Update-ConnectorConfig -BridgeConfig $BridgeConfig
+            }
+        }
+    }
+
+    try {
+        return (Invoke-ConnectorSync)
+    } catch {
+        $primaryError = [string]$_.Exception.Message
+        if ($primaryError -notmatch 'Device connection failed|Device disconnected') {
+            throw
+        }
+
+        $fallbackConfig = Get-BridgeFallbackConfig -BridgeConfig $BridgeConfig
+        if ($null -eq $fallbackConfig) {
+            throw
+        }
+
+        Write-BridgeLog ("Primary connector network failed: {0}. Retrying fallback network {1} via gateway {2}." -f $primaryError, [string]$fallbackConfig.ip_address, [string]$fallbackConfig.gateway)
+        Update-ConnectorConfig -BridgeConfig $fallbackConfig
+
+        try {
+            $fallbackOutput = Invoke-ConnectorSync
+            Write-BridgeLog ("Fallback connector network succeeded on {0}." -f [string]$fallbackConfig.ip_address)
+            Set-PreferredNetworkOverride -Ip ([string]$fallbackConfig.ip_address) -Gateway ([string]$fallbackConfig.gateway) -TtlSeconds 1800
+            return $fallbackOutput
+        } catch {
+            $fallbackError = [string]$_.Exception.Message
+            throw ("Primary network failed: {0} | Fallback network failed: {1}" -f $primaryError, $fallbackError)
+        }
+    }
 }
 
 function Get-ConnectorUserListRaw {
@@ -1153,12 +1358,16 @@ try {
 
             Update-ConnectorConfig -BridgeConfig $bridgeConfig
             Invoke-BridgeCommandQueue -BridgeConfig $bridgeConfig
-            $connectorOutput = Invoke-ConnectorSync
+            $connectorOutput = Invoke-ConnectorSyncWithFallback -BridgeConfig $bridgeConfig
             Write-BridgeLog (($connectorOutput -join ' ') -replace '\s+', ' ')
             Save-BridgeRecoverySnapshot -BridgeConfig $bridgeConfig
             Invoke-BridgeHistoricalBackfill -BridgeConfig $bridgeConfig
             Publish-Ingest -BridgeConfig $bridgeConfig
-            Publish-UserCache -BridgeConfig $bridgeConfig
+            try {
+                Publish-UserCache -BridgeConfig $bridgeConfig
+            } catch {
+                Write-BridgeLog ("User cache sync skipped: " + $_.Exception.Message)
+            }
 
             $pollSeconds = [int]($bridgeConfig.poll_seconds)
             if ($pollSeconds -lt $MinPollSeconds) {

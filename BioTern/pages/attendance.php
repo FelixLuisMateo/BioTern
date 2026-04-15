@@ -506,9 +506,6 @@ function attendanceScheduleDisplayFallback(array $attendance, string $column): ?
         if ($column === 'morning_time_in') {
             return $scheduleIn;
         }
-        if ($column === 'morning_time_out') {
-            return $scheduleOut;
-        }
         return null;
     }
 
@@ -516,18 +513,13 @@ function attendanceScheduleDisplayFallback(array $attendance, string $column): ?
         if ($column === 'afternoon_time_in') {
             return $scheduleIn;
         }
-        if ($column === 'afternoon_time_out') {
-            return $scheduleOut;
-        }
         return null;
     }
 
-    // For whole-day schedules, only show fallback on start/end edge columns.
+    // For whole-day schedules, show fallback only on first time-in.
+    // Timeout columns should stay empty unless an actual biometric timeout exists.
     if ($column === 'morning_time_in') {
         return $scheduleIn;
-    }
-    if ($column === 'afternoon_time_out') {
-        return $scheduleOut;
     }
 
     return null;

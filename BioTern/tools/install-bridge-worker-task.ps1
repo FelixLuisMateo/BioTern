@@ -4,7 +4,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$BridgeToken,
     [string]$TaskName = 'BioTernBridgeWorker',
-    $PreferLocalConnectorNetwork = $true,
+    $PreferLocalConnectorNetwork = $false,
     [switch]$ForceUserTask
 )
 
@@ -35,7 +35,7 @@ function Resolve-BridgeBool {
     return $Default
 }
 
-$PreferLocalConnectorNetwork = Resolve-BridgeBool -Value $PreferLocalConnectorNetwork -Default $true
+$PreferLocalConnectorNetwork = Resolve-BridgeBool -Value $PreferLocalConnectorNetwork -Default $false
 
 if (-not (Test-Path $scriptPath)) {
     throw "Bridge worker script not found at $scriptPath"
@@ -90,6 +90,17 @@ function Install-BridgeTaskUserOnly {
     Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $triggerLogon -Principal $principal -Settings $Settings -Force | Out-Null
 }
 
+function Test-TaskInstalled {
+    param($TaskName)
+
+    try {
+        $existing = Get-ScheduledTask -TaskName $TaskName -ErrorAction Stop
+        return ($null -ne $existing)
+    } catch {
+        return $false
+    }
+}
+
 $installedMode = ''
 
 Remove-ExistingTaskIfPresent -TaskName $TaskName
@@ -100,17 +111,25 @@ if ($ForceUserTask) {
 } else {
     try {
         Install-BridgeTaskSystemStartup -TaskName $TaskName -Action $action -Settings $settings
-        $installedMode = 'system-startup'
+        if (Test-TaskInstalled -TaskName $TaskName) {
+            $installedMode = 'system-startup'
+        } else {
+            throw 'System startup registration did not produce a visible task.'
+        }
     } catch {
         $message = [string]$_.Exception.Message
-        if ($message -match 'Access is denied|0x80070005') {
+        if ($message -match 'Access is denied|0x80070005|did not produce a visible task') {
             Write-Host "No admin permission for SYSTEM startup task. Trying elevated startup/logon task..."
             try {
                 Install-BridgeTaskElevated -TaskName $TaskName -Action $action -Settings $settings
-                $installedMode = 'elevated-startup-logon'
+                if (Test-TaskInstalled -TaskName $TaskName) {
+                    $installedMode = 'elevated-startup-logon'
+                } else {
+                    throw 'Elevated startup/logon registration did not produce a visible task.'
+                }
             } catch {
                 $message2 = [string]$_.Exception.Message
-                if ($message2 -match 'Access is denied|0x80070005') {
+                if ($message2 -match 'Access is denied|0x80070005|did not produce a visible task') {
                     Write-Host "No admin permission for elevated task. Falling back to user logon task..."
                     Install-BridgeTaskUserOnly -TaskName $TaskName -Action $action -Settings $settings
                     $installedMode = 'user-logon'
@@ -122,6 +141,10 @@ if ($ForceUserTask) {
             throw
         }
     }
+}
+
+if (-not (Test-TaskInstalled -TaskName $TaskName)) {
+    throw "Scheduled task '$TaskName' was not registered."
 }
 
 Start-ScheduledTask -TaskName $TaskName
