@@ -1,6 +1,8 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
+require_once dirname(__DIR__) . '/lib/mailer.php';
+require_once dirname(__DIR__) . '/lib/student-registration-verification.php';
 biotern_boot_session($conn);
 
 $logoutRequested = isset($_GET['logout']) && (string)$_GET['logout'] === '1';
@@ -44,9 +46,18 @@ if ($auth_login_css_version === false) {
     $auth_login_css_version = '20260325';
 }
 $login_error = '';
+$login_notice = '';
 $next = isset($_GET['next']) ? basename((string)$_GET['next']) : '';
 if ($next !== '' && !preg_match('/^[A-Za-z0-9_-]+\.php$/', $next)) {
     $next = '';
+}
+
+if (isset($_GET['verified']) && (string)$_GET['verified'] === '1') {
+    $login_notice = 'Your email is verified. You can log in now.';
+}
+
+if (isset($_GET['verify_sent']) && (string)$_GET['verify_sent'] === '1') {
+    $login_notice = 'We sent a verification email to your inbox. Please click the button there before logging in.';
 }
 
 function log_login_attempt($mysqli, $userId, $identifier, $role, $status, $reason, $ip, $userAgent)
@@ -144,6 +155,80 @@ function biotern_auth_client_ip(): string
     return isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : '';
 }
 
+function biotern_send_login_verification_email(mysqli $mysqli, int $userId, string $targetEmail, string $verifyToken, int $expiresAt): array
+{
+    if ($userId <= 0 || trim($targetEmail) === '' || !filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
+        return ['ok' => false, 'reference' => '', 'error' => 'Invalid email verification request.'];
+    }
+
+    $appBaseUrl = biotern_mail_asset_base();
+    $verifyPath = 'auth-register-verify.php?login_token=' . rawurlencode($verifyToken) . '&approve=1';
+    $verifyUrl = $appBaseUrl !== '' ? ($appBaseUrl . '/' . ltrim($verifyPath, '/')) : $verifyPath;
+    $safeEmail = htmlspecialchars($targetEmail, ENT_QUOTES, 'UTF-8');
+    $safeVerifyUrl = htmlspecialchars($verifyUrl, ENT_QUOTES, 'UTF-8');
+    $minutesLeft = max(1, (int)ceil(max(0, $expiresAt - time()) / 60));
+
+    $subject = 'Verify your BioTern account email';
+    $text = "Verify your BioTern account email by opening this link:\n{$verifyUrl}\n\nThis verification link expires in {$minutesLeft} minute(s).";
+
+    $logoHtml = '';
+    if ($appBaseUrl !== '') {
+        $logoUrl = $appBaseUrl . '/assets/images/ccstlogo.png';
+        $logoHtml = '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="School logo" width="40" height="40" style="display:block;border-radius:8px;">';
+    }
+
+    $html = '
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b1220;padding:24px 0;font-family:Segoe UI,Arial,sans-serif;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#111a2e;border:1px solid #1f2a44;border-radius:16px;overflow:hidden;">
+                    <tr>
+                        <td style="padding:20px 24px;background:linear-gradient(135deg,#162447,#111a2e);color:#ffffff;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td>
+                                        <div style="font-size:18px;font-weight:700;">BioTern</div>
+                                        <div style="font-size:13px;color:#a3b3cc;">Email Verification</div>
+                                    </td>
+                                    <td align="right" style="vertical-align:middle;">' . $logoHtml . '</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:24px;color:#e5e7eb;">
+                            <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Verify your email before logging in</div>
+                            <div style="font-size:14px;color:#94a3b8;margin-bottom:18px;">
+                                Before we let you access BioTern, please verify <strong style="color:#e5e7eb;">' . $safeEmail . '</strong>.
+                            </div>
+                            <div style="text-align:center;margin:24px 0;">
+                                <a href="' . $safeVerifyUrl . '" style="display:inline-block;padding:14px 24px;border-radius:12px;background:#3454d1;border:1px solid #5d7df6;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;">
+                                    Verify Email
+                                </a>
+                            </div>
+                            <div style="font-size:13px;color:#94a3b8;">
+                                This verification link expires in ' . $minutesLeft . ' minute(s). If the button does not work, copy and open this link:<br>
+                                <span style="display:inline-block;margin-top:8px;color:#cbd5e1;word-break:break-all;">' . $safeVerifyUrl . '</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>';
+
+    $mailRef = null;
+    if (biotern_send_mail($mysqli, $targetEmail, $subject, $text, $html, $mailRef)) {
+        return ['ok' => true, 'reference' => '', 'error' => ''];
+    }
+
+    return [
+        'ok' => false,
+        'reference' => (string)$mailRef,
+        'error' => 'Unable to send the verification email right now.'
+    ];
+}
+
 if ($logoutRequested) {
     $mysqli = $conn;
     if ($mysqli instanceof mysqli && !$mysqli->connect_errno) {
@@ -201,18 +286,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_at DATETIME NULL");
             $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_at DATETIME NULL");
             $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_notes VARCHAR(255) NULL");
+            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at DATETIME NULL");
 
             ensure_login_logs_schema($mysqli);
+            biotern_login_email_verify_ensure_table($mysqli);
 
-            $stmt = $mysqli->prepare("SELECT u.id, u.name, u.username, u.email, u.password, u.role, u.is_active, u.profile_picture, COALESCE(u.application_status, 'approved') AS application_status
+            $stmt = $mysqli->prepare("SELECT
+                    u.id,
+                    u.name,
+                    u.username,
+                    u.email,
+                    u.password,
+                    u.role,
+                    u.is_active,
+                    u.profile_picture,
+                    u.email_verified_at,
+                    COALESCE(u.application_status, 'approved') AS application_status
                 FROM users u
                 LEFT JOIN students s ON s.user_id = u.id
-                WHERE s.student_id = ?
-                   OR ((u.role = 'admin' OR u.role = 'coordinator' OR u.role = 'supervisor') AND u.username = ?)
+                WHERE
+                    (u.role = 'student' AND s.student_id = ?)
+                    OR (
+                        u.role = 'student'
+                        AND EXISTS (
+                            SELECT 1
+                            FROM students sx
+                            WHERE sx.student_id = ?
+                              AND (
+                                  sx.user_id = u.id
+                                  OR (sx.email IS NOT NULL AND sx.email <> '' AND sx.email = u.email)
+                                  OR (u.username = sx.student_id)
+                              )
+                            LIMIT 1
+                        )
+                    )
+                    OR (u.role = 'student' AND u.username = ?)
+                    OR ((u.role = 'admin' OR u.role = 'coordinator' OR u.role = 'supervisor') AND u.username = ?)
+                ORDER BY
+                    CASE
+                        WHEN u.role = 'student' AND s.student_id = ? THEN 0
+                        WHEN u.role = 'student' AND u.username = ? THEN 1
+                        WHEN u.role = 'student' THEN 2
+                        ELSE 3
+                    END,
+                    u.id ASC
                 LIMIT 1");
 
             if ($stmt) {
-                $stmt->bind_param('ss', $identifier, $identifier);
+                $stmt->bind_param('ssssss', $identifier, $identifier, $identifier, $identifier, $identifier, $identifier);
                 $stmt->execute();
                 $user = $stmt->get_result()->fetch_assoc();
                 $stmt->close();
@@ -278,6 +399,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } elseif (strtolower((string)($user['application_status'] ?? 'approved')) === 'rejected') {
                     $login_error = 'Your registration was rejected. Please contact an administrator.';
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'rejected_application', $client_ip, $client_user_agent);
+                } elseif ((string)($user['role'] ?? '') === 'student' && trim((string)($user['email_verified_at'] ?? '')) === '') {
+                    $verifyToken = biotern_student_reg_generate_token();
+                    $verifyExpiresAt = time() + 900;
+                    $targetEmail = trim((string)($user['email'] ?? ''));
+                    $verifyStored = biotern_login_email_verify_store($mysqli, $verifyToken, (int)$user['id'], $targetEmail, $verifyExpiresAt);
+                    if (!$verifyStored) {
+                        $login_error = 'We could not prepare email verification right now. Please try again.';
+                        log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'email_verify_store_failed', $client_ip, $client_user_agent);
+                    } else {
+                        $sendResult = biotern_send_login_verification_email($mysqli, (int)$user['id'], $targetEmail, $verifyToken, $verifyExpiresAt);
+                        if (empty($sendResult['ok'])) {
+                            $login_error = 'Unable to send the verification email right now. Please try again.';
+                            if (!empty($sendResult['reference'])) {
+                                $login_error .= ' Reference: ' . $sendResult['reference'];
+                            }
+                            log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'email_verify_send_failed', $client_ip, $client_user_agent);
+                        } else {
+                            log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'email_verification_required', $client_ip, $client_user_agent);
+                            header('Location: ' . $route_prefix . 'auth/auth-register-verify.php?login_token=' . rawurlencode($verifyToken));
+                            exit;
+                        }
+                    }
                 } else {
                     session_regenerate_id(true);
                     $_SESSION['user_id'] = (int)$user['id'];
@@ -348,6 +491,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php if ($login_error !== ''): ?>
                         <div class="app-theme-notify-inline app-theme-notify-inline--error auth-login-form-error" role="alert" aria-live="assertive">
                             <?php echo htmlspecialchars((string)$login_error, ENT_QUOTES, 'UTF-8'); ?>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($login_notice !== ''): ?>
+                        <div class="app-theme-notify-inline app-theme-notify-inline--success auth-login-form-error" role="status" aria-live="polite">
+                            <?php echo htmlspecialchars((string)$login_notice, ENT_QUOTES, 'UTF-8'); ?>
                         </div>
                         <?php endif; ?>
                         <div class="mb-4">

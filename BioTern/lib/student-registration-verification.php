@@ -198,3 +198,124 @@ if (!function_exists('biotern_student_reg_consume')) {
         }
     }
 }
+
+if (!function_exists('biotern_login_email_verify_ensure_table')) {
+    function biotern_login_email_verify_ensure_table(mysqli $mysqli): bool
+    {
+        $sql = "CREATE TABLE IF NOT EXISTS login_email_verifications (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            verify_token CHAR(64) NOT NULL,
+            user_id INT UNSIGNED NOT NULL,
+            target_email VARCHAR(255) NOT NULL,
+            expires_at DATETIME NOT NULL,
+            consumed_at DATETIME NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_login_email_verify_token (verify_token),
+            KEY idx_login_email_verify_user_id (user_id),
+            KEY idx_login_email_verify_expires (expires_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+        return (bool)$mysqli->query($sql);
+    }
+}
+
+if (!function_exists('biotern_login_email_verify_store')) {
+    function biotern_login_email_verify_store(mysqli $mysqli, string $token, int $userId, string $email, int $expiresAt): bool
+    {
+        $normalizedToken = biotern_student_reg_normalize_token($token);
+        $safeEmail = trim($email);
+        $safeUserId = (int)$userId;
+
+        if ($normalizedToken === '' || $safeUserId <= 0 || $safeEmail === '' || !filter_var($safeEmail, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        if (!biotern_login_email_verify_ensure_table($mysqli)) {
+            return false;
+        }
+
+        $expiresAtSql = date('Y-m-d H:i:s', max($expiresAt, time() + 60));
+        $stmt = $mysqli->prepare("INSERT INTO login_email_verifications (verify_token, user_id, target_email, expires_at, consumed_at, created_at, updated_at)
+            VALUES (?, ?, ?, ?, NULL, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE
+                user_id = VALUES(user_id),
+                target_email = VALUES(target_email),
+                expires_at = VALUES(expires_at),
+                consumed_at = NULL,
+                updated_at = NOW()");
+
+        if (!$stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('siss', $normalizedToken, $safeUserId, $safeEmail, $expiresAtSql);
+        $ok = $stmt->execute();
+        $stmt->close();
+
+        if ($ok) {
+            $mysqli->query("DELETE FROM login_email_verifications WHERE expires_at < (NOW() - INTERVAL 2 DAY)");
+        }
+
+        return (bool)$ok;
+    }
+}
+
+if (!function_exists('biotern_login_email_verify_load')) {
+    function biotern_login_email_verify_load(mysqli $mysqli, string $token): ?array
+    {
+        $normalizedToken = biotern_student_reg_normalize_token($token);
+        if ($normalizedToken === '') {
+            return null;
+        }
+
+        if (!biotern_login_email_verify_ensure_table($mysqli)) {
+            return null;
+        }
+
+        $stmt = $mysqli->prepare("SELECT verify_token, user_id, target_email, UNIX_TIMESTAMP(expires_at) AS expires_at_ts, consumed_at
+            FROM login_email_verifications
+            WHERE verify_token = ?
+            LIMIT 1");
+        if (!$stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('s', $normalizedToken);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$row || !empty($row['consumed_at'])) {
+            return null;
+        }
+
+        return [
+            'token' => (string)($row['verify_token'] ?? ''),
+            'user_id' => (int)($row['user_id'] ?? 0),
+            'target_email' => trim((string)($row['target_email'] ?? '')),
+            'expires_at' => (int)($row['expires_at_ts'] ?? 0),
+        ];
+    }
+}
+
+if (!function_exists('biotern_login_email_verify_consume')) {
+    function biotern_login_email_verify_consume(mysqli $mysqli, string $token): void
+    {
+        $normalizedToken = biotern_student_reg_normalize_token($token);
+        if ($normalizedToken === '' || !biotern_login_email_verify_ensure_table($mysqli)) {
+            return;
+        }
+
+        $stmt = $mysqli->prepare("UPDATE login_email_verifications
+            SET consumed_at = NOW(), updated_at = NOW()
+            WHERE verify_token = ?
+            LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param('s', $normalizedToken);
+            $stmt->execute();
+            $stmt->close();
+        }
+    }
+}

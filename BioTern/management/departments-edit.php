@@ -5,6 +5,23 @@ require_once dirname(__DIR__) . '/config/db.php';
 $message = '';
 $message_type = 'info';
 
+$departmentColumns = [];
+$columnResult = $conn->query("SHOW COLUMNS FROM departments");
+if ($columnResult) {
+	while ($column = $columnResult->fetch_assoc()) {
+		$departmentColumns[] = strtolower((string)$column['Field']);
+	}
+}
+
+$hasColumn = function ($columnName) use ($departmentColumns) {
+	return in_array(strtolower($columnName), $departmentColumns, true);
+};
+
+if (!$hasColumn('location')) {
+	@$conn->query("ALTER TABLE departments ADD COLUMN location VARCHAR(255) NULL AFTER code");
+	$departmentColumns[] = 'location';
+}
+
 $id = isset($_GET['id']) ? (int)$_GET['id'] : (int)($_POST['id'] ?? 0);
 
 if ($id <= 0) {
@@ -12,7 +29,17 @@ if ($id <= 0) {
 }
 
 $dept = null;
-$stmt = $conn->prepare("SELECT id, name, code, department_head, contact_email FROM departments WHERE id = ? LIMIT 1");
+$selectFields = ['id', 'name', 'code'];
+if ($hasColumn('location')) {
+	$selectFields[] = 'location';
+}
+if ($hasColumn('department_head')) {
+	$selectFields[] = 'department_head';
+}
+if ($hasColumn('contact_email')) {
+	$selectFields[] = 'contact_email';
+}
+$stmt = $conn->prepare("SELECT " . implode(', ', $selectFields) . " FROM departments WHERE id = ? LIMIT 1");
 if ($stmt) {
 	$stmt->bind_param('i', $id);
 	$stmt->execute();
@@ -27,8 +54,8 @@ if (!$dept) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$name = trim((string)($_POST['name'] ?? ''));
 	$code = strtoupper(trim((string)($_POST['code'] ?? '')));
+	$location = trim((string)($_POST['location'] ?? ''));
 	$department_head = trim((string)($_POST['department_head'] ?? ''));
-	$contact_email = trim((string)($_POST['contact_email'] ?? ''));
 
 	if ($name === '' || $code === '') {
 		$message = 'Department name and code are required.';
@@ -46,19 +73,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$message = 'Department code already exists.';
 				$message_type = 'warning';
 			} else {
+				$assignments = ['name = ?', 'code = ?'];
+				$types = 'ss';
+				$params = [$name, $code];
+				if ($hasColumn('location')) {
+					$assignments[] = 'location = ?';
+					$types .= 's';
+					$params[] = $location;
+				}
+				if ($hasColumn('department_head')) {
+					$assignments[] = 'department_head = ?';
+					$types .= 's';
+					$params[] = $department_head;
+				}
+				if ($hasColumn('updated_at')) {
+					$assignments[] = 'updated_at = NOW()';
+				}
+				$types .= 'i';
+				$params[] = $id;
 				$update_stmt = $conn->prepare(
-					"UPDATE departments SET name = ?, code = ?, department_head = ?, contact_email = ?, updated_at = NOW() WHERE id = ? LIMIT 1"
+					"UPDATE departments SET " . implode(', ', $assignments) . " WHERE id = ? LIMIT 1"
 				);
 				if ($update_stmt) {
-					$update_stmt->bind_param('ssssi', $name, $code, $department_head, $contact_email, $id);
+					$bindArgs = [$types];
+					foreach ($params as $key => &$value) {
+						$bindArgs[] = &$value;
+					}
+					call_user_func_array([$update_stmt, 'bind_param'], $bindArgs);
 					if ($update_stmt->execute()) {
 						$message = 'Department updated successfully.';
 						$message_type = 'success';
 						// refresh $dept values
 						$dept['name'] = $name;
 						$dept['code'] = $code;
+						$dept['location'] = $location;
 						$dept['department_head'] = $department_head;
-						$dept['contact_email'] = $contact_email;
 					} else {
 						$message = 'Failed to update department: ' . $update_stmt->error;
 						$message_type = 'danger';
@@ -77,8 +126,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $departments = [];
+$listFields = ['id', 'name', 'code'];
+if ($hasColumn('location')) {
+	$listFields[] = 'location';
+}
+if ($hasColumn('department_head')) {
+	$listFields[] = 'department_head';
+}
+if ($hasColumn('created_at')) {
+	$listFields[] = 'created_at';
+}
+$whereClause = $hasColumn('deleted_at') ? ' WHERE deleted_at IS NULL' : '';
 $list_result = $conn->query(
-	"SELECT id, name, code, department_head, contact_email, created_at FROM departments WHERE deleted_at IS NULL ORDER BY id DESC LIMIT 200"
+	"SELECT " . implode(', ', $listFields) . " FROM departments" . $whereClause . " ORDER BY id DESC LIMIT 200"
 );
 if ($list_result) {
 	while ($row = $list_result->fetch_assoc()) {
@@ -131,12 +191,12 @@ include 'includes/header.php';
 							<input type="text" name="code" class="form-control" value="<?php echo htmlspecialchars((string)$dept['code']); ?>" required>
 						</div>
 						<div class="mb-3">
-							<label class="form-label">Department Head</label>
-							<input type="text" name="department_head" class="form-control" value="<?php echo htmlspecialchars((string)($dept['department_head'] ?? '')); ?>">
+							<label class="form-label">Location</label>
+							<input type="text" name="location" class="form-control" value="<?php echo htmlspecialchars((string)($dept['location'] ?? '')); ?>">
 						</div>
 						<div class="mb-3">
-							<label class="form-label">Contact Email</label>
-							<input type="email" name="contact_email" class="form-control" value="<?php echo htmlspecialchars((string)($dept['contact_email'] ?? '')); ?>">
+							<label class="form-label">Department Head</label>
+							<input type="text" name="department_head" class="form-control" value="<?php echo htmlspecialchars((string)($dept['department_head'] ?? '')); ?>">
 						</div>
 						<button type="submit" class="btn btn-primary">Save Department</button>
 					</form>
@@ -157,8 +217,8 @@ include 'includes/header.php';
 									<th>ID</th>
 									<th>Name</th>
 									<th>Code</th>
+									<th>Location</th>
 									<th>Head</th>
-									<th>Email</th>
 									<th></th>
 								</tr>
 							</thead>
@@ -169,8 +229,8 @@ include 'includes/header.php';
 										<td><?php echo (int)$d['id']; ?></td>
 										<td><?php echo htmlspecialchars((string)$d['name']); ?></td>
 										<td><?php echo htmlspecialchars((string)$d['code']); ?></td>
+										<td><?php echo htmlspecialchars((string)($d['location'] ?? '-')); ?></td>
 										<td><?php echo htmlspecialchars((string)($d['department_head'] ?? '-')); ?></td>
-										<td><?php echo htmlspecialchars((string)($d['contact_email'] ?? '-')); ?></td>
 										<td><a href="departments-edit.php?id=<?php echo (int)$d['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a></td>
 									</tr>
 								<?php endforeach; ?>

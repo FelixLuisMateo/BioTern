@@ -82,6 +82,32 @@ if (!function_exists('dashboard_safe_table_count')) {
     }
 }
 
+if (!function_exists('dashboard_format_section_chip')) {
+    function dashboard_format_section_chip($code, $name)
+    {
+        $code = trim((string)$code);
+        $name = trim((string)$name);
+
+        if ($code === '' && $name === '') {
+            return '';
+        }
+
+        if ($code !== '' && $name !== '') {
+            $compactName = strtoupper((string)preg_replace('/\s+/', '', $name));
+            if (
+                preg_match('/^([A-Za-z]+)\s*-?\s*([0-9]+[A-Za-z]?)$/', $code, $matches)
+                && strtoupper($matches[2]) === $compactName
+            ) {
+                return strtoupper($matches[1]) . ' | ' . $name;
+            }
+
+            return $code . ' | ' . $name;
+        }
+
+        return $code !== '' ? $code : $name;
+    }
+}
+
 // Initialize dashboard values
 $dashboard_stats = array(
     'attendance_awaiting' => 0,
@@ -477,17 +503,24 @@ include 'includes/header.php';
                     ($student_dashboard['student']['first_name'] ?? '') . ' ' . ($student_dashboard['student']['last_name'] ?? '')
                 ));
                 $student_course = trim((string)($student_dashboard['student']['course_name'] ?? ''));
-                $student_section_parts = array_filter([
-                    trim((string)($student_dashboard['student']['section_code'] ?? '')),
-                    trim((string)($student_dashboard['student']['section_name'] ?? '')),
-                ]);
-                $student_section = implode(' | ', $student_section_parts);
+                $student_section = dashboard_format_section_chip(
+                    (string)($student_dashboard['student']['section_code'] ?? ''),
+                    (string)($student_dashboard['student']['section_name'] ?? '')
+                );
                 $student_internship = is_array($student_dashboard['latest_internship']) ? $student_dashboard['latest_internship'] : [];
                 $student_completion = (float)($student_internship['completion_percentage'] ?? 0);
                 $student_status = trim((string)($student_internship['status'] ?? 'Not started'));
                 $student_company = trim((string)($student_internship['company_name'] ?? ''));
                 $student_required_hours = (float)($student_internship['required_hours'] ?? 0);
                 $student_rendered_hours = (float)($student_internship['rendered_hours'] ?? 0);
+                $student_has_started = (
+                    (int)($student_dashboard['attendance_this_month'] ?? 0) > 0
+                    || !empty($student_dashboard['recent_attendance'])
+                    || !empty($student_internship)
+                );
+                $student_greeting = $student_name !== ''
+                    ? ($student_has_started ? 'Welcome back, ' . $student_name : 'Welcome, ' . $student_name)
+                    : ($student_has_started ? 'Welcome back' : 'Welcome');
             ?>
             <div class="page-header student-page-header">
                 <div class="page-header-left d-flex align-items-center">
@@ -506,7 +539,7 @@ include 'includes/header.php';
                         <div class="student-home-hero__content">
                             <div>
                                 <span class="student-home-eyebrow">Student Workspace</span>
-                                <h2><?php echo htmlspecialchars($student_name !== '' ? 'Welcome back, ' . $student_name : 'Welcome back', ENT_QUOTES, 'UTF-8'); ?></h2>
+                                <h2><?php echo htmlspecialchars($student_greeting, ENT_QUOTES, 'UTF-8'); ?></h2>
                                 <p>Keep track of your attendance, internship progress, documents, and daily tools in one place.</p>
                                 <div class="student-home-meta">
                                     <?php if ($student_course !== ''): ?><span><?php echo htmlspecialchars($student_course, ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
