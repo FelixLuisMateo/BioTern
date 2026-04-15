@@ -19,6 +19,11 @@ $hasColumn = function ($columnName) use ($departmentColumns) {
 
 $hasDeletedAt = $hasColumn('deleted_at');
 
+if (!$hasColumn('location')) {
+    @$conn->query("ALTER TABLE departments ADD COLUMN location VARCHAR(255) NULL AFTER code");
+    $departmentColumns[] = 'location';
+}
+
 function bindDynamicParams(mysqli_stmt $stmt, string $types, array &$params): bool
 {
     if ($types === '') {
@@ -36,8 +41,8 @@ function bindDynamicParams(mysqli_stmt $stmt, string $types, array &$params): bo
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim((string)($_POST['name'] ?? ''));
     $code = strtoupper(trim((string)($_POST['code'] ?? '')));
+    $location = trim((string)($_POST['location'] ?? ''));
     $department_head = trim((string)($_POST['department_head'] ?? ''));
-    $contact_email = trim((string)($_POST['contact_email'] ?? ''));
 
     if ($name === '' || $code === '') {
         $message = 'Department name and code are required.';
@@ -59,17 +64,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $types = 'ss';
             $params = [$name, $code];
 
+            if ($hasColumn('location')) {
+                $columns[] = 'location';
+                $placeholders[] = '?';
+                $types .= 's';
+                $params[] = $location;
+            }
             if ($hasColumn('department_head')) {
                 $columns[] = 'department_head';
                 $placeholders[] = '?';
                 $types .= 's';
                 $params[] = $department_head;
-            }
-            if ($hasColumn('contact_email')) {
-                $columns[] = 'contact_email';
-                $placeholders[] = '?';
-                $types .= 's';
-                $params[] = $contact_email;
             }
             if ($hasColumn('created_at')) {
                 $columns[] = 'created_at';
@@ -112,11 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $departments = [];
 $selectFields = ['id', 'name', 'code'];
+if ($hasColumn('location')) {
+    $selectFields[] = 'location';
+}
 if ($hasColumn('department_head')) {
     $selectFields[] = 'department_head';
-}
-if ($hasColumn('contact_email')) {
-    $selectFields[] = 'contact_email';
 }
 if ($hasColumn('created_at')) {
     $selectFields[] = 'created_at';
@@ -166,19 +171,19 @@ include 'includes/header.php';
                     <form method="post" action="">
                         <div class="mb-3">
                             <label class="form-label">Department Name *</label>
-                            <input type="text" name="name" class="form-control" placeholder="Information Technology" required>
+                            <input type="text" name="name" class="form-control" placeholder="Information Technology" required value="<?php echo htmlspecialchars((string)($_POST['name'] ?? '')); ?>">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Department Code *</label>
-                            <input type="text" name="code" class="form-control" placeholder="DEPT-IT" required>
+                            <input type="text" name="code" class="form-control" placeholder="DEPT-IT" required value="<?php echo htmlspecialchars((string)($_POST['code'] ?? '')); ?>">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Location</label>
+                            <input type="text" name="location" class="form-control" placeholder="Main Building, 2nd Floor" value="<?php echo htmlspecialchars((string)($_POST['location'] ?? '')); ?>">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Department Head</label>
-                            <input type="text" name="department_head" class="form-control" placeholder="Dr. Juan Santos">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Contact Email</label>
-                            <input type="email" name="contact_email" class="form-control" placeholder="it@biotern.com">
+                            <input type="text" name="department_head" class="form-control" placeholder="Dr. Juan Santos" value="<?php echo htmlspecialchars((string)($_POST['department_head'] ?? '')); ?>">
                         </div>
                         <div class="create-form-actions app-form-actions">
                             <button type="submit" class="btn btn-primary">Save Department</button>
@@ -203,8 +208,8 @@ include 'includes/header.php';
                                     <th>ID</th>
                                     <th>Name</th>
                                     <th>Code</th>
+                                    <th>Location</th>
                                     <th>Head</th>
-                                    <th>Email</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -214,8 +219,8 @@ include 'includes/header.php';
                                         <td><?php echo (int)$dept['id']; ?></td>
                                         <td><?php echo htmlspecialchars((string)$dept['name']); ?></td>
                                         <td><?php echo htmlspecialchars((string)$dept['code']); ?></td>
+                                        <td><?php echo htmlspecialchars((string)($dept['location'] ?? '-')); ?></td>
                                         <td><?php echo htmlspecialchars((string)($dept['department_head'] ?? '-')); ?></td>
-                                        <td><?php echo htmlspecialchars((string)($dept['contact_email'] ?? '-')); ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>

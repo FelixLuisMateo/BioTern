@@ -86,6 +86,81 @@ function studentApplicationRedirect(string $status, string $message): void {
     exit;
 }
 
+function sendStudentApplicationReceivedEmail(mysqli $mysqli, string $targetEmail, string $studentName, string $studentId, string $schoolYear, string $semester): void
+{
+    $safeEmail = trim($targetEmail);
+    if ($safeEmail === '' || !filter_var($safeEmail, FILTER_VALIDATE_EMAIL)) {
+        return;
+    }
+
+    $displayName = trim($studentName) !== '' ? trim($studentName) : 'Student';
+    $appBaseUrl = biotern_mail_asset_base();
+    $subject = 'BioTern application received';
+    $safeName = htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8');
+    $safeStudentId = htmlspecialchars(trim($studentId), ENT_QUOTES, 'UTF-8');
+    $safeSchoolYear = htmlspecialchars(trim($schoolYear), ENT_QUOTES, 'UTF-8');
+    $safeSemester = htmlspecialchars(trim($semester), ENT_QUOTES, 'UTF-8');
+
+    $text = "Hello {$displayName},\n\nWe successfully received your BioTern student application."
+        . ($studentId !== '' ? "\nStudent ID: {$studentId}" : '')
+        . ($schoolYear !== '' ? "\nSchool Year: {$schoolYear}" : '')
+        . ($semester !== '' ? "\nSemester: {$semester}" : '')
+        . "\n\nYour application is now pending approval. Please wait for an administrator, coordinator, or supervisor to review it.\n\n"
+        . "You will verify your email when you log in after your application is approved.";
+
+    $logoHtml = '';
+    if ($appBaseUrl !== '') {
+        $logoUrl = $appBaseUrl . '/assets/images/ccstlogo.png';
+        $logoHtml = '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="School logo" width="40" height="40" style="display:block;border-radius:8px;">';
+    }
+
+    $html = '
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b1220;padding:24px 0;font-family:Segoe UI,Arial,sans-serif;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#111a2e;border:1px solid #1f2a44;border-radius:16px;overflow:hidden;">
+                    <tr>
+                        <td style="padding:20px 24px;background:linear-gradient(135deg,#162447,#111a2e);color:#ffffff;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td>
+                                        <div style="font-size:18px;font-weight:700;">BioTern</div>
+                                        <div style="font-size:13px;color:#a3b3cc;">Student Application</div>
+                                    </td>
+                                    <td align="right" style="vertical-align:middle;">' . $logoHtml . '</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:24px;color:#e5e7eb;">
+                            <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Application received</div>
+                            <div style="font-size:14px;color:#94a3b8;line-height:1.7;">
+                                Hello <strong style="color:#ffffff;">' . $safeName . '</strong>, we successfully received your student application.
+                            </div>
+                            <div style="margin-top:18px;padding:16px 18px;border-radius:14px;background:#0f172a;border:1px solid #26334d;">
+                                <div style="font-size:13px;color:#94a3b8;">Student ID</div>
+                                <div style="font-size:15px;font-weight:700;color:#ffffff;margin-bottom:10px;">' . ($safeStudentId !== '' ? $safeStudentId : 'Not provided') . '</div>
+                                <div style="font-size:13px;color:#94a3b8;">School Year</div>
+                                <div style="font-size:15px;font-weight:700;color:#ffffff;margin-bottom:10px;">' . ($safeSchoolYear !== '' ? $safeSchoolYear : 'Not set') . '</div>
+                                <div style="font-size:13px;color:#94a3b8;">Semester</div>
+                                <div style="font-size:15px;font-weight:700;color:#ffffff;">' . ($safeSemester !== '' ? $safeSemester : 'Not set') . '</div>
+                            </div>
+                            <div style="margin-top:18px;font-size:14px;color:#cbd5e1;line-height:1.7;">
+                                Your application is now pending approval. Please wait for an administrator, coordinator, or supervisor to review it.
+                                Once approved, we will ask you to verify your email before you can access the system.
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>';
+
+    $mailRef = null;
+    biotern_send_mail($mysqli, $safeEmail, $subject, $text, $html, $mailRef);
+}
+
 function studentIdAlreadyUsed(mysqli $mysqli, string $studentId): bool {
     $value = trim($studentId);
     if ($value === '') {
@@ -619,97 +694,6 @@ if ($role === 'student') {
         studentApplicationRedirect('error', 'Please provide a valid account email address.');
     }
 
-    if (!isset($_POST['registration_email_verified']) || $_POST['registration_email_verified'] !== '1') {
-        $code = generateRegistrationCode();
-        $verifyToken = biotern_student_reg_generate_token();
-        $verifyExpiresAt = time() + 900;
-
-        if (!biotern_student_reg_store_pending($mysqli, $verifyToken, $final_email, $code, $_POST, $verifyExpiresAt)) {
-            studentApplicationRedirect('error', 'Unable to start email verification right now. Please try again.');
-        }
-
-        $_SESSION['student_registration_pending_post'] = $_POST;
-        $_SESSION['student_registration_verify_code'] = $code;
-        $_SESSION['student_registration_verify_email'] = $final_email;
-        $_SESSION['student_registration_verify_expires_at'] = $verifyExpiresAt;
-        $_SESSION['student_registration_verify_token'] = $verifyToken;
-
-        $subject = 'Verify your BioTern student application';
-        $text = "Your BioTern verification code is: {$code}\n\nEnter this code to continue your student application. This code expires in 15 minutes.";
-        $safeCode = htmlspecialchars($code, ENT_QUOTES, 'UTF-8');
-        $safeEmail = htmlspecialchars($final_email, ENT_QUOTES, 'UTF-8');
-        $appBaseUrl = biotern_mail_asset_base();
-        $logoHtml = '';
-        if ($appBaseUrl !== '') {
-            $logoUrl = $appBaseUrl . '/assets/images/ccstlogo.png';
-            $logoHtml = '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="School logo" width="40" height="40" style="display:block;border-radius:8px;">';
-        }
-        $html = '
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b1220;padding:24px 0;font-family:Segoe UI,Arial,sans-serif;">
-            <tr>
-                <td align="center">
-                    <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#111a2e;border:1px solid #1f2a44;border-radius:16px;overflow:hidden;">
-                        <tr>
-                            <td style="padding:20px 24px;background:linear-gradient(135deg,#162447,#111a2e);color:#ffffff;">
-                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                    <tr>
-                                        <td>
-                                            <div style="font-size:18px;font-weight:700;">BioTern</div>
-                                            <div style="font-size:13px;color:#a3b3cc;">Student Application</div>
-                                        </td>
-                                        <td align="right" style="vertical-align:middle;">' . $logoHtml . '</td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding:24px;color:#e5e7eb;">
-                                <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Verify your email</div>
-                                <div style="font-size:14px;color:#94a3b8;margin-bottom:18px;">
-                                    We sent a 6-digit code to <strong style="color:#e5e7eb;">' . $safeEmail . '</strong>.
-                                </div>
-                                <div style="text-align:center;margin:20px 0;">
-                                    <div style="display:inline-block;padding:12px 20px;border-radius:12px;background:#0f172a;border:1px solid #263453;font-size:24px;letter-spacing:6px;font-weight:700;color:#ffffff;">
-                                        ' . $safeCode . '
-                                    </div>
-                                </div>
-                                <div style="font-size:13px;color:#94a3b8;">
-                                    Enter this code to continue your student application. This code expires in 15 minutes.
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td style="padding:18px 24px;border-top:1px solid #1f2a44;color:#6b7a99;font-size:12px;">
-                                If you did not request this, you can ignore this email.
-                            </td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>';
-        $mailRef = null;
-        if (!biotern_send_mail($mysqli, $final_email, $subject, $text, $html, $mailRef)) {
-            $msg = 'Unable to send verification email. Please check email settings and try again.';
-            if ($mailRef) {
-                $msg .= ' Reference: ' . $mailRef;
-            }
-            studentApplicationRedirect('error', $msg);
-        }
-
-        $verifyRedirect = 'auth-register-verify.php?token=' . rawurlencode($verifyToken);
-        if (!headers_sent()) {
-            header('Location: ' . $verifyRedirect);
-        } else {
-            $verifyRedirectAttr = htmlspecialchars($verifyRedirect, ENT_QUOTES, 'UTF-8');
-            $verifyRedirectJson = json_encode($verifyRedirect, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            if (!is_string($verifyRedirectJson) || $verifyRedirectJson === '') {
-                $verifyRedirectJson = '"auth-register-verify.php"';
-            }
-            echo '<noscript><meta http-equiv="refresh" content="0;url=' . $verifyRedirectAttr . '"></noscript>';
-            echo '<script>window.location.replace(' . $verifyRedirectJson . ');</script>';
-        }
-        exit;
-    }
     $username_seed = $student_id ?: ($final_email ?: ($first_name . '.' . $last_name));
     $username = generateUniqueUsername($mysqli, $username_seed, 'student');
     $course_id = (int)$course_id;
@@ -1068,6 +1052,9 @@ if ($role === 'student') {
         studentApplicationRedirect('error', 'Unable to queue the student application for review.');
     }
     $stageStmt->close();
+
+    $studentDisplayName = trim($first_name . ' ' . $last_name);
+    sendStudentApplicationReceivedEmail($mysqli, $final_email, $studentDisplayName, (string)$student_id, (string)$school_year, (string)$semester);
 
     studentApplicationRedirect('pending', 'Application received. Please wait for approval from an administrator, coordinator, or supervisor.');
 }

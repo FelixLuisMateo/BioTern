@@ -479,6 +479,7 @@ function setupFloatingTextFields() {
             setupFloatingTextFields();
             setupStudentDraftPersistence();
             setupStudentFinalReview();
+            setupTermsModal();
             initFormStepper('studentForm');
             enforceStudentOnlyForms();
             if (STUDENT_ONLY_REGISTRATION) {
@@ -816,6 +817,35 @@ function setupFloatingTextFields() {
             });
 
             form.dataset.reviewBound = '1';
+        }
+
+        function setupTermsModal() {
+            const termsModalEl = document.getElementById('termsModal');
+            if (!termsModalEl || typeof bootstrap === 'undefined') return;
+            if (termsModalEl.dataset.modalBound === '1') return;
+
+            if (termsModalEl.parentElement !== document.body) {
+                document.body.appendChild(termsModalEl);
+            }
+
+            function cleanupBackdrops() {
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('padding-right');
+                document.body.style.removeProperty('overflow');
+                document.querySelectorAll('.modal-backdrop').forEach(function(backdrop) {
+                    backdrop.remove();
+                });
+            }
+
+            termsModalEl.addEventListener('show.bs.modal', function() {
+                cleanupBackdrops();
+            });
+
+            termsModalEl.addEventListener('hidden.bs.modal', function() {
+                cleanupBackdrops();
+            });
+
+            termsModalEl.dataset.modalBound = '1';
         }
 
         function setSelectLoading(selectEl, label) {

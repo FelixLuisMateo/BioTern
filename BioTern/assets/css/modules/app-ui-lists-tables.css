@@ -690,7 +690,8 @@ html.app-skin-dark .app-academic-id-pill {
 html.app-skin-dark .app-academic-code-pill {
   border-color: rgba(var(--bs-primary-rgb), 0.44);
   background: rgba(var(--bs-primary-rgb), 0.22);
-  color: var(--biotern-primary-soft);
+  color: #dbe7ff;
+  text-shadow: 0 0 0 transparent;
 }
 
 html.app-skin-dark .app-academic-meta,

@@ -88,10 +88,15 @@
         --chat-compose-bg: var(--biotern-surface, #0f172a);
         --chat-compose-inner-bg: var(--biotern-surface-muted, #111827);
         --chat-compose-inner-border: color-mix(in srgb, var(--biotern-border, #1b2436) 90%, #94a3b8 10%);
-        --chat-compose-input-color: var(--bs-body-color, #f1f5f9);
-        --chat-compose-input-placeholder: color-mix(in srgb, var(--bs-body-color, #f1f5f9) 64%, transparent);
+        --chat-compose-input-color: #e5edf9;
+        --chat-compose-input-placeholder: rgba(203, 213, 225, 0.78);
         --chat-status-dot-border: var(--biotern-surface, #0f172a);
         --chat-empty-color: color-mix(in srgb, var(--bs-body-color, #f1f5f9) 82%, transparent);
+    }
+
+    html:not(.app-skin-dark) {
+        --chat-compose-input-color: #1e293b;
+        --chat-compose-input-placeholder: rgba(71, 85, 105, 0.72);
     }
 
     html.app-theme-gray {
@@ -1766,6 +1771,7 @@
         background: transparent;
         border: 0;
         color: var(--chat-compose-input-color);
+        -webkit-text-fill-color: var(--chat-compose-input-color);
         outline: none;
         font-size: 0.93rem;
         resize: none;
@@ -1774,10 +1780,43 @@
         max-height: 140px;
         line-height: 1.4;
         padding: 0.48rem 0.32rem;
+        opacity: 1;
+        caret-color: var(--chat-compose-input-color);
     }
 
     .btchat-compose-input::placeholder {
         color: var(--chat-compose-input-placeholder);
+        -webkit-text-fill-color: var(--chat-compose-input-placeholder);
+        opacity: 1;
+    }
+
+    .btchat-compose-input:focus,
+    html.app-skin-dark .btchat-compose-input,
+    html.app-skin-dark .btchat-compose-input:focus {
+        color: #e5edf9 !important;
+        -webkit-text-fill-color: #e5edf9 !important;
+        opacity: 1 !important;
+        caret-color: #e5edf9 !important;
+    }
+
+    html.app-skin-dark .btchat-compose-input::placeholder {
+        color: rgba(203, 213, 225, 0.78) !important;
+        -webkit-text-fill-color: rgba(203, 213, 225, 0.78) !important;
+        opacity: 1 !important;
+    }
+
+    html:not(.app-skin-dark) .btchat-compose-input,
+    html:not(.app-skin-dark) .btchat-compose-input:focus {
+        color: #1e293b !important;
+        -webkit-text-fill-color: #1e293b !important;
+        opacity: 1 !important;
+        caret-color: #1e293b !important;
+    }
+
+    html:not(.app-skin-dark) .btchat-compose-input::placeholder {
+        color: rgba(71, 85, 105, 0.72) !important;
+        -webkit-text-fill-color: rgba(71, 85, 105, 0.72) !important;
+        opacity: 1 !important;
     }
 
     .btchat-send-btn {

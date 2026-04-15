@@ -180,7 +180,7 @@ include 'includes/header.php';
 		<div class="col-lg-7">
 			<div class="card stretch stretch-full">
 				<div class="card-header d-flex justify-content-between align-items-center">
-					<h5 class="card-title mb-0">Recent Courses</h5>
+					<h5 class="card-title mb-0">Existing Courses</h5>
 				</div>
 				<div class="card-body p-0">
 					<div class="table-responsive">

@@ -14,12 +14,17 @@ $hasColumn = function ($columnName) use ($deptColumns) {
     return in_array(strtolower($columnName), $deptColumns, true);
 };
 
+if (!$hasColumn('location')) {
+    @$conn->query("ALTER TABLE departments ADD COLUMN location VARCHAR(255) NULL AFTER code");
+    $deptColumns[] = 'location';
+}
+
 $selectFields = ['id', 'name', 'code'];
+if ($hasColumn('location')) {
+    $selectFields[] = 'location';
+}
 if ($hasColumn('department_head')) {
     $selectFields[] = 'department_head';
-}
-if ($hasColumn('contact_email')) {
-    $selectFields[] = 'contact_email';
 }
 if ($hasColumn('is_active')) {
     $selectFields[] = 'is_active';
@@ -79,8 +84,8 @@ $page_title = 'Departments';
                             <th>ID</th>
                             <th>Code</th>
                             <th>Name</th>
+                            <?php if ($hasColumn('location')): ?><th>Location</th><?php endif; ?>
                             <?php if ($hasColumn('department_head')): ?><th>Department Head</th><?php endif; ?>
-                            <?php if ($hasColumn('contact_email')): ?><th>Contact Email</th><?php endif; ?>
                             <?php if ($hasColumn('is_active')): ?><th>Status</th><?php endif; ?>
                             <?php if ($hasColumn('created_at')): ?><th>Created</th><?php endif; ?>
                             <th>Actions</th>
@@ -95,16 +100,13 @@ $page_title = 'Departments';
                                 <td>
                                     <div class="app-academic-name-cell">
                                         <span class="app-academic-name"><?php echo htmlspecialchars((string)($dept['name'] ?? '')); ?></span>
-                                        <?php if ($hasColumn('contact_email')): ?>
-                                            <span class="app-academic-meta"><?php echo htmlspecialchars((string)($dept['contact_email'] ?? '-')); ?></span>
-                                        <?php endif; ?>
                                     </div>
                                 </td>
+                                <?php if ($hasColumn('location')): ?>
+                                    <td><span class="app-academic-created"><?php echo htmlspecialchars((string)($dept['location'] ?? '-')); ?></span></td>
+                                <?php endif; ?>
                                 <?php if ($hasColumn('department_head')): ?>
                                     <td><span class="app-academic-head"><?php echo htmlspecialchars((string)($dept['department_head'] ?? '-')); ?></span></td>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('contact_email')): ?>
-                                    <td><span class="app-academic-created"><?php echo htmlspecialchars((string)($dept['contact_email'] ?? '-')); ?></span></td>
                                 <?php endif; ?>
                                 <?php if ($hasColumn('is_active')): ?>
                                     <td>
@@ -127,7 +129,7 @@ $page_title = 'Departments';
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="<?php echo 4 + ($hasColumn('department_head') ? 1 : 0) + ($hasColumn('contact_email') ? 1 : 0) + ($hasColumn('is_active') ? 1 : 0) + ($hasColumn('created_at') ? 1 : 0); ?>" class="text-center py-4 text-muted">No departments found.</td>
+                            <td colspan="<?php echo 4 + ($hasColumn('location') ? 1 : 0) + ($hasColumn('department_head') ? 1 : 0) + ($hasColumn('is_active') ? 1 : 0) + ($hasColumn('created_at') ? 1 : 0); ?>" class="text-center py-4 text-muted">No departments found.</td>
                         </tr>
                     <?php endif; ?>
                     </tbody>
@@ -156,16 +158,16 @@ $page_title = 'Departments';
                                     <span class="app-mobile-label app-ojt-mobile-label">Code</span>
                                     <span class="app-mobile-value app-ojt-mobile-value"><?php echo htmlspecialchars((string)($dept['code'] ?? '-')); ?></span>
                                 </div>
+                                <?php if ($hasColumn('location')): ?>
+                                    <div class="app-mobile-row app-ojt-mobile-row">
+                                        <span class="app-mobile-label app-ojt-mobile-label">Location</span>
+                                        <span class="app-mobile-value app-ojt-mobile-value"><?php echo htmlspecialchars((string)($dept['location'] ?? '-')); ?></span>
+                                    </div>
+                                <?php endif; ?>
                                 <?php if ($hasColumn('department_head')): ?>
                                     <div class="app-mobile-row app-ojt-mobile-row">
                                         <span class="app-mobile-label app-ojt-mobile-label">Department Head</span>
                                         <span class="app-mobile-value app-ojt-mobile-value"><?php echo htmlspecialchars((string)($dept['department_head'] ?? '-')); ?></span>
-                                    </div>
-                                <?php endif; ?>
-                                <?php if ($hasColumn('contact_email')): ?>
-                                    <div class="app-mobile-row app-ojt-mobile-row">
-                                        <span class="app-mobile-label app-ojt-mobile-label">Contact Email</span>
-                                        <span class="app-mobile-value app-ojt-mobile-value"><?php echo htmlspecialchars((string)($dept['contact_email'] ?? '-')); ?></span>
                                     </div>
                                 <?php endif; ?>
                                 <?php if ($hasColumn('is_active')): ?>

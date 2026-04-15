@@ -157,16 +157,16 @@ include 'includes/header.php';
                     <form method="post" action="">
                         <div class="mb-3">
                             <label class="form-label">Course Name *</label>
-                            <input type="text" name="name" class="form-control" placeholder="Bachelor of Science in Accountancy" required>
+                            <input type="text" name="name" class="form-control" placeholder="Bachelor of Science in Accountancy" required value="<?php echo htmlspecialchars((string)($_POST['name'] ?? '')); ?>">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Course Code *</label>
-                            <input type="text" name="code" class="form-control" placeholder="ACT" required>
+                            <input type="text" name="code" class="form-control" placeholder="ACT" required value="<?php echo htmlspecialchars((string)($_POST['code'] ?? '')); ?>">
                         </div>
                         <?php if ($hasCourseHead): ?>
                             <div class="mb-3">
                                 <label class="form-label">Course Head *</label>
-                                <input type="text" name="course_head" class="form-control" placeholder="Prof. Juan Dela Cruz" required>
+                                <input type="text" name="course_head" class="form-control" placeholder="Prof. Juan Dela Cruz" required value="<?php echo htmlspecialchars((string)($_POST['course_head'] ?? '')); ?>">
                             </div>
                         <?php endif; ?>
                         <div class="create-form-actions app-form-actions">
@@ -181,8 +181,7 @@ include 'includes/header.php';
         <div class="col-lg-7">
             <div class="card stretch stretch-full">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Recent Courses</h5>
-                    <a href="auth-register.php" class="btn btn-sm btn-outline-primary">Open Registration</a>
+                    <h5 class="card-title mb-0">Existing Courses</h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
