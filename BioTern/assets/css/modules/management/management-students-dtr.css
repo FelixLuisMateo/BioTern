@@ -111,7 +111,7 @@
     padding: 0.42rem 0.8rem;
     border: 1px solid rgba(129, 153, 199, 0.34);
     border-radius: 999px;
-    background: linear-gradient(135deg, rgba(29, 78, 216, 0.18), rgba(14, 165, 233, 0.1));
+    background: linear-gradient(135deg, rgba(29, 78, 216, 0.18), rgba(var(--biotern-primary-rgb), 0.1));
 }
 
 .app-students-dtr-hours-chip-value {
@@ -312,7 +312,7 @@ html.app-skin-dark .app-students-dtr-hero-card {
 }
 
 html.app-skin-dark .app-students-dtr-overline {
-    color: #93c5fd;
+    color: var(--biotern-primary-soft);
 }
 
 html.app-skin-dark .app-students-dtr-copy-note {
@@ -334,8 +334,8 @@ html.app-skin-dark .app-students-dtr-hours-chip {
 }
 
 html.app-skin-dark .app-students-dtr-hours-chip-pill {
-    border-color: rgba(96, 165, 250, 0.28);
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.24), rgba(14, 165, 233, 0.14));
+    border-color: rgba(var(--biotern-primary-rgb), 0.28);
+    background: linear-gradient(135deg, rgba(var(--biotern-primary-rgb), 0.24), rgba(var(--biotern-primary-rgb), 0.14));
 }
 
 html.app-skin-dark .app-students-dtr-meta-highlight .app-students-dtr-chip,
@@ -354,7 +354,7 @@ html.app-skin-dark .dtr-summary-label {
 
 html.app-skin-dark .app-students-dtr-summary-value,
 html.app-skin-dark .dtr-summary-value {
-    color: #f8fbff;
+    color: var(--biotern-surface-muted);
 }
 
 html.app-skin-dark .app-students-dtr-table th,
@@ -406,9 +406,9 @@ html.app-skin-dark .dtr-hours-label {
 
 html.app-skin-dark .app-students-dtr-hours-value,
 html.app-skin-dark .dtr-hours-value {
-    border-color: rgba(96, 165, 250, 0.22);
+    border-color: rgba(var(--biotern-primary-rgb), 0.22);
     background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.94));
-    color: #f8fbff;
+    color: var(--biotern-surface-muted);
 }
 
 html.app-skin-dark .app-students-dtr-empty-note,

@@ -26,6 +26,79 @@ if (!isset($conn) || !($conn instanceof mysqli)) {
     $conn->set_charset('utf8mb4');
 }
 
+function ojt_internal_table_exists(mysqli $conn, string $table): bool {
+    $safe = $conn->real_escape_string($table);
+    $res = $conn->query("SHOW TABLES LIKE '{$safe}'");
+    return ($res instanceof mysqli_result) && $res->num_rows > 0;
+}
+
+function ojt_internal_column_exists(mysqli $conn, string $table, string $column): bool {
+    $safeTable = $conn->real_escape_string($table);
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    return ($res instanceof mysqli_result) && $res->num_rows > 0;
+}
+
+function ojt_internal_list_status_key(array $row): string {
+    $internStatus = strtolower(trim((string)($row['internship_status'] ?? '')));
+    if ($internStatus === 'ongoing') {
+        return 'ongoing';
+    }
+    if (in_array($internStatus, ['completed', 'finished', 'done', 'dropped', 'cancelled'], true)) {
+        return 'finished';
+    }
+    if (in_array($internStatus, ['pending', 'applied', 'accepted', 'endorsed'], true)) {
+        return 'not_started';
+    }
+
+    $legacyStatus = strtolower(trim((string)($row['ojt_status'] ?? '')));
+    if ($legacyStatus === 'ongoing') {
+        return 'ongoing';
+    }
+    if (in_array($legacyStatus, ['finished', 'completed', 'done', 'closed', 'inactive'], true)) {
+        return 'finished';
+    }
+
+    return 'not_started';
+}
+
+function ojt_internal_list_status_label(string $status): string {
+    $map = [
+        'ongoing' => 'Ongoing',
+        'finished' => 'Finished',
+        'not_started' => 'Not Started',
+    ];
+    return $map[$status] ?? 'Not Started';
+}
+
+function ojt_internal_list_status_badge_class(string $status): string {
+    $map = [
+        'ongoing' => 'app-ojt-internal-status app-ojt-internal-status-ongoing',
+        'finished' => 'app-ojt-internal-status app-ojt-internal-status-finished',
+        'not_started' => 'app-ojt-internal-status app-ojt-internal-status-not-started',
+    ];
+    return $map[$status] ?? 'app-ojt-internal-status';
+}
+
+function ojt_internal_list_matches_search(array $row, string $search): bool {
+    $needle = strtolower(trim($search));
+    if ($needle === '') {
+        return true;
+    }
+    $haystack = strtolower(implode(' ', [
+        (string)($row['student_no'] ?? ''),
+        (string)($row['last_name'] ?? ''),
+        (string)($row['first_name'] ?? ''),
+        (string)($row['middle_name'] ?? ''),
+        (string)($row['ojt_email'] ?? ''),
+        (string)($row['student_id'] ?? ''),
+        (string)($row['account_name'] ?? ''),
+        (string)($row['course_name'] ?? ''),
+        (string)($row['section_name'] ?? ''),
+    ]));
+    return strpos($haystack, $needle) !== false;
+}
+
 $conn->query("CREATE TABLE IF NOT EXISTS ojt_internal (
     student_no VARCHAR(100) NOT NULL,
     user_id INT NULL,
@@ -64,6 +137,13 @@ $mapFingerId = (int)($_GET['map_finger_id'] ?? 0);
 $filterCourseId = (int)($_GET['course_id'] ?? 0);
 $filterSectionId = (int)($_GET['section_id'] ?? 0);
 $search = trim((string)($_GET['search'] ?? ''));
+$filterOjtStatus = strtolower(trim((string)($_GET['ojt_status'] ?? 'all')));
+if (!in_array($filterOjtStatus, ['all', 'ongoing', 'finished', 'not_started'], true)) {
+    $filterOjtStatus = 'all';
+}
+
+$internshipsTableExists = ojt_internal_table_exists($conn, 'internships');
+$internshipsHasTypeColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'type');
 
 $courses = [];
 $courseRes = $conn->query('SELECT id, name FROM courses ORDER BY name ASC');
@@ -84,26 +164,29 @@ if ($sectionRes instanceof mysqli_result) {
     $sectionRes->close();
 }
 
-$where = [];
-if ($filterCourseId > 0) {
-    $where[] = 'COALESCE(oi.course_id, s.course_id, 0) = ' . (int)$filterCourseId;
-}
-if ($filterSectionId > 0) {
-    $where[] = 'COALESCE(oi.section_id, s.section_id, 0) = ' . (int)$filterSectionId;
-}
-if ($search !== '') {
-    $safe = $conn->real_escape_string($search);
-    $like = "'%" . $safe . "%'";
-    $where[] = "(
-        oi.student_no LIKE {$like}
-        OR oi.last_name LIKE {$like}
-        OR oi.first_name LIKE {$like}
-        OR oi.email LIKE {$like}
-        OR s.student_id LIKE {$like}
-        OR u.name LIKE {$like}
-    )";
+$internshipJoinSql = '';
+$internshipStatusSelect = "'' AS internship_status";
+if ($internshipsTableExists) {
+    $internshipTypeFilter = '';
+    if ($internshipsHasTypeColumn) {
+        $internshipTypeFilter = "WHERE LOWER(TRIM(COALESCE(type, 'internal'))) = 'internal'";
+    }
+    $internshipJoinSql = "
+    LEFT JOIN (
+        SELECT i_full.student_id, COALESCE(i_full.status, '') AS status
+        FROM internships i_full
+        INNER JOIN (
+            SELECT student_id, MAX(id) AS latest_id
+            FROM internships
+            {$internshipTypeFilter}
+            GROUP BY student_id
+        ) i_latest ON i_latest.latest_id = i_full.id
+    ) intern ON intern.student_id = s.id
+    ";
+    $internshipStatusSelect = "COALESCE(intern.status, '') AS internship_status";
 }
 
+$rows = [];
 $sql = "
     SELECT
         oi.student_no,
@@ -122,6 +205,9 @@ $sql = "
         s.status AS students_status,
         " . ($hasAssignmentTrack ? "s.assignment_track" : "''") . " AS assignment_track,
         s.created_at AS students_created_at,
+        COALESCE(oi.course_id, s.course_id, 0) AS resolved_course_id,
+        COALESCE(oi.section_id, s.section_id, 0) AS resolved_section_id,
+        {$internshipStatusSelect},
         COALESCE(u.name, CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS account_name,
         COALESCE(c1.name, c2.name, 'N/A') AS course_name,
         COALESCE(NULLIF(sec1.code, ''), sec1.name, NULLIF(sec2.code, ''), sec2.name, 'N/A') AS section_name
@@ -132,13 +218,9 @@ $sql = "
     LEFT JOIN courses c2 ON c2.id = s.course_id
     LEFT JOIN sections sec1 ON sec1.id = oi.section_id
     LEFT JOIN sections sec2 ON sec2.id = s.section_id
+    {$internshipJoinSql}
+    ORDER BY oi.last_name ASC, oi.first_name ASC, oi.student_no ASC
 ";
-if (!empty($where)) {
-    $sql .= ' WHERE ' . implode(' AND ', $where);
-}
-$sql .= ' ORDER BY oi.last_name ASC, oi.first_name ASC, oi.student_no ASC';
-
-$rows = [];
 $res = $conn->query($sql);
 if ($res instanceof mysqli_result) {
     while ($row = $res->fetch_assoc()) {
@@ -147,18 +229,108 @@ if ($res instanceof mysqli_result) {
     $res->close();
 }
 
+$studentTrackFilter = '';
+if ($hasAssignmentTrack) {
+    $studentTrackFilter = "AND LOWER(TRIM(COALESCE(s.assignment_track, 'internal'))) = 'internal'";
+}
+
+$studentsOnlySql = "
+    SELECT
+        COALESCE(NULLIF(s.student_id, ''), '') AS student_no,
+        NULL AS ojt_user_id,
+        COALESCE(s.last_name, '') AS last_name,
+        COALESCE(s.first_name, '') AS first_name,
+        COALESCE(s.middle_name, '') AS middle_name,
+        NULL AS ojt_course_id,
+        NULL AS ojt_section_id,
+        COALESCE(s.email, '') AS ojt_email,
+        '' AS ojt_status,
+        NULL AS ojt_created_at,
+        s.id AS student_row_id,
+        s.user_id AS student_user_id,
+        s.student_id,
+        s.status AS students_status,
+        " . ($hasAssignmentTrack ? "s.assignment_track" : "'internal'") . " AS assignment_track,
+        s.created_at AS students_created_at,
+        COALESCE(s.course_id, 0) AS resolved_course_id,
+        COALESCE(s.section_id, 0) AS resolved_section_id,
+        {$internshipStatusSelect},
+        COALESCE(u.name, CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS account_name,
+        COALESCE(c.name, 'N/A') AS course_name,
+        COALESCE(NULLIF(sec.code, ''), sec.name, 'N/A') AS section_name
+    FROM students s
+    LEFT JOIN ojt_internal oi_match ON TRIM(COALESCE(oi_match.student_no, '')) COLLATE utf8mb4_unicode_ci = TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci
+    LEFT JOIN users u ON u.id = s.user_id
+    LEFT JOIN courses c ON c.id = s.course_id
+    LEFT JOIN sections sec ON sec.id = s.section_id
+    {$internshipJoinSql}
+    WHERE oi_match.student_no IS NULL
+    {$studentTrackFilter}
+    ORDER BY s.last_name ASC, s.first_name ASC, s.student_id ASC
+";
+$studentsOnlyRes = $conn->query($studentsOnlySql);
+if ($studentsOnlyRes instanceof mysqli_result) {
+    while ($row = $studentsOnlyRes->fetch_assoc()) {
+        $rows[] = $row;
+    }
+    $studentsOnlyRes->close();
+}
+
+$normalizedRows = [];
+$seenRowKeys = [];
+foreach ($rows as $row) {
+    $rowKey = strtolower(trim((string)($row['student_no'] ?? ''))) . '|' . (int)($row['student_row_id'] ?? 0);
+    if (isset($seenRowKeys[$rowKey])) {
+        continue;
+    }
+    $seenRowKeys[$rowKey] = true;
+
+    $row['resolved_course_id'] = (int)($row['resolved_course_id'] ?? 0);
+    $row['resolved_section_id'] = (int)($row['resolved_section_id'] ?? 0);
+    $statusKey = ojt_internal_list_status_key($row);
+    $row['internal_status_key'] = $statusKey;
+    $row['internal_status_label'] = ojt_internal_list_status_label($statusKey);
+    $row['internal_status_badge_class'] = ojt_internal_list_status_badge_class($statusKey);
+
+    if ($filterCourseId > 0 && $row['resolved_course_id'] !== $filterCourseId) {
+        continue;
+    }
+    if ($filterSectionId > 0 && $row['resolved_section_id'] !== $filterSectionId) {
+        continue;
+    }
+    if ($filterOjtStatus !== 'all' && $statusKey !== $filterOjtStatus) {
+        continue;
+    }
+    if (!ojt_internal_list_matches_search($row, $search)) {
+        continue;
+    }
+
+    $normalizedRows[] = $row;
+}
+$rows = $normalizedRows;
+
 $linkedCount = 0;
+$statusCounts = [
+    'ongoing' => 0,
+    'finished' => 0,
+    'not_started' => 0,
+];
 foreach ($rows as $row) {
     if ((int)($row['student_user_id'] ?? 0) > 0 || (int)($row['ojt_user_id'] ?? 0) > 0) {
         $linkedCount++;
     }
+    $statusKey = (string)($row['internal_status_key'] ?? 'not_started');
+    if (array_key_exists($statusKey, $statusCounts)) {
+        $statusCounts[$statusKey]++;
+    }
 }
 
 $page_title = 'Internal Student List';
-$page_body_class = 'page-fingerprint-mapping';
+$page_body_class = 'page-fingerprint-mapping page-ojt-internal-list';
 $page_styles = [
     'assets/css/layout/page_shell.css',
     'assets/css/modules/pages/page-biometric-console.css',
+    'assets/css/modules/pages/page-ojt-internal-list.css',
 ];
 $base_href = '';
 include __DIR__ . '/../includes/header.php';
@@ -203,11 +375,11 @@ ob_end_flush();
                         <?php if ($mapFingerId > 0): ?>
                             <input type="hidden" name="map_finger_id" value="<?php echo $mapFingerId; ?>">
                         <?php endif; ?>
-                        <div class="col-12 col-md-4">
+                        <div class="col-12 col-md-3">
                             <label class="form-label" for="search">Search</label>
                             <input type="text" class="form-control" id="search" name="search" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Student no, name, email">
                         </div>
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-2">
                             <label class="form-label" for="course_id">Course</label>
                             <select class="form-select" id="course_id" name="course_id">
                                 <option value="0">All Courses</option>
@@ -216,13 +388,22 @@ ob_end_flush();
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-2">
                             <label class="form-label" for="section_id">Section</label>
                             <select class="form-select" id="section_id" name="section_id">
                                 <option value="0">All Sections</option>
                                 <?php foreach ($sections as $section): ?>
                                     <option value="<?php echo (int)$section['id']; ?>" <?php echo ((int)$section['id'] === $filterSectionId) ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)$section['section_label'], ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label" for="ojt_status">OJT Status</label>
+                            <select class="form-select" id="ojt_status" name="ojt_status">
+                                <option value="all" <?php echo $filterOjtStatus === 'all' ? 'selected' : ''; ?>>All Statuses</option>
+                                <option value="ongoing" <?php echo $filterOjtStatus === 'ongoing' ? 'selected' : ''; ?>>Ongoing</option>
+                                <option value="finished" <?php echo $filterOjtStatus === 'finished' ? 'selected' : ''; ?>>Finished</option>
+                                <option value="not_started" <?php echo $filterOjtStatus === 'not_started' ? 'selected' : ''; ?>>Not Started</option>
                             </select>
                         </div>
                         <div class="col-12 col-md-2 fm-actions">
@@ -232,7 +413,7 @@ ob_end_flush();
                     </form>
                 </div>
                 <div class="card-body py-2">
-                    <small class="text-muted">Total internal rows: <?php echo count($rows); ?> | Linked with registered account: <?php echo $linkedCount; ?></small>
+                    <small class="text-muted">Total internal rows: <?php echo count($rows); ?> | Linked with registered account: <?php echo $linkedCount; ?> | Ongoing: <?php echo (int)$statusCounts['ongoing']; ?> | Finished: <?php echo (int)$statusCounts['finished']; ?> | Not Started: <?php echo (int)$statusCounts['not_started']; ?></small>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -250,12 +431,12 @@ ob_end_flush();
                             <tbody>
                             <?php if (empty($rows)): ?>
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-4">No internal students found.</td>
+                                    <td colspan="6" class="text-center text-muted py-4">No internal students found for the selected filters.</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($rows as $row): ?>
                                     <tr>
-                                        <td><?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td><?php echo htmlspecialchars(trim((string)($row['student_no'] ?? '')) !== '' ? (string)$row['student_no'] : 'N/A', ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td>
                                             <div class="fw-semibold"><?php echo htmlspecialchars(trim((string)$row['last_name'] . ', ' . (string)$row['first_name'] . ' ' . (string)$row['middle_name']), ENT_QUOTES, 'UTF-8'); ?></div>
                                             <small class="text-muted"><?php echo htmlspecialchars((string)($row['ojt_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></small>
@@ -273,7 +454,10 @@ ob_end_flush();
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <span class="badge bg-soft-info text-info"><?php echo htmlspecialchars(ucfirst((string)($row['ojt_status'] ?? 'Unknown')), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <span class="badge <?php echo htmlspecialchars((string)($row['internal_status_badge_class'] ?? 'bg-soft-secondary text-muted'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)($row['internal_status_label'] ?? 'Not Started'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <?php if (trim((string)($row['internship_status'] ?? '')) !== ''): ?>
+                                                <div><small class="text-muted">Internship: <?php echo htmlspecialchars(ucfirst((string)$row['internship_status']), ENT_QUOTES, 'UTF-8'); ?></small></div>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="text-end">
                                             <?php if ($mapFingerId > 0): ?>

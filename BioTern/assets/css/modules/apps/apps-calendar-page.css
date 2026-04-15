@@ -12,7 +12,7 @@ body {
 
 .app-skin-dark body {
     background:
-        radial-gradient(circle at 0% 0%, rgba(8, 145, 178, 0.12), transparent 24%),
+        radial-gradient(circle at 0% 0%, rgba(var(--biotern-primary-rgb), 0.12), transparent 24%),
         linear-gradient(180deg, #0b1220 0%, #111827 100%);
 }
 
@@ -52,7 +52,7 @@ body {
     font-weight: 800;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #3b82f6;
+    color: var(--biotern-primary);
 }
 
 .app-calendar-title {
@@ -199,9 +199,9 @@ body {
 }
 
 .app-calendar-jump-controls .form-select:focus {
-    border-color: #93c5fd;
+    border-color: var(--biotern-primary-soft);
     background-color: #ffffff;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+    box-shadow: 0 0 0 3px rgba(var(--biotern-primary-rgb), 0.12);
 }
 
 .app-skin-dark .app-calendar-jump-controls .form-select {
@@ -241,15 +241,15 @@ body {
 }
 
 .app-calendar-nav-buttons button:hover {
-    background: rgba(59, 130, 246, 0.12);
-    color: #1d4ed8;
+    background: rgba(var(--biotern-primary-rgb), 0.12);
+    color: var(--biotern-primary-hover);
     transform: translateY(-1px);
     box-shadow: none;
 }
 
 .app-skin-dark .app-calendar-nav-buttons button:hover {
-    background: rgba(59, 130, 246, 0.16);
-    color: #eff6ff;
+    background: rgba(var(--biotern-primary-rgb), 0.16);
+    color: var(--biotern-surface-muted);
 }
 
 .app-calendar-nav-buttons button[data-action="today"] {
@@ -310,7 +310,7 @@ body {
 }
 
 .app-calendar-dot.is-custom {
-    background: linear-gradient(135deg, #2563eb 0%, #6366f1 100%);
+    background: linear-gradient(135deg, var(--biotern-primary) 0%, #6366f1 100%);
 }
 
 .app-calendar-dot.is-today {
@@ -366,7 +366,7 @@ body {
 
 .app-calendar-day:hover {
     transform: translateY(-3px);
-    border-color: rgba(8, 145, 178, 0.4);
+    border-color: rgba(var(--biotern-primary-rgb), 0.4);
     box-shadow: 0 16px 28px rgba(15, 23, 42, 0.09);
 }
 
@@ -380,8 +380,8 @@ body {
 }
 
 .app-calendar-day.is-selected {
-    border-color: #0891b2;
-    box-shadow: 0 0 0 2px rgba(8, 145, 178, 0.12), 0 18px 30px rgba(8, 145, 178, 0.14);
+    border-color: var(--biotern-primary-hover);
+    box-shadow: 0 0 0 2px rgba(var(--biotern-primary-rgb), 0.12), 0 18px 30px rgba(var(--biotern-primary-rgb), 0.14);
 }
 
 .app-calendar-day.is-today {
@@ -389,7 +389,7 @@ body {
 }
 
 .app-skin-dark .app-calendar-day.is-today {
-    background: linear-gradient(180deg, rgba(59, 130, 246, 0.18) 0%, rgba(15, 23, 42, 0.86) 70%);
+    background: linear-gradient(180deg, rgba(var(--biotern-primary-rgb), 0.18) 0%, rgba(15, 23, 42, 0.86) 70%);
 }
 
 .app-calendar-day-head {
@@ -418,7 +418,7 @@ body {
 .app-calendar-day-badge {
     font-size: 0.68rem;
     font-weight: 800;
-    color: #3b82f6;
+    color: var(--biotern-primary);
     letter-spacing: 0.05em;
     text-transform: uppercase;
 }
@@ -535,7 +535,7 @@ body {
 }
 
 .app-calendar-event-icon.is-custom {
-    background: linear-gradient(135deg, #2563eb 0%, #6366f1 100%);
+    background: linear-gradient(135deg, var(--biotern-primary) 0%, #6366f1 100%);
 }
 
 .app-calendar-event-meta {
@@ -607,7 +607,7 @@ body {
 }
 
 .app-calendar-mini-avatar.is-icon.is-custom {
-    background: linear-gradient(135deg, #2563eb 0%, #6366f1 100%);
+    background: linear-gradient(135deg, var(--biotern-primary) 0%, #6366f1 100%);
 }
 
 .app-calendar-mini-meta {
@@ -618,7 +618,7 @@ body {
 .app-calendar-mini-date {
     display: block;
     margin-top: 0.35rem;
-    color: #3b82f6;
+    color: var(--biotern-primary);
     font-size: 0.78rem;
     font-weight: 800;
 }
@@ -786,15 +786,15 @@ body {
 }
 
 .app-calendar-mini-avatar.is-icon.is-custom {
-    border-color: rgba(59, 130, 246, 0.18);
-    background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
-    color: #2563eb;
+    border-color: rgba(var(--biotern-primary-rgb), 0.18);
+    background: linear-gradient(180deg, var(--biotern-surface-muted) 0%, var(--biotern-primary-soft) 100%);
+    color: var(--biotern-primary);
 }
 
 .app-skin-dark .app-calendar-mini-avatar.is-icon.is-custom {
-    border-color: rgba(96, 165, 250, 0.2);
-    background: rgba(59, 130, 246, 0.16);
-    color: #93c5fd;
+    border-color: rgba(var(--biotern-primary-rgb), 0.2);
+    background: rgba(var(--biotern-primary-rgb), 0.16);
+    color: var(--biotern-primary-soft);
 }
 
 .app-calendar-mini-meta {
@@ -805,7 +805,7 @@ body {
 .app-calendar-mini-date {
     display: block;
     margin-top: 0.28rem;
-    color: #3b82f6;
+    color: var(--biotern-primary);
     font-size: 0.76rem;
     font-weight: 800;
 }
@@ -856,7 +856,7 @@ body {
 }
 
 .app-skin-dark .app-calendar-day:hover {
-    border-color: rgba(59, 130, 246, 0.34);
+    border-color: rgba(var(--biotern-primary-rgb), 0.34);
     box-shadow: 0 16px 28px rgba(2, 6, 23, 0.28);
 }
 
@@ -866,7 +866,7 @@ body {
 }
 
 .app-skin-dark .app-calendar-day.is-today {
-    background: linear-gradient(180deg, rgba(59, 130, 246, 0.18) 0%, rgba(15, 23, 42, 0.86) 70%);
+    background: linear-gradient(180deg, rgba(var(--biotern-primary-rgb), 0.18) 0%, rgba(15, 23, 42, 0.86) 70%);
 }
 
 .app-skin-dark .app-calendar-day-number {
@@ -875,7 +875,7 @@ body {
 
 .app-skin-dark .app-calendar-day-badge,
 .app-skin-dark .app-calendar-mini-date {
-    color: #60a5fa;
+    color: color-mix(in srgb, var(--biotern-primary) 72%, #ffffff 28%);
 }
 
 .app-skin-dark .app-calendar-pill.is-holiday {
@@ -889,8 +889,8 @@ body {
 }
 
 .app-skin-dark .app-calendar-pill.is-custom {
-    background: rgba(59, 130, 246, 0.18);
-    color: #bfdbfe;
+    background: rgba(var(--biotern-primary-rgb), 0.18);
+    color: var(--biotern-primary-soft);
 }
 
 .app-skin-dark .app-calendar-overflow,
@@ -935,25 +935,25 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    border: 1px solid rgba(37, 99, 235, 0.16);
+    border: 1px solid rgba(var(--biotern-primary-rgb), 0.16);
     border-radius: 14px;
     padding: 0.68rem 0.95rem;
-    background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+    background: linear-gradient(180deg, var(--biotern-primary) 0%, var(--biotern-primary-hover) 100%);
     color: #ffffff;
     font-size: 0.82rem;
     font-weight: 800;
-    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+    box-shadow: 0 12px 24px rgba(var(--biotern-primary-rgb), 0.18);
     transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
 }
 
 .app-calendar-create-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 16px 28px rgba(37, 99, 235, 0.22);
+    box-shadow: 0 16px 28px rgba(var(--biotern-primary-rgb), 0.22);
     opacity: 0.98;
 }
 
 .app-skin-dark .app-calendar-create-button {
-    border-color: rgba(96, 165, 250, 0.2);
+    border-color: rgba(var(--biotern-primary-rgb), 0.2);
     box-shadow: 0 14px 24px rgba(2, 6, 23, 0.34);
 }
 
@@ -1055,9 +1055,9 @@ body {
 }
 
 .app-calendar-modal .btn-primary {
-    background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
-    border-color: #1d4ed8;
-    box-shadow: 0 12px 22px rgba(37, 99, 235, 0.22);
+    background: linear-gradient(180deg, var(--biotern-primary) 0%, var(--biotern-primary-hover) 100%);
+    border-color: var(--biotern-primary-hover);
+    box-shadow: 0 12px 22px rgba(var(--biotern-primary-rgb), 0.22);
 }
 
 /* Floating event panel */
@@ -1112,7 +1112,7 @@ body {
 
 .app-calendar-event-panel .app-calendar-modal {
     border-radius: 24px;
-    border: 1px solid rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(var(--biotern-primary-rgb), 0.12);
     backdrop-filter: blur(14px);
 }
 
@@ -1363,8 +1363,8 @@ body {
 }
 
 .app-calendar-event-card-button:hover {
-    border-color: rgba(37, 99, 235, 0.3);
-    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.08);
+    border-color: rgba(var(--biotern-primary-rgb), 0.3);
+    box-shadow: 0 12px 24px rgba(var(--biotern-primary-rgb), 0.08);
 }
 
 .app-skin-dark .app-calendar-event-card-button {
@@ -1373,7 +1373,7 @@ body {
 }
 
 .app-skin-dark .app-calendar-event-card-button:hover {
-    border-color: rgba(96, 165, 250, 0.28);
+    border-color: rgba(var(--biotern-primary-rgb), 0.28);
     box-shadow: 0 14px 28px rgba(2, 6, 23, 0.32);
 }
 
@@ -1391,22 +1391,22 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: rgba(37, 99, 235, 0.08);
-    color: #2563eb;
+    background: rgba(var(--biotern-primary-rgb), 0.08);
+    color: var(--biotern-primary);
     flex: 0 0 auto;
 }
 
 .app-calendar-day-add:hover {
-    background: rgba(37, 99, 235, 0.16);
+    background: rgba(var(--biotern-primary-rgb), 0.16);
 }
 
 .app-skin-dark .app-calendar-day-add {
-    background: rgba(59, 130, 246, 0.16);
-    color: #bfdbfe;
+    background: rgba(var(--biotern-primary-rgb), 0.16);
+    color: var(--biotern-primary-soft);
 }
 
 .app-skin-dark .app-calendar-day-add:hover {
-    background: rgba(96, 165, 250, 0.24);
+    background: rgba(var(--biotern-primary-rgb), 0.24);
 }
 
 .app-calendar-day-badge {
@@ -1521,7 +1521,7 @@ body {
 
 .app-calendar-overflow {
     font-size: 0.72rem;
-    color: #60a5fa;
+    color: color-mix(in srgb, var(--biotern-primary) 72%, #ffffff 28%);
 }
 
 .app-calendar-day-markers {
@@ -1549,7 +1549,7 @@ body {
 }
 
 .app-calendar-day-marker.is-custom {
-    background: #60a5fa;
+    background: color-mix(in srgb, var(--biotern-primary) 72%, #ffffff 28%);
 }
 
 .app-calendar-day-badge {
@@ -1558,7 +1558,7 @@ body {
 }
 
 .app-skin-dark .app-calendar-overflow {
-    color: #93c5fd;
+    color: var(--biotern-primary-soft);
 }
 
 @media (max-width: 1199.98px) {
@@ -1576,8 +1576,8 @@ body {
     height: 1.35rem;
     padding: 0 0.35rem;
     border-radius: 999px;
-    background: rgba(59, 130, 246, 0.14);
-    color: #60a5fa;
+    background: rgba(var(--biotern-primary-rgb), 0.14);
+    color: color-mix(in srgb, var(--biotern-primary) 72%, #ffffff 28%);
     font-size: 0.58rem;
     font-weight: 800;
     letter-spacing: 0;
@@ -1586,8 +1586,8 @@ body {
 }
 
 .app-skin-dark .app-calendar-day-badge {
-    background: rgba(59, 130, 246, 0.18);
-    color: #bfdbfe;
+    background: rgba(var(--biotern-primary-rgb), 0.18);
+    color: var(--biotern-primary-soft);
 }
 
 /* Allow fuller day-cell labels */
@@ -1601,5 +1601,7 @@ body {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
 }
+
+
 
 

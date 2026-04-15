@@ -301,7 +301,6 @@ include __DIR__ . '/../includes/header.php';
     <link rel="stylesheet" type="text/css" href="<?php echo esc($asset_prefix); ?>assets/vendors/css/vendors.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo esc($asset_prefix); ?>assets/css/smacss.css">
     <link rel="stylesheet" type="text/css" href="<?php echo esc($asset_prefix); ?>assets/css/state/notification-skin.css">
-    <link rel="stylesheet" type="text/css" href="<?php echo esc($asset_prefix); ?>assets/css/theme.min.css">
     <link rel="stylesheet" type="text/css" href="<?php echo esc($asset_prefix); ?>assets/css/modules/auth/auth-login-cover.css">
     <link rel="stylesheet" type="text/css" href="<?php echo esc($asset_prefix); ?>assets/css/modules/auth/page-create-admin.css">
 </head>

@@ -534,12 +534,12 @@ html.app-theme-gray:not(.app-skin-dark) {
 }
 
 .activity-icon {
-    color: #1d4ed8;
+    color: var(--biotern-primary-hover);
 }
 
 .activity-icon--application-submitted {
     background-color: #e3f2fd;
-    color: #1d4ed8;
+    color: var(--biotern-primary-hover);
 }
 
 .activity-icon--application-approved {
@@ -574,7 +574,7 @@ html.app-theme-gray:not(.app-skin-dark) {
 
 .activity-icon--default {
     background-color: #e3f2fd;
-    color: #1d4ed8;
+    color: var(--biotern-primary-hover);
 }
 
 .dashboard-activities-compact .recent-activity-item {
@@ -736,7 +736,7 @@ html.app-theme-gray:not(.app-skin-dark) {
     .dashboard-page-header {
         padding: 12px 12px 14px;
         border: 1px solid rgba(99, 102, 241, 0.18);
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.16), rgba(99, 102, 241, 0.2));
+        background: linear-gradient(135deg, rgba(var(--biotern-primary-rgb), 0.16), rgba(99, 102, 241, 0.2));
         box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
     }
 
@@ -1328,3 +1328,5 @@ html.app-theme-gray.app-skin-dark .dashboard-actions-panel {
     background: rgba(24, 27, 31, 0.92);
     border-color: rgba(255, 255, 255, 0.1);
 }
+
+

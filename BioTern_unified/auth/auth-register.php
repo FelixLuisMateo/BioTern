@@ -731,7 +731,6 @@ if ($relationsConn && $relationsConn->connect_errno === 0) {
                         <h4 class="fs-13 fw-bold mb-2">Manage your Internship account in one place.</h4>
                         <p class="fs-12 fw-medium text-muted">Let's get you all setup, so you can verify your personal account and begin setting up your profile.</p>
                         <?php
-require_once dirname(__DIR__) . '/config/db.php';
 if (isset($_GET['registered'])) {
                             $reg = $_GET['registered'];
                             $msg = isset($_GET['msg']) ? htmlspecialchars($_GET['msg']) : '';
@@ -827,18 +826,14 @@ if (isset($_GET['registered'])) {
                                         <select name="course_id" id="studentCourseSelect" class="form-control dynamic-course-select" data-section-target="studentSectionSelect" required>
                                             <option value="" disabled selected>Select Course</option>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($courseOptions as $course): ?>
                                                 <option
                                                     value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars((string) $course['id']); ?>"
                                                     data-course-code="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars((string) $course['code']); ?>"
                                                 >
                                                     <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars(
                                                         $course['name'] !== '' && $course['code'] !== ''
                                                             ? ($course['code'] . ' - ' . $course['name'])
@@ -847,7 +842,6 @@ echo htmlspecialchars(
                                                     ?>
                                                 </option>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                                         </select>
                                     </div>
@@ -857,18 +851,14 @@ endforeach; ?>
                                             <option value="" selected>Select Department</option>
                                             <option value="0">I still don't know yet (To be assigned)</option>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($departmentOptions as $department): ?>
                                                 <option
                                                     value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo (int)$department['id']; ?>"
                                                     data-default-label="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($department['name'] !== '' ? ($department['name'] . ' (' . $department['code'] . ')') : $department['code']); ?>"
                                                 >
                                                     <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars(
                                                         $department['name'] !== ''
                                                             ? ($department['name'] . ' (' . $department['code'] . ')')
@@ -877,7 +867,6 @@ echo htmlspecialchars(
                                                     ?>
                                                 </option>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                                         </select>
                                     </div>
@@ -892,7 +881,6 @@ endforeach; ?>
                                         <label class="form-label fs-12" for="studentSchoolYear">School Year</label>
                                         <select name="school_year" id="studentSchoolYear" class="form-control" required>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 $currentYear = (int)date('Y');
 $startYear = 2005;
 for ($y = $currentYear; $y >= $startYear; $y--):
@@ -921,10 +909,8 @@ for ($y = $currentYear; $y >= $startYear; $y--):
                                             <option value="" disabled selected>Select Coordinator</option>
                                             <option value="0">I still don't know yet (To be assigned)</option>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($coordinatorOptions as $coordinator): ?>
                                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 $fullName = (string)$coordinator['full_name'];
                                                 $office = (string)$coordinator['office_location'];
                                                 $defaultLabel = $fullName;
@@ -932,24 +918,18 @@ $fullName = (string)$coordinator['full_name'];
                                                 ?>
                                                 <option
                                                     value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo (int)$coordinator['id']; ?>"
                                                     data-department-id="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo (int)$coordinator['department_id']; ?>"
                                                     data-default-label="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($defaultLabel); ?>"
                                                     data-act-label="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($actLabel); ?>"
                                                 >
                                                     <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($defaultLabel); ?>
                                                 </option>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                                         </select>
                                     </div>
@@ -959,10 +939,8 @@ endforeach; ?>
                                             <option value="" disabled selected>Select Supervisor</option>
                                             <option value="0">I still don't know yet (To be assigned)</option>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($supervisorOptions as $supervisor): ?>
                                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 $fullName = (string)$supervisor['full_name'];
                                                 $office = (string)$supervisor['office_location'];
                                                 $defaultLabel = $fullName;
@@ -970,24 +948,18 @@ $fullName = (string)$supervisor['full_name'];
                                                 ?>
                                                 <option
                                                     value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo (int)$supervisor['id']; ?>"
                                                     data-department-id="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo (int)$supervisor['department_id']; ?>"
                                                     data-default-label="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($defaultLabel); ?>"
                                                     data-act-label="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($actLabel); ?>"
                                                 >
                                                     <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($defaultLabel); ?>
                                                 </option>
                                             <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                                         </select>
                                     </div>
@@ -1193,13 +1165,10 @@ endforeach; ?>
                                     <select id="coordDepartmentCode" name="department_code" class="form-control" required>
                                         <option value="" disabled selected>Select Department</option>
                                         <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($departmentOptions as $department): ?>
                                             <option value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($department['code']); ?>">
                                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars(
                                                     $department['name'] !== ''
                                                         ? ($department['name'] . ' (' . $department['code'] . ')')
@@ -1208,7 +1177,6 @@ echo htmlspecialchars(
                                                 ?>
                                             </option>
                                         <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                                     </select>
                                 </div>
@@ -1317,13 +1285,10 @@ endforeach; ?>
                                     <select name="department_code" class="form-control" required>
                                         <option value="" disabled selected>Select Department</option>
                                         <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($departmentOptions as $department): ?>
                                             <option value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($department['code']); ?>">
                                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars(
                                                     $department['name'] !== ''
                                                         ? ($department['name'] . ' (' . $department['code'] . ')')
@@ -1332,7 +1297,6 @@ echo htmlspecialchars(
                                                 ?>
                                             </option>
                                         <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                                     </select>
                                 </div>
@@ -1447,13 +1411,10 @@ endforeach; ?>
                                     <select id="adminDepartmentCode" name="department_code" class="form-control" required>
                                         <option value="" disabled selected>Select Department</option>
                                         <?php
-require_once dirname(__DIR__) . '/config/db.php';
 foreach ($departmentOptions as $department): ?>
                                             <option value="<?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars($department['code']); ?>">
                                                 <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo htmlspecialchars(
                                                     $department['name'] !== ''
                                                         ? ($department['name'] . ' (' . $department['code'] . ')')
@@ -1462,7 +1423,6 @@ echo htmlspecialchars(
                                                 ?>
                                             </option>
                                         <?php
-require_once dirname(__DIR__) . '/config/db.php';
 endforeach; ?>
                                     </select>
                                 </div>
@@ -2253,10 +2213,8 @@ endforeach; ?>
         }
 
         const courseDepartmentMap = <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo json_encode($courseDepartmentMap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
         const sectionRecords = <?php
-require_once dirname(__DIR__) . '/config/db.php';
 echo json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
         function getCourseAllowedDepartmentIds(courseId) {

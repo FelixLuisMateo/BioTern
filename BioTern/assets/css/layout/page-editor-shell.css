@@ -54,8 +54,8 @@ body,
 }
 
 .btn-primary {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: var(--biotern-primary);
+  border-color: var(--biotern-primary);
   color: #fff;
 }
 
@@ -140,7 +140,7 @@ body,
 
 .app-editor-canvas:focus,
 #editor:focus {
-  box-shadow: inset 0 0 0 2px #93c5fd;
+  box-shadow: inset 0 0 0 2px var(--biotern-primary-soft);
 }
 
 html.app-skin-dark body,
@@ -162,8 +162,8 @@ html.app-skin-dark .btn {
 }
 
 html.app-skin-dark .btn-primary {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
+  background: var(--biotern-primary-hover);
+  border-color: var(--biotern-primary-hover);
 }
 
 html.app-skin-dark .btn-success {
@@ -198,5 +198,7 @@ html.app-skin-dark .paper {
 
 html.app-skin-dark .app-editor-canvas:focus,
 html.app-skin-dark #editor:focus {
-  box-shadow: inset 0 0 0 2px #1d4ed8;
+  box-shadow: inset 0 0 0 2px var(--biotern-primary-hover);
 }
+
+

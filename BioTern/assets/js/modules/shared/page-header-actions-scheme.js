@@ -12,8 +12,15 @@
 
   function resolveTone() {
     var html = document.documentElement;
-    if (html.classList.contains("app-theme-gray")) {
-      return "gray";
+    var themeStateCore = global.BioTernThemeStateCore || null;
+    if (themeStateCore && typeof themeStateCore.getActiveScheme === "function") {
+      return themeStateCore.getActiveScheme(html);
+    }
+    var classNames = html.className ? html.className.split(/\s+/) : [];
+    for (var i = 0; i < classNames.length; i += 1) {
+      if (classNames[i] && classNames[i].indexOf("app-theme-") === 0) {
+        return classNames[i].substring("app-theme-".length) || "blue";
+      }
     }
     return "blue";
   }

@@ -1,8 +1,8 @@
 .application-builder-page {
     --doc-builder-card-bg: var(--biotern-surface, #ffffff);
     --doc-builder-surface-bg: var(--biotern-surface-muted, #f8fafc);
-    --doc-builder-control-bg: var(--biotern-primary-soft, rgba(52, 84, 209, 0.08));
-    --doc-builder-control-hover: rgba(var(--biotern-primary-rgb, 52, 84, 209), 0.14);
+    --doc-builder-control-bg: var(--biotern-primary-soft, rgba(var(--biotern-primary-rgb), 0.08));
+    --doc-builder-control-hover: rgba(var(--biotern-primary-rgb), 0.14);
     --doc-builder-border: var(--biotern-border, rgba(15, 23, 42, 0.08));
     --doc-builder-text: var(--bs-body-color, #1f2937);
     --doc-builder-muted: var(--bs-secondary-color, #6b7280);
@@ -16,8 +16,8 @@
 html.app-skin-dark .application-builder-page {
     --doc-builder-card-bg: var(--biotern-surface, #0f172a);
     --doc-builder-surface-bg: var(--biotern-surface-muted, #111827);
-    --doc-builder-control-bg: var(--biotern-primary-soft, rgba(52, 84, 209, 0.16));
-    --doc-builder-control-hover: rgba(var(--biotern-primary-rgb, 52, 84, 209), 0.22);
+    --doc-builder-control-bg: var(--biotern-primary-soft, rgba(var(--biotern-primary-rgb), 0.16));
+    --doc-builder-control-hover: rgba(var(--biotern-primary-rgb), 0.22);
     --doc-builder-border: var(--biotern-border, rgba(255, 255, 255, 0.08));
     --doc-builder-text: #f3f4f6;
     --doc-builder-muted: rgba(229, 231, 235, 0.72);
@@ -630,3 +630,5 @@ html.app-skin-dark .select2-container--open .biotern-doc-select2-dropdown .selec
         background: #fff !important;
     }
 }
+
+

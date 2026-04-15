@@ -366,14 +366,13 @@ if ($schemaError === '') {
     }
 }
 
-$page_body_class = trim(($page_body_class ?? '') . ' reports-page');
+$page_body_class = trim(($page_body_class ?? '') . ' reports-page reports-chat-reports-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-chat-reports-page.css', 'assets/css/modules/reports/reports-shell.css']);
 $page_title = 'BioTern || Reported Chats';
 include 'includes/header.php';
 ?>
 <main class="nxl-container">
 <div class="nxl-content">
-<div class="main-content">
     <div class="page-header page-header-with-middle">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title">
@@ -386,7 +385,7 @@ include 'includes/header.php';
             </ul>
         </div>
         <div class="page-header-middle">
-            <p class="page-header-statement">Review flagged conversations and moderate reported chat activity in one stream.</p>
+            <p class="page-header-statement">Review flagged conversations and moderate reported chats.</p>
         </div>
         <div class="page-header-right ms-auto">
             <div class="d-md-none d-flex align-items-center">
@@ -541,7 +540,6 @@ include 'includes/header.php';
             </div>
         </div>
     </div>
-</div>
 </div> <!-- .nxl-content -->
 </main>
 

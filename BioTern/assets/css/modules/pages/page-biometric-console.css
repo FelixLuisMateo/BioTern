@@ -5,9 +5,107 @@
  * - pages/biometric-machine.php
  */
 
-.page-fingerprint-mapping .nxl-content,
+.page-fingerprint-mapping .nxl-content {
+    padding-left: 0;
+    padding-right: 0;
+    padding-bottom: 3.4rem;
+}
+
 .page-biometric-machine .nxl-content {
     padding-bottom: 4.5rem;
+}
+
+.page-biometric-machine .nxl-content > .page-header,
+.page-fingerprint-mapping .nxl-content > .page-header {
+    margin: 0 !important;
+    border-radius: 0 !important;
+}
+
+.page-fingerprint-mapping .bio-console-shell {
+    gap: 0.8rem;
+    padding-left: 30px;
+    padding-right: 30px;
+}
+
+.page-fingerprint-mapping .bio-console-shell .card.mb-4 {
+    margin-bottom: 0.9rem !important;
+}
+
+.page-fingerprint-mapping .bio-console-shell .card.mt-4 {
+    margin-top: 0.9rem !important;
+}
+
+.page-fingerprint-mapping .bio-console-hero .card-body {
+    padding: 1.05rem 1.15rem;
+}
+
+.page-fingerprint-mapping .bio-console-hero h3 {
+    margin: 0.55rem 0 0.32rem;
+    font-size: 1.18rem;
+}
+
+.page-fingerprint-mapping .bio-console-hero p {
+    line-height: 1.45;
+}
+
+.page-fingerprint-mapping .bio-console-pill-list {
+    margin-top: 0.72rem;
+    gap: 0.42rem;
+}
+
+.page-fingerprint-mapping .bio-console-pill {
+    min-height: 32px;
+    padding: 0.38rem 0.7rem;
+    font-size: 0.76rem;
+}
+
+.page-fingerprint-mapping .bio-console-note-surface {
+    padding: 0.82rem 0.92rem;
+}
+
+.page-fingerprint-mapping .bio-console-panel .card-header,
+.page-fingerprint-mapping .card:not(.bio-console-hero) .card-header {
+    padding: 0.75rem 0.9rem;
+}
+
+.page-fingerprint-mapping .bio-console-panel .card-body {
+    padding: 0.8rem 0.9rem;
+}
+
+.page-fingerprint-mapping .fingerprint-form {
+    row-gap: 0.45rem;
+}
+
+.page-fingerprint-mapping .fingerprint-form .form-label {
+    margin-bottom: 0.26rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.page-fingerprint-mapping .fingerprint-form .form-control,
+.page-fingerprint-mapping .fingerprint-form .form-select {
+    min-height: 38px;
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    font-size: 0.88rem;
+}
+
+.page-fingerprint-mapping .fingerprint-form .fm-actions .btn {
+    min-height: 36px;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+}
+
+.page-fingerprint-mapping .bio-console-table td,
+.page-fingerprint-mapping .bio-console-table th {
+    padding-top: 0.82rem;
+    padding-bottom: 0.82rem;
+}
+
+.page-fingerprint-mapping .bio-console-table th {
+    font-size: 0.72rem;
 }
 
 .bio-console-shell {
@@ -27,12 +125,62 @@
     box-shadow: 0 22px 44px rgba(15, 23, 42, 0.18);
 }
 
-.page-fingerprint-mapping .bio-console-hero {
-    background: linear-gradient(135deg, #0f4c81 0%, #3454d1 52%, #dbeafe 100%);
+.page-fingerprint-mapping .bio-console-hero,
+.page-biometric-machine .bio-console-hero {
+    background: var(--biotern-surface, #ffffff);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+    color: var(--bs-body-color, #0f172a);
 }
 
-.page-biometric-machine .bio-console-hero {
-    background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 48%, #dbeafe 100%);
+.page-fingerprint-mapping .bio-console-eyebrow,
+.page-biometric-machine .bio-console-eyebrow {
+    color: #64748b;
+}
+
+.page-fingerprint-mapping .bio-console-hero h3,
+.page-fingerprint-mapping .bio-console-hero h4,
+.page-fingerprint-mapping .bio-console-hero h5,
+.page-biometric-machine .bio-console-hero h3,
+.page-biometric-machine .bio-console-hero h4,
+.page-biometric-machine .bio-console-hero h5 {
+    color: var(--bs-body-color, #0f172a);
+}
+
+.page-fingerprint-mapping .bio-console-hero p,
+.page-biometric-machine .bio-console-hero p {
+    color: #475569;
+}
+
+.page-fingerprint-mapping .bio-console-pill,
+.page-biometric-machine .bio-console-pill {
+    background: rgba(var(--biotern-primary-rgb), 0.12);
+    border-color: rgba(var(--biotern-primary-rgb), 0.24);
+    color: var(--biotern-primary-hover);
+}
+
+.page-fingerprint-mapping .bio-console-hero-side,
+.page-fingerprint-mapping .bio-console-note-surface,
+.page-biometric-machine .bio-console-hero-side,
+.page-biometric-machine .bio-console-note-surface {
+    background: rgba(248, 250, 252, 0.92);
+    border-color: rgba(148, 163, 184, 0.24);
+}
+
+.page-fingerprint-mapping .bio-console-hero-side h6,
+.page-fingerprint-mapping .bio-console-note-surface h6,
+.page-biometric-machine .bio-console-hero-side h6,
+.page-biometric-machine .bio-console-note-surface h6 {
+    color: var(--bs-body-color, #0f172a);
+}
+
+.page-fingerprint-mapping .bio-console-hero-side p,
+.page-fingerprint-mapping .bio-console-note-surface p,
+.page-fingerprint-mapping .bio-console-hero-side small,
+.page-biometric-machine .bio-console-hero-side p,
+.page-biometric-machine .bio-console-note-surface p,
+.page-biometric-machine .bio-console-hero-side small {
+    color: #475569 !important;
 }
 
 .bio-console-hero .card-body {
@@ -178,7 +326,7 @@
     padding: 0.9rem 1rem;
     border-radius: 14px;
     border: 1px solid rgba(148, 163, 184, 0.22);
-    background: linear-gradient(180deg, #f8fbff 0%, #f1f6ff 100%);
+    background: linear-gradient(180deg, var(--biotern-surface-muted) 0%, #f1f6ff 100%);
 }
 
 .bio-console-inline-note-title {
@@ -220,13 +368,34 @@
     margin-bottom: 0;
 }
 
-.bio-console-table th {
-    font-size: 0.74rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+.bio-console-table thead th {
+    padding: 0.88rem 0.95rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     color: #64748b;
     background: rgba(248, 250, 252, 0.94);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.bio-console-table tbody td {
+    padding: 0.92rem 0.95rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    font-size: 0.86rem;
+    line-height: 1.35;
+    vertical-align: top;
+}
+
+.bio-console-table tbody td .fw-semibold {
+    font-size: 0.92rem;
+    line-height: 1.24;
+}
+
+.bio-console-table tbody td small,
+.bio-console-table tbody td .small {
+    font-size: 0.76rem;
+    line-height: 1.35;
 }
 
 .bio-console-table td,
@@ -334,7 +503,7 @@ html.app-skin-dark .page-biometric-machine h6,
 html.app-skin-dark .page-fingerprint-mapping h4,
 html.app-skin-dark .page-fingerprint-mapping h5,
 html.app-skin-dark .page-fingerprint-mapping h6 {
-    color: #f8fbff;
+    color: var(--biotern-surface-muted);
 }
 
 html.app-skin-dark .bio-console-stat-meta,
@@ -362,11 +531,89 @@ html.app-skin-dark .bio-console-table th {
     background: rgba(30, 41, 59, 0.84);
 }
 
+html.app-skin-dark .bio-console-table thead th {
+    border-bottom-color: rgba(129, 153, 199, 0.22);
+}
+
+html.app-skin-dark .bio-console-table tbody td {
+    border-bottom-color: rgba(129, 153, 199, 0.14);
+}
+
 html.app-skin-dark .bio-console-table tbody tr:hover {
     background: rgba(30, 41, 59, 0.56);
 }
 
+html.app-skin-dark .page-fingerprint-mapping .bio-console-hero,
+html.app-skin-dark .page-biometric-machine .bio-console-hero {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(12, 20, 36, 0.96));
+    border-color: rgba(129, 153, 199, 0.22);
+    box-shadow: 0 18px 40px rgba(2, 6, 23, 0.38);
+    color: #e5eefc;
+}
+
+html.app-skin-dark .page-fingerprint-mapping .bio-console-eyebrow,
+html.app-skin-dark .page-biometric-machine .bio-console-eyebrow {
+    color: #9fb0cc;
+}
+
+html.app-skin-dark .page-fingerprint-mapping .bio-console-hero h3,
+html.app-skin-dark .page-fingerprint-mapping .bio-console-hero h4,
+html.app-skin-dark .page-fingerprint-mapping .bio-console-hero h5,
+html.app-skin-dark .page-biometric-machine .bio-console-hero h3,
+html.app-skin-dark .page-biometric-machine .bio-console-hero h4,
+html.app-skin-dark .page-biometric-machine .bio-console-hero h5 {
+    color: var(--biotern-surface-muted);
+}
+
+html.app-skin-dark .page-fingerprint-mapping .bio-console-hero p,
+html.app-skin-dark .page-biometric-machine .bio-console-hero p {
+    color: #9fb0cc;
+}
+
+html.app-skin-dark .page-fingerprint-mapping .bio-console-pill,
+html.app-skin-dark .page-biometric-machine .bio-console-pill {
+    background: rgba(var(--biotern-primary-rgb), 0.2);
+    border-color: rgba(129, 153, 199, 0.28);
+    color: #dbe8ff;
+}
+
+html.app-skin-dark .page-fingerprint-mapping .bio-console-hero-side,
+html.app-skin-dark .page-fingerprint-mapping .bio-console-note-surface,
+html.app-skin-dark .page-biometric-machine .bio-console-hero-side,
+html.app-skin-dark .page-biometric-machine .bio-console-note-surface {
+    background: rgba(30, 41, 59, 0.72);
+    border-color: rgba(129, 153, 199, 0.2);
+}
+
+html.app-skin-dark .page-fingerprint-mapping .bio-console-hero-side h6,
+html.app-skin-dark .page-fingerprint-mapping .bio-console-note-surface h6,
+html.app-skin-dark .page-biometric-machine .bio-console-hero-side h6,
+html.app-skin-dark .page-biometric-machine .bio-console-note-surface h6 {
+    color: var(--biotern-surface-muted);
+}
+
+html.app-skin-dark .page-fingerprint-mapping .bio-console-hero-side p,
+html.app-skin-dark .page-fingerprint-mapping .bio-console-note-surface p,
+html.app-skin-dark .page-fingerprint-mapping .bio-console-hero-side small,
+html.app-skin-dark .page-biometric-machine .bio-console-hero-side p,
+html.app-skin-dark .page-biometric-machine .bio-console-note-surface p,
+html.app-skin-dark .page-biometric-machine .bio-console-hero-side small {
+    color: #9fb0cc !important;
+}
+
 @media (max-width: 1199.98px) {
+    .page-fingerprint-mapping .nxl-content {
+        padding-top: 0;
+        padding-left: 0;
+        padding-right: 0;
+        padding-bottom: 3rem;
+    }
+
+    .page-fingerprint-mapping .bio-console-shell {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
     .bio-console-hero-grid {
         grid-template-columns: 1fr;
     }
@@ -403,6 +650,18 @@ html.app-skin-dark .bio-console-table tbody tr:hover {
 }
 
 @media (max-width: 767.98px) {
+    .page-fingerprint-mapping .nxl-content {
+        padding-top: 0;
+        padding-left: 0;
+        padding-right: 0;
+        padding-bottom: 2.35rem;
+    }
+
+    .page-fingerprint-mapping .bio-console-shell {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
     .bio-console-hero .card-body {
         padding: 1rem;
     }
@@ -419,6 +678,16 @@ html.app-skin-dark .bio-console-table tbody tr:hover {
 
     .fingerprint-form .form-label {
         margin-bottom: 0.35rem;
+    }
+
+    .bio-console-table thead th,
+    .bio-console-table tbody td {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .bio-console-table tbody td {
+        font-size: 0.84rem;
     }
 
     .bio-console-chip-list,

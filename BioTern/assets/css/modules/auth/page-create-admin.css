@@ -107,7 +107,7 @@ body.create-admin-public .create-admin-card .input-group .btn-outline-secondary 
 
 body.create-admin-public .create-admin-card .input-group .btn-outline-secondary:hover {
     background: rgba(99, 132, 255, 0.08);
-    color: #1d4ed8;
+    color: var(--biotern-primary-hover);
 }
 
 body.create-admin-public .create-admin-card .btn-primary {
@@ -129,7 +129,7 @@ body.create-admin-public .create-admin-card .footer-note {
 }
 
 body.create-admin-public .create-admin-card .footer-note a {
-    color: #2563eb;
+    color: var(--biotern-primary);
     text-decoration: underline;
 }
 
@@ -146,3 +146,5 @@ body.app-page-create-admin .create-admin-admin-page {
         padding: 24px 12px;
     }
 }
+
+

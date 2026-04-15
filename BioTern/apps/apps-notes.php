@@ -192,7 +192,7 @@ include 'includes/header.php';
                             <?php if (!$notes_is_student): ?>
                             <label class="app-notes-field app-notes-field-color">
                                 <span>Accent</span>
-                                <input type="color" class="form-control form-control-color" value="#2563eb" data-editor-color>
+                                <input type="color" class="form-control form-control-color" value="#64748b" data-editor-color>
                             </label>
                             <?php endif; ?>
                             <div class="app-notes-editor-state">

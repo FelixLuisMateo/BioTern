@@ -22,7 +22,7 @@ body.apps-activity-page .main-content {
 
     body.apps-activity-page .nxl-content-sidebar-item .nav-link.active {
         background: #eef2ff;
-        color: #1d4ed8;
+        color: var(--biotern-primary-hover);
     }
 
     body.apps-activity-page .activity-list-pane,
@@ -50,7 +50,7 @@ body.apps-activity-page .main-content {
     }
 
     body.apps-activity-page .activity-row.activity-row-active {
-        background: #eff6ff;
+        background: var(--biotern-surface-muted);
     }
 
     body.apps-activity-page .activity-title {
@@ -84,7 +84,7 @@ body.apps-activity-page .main-content {
         border-radius: 999px;
         border: 1px solid #dbe3ee;
         background: #f8fafc;
-        color: #1d4ed8;
+        color: var(--biotern-primary-hover);
         text-decoration: none;
         font-size: 13px;
         font-weight: 700;
@@ -188,7 +188,7 @@ body.apps-activity-page .main-content {
     html.app-skin-dark body.apps-activity-page .account-toolbar a {
         border-color: #334155;
         background: #111c31;
-        color: #93c5fd;
+        color: var(--biotern-primary-soft);
     }
 
     html.app-skin-dark body.apps-activity-page .activity-summary-card {
@@ -216,3 +216,5 @@ body.apps-activity-page .main-content {
             grid-template-columns: 1fr;
         }
     }
+
+

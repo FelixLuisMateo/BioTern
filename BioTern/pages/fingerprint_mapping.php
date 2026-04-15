@@ -222,6 +222,9 @@ $mappingSql = "
         s.id AS student_row_id,
         s.student_id AS student_number,
         s.created_at AS enrolled_at,
+        s.assignment_track,
+        s.internal_total_hours_remaining,
+        s.external_total_hours_remaining,
         s.course_id,
         s.section_id,
         c.name AS course_name,
@@ -751,6 +754,7 @@ ob_end_flush();
                                 <th>Student Link</th>
                                 <th>Course</th>
                                 <th>Section</th>
+                                <th>OJT Status</th>
                                 <th>Mapped Info</th>
                                 <th class="text-end">Actions</th>
                             </tr>
@@ -758,10 +762,17 @@ ob_end_flush();
                         <tbody>
                         <?php if (empty($filteredStudentMappings)): ?>
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No student mappings match the selected filters.</td>
+                                <td colspan="8" class="text-center text-muted py-4">No student mappings match the selected filters.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($filteredStudentMappings as $map): ?>
+                                <?php
+                                $track = strtolower(trim((string)($map['assignment_track'] ?? 'internal')));
+                                $remainingHours = $track === 'external'
+                                    ? (int)($map['external_total_hours_remaining'] ?? 0)
+                                    : (int)($map['internal_total_hours_remaining'] ?? 0);
+                                $ojtCompleted = $remainingHours <= 0 && (int)($map['student_row_id'] ?? 0) > 0;
+                                ?>
                                 <tr>
                                     <td><?php echo (int)$map['finger_id']; ?></td>
                                     <td>
@@ -781,6 +792,17 @@ ob_end_flush();
                                     <td><?php echo htmlspecialchars((string)($map['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></td>
                                     <td><?php echo htmlspecialchars((string)($map['section_label'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></td>
                                     <td>
+                                        <?php if ((int)($map['student_row_id'] ?? 0) <= 0): ?>
+                                            <span class="badge bg-soft-secondary text-secondary">N/A</span>
+                                        <?php elseif ($ojtCompleted): ?>
+                                            <span class="badge bg-soft-success text-success">Completed</span>
+                                            <div class="text-muted small">Ready for fingerprint slot reuse</div>
+                                        <?php else: ?>
+                                            <span class="badge bg-soft-warning text-warning">In Progress</span>
+                                            <div class="text-muted small">Remaining: <?php echo (int)$remainingHours; ?>h</div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
                                         <?php $createdAt = (string)($map['created_at'] ?? ''); ?>
                                         <?php $updatedAt = (string)($map['updated_at'] ?? ''); ?>
                                         <div class="text-muted small">Created: <?php echo $createdAt !== '' ? htmlspecialchars(date('M d, Y h:i A', strtotime($createdAt)), ENT_QUOTES, 'UTF-8') : 'N/A'; ?></div>
@@ -788,6 +810,9 @@ ob_end_flush();
                                     </td>
                                     <td class="text-end">
                                         <div class="fingerprint-actions ms-auto">
+                                            <?php if ($ojtCompleted): ?>
+                                                <a href="biometric-machine.php?selected_user_id=<?php echo (int)$map['finger_id']; ?>&load_users=1&load_user=1" class="btn btn-sm btn-outline-warning">Cleanup Fingerprint Slot</a>
+                                            <?php endif; ?>
                                             <form method="post" class="d-inline" data-confirm="Remove this fingerprint mapping?">
                                                 <input type="hidden" name="mapping_action" value="delete">
                                                 <input type="hidden" name="finger_id" value="<?php echo (int)$map['finger_id']; ?>">

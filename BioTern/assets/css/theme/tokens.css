@@ -116,6 +116,12 @@ html.app-theme-gray.app-skin-dark {
   --bs-teal-rgb: 139, 146, 154;
 }
 
+/* Add new scheme palettes by defining:
+ * - html.app-theme-{name}
+ * - html.app-theme-{name}.app-skin-dark
+ * Keep semantic token names consistent so module CSS stays scheme-agnostic.
+ */
+
 body {
   background-color: var(--biotern-body-bg) !important;
 }

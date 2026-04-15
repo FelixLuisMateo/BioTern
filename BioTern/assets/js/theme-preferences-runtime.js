@@ -154,7 +154,9 @@
       if (themeStateCore && typeof themeStateCore.normalizeScheme === "function") {
         return themeStateCore.normalizeScheme(value);
       }
-      return value === "blue" || value === "gray" ? value : "blue";
+      var normalized = String(value == null ? "" : value).toLowerCase().trim();
+      normalized = normalized.replace(/[^a-z0-9-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+      return normalized || "blue";
     }
 
     function normalizeSurfacesMode(value) {
@@ -369,13 +371,13 @@
     }
 
     function getSavedScheme() {
-      if (runtimePrefs.scheme) return normalizeScheme(runtimePrefs.scheme);
-      if (serverPrefs.scheme) return normalizeScheme(serverPrefs.scheme);
-
       try {
         var stored = storageGet("app-theme-scheme", null);
         if (stored) return normalizeScheme(stored);
       } catch (e) {}
+
+      if (runtimePrefs.scheme) return normalizeScheme(runtimePrefs.scheme);
+      if (serverPrefs.scheme) return normalizeScheme(serverPrefs.scheme);
       return "blue";
     }
 
@@ -528,14 +530,18 @@
 
     function applyScheme(scheme) {
       var next = normalizeScheme(scheme);
-      var isGray = document.documentElement.classList.contains("app-theme-gray");
-      var current = isGray ? "gray" : "blue";
       runtimePrefs.scheme = next;
-      if (current !== next) {
-        document.documentElement.classList.remove("app-theme-gray");
-        if (next === "gray") {
-          document.documentElement.classList.add("app-theme-gray");
+      if (themeStateCore && typeof themeStateCore.applySchemeClass === "function") {
+        next = themeStateCore.applySchemeClass(document.documentElement, next);
+      } else {
+        var root = document.documentElement;
+        var classes = root.className ? root.className.split(/\s+/) : [];
+        for (var i = 0; i < classes.length; i += 1) {
+          if (classes[i] && classes[i].indexOf("app-theme-") === 0) {
+            root.classList.remove(classes[i]);
+          }
         }
+        root.classList.add("app-theme-" + next);
       }
       try {
         storageSet("app-theme-scheme", next);
@@ -743,9 +749,42 @@
     }
 
     function currentSchemeValue() {
-      return document.documentElement.classList.contains("app-theme-gray")
-        ? "gray"
-        : "blue";
+      if (themeStateCore && typeof themeStateCore.getActiveScheme === "function") {
+        return normalizeScheme(themeStateCore.getActiveScheme(document.documentElement));
+      }
+      var classes = document.documentElement.className
+        ? document.documentElement.className.split(/\s+/)
+        : [];
+      for (var i = 0; i < classes.length; i += 1) {
+        if (classes[i] && classes[i].indexOf("app-theme-") === 0) {
+          return normalizeScheme(classes[i].substring("app-theme-".length));
+        }
+      }
+      return "blue";
+    }
+
+    function ensureSchemeOptionExists(schemeValue) {
+      if (!pageScheme) {
+        return;
+      }
+      var normalized = normalizeScheme(schemeValue);
+      if (!normalized) {
+        normalized = "blue";
+      }
+      for (var i = 0; i < pageScheme.options.length; i += 1) {
+        if (normalizeScheme(pageScheme.options[i].value) === normalized) {
+          return;
+        }
+      }
+      var option = document.createElement("option");
+      option.value = normalized;
+      option.text = normalized
+        .split("-")
+        .map(function (part) {
+          return part ? part.charAt(0).toUpperCase() + part.slice(1) : "";
+        })
+        .join(" ");
+      pageScheme.appendChild(option);
     }
 
     function syncCustomSelectVisual(selectEl) {
@@ -862,7 +901,10 @@
       if (pageSkinLight) pageSkinLight.checked = skin !== "dark";
       if (pageMenu) pageMenu.value = menu;
       if (pageFont) pageFont.value = font;
-      if (pageScheme) pageScheme.value = scheme;
+      if (pageScheme) {
+        ensureSchemeOptionExists(scheme);
+        pageScheme.value = scheme;
+      }
       syncCustomSelectVisual(pageMenu);
       syncCustomSelectVisual(pageFont);
       syncCustomSelectVisual(pageScheme);

@@ -34,6 +34,7 @@
 @import url("./theme/surfaces.css");
 @import url("./theme/forms-dark.css");
 @import url("./theme/scheme-gray.css");
+@import url("./theme/scheme-adaptive-overrides.css");
 @import url("./theme/customizer.css");
 @import url("./theme/template-print-lock.css");
 

@@ -353,6 +353,8 @@ function machine_ensure_bridge_profile_table(mysqli $conn): void
         id INT UNSIGNED NOT NULL AUTO_INCREMENT,
         profile_name VARCHAR(100) NOT NULL DEFAULT 'default',
         selected_bridge_preset VARCHAR(100) NOT NULL DEFAULT 'laptop_custom',
+        router_name VARCHAR(150) NOT NULL DEFAULT '',
+        bridge_name VARCHAR(150) NOT NULL DEFAULT '',
         bridge_enabled TINYINT(1) NOT NULL DEFAULT 1,
         bridge_token VARCHAR(255) NOT NULL DEFAULT '',
         cloud_base_url VARCHAR(255) NOT NULL DEFAULT '',
@@ -383,6 +385,26 @@ function machine_ensure_bridge_profile_table(mysqli $conn): void
     if (!$hasPresetColumn) {
         $conn->query("ALTER TABLE biometric_bridge_profile ADD COLUMN selected_bridge_preset VARCHAR(100) NOT NULL DEFAULT 'laptop_custom' AFTER profile_name");
     }
+
+    $hasRouterNameColumn = false;
+    $routerColRes = $conn->query("SHOW COLUMNS FROM biometric_bridge_profile LIKE 'router_name'");
+    if ($routerColRes instanceof mysqli_result) {
+        $hasRouterNameColumn = $routerColRes->num_rows > 0;
+        $routerColRes->close();
+    }
+    if (!$hasRouterNameColumn) {
+        $conn->query("ALTER TABLE biometric_bridge_profile ADD COLUMN router_name VARCHAR(150) NOT NULL DEFAULT '' AFTER selected_bridge_preset");
+    }
+
+    $hasBridgeNameColumn = false;
+    $bridgeColRes = $conn->query("SHOW COLUMNS FROM biometric_bridge_profile LIKE 'bridge_name'");
+    if ($bridgeColRes instanceof mysqli_result) {
+        $hasBridgeNameColumn = $bridgeColRes->num_rows > 0;
+        $bridgeColRes->close();
+    }
+    if (!$hasBridgeNameColumn) {
+        $conn->query("ALTER TABLE biometric_bridge_profile ADD COLUMN bridge_name VARCHAR(150) NOT NULL DEFAULT '' AFTER router_name");
+    }
 }
 
 function machine_fetch_bridge_profile(mysqli $conn): array
@@ -392,6 +414,8 @@ function machine_fetch_bridge_profile(mysqli $conn): array
     $defaults = [
         'profile_name' => 'default',
         'selected_bridge_preset' => 'laptop_custom',
+        'router_name' => 'Router 2',
+        'bridge_name' => 'Laptop Bridge Router 2',
         'bridge_enabled' => 1,
         'bridge_token' => '',
         'cloud_base_url' => '',
@@ -432,12 +456,14 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     }
 
     $selectedBridgePreset = trim((string)($profile['selected_bridge_preset'] ?? 'laptop_custom'));
+    $routerName = trim((string)($profile['router_name'] ?? ''));
+    $bridgeName = trim((string)($profile['bridge_name'] ?? ''));
     $bridgeEnabled = !empty($profile['bridge_enabled']) ? 1 : 0;
     $bridgeToken = (string)($profile['bridge_token'] ?? '');
     $cloudBaseUrl = (string)($profile['cloud_base_url'] ?? '');
     $ingestPath = (string)($profile['ingest_path'] ?? '/api/f20h_ingest.php');
     $ingestApiToken = (string)($profile['ingest_api_token'] ?? '');
-    $pollSeconds = max(3, (int)($profile['poll_seconds'] ?? 30));
+    $pollSeconds = max(5, (int)($profile['poll_seconds'] ?? 30));
     $ipAddress = (string)($profile['ip_address'] ?? '');
     $gateway = (string)($profile['gateway'] ?? '');
     $mask = (string)($profile['mask'] ?? '255.255.255.0');
@@ -451,10 +477,12 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
 
     if ($hasPresetColumn) {
         $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
-            (profile_name, selected_bridge_preset, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
-            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (profile_name, selected_bridge_preset, router_name, bridge_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
+            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 selected_bridge_preset = VALUES(selected_bridge_preset),
+                router_name = VALUES(router_name),
+                bridge_name = VALUES(bridge_name),
                 bridge_enabled = VALUES(bridge_enabled),
                 bridge_token = VALUES(bridge_token),
                 cloud_base_url = VALUES(cloud_base_url),
@@ -472,8 +500,10 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
 
         if ($stmt) {
             $stmt->bind_param(
-                'sissssisssiissi',
+                'sssissssisssiissi',
                 $selectedBridgePreset,
+                $routerName,
+                $bridgeName,
                 $bridgeEnabled,
                 $bridgeToken,
                 $cloudBaseUrl,
@@ -496,9 +526,11 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
 
     if (!$stmt) {
         $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
-            (profile_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
-            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (profile_name, router_name, bridge_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
+            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
+                router_name = VALUES(router_name),
+                bridge_name = VALUES(bridge_name),
                 bridge_enabled = VALUES(bridge_enabled),
                 bridge_token = VALUES(bridge_token),
                 cloud_base_url = VALUES(cloud_base_url),
@@ -516,7 +548,9 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
 
         if ($stmt) {
             $stmt->bind_param(
-                'issssisssiissi',
+                'ssissssisssiissi',
+                $routerName,
+                $bridgeName,
                 $bridgeEnabled,
                 $bridgeToken,
                 $cloudBaseUrl,
@@ -544,6 +578,13 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
         throw new RuntimeException('Failed to execute bridge profile save query. DB error: ' . $executeError);
     }
     $stmt->close();
+}
+
+function machine_set_bridge_enabled(mysqli $conn, bool $enabled, int $updatedBy): void
+{
+    $profile = machine_fetch_bridge_profile($conn);
+    $profile['bridge_enabled'] = $enabled ? 1 : 0;
+    machine_save_bridge_profile($conn, $profile, $updatedBy);
 }
 
 function machine_ensure_bridge_user_cache_table(mysqli $conn): void
@@ -721,6 +762,86 @@ function machine_fetch_bridge_command_queue(mysqli $conn, int $limit = 20): arra
     $rowsRes = $conn->query("SELECT id, command_name, status, requested_by, source, created_at, claimed_at, claimed_by, completed_at, result_text, attempts
         FROM biometric_bridge_command_queue
         ORDER BY id DESC
+        LIMIT {$limit}");
+    if ($rowsRes instanceof mysqli_result) {
+        while ($row = $rowsRes->fetch_assoc()) {
+            $rows[] = $row;
+        }
+        $rowsRes->close();
+    }
+
+    return [
+        'summary' => $summary,
+        'rows' => $rows,
+    ];
+}
+
+function machine_ensure_fingerprint_cleanup_log_table(mysqli $conn): void
+{
+    $conn->query("CREATE TABLE IF NOT EXISTS biometric_fingerprint_cleanup_log (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        student_id INT NOT NULL,
+        finger_id INT NOT NULL,
+        command_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+        status VARCHAR(32) NOT NULL DEFAULT 'queued',
+        last_message TEXT NULL,
+        queued_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP NULL DEFAULT NULL,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_student_finger (student_id, finger_id),
+        KEY idx_command_id (command_id),
+        KEY idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function machine_fetch_fingerprint_cleanup_log(mysqli $conn, int $limit = 20): array
+{
+    machine_ensure_fingerprint_cleanup_log_table($conn);
+    machine_ensure_bridge_command_queue_table($conn);
+
+    $limit = max(1, min(100, $limit));
+    $summary = [
+        'queued' => 0,
+        'claimed' => 0,
+        'succeeded' => 0,
+        'failed' => 0,
+    ];
+    $rows = [];
+
+    $summaryRes = $conn->query("SELECT status, COUNT(*) AS total
+        FROM biometric_fingerprint_cleanup_log
+        GROUP BY status");
+    if ($summaryRes instanceof mysqli_result) {
+        while ($row = $summaryRes->fetch_assoc()) {
+            $status = strtolower(trim((string)($row['status'] ?? '')));
+            $total = (int)($row['total'] ?? 0);
+            if (array_key_exists($status, $summary)) {
+                $summary[$status] = $total;
+            }
+        }
+        $summaryRes->close();
+    }
+
+    $rowsRes = $conn->query("SELECT
+            l.id,
+            l.student_id,
+            l.finger_id,
+            l.command_id,
+            l.status,
+            l.last_message,
+            l.queued_at,
+            l.completed_at,
+            q.status AS command_status,
+            q.result_text,
+            q.attempts,
+            s.student_id AS student_number,
+            s.first_name,
+            s.last_name
+        FROM biometric_fingerprint_cleanup_log l
+        LEFT JOIN biometric_bridge_command_queue q ON q.id = l.command_id
+        LEFT JOIN students s ON s.id = l.student_id
+        ORDER BY l.id DESC
         LIMIT {$limit}");
     if ($rowsRes instanceof mysqli_result) {
         while ($row = $rowsRes->fetch_assoc()) {
@@ -1032,6 +1153,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'save_network',
             'save_connector_config',
             'save_bridge_profile',
+            'pause_bridge_for_enrollment',
+            'resume_bridge_after_enrollment',
+            'retry_fingerprint_cleanup',
+            'retry_all_fingerprint_cleanup',
             'quick_fill_bridge_router_2',
             'open_restart_bridge_shell',
             'open_bridge_log_tail_shell',
@@ -1078,6 +1203,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
         if (machine_is_cloud_runtime() && in_array($action, $connectorBoundActions, true) && !in_array($action, $cloudRelayActions, true)) {
             throw new RuntimeException('Direct machine commands are disabled in cloud runtime. Use F20H direct ingest by posting events to /api/f20h_ingest.php, then run Sync Now to reconcile logs into attendance.');
+        }
+
+        if (machine_is_cloud_runtime() && in_array($action, ['open_restart_bridge_shell', 'open_bridge_log_tail_shell'], true)) {
+            throw new RuntimeException('Bridge shell launcher actions are available only on the local Windows bridge computer.');
         }
 
         switch ($action) {
@@ -1437,11 +1566,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!in_array($selectedBridgePreset, $allowedBridgePresets, true)) {
                     $selectedBridgePreset = 'laptop_custom';
                 }
+                $routerName = trim((string)($_POST['router_name'] ?? ''));
+                $bridgeName = trim((string)($_POST['bridge_name'] ?? ''));
                 $bridgeToken = trim((string)($_POST['bridge_token'] ?? ''));
                 $cloudBaseUrl = rtrim(trim((string)($_POST['cloud_base_url'] ?? '')), '/');
                 $ingestPath = trim((string)($_POST['ingest_path'] ?? '/api/f20h_ingest.php'));
                 $ingestApiToken = trim((string)($_POST['ingest_api_token'] ?? ''));
-                $pollSeconds = max(3, (int)($_POST['poll_seconds'] ?? 30));
+                $pollSeconds = max(5, (int)($_POST['poll_seconds'] ?? 30));
                 $bridgeIp = trim((string)($_POST['bridge_ip'] ?? ''));
                 $bridgeGateway = trim((string)($_POST['bridge_gateway'] ?? ''));
                 $bridgeMask = trim((string)($_POST['bridge_mask'] ?? '255.255.255.0'));
@@ -1486,6 +1617,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 machine_save_bridge_profile($conn, [
                     'selected_bridge_preset' => $selectedBridgePreset,
+                    'router_name' => $routerName,
+                    'bridge_name' => $bridgeName,
                     'bridge_enabled' => $bridgeEnabled ? 1 : 0,
                     'bridge_token' => $bridgeToken,
                     'cloud_base_url' => $cloudBaseUrl,
@@ -1502,6 +1635,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ], (int)($_SESSION['user_id'] ?? 0));
 
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Laptop bridge profile saved. Token: ' . $bridgeToken];
+                machine_redirect_after_post([]);
+
+            case 'pause_bridge_for_enrollment':
+                machine_set_bridge_enabled($conn, false, (int)($_SESSION['user_id'] ?? 0));
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'warning',
+                    'message' => 'Enrollment mode enabled: bridge sync is paused. You can now enroll on F20H with less interruption. Click Resume Bridge after enrollment.',
+                ];
+                machine_redirect_after_post([]);
+
+            case 'resume_bridge_after_enrollment':
+                machine_set_bridge_enabled($conn, true, (int)($_SESSION['user_id'] ?? 0));
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => 'Bridge sync resumed. New attendance logs will continue uploading automatically.',
+                ];
                 machine_redirect_after_post([]);
 
             case 'quick_fill_bridge_router_2':
@@ -1528,6 +1677,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 machine_save_bridge_profile($conn, [
                     'selected_bridge_preset' => 'computer_router_2',
+                    'router_name' => 'Router 2',
+                    'bridge_name' => 'Computer Bridge Router 2',
                     'bridge_enabled' => 1,
                     'bridge_token' => $bridgeToken,
                     'cloud_base_url' => $cloudBaseUrl,
@@ -1546,6 +1697,124 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['machine_manager_flash'] = [
                     'type' => 'success',
                     'message' => 'Computer Bridge (Router 2) defaults were applied and saved to shared bridge profile. Bridge token: ' . $bridgeToken,
+                ];
+                machine_redirect_after_post([]);
+
+            case 'retry_fingerprint_cleanup':
+                $cleanupLogId = (int)($_POST['cleanup_log_id'] ?? 0);
+                if ($cleanupLogId <= 0) {
+                    throw new RuntimeException('Invalid cleanup log entry selected.');
+                }
+
+                machine_ensure_fingerprint_cleanup_log_table($conn);
+                machine_ensure_bridge_command_queue_table($conn);
+
+                $logStmt = $conn->prepare("SELECT id, student_id, finger_id, status FROM biometric_fingerprint_cleanup_log WHERE id = ? LIMIT 1");
+                if (!$logStmt) {
+                    throw new RuntimeException('Failed to load cleanup log entry.');
+                }
+                $logStmt->bind_param('i', $cleanupLogId);
+                $logStmt->execute();
+                $logRow = $logStmt->get_result()->fetch_assoc() ?: null;
+                $logStmt->close();
+
+                if (!is_array($logRow)) {
+                    throw new RuntimeException('Cleanup log entry not found.');
+                }
+
+                $cleanupStatus = strtolower(trim((string)($logRow['status'] ?? 'failed')));
+                if (in_array($cleanupStatus, ['queued', 'claimed'], true)) {
+                    throw new RuntimeException('Cleanup is already queued/claimed. Wait for bridge worker result.');
+                }
+
+                $studentId = (int)($logRow['student_id'] ?? 0);
+                $fingerId = (int)($logRow['finger_id'] ?? 0);
+                if ($fingerId <= 0) {
+                    throw new RuntimeException('Invalid fingerprint ID in cleanup log.');
+                }
+
+                $queuedId = machine_enqueue_bridge_command(
+                    $conn,
+                    'delete_user',
+                    ['user_id' => $fingerId],
+                    (int)($_SESSION['user_id'] ?? 0)
+                );
+
+                $retryMessage = 'Manual retry queued from Machine Manager.';
+                $updateStmt = $conn->prepare("UPDATE biometric_fingerprint_cleanup_log
+                    SET command_id = ?, status = 'queued', last_message = ?, queued_at = NOW(), completed_at = NULL
+                    WHERE id = ?");
+                if ($updateStmt) {
+                    $updateStmt->bind_param('isi', $queuedId, $retryMessage, $cleanupLogId);
+                    $updateStmt->execute();
+                    $updateStmt->close();
+                }
+
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => 'Fingerprint cleanup retry queued for student row #' . $studentId . ' (F20H user #' . $fingerId . '). Queue ID #' . $queuedId . '.',
+                ];
+                machine_redirect_after_post([]);
+
+            case 'retry_all_fingerprint_cleanup':
+                machine_ensure_fingerprint_cleanup_log_table($conn);
+                machine_ensure_bridge_command_queue_table($conn);
+
+                $failedRows = [];
+                $failedRes = $conn->query("SELECT id, student_id, finger_id
+                    FROM biometric_fingerprint_cleanup_log
+                    WHERE status = 'failed'
+                    ORDER BY id DESC
+                    LIMIT 200");
+                if ($failedRes instanceof mysqli_result) {
+                    while ($failedRow = $failedRes->fetch_assoc()) {
+                        $failedRows[] = $failedRow;
+                    }
+                    $failedRes->close();
+                }
+
+                if ($failedRows === []) {
+                    $_SESSION['machine_manager_flash'] = [
+                        'type' => 'info',
+                        'message' => 'No failed fingerprint cleanup entries to retry.',
+                    ];
+                    machine_redirect_after_post([]);
+                }
+
+                $queuedCount = 0;
+                foreach ($failedRows as $failedRow) {
+                    $cleanupLogId = (int)($failedRow['id'] ?? 0);
+                    $studentId = (int)($failedRow['student_id'] ?? 0);
+                    $fingerId = (int)($failedRow['finger_id'] ?? 0);
+                    if ($cleanupLogId <= 0 || $fingerId <= 0) {
+                        continue;
+                    }
+
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'delete_user',
+                        ['user_id' => $fingerId],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+
+                    $retryMessage = 'Bulk retry queued from Machine Manager.';
+                    $updateStmt = $conn->prepare("UPDATE biometric_fingerprint_cleanup_log
+                        SET command_id = ?, status = 'queued', last_message = ?, queued_at = NOW(), completed_at = NULL
+                        WHERE id = ?");
+                    if ($updateStmt) {
+                        $updateStmt->bind_param('isi', $queuedId, $retryMessage, $cleanupLogId);
+                        $updateStmt->execute();
+                        $updateStmt->close();
+                    }
+
+                    $queuedCount++;
+                }
+
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => $queuedCount > 0 ? 'success' : 'warning',
+                    'message' => $queuedCount > 0
+                        ? ('Queued retry for ' . $queuedCount . ' failed fingerprint cleanup entr' . ($queuedCount === 1 ? 'y' : 'ies') . '.')
+                        : 'No failed cleanup entries were eligible for retry.',
                 ];
                 machine_redirect_after_post([]);
 
@@ -1755,6 +2024,9 @@ $recentIngestEvents = $ingestHealth['recent'] ?? [];
 $bridgeQueueData = machine_fetch_bridge_command_queue($conn, 20);
 $bridgeQueueSummary = $bridgeQueueData['summary'] ?? ['queued' => 0, 'claimed' => 0, 'succeeded' => 0, 'failed' => 0];
 $bridgeQueueRows = $bridgeQueueData['rows'] ?? [];
+$fingerprintCleanupData = machine_fetch_fingerprint_cleanup_log($conn, 20);
+$fingerprintCleanupSummary = $fingerprintCleanupData['summary'] ?? ['queued' => 0, 'claimed' => 0, 'succeeded' => 0, 'failed' => 0];
+$fingerprintCleanupRows = $fingerprintCleanupData['rows'] ?? [];
 $bridgeProfile = machine_fetch_bridge_profile($conn);
 $connectorConfig = json_decode($machineConfigJson, true);
 $connectorIp = is_array($connectorConfig) ? (string)($connectorConfig['ipAddress'] ?? '') : '';
@@ -1767,6 +2039,11 @@ $syncMode = is_array($connectorConfig) ? strtolower(trim((string)($connectorConf
 if (!in_array($syncMode, ['direct_ingest', 'connector_fallback'], true)) {
     $syncMode = 'direct_ingest';
 }
+$syncModeLabelMap = [
+    'direct_ingest' => 'Direct machine ingest',
+    'connector_fallback' => 'Connector fallback worker',
+];
+$syncModeLabel = $syncModeLabelMap[$syncMode] ?? 'Direct machine ingest';
 $cloudRuntime = machine_is_cloud_runtime();
 $connectorOutputPath = is_array($connectorConfig) ? (string)($connectorConfig['outputPath'] ?? '') : '';
 $autoImportOnIngest = !is_array($connectorConfig) || !array_key_exists('autoImportOnIngest', $connectorConfig) || !empty($connectorConfig['autoImportOnIngest']);
@@ -1788,6 +2065,8 @@ if ($selectedRouterPreset === 'custom') {
     }
 }
 $bridgeEnabled = !empty($bridgeProfile['bridge_enabled']);
+$bridgeRouterName = trim((string)($bridgeProfile['router_name'] ?? ''));
+$bridgeFriendlyName = trim((string)($bridgeProfile['bridge_name'] ?? ''));
 $bridgeToken = (string)($bridgeProfile['bridge_token'] ?? '');
 $bridgeCloudBaseUrl = (string)($bridgeProfile['cloud_base_url'] ?? '');
 $bridgeIngestPath = (string)($bridgeProfile['ingest_path'] ?? '/api/f20h_ingest.php');
@@ -1921,6 +2200,13 @@ $quickBridgeOptions = [
         'output_path' => $bridgeOutputPath,
     ],
 ];
+
+if ($bridgeRouterName === '') {
+    $bridgeRouterName = stripos($selectedBridgePreset, 'router_1') !== false ? 'Router 1' : 'Router 2';
+}
+if ($bridgeFriendlyName === '') {
+    $bridgeFriendlyName = $quickBridgeOptions[$selectedBridgePreset]['label'] ?? 'Laptop Bridge';
+}
 $quickRouterOptions = [
     'router_1' => [
         'label' => 'Router 1',
@@ -2016,11 +2302,8 @@ include __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-        <div class="machine-info-note" role="note" aria-label="F20H data handling notice">
-            <span class="machine-info-note-icon" aria-hidden="true"><i class="feather-info"></i></span>
-            <div class="machine-info-note-body">
-                Fingerprint templates stay on the F20H. BioTern only manages machine user records, mappings, and attendance events. Card numbers are masked for non-admin views.
-            </div>
+        <div class="alert alert-info machine-info-note" role="note" aria-label="F20H data handling notice">
+            Fingerprint templates stay on the F20H. BioTern only manages machine user records, mappings, and attendance events. Card numbers are masked for non-admin views.
         </div>
 
         <div class="row g-3 mb-3">
@@ -2126,7 +2409,7 @@ include __DIR__ . '/../includes/header.php';
                             <input type="hidden" name="machine_action" value="sync">
                             <button type="submit" class="btn btn-primary w-100"><?php echo $cloudRuntime || $syncMode === 'direct_ingest' ? 'Process Ingest Queue' : 'Sync Now'; ?></button>
                         </form>
-                        <?php if ($isAdmin): ?>
+                        <?php if ($isAdmin && !$cloudRuntime): ?>
                             <form method="post" class="mt-2">
                                 <input type="hidden" name="machine_action" value="open_restart_bridge_shell">
                                 <button type="submit" class="btn btn-outline-dark w-100">Open PowerShell: Restart Bridge Worker</button>
@@ -2135,6 +2418,8 @@ include __DIR__ . '/../includes/header.php';
                                 <input type="hidden" name="machine_action" value="open_bridge_log_tail_shell">
                                 <button type="submit" class="btn btn-outline-secondary w-100">Open PowerShell: Bridge Log Tail</button>
                             </form>
+                        <?php elseif ($isAdmin && $cloudRuntime): ?>
+                            <div class="alert alert-info mt-2 mb-0 fs-12">Windows shell launchers are hidden in cloud runtime. Run restart/log tail from your local bridge PC.</div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -2383,6 +2668,14 @@ include __DIR__ . '/../includes/header.php';
                                         </div>
                                     </div>
                                     <div class="col-sm-4">
+                                        <label class="form-label">Router Name</label>
+                                        <input type="text" name="router_name" class="form-control" value="<?php echo machine_h($bridgeRouterName); ?>" placeholder="Router 2">
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label class="form-label">Bridge Name</label>
+                                        <input type="text" name="bridge_name" class="form-control" value="<?php echo machine_h($bridgeFriendlyName); ?>" placeholder="Laptop Bridge Router 2">
+                                    </div>
+                                    <div class="col-sm-4">
                                         <label class="form-label">Bridge Token</label>
                                         <input type="text" name="bridge_token" id="bridgeTokenField" class="form-control" value="<?php echo machine_h($bridgeToken); ?>" placeholder="shared token for bridge_profile.php">
                                     </div>
@@ -2400,7 +2693,7 @@ include __DIR__ . '/../includes/header.php';
                                     </div>
                                     <div class="col-sm-6">
                                         <label class="form-label">Poll Seconds</label>
-                                        <input type="number" name="poll_seconds" id="bridgePollSecondsField" class="form-control" value="<?php echo machine_h((string)$bridgePollSeconds); ?>" min="3" max="300">
+                                        <input type="number" name="poll_seconds" id="bridgePollSecondsField" class="form-control" value="<?php echo machine_h((string)$bridgePollSeconds); ?>" min="5" max="300">
                                     </div>
                                     <div class="col-sm-6">
                                         <label class="form-label">F20H IP</label>
@@ -2457,6 +2750,18 @@ include __DIR__ . '/../includes/header.php';
                                         <button type="submit" class="btn btn-outline-primary btn-sm" formaction="" formmethod="post" name="machine_action" value="quick_fill_bridge_router_2">Fill Shared Bridge (Router 2)</button>
                                         <button type="submit" class="btn btn-outline-info btn-sm" formaction="" formmethod="post" name="machine_action" value="test_bridge_profile">Test Shared Bridge</button>
                                         <small class="text-muted align-self-center">Laptop worker fetches this profile from /bridge_profile.php using the bridge token.</small>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="alert alert-light border mb-0 d-flex flex-wrap align-items-center gap-2">
+                                            <strong>Enrollment Mode:</strong>
+                                            <?php if ($bridgeEnabled): ?>
+                                                <button type="submit" class="btn btn-warning btn-sm" formaction="" formmethod="post" name="machine_action" value="pause_bridge_for_enrollment">Pause Bridge for Enrollment</button>
+                                                <span class="text-muted">Recommended before adding fingerprints/users on F20H. Resume after enrollment to continue sync.</span>
+                                            <?php else: ?>
+                                                <button type="submit" class="btn btn-success btn-sm" formaction="" formmethod="post" name="machine_action" value="resume_bridge_after_enrollment">Resume Bridge Sync</button>
+                                                <span class="text-muted">Bridge is currently paused for enrollment. Click Resume when finished.</span>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </form>
                             <?php endif; ?>
@@ -2868,6 +3173,137 @@ include __DIR__ . '/../includes/header.php';
                                                 <td><?php echo machine_h((string)($queueRow['completed_at'] ?? '-')); ?></td>
                                                 <td><?php echo machine_h((string)($queueRow['attempts'] ?? 0)); ?></td>
                                                 <td><?php echo machine_h($resultText !== '' ? $resultText : '-'); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-12">
+                <div class="card stretch stretch-full">
+                    <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                        <h6 class="card-title mb-0">Automatic Fingerprint Cleanup Monitor</h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <?php if ($isAdmin): ?>
+                                <form method="post" class="d-inline">
+                                    <input type="hidden" name="machine_action" value="retry_all_fingerprint_cleanup">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">Retry All Failed</button>
+                                </form>
+                            <?php endif; ?>
+                            <button class="btn btn-sm btn-outline-secondary machine-section-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#machineAutoCleanupCollapse" aria-expanded="false" aria-controls="machineAutoCleanupCollapse">Toggle</button>
+                        </div>
+                    </div>
+                    <div class="card-body collapse" id="machineAutoCleanupCollapse">
+                        <div class="row g-2 mb-3">
+                            <div class="col-sm-3">
+                                <div class="border rounded p-2">
+                                    <div class="text-muted fs-12">Queued</div>
+                                    <div class="fw-bold"><?php echo machine_h((string)($fingerprintCleanupSummary['queued'] ?? 0)); ?></div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="border rounded p-2">
+                                    <div class="text-muted fs-12">Claimed</div>
+                                    <div class="fw-bold"><?php echo machine_h((string)($fingerprintCleanupSummary['claimed'] ?? 0)); ?></div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="border rounded p-2">
+                                    <div class="text-muted fs-12">Succeeded</div>
+                                    <div class="fw-bold"><?php echo machine_h((string)($fingerprintCleanupSummary['succeeded'] ?? 0)); ?></div>
+                                </div>
+                            </div>
+                            <div class="col-sm-3">
+                                <div class="border rounded p-2">
+                                    <div class="text-muted fs-12">Failed</div>
+                                    <div class="fw-bold"><?php echo machine_h((string)($fingerprintCleanupSummary['failed'] ?? 0)); ?></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Finger ID</th>
+                                        <th>Log Status</th>
+                                        <th>Queue ID</th>
+                                        <th>Queue Status</th>
+                                        <th>Queued</th>
+                                        <th>Completed</th>
+                                        <th>Message</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (empty($fingerprintCleanupRows)): ?>
+                                        <tr><td colspan="9" class="text-center text-muted py-3">No automatic fingerprint cleanup logs yet.</td></tr>
+                                    <?php else: ?>
+                                        <?php foreach ($fingerprintCleanupRows as $cleanupRow): ?>
+                                            <?php
+                                            $studentName = trim((string)($cleanupRow['first_name'] ?? '') . ' ' . (string)($cleanupRow['last_name'] ?? ''));
+                                            $studentNumber = trim((string)($cleanupRow['student_number'] ?? ''));
+                                            $displayStudent = $studentName !== ''
+                                                ? ($studentNumber !== '' ? ($studentName . ' (' . $studentNumber . ')') : $studentName)
+                                                : ('Student row #' . (int)($cleanupRow['student_id'] ?? 0));
+
+                                            $logStatus = strtolower(trim((string)($cleanupRow['status'] ?? 'queued')));
+                                            $logStatusClass = 'secondary';
+                                            if ($logStatus === 'queued') {
+                                                $logStatusClass = 'warning';
+                                            } elseif ($logStatus === 'claimed') {
+                                                $logStatusClass = 'info';
+                                            } elseif ($logStatus === 'succeeded') {
+                                                $logStatusClass = 'success';
+                                            } elseif ($logStatus === 'failed') {
+                                                $logStatusClass = 'danger';
+                                            }
+
+                                            $queueStatus = strtolower(trim((string)($cleanupRow['command_status'] ?? '')));
+                                            $queueStatusClass = 'secondary';
+                                            if ($queueStatus === 'queued') {
+                                                $queueStatusClass = 'warning';
+                                            } elseif ($queueStatus === 'claimed') {
+                                                $queueStatusClass = 'info';
+                                            } elseif ($queueStatus === 'succeeded') {
+                                                $queueStatusClass = 'success';
+                                            } elseif ($queueStatus === 'failed') {
+                                                $queueStatusClass = 'danger';
+                                            }
+
+                                            $cleanupMessage = trim((string)($cleanupRow['last_message'] ?? ''));
+                                            if ($cleanupMessage === '') {
+                                                $cleanupMessage = trim((string)($cleanupRow['result_text'] ?? ''));
+                                            }
+                                            if ($cleanupMessage !== '' && strlen($cleanupMessage) > 120) {
+                                                $cleanupMessage = substr($cleanupMessage, 0, 120) . '...';
+                                            }
+                                            ?>
+                                            <tr>
+                                                <td><?php echo machine_h($displayStudent); ?></td>
+                                                <td><?php echo machine_h((string)($cleanupRow['finger_id'] ?? 0)); ?></td>
+                                                <td><span class="badge bg-soft-<?php echo machine_h($logStatusClass); ?> text-<?php echo machine_h($logStatusClass); ?>"><?php echo machine_h((string)($cleanupRow['status'] ?? '-')); ?></span></td>
+                                                <td><?php echo machine_h((string)($cleanupRow['command_id'] ?? 0)); ?></td>
+                                                <td><span class="badge bg-soft-<?php echo machine_h($queueStatusClass); ?> text-<?php echo machine_h($queueStatusClass); ?>"><?php echo machine_h($queueStatus !== '' ? $queueStatus : '-'); ?></span></td>
+                                                <td><?php echo machine_h((string)($cleanupRow['queued_at'] ?? '-')); ?></td>
+                                                <td><?php echo machine_h((string)($cleanupRow['completed_at'] ?? '-')); ?></td>
+                                                <td><?php echo machine_h($cleanupMessage !== '' ? $cleanupMessage : '-'); ?></td>
+                                                <td class="text-end">
+                                                    <?php if ($isAdmin && $logStatus === 'failed'): ?>
+                                                        <form method="post" class="d-inline">
+                                                            <input type="hidden" name="machine_action" value="retry_fingerprint_cleanup">
+                                                            <input type="hidden" name="cleanup_log_id" value="<?php echo (int)($cleanupRow['id'] ?? 0); ?>">
+                                                            <button type="submit" class="btn btn-sm btn-outline-warning">Retry</button>
+                                                        </form>
+                                                    <?php else: ?>
+                                                        <span class="text-muted small">-</span>
+                                                    <?php endif; ?>
+                                                </td>
                                             </tr>
                                         <?php endforeach; ?>
                                     <?php endif; ?>

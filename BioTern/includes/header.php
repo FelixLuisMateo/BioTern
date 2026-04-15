@@ -134,8 +134,8 @@ if (!$page_is_public && $header_user_id_session > 0 && isset($_GET['notif_read']
     header('Location: ' . $redirectTarget);
     exit;
 }
-if (!isset($base_href)) {
-    $base_href = '';
+if (!isset($base_href) || trim((string)$base_href) === '') {
+    $base_href = $header_root;
 }
 
 $favicon_ico_path = dirname(__DIR__) . '/assets/images/favicon.ico';
@@ -260,10 +260,19 @@ if ($theme_navigation === 'dark') {
 if ($theme_header === 'dark') {
     $html_classes[] = 'app-header-dark';
 }
-$theme_scheme = strtolower(trim((string)($biotern_theme_preferences['scheme'] ?? 'blue')));
-if ($theme_scheme === 'gray') {
-    $html_classes[] = 'app-theme-gray';
+$theme_scheme = (string)($biotern_theme_preferences['scheme'] ?? 'blue');
+if (function_exists('biotern_theme_normalize_scheme')) {
+    $theme_scheme = biotern_theme_normalize_scheme($theme_scheme);
+} else {
+    $theme_scheme = strtolower(trim($theme_scheme));
+    $theme_scheme = preg_replace('/[^a-z0-9-]+/', '-', $theme_scheme);
+    $theme_scheme = trim((string)$theme_scheme, '-');
+    if ($theme_scheme === '') {
+        $theme_scheme = 'blue';
+    }
 }
+$biotern_theme_preferences['scheme'] = $theme_scheme;
+$html_classes[] = 'app-theme-' . $theme_scheme;
 $html_class_attr = implode(' ', $html_classes);
 $page_body_class = isset($page_body_class) && is_string($page_body_class) ? trim($page_body_class) : '';
 $header_script_name = (string)($_SERVER['SCRIPT_NAME'] ?? '');
@@ -289,6 +298,7 @@ $header_user_role = '';
 $header_avatar = 'assets/images/avatar/1.png';
 $header_notifications = [];
 $header_notifications_unread = 0;
+$header_profile_url = 'profile-details.php';
 $header_notifications_url = 'notifications.php';
 $header_account_settings_url = 'account-settings.php#security';
 $header_avatar_debug_enabled = isset($_GET['avatar_debug']) && (string)$_GET['avatar_debug'] === '1';
@@ -618,7 +628,7 @@ if ($header_db instanceof mysqli) {
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                                     <div class="dropdown-header user-dropdown-hero">
-                                        <div class="header-menu-profile">
+                                        <div class="d-flex align-items-center">
                                             <img src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="user-image" class="img-fluid user-avtar" data-avatar-debug-src="<?php echo htmlspecialchars($header_avatar, ENT_QUOTES, 'UTF-8'); ?>">
                                             <div class="user-dropdown-identity">
                                                 <h6 class="user-dropdown-name"><?php echo htmlspecialchars($header_user_name, ENT_QUOTES, 'UTF-8'); ?></h6>
@@ -628,12 +638,6 @@ if ($header_db instanceof mysqli) {
                                                 <span class="user-dropdown-email"><?php echo htmlspecialchars($header_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="user-dropdown-primary-action-wrap">
-                                        <a href="<?php echo htmlspecialchars($header_account_settings_url, ENT_QUOTES, 'UTF-8'); ?>" class="user-dropdown-primary-action">
-                                            <i class="feather-settings"></i>
-                                            <span>Account Settings</span>
-                                        </a>
                                     </div>
                                     <div class="dropdown-divider"></div>
                                     <div class="dropdown-item-text pb-1">
@@ -692,18 +696,24 @@ if ($header_db instanceof mysqli) {
                                     <div class="dropdown-item-text pb-1">
                                         <div class="user-dropdown-section-title">Workspace</div>
                                     </div>
-                                    <div class="header-menu-section user-dropdown-links">
+                                    <div class="user-dropdown-links">
+                                        <a href="<?php echo htmlspecialchars($header_profile_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
+                                            <i class="feather-user"></i>
+                                            <span>Profile Details</span>
+                                        </a>
                                         <a href="<?php echo htmlspecialchars($header_notifications_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
-                                            <span class="header-menu-link-icon"><i class="feather-bell"></i></span>
+                                            <i class="feather-bell"></i>
                                             <span>Notifications</span>
-                                            <i class="feather-chevron-right user-dropdown-link-caret"></i>
+                                        </a>
+                                        <a href="<?php echo htmlspecialchars($header_account_settings_url, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
+                                            <i class="feather-settings"></i>
+                                            <span>Account Settings</span>
                                         </a>
                                     </div>
                                     <div class="dropdown-divider"></div>
                                     <a href="auth-login.php?logout=1" class="dropdown-item user-dropdown-logout">
-                                        <span class="header-menu-link-icon"><i class="feather-log-out"></i></span>
+                                        <i class="feather-log-out"></i>
                                         <span>Logout</span>
-                                        <i class="feather-chevron-right user-dropdown-link-caret"></i>
                                     </a>
                                 </div>
                             </div>

@@ -33,6 +33,8 @@ if (!function_exists('run_biometric_auto_import_stats')) {
         $attendanceChanged = 0;
         $processedLogs = 0;
         $anomaliesFound = 0;
+        $autoCleanupQueued = 0;
+        $autoCleanupApplied = 0;
 
         if (file_exists($attendanceFile)) {
             $json = file_get_contents($attendanceFile);
@@ -51,9 +53,13 @@ if (!function_exists('run_biometric_auto_import_stats')) {
             }
         }
 
+        $autoCleanupApplied = applyCompletedFingerprintCleanupResults($conn);
+
         $fingerprintMap = buildFingerprintStudentMap($conn);
         $fingerprintUserMap = buildFingerprintUserMap($conn);
         $studentScheduleMap = buildStudentAttendanceScheduleMap($conn);
+        $studentRecordingStopMap = buildStudentRecordingStopMap($conn);
+        $autoCleanupQueued = queueFingerprintCleanupForCompletedStudents($conn, $fingerprintMap, $studentRecordingStopMap);
         $dailyPunchCounts = [];
         $columns = [
             1 => 'morning_time_in',
@@ -99,6 +105,27 @@ if (!function_exists('run_biometric_auto_import_stats')) {
                             ? 'Fingerprint is mapped to a user that has no linked student profile.'
                             : 'Fingerprint scan was received with no BioTern mapping.',
                         ['raw_data' => $entry]
+                    );
+                    markRawLogProcessed($conn, $logId);
+                    continue;
+                }
+
+                if (!empty($studentRecordingStopMap[$studentId]['stop'])) {
+                    $anomaliesFound++;
+                    biometric_ops_record_anomaly(
+                        $conn,
+                        $logId,
+                        $fingerId,
+                        $mappedUserId > 0 ? $mappedUserId : null,
+                        $studentId,
+                        'attendance_locked_hours_completed',
+                        'info',
+                        $datetime,
+                        'Biometric punch ignored because the student has already completed required OJT hours.',
+                        [
+                            'track' => (string)($studentRecordingStopMap[$studentId]['track'] ?? 'internal'),
+                            'remaining_hours' => (int)($studentRecordingStopMap[$studentId]['remaining_hours'] ?? 0),
+                        ]
                     );
                     markRawLogProcessed($conn, $logId);
                     continue;
@@ -186,11 +213,13 @@ if (!function_exists('run_biometric_auto_import_stats')) {
 
         $conn->close();
         return [
-            'message' => "Biometric sync complete. Raw inserted: {$rawInserted}, logs processed: {$processedLogs}, attendance rows changed: {$attendanceChanged}, anomalies found: {$anomaliesFound}",
+            'message' => "Biometric sync complete. Raw inserted: {$rawInserted}, logs processed: {$processedLogs}, attendance rows changed: {$attendanceChanged}, anomalies found: {$anomaliesFound}, cleanup queued: {$autoCleanupQueued}, cleanup applied: {$autoCleanupApplied}",
             'raw_inserted' => $rawInserted,
             'processed_logs' => $processedLogs,
             'attendance_changed' => $attendanceChanged,
             'anomalies_found' => $anomaliesFound,
+            'cleanup_queued' => $autoCleanupQueued,
+            'cleanup_applied' => $autoCleanupApplied,
         ];
     }
 }
@@ -419,6 +448,228 @@ if (!function_exists('buildStudentAttendanceScheduleMap')) {
         }
 
         return $map;
+    }
+}
+
+if (!function_exists('buildStudentRecordingStopMap')) {
+    function buildStudentRecordingStopMap(mysqli $conn): array
+    {
+        $map = [];
+        $res = $conn->query("SELECT id, assignment_track, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining FROM students");
+        if ($res && $res instanceof mysqli_result) {
+            while ($row = $res->fetch_assoc()) {
+                $studentId = (int)($row['id'] ?? 0);
+                if ($studentId <= 0) {
+                    continue;
+                }
+
+                $track = strtolower(trim((string)($row['assignment_track'] ?? 'internal')));
+                $totalHours = $track === 'external'
+                    ? (int)($row['external_total_hours'] ?? 0)
+                    : (int)($row['internal_total_hours'] ?? 0);
+                $remainingHours = $track === 'external'
+                    ? (int)($row['external_total_hours_remaining'] ?? 0)
+                    : (int)($row['internal_total_hours_remaining'] ?? 0);
+
+                $map[$studentId] = [
+                    'stop' => $totalHours > 0 && $remainingHours <= 0,
+                    'track' => $track,
+                    'remaining_hours' => $remainingHours,
+                ];
+            }
+            $res->close();
+        }
+
+        return $map;
+    }
+}
+
+if (!function_exists('ensureBridgeCommandQueueTableForAutoImport')) {
+    function ensureBridgeCommandQueueTableForAutoImport(mysqli $conn): void
+    {
+        $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_command_queue (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            command_name VARCHAR(80) NOT NULL,
+            command_payload LONGTEXT NULL,
+            status VARCHAR(32) NOT NULL DEFAULT 'queued',
+            requested_by INT NOT NULL DEFAULT 0,
+            source VARCHAR(80) NOT NULL DEFAULT 'machine_manager',
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            claimed_at TIMESTAMP NULL DEFAULT NULL,
+            claimed_by VARCHAR(120) NOT NULL DEFAULT '',
+            completed_at TIMESTAMP NULL DEFAULT NULL,
+            result_text TEXT NULL,
+            attempts INT NOT NULL DEFAULT 0,
+            PRIMARY KEY (id),
+            KEY idx_status_created (status, created_at),
+            KEY idx_claimed_by (claimed_by)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+}
+
+if (!function_exists('ensureFingerprintCleanupLogTable')) {
+    function ensureFingerprintCleanupLogTable(mysqli $conn): void
+    {
+        $conn->query("CREATE TABLE IF NOT EXISTS biometric_fingerprint_cleanup_log (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            student_id INT NOT NULL,
+            finger_id INT NOT NULL,
+            command_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            status VARCHAR(32) NOT NULL DEFAULT 'queued',
+            last_message TEXT NULL,
+            queued_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            completed_at TIMESTAMP NULL DEFAULT NULL,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uniq_student_finger (student_id, finger_id),
+            KEY idx_command_id (command_id),
+            KEY idx_status (status)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+}
+
+if (!function_exists('queueFingerprintCleanupForCompletedStudents')) {
+    function queueFingerprintCleanupForCompletedStudents(mysqli $conn, array $fingerprintMap, array $studentRecordingStopMap): int
+    {
+        ensureBridgeCommandQueueTableForAutoImport($conn);
+        ensureFingerprintCleanupLogTable($conn);
+
+        $queuedCount = 0;
+        foreach ($fingerprintMap as $fingerId => $studentId) {
+            $fingerId = (int)$fingerId;
+            $studentId = (int)$studentId;
+            if ($fingerId <= 0 || $studentId <= 0) {
+                continue;
+            }
+            if (empty($studentRecordingStopMap[$studentId]['stop'])) {
+                continue;
+            }
+
+            $existingStmt = $conn->prepare("SELECT status FROM biometric_fingerprint_cleanup_log WHERE student_id = ? AND finger_id = ? LIMIT 1");
+            if ($existingStmt) {
+                $existingStmt->bind_param('ii', $studentId, $fingerId);
+                $existingStmt->execute();
+                $existingRow = $existingStmt->get_result()->fetch_assoc() ?: null;
+                $existingStmt->close();
+                if (is_array($existingRow)) {
+                    $existingStatus = strtolower(trim((string)($existingRow['status'] ?? 'queued')));
+                    if (in_array($existingStatus, ['queued', 'claimed', 'succeeded'], true)) {
+                        continue;
+                    }
+                }
+            }
+
+            $payload = json_encode(['user_id' => $fingerId], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            if (!is_string($payload) || $payload === '') {
+                continue;
+            }
+
+            $queueStmt = $conn->prepare("INSERT INTO biometric_bridge_command_queue (command_name, command_payload, status, requested_by, source) VALUES ('delete_user', ?, 'queued', 0, 'auto_hours_cleanup')");
+            if (!$queueStmt) {
+                continue;
+            }
+            $queueStmt->bind_param('s', $payload);
+            $queueStmt->execute();
+            $commandId = (int)$queueStmt->insert_id;
+            $inserted = $queueStmt->affected_rows > 0;
+            $queueStmt->close();
+
+            if (!$inserted || $commandId <= 0) {
+                continue;
+            }
+
+            $message = 'Queued automatic fingerprint cleanup after OJT hour completion.';
+            $upsert = $conn->prepare("INSERT INTO biometric_fingerprint_cleanup_log
+                (student_id, finger_id, command_id, status, last_message, queued_at, completed_at)
+                VALUES (?, ?, ?, 'queued', ?, NOW(), NULL)
+                ON DUPLICATE KEY UPDATE
+                    command_id = VALUES(command_id),
+                    status = 'queued',
+                    last_message = VALUES(last_message),
+                    queued_at = NOW(),
+                    completed_at = NULL");
+            if ($upsert) {
+                $upsert->bind_param('iiis', $studentId, $fingerId, $commandId, $message);
+                $upsert->execute();
+                $upsert->close();
+            }
+
+            $queuedCount++;
+        }
+
+        return $queuedCount;
+    }
+}
+
+if (!function_exists('applyCompletedFingerprintCleanupResults')) {
+    function applyCompletedFingerprintCleanupResults(mysqli $conn): int
+    {
+        ensureBridgeCommandQueueTableForAutoImport($conn);
+        ensureFingerprintCleanupLogTable($conn);
+        $conn->query("CREATE TABLE IF NOT EXISTS fingerprint_user_map (finger_id INT PRIMARY KEY, user_id INT NOT NULL)");
+
+        $appliedCount = 0;
+        $res = $conn->query("SELECT l.id, l.finger_id, l.command_id, q.status AS command_status, q.result_text
+            FROM biometric_fingerprint_cleanup_log l
+            LEFT JOIN biometric_bridge_command_queue q ON q.id = l.command_id
+            WHERE l.status IN ('queued', 'claimed')");
+        if (!($res instanceof mysqli_result)) {
+            return 0;
+        }
+
+        while ($row = $res->fetch_assoc()) {
+            $logId = (int)($row['id'] ?? 0);
+            $fingerId = (int)($row['finger_id'] ?? 0);
+            $commandStatus = strtolower(trim((string)($row['command_status'] ?? '')));
+            $resultText = trim((string)($row['result_text'] ?? ''));
+
+            if ($logId <= 0 || $fingerId <= 0 || $commandStatus === '') {
+                continue;
+            }
+
+            if ($commandStatus === 'claimed') {
+                $claimedStmt = $conn->prepare("UPDATE biometric_fingerprint_cleanup_log SET status = 'claimed', last_message = ? WHERE id = ?");
+                if ($claimedStmt) {
+                    $claimedMsg = $resultText !== '' ? $resultText : 'Bridge worker claimed fingerprint cleanup command.';
+                    $claimedStmt->bind_param('si', $claimedMsg, $logId);
+                    $claimedStmt->execute();
+                    $claimedStmt->close();
+                }
+                continue;
+            }
+
+            if ($commandStatus === 'succeeded') {
+                $deleteStmt = $conn->prepare("DELETE FROM fingerprint_user_map WHERE finger_id = ?");
+                if ($deleteStmt) {
+                    $deleteStmt->bind_param('i', $fingerId);
+                    $deleteStmt->execute();
+                    $deleteStmt->close();
+                }
+
+                $okStmt = $conn->prepare("UPDATE biometric_fingerprint_cleanup_log SET status = 'succeeded', last_message = ?, completed_at = NOW() WHERE id = ?");
+                if ($okStmt) {
+                    $okMsg = $resultText !== '' ? $resultText : 'Fingerprint cleanup succeeded and local mapping was removed.';
+                    $okStmt->bind_param('si', $okMsg, $logId);
+                    $okStmt->execute();
+                    $okStmt->close();
+                }
+                $appliedCount++;
+                continue;
+            }
+
+            if ($commandStatus === 'failed') {
+                $failedStmt = $conn->prepare("UPDATE biometric_fingerprint_cleanup_log SET status = 'failed', last_message = ?, completed_at = NOW() WHERE id = ?");
+                if ($failedStmt) {
+                    $failMsg = $resultText !== '' ? $resultText : 'Fingerprint cleanup command failed.';
+                    $failedStmt->bind_param('si', $failMsg, $logId);
+                    $failedStmt->execute();
+                    $failedStmt->close();
+                }
+            }
+        }
+
+        $res->close();
+        return $appliedCount;
     }
 }
 

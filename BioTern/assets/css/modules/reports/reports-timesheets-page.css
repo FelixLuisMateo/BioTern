@@ -3,7 +3,7 @@
 .report-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
 .report-kpi { border: 1px solid rgba(80, 102, 144, 0.14); border-radius: 12px; padding: 0.85rem 1rem; background: #fff; text-align: center; }
 .report-kpi-label { font-size: 0.75rem; letter-spacing: 0.04em; text-transform: uppercase; color: #6b7280; margin-bottom: 0.4rem; }
-.report-kpi-value { font-size: 1.5rem; font-weight: 700; color: #2563eb; }
+.report-kpi-value { font-size: 1.5rem; font-weight: 700; color: var(--biotern-primary); }
 .report-filter-wrap { border: 1px solid rgba(80, 102, 144, 0.14); border-radius: 12px; padding: 0.9rem; background: #fff; margin-bottom: 1rem; }
 .report-table-card { border: 1px solid rgba(80, 102, 144, 0.14); border-radius: 12px; overflow: hidden; background: #fff; }
 .report-table-card .table { margin-bottom: 0; }
@@ -16,3 +16,5 @@ html.app-skin-dark .report-kpi-label { color: #9fb0d3; }
 html.app-skin-dark .report-table-card thead th { background: #111f36; color: #9fb0d3; border-bottom-color: rgba(129, 153, 199, 0.25); }
 html.app-skin-dark .report-table-card .table { --bs-table-bg: #0f172a; --bs-table-hover-bg: #18243d; --bs-table-border-color: rgba(129, 153, 199, 0.2); }
 @media (max-width: 768px) { .report-summary-grid { grid-template-columns: repeat(2, 1fr); } }
+
+

@@ -65,6 +65,44 @@ function student_dtr_calculate_hours(array $attendance): float
     return round($totalSeconds / 3600, 2);
 }
 
+function student_dtr_manual_metrics(array $attendance): array
+{
+    $toSeconds = static function (?string $time): ?int {
+        $value = trim((string)$time);
+        if ($value === '') {
+            return null;
+        }
+
+        $ts = strtotime('1970-01-01 ' . $value);
+        return $ts === false ? null : (int)$ts;
+    };
+
+    $morningIn = $toSeconds($attendance['morning_time_in'] ?? null);
+    $morningOut = $toSeconds($attendance['morning_time_out'] ?? null);
+    $afternoonIn = $toSeconds($attendance['afternoon_time_in'] ?? null);
+    $afternoonOut = $toSeconds($attendance['afternoon_time_out'] ?? null);
+
+    $rawHours = student_dtr_calculate_hours($attendance);
+    $lunchDeductionHours = 0.0;
+
+    if ($morningIn !== null && $morningOut !== null && $afternoonIn !== null && $afternoonOut !== null) {
+        $breakSeconds = max(0, $afternoonIn - $morningOut);
+        if ($breakSeconds < 3600) {
+            $lunchDeductionHours = round((3600 - $breakSeconds) / 3600, 2);
+        }
+    }
+
+    $netHours = max(0.0, round($rawHours - $lunchDeductionHours, 2));
+    $overtimeHours = $netHours > 8.0 ? round($netHours - 8.0, 2) : 0.0;
+
+    return [
+        'raw_hours' => $rawHours,
+        'lunch_deduction_hours' => $lunchDeductionHours,
+        'net_hours' => $netHours,
+        'overtime_hours' => $overtimeHours,
+    ];
+}
+
 function student_dtr_format_time(?string $value): string
 {
     $raw = trim((string)$value);
@@ -337,7 +375,13 @@ if ($student) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && $_POST['student_action'] === 'submit_machine_down' && !empty($student)) {
     require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 
+    $fallbackMode = strtolower(trim((string)($_POST['fallback_mode'] ?? 'daily')));
+    if (!in_array($fallbackMode, ['daily', 'weekly'], true)) {
+        $fallbackMode = 'daily';
+    }
+
     $attendanceDate = trim((string)($_POST['attendance_date'] ?? ''));
+    $attendanceEndDate = trim((string)($_POST['attendance_end_date'] ?? ''));
     $morningIn = trim((string)($_POST['morning_time_in'] ?? ''));
     $morningOut = trim((string)($_POST['morning_time_out'] ?? ''));
     $afternoonIn = trim((string)($_POST['afternoon_time_in'] ?? ''));
@@ -368,12 +412,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
         'afternoon_time_out' => $normalize($afternoonOut),
     ];
 
+    $trackKey = strtolower(trim((string)($student['assignment_track'] ?? 'internal')));
+    $studentRemainingHours = $trackKey === 'external'
+        ? (int)($student['external_total_hours_remaining'] ?? 0)
+        : (int)($student['internal_total_hours_remaining'] ?? 0);
+
     $errors = [];
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $attendanceDate)) {
         $errors[] = 'Valid attendance date is required.';
     }
+    if ($fallbackMode === 'weekly' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $attendanceEndDate)) {
+        $errors[] = 'Valid week end date is required for weekly fallback.';
+    }
     if ($fallbackReason === '') {
         $errors[] = 'Reason/details are required.';
+    }
+    if ($studentRemainingHours <= 0) {
+        $errors[] = 'Your required internship hours are already completed. Please contact your coordinator for corrections.';
     }
     if (!is_array($proofFile) || (int)($proofFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         $errors[] = 'Proof image is required.';
@@ -384,6 +439,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
     $validation = attendance_validate_full_record($payload);
     if (!($validation['ok'] ?? false)) {
         $errors[] = (string)($validation['message'] ?? 'Invalid attendance values.');
+    }
+
+    $targetDates = [];
+    if ($errors === []) {
+        $startTs = strtotime($attendanceDate);
+        if ($startTs === false) {
+            $errors[] = 'Invalid start date.';
+        } else {
+            $endTs = $fallbackMode === 'weekly' ? strtotime($attendanceEndDate) : $startTs;
+            if ($endTs === false) {
+                $errors[] = 'Invalid end date.';
+            } elseif ($endTs < $startTs) {
+                $errors[] = 'Week end date must be the same as or later than start date.';
+            } elseif ($fallbackMode === 'weekly' && (($endTs - $startTs) / 86400) > 6) {
+                $errors[] = 'Weekly fallback can cover up to 7 days only.';
+            } else {
+                $today = strtotime(date('Y-m-d'));
+                for ($cursor = $startTs; $cursor <= $endTs; $cursor += 86400) {
+                    if ($cursor > $today) {
+                        continue;
+                    }
+                    $dayOfWeek = (int)date('N', $cursor);
+                    if ($dayOfWeek >= 6) {
+                        continue;
+                    }
+                    $targetDates[] = date('Y-m-d', $cursor);
+                }
+
+                if ($targetDates === []) {
+                    $errors[] = 'No valid weekday dates found in the selected range.';
+                }
+            }
+        }
     }
 
     if ($errors === []) {
@@ -411,20 +499,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
     if ($errors === []) {
         $existingStmt = $conn->prepare("SELECT id, source FROM attendances WHERE student_id = ? AND attendance_date = ? ORDER BY id DESC LIMIT 1");
         if ($existingStmt) {
-            $existingStmt->bind_param('is', $studentId, $attendanceDate);
-            $existingStmt->execute();
-            $existing = $existingStmt->get_result()->fetch_assoc() ?: null;
-            $existingStmt->close();
-            if ($existing) {
-                $existingSource = strtolower(trim((string)($existing['source'] ?? 'manual')));
-                $errors[] = $existingSource === 'biometric'
-                    ? 'A biometric attendance already exists for this date. Please request a correction instead.'
-                    : 'A manual fallback entry already exists for this date.';
+            foreach ($targetDates as $targetDate) {
+                $existingStmt->bind_param('is', $studentId, $targetDate);
+                $existingStmt->execute();
+                $existing = $existingStmt->get_result()->fetch_assoc() ?: null;
+                if ($existing) {
+                    $existingSource = strtolower(trim((string)($existing['source'] ?? 'manual')));
+                    $errors[] = $existingSource === 'biometric'
+                        ? 'Biometric attendance already exists for ' . $targetDate . '. Please request a correction instead.'
+                        : 'Manual fallback entry already exists for ' . $targetDate . '.';
+                    break;
+                }
             }
+            $existingStmt->close();
         }
     }
 
     if ($errors === []) {
+        $metrics = student_dtr_manual_metrics($payload);
+        $baseReason = $fallbackReason;
+        $notes = [];
+        if ($metrics['lunch_deduction_hours'] > 0) {
+            $notes[] = 'Lunch deduction: ' . number_format((float)$metrics['lunch_deduction_hours'], 2) . ' hr';
+        }
+        if ($metrics['overtime_hours'] > 0) {
+            $notes[] = 'Overtime: ' . number_format((float)$metrics['overtime_hours'], 2) . ' hr';
+        }
+        if ($notes !== []) {
+            $baseReason .= ' | ' . implode(' | ', $notes);
+        }
+
         $uploadDir = student_dtr_manual_upload_dir();
         $proofRelativePath = '';
         $proofOriginalName = trim((string)($proofFile['name'] ?? 'proof-image'));
@@ -448,28 +552,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
         $insert = $conn->prepare("
             INSERT INTO attendances (
                 student_id, attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out,
-                source, status, remarks, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, 'manual', 'pending', ?, NOW(), NOW())
+                total_hours, source, status, remarks, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'manual', 'pending', ?, NOW(), NOW())
         ");
         if ($insert) {
-            $insert->bind_param(
-                'issssss',
-                $studentId,
-                $attendanceDate,
-                $payload['morning_time_in'],
-                $payload['morning_time_out'],
-                $payload['afternoon_time_in'],
-                $payload['afternoon_time_out'],
-                $fallbackReason
-            );
-            $insert->execute();
-            $success = $insert->affected_rows > 0;
-            $newAttendanceId = (int)$insert->insert_id;
+            $attendanceIds = [];
+            $successCount = 0;
+            foreach ($targetDates as $targetDate) {
+                $netHours = (float)$metrics['net_hours'];
+                $remarks = $baseReason;
+                $insert->bind_param(
+                    'isssssds',
+                    $studentId,
+                    $targetDate,
+                    $payload['morning_time_in'],
+                    $payload['morning_time_out'],
+                    $payload['afternoon_time_in'],
+                    $payload['afternoon_time_out'],
+                    $netHours,
+                    $remarks
+                );
+                $insert->execute();
+                if ($insert->affected_rows > 0) {
+                    $successCount++;
+                    $attendanceIds[] = (int)$insert->insert_id;
+                }
+            }
             $insert->close();
-            if ($success && $newAttendanceId > 0) {
+
+            if ($attendanceIds !== []) {
                 $attachmentReason = 'Machine-down fallback proof';
                 if ($proofClockTime !== '') {
                     $attachmentReason .= ' | submitted at ' . $proofClockTime;
+                }
+                if ($fallbackMode === 'weekly') {
+                    $attachmentReason .= ' | weekly range';
                 }
 
                 $attachmentStmt = $conn->prepare("
@@ -480,26 +597,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
                 if ($attachmentStmt) {
                     $fileSize = (int)($proofFile['size'] ?? 0);
                     $uploadedBy = $currentUserId;
-                    $attachmentStmt->bind_param(
-                        'iissssisi',
-                        $studentId,
-                        $newAttendanceId,
-                        $attendanceDate,
-                        $proofRelativePath,
-                        $proofOriginalName,
-                        $proofMime,
-                        $fileSize,
-                        $attachmentReason,
-                        $uploadedBy
-                    );
-                    $attachmentStmt->execute();
+                    foreach ($attendanceIds as $index => $attendanceId) {
+                        $attendanceDateForAttachment = $targetDates[$index] ?? $attendanceDate;
+                        $attachmentStmt->bind_param(
+                            'iissssisi',
+                            $studentId,
+                            $attendanceId,
+                            $attendanceDateForAttachment,
+                            $proofRelativePath,
+                            $proofOriginalName,
+                            $proofMime,
+                            $fileSize,
+                            $attachmentReason,
+                            $uploadedBy
+                        );
+                        $attachmentStmt->execute();
+                    }
                     $attachmentStmt->close();
                 }
             }
+
+            $success = $successCount > 0;
             $_SESSION['student_dtr_flash'] = [
                 'type' => $success ? 'success' : 'danger',
                 'message' => $success
-                    ? 'Machine-down fallback attendance submitted for review.'
+                    ? ($fallbackMode === 'weekly'
+                        ? ('Machine-down fallback attendance submitted for review for ' . $successCount . ' day(s).')
+                        : 'Machine-down fallback attendance submitted for review.')
                     : 'Could not submit the fallback attendance.',
             ];
         } else {
@@ -649,8 +773,19 @@ include 'includes/header.php';
                     <input type="hidden" name="student_action" value="submit_machine_down">
                     <input type="hidden" name="proof_clock_time" id="proofClockTime" value="">
                     <div class="col-md-4">
-                        <label class="form-label" for="fallbackAttendanceDate">Date</label>
+                        <label class="form-label" for="fallbackMode">Mode</label>
+                        <select class="form-select" id="fallbackMode" name="fallback_mode">
+                            <option value="daily" selected>Daily (single date)</option>
+                            <option value="weekly">Weekly (Mon-Fri range)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="fallbackAttendanceDate">Start Date</label>
                         <input type="date" class="form-control" id="fallbackAttendanceDate" name="attendance_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="fallbackAttendanceEndDate">End Date (weekly only)</label>
+                        <input type="date" class="form-control" id="fallbackAttendanceEndDate" name="attendance_end_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Proof Clock</label>
@@ -704,8 +839,8 @@ include 'includes/header.php';
                         <textarea class="form-control" id="fallbackReason" name="fallback_reason" rows="3" placeholder="Example: Biometric machine was offline from 8:00 AM to 5:00 PM. Supervisor confirmed my time in/out."></textarea>
                     </div>
                     <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
-                        <button type="submit" class="btn btn-warning">Submit Fallback Attendance</button>
-                        <small class="text-muted">Upload a clear photo proof and submit it on the same day while the machine is down.</small>
+                        <button type="submit" class="btn btn-warning" <?php echo max(0, $remainingHours) <= 0 ? 'disabled' : ''; ?>>Submit Fallback Attendance</button>
+                        <small class="text-muted">Weekly mode submits weekdays only. Lunch is auto-deducted to at least 1 hour when needed, and overtime is noted in remarks.</small>
                     </div>
                 </form>
             </div>

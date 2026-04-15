@@ -595,10 +595,7 @@ endforeach; ?>
                             <div class="mb-4 step-panel" data-step="4">
                                 <h5 class="fs-14 fw-bold mb-3">Account Information</h5>
                                 <div class="row g-3">
-                                    <div class="col-12 col-md-6 mb-2">
-                                        <input type="text" name="username" class="form-control" placeholder="Username" autocomplete="username" required>
-                                    </div>
-                                    <div class="col-12 col-md-6 mb-2">
+                                    <div class="col-12 mb-2">
                                         <input type="email" name="account_email" class="form-control" placeholder="Account Email Address" autocomplete="email" required>
                                     </div>
                                 </div>
@@ -720,7 +717,8 @@ endforeach; ?>
     <div id="registerData"
          class="d-none"
          data-course-map="<?php echo htmlspecialchars(json_encode($courseDepartmentMap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'); ?>"
-         data-section-records="<?php echo htmlspecialchars(json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'); ?>"></div>
+         data-section-records="<?php echo htmlspecialchars(json_encode($sectionOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'); ?>"
+         data-departments="<?php echo htmlspecialchars(json_encode($departmentOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'); ?>"></div>
     <!--! ================================================================ !-->
     <!--! Footer Script !-->
     <!--! ================================================================ !-->

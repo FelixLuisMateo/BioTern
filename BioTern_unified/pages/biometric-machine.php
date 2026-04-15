@@ -568,6 +568,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new RuntimeException('Only admins can perform that machine action.');
         }
 
+        if (machine_is_cloud_runtime() && in_array($action, ['open_restart_bridge_shell', 'open_bridge_log_tail_shell'], true)) {
+            throw new RuntimeException('Bridge shell launcher actions are available only on the local Windows bridge computer.');
+        }
+
         switch ($action) {
             case 'open_restart_bridge_shell':
                 machine_open_restart_bridge_shell(dirname(__DIR__));
@@ -1191,7 +1195,7 @@ include __DIR__ . '/../includes/header.php';
                                 <input type="hidden" name="machine_action" value="sync">
                                 <button type="submit" class="btn btn-primary w-100">Sync Now</button>
                             </form>
-                            <?php if ($isAdmin): ?>
+                            <?php if ($isAdmin && !machine_is_cloud_runtime()): ?>
                                 <form method="post">
                                     <input type="hidden" name="machine_action" value="open_restart_bridge_shell">
                                     <button type="submit" class="btn btn-outline-dark w-100">Open PowerShell: Restart Bridge Worker</button>
@@ -1200,6 +1204,8 @@ include __DIR__ . '/../includes/header.php';
                                     <input type="hidden" name="machine_action" value="open_bridge_log_tail_shell">
                                     <button type="submit" class="btn btn-outline-secondary w-100">Open PowerShell: Bridge Log Tail</button>
                                 </form>
+                            <?php elseif ($isAdmin && machine_is_cloud_runtime()): ?>
+                                <div class="alert alert-info mb-2">Windows shell launchers are hidden in cloud runtime. Run restart/log tail from your local bridge PC.</div>
                             <?php endif; ?>
                             <?php if ($isAdmin): ?>
                                 <form method="post" onsubmit="return confirm('Clean duplicate biometric raw logs and rebuild all affected attendance dates?');">

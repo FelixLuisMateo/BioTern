@@ -549,7 +549,7 @@ usort($print_students, function ($a, $b) {
         /* Filter row alignment */
         .filter-form {
             display: grid !important;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 0.65rem;
             align-items: end;
         }
@@ -632,7 +632,8 @@ usort($print_students, function ($a, $b) {
         .filter-form .select2-container--default .select2-selection--single .select2-selection__rendered {
             text-align: left;
             padding-left: 0.15rem;
-            padding-right: 1.75rem;
+            padding-right: 1.45rem;
+            font-size: 0.92rem;
         }
 
         .filter-form .select2-container--default .select2-selection--single .select2-selection__arrow {
@@ -743,13 +744,7 @@ usort($print_students, function ($a, $b) {
             color: #cbd5e1;
         }
 
-        @media (max-width: 1599.98px) {
-            .filter-form {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-        }
-
-        @media (max-width: 1279.98px) {
+        @media (max-width: 1439.98px) {
             .filter-form {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }

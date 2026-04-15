@@ -1,0 +1,446 @@
+/* Generic scheme compatibility overrides.
+ *
+ * Purpose:
+ * - Keep legacy theme.min.css hardcoded blue accents from leaking into
+ *   non-blue schemes.
+ * - Use semantic tokens so new schemes inherit behavior automatically.
+ */
+
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue) .dropdown-item.active,
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue) .dropdown-item:active,
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue) .dropdown-item:focus,
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue) .dropdown-item:hover {
+  color: var(--biotern-primary) !important;
+}
+
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue) .dropdown-item.active,
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue) .dropdown-item:active,
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue) .dropdown-item:focus,
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue) .dropdown-item:hover,
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue) .nxl-header .nxl-head-link.active,
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue) .nxl-header .nxl-head-link:active,
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue) .nxl-header .nxl-head-link:focus,
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue) .nxl-header .nxl-head-link:hover {
+  background-color: var(--biotern-surface-muted) !important;
+}
+
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue)
+  .dropdown
+  .dropdown-menu
+  .dropdown-item.active
+  i.bg-gray-500,
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue)
+  .dropdown
+  .dropdown-menu
+  .dropdown-item:active
+  i.bg-gray-500,
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue)
+  .dropdown
+  .dropdown-menu
+  .dropdown-item:focus
+  i.bg-gray-500,
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue)
+  .dropdown
+  .dropdown-menu
+  .dropdown-item:hover
+  i.bg-gray-500 {
+  background-color: var(--biotern-primary) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) a:hover,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-header .breadcrumb .breadcrumb-item a:hover {
+  color: var(--biotern-link-hover) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-header .header-wrapper .nxl-head-link.active,
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-header .header-wrapper .nxl-head-link:active,
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-header .header-wrapper .nxl-head-link:focus,
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-header .header-wrapper .nxl-head-link:hover {
+  color: var(--biotern-primary) !important;
+  background-color: var(--biotern-primary-soft) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link.active
+  .hamburger
+  .hamburger-inner,
+html[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link:active
+  .hamburger
+  .hamburger-inner,
+html[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link:focus
+  .hamburger
+  .hamburger-inner,
+html[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link:hover
+  .hamburger
+  .hamburger-inner,
+html[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link.active
+  .hamburger
+  .hamburger-inner::before,
+html[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link.active
+  .hamburger
+  .hamburger-inner::after,
+html[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link:active
+  .hamburger
+  .hamburger-inner::before,
+html[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link:active
+  .hamburger
+  .hamburger-inner::after,
+html[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link:focus
+  .hamburger
+  .hamburger-inner::before,
+html[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link:focus
+  .hamburger
+  .hamburger-inner::after,
+html[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link:hover
+  .hamburger
+  .hamburger-inner::before,
+html[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link:hover
+  .hamburger
+  .hamburger-inner::after {
+  background-color: var(--biotern-primary) !important;
+}
+
+html.app-header-dark[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link.active,
+html.app-header-dark[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link:active,
+html.app-header-dark[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link:focus,
+html.app-header-dark[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-head-link:hover {
+  color: var(--biotern-primary) !important;
+  background-color: var(--biotern-surface-muted) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue)
+  .nxl-header
+  .header-wrapper
+  .nxl-header-language
+  .nxl-language-dropdown
+  .language_select.active
+  a:before,
+html[class*="app-theme-"]:not(.app-theme-blue) #languageSelectModal .language_select.active a:before {
+  color: var(--biotern-primary) !important;
+  background-color: var(--biotern-primary-soft) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .chatting-setting .chatting-setting-tabs a.nav-link.active,
+html[class*="app-theme-"]:not(.app-theme-blue) .chatting-setting .chatting-setting-tabs a.nav-link:hover {
+  color: var(--biotern-primary) !important;
+  background-color: var(--biotern-primary-soft) !important;
+}
+
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue)
+  .accordion
+  .accordion-item
+  .accordion-header
+  .accordion-button:not(.collapsed) {
+  color: var(--biotern-primary) !important;
+  background-color: var(--biotern-surface-muted) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation,
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .m-header,
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .navbar-content,
+html[class*="app-theme-"]:not(.app-theme-blue).minimenu .nxl-navigation:hover .m-header,
+html[class*="app-theme-"]:not(.app-theme-blue).minimenu .nxl-navigation:hover .navbar-content {
+  background-color: var(--biotern-surface) !important;
+  background-image: none !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .navbar-content .nxl-caption {
+  color: var(--bs-secondary-color) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .navbar-content .nxl-link,
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .navbar-content .nxl-submenu .nxl-link {
+  color: var(--bs-body-color) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .navbar-content .nxl-link:hover,
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .navbar-content .nxl-item.active > .nxl-link,
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .navbar-content .nxl-navbar > .nxl-item.active > .nxl-link,
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .navbar-content .nxl-navbar > .nxl-item:hover > .nxl-link,
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .navbar-content .nxl-submenu .nxl-link:hover,
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .navbar-content .nxl-submenu .nxl-item.active > .nxl-link {
+  color: var(--biotern-primary-soft-text) !important;
+  background-color: var(--biotern-primary-soft) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .navbar-content .nxl-link .nxl-micon i,
+html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .navbar-content .nxl-link .nxl-arrow i {
+  color: inherit !important;
+}
+
+/* Gray scheme repaint guard:
+ * prevent legacy blue base layers from flashing during browser zoom.
+ */
+html.app-theme-gray,
+html.app-theme-gray body {
+  background-color: var(--biotern-body-bg) !important;
+  background-image: none !important;
+}
+
+html.app-theme-gray .nxl-container,
+html.app-theme-gray .nxl-content,
+html.app-theme-gray .main-content,
+html.app-theme-gray .content-area,
+html.app-theme-gray .content-area .content-area-body {
+  background-color: var(--biotern-body-bg) !important;
+  background-image: none !important;
+}
+
+html.app-theme-gray .nxl-header,
+html.app-theme-gray .nxl-header .header-wrapper,
+html.app-theme-gray .page-header,
+html.app-theme-gray .nxl-navigation,
+html.app-theme-gray .nxl-navigation .m-header,
+html.app-theme-gray .nxl-navigation .navbar-content,
+html.app-theme-gray .content-area .content-area-header,
+html.app-theme-gray .content-sidebar,
+html.app-theme-gray .content-sidebar .content-sidebar-header,
+html.app-theme-gray .nxl-container .footer {
+  background-color: var(--biotern-surface) !important;
+  background-image: none !important;
+  border-color: var(--biotern-border) !important;
+}
+
+.nxl-navigation .navbar-content {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none;
+}
+
+.nxl-navigation .navbar-content::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.nxl-navigation .navbar-content .ps__rail-x,
+.nxl-navigation .navbar-content .ps__rail-y,
+.nxl-navigation .navbar-content .ps__thumb-x,
+.nxl-navigation .navbar-content .ps__thumb-y {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-hero,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-hero {
+  background: var(--biotern-surface) !important;
+  border-color: var(--biotern-border) !important;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08) !important;
+  color: var(--bs-body-color) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-eyebrow,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-eyebrow,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-hero p,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-hero p,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-hero-side p,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-note-surface p,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-hero-side small,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-hero-side p,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-note-surface p,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-hero-side small,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-stat-label,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-stat-label,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-table th,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-table th,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-inline-note-title,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-inline-note-title {
+  color: var(--bs-secondary-color) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-hero h3,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-hero h4,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-hero h5,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-hero h3,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-hero h4,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-hero h5,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-hero-side h6,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-note-surface h6,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-hero-side h6,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-note-surface h6,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-stat-value,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-stat-value {
+  color: var(--bs-body-color) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-pill,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-pill {
+  background: var(--biotern-primary-soft) !important;
+  border-color: var(--biotern-border) !important;
+  color: var(--biotern-primary-soft-text) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-hero-side,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-note-surface,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-hero-side,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-note-surface,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-inline-note,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-inline-note,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-empty,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-empty,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-chip,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-chip {
+  background: var(--biotern-surface-muted) !important;
+  border-color: var(--biotern-border) !important;
+  color: var(--bs-body-color) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-panel,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-panel,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-stat-card,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-stat-card,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .card:not(.bio-console-hero),
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .card:not(.bio-console-hero) {
+  background: var(--biotern-surface) !important;
+  border-color: var(--biotern-border) !important;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-panel .card-header,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-panel .card-header,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .card:not(.bio-console-hero) .card-header,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .card:not(.bio-console-hero) .card-header,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-table th,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-table th {
+  background: var(--biotern-surface-muted) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-table tbody td,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-table tbody td {
+  border-color: var(--biotern-border) !important;
+  color: var(--bs-body-color) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .page-fingerprint-mapping .bio-console-table tbody tr:hover,
+html[class*="app-theme-"]:not(.app-theme-blue) .page-biometric-machine .bio-console-table tbody tr:hover {
+  background: rgba(var(--biotern-primary-rgb), 0.08) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .biotern-select-wrap {
+  --biotern-select-trigger-bg: var(--biotern-surface-muted);
+  --biotern-select-menu-bg: var(--biotern-surface);
+  --biotern-select-trigger-border: var(--biotern-border);
+  --biotern-select-menu-border: var(--biotern-border);
+  --biotern-select-menu-shadow: 0 14px 28px rgba(15, 23, 42, 0.14);
+  --biotern-select-option-text: var(--bs-body-color);
+  --biotern-select-option-hover-bg: rgba(var(--biotern-primary-rgb), 0.1);
+  --biotern-select-option-hover-border: var(--biotern-border);
+  --biotern-select-option-selected-bg: var(--biotern-primary-soft);
+  --biotern-select-option-selected-border: var(--biotern-border);
+  --biotern-select-option-selected-text: var(--biotern-primary-soft-text);
+  --biotern-select-focus-ring: rgba(var(--biotern-primary-rgb), 0.2);
+  --biotern-select-icon-color: var(--bs-secondary-color);
+}
+
+html.app-skin-dark[class*="app-theme-"]:not(.app-theme-blue) .biotern-select-wrap {
+  --biotern-select-trigger-bg: var(--biotern-surface-muted);
+  --biotern-select-menu-bg: var(--biotern-surface);
+  --biotern-select-trigger-border: var(--biotern-border);
+  --biotern-select-menu-border: var(--biotern-border);
+  --biotern-select-menu-shadow: 0 18px 36px rgba(0, 0, 0, 0.34);
+  --biotern-select-option-text: #e5e7eb;
+  --biotern-select-option-hover-bg: rgba(var(--biotern-primary-rgb), 0.16);
+  --biotern-select-option-hover-border: var(--biotern-border);
+  --biotern-select-option-selected-bg: var(--biotern-primary-soft);
+  --biotern-select-option-selected-border: var(--biotern-border);
+  --biotern-select-option-selected-text: var(--biotern-primary-soft-text);
+  --biotern-select-focus-ring: rgba(var(--biotern-primary-rgb), 0.24);
+  --biotern-select-icon-color: #9aa3b2;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .biotern-select-wrap .biotern-select-trigger,
+html[class*="app-theme-"]:not(.app-theme-blue) .biotern-select-wrap .biotern-select-menu {
+  border-color: var(--biotern-select-menu-border) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .biotern-select-wrap .biotern-select-menu {
+  background: var(--biotern-select-menu-bg) !important;
+  box-shadow: var(--biotern-select-menu-shadow) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .biotern-select-wrap .biotern-select-option {
+  color: var(--biotern-select-option-text) !important;
+  -webkit-text-fill-color: var(--biotern-select-option-text);
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .biotern-select-wrap .biotern-select-option.is-selected {
+  background: var(--biotern-select-option-selected-bg) !important;
+  border-color: var(--biotern-select-option-selected-border) !important;
+  color: var(--biotern-select-option-selected-text) !important;
+  -webkit-text-fill-color: var(--biotern-select-option-selected-text);
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .biotern-select-menu.biotern-select-menu-portal {
+  background: var(--biotern-surface) !important;
+  border-color: var(--biotern-border) !important;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.2) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .biotern-select-menu.biotern-select-menu-portal .biotern-select-option {
+  color: var(--bs-body-color) !important;
+  border-color: transparent !important;
+  background: transparent !important;
+  -webkit-text-fill-color: var(--bs-body-color);
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .biotern-select-menu.biotern-select-menu-portal .biotern-select-option:hover,
+html[class*="app-theme-"]:not(.app-theme-blue) .biotern-select-menu.biotern-select-menu-portal .biotern-select-option:focus-visible {
+  background: rgba(var(--biotern-primary-rgb), 0.1) !important;
+  border-color: var(--biotern-border) !important;
+}
+
+html[class*="app-theme-"]:not(.app-theme-blue) .biotern-select-menu.biotern-select-menu-portal .biotern-select-option.is-selected {
+  background: var(--biotern-primary-soft) !important;
+  border-color: var(--biotern-border) !important;
+  color: var(--biotern-primary-soft-text) !important;
+  -webkit-text-fill-color: var(--biotern-primary-soft-text);
+}

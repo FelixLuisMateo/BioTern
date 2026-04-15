@@ -36,8 +36,8 @@
   }
 
   body.mobile-bottom-nav .dashboard-mobile-stat-btn.is-active {
-    border-color: var(--biotern-primary, #3454d1) !important;
-    box-shadow: 0 8px 20px rgba(52, 84, 209, 0.16) !important;
+    border-color: var(--biotern-primary) !important;
+    box-shadow: 0 8px 20px rgba(var(--biotern-primary-rgb), 0.16) !important;
     transform: translateY(-1px) !important;
   }
 
@@ -148,4 +148,6 @@
     color: #f3f4f6 !important;
   }
 }
+
+
 

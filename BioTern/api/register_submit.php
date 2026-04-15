@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/mailer.php';
 // Simple registration handler for demo purposes.
 // IMPORTANT: Review and secure before using in production.
 
@@ -14,6 +15,10 @@ if ($mysqli->connect_errno) {
     http_response_code(500);
     echo "DB connection failed: " . $mysqli->connect_error;
     exit;
+}
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
 function getPost($key) {
@@ -111,6 +116,49 @@ function studentIdAlreadyUsed(mysqli $mysqli, string $studentId): bool {
     }
 
     return false;
+}
+
+function studentAccountAlreadyCreated(mysqli $mysqli, ?string $studentId, ?string $email): bool
+{
+    $studentId = trim((string)$studentId);
+    $email = trim((string)$email);
+
+    if ($studentId !== '') {
+        $stmt = $mysqli->prepare('SELECT id FROM students WHERE student_id = ? LIMIT 1');
+        if ($stmt) {
+            $stmt->bind_param('s', $studentId);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if ($row) {
+                return true;
+            }
+        }
+    }
+
+    if ($email !== '') {
+        $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ? AND role = 'student' AND COALESCE(application_status, 'approved') = 'approved' LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param('s', $email);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if ($row) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+function generateRegistrationCode(): string
+{
+    try {
+        return str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+    } catch (Throwable $e) {
+        return str_pad((string)mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
+    }
 }
 
 function ensureStudentApplicationsTable(mysqli $mysqli): bool {
@@ -541,6 +589,10 @@ if ($role === 'student') {
     $emergency_contact = getPost('emergency_contact');
     $emergency_contact_phone = getPost('emergency_contact_phone');
 
+    if (studentAccountAlreadyCreated($mysqli, $student_id, $account_email ?: $email)) {
+        studentApplicationRedirect('exists', 'Your account was already created by the school. Please use your Student ID Number to log in or contact the administrator.');
+    }
+
     if ($student_id !== null && $student_id !== '' && !preg_match('/^05-\d{4,5}$/', (string)$student_id)) {
         studentApplicationRedirect('error', 'School ID Number must follow the format 05-1234 or 05-12345.');
     }
@@ -564,6 +616,79 @@ if ($role === 'student') {
     $final_email = $account_email ?: $email;
     if ($final_email === null || $final_email === '' || !filter_var($final_email, FILTER_VALIDATE_EMAIL)) {
         studentApplicationRedirect('error', 'Please provide a valid account email address.');
+    }
+
+    if (!isset($_POST['registration_email_verified']) || $_POST['registration_email_verified'] !== '1') {
+        $code = generateRegistrationCode();
+        $_SESSION['student_registration_pending_post'] = $_POST;
+        $_SESSION['student_registration_verify_code'] = $code;
+        $_SESSION['student_registration_verify_email'] = $final_email;
+        $_SESSION['student_registration_verify_expires_at'] = time() + 900;
+
+        $subject = 'Verify your BioTern student application';
+        $text = "Your BioTern verification code is: {$code}\n\nEnter this code to continue your student application. This code expires in 15 minutes.";
+        $safeCode = htmlspecialchars($code, ENT_QUOTES, 'UTF-8');
+        $safeEmail = htmlspecialchars($final_email, ENT_QUOTES, 'UTF-8');
+        $appBaseUrl = biotern_mail_asset_base();
+        $logoHtml = '';
+        if ($appBaseUrl !== '') {
+            $logoUrl = $appBaseUrl . '/assets/images/ccstlogo.png';
+            $logoHtml = '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="School logo" width="40" height="40" style="display:block;border-radius:8px;">';
+        }
+        $html = '
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b1220;padding:24px 0;font-family:Segoe UI,Arial,sans-serif;">
+            <tr>
+                <td align="center">
+                    <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#111a2e;border:1px solid #1f2a44;border-radius:16px;overflow:hidden;">
+                        <tr>
+                            <td style="padding:20px 24px;background:linear-gradient(135deg,#162447,#111a2e);color:#ffffff;">
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td>
+                                            <div style="font-size:18px;font-weight:700;">BioTern</div>
+                                            <div style="font-size:13px;color:#a3b3cc;">Student Application</div>
+                                        </td>
+                                        <td align="right" style="vertical-align:middle;">' . $logoHtml . '</td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:24px;color:#e5e7eb;">
+                                <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Verify your email</div>
+                                <div style="font-size:14px;color:#94a3b8;margin-bottom:18px;">
+                                    We sent a 6-digit code to <strong style="color:#e5e7eb;">' . $safeEmail . '</strong>.
+                                </div>
+                                <div style="text-align:center;margin:20px 0;">
+                                    <div style="display:inline-block;padding:12px 20px;border-radius:12px;background:#0f172a;border:1px solid #263453;font-size:24px;letter-spacing:6px;font-weight:700;color:#ffffff;">
+                                        ' . $safeCode . '
+                                    </div>
+                                </div>
+                                <div style="font-size:13px;color:#94a3b8;">
+                                    Enter this code to continue your student application. This code expires in 15 minutes.
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding:18px 24px;border-top:1px solid #1f2a44;color:#6b7a99;font-size:12px;">
+                                If you did not request this, you can ignore this email.
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>';
+        $mailRef = null;
+        if (!biotern_send_mail($mysqli, $final_email, $subject, $text, $html, $mailRef)) {
+            $msg = 'Unable to send verification email. Please check email settings and try again.';
+            if ($mailRef) {
+                $msg .= ' Reference: ' . $mailRef;
+            }
+            studentApplicationRedirect('error', $msg);
+        }
+
+        header('Location: auth-register-verify.php');
+        exit;
     }
     $username_seed = $student_id ?: ($final_email ?: ($first_name . '.' . $last_name));
     $username = generateUniqueUsername($mysqli, $username_seed, 'student');

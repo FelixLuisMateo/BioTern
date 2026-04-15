@@ -5,6 +5,10 @@
     color: var(--notes-text);
 }
 
+.app-notes-shell .row.align-items-start {
+    align-items: stretch !important;
+}
+
 .app-notes-shell .card {
     background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
     border: 1px solid var(--notes-border);
@@ -19,7 +23,7 @@
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: #60a5fa;
+    color: color-mix(in srgb, var(--biotern-primary) 72%, #ffffff 28%);
 }
 
 .app-notes-sidebar-head h2,
@@ -41,6 +45,11 @@
 .app-notes-list-card,
 .app-notes-editor-card {
     overflow: visible;
+}
+
+.app-notes-list-card,
+.app-notes-editor-card {
+    height: 100%;
 }
 
 .app-notes-sidebar-card {
@@ -67,19 +76,19 @@
     gap: 0.6rem;
     width: 100%;
     min-height: 52px;
-    border: 1px solid rgba(96, 165, 250, 0.28);
+    border: 1px solid rgba(var(--biotern-primary-rgb), 0.28);
     border-radius: 16px;
     font-weight: 700;
-    color: #eff6ff;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: var(--biotern-surface-muted);
+    background: linear-gradient(135deg, var(--biotern-primary), var(--biotern-primary-hover));
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .app-notes-secondary-button {
     width: auto;
     padding: 0 1.15rem;
-    background: rgba(37, 99, 235, 0.12);
-    color: #bfdbfe;
+    background: rgba(var(--biotern-primary-rgb), 0.12);
+    color: var(--biotern-primary-soft);
 }
 
 .app-notes-primary-button:hover,
@@ -106,7 +115,7 @@
     display: grid;
     gap: 0.45rem;
     padding: 0.65rem;
-    border: 1px solid rgba(96, 165, 250, 0.18);
+    border: 1px solid rgba(var(--biotern-primary-rgb), 0.18);
     border-radius: 18px;
     background: rgba(15, 23, 42, 0.98);
     box-shadow: 0 18px 36px rgba(2, 6, 23, 0.28);
@@ -125,8 +134,8 @@
 
 .app-notes-dropdown-item:hover,
 .app-notes-dropdown-item:focus-visible {
-    border-color: rgba(96, 165, 250, 0.34);
-    background: rgba(37, 99, 235, 0.12);
+    border-color: rgba(var(--biotern-primary-rgb), 0.34);
+    background: rgba(var(--biotern-primary-rgb), 0.12);
 }
 
 .app-notes-search {
@@ -189,7 +198,8 @@
 
 .app-notes-filter-chip span {
     min-width: 0;
-    white-space: nowrap;
+    white-space: normal;
+    line-height: 1.2;
     text-align: center;
 }
 
@@ -208,14 +218,16 @@
 }
 
 .app-notes-filter-chip.is-active {
-    border-color: rgba(96, 165, 250, 0.4);
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(14, 165, 233, 0.12));
-    color: #eff6ff;
+    border-color: rgba(var(--biotern-primary-rgb), 0.4);
+    background: linear-gradient(135deg, rgba(var(--biotern-primary-rgb), 0.18), rgba(var(--biotern-primary-rgb), 0.12));
+    color: var(--biotern-surface-muted);
 }
 
 .app-notes-list-card .card-body,
 .app-notes-editor-card .card-body {
     min-height: 720px;
+    display: flex;
+    flex-direction: column;
 }
 
 .app-notes-list-head,
@@ -255,6 +267,10 @@
     display: grid;
     gap: 0.9rem;
     margin-top: 1.4rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding-right: 0.2rem;
 }
 
 .app-notes-list-item,
@@ -272,7 +288,7 @@
     inset: 0 auto 0 0;
     width: 4px;
     border-radius: 18px 0 0 18px;
-    background: var(--note-accent, #2563eb);
+    background: var(--note-accent, var(--biotern-primary));
 }
 
 .app-notes-list-item {
@@ -284,13 +300,13 @@
 
 .app-notes-list-item:hover,
 .app-notes-list-item:focus-visible {
-    border-color: rgba(96, 165, 250, 0.38);
+    border-color: rgba(var(--biotern-primary-rgb), 0.38);
     box-shadow: 0 16px 32px rgba(2, 6, 23, 0.2);
 }
 
 .app-notes-list-item.is-selected {
-    border-color: rgba(96, 165, 250, 0.48);
-    box-shadow: inset 0 0 0 1px rgba(96, 165, 250, 0.22), 0 18px 36px rgba(37, 99, 235, 0.12);
+    border-color: rgba(var(--biotern-primary-rgb), 0.48);
+    box-shadow: inset 0 0 0 1px rgba(var(--biotern-primary-rgb), 0.22), 0 18px 36px rgba(var(--biotern-primary-rgb), 0.12);
 }
 
 .app-notes-list-top,
@@ -364,8 +380,8 @@
 }
 
 .app-notes-badge.is-category-internship {
-    background: rgba(37, 99, 235, 0.16);
-    color: #93c5fd;
+    background: rgba(var(--biotern-primary-rgb), 0.16);
+    color: var(--biotern-primary-soft);
 }
 
 .app-notes-badge.is-category-meeting {
@@ -389,25 +405,26 @@
 }
 
 .app-notes-badge.is-checklist {
-    background: rgba(96, 165, 250, 0.16);
-    color: #bfdbfe;
+    background: rgba(var(--biotern-primary-rgb), 0.16);
+    color: var(--biotern-primary-soft);
 }
 
 .app-notes-badge.is-progress {
-    background: rgba(59, 130, 246, 0.12);
-    color: #dbeafe;
+    background: rgba(var(--biotern-primary-rgb), 0.12);
+    color: var(--biotern-primary-soft);
 }
 
 .app-notes-editor-empty,
 .app-notes-editor {
     height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .app-notes-editor-empty {
     display: grid;
     place-content: center;
     gap: 0.95rem;
-    min-height: 650px;
     text-align: center;
 }
 
@@ -415,7 +432,6 @@
     display: grid;
     grid-template-rows: auto auto 1fr;
     gap: 1.2rem;
-    min-height: 650px;
 }
 
 .app-notes-editor-head {
@@ -456,9 +472,9 @@
 }
 
 .app-notes-icon-button.is-active {
-    border-color: rgba(96, 165, 250, 0.4);
-    background: rgba(37, 99, 235, 0.14);
-    color: #bfdbfe;
+    border-color: rgba(var(--biotern-primary-rgb), 0.4);
+    background: rgba(var(--biotern-primary-rgb), 0.14);
+    color: var(--biotern-primary-soft);
 }
 
 .app-notes-icon-button.is-danger {
@@ -467,7 +483,7 @@
 
 .app-notes-icon-button:hover,
 .app-notes-icon-button:focus-visible {
-    border-color: rgba(96, 165, 250, 0.38);
+    border-color: rgba(var(--biotern-primary-rgb), 0.38);
     color: #f8fafc;
 }
 
@@ -515,6 +531,7 @@
 .app-notes-body-input {
     width: 100%;
     min-height: 420px;
+    height: 100%;
     padding: 1rem 1.1rem;
     border: 1px solid var(--notes-border);
     border-radius: 20px;
@@ -576,12 +593,12 @@
 @media (max-width: 1399.98px) {
     .app-notes-list-card .card-body,
     .app-notes-editor-card .card-body {
-        min-height: auto;
+        min-height: 560px;
     }
 
     .app-notes-editor-empty,
     .app-notes-editor {
-        min-height: 560px;
+        min-height: 0;
     }
 
     .app-notes-editor-state {
@@ -636,11 +653,18 @@
     }
 
     .app-notes-list-top,
-    .app-notes-list-bottom,
-    .app-notes-checklist-item {
-        grid-template-columns: 1fr;
+    .app-notes-list-bottom {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .app-notes-checklist-item {
+        grid-template-columns: 1fr;
+    }
+
+    .app-notes-list-top .app-notes-editor-time {
+        min-width: 0;
+        text-align: left;
     }
 
     .app-notes-list-tools {
@@ -652,3 +676,5 @@
         font-size: 1.65rem;
     }
 }
+
+

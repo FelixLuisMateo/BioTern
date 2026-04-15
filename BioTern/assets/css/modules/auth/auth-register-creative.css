@@ -241,7 +241,7 @@
     }
 
     .password-strength-indicator[data-strength="good"] .password-strength-bars span:nth-child(-n+3) {
-        background: #3b82f6;
+        background: var(--biotern-primary);
     }
 
     .password-strength-indicator[data-strength="strong"] .password-strength-bars span:nth-child(-n+4) {
@@ -294,7 +294,7 @@
     .register-terms-note {
         padding: 0.8rem 0.95rem;
         border-radius: 12px;
-        background: rgba(59, 130, 246, 0.08);
+        background: rgba(var(--biotern-primary-rgb), 0.08);
         color: #334155;
         font-size: 0.84rem;
         line-height: 1.5;
@@ -481,6 +481,19 @@ body.auth-register-page .register-bg-watermark {
 body.auth-register-page .auth-minimal-wrapper {
     position: relative;
     z-index: 1;
+}
+
+body.auth-register-page .modal {
+    z-index: 1065;
+}
+
+body.auth-register-page .modal-backdrop {
+    z-index: 1060;
+}
+
+body.auth-register-page .modal-backdrop.show {
+    opacity: 0.58;
+    backdrop-filter: none;
 }
 
 .register-auth-card {
@@ -719,7 +732,7 @@ html.app-skin-dark .register-auth-card {
 html.app-skin-dark body.auth-register-page {
     --register-overlay-top: rgba(2, 8, 23, 0.76);
     --register-overlay-bottom: rgba(3, 12, 30, 0.7);
-    --register-glow-a: rgba(30, 64, 175, 0.26);
+    --register-glow-a: rgba(var(--biotern-primary-rgb), 0.26);
     --register-glow-b: rgba(56, 189, 248, 0.16);
     --register-card-surface: rgba(8, 20, 52, 0.93);
     --register-card-border: rgba(129, 153, 199, 0.28);
@@ -792,8 +805,8 @@ html.app-skin-dark .register-terms-section p {
 }
 
 html.app-skin-dark .register-terms-note {
-    background: rgba(59, 130, 246, 0.14);
-    color: #dbeafe;
+    background: rgba(var(--biotern-primary-rgb), 0.14);
+    color: var(--biotern-primary-soft);
 }
 
 html.app-theme-gray:not(.app-skin-dark) .register-auth-card h2,
