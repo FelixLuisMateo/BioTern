@@ -17,6 +17,20 @@ $current_role = strtolower(trim((string) (
 $can_edit_sensitive_hours = in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
 $can_edit_hours = true;
 
+function biotern_student_edit_ensure_runtime_dir(string $path): bool
+{
+    if (is_dir($path)) {
+        return true;
+    }
+
+    $parent = dirname($path);
+    if (!is_dir($parent) || !is_writable($parent)) {
+        return false;
+    }
+
+    return @mkdir($path, 0755, true) || is_dir($path);
+}
+
 // Ensure new student assignment/hour fields exist.
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours INT(11) DEFAULT NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours_remaining INT(11) DEFAULT NULL");
@@ -35,18 +49,12 @@ if ($student_id == 0) {
 // Use project-root uploads so files resolve from both legacy and organized routes.
 $project_root = dirname(__DIR__);
 $uploads_dir = $project_root . '/uploads/profile_pictures';
-if (!is_dir($uploads_dir)) {
-    mkdir($uploads_dir, 0755, true);
-}
+$uploads_available = biotern_student_edit_ensure_runtime_dir($uploads_dir);
 // Ensure other upload folders exist
 $uploads_manual_dtr = $project_root . '/uploads/manual_dtr';
-if (!is_dir($uploads_manual_dtr)) {
-    mkdir($uploads_manual_dtr, 0755, true);
-}
+$uploads_available = biotern_student_edit_ensure_runtime_dir($uploads_manual_dtr) && $uploads_available;
 $uploads_documents = $project_root . '/uploads/documents';
-if (!is_dir($uploads_documents)) {
-    mkdir($uploads_documents, 0755, true);
-}
+$uploads_available = biotern_student_edit_ensure_runtime_dir($uploads_documents) && $uploads_available;
 
 // Fetch Student Details
 $student_query = "

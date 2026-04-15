@@ -547,6 +547,21 @@ function attendanceResolvedTime(array $attendance, string $column): array {
     return ['time' => null, 'is_schedule' => false];
 }
 
+function attendanceScheduledClassLabel(array $attendance): string
+{
+    $schedule = attendance_effective_schedule($attendance);
+    $scheduleIn = section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? ''));
+    $scheduleOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
+
+    if ($scheduleIn === '' || $scheduleOut === '') {
+        return 'Scheduled class time';
+    }
+
+    $from = date('g:i A', strtotime($scheduleIn));
+    $to = date('g:i A', strtotime($scheduleOut));
+    return 'Scheduled class: ' . $from . ' to ' . $to;
+}
+
 function attendanceDisplayTimeHtml(array $attendance, string $column, string $badgeClass): string {
     $resolved = attendanceResolvedTime($attendance, $column);
     if ($resolved['time'] === null) {
@@ -558,8 +573,9 @@ function attendanceDisplayTimeHtml(array $attendance, string $column, string $ba
         return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8') . '</span>';
     }
 
+    $scheduledLabel = attendanceScheduledClassLabel($attendance);
     return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8') . '</span>'
-        . '<div class="fs-11 text-muted mt-1">Scheduled</div>';
+        . '<div class="fs-11 text-muted mt-1">' . htmlspecialchars($scheduledLabel, ENT_QUOTES, 'UTF-8') . '</div>';
 }
 
 function resolve_attendance_profile_image_url(string $profilePath): ?string {
@@ -903,28 +919,11 @@ function attendance_format_hours_label(float $hours): string {
 }
 
 function attendance_hours_cell_html(array $attendance): string {
-    $metrics = attendance_window_metrics($attendance);
-    $bonus = attendanceMultiplierContext($attendance, $metrics);
-
     $computedHours = isset($attendance['computed_total_hours'])
         ? (float)$attendance['computed_total_hours']
         : calculateAttendanceRowHours($attendance);
 
-    $meta = ['Scheduled ' . attendance_format_hours_label((float)$metrics['official_hours'])];
-    if ((float)$metrics['early_hours'] > 0) {
-        $meta[] = 'Early ' . attendance_format_hours_label((float)$metrics['early_hours']);
-    }
-    if ((float)$metrics['overtime_hours'] > 0) {
-        $meta[] = 'OT ' . attendance_format_hours_label((float)$metrics['overtime_hours']);
-    }
-    if ((float)($bonus['multiplier'] ?? 1) > 1) {
-        $ruleTitle = trim((string)(($bonus['rule']['title'] ?? '')));
-        $meta[] = 'Bonus x' . rtrim(rtrim(number_format((float)$bonus['multiplier'], 2, '.', ''), '0'), '.')
-            . ($ruleTitle !== '' ? (' (' . $ruleTitle . ')') : '');
-    }
-
-    return '<span class="badge bg-soft-secondary text-secondary">' . attendance_format_hours_label($computedHours) . '</span>'
-        . '<div class="fs-11 text-muted mt-1">' . htmlspecialchars(implode(' | ', $meta), ENT_QUOTES, 'UTF-8') . '</div>';
+    return '<span class="badge bg-soft-secondary text-secondary">' . attendance_format_hours_label($computedHours) . '</span>';
 }
 
 function attendance_status_cell_html(array $attendance): string {
