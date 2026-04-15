@@ -159,17 +159,27 @@ if (!function_exists('biotern_send_mail_http')) {
             ]
         ]);
 
-        $response = @file_get_contents($endpoint, false, $context);
+        $response = false;
         $status = 0;
         $responseHeaders = [];
-        if (function_exists('http_get_last_response_headers')) {
+
+        $stream = @fopen($endpoint, 'rb', false, $context);
+        if (is_resource($stream)) {
+            $response = stream_get_contents($stream);
+            $meta = stream_get_meta_data($stream);
+            fclose($stream);
+
+            $wrapperData = $meta['wrapper_data'] ?? null;
+            if (is_array($wrapperData)) {
+                $responseHeaders = $wrapperData;
+            }
+        }
+
+        if (empty($responseHeaders) && function_exists('http_get_last_response_headers')) {
             $headers = http_get_last_response_headers();
             if (is_array($headers)) {
                 $responseHeaders = $headers;
             }
-        } elseif (isset($http_response_header) && is_array($http_response_header)) {
-            // Backward compatibility for older runtimes where this variable is still available.
-            $responseHeaders = $http_response_header;
         }
 
         foreach ($responseHeaders as $line) {

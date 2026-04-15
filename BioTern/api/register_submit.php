@@ -696,7 +696,18 @@ if ($role === 'student') {
             studentApplicationRedirect('error', $msg);
         }
 
-        header('Location: auth-register-verify.php?token=' . rawurlencode($verifyToken));
+        $verifyRedirect = 'auth-register-verify.php?token=' . rawurlencode($verifyToken);
+        if (!headers_sent()) {
+            header('Location: ' . $verifyRedirect);
+        } else {
+            $verifyRedirectAttr = htmlspecialchars($verifyRedirect, ENT_QUOTES, 'UTF-8');
+            $verifyRedirectJson = json_encode($verifyRedirect, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if (!is_string($verifyRedirectJson) || $verifyRedirectJson === '') {
+                $verifyRedirectJson = '"auth-register-verify.php"';
+            }
+            echo '<noscript><meta http-equiv="refresh" content="0;url=' . $verifyRedirectAttr . '"></noscript>';
+            echo '<script>window.location.replace(' . $verifyRedirectJson . ');</script>';
+        }
         exit;
     }
     $username_seed = $student_id ?: ($final_email ?: ($first_name . '.' . $last_name));
