@@ -31,11 +31,12 @@ body.auth-login-page .login-bg-watermark {
     z-index: 0;
     pointer-events: none;
     background-image:
-        linear-gradient(rgba(10, 14, 24, 0.44), rgba(10, 14, 24, 0.44)),
+        linear-gradient(102deg, rgba(10, 14, 24, 0.62) 4%, rgba(10, 14, 24, 0.38) 46%, rgba(10, 14, 24, 0.66) 100%),
+        linear-gradient(rgba(10, 14, 24, 0.36), rgba(10, 14, 24, 0.5)),
         url("../../../../auth/building.png");
-    background-repeat: no-repeat, no-repeat;
-    background-position: center center, center center;
-    background-size: cover, cover;
+    background-repeat: no-repeat, no-repeat, no-repeat;
+    background-position: center center, center center, center center;
+    background-size: cover, cover, cover;
     opacity: 1;
 }
 
@@ -279,7 +280,8 @@ html.app-skin-dark body.auth-login-page .auth-brand-lockup-app {
 
 html.app-skin-dark body.auth-login-page .login-bg-watermark {
     background-image:
-        linear-gradient(rgba(8, 14, 28, 0.56), rgba(8, 14, 28, 0.56)),
+    linear-gradient(102deg, rgba(6, 10, 20, 0.74) 4%, rgba(6, 10, 20, 0.5) 46%, rgba(6, 10, 20, 0.78) 100%),
+    linear-gradient(rgba(8, 14, 28, 0.54), rgba(8, 14, 28, 0.62)),
         url("../../../../auth/building.png");
 }
 
@@ -304,7 +306,8 @@ html.app-skin-dark body.auth-login-page .auth-cover-card .btn-outline-primary:fo
 
 html.app-theme-gray body.auth-login-page .login-bg-watermark {
     background-image:
-        linear-gradient(rgba(13, 16, 20, 0.5), rgba(13, 16, 20, 0.5)),
+    linear-gradient(102deg, rgba(11, 13, 17, 0.68) 4%, rgba(11, 13, 17, 0.46) 46%, rgba(11, 13, 17, 0.72) 100%),
+    linear-gradient(rgba(13, 16, 20, 0.44), rgba(13, 16, 20, 0.56)),
         url("../../../../auth/building.png");
 }
 

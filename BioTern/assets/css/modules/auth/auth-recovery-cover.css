@@ -1,0 +1,108 @@
+body.auth-login-page.auth-recovery-page {
+    --auth-card-surface: rgba(255, 255, 255, 0.95);
+    --auth-card-border: rgba(17, 24, 39, 0.08);
+    --auth-card-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
+}
+
+body.auth-recovery-page .recovery-bg-watermark {
+    background-image:
+        linear-gradient(102deg, rgba(10, 14, 24, 0.62) 4%, rgba(10, 14, 24, 0.38) 46%, rgba(10, 14, 24, 0.66) 100%),
+        linear-gradient(rgba(10, 14, 24, 0.36), rgba(10, 14, 24, 0.5)),
+        url("../../../../auth/building.png");
+    background-repeat: no-repeat, no-repeat, no-repeat;
+    background-size: cover, cover, cover;
+    background-position: center center, center center, center center;
+}
+
+body.auth-recovery-page .auth-cover-card-wrapper {
+    max-width: 520px;
+}
+
+body.auth-recovery-page .auth-recovery-card {
+    border-radius: 18px;
+}
+
+body.auth-recovery-page .auth-recovery-card h2 {
+    letter-spacing: -0.02em;
+}
+
+body.auth-recovery-page .auth-recovery-links {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.82rem;
+}
+
+body.auth-recovery-page .auth-recovery-links a {
+    white-space: nowrap;
+}
+
+body.auth-recovery-page .auth-otp-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+}
+
+body.auth-recovery-page .auth-otp-grid .form-control {
+    min-height: 56px;
+    padding: 0;
+    text-align: center;
+    font-size: 1.16rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border-radius: 12px;
+}
+
+body.auth-recovery-page .input-group .btn {
+    min-width: 52px;
+}
+
+html.app-skin-dark body.auth-recovery-page {
+    --auth-card-surface: rgba(8, 20, 52, 0.93);
+    --auth-card-border: rgba(129, 153, 199, 0.25);
+    --auth-card-shadow: 0 24px 56px rgba(2, 6, 23, 0.58);
+}
+
+html.app-skin-dark body.auth-recovery-page .recovery-bg-watermark {
+    background-image:
+        linear-gradient(102deg, rgba(6, 10, 20, 0.74) 4%, rgba(6, 10, 20, 0.5) 46%, rgba(6, 10, 20, 0.78) 100%),
+        linear-gradient(rgba(8, 14, 28, 0.54), rgba(8, 14, 28, 0.62)),
+        url("../../../../auth/building.png");
+}
+
+html.app-theme-gray body.auth-recovery-page .recovery-bg-watermark {
+    background-image:
+        linear-gradient(102deg, rgba(11, 13, 17, 0.68) 4%, rgba(11, 13, 17, 0.46) 46%, rgba(11, 13, 17, 0.72) 100%),
+        linear-gradient(rgba(13, 16, 20, 0.44), rgba(13, 16, 20, 0.56)),
+        url("../../../../auth/building.png");
+}
+
+html.app-theme-gray.app-skin-dark body.auth-recovery-page {
+    --auth-card-surface: rgba(17, 19, 24, 0.94);
+}
+
+@media (max-width: 575.98px) {
+    body.auth-recovery-page .auth-cover-card-wrapper {
+        max-width: 100%;
+    }
+
+    body.auth-recovery-page .auth-recovery-card h2 {
+        font-size: 1.4rem;
+    }
+
+    body.auth-recovery-page .auth-otp-grid {
+        gap: 8px;
+    }
+
+    body.auth-recovery-page .auth-otp-grid .form-control {
+        min-height: 50px;
+        font-size: 1.02rem;
+    }
+
+    body.auth-recovery-page .auth-recovery-links {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+}
