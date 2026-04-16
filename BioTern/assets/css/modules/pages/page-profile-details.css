@@ -3,9 +3,6 @@
         overflow: visible;
     }
 
-<<<<<<< HEAD
-.profile-shell > * {
-=======
     .profile-shell::before {
         content: "";
         position: absolute;
@@ -17,7 +14,6 @@
     }
 
     .profile-shell > * {
->>>>>>> dec364ccb9ea0c79e561d748dd44c5bdca6ae35e
         position: relative;
         z-index: 1;
     }
@@ -335,18 +331,12 @@
         display: block;
         width: 100%;
         font-size: 13px;
-<<<<<<< HEAD
-        border: 2px solid rgba(37, 99, 235, 0.2);
-        background: linear-gradient(135deg, #f8fbff 0%, #f0f7ff 100%);
-        border-radius: 12px;
-        padding: 8px 12px;
-        line-height: 1.35;
-        overflow: hidden;
-=======
         border: 2px solid rgba(var(--biotern-primary-rgb), 0.2);
         background: linear-gradient(135deg, var(--biotern-surface-muted) 0%, var(--biotern-surface-muted) 100%);
+        border-radius: 12px;
         padding: 12px 14px;
->>>>>>> dec364ccb9ea0c79e561d748dd44c5bdca6ae35e
+        line-height: 1.35;
+        overflow: hidden;
         transition: all 0.3s ease;
     }
     
@@ -554,15 +544,9 @@
     }
 
     html.app-skin-dark .profile-hero {
-<<<<<<< HEAD
-        border-color: rgba(129, 153, 199, 0.24);
-        background: linear-gradient(135deg, #111c31 0%, #0f172a 58%, #162238 100%);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-=======
         border-color: rgba(var(--biotern-primary-rgb), 0.3);
         background: linear-gradient(135deg, #0f1f3c 0%, #0f2847 50%, #132549 100%);
         box-shadow: 0 4px 20px rgba(13, 110, 253, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
->>>>>>> dec364ccb9ea0c79e561d748dd44c5bdca6ae35e
     }
 
     html.app-skin-dark .profile-name,
@@ -603,15 +587,6 @@
 
     html.app-skin-dark .profile-upload-input {
         color: #e0e8fa;
-<<<<<<< HEAD
-        background: linear-gradient(135deg, #111c31 0%, #0f172a 100%);
-        border-color: rgba(129, 153, 199, 0.24);
-    }
-    
-    html.app-skin-dark .profile-upload-input:hover {
-        border-color: rgba(129, 153, 199, 0.34);
-        background: linear-gradient(135deg, #162238 0%, #111c31 100%);
-=======
         background: linear-gradient(135deg, #0d1929 0%, #091223 100%);
         border-color: rgba(var(--biotern-primary-rgb), 0.25);
     }
@@ -619,7 +594,6 @@
     html.app-skin-dark .profile-upload-input:hover {
         border-color: rgba(var(--biotern-primary-rgb), 0.4);
         background: linear-gradient(135deg, #091223 0%, #050f1a 100%);
->>>>>>> dec364ccb9ea0c79e561d748dd44c5bdca6ae35e
     }
 
     html.app-skin-dark .profile-upload-input::file-selector-button {
@@ -645,15 +619,9 @@
     }
     
     html.app-skin-dark .profile-upload-status {
-<<<<<<< HEAD
-        background: rgba(129, 153, 199, 0.08);
-        border-color: rgba(129, 153, 199, 0.18);
-        color: #c0cee4;
-=======
         background: rgba(var(--biotern-primary-rgb), 0.1);
         border-color: rgba(var(--biotern-primary-rgb), 0.2);
         color: #a5cbff;
->>>>>>> dec364ccb9ea0c79e561d748dd44c5bdca6ae35e
     }
 
     html.app-skin-dark .profile-section-divider {
@@ -676,15 +644,9 @@
     }
 
     html.app-skin-dark .profile-nav-link {
-<<<<<<< HEAD
-        background: #111c31;
-        border-color: rgba(129, 153, 199, 0.2);
-        color: #dce7ff;
-=======
         background: rgba(15, 31, 60, 0.85);
         border-color: rgba(var(--biotern-primary-rgb), 0.22);
         color: var(--biotern-primary-soft);
->>>>>>> dec364ccb9ea0c79e561d748dd44c5bdca6ae35e
     }
 
     html.app-skin-dark .profile-nav-link:hover {
