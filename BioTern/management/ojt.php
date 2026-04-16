@@ -3,6 +3,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
+require_once dirname(__DIR__) . '/lib/section_format.php';
 $ops_helpers = dirname(__DIR__) . '/lib/ops_helpers.php';
 if (file_exists($ops_helpers)) {
     require_once $ops_helpers;
@@ -88,21 +89,12 @@ function resolve_profile_image_url(string $profilePath): ?string {
 }
 
 function formatSectionDisplayLabel($code, $name): string {
+    if (function_exists('biotern_format_section_label')) {
+        return biotern_format_section_label((string)$code, (string)$name);
+    }
+
     $code = trim((string)$code);
     $name = trim((string)$name);
-    if ($code === '' && $name === '') {
-        return '';
-    }
-    if ($code !== '' && $name !== '') {
-        $compactName = strtoupper((string)preg_replace('/\s+/', '', $name));
-        if (
-            preg_match('/^([A-Za-z]+)\s*-?\s*([0-9]+[A-Za-z]?)$/', $code, $matches)
-            && strtoupper($matches[2]) === $compactName
-        ) {
-            return strtoupper($matches[1]) . ' - ' . $name;
-        }
-        return $code . ' - ' . $name;
-    }
     return $code !== '' ? $code : $name;
 }
 

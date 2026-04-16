@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 /** @var mysqli $conn */
 
 function get_table_columns(mysqli $conn, string $table): array {
@@ -250,7 +251,7 @@ include 'includes/header.php';
                     <select id="filter-section" name="section_id" class="form-control">
                         <option value="0">-- All Sections --</option>
                         <?php foreach ($sectionOptions as $secOpt): ?>
-                            <?php $secLabel = trim((string)($secOpt['code'] ?? '')) !== '' ? format_section_code((string)$secOpt['code']) : (string)($secOpt['name'] ?? ''); ?>
+                            <?php $secLabel = biotern_format_section_label((string)($secOpt['code'] ?? ''), (string)($secOpt['name'] ?? '')); ?>
                             <option value="<?php echo (int)$secOpt['id']; ?>" <?php echo ($filter_section === (int)$secOpt['id']) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($secLabel); ?>
                             </option>

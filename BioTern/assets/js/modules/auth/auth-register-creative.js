@@ -1139,28 +1139,72 @@ function setupFloatingTextFields() {
             const dId = String(departmentId || '');
             let inserted = 0;
 
-            function formatSectionCode(value) {
+            function splitSectionCodeParts(value) {
                 const normalized = String(value || '')
                     .replace(/\s*-\s*/g, ' ')
                     .replace(/\s+/g, ' ')
                     .trim();
 
+                if (!normalized) {
+                    return { code: '', section: '' };
+                }
+
                 let match = normalized.match(/^(\d+[A-Za-z]*)\s+([A-Za-z][A-Za-z0-9]*)$/);
                 if (match) {
-                    return match[2].toUpperCase() + ' ' + match[1].toUpperCase();
+                    return {
+                        code: String(match[2] || '').toUpperCase(),
+                        section: String(match[1] || '').toUpperCase()
+                    };
                 }
 
                 match = normalized.match(/^([A-Za-z][A-Za-z0-9]*)\s+(\d+[A-Za-z]*)$/);
                 if (match) {
-                    return match[1].toUpperCase() + ' ' + match[2].toUpperCase();
+                    return {
+                        code: String(match[1] || '').toUpperCase(),
+                        section: String(match[2] || '').toUpperCase()
+                    };
                 }
 
                 match = normalized.match(/^([A-Za-z]+)([0-9]+[A-Za-z]*)$/);
                 if (match) {
-                    return match[1].toUpperCase() + ' ' + match[2].toUpperCase();
+                    return {
+                        code: String(match[1] || '').toUpperCase(),
+                        section: String(match[2] || '').toUpperCase()
+                    };
                 }
 
-                return normalized;
+                return { code: normalized, section: '' };
+            }
+
+            function formatSectionLabel(codeValue, nameValue) {
+                const codeParts = splitSectionCodeParts(codeValue);
+                const sectionName = String(nameValue || '')
+                    .replace(/\s*-\s*/g, ' - ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                const normalizedSectionName = sectionName.toUpperCase();
+
+                if (codeParts.code && codeParts.section) {
+                    if (normalizedSectionName && normalizedSectionName === codeParts.section) {
+                        return codeParts.code + ' | ' + codeParts.section;
+                    }
+
+                    if (!normalizedSectionName) {
+                        return codeParts.code + ' | ' + codeParts.section;
+                    }
+
+                    return codeParts.code + ' | ' + sectionName;
+                }
+
+                if (codeParts.code && normalizedSectionName) {
+                    if (codeParts.code.toUpperCase() === normalizedSectionName) {
+                        return codeParts.code;
+                    }
+
+                    return codeParts.code + ' | ' + sectionName;
+                }
+
+                return codeParts.code || sectionName || '';
             }
 
             sectionRecords.forEach(function(rec) {
@@ -1170,23 +1214,7 @@ function setupFloatingTextFields() {
 
                 const code = (rec.code || '').trim();
                 const name = (rec.name || '').trim();
-                const formattedCode = formatSectionCode(code);
-                const formattedName = name.replace(/\s*-\s*/g, ' - ');
-                const normalizedCode = formattedCode.toLowerCase();
-                const normalizedName = formattedName.toLowerCase();
-                let label = '';
-
-                if (formattedCode && formattedName) {
-                    if (normalizedCode === normalizedName) {
-                        label = formattedCode;
-                    } else if (normalizedName.includes(normalizedCode) || normalizedCode.includes(normalizedName)) {
-                        label = formattedName.length >= formattedCode.length ? formattedName : formattedCode;
-                    } else {
-                        label = formattedCode + ' - ' + formattedName;
-                    }
-                } else {
-                    label = formattedCode || formattedName || ('Section #' + rec.id);
-                }
+                const label = formatSectionLabel(code, name) || ('Section #' + rec.id);
 
                 const option = document.createElement('option');
                 option.value = code || String(rec.id);
