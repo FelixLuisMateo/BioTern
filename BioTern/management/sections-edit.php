@@ -235,29 +235,12 @@ $page_title = 'Edit Section';
 include 'includes/header.php';
 ?>
 <style>
-    .section-time-field {
-        position: relative;
+    html.app-skin-dark input.form-control[type="time"] {
+        color-scheme: dark;
     }
 
-    .section-time-field .form-control[type="time"] {
-        padding-right: 3rem;
-    }
-
-    .section-time-trigger {
-        position: absolute;
-        right: 0.75rem;
-        top: 50%;
-        transform: translateY(-50%);
-        border: 0;
-        background: transparent;
-        color: inherit;
-        opacity: 0.7;
-        cursor: pointer;
-    }
-
-    .section-time-trigger:hover,
-    .section-time-trigger:focus {
-        opacity: 1;
+    html.app-skin-light input.form-control[type="time"] {
+        color-scheme: light;
     }
 
     .weekly-schedule-card {
@@ -388,30 +371,15 @@ include 'includes/header.php';
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Scheduled Time In</label>
-                        <div class="section-time-field">
-                            <input type="time" name="schedule_time_in" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['schedule_time_in']); ?>" step="60">
-                            <button type="button" class="section-time-trigger js-time-trigger" aria-label="Choose scheduled time in">
-                                <i class="feather-clock"></i>
-                            </button>
-                        </div>
+                        <input type="time" name="schedule_time_in" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['schedule_time_in']); ?>" step="60">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Scheduled Time Out</label>
-                        <div class="section-time-field">
-                            <input type="time" name="schedule_time_out" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['schedule_time_out']); ?>" step="60">
-                            <button type="button" class="section-time-trigger js-time-trigger" aria-label="Choose scheduled time out">
-                                <i class="feather-clock"></i>
-                            </button>
-                        </div>
+                        <input type="time" name="schedule_time_out" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['schedule_time_out']); ?>" step="60">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Late After</label>
-                        <div class="section-time-field">
-                            <input type="time" name="late_after_time" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['late_after_time']); ?>" step="60">
-                            <button type="button" class="section-time-trigger js-time-trigger" aria-label="Choose late after time">
-                                <i class="feather-clock"></i>
-                            </button>
-                        </div>
+                        <input type="time" name="late_after_time" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['late_after_time']); ?>" step="60">
                     </div>
                 </div>
                 <div class="weekly-schedule-card">
@@ -444,30 +412,15 @@ include 'includes/header.php';
                                 </div>
                                 <div>
                                     <label class="form-label d-lg-none">Time In</label>
-                                    <div class="section-time-field">
-                                        <input type="time" name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][schedule_time_in]" class="form-control js-section-time js-weekly-time-in" value="<?php echo htmlspecialchars((string)$daySchedule['schedule_time_in']); ?>" step="60">
-                                        <button type="button" class="section-time-trigger js-time-trigger" aria-label="Choose <?php echo htmlspecialchars(section_schedule_weekday_label($dayKey)); ?> time in">
-                                            <i class="feather-clock"></i>
-                                        </button>
-                                    </div>
+                                    <input type="time" name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][schedule_time_in]" class="form-control js-section-time js-weekly-time-in" value="<?php echo htmlspecialchars((string)$daySchedule['schedule_time_in']); ?>" step="60">
                                 </div>
                                 <div>
                                     <label class="form-label d-lg-none">Late After</label>
-                                    <div class="section-time-field">
-                                        <input type="time" name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][late_after_time]" class="form-control js-section-time js-weekly-late" value="<?php echo htmlspecialchars((string)$daySchedule['late_after_time']); ?>" step="60">
-                                        <button type="button" class="section-time-trigger js-time-trigger" aria-label="Choose <?php echo htmlspecialchars(section_schedule_weekday_label($dayKey)); ?> late after time">
-                                            <i class="feather-clock"></i>
-                                        </button>
-                                    </div>
+                                    <input type="time" name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][late_after_time]" class="form-control js-section-time js-weekly-late" value="<?php echo htmlspecialchars((string)$daySchedule['late_after_time']); ?>" step="60">
                                 </div>
                                 <div>
                                     <label class="form-label d-lg-none">Time Out</label>
-                                    <div class="section-time-field">
-                                        <input type="time" name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][schedule_time_out]" class="form-control js-section-time js-weekly-time-out" value="<?php echo htmlspecialchars((string)$daySchedule['schedule_time_out']); ?>" step="60">
-                                        <button type="button" class="section-time-trigger js-time-trigger" aria-label="Choose <?php echo htmlspecialchars(section_schedule_weekday_label($dayKey)); ?> time out">
-                                            <i class="feather-clock"></i>
-                                        </button>
-                                    </div>
+                                    <input type="time" name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][schedule_time_out]" class="form-control js-section-time js-weekly-time-out" value="<?php echo htmlspecialchars((string)$daySchedule['schedule_time_out']); ?>" step="60">
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -485,23 +438,6 @@ include 'includes/header.php';
 </main>
 <script>
     (function () {
-        const triggers = document.querySelectorAll('.js-time-trigger');
-        triggers.forEach(function (trigger) {
-            trigger.addEventListener('click', function () {
-                const input = this.parentElement ? this.parentElement.querySelector('.js-section-time') : null;
-                if (!input) {
-                    return;
-                }
-
-                if (typeof input.showPicker === 'function') {
-                    input.showPicker();
-                } else {
-                    input.focus();
-                    input.click();
-                }
-            });
-        });
-
         const copyDefaultsButton = document.getElementById('copyDefaultScheduleButton');
         if (copyDefaultsButton) {
             copyDefaultsButton.addEventListener('click', function () {
