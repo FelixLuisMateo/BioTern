@@ -347,6 +347,21 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
     ];
 }
 
+function machine_bridge_cache_max_age_seconds(int $pollSeconds): int
+{
+    return max(90, $pollSeconds * 4);
+}
+
+function machine_require_bridge_online_for_user_reads(mysqli $conn, int $pollSeconds): array
+{
+    $status = machine_fetch_bridge_runtime_status($conn, $pollSeconds);
+    if (!($status['is_online'] ?? false)) {
+        throw new RuntimeException('Bridge appears offline or stale. Reconnect bridge laptop to the router/F20H and wait for a fresh heartbeat before reading users.');
+    }
+
+    return $status;
+}
+
 function machine_ensure_bridge_profile_table(mysqli $conn): void
 {
     $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_profile (
@@ -478,7 +493,7 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     if ($hasPresetColumn) {
         $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
             (profile_name, selected_bridge_preset, router_name, bridge_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
-            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 selected_bridge_preset = VALUES(selected_bridge_preset),
                 router_name = VALUES(router_name),
@@ -527,7 +542,7 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     if (!$stmt) {
         $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
             (profile_name, router_name, bridge_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
-            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 router_name = VALUES(router_name),
                 bridge_name = VALUES(bridge_name),
@@ -856,7 +871,7 @@ function machine_fetch_fingerprint_cleanup_log(mysqli $conn, int $limit = 20): a
     ];
 }
 
-function machine_load_user_list_from_bridge_cache(mysqli $conn, &$userListRaw, &$userListDecoded): array
+function machine_load_user_list_from_bridge_cache(mysqli $conn, &$userListRaw, &$userListDecoded, ?int $maxAgeSeconds = null): array
 {
     machine_ensure_bridge_user_cache_table($conn);
 
@@ -886,13 +901,32 @@ function machine_load_user_list_from_bridge_cache(mysqli $conn, &$userListRaw, &
         $json = json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     }
 
+    $createdAt = trim((string)($row['created_at'] ?? ''));
+    $ageSeconds = null;
+    if ($createdAt !== '') {
+        $createdTs = strtotime($createdAt);
+        if ($createdTs !== false && $createdTs > 0) {
+            $ageSeconds = max(0, time() - $createdTs);
+        }
+    }
+
+    if ($maxAgeSeconds !== null) {
+        if ($ageSeconds === null) {
+            throw new RuntimeException('Bridge user cache timestamp is missing. Run bridge worker user sync, then click Read All Users again.');
+        }
+        if ($ageSeconds > max(1, $maxAgeSeconds)) {
+            throw new RuntimeException('Bridge user cache is stale (' . (int)$ageSeconds . 's old). Machine may be disconnected. Run bridge worker sync and try again.');
+        }
+    }
+
     $userListDecoded = $decoded;
     $userListRaw = is_string($json) ? $json : json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
     return [
         'source_node' => (string)($row['source_node'] ?? ''),
         'users_count' => (int)($row['users_count'] ?? count(machine_extract_rows($userListDecoded))),
-        'created_at' => (string)($row['created_at'] ?? ''),
+        'created_at' => $createdAt,
+        'age_seconds' => $ageSeconds,
     ];
 }
 
@@ -1100,7 +1134,15 @@ if ((int)($_GET['queue_watch_status'] ?? 0) === 1) {
 if ((int)($_GET['load_users'] ?? 0) === 1) {
     try {
         if (machine_is_cloud_runtime()) {
-            machine_load_user_list_from_bridge_cache($conn, $userListRaw, $userListDecoded);
+            $bridgeProfile = machine_fetch_bridge_profile($conn);
+            $bridgePollSeconds = max(5, (int)($bridgeProfile['poll_seconds'] ?? 30));
+            machine_require_bridge_online_for_user_reads($conn, $bridgePollSeconds);
+            machine_load_user_list_from_bridge_cache(
+                $conn,
+                $userListRaw,
+                $userListDecoded,
+                machine_bridge_cache_max_age_seconds($bridgePollSeconds)
+            );
         } else {
             machine_load_user_list_into_state($userListRaw, $userListDecoded);
         }
@@ -1115,7 +1157,15 @@ if ((int)($_GET['load_users'] ?? 0) === 1) {
 if ($selectedUserId > 0 && (int)($_GET['load_user'] ?? 0) === 1) {
     try {
         if (machine_is_cloud_runtime()) {
-            machine_load_user_list_from_bridge_cache($conn, $userListRaw, $userListDecoded);
+            $bridgeProfile = machine_fetch_bridge_profile($conn);
+            $bridgePollSeconds = max(5, (int)($bridgeProfile['poll_seconds'] ?? 30));
+            machine_require_bridge_online_for_user_reads($conn, $bridgePollSeconds);
+            machine_load_user_list_from_bridge_cache(
+                $conn,
+                $userListRaw,
+                $userListDecoded,
+                machine_bridge_cache_max_age_seconds($bridgePollSeconds)
+            );
             $rows = machine_extract_rows($userListDecoded);
             $matched = null;
             foreach ($rows as $row) {
@@ -1153,6 +1203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'save_network',
             'save_connector_config',
             'save_bridge_profile',
+            'quick_fill_bridge_router_1',
             'pause_bridge_for_enrollment',
             'resume_bridge_after_enrollment',
             'retry_fingerprint_cleanup',
@@ -1250,21 +1301,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $connectorText = 'Connector step skipped. Processing direct-ingest queue from database.';
                 }
 
-                $importMessage = run_biometric_auto_import();
+                $importStats = run_biometric_auto_import_stats();
+                $importMessage = (string)($importStats['message'] ?? 'Biometric sync complete.');
+                $flashLevel = 'success';
+                if ($cloudRuntime && (int)($importStats['raw_inserted'] ?? 0) === 0 && (int)($importStats['processed_logs'] ?? 0) === 0) {
+                    $bridgeProfile = machine_fetch_bridge_profile($conn);
+                    $bridgePollSeconds = max(5, (int)($bridgeProfile['poll_seconds'] ?? 30));
+                    $bridgeStatus = machine_fetch_bridge_runtime_status($conn, $bridgePollSeconds);
+                    $flashLevel = !empty($bridgeStatus['is_online']) ? 'warning' : 'danger';
+                    $importMessage .= "\n" . (!empty($bridgeStatus['is_online'])
+                        ? 'No new ingest logs were available. Make sure the bridge worker can still read users/logs from the F20H.'
+                        : 'Bridge appears offline/stale. Start bridge worker on the bridge PC and verify router/F20H connectivity.');
+                }
                 $_SESSION['machine_manager_flash'] = [
-                    'type' => 'success',
+                    'type' => $flashLevel,
                     'message' => trim($connectorText . "\n" . $importMessage),
                 ];
                 machine_redirect_after_post(['load_users' => 1]);
 
             case 'list_users':
                 if (machine_is_cloud_runtime()) {
-                    $cacheMeta = machine_load_user_list_from_bridge_cache($conn, $userListRaw, $userListDecoded);
+                    $bridgeProfile = machine_fetch_bridge_profile($conn);
+                    $bridgePollSeconds = max(5, (int)($bridgeProfile['poll_seconds'] ?? 30));
+                    machine_require_bridge_online_for_user_reads($conn, $bridgePollSeconds);
+                    $cacheMeta = machine_load_user_list_from_bridge_cache(
+                        $conn,
+                        $userListRaw,
+                        $userListDecoded,
+                        machine_bridge_cache_max_age_seconds($bridgePollSeconds)
+                    );
                     $_SESSION['machine_manager_flash'] = [
                         'type' => 'success',
                         'message' => 'Bridge user cache loaded from '
                             . (($cacheMeta['source_node'] ?? '') !== '' ? ($cacheMeta['source_node'] . ' ') : '')
-                            . '(' . (int)($cacheMeta['users_count'] ?? 0) . ' users, updated ' . (string)($cacheMeta['created_at'] ?? '-') . ').',
+                            . '(' . (int)($cacheMeta['users_count'] ?? 0) . ' users, updated ' . (string)($cacheMeta['created_at'] ?? '-')
+                            . ', age ' . (int)($cacheMeta['age_seconds'] ?? -1) . 's).',
                     ];
                 } else {
                     machine_load_user_list_into_state($userListRaw, $userListDecoded);
@@ -1277,7 +1348,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Enter a valid user ID.');
                 }
                 if (machine_is_cloud_runtime()) {
-                    $cacheMeta = machine_load_user_list_from_bridge_cache($conn, $userListRaw, $userListDecoded);
+                    $bridgeProfile = machine_fetch_bridge_profile($conn);
+                    $bridgePollSeconds = max(5, (int)($bridgeProfile['poll_seconds'] ?? 30));
+                    machine_require_bridge_online_for_user_reads($conn, $bridgePollSeconds);
+                    $cacheMeta = machine_load_user_list_from_bridge_cache(
+                        $conn,
+                        $userListRaw,
+                        $userListDecoded,
+                        machine_bridge_cache_max_age_seconds($bridgePollSeconds)
+                    );
                     $rows = machine_extract_rows($userListDecoded);
                     $matched = null;
                     foreach ($rows as $row) {
@@ -1615,6 +1694,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Ingest API token is required.');
                 }
 
+                $presetNetworkDefaults = [
+                    'laptop_router_1' => ['ip' => '192.168.100.201', 'gateway' => '192.168.100.1', 'mask' => '255.255.255.0', 'port' => 5001, 'device_number' => 1],
+                    'laptop_router_2' => ['ip' => '192.168.110.201', 'gateway' => '192.168.110.1', 'mask' => '255.255.255.0', 'port' => 5001, 'device_number' => 1],
+                    'computer_router_2' => ['ip' => '192.168.110.201', 'gateway' => '192.168.110.1', 'mask' => '255.255.255.0', 'port' => 5001, 'device_number' => 1],
+                ];
+                if ($selectedBridgePreset !== 'laptop_custom' && isset($presetNetworkDefaults[$selectedBridgePreset])) {
+                    $presetDefaults = $presetNetworkDefaults[$selectedBridgePreset];
+                    $matchesPreset =
+                        strcasecmp($bridgeIp, (string)$presetDefaults['ip']) === 0
+                        && strcasecmp($bridgeGateway, (string)$presetDefaults['gateway']) === 0
+                        && strcasecmp($bridgeMask, (string)$presetDefaults['mask']) === 0
+                        && $bridgePort === (int)$presetDefaults['port']
+                        && $bridgeDeviceNo === (int)$presetDefaults['device_number'];
+                    if (!$matchesPreset) {
+                        $selectedBridgePreset = 'laptop_custom';
+                    }
+                }
+
                 machine_save_bridge_profile($conn, [
                     'selected_bridge_preset' => $selectedBridgePreset,
                     'router_name' => $routerName,
@@ -1650,6 +1747,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['machine_manager_flash'] = [
                     'type' => 'success',
                     'message' => 'Bridge sync resumed. New attendance logs will continue uploading automatically.',
+                ];
+                machine_redirect_after_post([]);
+
+            case 'quick_fill_bridge_router_1':
+                $bridgeToken = trim((string)($_POST['bridge_token'] ?? ''));
+                if ($bridgeToken === '') {
+                    $bridgeToken = machine_make_bridge_token();
+                }
+
+                $ingestApiToken = trim((string)($_POST['ingest_api_token'] ?? ''));
+                if ($ingestApiToken === '') {
+                    $envApiToken = getenv('BIOTERN_API_TOKEN');
+                    if (is_string($envApiToken) && trim($envApiToken) !== '') {
+                        $ingestApiToken = trim($envApiToken);
+                    }
+                }
+                if ($ingestApiToken === '') {
+                    $ingestApiToken = $bridgeToken;
+                }
+
+                $cloudBaseUrl = machine_bridge_default_cloud_base_url();
+                if ($cloudBaseUrl === '') {
+                    throw new RuntimeException('Unable to infer cloud base URL. Set APP_URL or open from the live domain.');
+                }
+
+                machine_save_bridge_profile($conn, [
+                    'selected_bridge_preset' => 'laptop_router_1',
+                    'router_name' => 'Router 1',
+                    'bridge_name' => 'Laptop Bridge Router 1',
+                    'bridge_enabled' => 1,
+                    'bridge_token' => $bridgeToken,
+                    'cloud_base_url' => $cloudBaseUrl,
+                    'ingest_path' => '/api/f20h_ingest.php',
+                    'ingest_api_token' => $ingestApiToken,
+                    'poll_seconds' => 5,
+                    'ip_address' => '192.168.100.201',
+                    'gateway' => '192.168.100.1',
+                    'mask' => '255.255.255.0',
+                    'port' => 5001,
+                    'device_number' => 1,
+                    'communication_password' => '0',
+                    'output_path' => $defaultAttendanceOutputPath,
+                ], (int)($_SESSION['user_id'] ?? 0));
+
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => 'Laptop Bridge (Router 1) defaults were applied and saved to shared bridge profile. Bridge token: ' . $bridgeToken,
                 ];
                 machine_redirect_after_post([]);
 
@@ -2127,12 +2271,14 @@ if ($bridgeProfileBaseUrl === '') {
 $bridgeWorkerCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\bridge-worker.ps1"'
     . ' -SiteBaseUrl "' . str_replace('"', '\\"', $bridgeProfileBaseUrl) . '"'
     . ' -BridgeToken "' . str_replace('"', '\\"', $bridgeToken !== '' ? $bridgeToken : 'YOUR_BRIDGE_TOKEN') . '"'
-    . ' -WorkspaceRoot "."';
+    . ' -WorkspaceRoot "."'
+    . ' -PreferLocalConnectorNetwork 0';
 
 $bridgeTaskInstallCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\install-bridge-worker-task.ps1"'
     . ' -SiteBaseUrl "' . str_replace('"', '\\"', $bridgeProfileBaseUrl) . '"'
     . ' -BridgeToken "' . str_replace('"', '\\"', $bridgeToken !== '' ? $bridgeToken : 'YOUR_BRIDGE_TOKEN') . '"'
-    . ' -TaskName "BioTernBridgeWorker"';
+    . ' -TaskName "BioTernBridgeWorker"'
+    . ' -PreferLocalConnectorNetwork 0';
 
 $bridgeTaskStatusCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\manage-bridge-worker-task.ps1" -Action status -TaskName "BioTernBridgeWorker"';
 
@@ -2257,6 +2403,10 @@ include __DIR__ . '/../includes/header.php';
             <div class="page-header-right ms-auto bio-console-header-actions">
                 <div class="page-header-right-items">
                     <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                        <a href="bridge-setup-manual.php" class="btn btn-outline-secondary">
+                            <i class="feather-book-open me-2"></i>
+                            <span>Bridge Setup Manual</span>
+                        </a>
                         <a href="fingerprint_mapping.php" class="btn btn-light-brand">
                             <i class="feather-link me-2"></i>
                             <span>Fingerprint Mapping</span>
@@ -2296,6 +2446,26 @@ include __DIR__ . '/../includes/header.php';
                         </span>
                         <h6>Bridge Worker Status</h6>
                         <p><?php echo machine_h((string)($bridgeRuntimeStatus['detail'] ?? '')); ?></p>
+                        <?php if ($isAdmin): ?>
+                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                <?php if ($bridgeEnabled): ?>
+                                    <form method="post" class="d-inline">
+                                        <input type="hidden" name="machine_action" value="pause_bridge_for_enrollment">
+                                        <button type="submit" class="btn btn-warning btn-sm">Pause Bridge for Enrollment</button>
+                                    </form>
+                                <?php else: ?>
+                                    <form method="post" class="d-inline">
+                                        <input type="hidden" name="machine_action" value="resume_bridge_after_enrollment">
+                                        <button type="submit" class="btn btn-success btn-sm">Resume Bridge Sync</button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                            <small class="d-block mb-2 text-muted">
+                                <?php echo $bridgeEnabled
+                                    ? 'Bridge is active. Pause before manual enrollment on F20H.'
+                                    : 'Bridge is paused for enrollment mode. Resume after enrolling users.'; ?>
+                            </small>
+                        <?php endif; ?>
                         <small>Background mode: Scheduled Task (no open PowerShell needed). If installed without admin rights, it runs after Windows sign-in.</small>
                     </div>
                 </div>
@@ -2747,21 +2917,10 @@ include __DIR__ . '/../includes/header.php';
                                     </div>
                                     <div class="col-12 d-flex flex-wrap gap-2">
                                         <button type="submit" class="btn btn-secondary btn-sm">Save Laptop Bridge Profile</button>
+                                        <button type="submit" class="btn btn-outline-primary btn-sm" formaction="" formmethod="post" name="machine_action" value="quick_fill_bridge_router_1">Fill Shared Bridge (Router 1)</button>
                                         <button type="submit" class="btn btn-outline-primary btn-sm" formaction="" formmethod="post" name="machine_action" value="quick_fill_bridge_router_2">Fill Shared Bridge (Router 2)</button>
                                         <button type="submit" class="btn btn-outline-info btn-sm" formaction="" formmethod="post" name="machine_action" value="test_bridge_profile">Test Shared Bridge</button>
                                         <small class="text-muted align-self-center">Laptop worker fetches this profile from /bridge_profile.php using the bridge token.</small>
-                                    </div>
-                                    <div class="col-12">
-                                        <div class="alert alert-light border mb-0 d-flex flex-wrap align-items-center gap-2">
-                                            <strong>Enrollment Mode:</strong>
-                                            <?php if ($bridgeEnabled): ?>
-                                                <button type="submit" class="btn btn-warning btn-sm" formaction="" formmethod="post" name="machine_action" value="pause_bridge_for_enrollment">Pause Bridge for Enrollment</button>
-                                                <span class="text-muted">Recommended before adding fingerprints/users on F20H. Resume after enrollment to continue sync.</span>
-                                            <?php else: ?>
-                                                <button type="submit" class="btn btn-success btn-sm" formaction="" formmethod="post" name="machine_action" value="resume_bridge_after_enrollment">Resume Bridge Sync</button>
-                                                <span class="text-muted">Bridge is currently paused for enrollment. Click Resume when finished.</span>
-                                            <?php endif; ?>
-                                        </div>
                                     </div>
                                 </form>
                             <?php endif; ?>

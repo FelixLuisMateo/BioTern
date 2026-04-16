@@ -4,12 +4,12 @@
     "ingest_path":  "/api/f20h_ingest.php",
     "ingest_api_token":  "eDeYGNLhVBHePxAxObSRZuwyDzHaQIZK",
     "poll_seconds":  5,
-    "ip_address":  "192.168.110.201",
-    "gateway":  "192.168.110.1",
+    "ip_address":  "192.168.200.201",
+    "gateway":  "192.168.200.1",
     "mask":  "255.255.255.0",
     "port":  5001,
     "device_number":  1,
     "communication_password":  "0",
     "output_path":  "/var/task/user/attendance.txt",
-    "updated_at":  "2026-04-14 08:24:05"
+    "updated_at":  "2026-04-15 14:55:01"
 }

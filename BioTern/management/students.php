@@ -44,13 +44,24 @@ if ($col_sy && $col_sy->num_rows > 0) {
     $has_school_year_column = true;
 }
 
+$has_fingerprint_user_map = false;
+$map_tbl = $db->query("SHOW TABLES LIKE 'fingerprint_user_map'");
+if ($map_tbl && $map_tbl->num_rows > 0) {
+    $has_fingerprint_user_map = true;
+}
+
+$biometric_ready_condition = "s.biometric_registered = 1";
+if ($has_fingerprint_user_map) {
+    $biometric_ready_condition = "(s.biometric_registered = 1 OR EXISTS (SELECT 1 FROM fingerprint_user_map fum WHERE fum.user_id = s.user_id))";
+}
+
 // Fetch Students Statistics
 $stats_query = "
     SELECT 
         COUNT(*) as total_students,
         SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as active_students,
         SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as inactive_students,
-        SUM(CASE WHEN biometric_registered = 1 THEN 1 ELSE 0 END) as biometric_registered
+        SUM(CASE WHEN {$biometric_ready_condition} THEN 1 ELSE 0 END) as biometric_registered
     FROM students s
 ";
 if ($has_application_status) {
@@ -246,6 +257,10 @@ $students_query = "
             ELSE 0
         END as live_clock_status,
         s.biometric_registered,
+        CASE
+            WHEN {$biometric_ready_condition} THEN 1
+            ELSE 0
+        END as biometric_ready,
         s.created_at,
         COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         c.name as course_name,
@@ -680,7 +695,7 @@ include 'includes/header.php';
                                                     $last_logged = formatDate($student['created_at']);
                                                     $email_value = trim((string)($student['email'] ?? ''));
                                                     $phone_value = trim((string)($student['phone'] ?? ''));
-                                                    $biometric_ready = ((int)($student['biometric_registered'] ?? 0) === 1);
+                                                    $biometric_ready = ((int)($student['biometric_ready'] ?? 0) === 1);
                                                     ?>
                                                     <tr
                                                         class="single-item app-students-table-row"

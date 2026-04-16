@@ -4,7 +4,7 @@ param(
     [string]$TaskName = 'BioTernBridgeWorker',
     [string]$SiteBaseUrl = '',
     [string]$BridgeToken = '',
-    [bool]$PreferLocalConnectorNetwork = $true
+    [bool]$PreferLocalConnectorNetwork = $false
 )
 
 $ErrorActionPreference = 'Stop'
