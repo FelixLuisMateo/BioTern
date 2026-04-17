@@ -1,10 +1,12 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+external_attendance_ensure_schema($conn);
 
 function student_profile_value(?string $value, string $fallback): string
 {
@@ -41,6 +43,12 @@ $profileStats = [
     'rejected_logs' => 0,
     'total_hours' => 0.0,
 ];
+$externalProfileStats = [
+    'approved_logs' => 0,
+    'pending_logs' => 0,
+    'rejected_logs' => 0,
+    'total_hours' => 0.0,
+];
 
 $userStmt = $conn->prepare('SELECT id, name, username, email, profile_picture, created_at FROM users WHERE id = ? LIMIT 1');
 if ($userStmt) {
@@ -54,6 +62,8 @@ $studentStmt = $conn->prepare(
     "SELECT s.id, s.student_id, s.first_name, s.middle_name, s.last_name, s.email AS student_email, s.phone, s.address,
             s.date_of_birth, s.gender, s.emergency_contact,
             s.status AS student_status, s.biometric_registered, s.biometric_registered_at,
+            s.assignment_track, s.internal_total_hours, s.internal_total_hours_remaining,
+            s.external_total_hours, s.external_total_hours_remaining,
             c.name AS course_name, d.name AS department_name, sec.code AS section_code, sec.name AS section_name
      FROM students s
      LEFT JOIN courses c ON c.id = s.course_id
@@ -76,6 +86,8 @@ if (!$student && $user) {
         "SELECT s.id, s.student_id, s.first_name, s.middle_name, s.last_name, s.email AS student_email, s.phone, s.address,
                 s.date_of_birth, s.gender, s.emergency_contact,
                 s.status AS student_status, s.biometric_registered, s.biometric_registered_at,
+                s.assignment_track, s.internal_total_hours, s.internal_total_hours_remaining,
+                s.external_total_hours, s.external_total_hours_remaining,
                 c.name AS course_name, d.name AS department_name, sec.code AS section_code, sec.name AS section_name
          FROM students s
          LEFT JOIN courses c ON c.id = s.course_id
@@ -160,6 +172,22 @@ if ($student) {
         $profileStats = $summaryStmt->get_result()->fetch_assoc() ?: $profileStats;
         $summaryStmt->close();
     }
+
+    $externalSummaryStmt = $conn->prepare(
+        "SELECT
+            COALESCE(SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) <> 'rejected' THEN total_hours ELSE 0 END), 0) AS total_hours,
+            SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'approved' THEN 1 ELSE 0 END) AS approved_logs,
+            SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'pending' THEN 1 ELSE 0 END) AS pending_logs,
+            SUM(CASE WHEN LOWER(COALESCE(status, 'pending')) = 'rejected' THEN 1 ELSE 0 END) AS rejected_logs
+         FROM external_attendance
+         WHERE student_id = ?"
+    );
+    if ($externalSummaryStmt) {
+        $externalSummaryStmt->bind_param('i', $studentId);
+        $externalSummaryStmt->execute();
+        $externalProfileStats = $externalSummaryStmt->get_result()->fetch_assoc() ?: $externalProfileStats;
+        $externalSummaryStmt->close();
+    }
 }
 
 $lastLoginStmt = $conn->prepare('SELECT created_at FROM login_logs WHERE user_id = ? AND status = ? ORDER BY created_at DESC LIMIT 1');
@@ -192,6 +220,10 @@ $studentNumber = trim((string)($student['student_id'] ?? ''));
 $courseName = trim((string)($student['course_name'] ?? ''));
 $departmentName = trim((string)($student['department_name'] ?? ''));
 $sectionName = !empty($sectionParts) ? implode(' | ', $sectionParts) : '';
+$assignmentTrack = strtolower(trim((string)($student['assignment_track'] ?? 'internal')));
+if (!in_array($assignmentTrack, ['internal', 'external'], true)) {
+    $assignmentTrack = 'internal';
+}
 $studentStatus = student_profile_value((string)($student['student_status'] ?? ''), 'Not yet available');
 $contactEmail = trim((string)($student['student_email'] ?? ($user['email'] ?? '')));
 $contactPhone = trim((string)($student['phone'] ?? ''));
@@ -225,6 +257,8 @@ $completionChecks = [
     $emergencyContact !== '',
 ];
 $profileCompletion = (int)round((array_sum(array_map(static fn($value) => $value ? 1 : 0, $completionChecks)) / count($completionChecks)) * 100);
+$internalRenderedHours = (float)($profileStats['total_hours'] ?? 0);
+$externalRenderedHours = (float)($externalProfileStats['total_hours'] ?? 0);
 
 $page_title = 'BioTern || My Profile';
 $page_styles = [
@@ -266,8 +300,9 @@ include 'includes/header.php';
                         </div>
 
                         <div class="student-profile-actions">
-                            <a href="profile-details.php#account-settings" class="btn btn-primary">Edit Account</a>
-                            <a href="student-dtr.php" class="btn btn-outline-primary">Open My DTR</a>
+                            <a href="account-settings.php#overview" class="btn btn-primary">Account Settings</a>
+                            <a href="student-internal-dtr.php" class="btn btn-outline-primary">Internal DTR</a>
+                            <a href="external-attendance.php" class="btn btn-outline-primary">External DTR</a>
                             <a href="document_application.php" class="btn btn-outline-secondary">My Documents</a>
                         </div>
                     </div>
@@ -309,9 +344,16 @@ include 'includes/header.php';
                     </article>
                     <article class="card student-metric-card">
                         <div class="card-body">
-                            <span class="student-metric-label">Hours Rendered</span>
-                            <h3><?php echo number_format((float)($profileStats['total_hours'] ?? 0), 1); ?></h3>
-                            <p>Total hours recorded across your DTR.</p>
+                            <span class="student-metric-label">Internal Hours</span>
+                            <h3><?php echo number_format($internalRenderedHours, 1); ?></h3>
+                            <p>Approved and recorded internal attendance hours.</p>
+                        </div>
+                    </article>
+                    <article class="card student-metric-card">
+                        <div class="card-body">
+                            <span class="student-metric-label">External Hours</span>
+                            <h3><?php echo number_format($externalRenderedHours, 1); ?></h3>
+                            <p>Hours from student-submitted external DTR entries.</p>
                         </div>
                     </article>
                 </div>
@@ -418,6 +460,10 @@ include 'includes/header.php';
                                 <strong><?php echo htmlspecialchars(student_profile_value((string)($internship['position'] ?? ''), 'No position assigned yet'), ENT_QUOTES, 'UTF-8'); ?></strong>
                             </div>
                             <div>
+                                <span>Track</span>
+                                <strong><?php echo htmlspecialchars(ucfirst($assignmentTrack), ENT_QUOTES, 'UTF-8'); ?></strong>
+                            </div>
+                            <div>
                                 <span>Status</span>
                                 <strong><?php echo htmlspecialchars(student_profile_value((string)($internship['status'] ?? ''), 'Not started'), ENT_QUOTES, 'UTF-8'); ?></strong>
                             </div>
@@ -428,6 +474,14 @@ include 'includes/header.php';
                             <div>
                                 <span>End Date</span>
                                 <strong><?php echo htmlspecialchars(student_profile_format_date((string)($internship['end_date'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></strong>
+                            </div>
+                            <div>
+                                <span>Internal Hours</span>
+                                <strong><?php echo number_format($internalRenderedHours, 2); ?> / <?php echo number_format((float)($student['internal_total_hours'] ?? 0), 0); ?></strong>
+                            </div>
+                            <div>
+                                <span>External Hours</span>
+                                <strong><?php echo number_format($externalRenderedHours, 2); ?> / <?php echo number_format((float)($student['external_total_hours'] ?? 0), 0); ?></strong>
                             </div>
                         </div>
                     </div>
@@ -473,7 +527,7 @@ include 'includes/header.php';
                             <small>Keep your account details complete so printed documents and student records stay accurate.</small>
                         </div>
                         <div class="d-grid gap-2 mt-3">
-                            <a href="profile-details.php#account-settings" class="btn btn-primary">Update My Details</a>
+                            <a href="account-settings.php#overview" class="btn btn-primary">Update My Details</a>
                             <a href="document_application.php" class="btn btn-outline-secondary">Review My Documents</a>
                         </div>
                     </div>

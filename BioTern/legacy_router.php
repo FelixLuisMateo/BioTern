@@ -62,6 +62,7 @@ $map = [
   'students-edit.php' => 'management/students-edit.php',
   'students-view.php' => 'management/students-view.php',
   'students-dtr.php' => 'management/students-dtr.php',
+  'students-internal-dtr.php' => 'management/students-dtr.php',
   'courses.php' => 'management/courses.php',
   'courses-create.php' => 'management/courses-create.php',
   'courses-edit.php' => 'management/courses-edit.php',
@@ -111,6 +112,7 @@ $map = [
   'import-ojt-internal.php' => 'tools/import-ojt-internal.php',
   'import-ojt-external.php' => 'tools/import-ojt-external.php',
   'print_attendance.php' => 'pages/print_attendance.php',
+  'external-attendance.php' => 'pages/external-attendance.php',
 
   'document_application.php' => 'documents/document_application.php',
   'document_endorsement.php' => 'documents/document_endorsement.php',
@@ -121,6 +123,7 @@ $map = [
   'document_waiver.php' => 'documents/document_waiver.php',
   'student-profile.php' => 'pages/student-profile.php',
   'student-dtr.php' => 'pages/student-dtr.php',
+  'student-internal-dtr.php' => 'pages/student-dtr.php',
 
   'reports-ojt.php' => 'reports/reports-ojt.php',
   'reports-project.php' => 'reports/reports-project.php',

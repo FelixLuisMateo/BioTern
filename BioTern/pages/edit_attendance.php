@@ -198,9 +198,9 @@ include 'includes/header.php';
                                 <span>Back to Attendance</span>
                             </a>
                             <?php if (!empty($attendance['student_id'])): ?>
-                                <a href="students-dtr.php?id=<?php echo (int)$attendance['student_id']; ?>" class="btn btn-outline-secondary">
+                                <a href="students-internal-dtr.php?id=<?php echo (int)$attendance['student_id']; ?>" class="btn btn-outline-secondary">
                                     <i class="feather-user me-1"></i>
-                                    <span>Student DTR</span>
+                                    <span>Student Internal DTR</span>
                                 </a>
                             <?php endif; ?>
                             <button type="button" class="btn btn-light" data-action="print-page">

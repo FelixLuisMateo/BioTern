@@ -544,7 +544,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
                 'message' => 'Could not save the proof image.',
             ];
             $redirectMonth = preg_match('/^\d{4}\-\d{2}$/', $selectedMonth) ? $selectedMonth : date('Y-m');
-            header('Location: student-dtr.php?month=' . urlencode($redirectMonth));
+            header('Location: student-internal-dtr.php?month=' . urlencode($redirectMonth));
             exit;
         }
 
@@ -640,7 +640,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
     }
 
     $redirectMonth = preg_match('/^\d{4}\-\d{2}$/', $selectedMonth) ? $selectedMonth : date('Y-m');
-    header('Location: student-dtr.php?month=' . urlencode($redirectMonth));
+    header('Location: student-internal-dtr.php?month=' . urlencode($redirectMonth));
     exit;
 }
 
@@ -673,7 +673,7 @@ $lastRecordedDateText = $attendanceInsights['last_recorded_date'] !== ''
     ? date('M d, Y', strtotime($attendanceInsights['last_recorded_date']))
     : 'No entries yet';
 
-$page_title = 'BioTern || My DTR';
+$page_title = 'BioTern || My Internal DTR';
 $page_styles = [
     'assets/css/homepage-student.css',
     'assets/css/student-dtr.css',
@@ -691,7 +691,7 @@ include 'includes/header.php';
             <div class="card-body">
                 <div class="student-dtr-hero">
                     <div>
-                        <span class="student-home-eyebrow">Daily Time Record</span>
+                        <span class="student-home-eyebrow">Internal Daily Time Record</span>
                         <h2><?php echo htmlspecialchars($displayName !== '' ? $displayName : 'Student User', ENT_QUOTES, 'UTF-8'); ?></h2>
                         <p>Track your attendance logs for <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?>, review approval status, and submit a fallback record only when the biometric machine is unavailable.</p>
                         <div class="student-home-meta">
@@ -765,7 +765,7 @@ include 'includes/header.php';
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                     <div>
                         <span class="student-metric-label">Machine Down Fallback</span>
-                        <h3 class="mb-1">Submit Manual DTR</h3>
+                        <h3 class="mb-1">Submit Manual Internal DTR</h3>
                         <div class="student-dtr-meta">Use this only when the biometric machine is unavailable. Manual fallback entries stay in review until checked by the school.</div>
                     </div>
                 </div>
@@ -853,7 +853,7 @@ include 'includes/header.php';
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                             <div>
                                 <span class="student-metric-label">Attendance Logs</span>
-                                <h3 class="mb-1">My DTR Entries</h3>
+                                <h3 class="mb-1">My Internal DTR Entries</h3>
                                 <div class="student-dtr-meta">Daily attendance records for the selected month.</div>
                             </div>
                             <a href="student-profile.php" class="btn btn-outline-primary">Back to Profile</a>
@@ -906,7 +906,7 @@ include 'includes/header.php';
                             </table>
                         </div>
                         <?php else: ?>
-                        <div class="student-dtr-empty">No DTR entries found for <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?> yet.</div>
+                        <div class="student-dtr-empty">No internal DTR entries found for <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?> yet.</div>
                         <?php endif; ?>
                     </div>
                 </section>

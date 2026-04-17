@@ -1269,7 +1269,7 @@ include 'includes/header.php';
                                     <h5 class="fw-bold mb-0">Internship Monitoring Overview</h5>
                                 <div class="d-flex gap-2 overview-actions app-ojt-view-overview-actions">
                                     <a href="ojt-edit.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-sm btn-outline-primary">Controlled Edit</a>
-                                    <a href="students-dtr.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-sm btn-outline-success">Attendance History</a>
+                                    <a href="students-internal-dtr.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-sm btn-outline-success">Internal Attendance</a>
                                     <a href="ojt-workflow-board.php" class="btn btn-sm btn-outline-info">Workflow Board</a>
                                 </div>
                             </div>

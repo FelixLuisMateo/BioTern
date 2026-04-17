@@ -527,7 +527,7 @@ include 'includes/header.php';
                                 <tbody>
                                     <?php foreach ($today_records as $record): ?>
                                         <?php $row_student_id = intval($record['student_db_id'] ?? 0); ?>
-                                        <tr <?php if ($row_student_id > 0): ?>onclick="window.location.href='students-dtr.php?id=<?php echo $row_student_id; ?>'" style="cursor: pointer;"<?php endif; ?>>
+                                        <tr <?php if ($row_student_id > 0): ?>onclick="window.location.href='students-internal-dtr.php?id=<?php echo $row_student_id; ?>'" style="cursor: pointer;"<?php endif; ?>>
                                             <td>
                                                 <strong><?php echo ($record['first_name'] ?? 'N/A') . ' ' . ($record['last_name'] ?? 'N/A'); ?></strong>
                                             </td>

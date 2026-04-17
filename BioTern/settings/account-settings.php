@@ -371,7 +371,9 @@ include dirname(__DIR__) . '/includes/header.php';
                                     <div class="card-body">
                                         <div class="settings-utility-links">
                                             <a class="settings-utility-link" href="notifications.php"><span>Open notifications inbox</span><span><i class="feather-arrow-right"></i></span></a>
-                                            <a class="settings-utility-link" href="theme-customizer.php"><span>Appearance</span><span><i class="feather-arrow-right"></i></span></a>
+                                            <?php if ($role !== 'student'): ?>
+                                                <a class="settings-utility-link" href="theme-customizer.php"><span>Appearance</span><span><i class="feather-arrow-right"></i></span></a>
+                                            <?php endif; ?>
                                             <a class="settings-utility-link" href="auth-login.php?logout=1"><span>Logout</span><span><i class="feather-log-out"></i></span></a>
                                         </div>
                                     </div>
