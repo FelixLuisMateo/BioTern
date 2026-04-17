@@ -1,6 +1,7 @@
 <?php
 // Database connection from central config
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -71,6 +72,47 @@ function biotern_student_edit_ensure_runtime_dir(string $path): bool
     }
 
     return @mkdir($path, 0755, true) || is_dir($path);
+}
+
+function biotern_student_edit_ensure_profile_picture_table(mysqli $conn): bool
+{
+    return (bool)$conn->query("CREATE TABLE IF NOT EXISTS user_profile_pictures (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id INT UNSIGNED NOT NULL,
+        image_mime VARCHAR(64) NOT NULL,
+        image_data LONGBLOB NOT NULL,
+        image_size INT UNSIGNED NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_user_profile_picture (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function biotern_student_edit_save_profile_picture_blob(mysqli $conn, int $userId, string $mime, string $binary): bool
+{
+    if ($userId <= 0 || $mime === '' || $binary === '') {
+        return false;
+    }
+    if (!biotern_student_edit_ensure_profile_picture_table($conn)) {
+        return false;
+    }
+
+    $size = strlen($binary);
+    $stmt = $conn->prepare("INSERT INTO user_profile_pictures (user_id, image_mime, image_data, image_size, created_at, updated_at)
+        VALUES (?, ?, ?, ?, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE image_mime = VALUES(image_mime), image_data = VALUES(image_data), image_size = VALUES(image_size), updated_at = NOW()");
+    if (!$stmt) {
+        return false;
+    }
+
+    $blob = '';
+    $stmt->bind_param('isbi', $userId, $mime, $blob, $size);
+    $stmt->send_long_data(2, $binary);
+    $ok = $stmt->execute();
+    $stmt->close();
+
+    return (bool)$ok;
 }
 
 // Ensure new student assignment/hour fields exist.
@@ -258,9 +300,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Handle profile picture upload
     $profile_picture_path = $student['profile_picture'] ?? '';
     $profile_picture_uploaded = false;
+    $linked_user_id = !empty($student['user_id']) ? (int)$student['user_id'] : 0;
     
     if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == UPLOAD_ERR_OK) {
-        if (!$uploads_available) {
+        if (!$uploads_available && $linked_user_id <= 0) {
             $error_message = "Profile picture uploads are disabled on this deployment because the filesystem is read-only. Review and upload locally, or use persistent file storage.";
         }
 
@@ -302,6 +345,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $is_valid_mime = $mime_type !== '' && in_array($mime_type, $allowed_mimes, true);
 
         if ($is_valid_ext && $is_valid_mime && $file_size <= $max_file_size) {
+            if ($linked_user_id > 0) {
+                if (!is_uploaded_file($file_tmp)) {
+                    $error_message = "Failed to upload profile picture because the uploaded file was not detected.";
+                } else {
+                    $binary = @file_get_contents($file_tmp);
+                    if (!is_string($binary) || $binary === '') {
+                        $error_message = "Failed to read uploaded profile picture.";
+                    } elseif (biotern_student_edit_save_profile_picture_blob($conn, $linked_user_id, $mime_type, $binary)) {
+                        $profile_picture_path = 'db-avatar';
+                        $profile_picture_uploaded = true;
+                    } else {
+                        $error_message = "Failed to save profile picture to user_profile_pictures.";
+                    }
+                }
+            } else {
             // Create unique filename
             $unique_name = 'student_' . $student_id . '_' . time() . '.' . $file_ext;
             $file_path = $uploads_dir . '/' . $unique_name;
@@ -323,6 +381,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $profile_picture_uploaded = true;
             } else {
                 $error_message = "Failed to upload profile picture. Please try again.";
+            }
             }
         } else {
             $error_message = "Invalid image file or file size exceeds 5MB. Allowed types: JPG, JPEG, PNG, GIF, WEBP.";
@@ -824,17 +883,24 @@ function formatDateTime($date) {
     return 'N/A';
 }
 
-function resolve_profile_image_url(string $profilePath): ?string {
-    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
-    if ($clean === '') {
+function resolve_profile_image_url(string $profilePath, int $userId = 0): ?string {
+    $public = trim((string)biotern_avatar_public_src($profilePath, $userId));
+    if ($public === '') {
         return null;
     }
+
+    if (stripos($public, 'includes/avatar-image.php?uid=') !== false) {
+        return $public;
+    }
+
+    $clean = ltrim(str_replace('\\', '/', $public), '/');
     $rootPath = dirname(__DIR__) . '/' . $clean;
-    if (!file_exists($rootPath)) {
-        return null;
+    if (file_exists($rootPath)) {
+        $mtime = @filemtime($rootPath);
+        return $clean . ($mtime ? ('?v=' . $mtime) : '');
     }
-    $mtime = @filemtime($rootPath);
-    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+
+    return $public;
 }
 
 ?>
@@ -1547,7 +1613,7 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                                 <label for="profile_picture" class="form-label fw-semibold">Profile Picture</label>
                                                 <div class="mb-2">
                                                     <?php
-                                                        $profile_preview = resolve_profile_image_url((string)($student['profile_picture'] ?? ''));
+                                                        $profile_preview = resolve_profile_image_url((string)($student['profile_picture'] ?? ''), (int)($student['user_id'] ?? 0));
                                                         if ($profile_preview === null) {
                                                             $profile_preview = 'assets/images/avatar/' . (($student_id % 5) + 1) . '.png';
                                                         }

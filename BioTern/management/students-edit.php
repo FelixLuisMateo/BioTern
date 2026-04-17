@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 /** @var mysqli $conn */
 
 require_once dirname(__DIR__) . '/includes/auth-session.php';
@@ -29,6 +30,47 @@ function biotern_users_column_exists(mysqli $conn, string $column): bool
     $exists = $stmt->get_result()->num_rows > 0;
     $stmt->close();
     return $exists;
+}
+
+function biotern_student_edit_ensure_profile_picture_table(mysqli $conn): bool
+{
+    return (bool)$conn->query("CREATE TABLE IF NOT EXISTS user_profile_pictures (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id INT UNSIGNED NOT NULL,
+        image_mime VARCHAR(64) NOT NULL,
+        image_data LONGBLOB NOT NULL,
+        image_size INT UNSIGNED NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_user_profile_picture (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function biotern_student_edit_save_profile_picture_blob(mysqli $conn, int $userId, string $mime, string $binary): bool
+{
+    if ($userId <= 0 || $mime === '' || $binary === '') {
+        return false;
+    }
+    if (!biotern_student_edit_ensure_profile_picture_table($conn)) {
+        return false;
+    }
+
+    $size = strlen($binary);
+    $stmt = $conn->prepare("INSERT INTO user_profile_pictures (user_id, image_mime, image_data, image_size, created_at, updated_at)
+        VALUES (?, ?, ?, ?, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE image_mime = VALUES(image_mime), image_data = VALUES(image_data), image_size = VALUES(image_size), updated_at = NOW()");
+    if (!$stmt) {
+        return false;
+    }
+
+    $blob = '';
+    $stmt->bind_param('isbi', $userId, $mime, $blob, $size);
+    $stmt->send_long_data(2, $binary);
+    $ok = $stmt->execute();
+    $stmt->close();
+
+    return (bool)$ok;
 }
 
 function biotern_student_edit_ensure_runtime_dir(string $path): bool
@@ -84,7 +126,7 @@ $student_query = "
         s.id,
         s.user_id,
         s.student_id,
-        s.profile_picture,
+        COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         s.first_name,
         s.last_name,
         s.middle_name,
@@ -116,6 +158,7 @@ $student_query = "
         sv.id as supervisor_id,
         co.id as coordinator_id
     FROM students s
+    LEFT JOIN users u_student ON s.user_id = u_student.id
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     LEFT JOIN supervisors sv ON (sv.user_id = i.supervisor_id OR sv.id = i.supervisor_id)
@@ -235,19 +278,52 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $profile_picture_uploaded = false;
     
     if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == UPLOAD_ERR_OK) {
-        if (!$uploads_available) {
-            $error_message = "Profile picture uploads are currently unavailable because the upload folder is missing or not writable.";
-        } else {
-            $file_tmp = $_FILES['profile_picture']['tmp_name'];
-            $file_name = $_FILES['profile_picture']['name'];
-            $file_size = $_FILES['profile_picture']['size'];
-            $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+        $file_tmp = $_FILES['profile_picture']['tmp_name'];
+        $file_name = $_FILES['profile_picture']['name'];
+        $file_size = $_FILES['profile_picture']['size'];
+        $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+        $linked_user_id = !empty($student['user_id']) ? (int)$student['user_id'] : 0;
 
-            // Validate file type and size
-            $allowed_types = ['jpg', 'jpeg', 'png', 'gif'];
-            $max_file_size = 5 * 1024 * 1024; // 5MB
+        // Validate file type and size
+        $allowed_types = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $allowed_mimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $max_file_size = 5 * 1024 * 1024; // 5MB
 
-            if (in_array($file_ext, $allowed_types, true) && $file_size <= $max_file_size) {
+        if (in_array($file_ext, $allowed_types, true) && $file_size <= $max_file_size) {
+            $mime_type = '';
+            if (function_exists('finfo_open')) {
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                if ($finfo) {
+                    $mime_type = (string)finfo_file($finfo, $file_tmp);
+                    finfo_close($finfo);
+                }
+            }
+            if ($mime_type === '' || $mime_type === 'application/octet-stream') {
+                $img_info = @getimagesize($file_tmp);
+                if (is_array($img_info) && !empty($img_info['mime'])) {
+                    $mime_type = (string)$img_info['mime'];
+                }
+            }
+
+            if ($linked_user_id > 0) {
+                if (!is_uploaded_file($file_tmp)) {
+                    $error_message = "Failed to upload profile picture because the uploaded file was not detected.";
+                } elseif (!in_array($mime_type, $allowed_mimes, true)) {
+                    $error_message = "Invalid image file. Allowed types: JPG, JPEG, PNG, GIF, WEBP.";
+                } else {
+                    $binary = @file_get_contents($file_tmp);
+                    if (!is_string($binary) || $binary === '') {
+                        $error_message = "Failed to read uploaded profile picture.";
+                    } elseif (biotern_student_edit_save_profile_picture_blob($conn, $linked_user_id, $mime_type, $binary)) {
+                        $profile_picture_path = 'db-avatar';
+                        $profile_picture_uploaded = true;
+                    } else {
+                        $error_message = "Failed to save profile picture to user_profile_pictures.";
+                    }
+                }
+            } elseif (!$uploads_available) {
+                $error_message = "Profile picture uploads are currently unavailable because the upload folder is missing or not writable.";
+            } else {
                 // Create unique filename
                 $unique_name = 'student_' . $student_id . '_' . time() . '.' . $file_ext;
                 $file_path = $uploads_dir . '/' . $unique_name;
@@ -270,9 +346,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 } else {
                     $error_message = "Failed to upload profile picture. Please try again.";
                 }
-            } else {
-                $error_message = "Invalid file type or file size exceeds 5MB. Allowed types: JPG, PNG, GIF.";
             }
+        } else {
+            $error_message = "Invalid file type or file size exceeds 5MB. Allowed types: JPG, JPEG, PNG, GIF, WEBP.";
         }
     }
     
@@ -854,9 +930,10 @@ include 'includes/header.php';
                                             <div class="col-md-6 mb-4">
                                                 <label for="profile_picture" class="form-label fw-semibold">Profile Picture</label>
                                                 <div class="mb-2">
-                                                    <?php if (!empty($student['profile_picture'])): ?>
+                                                    <?php $student_profile_src = biotern_avatar_public_src((string)($student['profile_picture'] ?? ''), (int)($student['user_id'] ?? 0)); ?>
+                                                    <?php if (!empty($student_profile_src)): ?>
                                                         <div class="mb-2">
-                                                            <img src="<?php echo htmlspecialchars($student['profile_picture']); ?>" alt="Profile" class="img-thumbnail app-thumb-150">
+                                                            <img src="<?php echo htmlspecialchars($student_profile_src); ?>" alt="Profile" class="img-thumbnail app-thumb-150">
                                                         </div>
                                                     <?php else: ?>
                                                         <div class="alert alert-info mb-2 py-2 px-3">No profile picture uploaded</div>

@@ -15,6 +15,110 @@ if (!function_exists('biotern_theme_defaults')) {
     }
 }
 
+if (!function_exists('biotern_theme_db_connection')) {
+    function biotern_theme_db_connection(): ?mysqli
+    {
+        if (isset($GLOBALS['conn']) && ($GLOBALS['conn'] instanceof mysqli) && !$GLOBALS['conn']->connect_errno) {
+            return $GLOBALS['conn'];
+        }
+
+        $dbConfig = dirname(__DIR__) . '/config/db.php';
+        if (is_file($dbConfig)) {
+            require_once $dbConfig;
+        }
+
+        if (isset($GLOBALS['conn']) && ($GLOBALS['conn'] instanceof mysqli) && !$GLOBALS['conn']->connect_errno) {
+            return $GLOBALS['conn'];
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('biotern_theme_ensure_preferences_table')) {
+    function biotern_theme_ensure_preferences_table(mysqli $conn): bool
+    {
+        return (bool)$conn->query("CREATE TABLE IF NOT EXISTS user_theme_preferences (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id INT UNSIGNED NOT NULL,
+            preferences_json TEXT NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_user_theme_preferences_user_id (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+    }
+}
+
+if (!function_exists('biotern_theme_db_load_for_user')) {
+    function biotern_theme_db_load_for_user(int $userId): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $conn = biotern_theme_db_connection();
+        if (!($conn instanceof mysqli)) {
+            return [];
+        }
+
+        if (!biotern_theme_ensure_preferences_table($conn)) {
+            return [];
+        }
+
+        $stmt = $conn->prepare('SELECT preferences_json FROM user_theme_preferences WHERE user_id = ? LIMIT 1');
+        if (!$stmt) {
+            return [];
+        }
+
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!is_array($row) || !isset($row['preferences_json'])) {
+            return [];
+        }
+
+        $decoded = json_decode((string)$row['preferences_json'], true);
+        return is_array($decoded) ? $decoded : [];
+    }
+}
+
+if (!function_exists('biotern_theme_db_save_for_user')) {
+    function biotern_theme_db_save_for_user(int $userId, array $preferences): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+
+        $conn = biotern_theme_db_connection();
+        if (!($conn instanceof mysqli)) {
+            return false;
+        }
+
+        if (!biotern_theme_ensure_preferences_table($conn)) {
+            return false;
+        }
+
+        $json = json_encode($preferences, JSON_UNESCAPED_UNICODE);
+        if (!is_string($json) || $json === '') {
+            return false;
+        }
+
+        $stmt = $conn->prepare('INSERT INTO user_theme_preferences (user_id, preferences_json, created_at, updated_at) VALUES (?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE preferences_json = VALUES(preferences_json), updated_at = NOW()');
+        if (!$stmt) {
+            return false;
+        }
+
+        $stmt->bind_param('is', $userId, $json);
+        $ok = $stmt->execute();
+        $stmt->close();
+
+        return (bool)$ok;
+    }
+}
+
 if (!function_exists('biotern_theme_allowed_fonts')) {
     function biotern_theme_allowed_fonts(): array
     {
@@ -154,6 +258,7 @@ if (!function_exists('biotern_theme_preferences')) {
 
         $defaults = biotern_theme_defaults();
         $userId = biotern_theme_current_user_id();
+        $dbPrefs = biotern_theme_db_load_for_user($userId);
 
         $sessionPrefs = [];
         $legacySessionPrefs = [];
@@ -188,7 +293,7 @@ if (!function_exists('biotern_theme_preferences')) {
         // 2) legacy session fallback (only when per-user session is absent)
         // 3) cookie (per-user cookie should win over legacy fallback)
         // 4) per-user session (authoritative when present)
-        $merged = array_merge($defaults, $legacySessionPrefs, $cookiePrefs, $sessionPrefs);
+        $merged = array_merge($defaults, $dbPrefs, $legacySessionPrefs, $cookiePrefs, $sessionPrefs);
         $sanitized = biotern_theme_sanitize($merged);
         $_SESSION['biotern_theme_preferences'] = $sanitized;
         if (!isset($_SESSION['biotern_theme_preferences_by_user']) || !is_array($_SESSION['biotern_theme_preferences_by_user'])) {
@@ -196,6 +301,10 @@ if (!function_exists('biotern_theme_preferences')) {
         }
         if ($userId > 0) {
             $_SESSION['biotern_theme_preferences_by_user'][$userId] = $sanitized;
+        }
+
+        if ($userId > 0) {
+            biotern_theme_db_save_for_user($userId, $sanitized);
         }
 
         return $sanitized;
@@ -217,6 +326,7 @@ if (!function_exists('biotern_save_theme_preferences')) {
         }
         if ($userId > 0) {
             $_SESSION['biotern_theme_preferences_by_user'][$userId] = $sanitized;
+            biotern_theme_db_save_for_user($userId, $sanitized);
         }
 
         setcookie(biotern_theme_cookie_name_for_user($userId), json_encode($sanitized), [
