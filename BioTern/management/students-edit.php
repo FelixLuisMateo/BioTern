@@ -251,6 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Create unique filename
                 $unique_name = 'student_' . $student_id . '_' . time() . '.' . $file_ext;
                 $file_path = $uploads_dir . '/' . $unique_name;
+                $destination_dir = dirname($file_path);
 
                 // Delete old profile picture if exists
                 $old_profile_file = $project_root . '/' . ltrim(str_replace('\\', '/', (string)$profile_picture_path), '/');
@@ -259,7 +260,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
 
                 // Move uploaded file
-                if (is_uploaded_file($file_tmp) && move_uploaded_file($file_tmp, $file_path)) {
+                if (!is_dir($destination_dir) && !biotern_student_edit_ensure_runtime_dir($destination_dir)) {
+                    $error_message = "Failed to upload profile picture because the destination folder is not available on this deployment.";
+                } elseif (!is_uploaded_file($file_tmp)) {
+                    $error_message = "Failed to upload profile picture because the uploaded file was not detected.";
+                } elseif (@move_uploaded_file($file_tmp, $file_path)) {
                     $profile_picture_path = 'uploads/profile_pictures/' . $unique_name;
                     $profile_picture_uploaded = true;
                 } else {
@@ -882,6 +887,12 @@ include 'includes/header.php';
                                                 <label for="admin_reset_password_confirm" class="form-label fw-semibold">Confirm New Password</label>
                                                 <input type="password" class="form-control" id="admin_reset_password_confirm" name="admin_reset_password_confirm" autocomplete="new-password" minlength="8" placeholder="Re-enter new password">
                                             </div>
+                                            <div class="col-12 mb-1">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="toggle_admin_reset_password">
+                                                    <label class="form-check-label" for="toggle_admin_reset_password">Show password fields</label>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <?php endif; ?>
@@ -1067,6 +1078,29 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var toggle = document.getElementById('toggle_admin_reset_password');
+    if (!toggle) {
+        return;
+    }
+
+    var passwordIds = ['admin_reset_password', 'admin_reset_password_confirm'];
+    function applyVisibility() {
+        var targetType = toggle.checked ? 'text' : 'password';
+        passwordIds.forEach(function (id) {
+            var input = document.getElementById(id);
+            if (input) {
+                input.type = targetType;
+            }
+        });
+    }
+
+    toggle.addEventListener('change', applyVisibility);
+    applyVisibility();
+});
+</script>
 
 <?php
 $conn->close();

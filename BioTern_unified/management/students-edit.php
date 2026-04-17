@@ -16,6 +16,20 @@ $current_role = strtolower(trim((string) (
 )));
 $can_edit_sensitive_hours = in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
 $can_edit_hours = true;
+$can_admin_reset_student_password = ($current_role === 'admin');
+
+function biotern_users_column_exists(mysqli $conn, string $column): bool
+{
+    $stmt = $conn->prepare("SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = ? LIMIT 1");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('s', $column);
+    $stmt->execute();
+    $exists = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
+    return $exists;
+}
 
 function formatSectionDisplayLabel($code, $name): string
 {
@@ -291,6 +305,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             // Create unique filename
             $unique_name = 'student_' . $student_id . '_' . time() . '.' . $file_ext;
             $file_path = $uploads_dir . '/' . $unique_name;
+            $destination_dir = dirname($file_path);
             
             // Delete old profile picture if exists
             $old_profile_file = $project_root . '/' . ltrim(str_replace('\\', '/', (string)$profile_picture_path), '/');
@@ -299,7 +314,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             
             // Move uploaded file
-            if (move_uploaded_file($file_tmp, $file_path)) {
+            if (!is_dir($destination_dir) && !biotern_student_edit_ensure_runtime_dir($destination_dir)) {
+                $error_message = "Failed to upload profile picture because the destination folder is not available on this deployment.";
+            } elseif (!is_uploaded_file($file_tmp)) {
+                $error_message = "Failed to upload profile picture because the uploaded file was not detected.";
+            } elseif (@move_uploaded_file($file_tmp, $file_path)) {
                 $profile_picture_path = 'uploads/profile_pictures/' . $unique_name;
                 $profile_picture_uploaded = true;
             } else {
@@ -334,6 +353,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $external_total_hours = isset($_POST['external_total_hours']) && $_POST['external_total_hours'] !== '' ? intval($_POST['external_total_hours']) : null;
     $external_total_hours_remaining = isset($_POST['external_total_hours_remaining']) && $_POST['external_total_hours_remaining'] !== '' ? intval($_POST['external_total_hours_remaining']) : null;
     $assignment_track = isset($_POST['assignment_track']) ? trim($_POST['assignment_track']) : 'internal';
+    $admin_reset_password = isset($_POST['admin_reset_password']) ? (string)$_POST['admin_reset_password'] : '';
+    $admin_reset_password_confirm = isset($_POST['admin_reset_password_confirm']) ? (string)$_POST['admin_reset_password_confirm'] : '';
+    $requested_password_reset = ($admin_reset_password !== '' || $admin_reset_password_confirm !== '');
     $original_updated_at = isset($_POST['original_updated_at']) ? trim((string)$_POST['original_updated_at']) : '';
 
     if (!$can_edit_sensitive_hours) {
@@ -475,6 +497,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error_message = "First Name, Last Name, and Email are required fields!";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = "Invalid email format!";
+    } elseif ($requested_password_reset && !$can_admin_reset_student_password) {
+        $error_message = "Only admin accounts can reset a student's account password.";
+    } elseif ($requested_password_reset && empty($student['user_id'])) {
+        $error_message = "This student has no linked account record, so password reset is not available.";
+    } elseif ($requested_password_reset && ($admin_reset_password === '' || $admin_reset_password_confirm === '')) {
+        $error_message = "Enter and confirm the new password to reset the account password.";
+    } elseif ($requested_password_reset && !hash_equals($admin_reset_password, $admin_reset_password_confirm)) {
+        $error_message = "New password and confirmation do not match.";
+    } elseif ($requested_password_reset && (strlen($admin_reset_password) < 8 || !preg_match('/[A-Z]/', $admin_reset_password) || !preg_match('/[a-z]/', $admin_reset_password) || !preg_match('/\d/', $admin_reset_password))) {
+        $error_message = "Password must be at least 8 characters and include uppercase, lowercase, and a number.";
     } elseif ($assignment_track === 'external' && ($internal_total_hours_remaining === null || $internal_total_hours_remaining > 0)) {
         $error_message = "Cannot assign student to External unless Internal is completed (Internal Total Hours Remaining must be 0).";
     } else {
@@ -551,6 +583,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 );
 
                 if ($update_stmt->execute()) {
+                    $password_reset_applied = false;
+                    $password_reset_warning = '';
+
                     if (!empty($student['user_id'])) {
                         $user_id_for_sync = (int)$student['user_id'];
                         $display_name = trim(preg_replace('/\s+/', ' ', $first_name . ' ' . $middle_name . ' ' . $last_name));
@@ -569,6 +604,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             $sync_user_photo->bind_param("si", $profile_picture_path, $user_id_for_photo);
                             $sync_user_photo->execute();
                             $sync_user_photo->close();
+                        }
+                    }
+
+                    if ($requested_password_reset && !empty($student['user_id'])) {
+                        $user_id_for_password = (int)$student['user_id'];
+                        $new_hash = password_hash($admin_reset_password, PASSWORD_DEFAULT);
+
+                        if ($new_hash === false) {
+                            $password_reset_warning = ' Password reset was requested but failed to generate a secure password hash.';
+                        } else {
+                            $password_column = biotern_users_column_exists($conn, 'password_hash') ? 'password_hash' : 'password';
+                            $reset_stmt = $conn->prepare("UPDATE users SET {$password_column} = ?, updated_at = NOW() WHERE id = ? LIMIT 1");
+                            if ($reset_stmt) {
+                                $reset_stmt->bind_param('si', $new_hash, $user_id_for_password);
+                                $reset_ok = $reset_stmt->execute();
+                                $reset_stmt->close();
+
+                                if ($reset_ok) {
+                                    if ($password_column !== 'password' && biotern_users_column_exists($conn, 'password')) {
+                                        $legacy_stmt = $conn->prepare("UPDATE users SET password = ?, updated_at = NOW() WHERE id = ? LIMIT 1");
+                                        if ($legacy_stmt) {
+                                            $legacy_stmt->bind_param('si', $new_hash, $user_id_for_password);
+                                            $legacy_stmt->execute();
+                                            $legacy_stmt->close();
+                                        }
+                                    }
+                                    $password_reset_applied = true;
+                                    $activity_changes[] = 'users.password reset by admin';
+                                } else {
+                                    $password_reset_warning = ' Password reset was requested but failed to save on the linked account.';
+                                }
+                            } else {
+                                $password_reset_warning = ' Password reset was requested but the password update statement could not be prepared.';
+                            }
                         }
                     }
 
@@ -718,6 +787,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     }
 
                     $success_message = "� Student information updated successfully!";
+                    if ($password_reset_applied) {
+                        $success_message .= " Linked account password was reset successfully.";
+                    }
+                    if ($password_reset_warning !== '') {
+                        $success_message .= $password_reset_warning;
+                    }
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
                     $stmt->bind_param("i", $student_id);
@@ -1489,6 +1564,34 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                     </div>
 
 
+                                    <?php if ($can_admin_reset_student_password): ?>
+                                    <div class="edit-section-card">
+                                        <h6 class="fw-bold mb-4">
+                                            <i class="feather-lock me-2"></i>Account Password Reset (Admin)
+                                        </h6>
+                                        <p class="section-subtitle">Optional: set a new login password for this student's linked account when self-service reset is unavailable.</p>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-4">
+                                                <label for="admin_reset_password" class="form-label fw-semibold">New Account Password</label>
+                                                <input type="password" class="form-control" id="admin_reset_password" name="admin_reset_password" autocomplete="new-password" minlength="8" placeholder="Leave blank to keep current password">
+                                                <small class="form-text text-muted">Minimum 8 chars, include uppercase, lowercase, and number.</small>
+                                            </div>
+                                            <div class="col-md-6 mb-4">
+                                                <label for="admin_reset_password_confirm" class="form-label fw-semibold">Confirm New Password</label>
+                                                <input type="password" class="form-control" id="admin_reset_password_confirm" name="admin_reset_password_confirm" autocomplete="new-password" minlength="8" placeholder="Re-enter new password">
+                                            </div>
+                                            <div class="col-12 mb-1">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="toggle_admin_reset_password">
+                                                    <label class="form-check-label" for="toggle_admin_reset_password">Show password fields</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
+
+
                                     <!-- Internship Information Section -->
                                     <div class="edit-section-card">
                                         <h6 class="fw-bold mb-4">
@@ -1802,6 +1905,8 @@ function resolve_profile_image_url(string $profilePath): ?string {
                 var firstName = document.getElementById('first_name').value.trim();
                 var lastName = document.getElementById('last_name').value.trim();
                 var email = document.getElementById('email').value.trim();
+                var resetPassword = document.getElementById('admin_reset_password');
+                var resetConfirm = document.getElementById('admin_reset_password_confirm');
 
                 if (!firstName || !lastName || !email) {
                     e.preventDefault();
@@ -1817,8 +1922,41 @@ function resolve_profile_image_url(string $profilePath): ?string {
                     return false;
                 }
 
+                if (resetPassword && resetConfirm) {
+                    var p1 = (resetPassword.value || '').trim();
+                    var p2 = (resetConfirm.value || '').trim();
+                    if (p1 !== '' || p2 !== '') {
+                        if (p1 === '' || p2 === '') {
+                            e.preventDefault();
+                            alert('Please enter and confirm the new password.');
+                            return false;
+                        }
+                        if (p1 !== p2) {
+                            e.preventDefault();
+                            alert('New password and confirmation do not match.');
+                            return false;
+                        }
+                    }
+                }
+
                 return true;
             });
+
+            var toggle = document.getElementById('toggle_admin_reset_password');
+            if (toggle) {
+                var passwordIds = ['admin_reset_password', 'admin_reset_password_confirm'];
+                var applyVisibility = function () {
+                    var targetType = toggle.checked ? 'text' : 'password';
+                    passwordIds.forEach(function (id) {
+                        var input = document.getElementById(id);
+                        if (input) {
+                            input.type = targetType;
+                        }
+                    });
+                };
+                toggle.addEventListener('change', applyVisibility);
+                applyVisibility();
+            }
         });
 
         // Auto-hide alerts after 5 seconds
