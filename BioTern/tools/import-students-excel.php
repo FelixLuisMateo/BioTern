@@ -1514,6 +1514,7 @@ function students_excel_import_workbook(mysqli $mysqli, string $path, string $so
         }
 
         $email = trim((string)($row['email'] ?? ''));
+        $existingStudent = null;
         if ($studentCode !== '') {
             $existingStudent = students_excel_find_student($mysqli, $studentCode, $email, 0);
             if ($existingStudent) {
@@ -1522,7 +1523,8 @@ function students_excel_import_workbook(mysqli $mysqli, string $path, string $so
         }
 
         $rowError = '';
-        $userId = students_excel_upsert_user($mysqli, $row, $rowError);
+        $preferredUserId = (int)($existingStudent['user_id'] ?? 0);
+        $userId = students_excel_upsert_user($mysqli, $row, $rowError, $preferredUserId);
         if ($userId <= 0) {
             $errors[] = 'Students row ' . ($index + 2) . ': ' . $rowError;
             continue;

@@ -108,14 +108,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $stmt = $conn->prepare("INSERT INTO ojt_internal
             (student_no, user_id, last_name, first_name, middle_name, course_id, section_id, email, password, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                user_id = COALESCE(VALUES(user_id), ojt_internal.user_id),
+                last_name = VALUES(last_name),
+                first_name = VALUES(first_name),
+                middle_name = VALUES(middle_name),
+                course_id = COALESCE(VALUES(course_id), ojt_internal.course_id),
+                section_id = COALESCE(VALUES(section_id), ojt_internal.section_id),
+                email = VALUES(email),
+                password = VALUES(password),
+                status = VALUES(status),
+                updated_at = CURRENT_TIMESTAMP");
 
         if (!$stmt) {
             throw new RuntimeException('Failed to prepare import query.');
         }
 
         $existingStudentNos = [];
-        $existingIdentityKeys = [];
         $existingRes = $conn->query('SELECT student_no, last_name, first_name, middle_name, email FROM ojt_internal');
         if ($existingRes instanceof mysqli_result) {
             while ($existing = $existingRes->fetch_assoc()) {
@@ -123,20 +133,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($existingNo !== '') {
                     $existingStudentNos[$normalizeValue($existingNo)] = true;
                 }
-
-                $existingIdentity = implode('|', [
-                    $normalizeValue((string)($existing['last_name'] ?? '')),
-                    $normalizeValue((string)($existing['first_name'] ?? '')),
-                    $normalizeValue((string)($existing['middle_name'] ?? '')),
-                    $normalizeValue((string)($existing['email'] ?? '')),
-                ]);
-                $existingIdentityKeys[$existingIdentity] = true;
             }
             $existingRes->close();
         }
 
         $processed = 0;
-        $duplicatesSkipped = 0;
+        $inserted = 0;
+        $updated = 0;
+        $duplicateStudentNos = [];
+        $seenStudentNos = [];
         $invalidSkipped = 0;
         $lineNumber = 1;
         foreach ($rows as $row) {
@@ -175,17 +180,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $normalizedStudentNo = $normalizeValue($studentNo);
-            $identityKey = implode('|', [
-                $normalizeValue($lastName),
-                $normalizeValue($firstName),
-                $normalizeValue($middleName),
-                $normalizeValue($email),
-            ]);
-
-            if (isset($existingStudentNos[$normalizedStudentNo]) || isset($existingIdentityKeys[$identityKey])) {
-                $duplicatesSkipped++;
-                continue;
+            if (isset($existingStudentNos[$normalizedStudentNo]) || isset($seenStudentNos[$normalizedStudentNo])) {
+                $duplicateStudentNos[$studentNo] = true;
             }
+            $seenStudentNos[$normalizedStudentNo] = true;
 
             $stmt->bind_param(
                 'sisssiisss',
@@ -201,15 +199,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $status
             );
             if (!$stmt->execute()) {
-                if ((int)$stmt->errno === 1062) {
-                    $duplicatesSkipped++;
-                    continue;
-                }
                 throw new RuntimeException('Import failed at CSV line ' . $lineNumber . ': ' . $stmt->error);
             }
 
             $existingStudentNos[$normalizedStudentNo] = true;
-            $existingIdentityKeys[$identityKey] = true;
+            if ((int)$stmt->affected_rows === 1) {
+                $inserted++;
+            } else {
+                $updated++;
+            }
             $processed++;
         }
 
@@ -223,14 +221,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               AND s.user_id IS NOT NULL
               AND s.user_id > 0");
 
-        if ($duplicatesSkipped > 0) {
-            $flashType = 'danger';
-            $flashMessage = 'Some rows were not imported to prevent duplicates.';
+        $duplicateList = array_keys($duplicateStudentNos);
+        $flashType = 'success';
+        if (!empty($duplicateList)) {
+            $flashMessage = 'Import completed. Duplicate Student Numbers were merged by replacement.';
         } else {
-            $flashType = 'success';
             $flashMessage = 'Import completed successfully.';
         }
-        $flashDetail = 'Imported: ' . $processed . ' | Duplicates skipped: ' . $duplicatesSkipped . ' | Invalid rows skipped: ' . $invalidSkipped;
+        $flashDetail = 'Processed: ' . $processed . ' | New: ' . $inserted . ' | Replaced: ' . $updated . ' | Duplicate Student No detected: ' . count($duplicateList) . ' | Invalid rows skipped: ' . $invalidSkipped;
+        if (!empty($duplicateList)) {
+            $flashDetail .= ' | Student No: ' . implode(', ', array_slice($duplicateList, 0, 8));
+            if (count($duplicateList) > 8) {
+                $flashDetail .= ' ...';
+            }
+        }
     } catch (Throwable $e) {
         $flashType = 'danger';
         $flashMessage = $e->getMessage();
@@ -289,7 +293,7 @@ ob_end_flush();
                         <div class="col-12 col-md-4">
                             <div class="import-kpi">
                                 <span class="import-kpi-label">Duplicate Rule</span>
-                                <span class="import-kpi-value">Student No or Same Identity</span>
+                                <span class="import-kpi-value">Student No (Unique Key)</span>
                             </div>
                         </div>
                         <div class="col-12 col-md-8">
