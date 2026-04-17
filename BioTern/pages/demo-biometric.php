@@ -7,6 +7,78 @@ require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 require_roles_page(['admin', 'coordinator', 'supervisor', 'student']);
 
+$currentUserId = (int)($_SESSION['user_id'] ?? 0);
+$currentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+$studentMode = ($currentRole === 'student');
+
+function demo_biometric_student_context(mysqli $conn, int $userId): ?array {
+    $stmt = $conn->prepare("
+        SELECT
+            s.id,
+            s.student_id,
+            s.first_name,
+            s.last_name,
+            s.assignment_track,
+            s.internal_total_hours,
+            s.internal_total_hours_remaining,
+            c.name AS course_name,
+            sec.code AS section_code
+        FROM students s
+        LEFT JOIN courses c ON c.id = s.course_id
+        LEFT JOIN sections sec ON sec.id = s.section_id
+        WHERE s.user_id = ?
+        LIMIT 1
+    ");
+    if (!$stmt) {
+        return null;
+    }
+
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc() ?: null;
+    $stmt->close();
+    return $row;
+}
+
+function demo_biometric_action_locked(array $record, string $clockType): bool {
+    $column = attendance_action_to_column($clockType);
+    if ($column === null) {
+        return true;
+    }
+    if (!empty($record[$column])) {
+        return true;
+    }
+
+    $order = ['morning_in', 'morning_out', 'break_in', 'break_out', 'afternoon_in', 'afternoon_out'];
+    $currentIndex = array_search($clockType, $order, true);
+    if ($currentIndex === false) {
+        return true;
+    }
+
+    for ($i = $currentIndex + 1; $i < count($order); $i++) {
+        $laterColumn = attendance_action_to_column($order[$i]);
+        if ($laterColumn !== null && !empty($record[$laterColumn])) {
+            return true;
+        }
+    }
+
+    $previousAction = attendance_expected_previous($clockType);
+    if ($previousAction !== null) {
+        $previousColumn = attendance_action_to_column($previousAction);
+        if ($previousColumn !== null && empty($record[$previousColumn])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+$studentAccount = $studentMode ? demo_biometric_student_context($conn, $currentUserId) : null;
+if ($studentMode && !$studentAccount) {
+    header('Location: homepage.php');
+    exit;
+}
+
 function parse_time_seconds($time_value) {
     if (empty($time_value)) {
         return null;
@@ -167,10 +239,10 @@ $message_type = '';
 $selected_date = isset($_GET['date']) && $_GET['date'] !== '' ? $_GET['date'] : date('Y-m-d');
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $student_id = intval($_POST['student_id']);
-    $clock_date = $_POST['clock_date'];
-    $clock_time = $_POST['clock_time'];
-    $clock_type = $_POST['clock_type']; // morning_time_in, morning_time_out, break_time_in, break_time_out, afternoon_time_in, afternoon_time_out
+    $student_id = $studentMode ? (int)($studentAccount['id'] ?? 0) : intval($_POST['student_id']);
+    $clock_date = $studentMode ? date('Y-m-d') : (string)($_POST['clock_date'] ?? '');
+    $clock_time = $studentMode ? date('H:i') : (string)($_POST['clock_time'] ?? '');
+    $clock_type = (string)($_POST['clock_type'] ?? ''); // morning_time_in, morning_time_out, break_time_in, break_time_out, afternoon_time_in, afternoon_time_out
 
     $db_column = attendance_action_to_column($clock_type);
 
@@ -306,6 +378,264 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
         }
     }
+}
+
+if ($studentMode) {
+    $today = date('Y-m-d');
+    $todayRecordStmt = $conn->prepare("
+        SELECT id, attendance_date, morning_time_in, morning_time_out, break_time_in, break_time_out, afternoon_time_in, afternoon_time_out, total_hours, status, updated_at
+        FROM attendances
+        WHERE student_id = ? AND attendance_date = ?
+        LIMIT 1
+    ");
+    $todayRecord = [
+        'morning_time_in' => null,
+        'morning_time_out' => null,
+        'break_time_in' => null,
+        'break_time_out' => null,
+        'afternoon_time_in' => null,
+        'afternoon_time_out' => null,
+        'total_hours' => 0,
+        'status' => 'pending',
+    ];
+    if ($todayRecordStmt) {
+        $todayRecordStmt->bind_param("is", $studentAccount['id'], $today);
+        $todayRecordStmt->execute();
+        $todayRecordRow = $todayRecordStmt->get_result()->fetch_assoc();
+        $todayRecordStmt->close();
+        if ($todayRecordRow) {
+            $todayRecord = $todayRecordRow;
+        }
+    }
+
+    $recentRecords = [];
+    $recentStmt = $conn->prepare("
+        SELECT attendance_date, morning_time_in, morning_time_out, break_time_in, break_time_out, afternoon_time_in, afternoon_time_out, total_hours, status
+        FROM attendances
+        WHERE student_id = ?
+        ORDER BY attendance_date DESC, updated_at DESC, id DESC
+        LIMIT 10
+    ");
+    if ($recentStmt) {
+        $recentStmt->bind_param("i", $studentAccount['id']);
+        $recentStmt->execute();
+        $recentResult = $recentStmt->get_result();
+        while ($row = $recentResult->fetch_assoc()) {
+            $recentRecords[] = $row;
+        }
+        $recentStmt->close();
+    }
+
+    $clockTypes = [
+        'morning_in' => ['Morning In', 'feather-sunrise'],
+        'morning_out' => ['Morning Out', 'feather-arrow-up-right'],
+        'break_in' => ['Break In', 'feather-pause'],
+        'break_out' => ['Break Out', 'feather-play'],
+        'afternoon_in' => ['Afternoon In', 'feather-sun'],
+        'afternoon_out' => ['Afternoon Out', 'feather-sunset'],
+    ];
+
+    $page_title = 'BioTern || Biometric DTR';
+    $page_styles = [
+        'assets/css/modules/pages/page-demo-biometric.css',
+    ];
+    $page_scripts = [
+        'assets/js/theme-customizer-init.min.js',
+    ];
+
+    include 'includes/header.php';
+    ?>
+    <main class="nxl-container">
+        <div class="nxl-content">
+            <div class="main-content">
+                <div class="biometric-container">
+                    <div class="bio-hero">
+                        <span class="bio-hero-chip"><i class="feather-shield"></i> Student Biometric Backup</span>
+                        <h2><i class="feather-clock me-2"></i>Alternative Everyday DTR Machine</h2>
+                        <p>Your account is already linked, so each punch goes directly to your own attendance record for today.</p>
+                    </div>
+
+                    <?php if (!empty($message)): ?>
+                        <div class="alert-custom alert-<?php echo $message_type; ?>">
+                            <span><?php echo $message; ?></span>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="bio-layout">
+                        <div class="scanner-card">
+                            <div class="fingerprint-image">
+                                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 250'%3E%3Ccircle cx='100' cy='120' r='80' fill='none' stroke='%2395b6d4' stroke-width='2'/%3E%3Ccircle cx='100' cy='120' r='70' fill='none' stroke='%23aac6df' stroke-width='1.2'/%3E%3Ccircle cx='100' cy='120' r='60' fill='none' stroke='%23bed4e7' stroke-width='1'/%3E%3Cpath d='M 100 50 Q 120 70 140 100 T 150 150' fill='none' stroke='%235b7da2' stroke-width='1.6'/%3E%3Cpath d='M 100 50 Q 80 70 60 100 T 50 150' fill='none' stroke='%235b7da2' stroke-width='1.6'/%3E%3Cpath d='M 100 50 Q 100 75 100 100 L 100 150' fill='none' stroke='%236e8fb1' stroke-width='2'/%3E%3C/svg%3E" alt="Fingerprint">
+                                <p class="scan-label">ACCOUNT-LINKED FINGERPRINT DEMO</p>
+                            </div>
+                            <div class="scanner-stat">
+                                <div><?php echo htmlspecialchars((string)$studentAccount['student_id'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                <div><?php echo htmlspecialchars(trim((string)(($studentAccount['first_name'] ?? '') . ' ' . ($studentAccount['last_name'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?></div>
+                            </div>
+                        </div>
+
+                        <div class="clock-section">
+                            <h3><i class="feather-log-in me-2"></i>Record Today&apos;s Punch</h3>
+                            <div class="time-display" id="studentBiometricCurrentTime"><?php echo date('H:i:s'); ?></div>
+
+                            <form method="POST" action="" id="studentBiometricClockForm">
+                                <input type="hidden" name="student_id" value="<?php echo (int)$studentAccount['id']; ?>">
+                                <input type="hidden" name="clock_date" value="<?php echo htmlspecialchars($today, ENT_QUOTES, 'UTF-8'); ?>">
+                                <input type="hidden" name="clock_time" id="studentBiometricClockTime" value="<?php echo date('H:i'); ?>">
+
+                                <div class="form-group-custom">
+                                    <label><i class="feather-user"></i> Student</label>
+                                    <input type="text" value="<?php echo htmlspecialchars(trim((string)(($studentAccount['first_name'] ?? '') . ' ' . ($studentAccount['last_name'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?>" readonly>
+                                </div>
+
+                                <div class="form-group-custom">
+                                    <label><i class="feather-calendar"></i> Attendance Date</label>
+                                    <input type="text" value="<?php echo htmlspecialchars(date('F d, Y', strtotime($today)), ENT_QUOTES, 'UTF-8'); ?>" readonly>
+                                </div>
+
+                                <div class="form-group-custom">
+                                    <label><i class="feather-target"></i> Clock Type</label>
+                                    <div class="clock-type-grid">
+                                        <?php foreach ($clockTypes as $type => [$label, $icon]): ?>
+                                            <?php $locked = demo_biometric_action_locked($todayRecord, $type); ?>
+                                            <button
+                                                type="submit"
+                                                class="clock-btn student-clock-btn<?php echo $locked ? ' is-complete' : ''; ?>"
+                                                name="clock_type"
+                                                value="<?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?>"
+                                                <?php echo $locked ? 'disabled aria-disabled="true"' : ''; ?>
+                                            >
+                                                <i class="<?php echo htmlspecialchars($icon, ENT_QUOTES, 'UTF-8'); ?>"></i><br><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
+                                            </button>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="record-section">
+                        <h3><i class="feather-list"></i> Today&apos;s Attendance Status</h3>
+                        <div class="row g-3 mb-3">
+                            <?php foreach ($clockTypes as $type => [$label]): ?>
+                                <?php $column = attendance_action_to_column($type); ?>
+                                <div class="col-md-4 col-sm-6">
+                                    <div class="scanner-stat h-100">
+                                        <div class="fw-semibold"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <div class="mt-1">
+                                            <?php
+                                            $value = $column !== null ? trim((string)($todayRecord[$column] ?? '')) : '';
+                                            echo $value !== '' ? htmlspecialchars(date('h:i A', strtotime($value)), ENT_QUOTES, 'UTF-8') : '--';
+                                            ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <div style="overflow-x: auto;">
+                            <table class="record-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Morning</th>
+                                        <th>Break</th>
+                                        <th>Afternoon</th>
+                                        <th>Total Hours</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if ($recentRecords === []): ?>
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted">No attendance records yet.</td>
+                                        </tr>
+                                    <?php else: ?>
+                                        <?php foreach ($recentRecords as $record): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars(date('M d, Y', strtotime((string)$record['attendance_date'])), ENT_QUOTES, 'UTF-8'); ?></td>
+                                                <td>
+                                                    <?php
+                                                    $morning = '';
+                                                    if (!empty($record['morning_time_in']) && !empty($record['morning_time_out'])) {
+                                                        $morning = date('h:i A', strtotime((string)$record['morning_time_in'])) . ' - ' . date('h:i A', strtotime((string)$record['morning_time_out']));
+                                                    } elseif (!empty($record['morning_time_in'])) {
+                                                        $morning = date('h:i A', strtotime((string)$record['morning_time_in'])) . ' OK';
+                                                    }
+                                                    echo $morning !== '' ? htmlspecialchars($morning, ENT_QUOTES, 'UTF-8') : '-';
+                                                    ?>
+                                                </td>
+                                                <td>
+                                                    <?php
+                                                    $break = '';
+                                                    if (!empty($record['break_time_in']) && !empty($record['break_time_out'])) {
+                                                        $break = date('h:i A', strtotime((string)$record['break_time_in'])) . ' - ' . date('h:i A', strtotime((string)$record['break_time_out']));
+                                                    } elseif (!empty($record['break_time_in'])) {
+                                                        $break = date('h:i A', strtotime((string)$record['break_time_in'])) . ' OK';
+                                                    }
+                                                    echo $break !== '' ? htmlspecialchars($break, ENT_QUOTES, 'UTF-8') : '-';
+                                                    ?>
+                                                </td>
+                                                <td>
+                                                    <?php
+                                                    $afternoon = '';
+                                                    if (!empty($record['afternoon_time_in']) && !empty($record['afternoon_time_out'])) {
+                                                        $afternoon = date('h:i A', strtotime((string)$record['afternoon_time_in'])) . ' - ' . date('h:i A', strtotime((string)$record['afternoon_time_out']));
+                                                    } elseif (!empty($record['afternoon_time_in'])) {
+                                                        $afternoon = date('h:i A', strtotime((string)$record['afternoon_time_in'])) . ' OK';
+                                                    }
+                                                    echo $afternoon !== '' ? htmlspecialchars($afternoon, ENT_QUOTES, 'UTF-8') : '-';
+                                                    ?>
+                                                </td>
+                                                <td><?php echo htmlspecialchars(number_format((float)($record['total_hours'] ?? 0), 2), ENT_QUOTES, 'UTF-8'); ?></td>
+                                                <td><?php echo htmlspecialchars(ucfirst((string)($record['status'] ?? 'pending')), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script>
+    (function () {
+        var timeNode = document.getElementById('studentBiometricCurrentTime');
+        var hiddenTime = document.getElementById('studentBiometricClockTime');
+        var form = document.getElementById('studentBiometricClockForm');
+
+        var syncTime = function () {
+            var now = new Date();
+            var hours = String(now.getHours()).padStart(2, '0');
+            var minutes = String(now.getMinutes()).padStart(2, '0');
+            var seconds = String(now.getSeconds()).padStart(2, '0');
+            if (timeNode) {
+                timeNode.textContent = hours + ':' + minutes + ':' + seconds;
+            }
+            if (hiddenTime) {
+                hiddenTime.value = hours + ':' + minutes;
+            }
+        };
+
+        syncTime();
+        window.setInterval(syncTime, 1000);
+
+        if (form) {
+            Array.prototype.forEach.call(form.querySelectorAll('.student-clock-btn'), function (button) {
+                button.addEventListener('click', function () {
+                    if (button.disabled) {
+                        return;
+                    }
+                    button.disabled = true;
+                });
+            });
+        }
+    }());
+    </script>
+    <?php
+    include 'includes/footer.php';
+    return;
 }
 
 // Fetch students for dropdown

@@ -172,6 +172,119 @@ if (!function_exists('external_attendance_upload_dir')) {
     }
 }
 
+if (!function_exists('external_attendance_cloudinary_config')) {
+    function external_attendance_cloudinary_config(): array
+    {
+        $cloudName = trim((string)getenv('CLOUDINARY_CLOUD_NAME'));
+        $apiKey = trim((string)getenv('CLOUDINARY_API_KEY'));
+        $apiSecret = trim((string)getenv('CLOUDINARY_API_SECRET'));
+        $uploadPreset = trim((string)getenv('CLOUDINARY_UPLOAD_PRESET'));
+        $folder = trim((string)getenv('CLOUDINARY_EXTERNAL_ATTENDANCE_FOLDER'));
+        if ($folder === '') {
+            $folder = 'biotern/external_attendance';
+        }
+
+        return [
+            'cloud_name' => $cloudName,
+            'api_key' => $apiKey,
+            'api_secret' => $apiSecret,
+            'upload_preset' => $uploadPreset,
+            'folder' => $folder,
+        ];
+    }
+}
+
+if (!function_exists('external_attendance_cloudinary_enabled')) {
+    function external_attendance_cloudinary_enabled(): bool
+    {
+        $config = external_attendance_cloudinary_config();
+        if ($config['cloud_name'] === '') {
+            return false;
+        }
+
+        return ($config['upload_preset'] !== '') || ($config['api_key'] !== '' && $config['api_secret'] !== '');
+    }
+}
+
+if (!function_exists('external_attendance_cloudinary_signature')) {
+    function external_attendance_cloudinary_signature(array $params, string $apiSecret): string
+    {
+        ksort($params);
+        $pairs = [];
+        foreach ($params as $key => $value) {
+            if ($value === '' || $value === null || $key === 'file' || $key === 'api_key' || $key === 'resource_type') {
+                continue;
+            }
+            $pairs[] = $key . '=' . $value;
+        }
+
+        return sha1(implode('&', $pairs) . $apiSecret);
+    }
+}
+
+if (!function_exists('external_attendance_cloudinary_upload')) {
+    function external_attendance_cloudinary_upload(string $tmpPath, string $mime, int $studentId, string $dateValue): array
+    {
+        $config = external_attendance_cloudinary_config();
+        if ($config['cloud_name'] === '') {
+            return ['ok' => false, 'message' => 'Cloudinary is not configured.', 'path' => ''];
+        }
+
+        $safeDate = preg_replace('/[^0-9]/', '', $dateValue) ?: date('Ymd');
+        $publicId = sprintf('%s/external_%d_%s_%s', trim($config['folder'], '/'), $studentId, $safeDate, bin2hex(random_bytes(4)));
+        $endpoint = 'https://api.cloudinary.com/v1_1/' . rawurlencode($config['cloud_name']) . '/image/upload';
+        $timestamp = time();
+
+        $fields = [
+            'folder' => $config['folder'],
+            'public_id' => $publicId,
+            'timestamp' => (string)$timestamp,
+            'resource_type' => 'image',
+        ];
+
+        if ($config['upload_preset'] !== '') {
+            $fields['upload_preset'] = $config['upload_preset'];
+            unset($fields['timestamp']);
+        } else {
+            $fields['api_key'] = $config['api_key'];
+            $fields['signature'] = external_attendance_cloudinary_signature([
+                'folder' => $config['folder'],
+                'public_id' => $publicId,
+                'timestamp' => (string)$timestamp,
+            ], $config['api_secret']);
+        }
+
+        if (function_exists('curl_init')) {
+            $postFields = $fields;
+            $postFields['file'] = new CURLFile($tmpPath, $mime, basename($tmpPath));
+
+            $ch = curl_init($endpoint);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+            $response = curl_exec($ch);
+            $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+
+            if (!is_string($response) || $response === '') {
+                return ['ok' => false, 'message' => $curlError !== '' ? ('Cloud upload failed: ' . $curlError) : 'Cloud upload failed.', 'path' => ''];
+            }
+
+            $decoded = json_decode($response, true);
+            if ($httpCode >= 200 && $httpCode < 300 && is_array($decoded) && !empty($decoded['secure_url'])) {
+                return ['ok' => true, 'message' => 'OK', 'path' => (string)$decoded['secure_url']];
+            }
+
+            $errorMessage = is_array($decoded) && isset($decoded['error']['message']) ? (string)$decoded['error']['message'] : 'Cloud upload failed.';
+            return ['ok' => false, 'message' => $errorMessage, 'path' => ''];
+        }
+
+        return ['ok' => false, 'message' => 'cURL is required for Cloudinary uploads.', 'path' => ''];
+    }
+}
+
 if (!function_exists('external_attendance_store_photo')) {
     function external_attendance_store_photo(array $file, int $studentId, string $dateValue): array
     {
@@ -194,6 +307,13 @@ if (!function_exists('external_attendance_store_photo')) {
         $size = (int)($file['size'] ?? 0);
         if ($size <= 0 || $size > 6 * 1024 * 1024) {
             return ['ok' => false, 'message' => 'Photo must be 6MB or smaller.', 'path' => ''];
+        }
+
+        if (external_attendance_cloudinary_enabled()) {
+            $cloudUpload = external_attendance_cloudinary_upload($tmpPath, $mime, $studentId, $dateValue);
+            if (!empty($cloudUpload['ok'])) {
+                return $cloudUpload;
+            }
         }
 
         $dir = external_attendance_upload_dir();
@@ -391,30 +511,7 @@ if (!function_exists('external_attendance_calendar_multiplier')) {
 if (!function_exists('external_attendance_multiplier_context')) {
     function external_attendance_multiplier_context(mysqli $conn, array $student, string $dateValue, array $record, array $bounds): array
     {
-        $track = 'external';
-        $best = ['multiplier' => 1.0, 'reason' => ''];
-
-        $bonusRules = attendance_bonus_rules_for_context(
-            $conn,
-            $dateValue,
-            $track,
-            (int)($student['section_id'] ?? 0),
-            (int)($student['department_id'] ?? 0)
-        );
-        foreach ($bonusRules as $rule) {
-            $ruleMultiplier = max(1.0, (float)($rule['multiplier'] ?? 1));
-            if ($ruleMultiplier > $best['multiplier']) {
-                $scope = trim((string)($rule['title'] ?? 'Bonus rule'));
-                $best = ['multiplier' => $ruleMultiplier, 'reason' => 'Rule: ' . $scope];
-            }
-        }
-
-        $calendar = external_attendance_calendar_multiplier($conn, $dateValue, $record, $bounds);
-        if ((float)$calendar['multiplier'] > (float)$best['multiplier']) {
-            $best = $calendar;
-        }
-
-        return $best;
+        return external_attendance_calendar_multiplier($conn, $dateValue, $record, $bounds);
     }
 }
 
@@ -509,7 +606,8 @@ if (!function_exists('external_attendance_upsert_day')) {
         ?string $photoPath,
         string $notes,
         int $createdByUserId,
-        bool $preserveExisting = false
+        bool $preserveExisting = false,
+        string $source = 'manual'
     ): array {
         $existing = external_attendance_student_record($conn, (int)$student['id'], $dateValue);
         $record = [
@@ -539,6 +637,7 @@ if (!function_exists('external_attendance_upsert_day')) {
         $totals = external_attendance_calculate_totals($conn, $student, $dateValue, $record);
         $photoFinal = $photoPath ?: (string)($existing['photo_path'] ?? '');
         $notesFinal = trim($notes);
+        $sourceFinal = trim($source) !== '' ? trim($source) : 'manual';
         if ($notesFinal === '') {
             $notesFinal = (string)($existing['notes'] ?? '');
         }
@@ -548,7 +647,7 @@ if (!function_exists('external_attendance_upsert_day')) {
                 UPDATE external_attendance
                 SET morning_time_in = ?, morning_time_out = ?, break_time_in = ?, break_time_out = ?,
                     afternoon_time_in = ?, afternoon_time_out = ?, total_hours = ?, multiplier = ?,
-                    multiplier_reason = ?, photo_path = ?, notes = ?, source = 'manual',
+                    multiplier_reason = ?, photo_path = ?, notes = ?, source = ?,
                     status = CASE WHEN status = 'approved' THEN 'approved' ELSE 'pending' END,
                     updated_at = NOW()
                 WHERE id = ?
@@ -557,7 +656,7 @@ if (!function_exists('external_attendance_upsert_day')) {
                 return ['ok' => false, 'message' => 'Could not update external attendance.'];
             }
             $stmt->bind_param(
-                'ssssssddsssi',
+                'ssssssddssssi',
                 $record['morning_time_in'],
                 $record['morning_time_out'],
                 $record['break_time_in'],
@@ -569,6 +668,7 @@ if (!function_exists('external_attendance_upsert_day')) {
                 $totals['multiplier_reason'],
                 $photoFinal,
                 $notesFinal,
+                $sourceFinal,
                 $existing['id']
             );
             $ok = $stmt->execute();
@@ -579,13 +679,13 @@ if (!function_exists('external_attendance_upsert_day')) {
                     student_id, attendance_date, morning_time_in, morning_time_out, break_time_in, break_time_out,
                     afternoon_time_in, afternoon_time_out, total_hours, multiplier, multiplier_reason, photo_path, notes,
                     source, status, created_by_user_id, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'pending', ?, NOW(), NOW())
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW(), NOW())
             ");
             if (!$stmt) {
                 return ['ok' => false, 'message' => 'Could not save external attendance.'];
             }
             $stmt->bind_param(
-                'isssssssddsssi',
+                'isssssssddssssi',
                 $student['id'],
                 $dateValue,
                 $record['morning_time_in'],
@@ -599,6 +699,7 @@ if (!function_exists('external_attendance_upsert_day')) {
                 $totals['multiplier_reason'],
                 $photoFinal,
                 $notesFinal,
+                $sourceFinal,
                 $createdByUserId
             );
             $ok = $stmt->execute();
