@@ -9,9 +9,29 @@ biotern_boot_session(isset($conn) ? $conn : null);
 
 $header_script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $header_root = '/';
-$header_project_pos = stripos($header_script_name, '/BioTern/BioTern/');
-if ($header_project_pos !== false) {
-    $header_root = substr($header_script_name, 0, $header_project_pos) . '/BioTern/BioTern/';
+$header_script_dir = str_replace('\\', '/', dirname($header_script_name));
+if ($header_script_dir === '\\' || $header_script_dir === '.') {
+    $header_script_dir = '/';
+}
+$header_script_dir = rtrim($header_script_dir, '/');
+if ($header_script_dir === '') {
+    $header_script_dir = '/';
+}
+
+// If the executing script is inside a known app subfolder, strip that segment to reach app root.
+$header_app_subdirs = [
+    'api', 'apps', 'auth', 'documents', 'includes', 'management', 'pages', 'public', 'reports', 'settings', 'tools',
+];
+$header_dir_basename = strtolower(trim((string)basename($header_script_dir), '/'));
+if (in_array($header_dir_basename, $header_app_subdirs, true)) {
+    $header_script_dir = str_replace('\\', '/', dirname($header_script_dir));
+}
+
+$header_script_dir = rtrim((string)$header_script_dir, '/');
+if ($header_script_dir === '' || $header_script_dir === '.') {
+    $header_root = '/';
+} else {
+    $header_root = $header_script_dir . '/';
 }
 $header_login_url = $header_root . 'auth/auth-login.php';
 

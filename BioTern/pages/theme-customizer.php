@@ -147,6 +147,7 @@ if (!array_key_exists($theme_scheme_current, $theme_scheme_options)) {
                                 </div>
 
                                 <div class="appearance-actions-inline">
+                                    <button type="button" class="btn btn-primary" id="theme-page-save">Save Changes</button>
                                     <button type="button" class="btn btn-light" id="theme-page-reset">Reset Defaults</button>
                                 </div>
                             </div>

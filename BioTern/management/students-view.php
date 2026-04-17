@@ -4,6 +4,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 
 require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 $current_user_id = (int)($_SESSION['user_id'] ?? 0);
@@ -12,17 +13,12 @@ $can_manage_eval_unlock = in_array($current_user_role, ['admin', 'coordinator'],
 $eval_flash_message = '';
 $eval_flash_type = 'success';
 
-function resolve_profile_image_url(string $profilePath): ?string {
-    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
-    if ($clean === '') {
+function resolve_profile_image_url(string $profilePath, int $userId = 0): ?string {
+    $resolved = biotern_avatar_public_src($profilePath, $userId);
+    if ($resolved === '') {
         return null;
     }
-    $rootPath = dirname(__DIR__) . '/' . $clean;
-    if (!file_exists($rootPath)) {
-        return null;
-    }
-    $mtime = @filemtime($rootPath);
-    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+    return $resolved;
 }
 
 // Get student ID from URL parameter
@@ -452,7 +448,7 @@ endif; ?>
                                     <div class="wd-150 ht-150 mx-auto mb-3 position-relative">
                                         <div class="avatar-image wd-150 ht-150 border border-5 border-gray-3">
                                             <?php
-$profile_img = resolve_profile_image_url((string)($student['profile_picture'] ?? ''));
+$profile_img = resolve_profile_image_url((string)($student['profile_picture'] ?? ''), (int)($student['user_id'] ?? 0));
                                             if ($profile_img !== null):
                                             ?>
                                                 <img src="<?php
