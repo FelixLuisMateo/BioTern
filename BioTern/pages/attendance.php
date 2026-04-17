@@ -2,9 +2,11 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/attendance_bonus_rules.php';
 require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
+attendance_bonus_rules_ensure_schema($conn);
 
 $attendance_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 if ($attendance_role === 'student') {
@@ -344,6 +346,7 @@ $attendance_query = "
         a.approved_at,
         a.remarks,
         s.id as student_id,
+        s.department_id,
         COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         s.student_id as student_number,
         s.first_name,
@@ -887,14 +890,34 @@ function attendanceCalendarBonusRulesForDate(string $dateKey): array {
 }
 
 function attendanceMultiplierContext(array $attendance, ?array $metrics = null): array {
+    global $conn;
     $dateKey = substr((string)($attendance['attendance_date'] ?? ''), 0, 10);
     $rules = attendanceCalendarBonusRulesForDate($dateKey);
-    if ($rules === []) {
-        return ['multiplier' => 1.0, 'rule' => null];
+    $customRules = [];
+    if ($conn instanceof mysqli) {
+        $customRules = attendance_bonus_rules_for_context(
+            $conn,
+            $dateKey,
+            'internal',
+            (int)($attendance['section_id'] ?? 0),
+            (int)($attendance['department_id'] ?? 0)
+        );
     }
 
     $metrics = is_array($metrics) ? $metrics : attendance_window_metrics($attendance);
     $weekday = attendanceDateWeekdayKey($dateKey);
+    $best = ['multiplier' => 1.0, 'rule' => null];
+
+    foreach ($customRules as $rule) {
+        $multiplier = (float)($rule['multiplier'] ?? 1);
+        if ($multiplier <= $best['multiplier']) {
+            continue;
+        }
+        $best = [
+            'multiplier' => $multiplier,
+            'rule' => ['title' => 'Rule: ' . (string)($rule['title'] ?? 'Attendance bonus')],
+        ];
+    }
 
     foreach ($rules as $rule) {
         $ruleWeekday = strtolower(trim((string)($rule['applies_to_weekday'] ?? '')));
@@ -927,13 +950,15 @@ function attendanceMultiplierContext(array $attendance, ?array $metrics = null):
             continue;
         }
 
-        return [
-            'multiplier' => $multiplier,
-            'rule' => $rule,
-        ];
+        if ($multiplier > (float)$best['multiplier']) {
+            $best = [
+                'multiplier' => $multiplier,
+                'rule' => $rule,
+            ];
+        }
     }
 
-    return ['multiplier' => 1.0, 'rule' => null];
+    return $best;
 }
 
 function attendance_format_hours_label(float $hours): string {

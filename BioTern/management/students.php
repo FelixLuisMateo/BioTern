@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
@@ -237,6 +238,7 @@ if ($filter_status >= 0) {
 $students_query = "
     SELECT 
         s.id,
+        s.user_id,
         s.student_id,
         s.first_name,
         s.middle_name,
@@ -313,17 +315,12 @@ function formatDate($date) {
     return '-';
 }
 
-function resolve_profile_image_url(string $profilePath): ?string {
-    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
-    if ($clean === '') {
+function resolve_profile_image_url(string $profilePath, int $userId = 0): ?string {
+    $resolved = biotern_avatar_public_src($profilePath, $userId);
+    if ($resolved === '') {
         return null;
     }
-    $rootPath = dirname(__DIR__) . '/' . $clean;
-    if (!file_exists($rootPath)) {
-        return null;
-    }
-    $mtime = @filemtime($rootPath);
-    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+    return $resolved;
 }
 
 $selected_section_label = 'ALL';
@@ -729,7 +726,7 @@ include 'includes/header.php';
                                                                 <div class="avatar-image avatar-md">
                                                                     <?php
                                                                     $pp = $student['profile_picture'] ?? '';
-                                                                    $pp_url = resolve_profile_image_url($pp);
+                                                                    $pp_url = resolve_profile_image_url($pp, (int)($student['user_id'] ?? 0));
                                                                     if ($pp_url !== null) {
                                                                         echo '<img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid">';
                                                                     } else {
@@ -871,7 +868,7 @@ include 'includes/header.php';
                                                         <div class="avatar-image avatar-md">
                                                             <?php
                                                             $pp = $student['profile_picture'] ?? '';
-                                                            $pp_url = resolve_profile_image_url($pp);
+                                                            $pp_url = resolve_profile_image_url($pp, (int)($student['user_id'] ?? 0));
                                                             if ($pp_url !== null) {
                                                                 echo '<img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid">';
                                                             } else {
