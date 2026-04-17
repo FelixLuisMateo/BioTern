@@ -43,8 +43,16 @@ function biotern_student_edit_ensure_runtime_dir(string $path): bool
         return true;
     }
 
-    $parent = dirname($path);
-    if (!is_dir($parent) || !is_writable($parent)) {
+    $writable_base = $path;
+    while (!is_dir($writable_base)) {
+        $next = dirname($writable_base);
+        if ($next === $writable_base) {
+            break;
+        }
+        $writable_base = $next;
+    }
+
+    if (!is_dir($writable_base) || !is_writable($writable_base)) {
         return false;
     }
 
@@ -545,7 +553,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 if ($update_stmt->execute()) {
                     if (!empty($student['user_id'])) {
                         $user_id_for_sync = (int)$student['user_id'];
-                        $display_name = trim($first_name . ' ' . $last_name);
+                        $display_name = trim(preg_replace('/\s+/', ' ', $first_name . ' ' . $middle_name . ' ' . $last_name));
                         $sync_user_stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, updated_at = NOW() WHERE id = ?");
                         if ($sync_user_stmt) {
                             $sync_user_stmt->bind_param("ssi", $display_name, $email, $user_id_for_sync);

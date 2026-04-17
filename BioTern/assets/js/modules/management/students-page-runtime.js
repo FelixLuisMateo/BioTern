@@ -33,6 +33,10 @@
   }
 
   function initPrintActions() {
+    function getSelectedPrintButton() {
+      return document.getElementById("printSelectedStudents");
+    }
+
     function getTableRows() {
       return Array.prototype.slice.call(
         document.querySelectorAll("#customerList tbody tr.app-students-table-row")
@@ -86,12 +90,14 @@
       });
     }
 
-    function syncPrintSheetRows() {
+    function syncPrintSheetRows(forceSelectedOnly) {
       var printSheetBody = document.querySelector(".student-list-print-sheet tbody");
       if (!printSheetBody) return true;
 
       var selectedRows = getSelectedRows();
-      var sourceRows = selectedRows.length > 0 ? selectedRows : getTableRows();
+      var sourceRows = forceSelectedOnly
+        ? selectedRows
+        : getTableRows();
 
       if (sourceRows.length === 0) {
         printSheetBody.innerHTML =
@@ -108,16 +114,48 @@
       return true;
     }
 
+    function updateSelectedPrintButton() {
+      var selectedBtn = getSelectedPrintButton();
+      if (!selectedBtn) return;
+
+      var selectedCount = getSelectedRows().length;
+      selectedBtn.classList.toggle("d-none", selectedCount === 0);
+      selectedBtn.setAttribute("aria-hidden", selectedCount === 0 ? "true" : "false");
+      var label = selectedBtn.querySelector("span");
+      if (label) {
+        label.textContent =
+          selectedCount > 0
+            ? "Print Selected (" + selectedCount + ")"
+            : "Print Selected";
+      }
+    }
+
+    window.BioTernStudentsSelectionChanged = updateSelectedPrintButton;
+
     document.querySelectorAll(".js-print-page").forEach(function (btn) {
       btn.addEventListener("click", function (e) {
         e.preventDefault();
-        if (!syncPrintSheetRows()) {
+        if (!syncPrintSheetRows(false)) {
           alert("No student rows available to print.");
           return;
         }
         window.print();
       });
     });
+
+    var selectedBtn = getSelectedPrintButton();
+    if (selectedBtn) {
+      selectedBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        if (!syncPrintSheetRows(true)) {
+          alert("Select at least one student to print.");
+          return;
+        }
+        window.print();
+      });
+    }
+
+    updateSelectedPrintButton();
   }
 
   function initTableCheckboxes() {
@@ -139,6 +177,10 @@
       }).length;
       selectAll.checked = checkedCount > 0 && checkedCount === rowCheckboxes.length;
       selectAll.indeterminate = checkedCount > 0 && checkedCount < rowCheckboxes.length;
+
+      if (typeof window.BioTernStudentsSelectionChanged === "function") {
+        window.BioTernStudentsSelectionChanged();
+      }
     }
 
     if (selectAll) {

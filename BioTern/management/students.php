@@ -488,6 +488,10 @@ include 'includes/header.php';
                                 <i class="feather-printer me-2"></i>
                                 <span>Print List</span>
                             </button>
+                            <button type="button" class="btn btn-light d-none js-print-selected" id="printSelectedStudents" aria-hidden="true">
+                                <i class="feather-printer me-2"></i>
+                                <span>Print Selected</span>
+                            </button>
                             <a href="students-create.php" class="btn btn-primary">
                                 <i class="feather-plus me-2"></i>
                                 <span>Create Students</span>
