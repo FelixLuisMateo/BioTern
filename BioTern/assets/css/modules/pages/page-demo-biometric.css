@@ -373,9 +373,16 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 0.65rem;
             margin: 0.75rem 0 1rem;
+            width: 100%;
         }
 
         .clock-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 88px;
             padding: 10px 8px;
             background-color: #f2f7fc;
             border: 1px solid #d2e0ee;
@@ -384,7 +391,17 @@
             cursor: pointer;
             font-weight: 700;
             font-size: 11px;
+            line-height: 1.35;
+            text-align: center;
+            -webkit-appearance: none;
+            appearance: none;
             transition: all 0.3s ease;
+        }
+
+        .clock-btn i {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 18px;
         }
 
         .clock-btn:hover {
@@ -513,11 +530,63 @@
         }
 
         @media (max-width: 768px) {
+            .biometric-container {
+                padding: 12px;
+            }
+
+            .bio-hero {
+                padding: 1.1rem;
+                border-radius: 16px;
+            }
+
+            .bio-hero h2 {
+                font-size: 1.2rem;
+                line-height: 1.35;
+            }
+
+            .clock-section {
+                padding: 1rem;
+            }
+
             .form-row {
                 grid-template-columns: 1fr;
             }
 
             .clock-type-grid {
                 grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
+            }
+
+            .clock-btn {
+                min-height: 96px;
+                padding: 0.9rem 0.65rem;
+                font-size: 12px;
+                border-radius: 14px;
+                box-shadow: 0 8px 20px rgba(15, 49, 84, 0.08);
+            }
+
+            .clock-btn i {
+                font-size: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .clock-type-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .clock-btn {
+                min-height: 76px;
+                flex-direction: row;
+                justify-content: flex-start;
+                gap: 0.75rem;
+                padding: 0.9rem 1rem;
+                font-size: 13px;
+                text-align: left;
+            }
+
+            .clock-btn i {
+                margin-bottom: 0;
+                font-size: 18px;
             }
         }
