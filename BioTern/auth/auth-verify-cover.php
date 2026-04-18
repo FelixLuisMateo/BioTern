@@ -11,6 +11,14 @@ $otpTtlSeconds = 600;
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
 $route_prefix = $asset_prefix;
+$entered_code = '';
+
+function normalizeResetVerificationCode(string $value): string
+{
+    $value = trim($value);
+    $value = preg_replace('/\D+/', '', $value) ?? '';
+    return substr($value, 0, 6);
+}
 
 $contactRaw = isset($_SESSION['password_reset_contact']) ? trim((string)$_SESSION['password_reset_contact']) : '';
 $expected = isset($_SESSION['password_reset_code']) ? (string)$_SESSION['password_reset_code'] : '';
@@ -44,21 +52,25 @@ if (isset($_GET['send_error']) && (int)$_GET['send_error'] === 1) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $digits = [];
-    for ($i = 1; $i <= 6; $i++) {
-        $k = 'digit' . $i;
-        $val = isset($_POST[$k]) ? trim((string)$_POST[$k]) : '';
-        $digits[] = preg_match('/^[0-9]$/', $val) ? $val : '';
+    $entered_code = normalizeResetVerificationCode((string)($_POST['verification_code'] ?? ''));
+
+    if ($entered_code === '') {
+        $digits = [];
+        for ($i = 1; $i <= 6; $i++) {
+            $k = 'digit' . $i;
+            $val = isset($_POST[$k]) ? trim((string)$_POST[$k]) : '';
+            $digits[] = preg_match('/^[0-9]$/', $val) ? $val : '';
+        }
+        $entered_code = implode('', $digits);
     }
-    $code = implode('', $digits);
 
     if ($expected === '' || $sentAt <= 0) {
         $verify_error = 'No active password reset request found. Please request a password reset first.';
-    } elseif (strlen($code) !== 6 || !preg_match('/^[0-9]{6}$/', $code)) {
+    } elseif (strlen($entered_code) !== 6 || !preg_match('/^[0-9]{6}$/', $entered_code)) {
         $verify_error = 'Please enter the 6-digit verification code.';
     } elseif ((time() - $sentAt) > $otpTtlSeconds) {
         $verify_error = 'Verification code expired. Please click Resend to get a new code.';
-    } elseif (hash_equals($expected, $code)) {
+    } elseif (hash_equals($expected, $entered_code)) {
         $_SESSION['password_reset_verified'] = true;
         unset($_SESSION['password_reset_code']);
         unset($_SESSION['password_reset_code_sent_at']);
@@ -121,13 +133,21 @@ if ($verify_error !== '') {
                     <p class="fs-12 fw-medium text-muted"><span>Code sent to</span> <strong><?php echo $masked_contact; ?></strong></p>
 
                     <form method="post" class="w-100 mt-4 pt-2" autocomplete="one-time-code">
-                        <div id="otp" class="auth-otp-grid mt-2">
-                            <input name="digit1" class="text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit1" maxlength="1" autocomplete="one-time-code" required>
-                            <input name="digit2" class="text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit2" maxlength="1" required>
-                            <input name="digit3" class="text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit3" maxlength="1" required>
-                            <input name="digit4" class="text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit4" maxlength="1" required>
-                            <input name="digit5" class="text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit5" maxlength="1" required>
-                            <input name="digit6" class="text-center form-control rounded" type="text" inputmode="numeric" pattern="[0-9]" id="digit6" maxlength="1" required>
+                        <div class="mt-2">
+                            <label for="verificationCodeInput" class="form-label text-muted small mb-2">Verification Code</label>
+                            <input
+                                name="verification_code"
+                                id="verificationCodeInput"
+                                class="text-center form-control rounded"
+                                type="text"
+                                inputmode="numeric"
+                                pattern="[0-9]{6}"
+                                maxlength="6"
+                                autocomplete="one-time-code"
+                                placeholder="000000"
+                                value="<?php echo htmlspecialchars($entered_code, ENT_QUOTES, 'UTF-8'); ?>"
+                                required
+                            >
                         </div>
                         <div class="mt-5">
                             <button type="submit" class="btn btn-lg btn-primary w-100">Validate Code</button>
@@ -202,76 +222,27 @@ if ($verify_error !== '') {
     <?php endif; ?>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            var otpWrap = document.getElementById('otp');
-            var inputs = Array.prototype.slice.call(document.querySelectorAll('#otp input'));
-            if (!inputs.length) return;
-
-            function fillFromDigits(raw) {
-                var digits = (raw || '').replace(/\D/g, '').slice(0, 6).split('');
-                if (!digits.length) return false;
-
-                for (var i = 0; i < inputs.length; i++) {
-                    inputs[i].value = digits[i] || '';
-                }
-
-                var nextEmpty = inputs.findIndex(function (el) { return !el.value; });
-                focusIndex(nextEmpty === -1 ? inputs.length - 1 : nextEmpty);
-                return true;
+            var input = document.getElementById('verificationCodeInput');
+            if (!input) {
+                return;
             }
 
-            function focusIndex(idx) {
-                if (idx >= 0 && idx < inputs.length) {
-                    inputs[idx].focus();
-                    inputs[idx].select();
-                }
-            }
-
-            inputs.forEach(function (input, idx) {
-                input.addEventListener('input', function () {
-                    var value = (this.value || '').replace(/\D/g, '');
-                    if (value.length > 1 && fillFromDigits(value)) {
-                        return;
-                    }
-                    this.value = value ? value.charAt(0) : '';
-                    if (this.value && idx < inputs.length - 1) {
-                        focusIndex(idx + 1);
-                    }
-                });
-
-                input.addEventListener('keydown', function (event) {
-                    if (event.ctrlKey || event.metaKey) {
-                        return;
-                    }
-                    if (event.key === 'Backspace' && !this.value && idx > 0) {
-                        focusIndex(idx - 1);
-                    }
-                    if (event.key.length === 1 && /\D/.test(event.key)) {
-                        event.preventDefault();
-                    }
-                });
-
-                input.addEventListener('paste', function (event) {
-                    var pasted = (event.clipboardData || window.clipboardData).getData('text') || '';
-                    if (!pasted) return;
-
-                    event.preventDefault();
-                    fillFromDigits(pasted);
-                });
+            input.addEventListener('input', function () {
+                this.value = (this.value || '').replace(/\D/g, '').slice(0, 6);
             });
 
-            // Capture paste at container/document level for browsers that skip per-input handlers with maxlength.
-            function handleGlobalPaste(event) {
-                var target = event.target;
-                if (!otpWrap || !target || !otpWrap.contains(target)) return;
+            input.addEventListener('paste', function (event) {
                 var pasted = (event.clipboardData || window.clipboardData).getData('text') || '';
-                if (!pasted) return;
-                event.preventDefault();
-                fillFromDigits(pasted);
-            }
-            otpWrap.addEventListener('paste', handleGlobalPaste, true);
-            document.addEventListener('paste', handleGlobalPaste, true);
+                if (!pasted) {
+                    return;
+                }
 
-            inputs[0].focus();
+                event.preventDefault();
+                this.value = pasted.replace(/\D/g, '').slice(0, 6);
+            });
+
+            input.focus();
+            input.select();
         });
     </script>
 </body>
