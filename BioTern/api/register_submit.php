@@ -109,7 +109,18 @@ function studentApplicationRedirect(string $status, string $message): void {
     exit;
 }
 
-function sendStudentApplicationReceivedEmail(mysqli $mysqli, string $targetEmail, string $studentName, string $studentId, string $schoolYear, string $semester): void
+function sendStudentApplicationReceivedEmail(
+    mysqli $mysqli,
+    string $targetEmail,
+    string $studentName,
+    string $studentId,
+    string $schoolYear,
+    string $semester,
+    string $courseLabel = '',
+    string $sectionLabel = '',
+    string $address = '',
+    string $phone = ''
+): void
 {
     $safeEmail = trim($targetEmail);
     if ($safeEmail === '' || !filter_var($safeEmail, FILTER_VALIDATE_EMAIL)) {
@@ -123,11 +134,19 @@ function sendStudentApplicationReceivedEmail(mysqli $mysqli, string $targetEmail
     $safeStudentId = htmlspecialchars(trim($studentId), ENT_QUOTES, 'UTF-8');
     $safeSchoolYear = htmlspecialchars(trim($schoolYear), ENT_QUOTES, 'UTF-8');
     $safeSemester = htmlspecialchars(trim($semester), ENT_QUOTES, 'UTF-8');
+    $safeCourse = htmlspecialchars(trim($courseLabel), ENT_QUOTES, 'UTF-8');
+    $safeSection = htmlspecialchars(trim($sectionLabel), ENT_QUOTES, 'UTF-8');
+    $safeAddress = htmlspecialchars(trim($address), ENT_QUOTES, 'UTF-8');
+    $safePhone = htmlspecialchars(trim($phone), ENT_QUOTES, 'UTF-8');
 
     $text = "Hello {$displayName},\n\nWe successfully received your BioTern student application."
         . ($studentId !== '' ? "\nStudent ID: {$studentId}" : '')
+        . ($courseLabel !== '' ? "\nCourse: {$courseLabel}" : '')
+        . ($sectionLabel !== '' ? "\nSection: {$sectionLabel}" : '')
         . ($schoolYear !== '' ? "\nSchool Year: {$schoolYear}" : '')
         . ($semester !== '' ? "\nSemester: {$semester}" : '')
+        . ($phone !== '' ? "\nPhone: {$phone}" : '')
+        . ($address !== '' ? "\nAddress: {$address}" : '')
         . "\n\nYour application is now pending approval. Please wait for an administrator, coordinator, or supervisor to review it.\n\n"
         . "You will verify your email when you log in after your application is approved.";
 
@@ -146,11 +165,11 @@ function sendStudentApplicationReceivedEmail(mysqli $mysqli, string $targetEmail
                         <td style="padding:20px 24px;background:linear-gradient(135deg,#162447,#111a2e);color:#ffffff;">
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
-                                    <td>
+                                    <td style="vertical-align:top;">
                                         <div style="font-size:18px;font-weight:700;">BioTern</div>
                                         <div style="font-size:13px;color:#a3b3cc;">Student Application</div>
                                     </td>
-                                    <td align="right" style="vertical-align:middle;">' . $logoHtml . '</td>
+                                    <td width="56" align="right" style="width:56px;vertical-align:top;padding-left:12px;white-space:nowrap;">' . $logoHtml . '</td>
                                 </tr>
                             </table>
                         </td>
@@ -162,12 +181,44 @@ function sendStudentApplicationReceivedEmail(mysqli $mysqli, string $targetEmail
                                 Hello <strong style="color:#ffffff;">' . $safeName . '</strong>, we successfully received your student application.
                             </div>
                             <div style="margin-top:18px;padding:16px 18px;border-radius:14px;background:#0f172a;border:1px solid #26334d;">
-                                <div style="font-size:13px;color:#94a3b8;">Student ID</div>
-                                <div style="font-size:15px;font-weight:700;color:#ffffff;margin-bottom:10px;">' . ($safeStudentId !== '' ? $safeStudentId : 'Not provided') . '</div>
-                                <div style="font-size:13px;color:#94a3b8;">School Year</div>
-                                <div style="font-size:15px;font-weight:700;color:#ffffff;margin-bottom:10px;">' . ($safeSchoolYear !== '' ? $safeSchoolYear : 'Not set') . '</div>
-                                <div style="font-size:13px;color:#94a3b8;">Semester</div>
-                                <div style="font-size:15px;font-weight:700;color:#ffffff;">' . ($safeSemester !== '' ? $safeSemester : 'Not set') . '</div>
+                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td width="50%" style="width:50%;padding:0 10px 10px 0;vertical-align:top;">
+                                            <div style="font-size:13px;color:#94a3b8;">Student ID</div>
+                                            <div style="font-size:15px;font-weight:700;color:#ffffff;">' . ($safeStudentId !== '' ? $safeStudentId : 'Not provided') . '</div>
+                                        </td>
+                                        <td width="50%" style="width:50%;padding:0 0 10px 10px;vertical-align:top;">
+                                            <div style="font-size:13px;color:#94a3b8;">Course</div>
+                                            <div style="font-size:15px;font-weight:700;color:#ffffff;">' . ($safeCourse !== '' ? $safeCourse : 'Not set') . '</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td width="50%" style="width:50%;padding:0 10px 10px 0;vertical-align:top;">
+                                            <div style="font-size:13px;color:#94a3b8;">Section</div>
+                                            <div style="font-size:15px;font-weight:700;color:#ffffff;">' . ($safeSection !== '' ? $safeSection : 'Not set') . '</div>
+                                        </td>
+                                        <td width="50%" style="width:50%;padding:0 0 10px 10px;vertical-align:top;">
+                                            <div style="font-size:13px;color:#94a3b8;">School Year</div>
+                                            <div style="font-size:15px;font-weight:700;color:#ffffff;">' . ($safeSchoolYear !== '' ? $safeSchoolYear : 'Not set') . '</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td width="50%" style="width:50%;padding:0 10px 10px 0;vertical-align:top;">
+                                            <div style="font-size:13px;color:#94a3b8;">Semester</div>
+                                            <div style="font-size:15px;font-weight:700;color:#ffffff;">' . ($safeSemester !== '' ? $safeSemester : 'Not set') . '</div>
+                                        </td>
+                                        <td width="50%" style="width:50%;padding:0 0 10px 10px;vertical-align:top;">
+                                            <div style="font-size:13px;color:#94a3b8;">Phone</div>
+                                            <div style="font-size:15px;font-weight:700;color:#ffffff;">' . ($safePhone !== '' ? $safePhone : 'Not provided') . '</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="padding-top:2px;vertical-align:top;">
+                                            <div style="font-size:13px;color:#94a3b8;">Address</div>
+                                            <div style="font-size:15px;font-weight:700;color:#ffffff;line-height:1.5;">' . ($safeAddress !== '' ? $safeAddress : 'Not provided') . '</div>
+                                        </td>
+                                    </tr>
+                                </table>
                             </div>
                             <div style="margin-top:18px;font-size:14px;color:#cbd5e1;line-height:1.7;">
                                 Your application is now pending approval. Please wait for an administrator, coordinator, or supervisor to review it.
@@ -867,6 +918,39 @@ if ($role === 'student') {
         }
     }
 
+    $courseLabel = '';
+    if ($course_id > 0) {
+        $courseLabelStmt = $mysqli->prepare("SELECT code, name FROM courses WHERE id = ? LIMIT 1");
+        if ($courseLabelStmt) {
+            $courseLabelStmt->bind_param('i', $course_id);
+            $courseLabelStmt->execute();
+            $courseLabelRow = $courseLabelStmt->get_result()->fetch_assoc();
+            $courseLabelStmt->close();
+            if ($courseLabelRow) {
+                $courseCode = trim((string)($courseLabelRow['code'] ?? ''));
+                $courseName = trim((string)($courseLabelRow['name'] ?? ''));
+                if ($courseCode !== '' && $courseName !== '') {
+                    $courseLabel = $courseCode . ' - ' . $courseName;
+                } else {
+                    $courseLabel = $courseName !== '' ? $courseName : $courseCode;
+                }
+            }
+        }
+    }
+
+    $sectionLabel = '';
+    if ($sectionCodeSnapshot !== '' && $sectionNameSnapshot !== '') {
+        $sectionCodeNorm = strtolower(preg_replace('/\s+/', '', $sectionCodeSnapshot));
+        $sectionNameNorm = strtolower(preg_replace('/\s+/', '', $sectionNameSnapshot));
+        if ($sectionCodeNorm === $sectionNameNorm || str_contains($sectionNameNorm, $sectionCodeNorm)) {
+            $sectionLabel = $sectionNameSnapshot;
+        } else {
+            $sectionLabel = $sectionCodeSnapshot . ' - ' . $sectionNameSnapshot;
+        }
+    } elseif ($sectionCodeSnapshot !== '' || $sectionNameSnapshot !== '') {
+        $sectionLabel = $sectionCodeSnapshot !== '' ? $sectionCodeSnapshot : $sectionNameSnapshot;
+    }
+
     if (!empty($coordinator_id) && $department_id_int > 0) {
         $coordWhere = [
             'id = ?',
@@ -1086,7 +1170,18 @@ if ($role === 'student') {
     $stageStmt->close();
 
     $studentDisplayName = trim($first_name . ' ' . $last_name);
-    sendStudentApplicationReceivedEmail($mysqli, $final_email, $studentDisplayName, (string)$student_id, (string)$school_year, (string)$semester);
+    sendStudentApplicationReceivedEmail(
+        $mysqli,
+        $final_email,
+        $studentDisplayName,
+        (string)$student_id,
+        (string)$school_year,
+        (string)$semester,
+        (string)$courseLabel,
+        (string)$sectionLabel,
+        (string)$address,
+        (string)$phone
+    );
 
     studentApplicationRedirect('pending', 'Application received. Please wait for approval from an administrator, coordinator, or supervisor.');
 }
