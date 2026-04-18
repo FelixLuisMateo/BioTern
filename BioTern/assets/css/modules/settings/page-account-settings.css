@@ -218,6 +218,44 @@ body.account-settings-page .settings-hub.account-settings-shell {
     margin-top: 4px;
 }
 
+.account-2fa-panel {
+    border: 1px solid var(--settings-item-border);
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--settings-item-bg);
+}
+
+.account-2fa-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.account-2fa-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 0.67rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+}
+
+.account-2fa-chip.is-enabled {
+    color: #0f5132;
+    background: #d1f4e0;
+    border-color: #a9e3c2;
+}
+
+.account-2fa-chip.is-disabled {
+    color: #7c2d12;
+    background: #ffe9dd;
+    border-color: #fecfb8;
+}
+
 .account-sessions-toolbar {
     display: flex;
     flex-wrap: wrap;

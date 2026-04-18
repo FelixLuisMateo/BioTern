@@ -78,11 +78,11 @@ html.app-skin-dark {
 }
 
 .nxl-header .dropdown-menu.nxl-notifications-menu {
-    width: 320px;
-    min-width: 320px;
-    max-width: 320px;
+    width: 380px;
+    min-width: 380px;
+    max-width: min(380px, calc(100vw - 1.5rem));
     display: none;
-    max-height: min(70vh, 520px);
+    max-height: min(76vh, 600px);
 }
 
 .nxl-header .dropdown-menu.nxl-search-dropdown {
@@ -474,7 +474,11 @@ html.app-skin-dark {
     gap: 8px;
     padding: 10px 12px 12px;
     overflow-y: auto;
-    max-height: calc(min(70vh, 560px) - 108px);
+    max-height: calc(min(76vh, 600px) - 108px);
+}
+
+.header-notification-row {
+    position: relative;
 }
 
 .header-notification-item {
@@ -489,9 +493,36 @@ html.app-skin-dark {
     color: inherit;
 }
 
+.header-notification-row.read .header-notification-item {
+    padding-right: 34px;
+}
+
 .header-notification-item.unread {
     background: var(--header-menu-surface-hover);
     border-color: rgba(var(--biotern-primary-rgb), 0.22);
+}
+
+.header-notification-remove-link {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--header-menu-muted);
+    border: 1px solid var(--header-menu-border);
+    background: var(--header-menu-bg);
+    text-decoration: none;
+}
+
+.header-notification-remove-link:hover,
+.header-notification-remove-link:focus {
+    color: #b91c1c;
+    border-color: rgba(185, 28, 28, 0.35);
+    background: #fff1f2;
 }
 
 .header-notification-badge {
@@ -560,6 +591,62 @@ html.app-skin-dark {
     color: var(--header-menu-text);
 }
 
+.header-notifications-head-tools {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.header-notification-remove-all-link {
+    border: 1px solid var(--header-menu-border);
+    background: var(--header-menu-surface);
+    color: var(--header-menu-muted);
+    border-radius: 8px;
+    height: 26px;
+    padding: 0 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.64rem;
+    font-weight: 700;
+}
+
+.header-notification-remove-all-link:hover,
+.header-notification-remove-all-link:focus {
+    color: #b91c1c;
+    border-color: rgba(185, 28, 28, 0.35);
+    background: #fff1f2;
+}
+
+.header-notification-remove-all-link.is-disabled,
+.header-notification-remove-all-link:disabled {
+    opacity: 0.58;
+    cursor: not-allowed;
+    color: var(--header-menu-muted);
+    border-color: var(--header-menu-border);
+    background: var(--header-menu-surface);
+}
+
+.header-notification-settings-link {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: var(--header-menu-muted);
+    border: 1px solid var(--header-menu-border);
+    background: var(--header-menu-surface);
+}
+
+.header-notification-settings-link:hover,
+.header-notification-settings-link:focus {
+    color: var(--header-menu-accent);
+    border-color: rgba(var(--biotern-primary-rgb), 0.3);
+    background: color-mix(in srgb, var(--header-menu-surface) 78%, var(--header-menu-accent-soft) 22%);
+}
+
 .nxl-notifications-menu .notifications-head .badge {
     font-size: 0.68rem;
     background: var(--header-menu-surface) !important;
@@ -618,7 +705,6 @@ html.app-skin-dark {
     border-radius: 50%;
 }
 
-<<<<<<< HEAD
 html.app-skin-dark .nxl-header .dropdown-menu.nxl-user-dropdown {
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.42) !important;
 }
@@ -639,7 +725,8 @@ html.app-skin-dark .user-dropdown-logout:hover,
 html.app-skin-dark .user-dropdown-logout:focus {
     background: #2b1620 !important;
     color: #fecdd3 !important;
-=======
+}
+
 @media (max-width: 1399.98px) and (min-width: 992px) {
     .nxl-header-search-inline {
         width: 300px;
@@ -647,11 +734,16 @@ html.app-skin-dark .user-dropdown-logout:focus {
         max-width: 300px;
     }
 
-    .nxl-header .dropdown-menu.nxl-user-dropdown,
-    .nxl-header .dropdown-menu.nxl-notifications-menu {
+    .nxl-header .dropdown-menu.nxl-user-dropdown {
         width: 300px;
         min-width: 300px;
         max-width: min(300px, calc(100vw - 24px));
+    }
+
+    .nxl-header .dropdown-menu.nxl-notifications-menu {
+        width: 340px;
+        min-width: 340px;
+        max-width: min(340px, calc(100vw - 24px));
     }
 
     .nxl-header .dropdown-menu.nxl-search-dropdown {
@@ -688,7 +780,6 @@ html.app-skin-dark .user-dropdown-logout:focus {
         max-height: calc(100vh - 92px);
         overflow-y: auto;
     }
->>>>>>> dec364ccb9ea0c79e561d748dd44c5bdca6ae35e
 }
 
 @media (max-width: 575.98px) {

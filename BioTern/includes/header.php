@@ -154,9 +154,48 @@ if (!$page_is_public && $header_user_id_session > 0 && isset($_GET['notif_read']
     header('Location: ' . $redirectTarget);
     exit;
 }
+
+// Allow notification dropdown actions to remove a read notification,
+// then redirect back to the same page without notif_remove in the query string.
+if (!$page_is_public && $header_user_id_session > 0 && isset($_GET['notif_remove'])) {
+    $notifRemoveId = (int)$_GET['notif_remove'];
+    if ($notifRemoveId > 0 && isset($conn) && $conn instanceof mysqli) {
+        $canRemoveReadNotification = false;
+        $headerNotifColumns = biotern_notification_columns($conn);
+        $checkReadSql = 'SELECT is_read FROM notifications WHERE id = ? AND user_id = ?';
+        if (isset($headerNotifColumns['deleted_at'])) {
+            $checkReadSql .= ' AND deleted_at IS NULL';
+        }
+        $checkReadSql .= ' LIMIT 1';
+
+        $checkReadStmt = $conn->prepare($checkReadSql);
+        if ($checkReadStmt) {
+            $checkReadStmt->bind_param('ii', $notifRemoveId, $header_user_id_session);
+            $checkReadStmt->execute();
+            $checkReadRow = $checkReadStmt->get_result()->fetch_assoc();
+            $checkReadStmt->close();
+            $canRemoveReadNotification = (int)($checkReadRow['is_read'] ?? 0) === 1;
+        }
+
+        if ($canRemoveReadNotification) {
+            biotern_notifications_clear($conn, $header_user_id_session, $notifRemoveId);
+        }
+    }
+
+    $redirectParams = $_GET;
+    unset($redirectParams['notif_remove']);
+    $redirectTarget = basename((string)($_SERVER['PHP_SELF'] ?? 'homepage.php'));
+    $redirectQuery = http_build_query($redirectParams);
+    if ($redirectQuery !== '') {
+        $redirectTarget .= '?' . $redirectQuery;
+    }
+    header('Location: ' . $redirectTarget);
+    exit;
+}
 if (!isset($base_href) || trim((string)$base_href) === '') {
     $base_href = $header_root;
 }
+$header_notification_actions_url = (string)$base_href . 'api/notifications-actions.php';
 
 $favicon_ico_path = dirname(__DIR__) . '/assets/images/favicon.ico';
 $favicon_png_path = dirname(__DIR__) . '/assets/images/favicon-rounded.png';
@@ -318,6 +357,7 @@ $header_user_role = '';
 $header_avatar = 'assets/images/avatar/1.png';
 $header_notifications = [];
 $header_notifications_unread = 0;
+$header_notifications_read = 0;
 $header_profile_url = 'profile-details.php';
 $header_notifications_url = 'notifications.php';
 $header_account_settings_url = 'account-settings.php#security';
@@ -357,6 +397,8 @@ if ($page_render_header) {
             $has_message = false;
             $has_type = false;
             $has_data = false;
+            $has_action_url = false;
+            $has_deleted_at = false;
             $col_res = $hdr_db->query("SHOW COLUMNS FROM notifications");
             if ($col_res instanceof mysqli_result) {
                 while ($col = $col_res->fetch_assoc()) {
@@ -365,10 +407,16 @@ if ($page_render_header) {
                     if ($field === 'message') $has_message = true;
                     if ($field === 'type') $has_type = true;
                     if ($field === 'data') $has_data = true;
+                    if ($field === 'action_url') $has_action_url = true;
+                    if ($field === 'deleted_at') $has_deleted_at = true;
                 }
             }
 
-            $count_stmt = $hdr_db->prepare("SELECT COUNT(*) AS unread_count FROM notifications WHERE user_id = ? AND (is_read = 0 OR is_read IS NULL)");
+            $count_sql = "SELECT COUNT(*) AS unread_count FROM notifications WHERE user_id = ? AND (is_read = 0 OR is_read IS NULL)";
+            if ($has_deleted_at) {
+                $count_sql .= " AND deleted_at IS NULL";
+            }
+            $count_stmt = $hdr_db->prepare($count_sql);
             if ($count_stmt) {
                 $count_stmt->bind_param('i', $header_user_id_session);
                 $count_stmt->execute();
@@ -378,13 +426,20 @@ if ($page_render_header) {
             }
 
             if ($has_title && $has_message) {
-                $list_stmt = $hdr_db->prepare(
-                    "SELECT id, title, message, is_read, created_at
-                     FROM notifications
-                     WHERE user_id = ?
-                     ORDER BY created_at DESC, id DESC
-                     LIMIT 6"
-                );
+                $list_sql = "SELECT id, title, message, is_read, created_at";
+                if ($has_type) {
+                    $list_sql .= ", type";
+                }
+                if ($has_action_url) {
+                    $list_sql .= ", action_url";
+                }
+                $list_sql .= " FROM notifications WHERE user_id = ?";
+                if ($has_deleted_at) {
+                    $list_sql .= " AND deleted_at IS NULL";
+                }
+                $list_sql .= " ORDER BY created_at DESC, id DESC LIMIT 6";
+
+                $list_stmt = $hdr_db->prepare($list_sql);
                 if ($list_stmt) {
                     $list_stmt->bind_param('i', $header_user_id_session);
                     $list_stmt->execute();
@@ -403,13 +458,13 @@ if ($page_render_header) {
                     $list_stmt->close();
                 }
             } elseif ($has_type && $has_data) {
-                $list_stmt = $hdr_db->prepare(
-                    "SELECT id, type, data, is_read, created_at
-                     FROM notifications
-                     WHERE user_id = ?
-                     ORDER BY created_at DESC, id DESC
-                     LIMIT 6"
-                );
+                $list_sql = "SELECT id, type, data, is_read, created_at FROM notifications WHERE user_id = ?";
+                if ($has_deleted_at) {
+                    $list_sql .= " AND deleted_at IS NULL";
+                }
+                $list_sql .= " ORDER BY created_at DESC, id DESC LIMIT 6";
+
+                $list_stmt = $hdr_db->prepare($list_sql);
                 if ($list_stmt) {
                     $list_stmt->bind_param('i', $header_user_id_session);
                     $list_stmt->execute();
@@ -434,6 +489,12 @@ if ($page_render_header) {
                         ];
                     }
                     $list_stmt->close();
+                }
+            }
+
+            foreach ($header_notifications as $header_notification_row) {
+                if ((int)($header_notification_row['is_read'] ?? 0) === 1) {
+                    $header_notifications_read++;
                 }
             }
         }
@@ -597,10 +658,19 @@ if ($header_db instanceof mysqli) {
                                         <span class="badge bg-danger nxl-h-badge"><?php echo (int)$header_notifications_unread; ?></span>
                                     <?php endif; ?>
                                 </a>
-                                <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
+                                <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu" data-notification-actions-url="<?php echo htmlspecialchars($header_notification_actions_url, ENT_QUOTES, 'UTF-8'); ?>">
                                     <div class="d-flex justify-content-between align-items-center notifications-head px-3 py-2 border-bottom">
                                         <span class="fw-semibold">Notifications</span>
-                                        <span class="badge bg-soft-primary text-primary"><?php echo (int)$header_notifications_unread; ?> unread</span>
+                                        <div class="header-notifications-head-tools">
+                                            <button type="button" class="header-notification-remove-all-link<?php echo $header_notifications_read > 0 ? '' : ' is-disabled'; ?>" data-notification-remove-all aria-label="Remove all read notifications" title="Remove all read notifications"<?php echo $header_notifications_read > 0 ? '' : ' disabled aria-disabled="true"'; ?>>
+                                                <i class="feather-trash-2"></i>
+                                                <span>Remove All</span>
+                                            </button>
+                                            <a href="<?php echo htmlspecialchars($header_notifications_url, ENT_QUOTES, 'UTF-8'); ?>" class="header-notification-settings-link" title="Notification settings" aria-label="Notification settings">
+                                                <i class="feather-settings"></i>
+                                            </a>
+                                            <span class="badge bg-soft-primary text-primary"><?php echo (int)$header_notifications_unread; ?> unread</span>
+                                        </div>
                                     </div>
                                     <?php if (!empty($header_notifications)): ?>
                                         <div class="header-notifications-list">
@@ -618,25 +688,39 @@ if ($header_db instanceof mysqli) {
                                             $notificationMeta = biotern_notification_type_meta($notificationType);
                                             $notificationTarget = biotern_notification_open_url((string)($n['action_url'] ?? ''), (int)($n['id'] ?? 0), 'notifications.php');
                                             $notificationIsUnread = (int)($n['is_read'] ?? 0) === 0;
+                                            $notificationRemoveTarget = basename((string)($_SERVER['PHP_SELF'] ?? 'homepage.php'));
+                                            $notificationRemoveParams = $_GET;
+                                            $notificationRemoveParams['notif_remove'] = (int)($n['id'] ?? 0);
+                                            unset($notificationRemoveParams['notif_read']);
+                                            $notificationRemoveQuery = http_build_query($notificationRemoveParams);
+                                            if ($notificationRemoveQuery !== '') {
+                                                $notificationRemoveTarget .= '?' . $notificationRemoveQuery;
+                                            }
                                             ?>
-                                            <a href="<?php echo htmlspecialchars($notificationTarget, ENT_QUOTES, 'UTF-8'); ?>" class="notifications-item header-notification-item<?php echo $notificationIsUnread ? ' unread' : ''; ?>">
-                                                <div class="header-notification-badge">
-                                                    <i class="<?php echo htmlspecialchars((string)($notificationMeta['icon'] ?? 'feather-bell'), ENT_QUOTES, 'UTF-8'); ?>"></i>
-                                                </div>
-                                                <div class="notifications-desc header-notification-desc">
-                                                    <div class="header-notification-meta-row">
-                                                        <div class="header-notification-title"><?php echo htmlspecialchars($notificationTitle, ENT_QUOTES, 'UTF-8'); ?></div>
-                                                        <div class="header-notification-time" title="<?php echo htmlspecialchars($notificationCreatedAt, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(biotern_notification_time_ago($notificationCreatedAt), ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="header-notification-row<?php echo $notificationIsUnread ? ' unread' : ' read'; ?>" data-notification-id="<?php echo (int)($n['id'] ?? 0); ?>" data-notification-read="<?php echo $notificationIsUnread ? '0' : '1'; ?>">
+                                                <a href="<?php echo htmlspecialchars($notificationTarget, ENT_QUOTES, 'UTF-8'); ?>" class="notifications-item header-notification-item<?php echo $notificationIsUnread ? ' unread' : ''; ?>">
+                                                    <div class="header-notification-badge">
+                                                        <i class="<?php echo htmlspecialchars((string)($notificationMeta['icon'] ?? 'feather-bell'), ENT_QUOTES, 'UTF-8'); ?>"></i>
                                                     </div>
-                                                    <div class="header-notification-type"><?php echo htmlspecialchars((string)($notificationMeta['label'] ?? 'System'), ENT_QUOTES, 'UTF-8'); ?></div>
-                                                    <div class="header-notification-message"><?php echo htmlspecialchars($notificationMessage, ENT_QUOTES, 'UTF-8'); ?></div>
-                                                </div>
-                                            </a>
+                                                    <div class="notifications-desc header-notification-desc">
+                                                        <div class="header-notification-meta-row">
+                                                            <div class="header-notification-title"><?php echo htmlspecialchars($notificationTitle, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                            <div class="header-notification-time" title="<?php echo htmlspecialchars($notificationCreatedAt, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(biotern_notification_time_ago($notificationCreatedAt), ENT_QUOTES, 'UTF-8'); ?></div>
+                                                        </div>
+                                                        <div class="header-notification-type"><?php echo htmlspecialchars((string)($notificationMeta['label'] ?? 'System'), ENT_QUOTES, 'UTF-8'); ?></div>
+                                                        <div class="header-notification-message"><?php echo htmlspecialchars($notificationMessage, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                    </div>
+                                                </a>
+                                                <?php if (!$notificationIsUnread): ?>
+                                                    <a href="<?php echo htmlspecialchars($notificationRemoveTarget, ENT_QUOTES, 'UTF-8'); ?>" class="header-notification-remove-link" data-notification-remove-one title="Remove notification" aria-label="Remove notification">
+                                                        <i class="feather-trash-2"></i>
+                                                    </a>
+                                                <?php endif; ?>
+                                            </div>
                                         <?php endforeach; ?>
                                         </div>
-                                    <?php else: ?>
-                                        <div class="px-3 py-3 text-muted fs-12">No notifications yet.</div>
                                     <?php endif; ?>
+                                    <div class="px-3 py-3 text-muted fs-12 header-notifications-empty<?php echo !empty($header_notifications) ? ' d-none' : ''; ?>">No notifications yet.</div>
                                     <div class="notifications-menu-footer">
                                         <a href="notifications.php">Open Notifications</a>
                                     </div>
@@ -745,6 +829,183 @@ if ($header_db instanceof mysqli) {
         <!--! ================================================================ !-->
         <!--! [End] Header !-->
         <!--! ================================================================ !-->
+
+        <script>
+            (function () {
+                function initHeaderNotificationActions() {
+                    var menu = document.querySelector('.nxl-notifications-menu[data-notification-actions-url]');
+                    if (!menu) {
+                        return;
+                    }
+
+                    var endpoint = (menu.getAttribute('data-notification-actions-url') || '').trim();
+                    if (!endpoint) {
+                        return;
+                    }
+
+                    var dropdown = menu.closest('.dropdown');
+                    var bellLink = dropdown ? dropdown.querySelector('.nxl-head-link') : null;
+                    var headBadge = menu.querySelector('.notifications-head .badge');
+                    var list = menu.querySelector('.header-notifications-list');
+                    var emptyState = menu.querySelector('.header-notifications-empty');
+                    var removeAllButton = menu.querySelector('[data-notification-remove-all]');
+                    var pending = false;
+
+                    function parseCount(value) {
+                        var parsed = parseInt(String(value || ''), 10);
+                        return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+                    }
+
+                    function setPending(state) {
+                        pending = !!state;
+                        if (removeAllButton) {
+                            var isDisabled = removeAllButton.classList.contains('is-disabled');
+                            removeAllButton.disabled = pending || isDisabled;
+                        }
+                    }
+
+                    function updateUnreadBadges(unreadCount) {
+                        var count = parseCount(unreadCount);
+                        if (headBadge) {
+                            headBadge.textContent = count + ' unread';
+                        }
+
+                        if (!bellLink) {
+                            return;
+                        }
+
+                        var bellBadge = bellLink.querySelector('.nxl-h-badge');
+                        if (count > 0) {
+                            if (!bellBadge) {
+                                bellBadge = document.createElement('span');
+                                bellBadge.className = 'badge bg-danger nxl-h-badge';
+                                bellLink.appendChild(bellBadge);
+                            }
+                            bellBadge.textContent = String(count);
+                        } else if (bellBadge && bellBadge.parentNode) {
+                            bellBadge.parentNode.removeChild(bellBadge);
+                        }
+                    }
+
+                    function updateRemoveAllState() {
+                        if (!removeAllButton) {
+                            return;
+                        }
+
+                        var hasReadRows = !!menu.querySelector('.header-notification-row.read');
+                        removeAllButton.classList.toggle('is-disabled', !hasReadRows);
+                        removeAllButton.disabled = pending || !hasReadRows;
+                        removeAllButton.setAttribute('aria-disabled', hasReadRows ? 'false' : 'true');
+                    }
+
+                    function updateEmptyState() {
+                        var hasRows = !!menu.querySelector('.header-notification-row');
+                        if (list) {
+                            list.classList.toggle('d-none', !hasRows);
+                        }
+                        if (emptyState) {
+                            emptyState.classList.toggle('d-none', hasRows);
+                        }
+                        updateRemoveAllState();
+                    }
+
+                    function postAction(payload) {
+                        var params = new URLSearchParams();
+                        Object.keys(payload || {}).forEach(function (key) {
+                            params.append(key, String(payload[key]));
+                        });
+
+                        return fetch(endpoint, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: params.toString()
+                        }).then(function (response) {
+                            return response.json().catch(function () {
+                                return { ok: false, message: 'Invalid server response.' };
+                            });
+                        });
+                    }
+
+                    menu.addEventListener('click', function (event) {
+                        var removeOne = event.target.closest('[data-notification-remove-one]');
+                        if (removeOne) {
+                            event.preventDefault();
+                            if (pending) {
+                                return;
+                            }
+
+                            var row = removeOne.closest('.header-notification-row');
+                            var notificationId = row ? parseCount(row.getAttribute('data-notification-id')) : 0;
+                            if (notificationId <= 0) {
+                                return;
+                            }
+
+                            setPending(true);
+                            postAction({ action: 'remove_one_read', notification_id: notificationId })
+                                .then(function (result) {
+                                    if (!result || result.ok !== true) {
+                                        return;
+                                    }
+
+                                    if (row && row.parentNode) {
+                                        row.parentNode.removeChild(row);
+                                    }
+
+                                    updateUnreadBadges(result.unread_count);
+                                    updateEmptyState();
+                                })
+                                .finally(function () {
+                                    setPending(false);
+                                    updateRemoveAllState();
+                                });
+                            return;
+                        }
+
+                        var removeAll = event.target.closest('[data-notification-remove-all]');
+                        if (removeAll) {
+                            event.preventDefault();
+                            if (pending || removeAll.classList.contains('is-disabled')) {
+                                return;
+                            }
+
+                            setPending(true);
+                            postAction({ action: 'remove_all_read' })
+                                .then(function (result) {
+                                    if (!result || result.ok !== true) {
+                                        return;
+                                    }
+
+                                    menu.querySelectorAll('.header-notification-row.read').forEach(function (row) {
+                                        if (row && row.parentNode) {
+                                            row.parentNode.removeChild(row);
+                                        }
+                                    });
+
+                                    updateUnreadBadges(result.unread_count);
+                                    updateEmptyState();
+                                })
+                                .finally(function () {
+                                    setPending(false);
+                                    updateRemoveAllState();
+                                });
+                        }
+                    });
+
+                    updateUnreadBadges(<?php echo (int)$header_notifications_unread; ?>);
+                    updateEmptyState();
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initHeaderNotificationActions);
+                } else {
+                    initHeaderNotificationActions();
+                }
+            })();
+        </script>
 
         <?php if ($header_avatar_debug_enabled): ?>
             <div id="avatar-debug-panel" style="position:fixed;right:12px;bottom:12px;z-index:2000;max-width:460px;background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:10px;padding:10px 12px;box-shadow:0 8px 24px rgba(2,6,23,.35);font:12px/1.4 Consolas,'Courier New',monospace;">

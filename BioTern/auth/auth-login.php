@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
+require_once dirname(__DIR__) . '/includes/two-factor-auth.php';
 require_once dirname(__DIR__) . '/lib/mailer.php';
 require_once dirname(__DIR__) . '/lib/student-registration-verification.php';
 biotern_boot_session($conn);
@@ -243,6 +244,8 @@ if ($logoutRequested) {
         biotern_login_session_revoke_current($mysqli, $logoutUserId, 'logout');
     }
 
+    biotern_two_factor_clear_pending_login();
+
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();
@@ -271,6 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($posted_next !== '' && preg_match('/^[A-Za-z0-9_-]+\.php$/', $posted_next)) {
         $next = $posted_next;
     }
+    biotern_two_factor_clear_pending_login();
 
     if ($identifier === '' || $password === '') {
         $login_error = 'Please enter your Student ID Number or Username and password.';
@@ -423,23 +427,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                 } else {
-                    session_regenerate_id(true);
-                    $_SESSION['user_id'] = (int)$user['id'];
-                    $_SESSION['name'] = (string)$user['name'];
-                    $_SESSION['username'] = (string)$user['username'];
-                    $_SESSION['email'] = (string)$user['email'];
-                    $_SESSION['role'] = (string)$user['role'];
-                    $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
-                    $_SESSION['logged_in'] = true;
-                    biotern_set_auth_cookie((int)$user['id']);
-                    biotern_login_session_start($mysqli, (int)$user['id']);
+                    $twoFactorEnabled = biotern_two_factor_is_enabled($mysqli, (int)$user['id']);
+                    if ($twoFactorEnabled) {
+                        $targetEmail = trim((string)($user['email'] ?? ''));
+                        if (!filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
+                            $login_error = 'Two-factor authentication is enabled, but this account does not have a valid email address.';
+                            log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'two_factor_email_invalid', $client_ip, $client_user_agent);
+                        } else {
+                            $mailRef = '';
+                            $issueResult = biotern_two_factor_issue_login_code($mysqli, (int)$user['id'], $targetEmail, $mailRef);
+                            if (empty($issueResult['ok'])) {
+                                $login_error = (string)($issueResult['error'] ?? 'Unable to send the two-factor code right now.');
+                                $issueRef = trim((string)($issueResult['reference'] ?? $mailRef));
+                                if ($issueRef !== '') {
+                                    $login_error .= ' Reference: ' . $issueRef;
+                                }
+                                log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'two_factor_send_failed', $client_ip, $client_user_agent);
+                            } else {
+                                biotern_two_factor_prepare_pending_login((int)$user['id'], $identifier, $next);
+                                $_SESSION['two_factor_notice'] = 'A verification code was sent to ' . (string)($issueResult['masked_email'] ?? biotern_two_factor_mask_email($targetEmail)) . '.';
+                                log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'two_factor_required', $client_ip, $client_user_agent);
+                                header('Location: ' . $route_prefix . 'auth/auth-two-factor.php');
+                                exit;
+                            }
+                        }
+                    } else {
+                        session_regenerate_id(true);
+                        $_SESSION['user_id'] = (int)$user['id'];
+                        $_SESSION['name'] = (string)$user['name'];
+                        $_SESSION['username'] = (string)$user['username'];
+                        $_SESSION['email'] = (string)$user['email'];
+                        $_SESSION['role'] = (string)$user['role'];
+                        $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
+                        $_SESSION['logged_in'] = true;
+                        biotern_set_auth_cookie((int)$user['id']);
+                        biotern_login_session_start($mysqli, (int)$user['id']);
+                        biotern_two_factor_clear_pending_login();
 
-                    log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'success', 'login_success', $client_ip, $client_user_agent);
+                        log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'success', 'login_success', $client_ip, $client_user_agent);
 
-                    $target = $next !== '' ? ($route_prefix . $next) : ($route_prefix . 'homepage.php');
-                    session_write_close();
-                    header('Location: ' . $target);
-                    exit;
+                        $target = $next !== '' ? ($route_prefix . $next) : ($route_prefix . 'homepage.php');
+                        session_write_close();
+                        header('Location: ' . $target);
+                        exit;
+                    }
                 }
                 }
             } else {

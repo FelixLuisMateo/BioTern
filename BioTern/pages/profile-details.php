@@ -409,7 +409,7 @@ include 'includes/header.php';
                 </div>
                 <div class="dashboard-actions-grid page-header-right-items-wrapper">
                     <a class="btn btn-light-brand" href="profile-details.php"><i class="feather-user me-2"></i>Profile Details</a>
-                    <a class="btn btn-light-brand" href="profile-details.php#account-settings"><i class="feather-settings me-2"></i>Settings</a>
+                    <a class="btn btn-light-brand" href="account-settings.php#security"><i class="feather-settings me-2"></i>Settings</a>
                     <a class="btn btn-light-brand" href="activity-feed.php"><i class="feather-activity me-2"></i>Activity Feed</a>
                 </div>
             </div>

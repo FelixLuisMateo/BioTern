@@ -168,6 +168,7 @@ $map = [
   'process_attendance.php' => 'api/process_attendance.php',
   'register_fingerprint.php' => 'api/register_fingerprint.php',
   'register_submit.php' => 'api/register_submit.php',
+  'notifications-actions.php' => 'api/notifications-actions.php',
 
   'create_admin.php' => 'auth/create_admin.php',
   'users.php' => 'auth/users.php',
@@ -178,6 +179,7 @@ $map = [
   'auth-maintenance-cover.php' => 'auth/auth-maintenance-cover.php',
   'auth-register.php' => 'auth/auth-register.php',
   'auth-register-verify.php' => 'auth/auth-register-verify.php',
+  'auth-two-factor.php' => 'auth/auth-two-factor.php',
   'auth-reset-cover.php' => 'auth/auth-reset-cover.php',
   'auth-resetting-minimal.php' => 'auth/auth-resetting-minimal.php',
   'auth-verify-cover.php' => 'auth/auth-verify-cover.php',
@@ -255,6 +257,7 @@ $public_files = [
   'auth-login-cover.php',
   'auth-register.php',
   'auth-register-verify.php',
+  'auth-two-factor.php',
   'auth-reset-cover.php',
   'auth-resetting-minimal.php',
   'auth-verify-cover.php',

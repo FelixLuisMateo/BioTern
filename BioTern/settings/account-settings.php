@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
+require_once dirname(__DIR__) . '/includes/two-factor-auth.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
@@ -311,6 +312,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($col !== 'password' && acol($conn, 'users', 'password')) { $legacy = $conn->prepare("UPDATE users SET password = ? WHERE id = ? LIMIT 1"); if ($legacy) { $legacy->bind_param('si', $newHash, $userId); $legacy->execute(); $legacy->close(); } }
         aflash('success', 'Password updated successfully.'); aredirect();
     }
+    if ($action === 'toggle_two_factor') {
+        $desiredEnabled = ((int)($_POST['two_factor_enabled'] ?? 0) === 1);
+        $confirmPassword = (string)($_POST['two_factor_password'] ?? '');
+
+        if ($confirmPassword === '') {
+            aflash('danger', 'Confirm your current password to change two-factor authentication.');
+            aredirect();
+        }
+
+        $storedPassword = (string)($user['password'] ?? '');
+        $matches = password_verify($confirmPassword, $storedPassword);
+        if (!$matches && $storedPassword !== '' && hash_equals($storedPassword, $confirmPassword)) {
+            $matches = true;
+        }
+
+        if (!$matches) {
+            aflash('danger', 'Current password is incorrect.');
+            aredirect();
+        }
+
+        $currentEnabled = biotern_two_factor_is_enabled($conn, $userId);
+        if ($currentEnabled === $desiredEnabled) {
+            aflash('info', $currentEnabled ? 'Two-factor authentication is already enabled.' : 'Two-factor authentication is already disabled.');
+            aredirect();
+        }
+
+        $email = trim((string)($user['email'] ?? ''));
+        if ($desiredEnabled && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            aflash('danger', 'Add a valid email address before enabling two-factor authentication.');
+            aredirect();
+        }
+
+        if (!biotern_two_factor_set_enabled($conn, $userId, $desiredEnabled)) {
+            aflash('danger', 'Unable to update two-factor authentication right now.');
+            aredirect();
+        }
+
+        aflash('success', $desiredEnabled ? 'Two-factor authentication is now enabled.' : 'Two-factor authentication is now disabled.');
+        aredirect();
+    }
     if ($action === 'revoke_other_sessions') {
         if (!biotern_login_sessions_ensure_table($conn)) {
             aflash('danger', 'Unable to manage sessions right now.');
@@ -367,6 +408,9 @@ $lastLogin = 'No login record yet'; $loginStmt = $conn->prepare("SELECT created_
 if ($loginStmt) { $status = 'success'; $loginStmt->bind_param('is', $userId, $status); $loginStmt->execute(); $loginRow = $loginStmt->get_result()->fetch_assoc(); $loginStmt->close(); if (!empty($loginRow['created_at'])) { $ts = strtotime((string)$loginRow['created_at']); if ($ts !== false) $lastLogin = date('M d, Y h:i A', $ts); } }
 $currentSessionTokenHash = biotern_auth_session_current_hash();
 $loginSessions = biotern_login_session_recent_for_user($conn, $userId, $currentSessionTokenHash, 12);
+$twoFactorEnabled = biotern_two_factor_is_enabled($conn, $userId);
+$twoFactorHasValidEmail = filter_var(trim((string)($user['email'] ?? '')), FILTER_VALIDATE_EMAIL) !== false;
+$twoFactorMaskedEmail = biotern_two_factor_mask_email((string)($user['email'] ?? ''));
 $activeSessionCount = 0;
 foreach ($loginSessions as $sessionRow) {
     if (aactive_session($sessionRow)) {
@@ -481,6 +525,36 @@ include dirname(__DIR__) . '/includes/header.php';
                                             <div class="account-form-actions mt-3"><button type="submit" class="btn btn-outline-primary">Update Password</button></div>
                                             <p class="account-note mb-0 mt-3">Use at least 8 characters, including uppercase, lowercase, and a number.</p>
                                         </form>
+                                        <hr class="my-3">
+                                        <div class="account-2fa-panel">
+                                            <div class="account-2fa-header">
+                                                <div>
+                                                    <h6 class="settings-section-title mb-1">Two-factor authentication</h6>
+                                                    <p class="account-note mb-0">Add a one-time verification code to your login for extra account security.</p>
+                                                </div>
+                                                <span class="account-2fa-chip <?php echo $twoFactorEnabled ? 'is-enabled' : 'is-disabled'; ?>"><?php echo $twoFactorEnabled ? 'Enabled' : 'Disabled'; ?></span>
+                                            </div>
+                                            <form method="post" class="mt-3">
+                                                <input type="hidden" name="action" value="toggle_two_factor">
+                                                <input type="hidden" name="two_factor_enabled" value="<?php echo $twoFactorEnabled ? 0 : 1; ?>">
+                                                <div class="account-form-grid">
+                                                    <div class="full">
+                                                        <label class="form-label" for="two_factor_password">Confirm Current Password</label>
+                                                        <input type="password" id="two_factor_password" name="two_factor_password" class="form-control" required>
+                                                    </div>
+                                                </div>
+                                                <div class="account-form-actions mt-3">
+                                                    <button type="submit" class="btn <?php echo $twoFactorEnabled ? 'btn-outline-danger' : 'btn-outline-success'; ?>">
+                                                        <?php echo $twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'; ?>
+                                                    </button>
+                                                </div>
+                                                <?php if ($twoFactorHasValidEmail): ?>
+                                                    <p class="account-note mb-0 mt-2">Verification codes are sent to <?php echo ash($twoFactorMaskedEmail); ?>.</p>
+                                                <?php else: ?>
+                                                    <p class="account-note text-danger mb-0 mt-2">A valid email address is required before you can enable 2FA.</p>
+                                                <?php endif; ?>
+                                            </form>
+                                        </div>
                                     </div>
                                 </section>
                             </div>
