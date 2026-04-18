@@ -1177,6 +1177,8 @@ function students_excel_find_student(mysqli $mysqli, string $studentCode, string
                 return $row;
             }
         }
+        // When a student number is provided, it is the only authoritative lookup key.
+        return null;
     }
     if ($email !== '') {
         $stmt = $mysqli->prepare('SELECT id, user_id, student_id, email FROM students WHERE email = ? LIMIT 1');
@@ -1205,7 +1207,7 @@ function students_excel_find_student(mysqli $mysqli, string $studentCode, string
     return null;
 }
 
-function students_excel_upsert_user(mysqli $mysqli, array $row, string &$errorMessage): int
+function students_excel_upsert_user(mysqli $mysqli, array $row, string &$errorMessage, int $preferredUserId = 0): int
 {
     $firstName = trim((string)($row['first_name'] ?? ''));
     $lastName = trim((string)($row['last_name'] ?? ''));
@@ -1220,17 +1222,38 @@ function students_excel_upsert_user(mysqli $mysqli, array $row, string &$errorMe
     if ($fullName === '') {
         $fullName = $username;
     }
-    $passwordHash = students_excel_password((string)($row['password'] ?? ''));
-    $existing = students_excel_find_user($mysqli, $email, $username);
+    $rawPassword = trim((string)($row['password'] ?? ''));
+    $passwordHash = $rawPassword !== '' ? students_excel_password($rawPassword) : '';
+    $existing = null;
+    if ($preferredUserId > 0) {
+        $prefStmt = $mysqli->prepare('SELECT id, email, username FROM users WHERE id = ? LIMIT 1');
+        if ($prefStmt) {
+            $prefStmt->bind_param('i', $preferredUserId);
+            $prefStmt->execute();
+            $existing = $prefStmt->get_result()->fetch_assoc();
+            $prefStmt->close();
+        }
+    }
+    if (!is_array($existing)) {
+        $existing = students_excel_find_user($mysqli, $email, $username);
+    }
 
     if ($existing) {
         $userId = (int)($existing['id'] ?? 0);
-        $stmt = $mysqli->prepare("UPDATE users SET name = ?, username = ?, email = ?, password = ?, role = 'student', is_active = ?, profile_picture = ?, application_status = 'approved', updated_at = NOW() WHERE id = ?");
+        if ($passwordHash !== '') {
+            $stmt = $mysqli->prepare("UPDATE users SET name = ?, username = ?, email = ?, password = ?, role = 'student', is_active = ?, profile_picture = ?, application_status = 'approved', updated_at = NOW() WHERE id = ?");
+        } else {
+            $stmt = $mysqli->prepare("UPDATE users SET name = ?, username = ?, email = ?, role = 'student', is_active = ?, profile_picture = ?, application_status = 'approved', updated_at = NOW() WHERE id = ?");
+        }
         if (!$stmt) {
             $errorMessage = 'Failed to prepare user update: ' . $mysqli->error;
             return 0;
         }
-        $stmt->bind_param('ssssisi', $fullName, $username, $email, $passwordHash, $isActive, $profilePicture, $userId);
+        if ($passwordHash !== '') {
+            $stmt->bind_param('ssssisi', $fullName, $username, $email, $passwordHash, $isActive, $profilePicture, $userId);
+        } else {
+            $stmt->bind_param('sssisi', $fullName, $username, $email, $isActive, $profilePicture, $userId);
+        }
         $ok = $stmt->execute();
         $stmt->close();
         if (!$ok) {
@@ -1238,6 +1261,10 @@ function students_excel_upsert_user(mysqli $mysqli, array $row, string &$errorMe
             return 0;
         }
         return $userId;
+    }
+
+    if ($passwordHash === '') {
+        $passwordHash = students_excel_password('');
     }
 
     $stmt = $mysqli->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, profile_picture, created_at, updated_at) VALUES (?, ?, ?, ?, 'student', ?, 'approved', ?, NOW(), NOW())");
@@ -1265,7 +1292,8 @@ function students_excel_upsert_student(mysqli $mysqli, array $row, int $userId, 
     $lastName = trim((string)($row['last_name'] ?? ''));
     $middleName = trim((string)($row['middle_name'] ?? ''));
     $username = trim((string)($row['username'] ?? ''));
-    $passwordHash = students_excel_password((string)($row['password'] ?? ''));
+    $rawPassword = trim((string)($row['password'] ?? ''));
+    $passwordHash = $rawPassword !== '' ? students_excel_password($rawPassword) : '';
     $email = trim((string)($row['email'] ?? ''));
     $bio = trim((string)($row['bio'] ?? ''));
     $departmentId = trim((string)($row['department_id'] ?? '0'));
@@ -1310,7 +1338,7 @@ function students_excel_upsert_student(mysqli $mysqli, array $row, int $userId, 
     $existing = students_excel_find_student($mysqli, $studentCode, $email, $userId);
     if ($existing) {
         $studentPk = (int)($existing['id'] ?? 0);
-        $stmt = $mysqli->prepare("UPDATE students SET user_id = ?, course_id = ?, student_id = ?, first_name = ?, last_name = ?, middle_name = ?, username = ?, password = ?, email = ?, bio = ?, department_id = ?, section_id = ?, semester = NULLIF(?, ''), supervisor_name = ?, coordinator_name = ?, supervisor_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), phone = ?, date_of_birth = NULLIF(?, ''), gender = NULLIF(?, ''), address = ?, internal_total_hours = ?, internal_total_hours_remaining = ?, external_total_hours = ?, external_total_hours_remaining = ?, emergency_contact = ?, profile_picture = ?, status = ?, school_year = ?, assignment_track = ?, updated_at = NOW() WHERE id = ?");
+        $stmt = $mysqli->prepare("UPDATE students SET user_id = ?, course_id = ?, student_id = ?, first_name = ?, last_name = ?, middle_name = ?, username = ?, password = COALESCE(NULLIF(?, ''), password), email = ?, bio = ?, department_id = ?, section_id = ?, semester = NULLIF(?, ''), supervisor_name = ?, coordinator_name = ?, supervisor_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), phone = ?, date_of_birth = NULLIF(?, ''), gender = NULLIF(?, ''), address = ?, internal_total_hours = ?, internal_total_hours_remaining = ?, external_total_hours = ?, external_total_hours_remaining = ?, emergency_contact = ?, profile_picture = ?, status = ?, school_year = ?, assignment_track = ?, updated_at = NOW() WHERE id = ?");
         if (!$stmt) {
             $errorMessage = 'Failed to prepare student update: ' . $mysqli->error;
             return 0;
@@ -1323,6 +1351,10 @@ function students_excel_upsert_student(mysqli $mysqli, array $row, int $userId, 
             return 0;
         }
         return $studentPk;
+    }
+
+    if ($passwordHash === '') {
+        $passwordHash = students_excel_password('');
     }
 
     $stmt = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, bio, department_id, section_id, semester, supervisor_name, coordinator_name, supervisor_id, coordinator_id, phone, date_of_birth, gender, address, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining, emergency_contact, profile_picture, status, school_year, assignment_track, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), ?, ?, NULLIF(?, 0), NULLIF(?, 0), ?, NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
@@ -1482,6 +1514,7 @@ function students_excel_import_workbook(mysqli $mysqli, string $path, string $so
         }
 
         $email = trim((string)($row['email'] ?? ''));
+        $existingStudent = null;
         if ($studentCode !== '') {
             $existingStudent = students_excel_find_student($mysqli, $studentCode, $email, 0);
             if ($existingStudent) {
@@ -1490,7 +1523,8 @@ function students_excel_import_workbook(mysqli $mysqli, string $path, string $so
         }
 
         $rowError = '';
-        $userId = students_excel_upsert_user($mysqli, $row, $rowError);
+        $preferredUserId = (int)($existingStudent['user_id'] ?? 0);
+        $userId = students_excel_upsert_user($mysqli, $row, $rowError, $preferredUserId);
         if ($userId <= 0) {
             $errors[] = 'Students row ' . ($index + 2) . ': ' . $rowError;
             continue;

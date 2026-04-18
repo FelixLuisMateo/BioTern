@@ -142,8 +142,14 @@ if (!function_exists('biotern_notifications_count_unread')) {
     function biotern_notifications_count_unread(mysqli $conn, int $userId): int {
         if ($userId <= 0) return 0;
         biotern_notifications_ensure_table($conn);
+        $columns = biotern_notification_columns($conn);
 
-        $stmt = $conn->prepare("SELECT COUNT(*) AS unread_count FROM notifications WHERE user_id = ? AND is_read = 0");
+        $where = "user_id = ? AND is_read = 0";
+        if (isset($columns['deleted_at'])) {
+            $where .= " AND deleted_at IS NULL";
+        }
+
+        $stmt = $conn->prepare("SELECT COUNT(*) AS unread_count FROM notifications WHERE " . $where);
         if (!$stmt) return 0;
 
         $stmt->bind_param('i', $userId);
@@ -212,8 +218,15 @@ if (!function_exists('biotern_notifications_fetch')) {
 if (!function_exists('biotern_notifications_mark_read')) {
     function biotern_notifications_mark_read(mysqli $conn, int $userId, int $notificationId): bool {
         if ($userId <= 0 || $notificationId <= 0) return false;
+        biotern_notifications_ensure_table($conn);
+        $columns = biotern_notification_columns($conn);
 
-        $stmt = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?");
+        $where = "id = ? AND user_id = ?";
+        if (isset($columns['deleted_at'])) {
+            $where .= " AND deleted_at IS NULL";
+        }
+
+        $stmt = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE " . $where);
         if (!$stmt) return false;
 
         $stmt->bind_param('ii', $notificationId, $userId);
@@ -226,8 +239,15 @@ if (!function_exists('biotern_notifications_mark_read')) {
 if (!function_exists('biotern_notifications_mark_all_read')) {
     function biotern_notifications_mark_all_read(mysqli $conn, int $userId): bool {
         if ($userId <= 0) return false;
+        biotern_notifications_ensure_table($conn);
+        $columns = biotern_notification_columns($conn);
 
-        $stmt = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0");
+        $where = "user_id = ? AND is_read = 0";
+        if (isset($columns['deleted_at'])) {
+            $where .= " AND deleted_at IS NULL";
+        }
+
+        $stmt = $conn->prepare("UPDATE notifications SET is_read = 1 WHERE " . $where);
         if (!$stmt) return false;
 
         $stmt->bind_param('i', $userId);
@@ -266,6 +286,26 @@ if (!function_exists('biotern_notifications_clear_all')) {
         $ok = $stmt->execute();
         $stmt->close();
         return (bool)$ok;
+    }
+}
+
+if (!function_exists('biotern_notifications_clear_read')) {
+    function biotern_notifications_clear_read(mysqli $conn, int $userId): int {
+        if ($userId <= 0) return 0;
+        biotern_notifications_ensure_table($conn);
+        $columns = biotern_notification_columns($conn);
+
+        $stmt = isset($columns['deleted_at'])
+            ? $conn->prepare("UPDATE notifications SET deleted_at = NOW() WHERE user_id = ? AND is_read = 1 AND deleted_at IS NULL")
+            : $conn->prepare("DELETE FROM notifications WHERE user_id = ? AND is_read = 1");
+        if (!$stmt) return 0;
+
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        $affected = (int)$stmt->affected_rows;
+        $stmt->close();
+
+        return $affected;
     }
 }
 

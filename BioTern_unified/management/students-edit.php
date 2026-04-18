@@ -1,6 +1,7 @@
 <?php
 // Database connection from central config
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -16,6 +17,20 @@ $current_role = strtolower(trim((string) (
 )));
 $can_edit_sensitive_hours = in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
 $can_edit_hours = true;
+$can_admin_reset_student_password = ($current_role === 'admin');
+
+function biotern_users_column_exists(mysqli $conn, string $column): bool
+{
+    $stmt = $conn->prepare("SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = ? LIMIT 1");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('s', $column);
+    $stmt->execute();
+    $exists = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
+    return $exists;
+}
 
 function formatSectionDisplayLabel($code, $name): string
 {
@@ -43,12 +58,61 @@ function biotern_student_edit_ensure_runtime_dir(string $path): bool
         return true;
     }
 
-    $parent = dirname($path);
-    if (!is_dir($parent) || !is_writable($parent)) {
+    $writable_base = $path;
+    while (!is_dir($writable_base)) {
+        $next = dirname($writable_base);
+        if ($next === $writable_base) {
+            break;
+        }
+        $writable_base = $next;
+    }
+
+    if (!is_dir($writable_base) || !is_writable($writable_base)) {
         return false;
     }
 
     return @mkdir($path, 0755, true) || is_dir($path);
+}
+
+function biotern_student_edit_ensure_profile_picture_table(mysqli $conn): bool
+{
+    return (bool)$conn->query("CREATE TABLE IF NOT EXISTS user_profile_pictures (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id INT UNSIGNED NOT NULL,
+        image_mime VARCHAR(64) NOT NULL,
+        image_data LONGBLOB NOT NULL,
+        image_size INT UNSIGNED NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_user_profile_picture (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function biotern_student_edit_save_profile_picture_blob(mysqli $conn, int $userId, string $mime, string $binary): bool
+{
+    if ($userId <= 0 || $mime === '' || $binary === '') {
+        return false;
+    }
+    if (!biotern_student_edit_ensure_profile_picture_table($conn)) {
+        return false;
+    }
+
+    $size = strlen($binary);
+    $stmt = $conn->prepare("INSERT INTO user_profile_pictures (user_id, image_mime, image_data, image_size, created_at, updated_at)
+        VALUES (?, ?, ?, ?, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE image_mime = VALUES(image_mime), image_data = VALUES(image_data), image_size = VALUES(image_size), updated_at = NOW()");
+    if (!$stmt) {
+        return false;
+    }
+
+    $blob = '';
+    $stmt->bind_param('isbi', $userId, $mime, $blob, $size);
+    $stmt->send_long_data(2, $binary);
+    $ok = $stmt->execute();
+    $stmt->close();
+
+    return (bool)$ok;
 }
 
 // Ensure new student assignment/hour fields exist.
@@ -236,9 +300,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Handle profile picture upload
     $profile_picture_path = $student['profile_picture'] ?? '';
     $profile_picture_uploaded = false;
+    $linked_user_id = !empty($student['user_id']) ? (int)$student['user_id'] : 0;
     
     if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == UPLOAD_ERR_OK) {
-        if (!$uploads_available) {
+        if (!$uploads_available && $linked_user_id <= 0) {
             $error_message = "Profile picture uploads are disabled on this deployment because the filesystem is read-only. Review and upload locally, or use persistent file storage.";
         }
 
@@ -280,9 +345,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $is_valid_mime = $mime_type !== '' && in_array($mime_type, $allowed_mimes, true);
 
         if ($is_valid_ext && $is_valid_mime && $file_size <= $max_file_size) {
+            if ($linked_user_id > 0) {
+                if (!is_uploaded_file($file_tmp)) {
+                    $error_message = "Failed to upload profile picture because the uploaded file was not detected.";
+                } else {
+                    $binary = @file_get_contents($file_tmp);
+                    if (!is_string($binary) || $binary === '') {
+                        $error_message = "Failed to read uploaded profile picture.";
+                    } elseif (biotern_student_edit_save_profile_picture_blob($conn, $linked_user_id, $mime_type, $binary)) {
+                        $profile_picture_path = 'db-avatar';
+                        $profile_picture_uploaded = true;
+                    } else {
+                        $error_message = "Failed to save profile picture to user_profile_pictures.";
+                    }
+                }
+            } else {
             // Create unique filename
             $unique_name = 'student_' . $student_id . '_' . time() . '.' . $file_ext;
             $file_path = $uploads_dir . '/' . $unique_name;
+            $destination_dir = dirname($file_path);
             
             // Delete old profile picture if exists
             $old_profile_file = $project_root . '/' . ltrim(str_replace('\\', '/', (string)$profile_picture_path), '/');
@@ -291,11 +372,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             
             // Move uploaded file
-            if (move_uploaded_file($file_tmp, $file_path)) {
+            if (!is_dir($destination_dir) && !biotern_student_edit_ensure_runtime_dir($destination_dir)) {
+                $error_message = "Failed to upload profile picture because the destination folder is not available on this deployment.";
+            } elseif (!is_uploaded_file($file_tmp)) {
+                $error_message = "Failed to upload profile picture because the uploaded file was not detected.";
+            } elseif (@move_uploaded_file($file_tmp, $file_path)) {
                 $profile_picture_path = 'uploads/profile_pictures/' . $unique_name;
                 $profile_picture_uploaded = true;
             } else {
                 $error_message = "Failed to upload profile picture. Please try again.";
+            }
             }
         } else {
             $error_message = "Invalid image file or file size exceeds 5MB. Allowed types: JPG, JPEG, PNG, GIF, WEBP.";
@@ -326,6 +412,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $external_total_hours = isset($_POST['external_total_hours']) && $_POST['external_total_hours'] !== '' ? intval($_POST['external_total_hours']) : null;
     $external_total_hours_remaining = isset($_POST['external_total_hours_remaining']) && $_POST['external_total_hours_remaining'] !== '' ? intval($_POST['external_total_hours_remaining']) : null;
     $assignment_track = isset($_POST['assignment_track']) ? trim($_POST['assignment_track']) : 'internal';
+    $admin_reset_password = isset($_POST['admin_reset_password']) ? (string)$_POST['admin_reset_password'] : '';
+    $admin_reset_password_confirm = isset($_POST['admin_reset_password_confirm']) ? (string)$_POST['admin_reset_password_confirm'] : '';
+    $requested_password_reset = ($admin_reset_password !== '' || $admin_reset_password_confirm !== '');
     $original_updated_at = isset($_POST['original_updated_at']) ? trim((string)$_POST['original_updated_at']) : '';
 
     if (!$can_edit_sensitive_hours) {
@@ -467,6 +556,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error_message = "First Name, Last Name, and Email are required fields!";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = "Invalid email format!";
+    } elseif ($requested_password_reset && !$can_admin_reset_student_password) {
+        $error_message = "Only admin accounts can reset a student's account password.";
+    } elseif ($requested_password_reset && empty($student['user_id'])) {
+        $error_message = "This student has no linked account record, so password reset is not available.";
+    } elseif ($requested_password_reset && ($admin_reset_password === '' || $admin_reset_password_confirm === '')) {
+        $error_message = "Enter and confirm the new password to reset the account password.";
+    } elseif ($requested_password_reset && !hash_equals($admin_reset_password, $admin_reset_password_confirm)) {
+        $error_message = "New password and confirmation do not match.";
+    } elseif ($requested_password_reset && (strlen($admin_reset_password) < 8 || !preg_match('/[A-Z]/', $admin_reset_password) || !preg_match('/[a-z]/', $admin_reset_password) || !preg_match('/\d/', $admin_reset_password))) {
+        $error_message = "Password must be at least 8 characters and include uppercase, lowercase, and a number.";
     } elseif ($assignment_track === 'external' && ($internal_total_hours_remaining === null || $internal_total_hours_remaining > 0)) {
         $error_message = "Cannot assign student to External unless Internal is completed (Internal Total Hours Remaining must be 0).";
     } else {
@@ -543,9 +642,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 );
 
                 if ($update_stmt->execute()) {
+                    $password_reset_applied = false;
+                    $password_reset_warning = '';
+
                     if (!empty($student['user_id'])) {
                         $user_id_for_sync = (int)$student['user_id'];
-                        $display_name = trim($first_name . ' ' . $last_name);
+                        $display_name = trim(preg_replace('/\s+/', ' ', $first_name . ' ' . $middle_name . ' ' . $last_name));
                         $sync_user_stmt = $conn->prepare("UPDATE users SET name = ?, email = ?, updated_at = NOW() WHERE id = ?");
                         if ($sync_user_stmt) {
                             $sync_user_stmt->bind_param("ssi", $display_name, $email, $user_id_for_sync);
@@ -561,6 +663,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             $sync_user_photo->bind_param("si", $profile_picture_path, $user_id_for_photo);
                             $sync_user_photo->execute();
                             $sync_user_photo->close();
+                        }
+                    }
+
+                    if ($requested_password_reset && !empty($student['user_id'])) {
+                        $user_id_for_password = (int)$student['user_id'];
+                        $new_hash = password_hash($admin_reset_password, PASSWORD_DEFAULT);
+
+                        if ($new_hash === false) {
+                            $password_reset_warning = ' Password reset was requested but failed to generate a secure password hash.';
+                        } else {
+                            $password_column = biotern_users_column_exists($conn, 'password_hash') ? 'password_hash' : 'password';
+                            $reset_stmt = $conn->prepare("UPDATE users SET {$password_column} = ?, updated_at = NOW() WHERE id = ? LIMIT 1");
+                            if ($reset_stmt) {
+                                $reset_stmt->bind_param('si', $new_hash, $user_id_for_password);
+                                $reset_ok = $reset_stmt->execute();
+                                $reset_stmt->close();
+
+                                if ($reset_ok) {
+                                    if ($password_column !== 'password' && biotern_users_column_exists($conn, 'password')) {
+                                        $legacy_stmt = $conn->prepare("UPDATE users SET password = ?, updated_at = NOW() WHERE id = ? LIMIT 1");
+                                        if ($legacy_stmt) {
+                                            $legacy_stmt->bind_param('si', $new_hash, $user_id_for_password);
+                                            $legacy_stmt->execute();
+                                            $legacy_stmt->close();
+                                        }
+                                    }
+                                    $password_reset_applied = true;
+                                    $activity_changes[] = 'users.password reset by admin';
+                                } else {
+                                    $password_reset_warning = ' Password reset was requested but failed to save on the linked account.';
+                                }
+                            } else {
+                                $password_reset_warning = ' Password reset was requested but the password update statement could not be prepared.';
+                            }
                         }
                     }
 
@@ -710,6 +846,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     }
 
                     $success_message = "� Student information updated successfully!";
+                    if ($password_reset_applied) {
+                        $success_message .= " Linked account password was reset successfully.";
+                    }
+                    if ($password_reset_warning !== '') {
+                        $success_message .= $password_reset_warning;
+                    }
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
                     $stmt->bind_param("i", $student_id);
@@ -741,17 +883,24 @@ function formatDateTime($date) {
     return 'N/A';
 }
 
-function resolve_profile_image_url(string $profilePath): ?string {
-    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
-    if ($clean === '') {
+function resolve_profile_image_url(string $profilePath, int $userId = 0): ?string {
+    $public = trim((string)biotern_avatar_public_src($profilePath, $userId));
+    if ($public === '') {
         return null;
     }
+
+    if (stripos($public, 'includes/avatar-image.php?uid=') !== false) {
+        return $public;
+    }
+
+    $clean = ltrim(str_replace('\\', '/', $public), '/');
     $rootPath = dirname(__DIR__) . '/' . $clean;
-    if (!file_exists($rootPath)) {
-        return null;
+    if (file_exists($rootPath)) {
+        $mtime = @filemtime($rootPath);
+        return $clean . ($mtime ? ('?v=' . $mtime) : '');
     }
-    $mtime = @filemtime($rootPath);
-    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+
+    return $public;
 }
 
 ?>
@@ -1464,7 +1613,7 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                                 <label for="profile_picture" class="form-label fw-semibold">Profile Picture</label>
                                                 <div class="mb-2">
                                                     <?php
-                                                        $profile_preview = resolve_profile_image_url((string)($student['profile_picture'] ?? ''));
+                                                        $profile_preview = resolve_profile_image_url((string)($student['profile_picture'] ?? ''), (int)($student['user_id'] ?? 0));
                                                         if ($profile_preview === null) {
                                                             $profile_preview = 'assets/images/avatar/' . (($student_id % 5) + 1) . '.png';
                                                         }
@@ -1479,6 +1628,34 @@ function resolve_profile_image_url(string $profilePath): ?string {
                                             </div>
                                         </div>
                                     </div>
+
+
+                                    <?php if ($can_admin_reset_student_password): ?>
+                                    <div class="edit-section-card">
+                                        <h6 class="fw-bold mb-4">
+                                            <i class="feather-lock me-2"></i>Account Password Reset (Admin)
+                                        </h6>
+                                        <p class="section-subtitle">Optional: set a new login password for this student's linked account when self-service reset is unavailable.</p>
+
+                                        <div class="row">
+                                            <div class="col-md-6 mb-4">
+                                                <label for="admin_reset_password" class="form-label fw-semibold">New Account Password</label>
+                                                <input type="password" class="form-control" id="admin_reset_password" name="admin_reset_password" autocomplete="new-password" minlength="8" placeholder="Leave blank to keep current password">
+                                                <small class="form-text text-muted">Minimum 8 chars, include uppercase, lowercase, and number.</small>
+                                            </div>
+                                            <div class="col-md-6 mb-4">
+                                                <label for="admin_reset_password_confirm" class="form-label fw-semibold">Confirm New Password</label>
+                                                <input type="password" class="form-control" id="admin_reset_password_confirm" name="admin_reset_password_confirm" autocomplete="new-password" minlength="8" placeholder="Re-enter new password">
+                                            </div>
+                                            <div class="col-12 mb-1">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="toggle_admin_reset_password">
+                                                    <label class="form-check-label" for="toggle_admin_reset_password">Show password fields</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <?php endif; ?>
 
 
                                     <!-- Internship Information Section -->
@@ -1794,6 +1971,8 @@ function resolve_profile_image_url(string $profilePath): ?string {
                 var firstName = document.getElementById('first_name').value.trim();
                 var lastName = document.getElementById('last_name').value.trim();
                 var email = document.getElementById('email').value.trim();
+                var resetPassword = document.getElementById('admin_reset_password');
+                var resetConfirm = document.getElementById('admin_reset_password_confirm');
 
                 if (!firstName || !lastName || !email) {
                     e.preventDefault();
@@ -1809,8 +1988,41 @@ function resolve_profile_image_url(string $profilePath): ?string {
                     return false;
                 }
 
+                if (resetPassword && resetConfirm) {
+                    var p1 = (resetPassword.value || '').trim();
+                    var p2 = (resetConfirm.value || '').trim();
+                    if (p1 !== '' || p2 !== '') {
+                        if (p1 === '' || p2 === '') {
+                            e.preventDefault();
+                            alert('Please enter and confirm the new password.');
+                            return false;
+                        }
+                        if (p1 !== p2) {
+                            e.preventDefault();
+                            alert('New password and confirmation do not match.');
+                            return false;
+                        }
+                    }
+                }
+
                 return true;
             });
+
+            var toggle = document.getElementById('toggle_admin_reset_password');
+            if (toggle) {
+                var passwordIds = ['admin_reset_password', 'admin_reset_password_confirm'];
+                var applyVisibility = function () {
+                    var targetType = toggle.checked ? 'text' : 'password';
+                    passwordIds.forEach(function (id) {
+                        var input = document.getElementById(id);
+                        if (input) {
+                            input.type = targetType;
+                        }
+                    });
+                };
+                toggle.addEventListener('change', applyVisibility);
+                applyVisibility();
+            }
         });
 
         // Auto-hide alerts after 5 seconds

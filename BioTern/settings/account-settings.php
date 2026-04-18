@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
+require_once dirname(__DIR__) . '/includes/two-factor-auth.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
@@ -20,6 +21,80 @@ function acol(mysqli $conn, string $table, string $column): bool {
 function auser(mysqli $conn, int $id): ?array {
     $stmt = $conn->prepare("SELECT id, name, username, email, role, profile_picture, password, is_active, created_at FROM users WHERE id = ? LIMIT 1");
     if (!$stmt) return null; $stmt->bind_param('i', $id); $stmt->execute(); $row = $stmt->get_result()->fetch_assoc(); $stmt->close(); return $row ?: null;
+}
+
+function adatetime(string $raw, string $fallback = '-'): string {
+    $raw = trim($raw);
+    if ($raw === '' || $raw === '0000-00-00 00:00:00') {
+        return $fallback;
+    }
+    $ts = strtotime($raw);
+    if ($ts === false) {
+        return $fallback;
+    }
+    return date('M d, Y h:i A', $ts);
+}
+
+function aip(string $rawIp): string {
+    $ip = trim($rawIp);
+    if ($ip === '') {
+        return '-';
+    }
+    if ($ip === '::1' || strcasecmp($ip, '0:0:0:0:0:0:0:1') === 0 || strcasecmp($ip, '0000:0000:0000:0000:0000:0000:0000:0001') === 0) {
+        return '127.0.0.1';
+    }
+    return $ip;
+}
+
+function adevice(string $userAgent): string {
+    $ua = strtolower(trim($userAgent));
+    if ($ua === '') {
+        return 'Unknown device';
+    }
+
+    $platform = 'Desktop';
+    if (strpos($ua, 'android') !== false) {
+        $platform = 'Android';
+    } elseif (strpos($ua, 'iphone') !== false || strpos($ua, 'ipad') !== false || strpos($ua, 'ios') !== false) {
+        $platform = 'iOS';
+    } elseif (strpos($ua, 'windows') !== false) {
+        $platform = 'Windows';
+    } elseif (strpos($ua, 'mac os') !== false || strpos($ua, 'macintosh') !== false) {
+        $platform = 'macOS';
+    } elseif (strpos($ua, 'linux') !== false) {
+        $platform = 'Linux';
+    }
+
+    $browser = 'Browser';
+    if (strpos($ua, 'edg/') !== false) {
+        $browser = 'Edge';
+    } elseif (strpos($ua, 'chrome/') !== false && strpos($ua, 'edg/') === false) {
+        $browser = 'Chrome';
+    } elseif (strpos($ua, 'firefox/') !== false) {
+        $browser = 'Firefox';
+    } elseif (strpos($ua, 'safari/') !== false && strpos($ua, 'chrome/') === false) {
+        $browser = 'Safari';
+    }
+
+    return $platform . ' - ' . $browser;
+}
+
+function aactive_session(array $row): bool {
+    if (!empty($row['revoked_at'])) {
+        return false;
+    }
+
+    $expiresAt = trim((string)($row['expires_at'] ?? ''));
+    if ($expiresAt === '' || $expiresAt === '0000-00-00 00:00:00') {
+        return true;
+    }
+
+    $ts = strtotime($expiresAt);
+    if ($ts === false) {
+        return true;
+    }
+
+    return $ts > time();
 }
 
 function aensure_profile_picture_table(mysqli $conn): bool {
@@ -237,6 +312,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($col !== 'password' && acol($conn, 'users', 'password')) { $legacy = $conn->prepare("UPDATE users SET password = ? WHERE id = ? LIMIT 1"); if ($legacy) { $legacy->bind_param('si', $newHash, $userId); $legacy->execute(); $legacy->close(); } }
         aflash('success', 'Password updated successfully.'); aredirect();
     }
+    if ($action === 'toggle_two_factor') {
+        $desiredEnabled = ((int)($_POST['two_factor_enabled'] ?? 0) === 1);
+        $confirmPassword = (string)($_POST['two_factor_password'] ?? '');
+
+        if ($confirmPassword === '') {
+            aflash('danger', 'Confirm your current password to change two-factor authentication.');
+            aredirect();
+        }
+
+        $storedPassword = (string)($user['password'] ?? '');
+        $matches = password_verify($confirmPassword, $storedPassword);
+        if (!$matches && $storedPassword !== '' && hash_equals($storedPassword, $confirmPassword)) {
+            $matches = true;
+        }
+
+        if (!$matches) {
+            aflash('danger', 'Current password is incorrect.');
+            aredirect();
+        }
+
+        $currentEnabled = biotern_two_factor_is_enabled($conn, $userId);
+        if ($currentEnabled === $desiredEnabled) {
+            aflash('info', $currentEnabled ? 'Two-factor authentication is already enabled.' : 'Two-factor authentication is already disabled.');
+            aredirect();
+        }
+
+        $email = trim((string)($user['email'] ?? ''));
+        if ($desiredEnabled && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            aflash('danger', 'Add a valid email address before enabling two-factor authentication.');
+            aredirect();
+        }
+
+        if (!biotern_two_factor_set_enabled($conn, $userId, $desiredEnabled)) {
+            aflash('danger', 'Unable to update two-factor authentication right now.');
+            aredirect();
+        }
+
+        aflash('success', $desiredEnabled ? 'Two-factor authentication is now enabled.' : 'Two-factor authentication is now disabled.');
+        aredirect();
+    }
+    if ($action === 'revoke_other_sessions') {
+        if (!biotern_login_sessions_ensure_table($conn)) {
+            aflash('danger', 'Unable to manage sessions right now.');
+            aredirect();
+        }
+        $currentTokenHash = biotern_auth_session_current_hash();
+        if ($currentTokenHash === '') {
+            aflash('warning', 'Current session could not be verified. Please log in again.');
+            aredirect();
+        }
+        $revoked = biotern_login_session_revoke_others($conn, $userId, $currentTokenHash, 'logout_other_sessions');
+        if ($revoked > 0) {
+            aflash('success', $revoked === 1 ? '1 other session has been signed out.' : $revoked . ' other sessions have been signed out.');
+        } else {
+            aflash('info', 'No other active sessions were found.');
+        }
+        aredirect();
+    }
+    if ($action === 'revoke_session') {
+        if (!biotern_login_sessions_ensure_table($conn)) {
+            aflash('danger', 'Unable to manage sessions right now.');
+            aredirect();
+        }
+        $sessionRowId = (int)($_POST['session_row_id'] ?? 0);
+        if ($sessionRowId <= 0) {
+            aflash('warning', 'No session was selected.');
+            aredirect();
+        }
+        $currentTokenHash = biotern_auth_session_current_hash();
+        $ok = biotern_login_session_revoke_by_id($conn, $userId, $sessionRowId, $currentTokenHash, 'logout_selected_session');
+        if ($ok) {
+            aflash('success', 'Selected session signed out successfully.');
+        } else {
+            aflash('warning', 'Unable to sign out that session. It may already be inactive.');
+        }
+        aredirect();
+    }
     aflash('warning', 'No valid action was provided.'); aredirect();
 }
 
@@ -254,6 +406,17 @@ $displayName = trim((string)($user['name'] ?? 'BioTern User')); if ($displayName
 $memberSince = '-'; if (!empty($user['created_at'])) { $ts = strtotime((string)$user['created_at']); if ($ts !== false) $memberSince = date('M d, Y h:i A', $ts); }
 $lastLogin = 'No login record yet'; $loginStmt = $conn->prepare("SELECT created_at FROM login_logs WHERE user_id = ? AND status = ? ORDER BY created_at DESC LIMIT 1");
 if ($loginStmt) { $status = 'success'; $loginStmt->bind_param('is', $userId, $status); $loginStmt->execute(); $loginRow = $loginStmt->get_result()->fetch_assoc(); $loginStmt->close(); if (!empty($loginRow['created_at'])) { $ts = strtotime((string)$loginRow['created_at']); if ($ts !== false) $lastLogin = date('M d, Y h:i A', $ts); } }
+$currentSessionTokenHash = biotern_auth_session_current_hash();
+$loginSessions = biotern_login_session_recent_for_user($conn, $userId, $currentSessionTokenHash, 12);
+$twoFactorEnabled = biotern_two_factor_is_enabled($conn, $userId);
+$twoFactorHasValidEmail = filter_var(trim((string)($user['email'] ?? '')), FILTER_VALIDATE_EMAIL) !== false;
+$twoFactorMaskedEmail = biotern_two_factor_mask_email((string)($user['email'] ?? ''));
+$activeSessionCount = 0;
+foreach ($loginSessions as $sessionRow) {
+    if (aactive_session($sessionRow)) {
+        $activeSessionCount++;
+    }
+}
 $studentProfile = null; $role = strtolower(trim((string)($user['role'] ?? $_SESSION['role'] ?? '')));
 if ($role === 'student') {
     $studentStmt = $conn->prepare("SELECT s.student_id, s.email AS student_email, s.phone, s.address, c.name AS course_name, d.name AS department_name, sec.name AS section_name FROM students s LEFT JOIN courses c ON c.id = s.course_id LEFT JOIN departments d ON d.id = s.department_id LEFT JOIN sections sec ON sec.id = s.section_id WHERE s.user_id = ? LIMIT 1");
@@ -362,6 +525,36 @@ include dirname(__DIR__) . '/includes/header.php';
                                             <div class="account-form-actions mt-3"><button type="submit" class="btn btn-outline-primary">Update Password</button></div>
                                             <p class="account-note mb-0 mt-3">Use at least 8 characters, including uppercase, lowercase, and a number.</p>
                                         </form>
+                                        <hr class="my-3">
+                                        <div class="account-2fa-panel">
+                                            <div class="account-2fa-header">
+                                                <div>
+                                                    <h6 class="settings-section-title mb-1">Two-factor authentication</h6>
+                                                    <p class="account-note mb-0">Add a one-time verification code to your login for extra account security.</p>
+                                                </div>
+                                                <span class="account-2fa-chip <?php echo $twoFactorEnabled ? 'is-enabled' : 'is-disabled'; ?>"><?php echo $twoFactorEnabled ? 'Enabled' : 'Disabled'; ?></span>
+                                            </div>
+                                            <form method="post" class="mt-3">
+                                                <input type="hidden" name="action" value="toggle_two_factor">
+                                                <input type="hidden" name="two_factor_enabled" value="<?php echo $twoFactorEnabled ? 0 : 1; ?>">
+                                                <div class="account-form-grid">
+                                                    <div class="full">
+                                                        <label class="form-label" for="two_factor_password">Confirm Current Password</label>
+                                                        <input type="password" id="two_factor_password" name="two_factor_password" class="form-control" required>
+                                                    </div>
+                                                </div>
+                                                <div class="account-form-actions mt-3">
+                                                    <button type="submit" class="btn <?php echo $twoFactorEnabled ? 'btn-outline-danger' : 'btn-outline-success'; ?>">
+                                                        <?php echo $twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA'; ?>
+                                                    </button>
+                                                </div>
+                                                <?php if ($twoFactorHasValidEmail): ?>
+                                                    <p class="account-note mb-0 mt-2">Verification codes are sent to <?php echo ash($twoFactorMaskedEmail); ?>.</p>
+                                                <?php else: ?>
+                                                    <p class="account-note text-danger mb-0 mt-2">A valid email address is required before you can enable 2FA.</p>
+                                                <?php endif; ?>
+                                            </form>
+                                        </div>
                                     </div>
                                 </section>
                             </div>
@@ -371,13 +564,79 @@ include dirname(__DIR__) . '/includes/header.php';
                                     <div class="card-body">
                                         <div class="settings-utility-links">
                                             <a class="settings-utility-link" href="notifications.php"><span>Open notifications inbox</span><span><i class="feather-arrow-right"></i></span></a>
-                                            <a class="settings-utility-link" href="theme-customizer.php"><span>Appearance</span><span><i class="feather-arrow-right"></i></span></a>
+                                            <?php if ($role !== 'student'): ?>
+                                                <a class="settings-utility-link" href="theme-customizer.php"><span>Appearance</span><span><i class="feather-arrow-right"></i></span></a>
+                                            <?php endif; ?>
                                             <a class="settings-utility-link" href="auth-login.php?logout=1"><span>Logout</span><span><i class="feather-log-out"></i></span></a>
                                         </div>
                                     </div>
                                 </section>
                             </div>
                         </div>
+
+                        <section class="card settings-panel-card" id="login-sessions">
+                            <div class="card-header"><h6 class="settings-section-title">Login sessions</h6><p class="settings-section-subtitle">Manage currently signed-in devices and browsers.</p></div>
+                            <div class="card-body">
+                                <div class="account-sessions-toolbar">
+                                    <div class="account-sessions-meta">
+                                        <span class="account-session-summary-chip"><?php echo (int)$activeSessionCount; ?> active</span>
+                                        <span class="account-note">Sessions remain active for up to 12 hours unless signed out.</span>
+                                    </div>
+                                    <div class="account-sessions-actions">
+                                        <form method="post" class="account-inline-form">
+                                            <input type="hidden" name="action" value="revoke_other_sessions">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Sign out other sessions</button>
+                                        </form>
+                                        <a href="auth-login.php?logout=1" class="btn btn-outline-secondary btn-sm">Sign out this device</a>
+                                    </div>
+                                </div>
+
+                                <?php if (!empty($loginSessions)): ?>
+                                    <div class="account-session-list">
+                                        <?php foreach ($loginSessions as $session): ?>
+                                            <?php
+                                                $isCurrentSession = !empty($session['is_current']);
+                                                $isActiveSession = aactive_session($session);
+                                                $sessionStatusClass = $isCurrentSession ? 'is-current' : ($isActiveSession ? 'is-active' : 'is-inactive');
+                                                $sessionStatusLabel = $isCurrentSession ? 'Current session' : ($isActiveSession ? 'Active' : 'Inactive');
+                                            ?>
+                                            <article class="account-session-item <?php echo $sessionStatusClass; ?>">
+                                                <div class="account-session-main">
+                                                    <div class="account-session-title-wrap">
+                                                        <h6><?php echo ash(adevice((string)($session['user_agent'] ?? ''))); ?></h6>
+                                                        <span class="account-session-state <?php echo $sessionStatusClass; ?>"><?php echo ash($sessionStatusLabel); ?></span>
+                                                    </div>
+                                                    <div class="account-session-grid">
+                                                        <div><span>IP Address</span><strong><?php echo ash(aip((string)($session['ip_address'] ?? ''))); ?></strong></div>
+                                                        <div><span>Signed In</span><strong><?php echo ash(adatetime((string)($session['created_at'] ?? ''), 'Unknown')); ?></strong></div>
+                                                        <div><span>Last Seen</span><strong><?php echo ash(adatetime((string)($session['last_seen_at'] ?? ''), 'Unknown')); ?></strong></div>
+                                                        <div><span>Expires</span><strong><?php echo ash(adatetime((string)($session['expires_at'] ?? ''), 'Unknown')); ?></strong></div>
+                                                    </div>
+                                                    <?php if (!empty($session['user_agent'])): ?>
+                                                        <p class="account-note mb-0">User agent: <?php echo ash((string)$session['user_agent']); ?></p>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="account-session-controls">
+                                                    <?php if (!$isCurrentSession && $isActiveSession): ?>
+                                                        <form method="post" class="account-inline-form">
+                                                            <input type="hidden" name="action" value="revoke_session">
+                                                            <input type="hidden" name="session_row_id" value="<?php echo (int)($session['id'] ?? 0); ?>">
+                                                            <button type="submit" class="btn btn-outline-danger btn-sm">Sign out</button>
+                                                        </form>
+                                                    <?php elseif ($isCurrentSession): ?>
+                                                        <span class="account-note">This device</span>
+                                                    <?php else: ?>
+                                                        <span class="account-note">Already ended</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </article>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="account-session-empty">No login sessions have been recorded yet.</div>
+                                <?php endif; ?>
+                            </div>
+                        </section>
 
                         <?php if (is_array($studentProfile)): ?>
                             <section class="card settings-panel-card" id="student-record">

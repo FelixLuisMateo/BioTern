@@ -144,6 +144,184 @@ if (!in_array($filterOjtStatus, ['all', 'ongoing', 'finished', 'not_started'], t
 
 $internshipsTableExists = ojt_internal_table_exists($conn, 'internships');
 $internshipsHasTypeColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'type');
+$internshipsHasStartDateColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'start_date');
+$internshipsHasStatusColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'status');
+$internshipsHasRequiredHoursColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'required_hours');
+$internshipsHasStudentIdColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'student_id');
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['internal_action'] ?? '') === 'start_internal') {
+    $targetStudentId = (int)($_POST['student_id'] ?? 0);
+    $startDate = trim((string)($_POST['start_date'] ?? ''));
+    $redirectQuery = [];
+    if ($filterCourseId > 0) {
+        $redirectQuery['course_id'] = $filterCourseId;
+    }
+    if ($filterSectionId > 0) {
+        $redirectQuery['section_id'] = $filterSectionId;
+    }
+    if ($search !== '') {
+        $redirectQuery['search'] = $search;
+    }
+    if ($filterOjtStatus !== 'all') {
+        $redirectQuery['ojt_status'] = $filterOjtStatus;
+    }
+    $redirectTarget = 'ojt-internal-list.php' . ($redirectQuery !== [] ? ('?' . http_build_query($redirectQuery)) : '');
+
+    if (!$internshipsTableExists || !$internshipsHasStudentIdColumn) {
+        $_SESSION['ojt_internal_flash_type'] = 'danger';
+        $_SESSION['ojt_internal_flash_message'] = 'Internship table is not ready for internal start dates.';
+        header('Location: ' . $redirectTarget);
+        exit;
+    }
+
+    if ($targetStudentId <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
+        $_SESSION['ojt_internal_flash_type'] = 'danger';
+        $_SESSION['ojt_internal_flash_message'] = 'A valid internal start date is required.';
+        header('Location: ' . $redirectTarget);
+        exit;
+    }
+
+    $studentLookup = $conn->prepare("
+        SELECT id, internal_total_hours, assignment_track
+        FROM students
+        WHERE id = ?
+        LIMIT 1
+    ");
+    $studentRow = null;
+    if ($studentLookup) {
+        $studentLookup->bind_param('i', $targetStudentId);
+        $studentLookup->execute();
+        $studentRow = $studentLookup->get_result()->fetch_assoc() ?: null;
+        $studentLookup->close();
+    }
+
+    if (!$studentRow) {
+        $_SESSION['ojt_internal_flash_type'] = 'danger';
+        $_SESSION['ojt_internal_flash_message'] = 'Student record was not found.';
+        header('Location: ' . $redirectTarget);
+        exit;
+    }
+
+    $latestInternalSql = "
+        SELECT id
+        FROM internships
+        WHERE student_id = ?
+    ";
+    if ($internshipsHasTypeColumn) {
+        $latestInternalSql .= " AND LOWER(TRIM(COALESCE(type, 'internal'))) = 'internal'";
+    }
+    $latestInternalSql .= " ORDER BY id DESC LIMIT 1";
+    $latestInternalStmt = $conn->prepare($latestInternalSql);
+    $latestInternal = null;
+    if ($latestInternalStmt) {
+        $latestInternalStmt->bind_param('i', $targetStudentId);
+        $latestInternalStmt->execute();
+        $latestInternal = $latestInternalStmt->get_result()->fetch_assoc() ?: null;
+        $latestInternalStmt->close();
+    }
+
+    $requiredHours = max(0, (int)($studentRow['internal_total_hours'] ?? 0));
+
+    if ($latestInternal) {
+        $updates = [];
+        $types = '';
+        $values = [];
+
+        if ($internshipsHasStatusColumn) {
+            $updates[] = 'status = ?';
+            $types .= 's';
+            $values[] = 'ongoing';
+        }
+        if ($internshipsHasStartDateColumn) {
+            $updates[] = 'start_date = ?';
+            $types .= 's';
+            $values[] = $startDate;
+        }
+        if ($internshipsHasRequiredHoursColumn) {
+            $updates[] = 'required_hours = ?';
+            $types .= 'i';
+            $values[] = $requiredHours;
+        }
+
+        if ($updates !== []) {
+            $sql = 'UPDATE internships SET ' . implode(', ', $updates) . ', updated_at = NOW() WHERE id = ?';
+            $types .= 'i';
+            $values[] = (int)$latestInternal['id'];
+            $stmt = $conn->prepare($sql);
+            if ($stmt) {
+                $stmt->bind_param($types, ...$values);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+    } else {
+        $insertCols = ['student_id'];
+        $insertVals = [$targetStudentId];
+        $insertTypes = 'i';
+
+        if ($internshipsHasTypeColumn) {
+            $insertCols[] = 'type';
+            $insertVals[] = 'internal';
+            $insertTypes .= 's';
+        }
+        if ($internshipsHasStatusColumn) {
+            $insertCols[] = 'status';
+            $insertVals[] = 'ongoing';
+            $insertTypes .= 's';
+        }
+        if ($internshipsHasStartDateColumn) {
+            $insertCols[] = 'start_date';
+            $insertVals[] = $startDate;
+            $insertTypes .= 's';
+        }
+        if ($internshipsHasRequiredHoursColumn) {
+            $insertCols[] = 'required_hours';
+            $insertVals[] = $requiredHours;
+            $insertTypes .= 'i';
+        }
+        if (ojt_internal_column_exists($conn, 'internships', 'rendered_hours')) {
+            $insertCols[] = 'rendered_hours';
+            $insertVals[] = 0.0;
+            $insertTypes .= 'd';
+        }
+        if (ojt_internal_column_exists($conn, 'internships', 'completion_percentage')) {
+            $insertCols[] = 'completion_percentage';
+            $insertVals[] = 0.0;
+            $insertTypes .= 'd';
+        }
+        if (ojt_internal_column_exists($conn, 'internships', 'created_at')) {
+            $insertCols[] = 'created_at';
+        }
+        if (ojt_internal_column_exists($conn, 'internships', 'updated_at')) {
+            $insertCols[] = 'updated_at';
+        }
+
+        $placeholders = [];
+        foreach ($insertCols as $column) {
+            $placeholders[] = in_array($column, ['created_at', 'updated_at'], true) ? 'NOW()' : '?';
+        }
+        $insertStmt = $conn->prepare('INSERT INTO internships (' . implode(', ', $insertCols) . ') VALUES (' . implode(', ', $placeholders) . ')');
+        if ($insertStmt) {
+            $insertStmt->bind_param($insertTypes, ...$insertVals);
+            $insertStmt->execute();
+            $insertStmt->close();
+        }
+    }
+
+    if ($hasAssignmentTrack) {
+        $studentTrackStmt = $conn->prepare("UPDATE students SET assignment_track = 'internal', updated_at = NOW() WHERE id = ?");
+        if ($studentTrackStmt) {
+            $studentTrackStmt->bind_param('i', $targetStudentId);
+            $studentTrackStmt->execute();
+            $studentTrackStmt->close();
+        }
+    }
+
+    $_SESSION['ojt_internal_flash_type'] = 'success';
+    $_SESSION['ojt_internal_flash_message'] = 'Internal start date saved successfully.';
+    header('Location: ' . $redirectTarget);
+    exit;
+}
 
 $courses = [];
 $courseRes = $conn->query('SELECT id, name FROM courses ORDER BY name ASC');
@@ -361,6 +539,12 @@ ob_end_flush();
         </div>
 
         <div class="bio-console-shell">
+            <?php if (!empty($_SESSION['ojt_internal_flash_message'])): ?>
+                <div class="alert alert-<?php echo htmlspecialchars((string)($_SESSION['ojt_internal_flash_type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> py-2">
+                    <?php echo htmlspecialchars((string)$_SESSION['ojt_internal_flash_message'], ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+                <?php unset($_SESSION['ojt_internal_flash_message'], $_SESSION['ojt_internal_flash_type']); ?>
+            <?php endif; ?>
             <?php if ($mapFingerId > 0): ?>
                 <div class="alert alert-info py-2">Preparing student mapping workflow for fingerprint ID <strong><?php echo $mapFingerId; ?></strong>. Select a candidate student from this internal list first.</div>
             <?php endif; ?>
@@ -473,7 +657,27 @@ ob_end_flush();
                                                     <span class="text-muted small">Student account not linked yet</span>
                                                 <?php endif; ?>
                                             <?php else: ?>
-                                                <span class="text-muted small">Select from fingerprint page</span>
+                                                <div class="dropdown d-inline-block">
+                                                    <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        Actions
+                                                    </button>
+                                                    <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 260px;">
+                                                        <?php if ((int)($row['student_row_id'] ?? 0) > 0): ?>
+                                                            <a class="dropdown-item mb-2" href="students-view.php?id=<?php echo (int)$row['student_row_id']; ?>">
+                                                                View Student
+                                                            </a>
+                                                            <form method="post" class="d-grid gap-2">
+                                                                <input type="hidden" name="internal_action" value="start_internal">
+                                                                <input type="hidden" name="student_id" value="<?php echo (int)$row['student_row_id']; ?>">
+                                                                <label class="form-label small mb-0">Start Internal Date</label>
+                                                                <input type="date" name="start_date" class="form-control form-control-sm" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
+                                                                <button type="submit" class="btn btn-sm btn-primary">Start Internal</button>
+                                                            </form>
+                                                        <?php else: ?>
+                                                            <span class="text-muted small">Linked student record not available yet.</span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
                                             <?php endif; ?>
                                         </td>
                                     </tr>

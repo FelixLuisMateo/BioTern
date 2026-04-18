@@ -1,0 +1,28 @@
+-- SQL for external_attendance table
+CREATE TABLE IF NOT EXISTS external_attendance (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    student_id INT UNSIGNED NOT NULL,
+    attendance_date DATE NOT NULL,
+    morning_time_in TIME NULL,
+    morning_time_out TIME NULL,
+    break_time_in TIME NULL,
+    break_time_out TIME NULL,
+    afternoon_time_in TIME NULL,
+    afternoon_time_out TIME NULL,
+    total_hours DECIMAL(8,2) NOT NULL DEFAULT 0.00,
+    multiplier DECIMAL(6,2) NOT NULL DEFAULT 1.00,
+    multiplier_reason VARCHAR(255) DEFAULT NULL,
+    photo_path VARCHAR(255) DEFAULT NULL,
+    notes VARCHAR(500) DEFAULT NULL,
+    source VARCHAR(20) NOT NULL DEFAULT 'manual',
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    created_by_user_id INT UNSIGNED DEFAULT NULL,
+    reviewed_by INT UNSIGNED DEFAULT NULL,
+    reviewed_at DATETIME DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_external_attendance_student_date (student_id, attendance_date),
+    KEY idx_external_attendance_status (status),
+    KEY idx_external_attendance_student_date (student_id, attendance_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

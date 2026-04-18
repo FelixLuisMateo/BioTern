@@ -294,31 +294,15 @@ foreach ($rows as $row) {
 }
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page');
+$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-attendance-exceptions-page.css', 'assets/css/modules/reports/reports-shell.css']);
 $page_title = 'BioTern || Attendance Exceptions Report';
 include 'includes/header.php';
 ?>
-<style>
-    .attendance-exceptions-hero,.attendance-exceptions-card{border:1px solid rgba(80,102,144,.14);background:#fff;border-radius:14px}
-    .attendance-exceptions-hero{padding:1.1rem 1.25rem;margin-bottom:1rem}
-    .attendance-exceptions-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.8rem;margin-bottom:1rem}
-    .attendance-exceptions-kpi{border:1px solid rgba(80,102,144,.14);border-radius:12px;padding:1rem;background:#fff}
-    .attendance-exceptions-kpi-label,.attendance-exceptions-toolbar .form-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:.35rem}
-    .attendance-exceptions-kpi-value{font-size:1.55rem;font-weight:700;line-height:1.1}
-    .attendance-exceptions-toolbar{display:flex;flex-wrap:wrap;gap:.75rem;align-items:end;margin-bottom:1rem}
-    .attendance-exceptions-note{font-size:.85rem;color:#64748b}
-    .attendance-exceptions-card .table{margin-bottom:0}
-    .attendance-exceptions-card thead th{font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:#64748b;white-space:nowrap;background:#f8fafc}
-    .attendance-exceptions-badge{border-radius:999px;padding:.35rem .7rem;font-size:.75rem;font-weight:600;display:inline-flex;align-items:center;gap:.35rem}
-    html.app-skin-dark .attendance-exceptions-hero,html.app-skin-dark .attendance-exceptions-card,html.app-skin-dark .attendance-exceptions-kpi{background:#0f172a;border-color:rgba(129,153,199,.24);color:#dce7ff}
-    html.app-skin-dark .attendance-exceptions-kpi-label,html.app-skin-dark .attendance-exceptions-note{color:#9fb0d3}
-    html.app-skin-dark .attendance-exceptions-card thead th{background:#111f36;color:#9fb0d3;border-bottom-color:rgba(129,153,199,.24)}
-    html.app-skin-dark .attendance-exceptions-card .table{--bs-table-bg:#0f172a;--bs-table-hover-bg:#18243d;--bs-table-border-color:rgba(129,153,199,.18)}
-</style>
 <main class="nxl-container">
 <div class="nxl-content">
     <div class="page-header page-header-with-middle">
         <div class="page-header-left d-flex align-items-center">
-            <div class="page-header-title"><h5 class="m-b-10">Attendance Exceptions</h5></div>
+            <div class="page-header-title report-page-title"><h5 class="m-b-10">Attendance Exceptions</h5></div>
             <ul class="breadcrumb">
                 <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                 <li class="breadcrumb-item"><a href="reports-ojt.php">Reports</a></li>
@@ -335,25 +319,25 @@ include 'includes/header.php';
             </div></div>
         </div>
     </div>
-    <div class="attendance-exceptions-hero d-flex flex-wrap justify-content-between gap-3">
+    <div class="attendance-exceptions-hero report-hero d-flex flex-wrap justify-content-between gap-3">
         <div>
             <h6 class="fw-bold mb-1">Early Birds and Late Birds</h6>
             <p class="attendance-exceptions-note mb-0">Actual punch times stay visible for audit, while credited attendance hours stay clamped to the official schedule.</p>
         </div>
-        <span class="attendance-exceptions-badge bg-soft-primary text-primary"><i class="feather feather-activity"></i><?php echo htmlspecialchars(report_format_date($filter_start) . ' - ' . report_format_date($filter_end), ENT_QUOTES, 'UTF-8'); ?></span>
+        <span class="attendance-exceptions-badge report-pill bg-soft-primary text-primary"><i class="feather feather-activity"></i><?php echo htmlspecialchars(report_format_date($filter_start) . ' - ' . report_format_date($filter_end), ENT_QUOTES, 'UTF-8'); ?></span>
     </div>
-    <form method="get" class="attendance-exceptions-toolbar">
+    <form method="get" class="attendance-exceptions-toolbar report-filter-wrap">
         <div><label class="form-label" for="start_date">Start Date</label><input type="date" class="form-control" id="start_date" name="start_date" value="<?php echo htmlspecialchars($filter_start, ENT_QUOTES, 'UTF-8'); ?>"></div>
         <div><label class="form-label" for="end_date">End Date</label><input type="date" class="form-control" id="end_date" name="end_date" value="<?php echo htmlspecialchars($filter_end, ENT_QUOTES, 'UTF-8'); ?>"></div>
         <div><label class="form-label" for="mode">Mode</label><select class="form-select" id="mode" name="mode"><option value="all"<?php echo $filter_mode === 'all' ? ' selected' : ''; ?>>All Exceptions</option><option value="early"<?php echo $filter_mode === 'early' ? ' selected' : ''; ?>>Early Only</option><option value="overtime"<?php echo $filter_mode === 'overtime' ? ' selected' : ''; ?>>Overtime Only</option></select></div>
         <div class="d-flex gap-2"><button type="submit" class="btn btn-primary">Apply</button><a href="reports-attendance-exceptions.php" class="btn btn-outline-secondary">Reset</a></div>
     </form>
     <div class="attendance-exceptions-summary">
-        <div class="attendance-exceptions-kpi"><div class="attendance-exceptions-kpi-label">Exception Rows</div><div class="attendance-exceptions-kpi-value"><?php echo count($rows); ?></div></div>
-        <div class="attendance-exceptions-kpi"><div class="attendance-exceptions-kpi-label">Early Arrivals</div><div class="attendance-exceptions-kpi-value"><?php echo $earlyCount; ?></div><div class="attendance-exceptions-note mt-1"><?php echo htmlspecialchars(report_format_hours($totalEarlyHours), ENT_QUOTES, 'UTF-8'); ?> total early time</div></div>
-        <div class="attendance-exceptions-kpi"><div class="attendance-exceptions-kpi-label">Late Overtime</div><div class="attendance-exceptions-kpi-value"><?php echo $overtimeCount; ?></div><div class="attendance-exceptions-note mt-1"><?php echo htmlspecialchars(report_format_hours($totalOvertimeHours), ENT_QUOTES, 'UTF-8'); ?> total overtime</div></div>
+        <div class="attendance-exceptions-kpi report-kpi"><div class="attendance-exceptions-kpi-label">Exception Rows</div><div class="attendance-exceptions-kpi-value"><?php echo count($rows); ?></div></div>
+        <div class="attendance-exceptions-kpi report-kpi"><div class="attendance-exceptions-kpi-label">Early Arrivals</div><div class="attendance-exceptions-kpi-value"><?php echo $earlyCount; ?></div><div class="attendance-exceptions-note mt-1"><?php echo htmlspecialchars(report_format_hours($totalEarlyHours), ENT_QUOTES, 'UTF-8'); ?> total early time</div></div>
+        <div class="attendance-exceptions-kpi report-kpi"><div class="attendance-exceptions-kpi-label">Late Overtime</div><div class="attendance-exceptions-kpi-value"><?php echo $overtimeCount; ?></div><div class="attendance-exceptions-note mt-1"><?php echo htmlspecialchars(report_format_hours($totalOvertimeHours), ENT_QUOTES, 'UTF-8'); ?> total overtime</div></div>
     </div>
-    <div class="attendance-exceptions-card"><div class="table-responsive"><table class="table table-hover align-middle">
+    <div class="attendance-exceptions-card report-table-card"><div class="table-responsive"><table class="table table-hover align-middle">
         <thead><tr><th>Student</th><th>Date</th><th>First Punch</th><th>Official Start</th><th>Last Punch</th><th>Official End</th><th>Early</th><th>Overtime</th><th>Credited</th><th>Source</th></tr></thead>
         <tbody>
             <?php if ($rows === []): ?>

@@ -547,7 +547,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                             <div class="student-home-actions">
-                                <a href="student-dtr.php" class="btn btn-primary"><i class="feather-clock me-1"></i> My DTR</a>
+                                <a href="student-internal-dtr.php" class="btn btn-primary"><i class="feather-clock me-1"></i> My Internal DTR</a>
                                 <a href="student-profile.php" class="btn btn-light-brand"><i class="feather-user me-1"></i> My Profile</a>
                             </div>
                         </div>
@@ -568,7 +568,7 @@ include 'includes/header.php';
                             <div class="card-body">
                                 <div class="student-quick-grid">
                                     <a href="student-profile.php" class="student-shortcut-card"><i class="feather-user"></i><span>My Profile</span><small>Review your student details.</small></a>
-                                    <a href="student-dtr.php" class="student-shortcut-card"><i class="feather-clock"></i><span>My DTR</span><small>Check attendance and hours.</small></a>
+                                    <a href="student-internal-dtr.php" class="student-shortcut-card"><i class="feather-clock"></i><span>My Internal DTR</span><small>Check attendance and hours.</small></a>
                                     <a href="document_application.php" class="student-shortcut-card"><i class="feather-file-text"></i><span>Documents</span><small>Open your internship documents.</small></a>
                                     <a href="apps-storage.php" class="student-shortcut-card"><i class="feather-folder"></i><span>Storage</span><small>Manage files and requirements.</small></a>
                                     <a href="apps-notes.php" class="student-shortcut-card"><i class="feather-edit-3"></i><span>Notes</span><small>Keep reminders and internship notes.</small></a>

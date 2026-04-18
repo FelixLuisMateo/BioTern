@@ -47,6 +47,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var appliesToWeekdayInput = document.getElementById('appCalendarAppliesToWeekday');
     var lateGraceMinutesInput = document.getElementById('appCalendarLateGraceMinutes');
     var applyWhenNotLateInput = document.getElementById('appCalendarApplyWhenNotLate');
+    var attendanceBonusToggle = document.querySelector('[data-toggle-attendance-bonus]');
+    var attendanceBonusSettings = document.querySelector('[data-attendance-bonus-settings]');
     var descriptionInput = document.getElementById('appCalendarEventDescription');
 
     buildJumpControls();
@@ -139,6 +141,13 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
+        if (attendanceBonusToggle) {
+            attendanceBonusToggle.addEventListener('click', function () {
+                var shouldShow = attendanceBonusSettings && attendanceBonusSettings.hidden;
+                setAttendanceBonusVisibility(!!shouldShow);
+            });
+        }
+
         eventForm.addEventListener('submit', function (event) {
             event.preventDefault();
             submitEventForm();
@@ -226,6 +235,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (applyWhenNotLateInput) {
             applyWhenNotLateInput.checked = false;
         }
+        setAttendanceBonusVisibility(false);
         state.editingEventId = 0;
         if (eventIdInput) {
             eventIdInput.value = '';
@@ -309,10 +319,46 @@ document.addEventListener('DOMContentLoaded', function () {
         if (applyWhenNotLateInput) {
             applyWhenNotLateInput.checked = !!Number(event.apply_when_not_late || 0);
         }
+        setAttendanceBonusVisibility(
+            !!(
+                event.attendance_multiplier
+                || event.applies_to_weekday
+                || (event.late_grace_minutes !== null && event.late_grace_minutes !== undefined && event.late_grace_minutes !== '')
+                || Number(event.apply_when_not_late || 0)
+            )
+        );
 
         syncAllDayFields();
         panelElement.hidden = false;
         panelElement.classList.add('is-open');
+    }
+
+    function setAttendanceBonusVisibility(visible) {
+        if (!attendanceBonusSettings) {
+            return;
+        }
+
+        attendanceBonusSettings.hidden = !visible;
+        attendanceBonusSettings.classList.toggle('d-none', !visible);
+        if (attendanceBonusToggle) {
+            attendanceBonusToggle.textContent = visible ? 'Hide Attendance Multiplier' : 'Add Attendance Multiplier';
+            attendanceBonusToggle.setAttribute('aria-expanded', visible ? 'true' : 'false');
+        }
+
+        if (!visible) {
+            if (attendanceMultiplierInput) {
+                attendanceMultiplierInput.value = '';
+            }
+            if (appliesToWeekdayInput) {
+                appliesToWeekdayInput.value = '';
+            }
+            if (lateGraceMinutesInput) {
+                lateGraceMinutesInput.value = '';
+            }
+            if (applyWhenNotLateInput) {
+                applyWhenNotLateInput.checked = false;
+            }
+        }
     }
 
     function syncAllDayFields() {

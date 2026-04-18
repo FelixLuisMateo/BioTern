@@ -37,8 +37,8 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'label' => 'Internship',
                 'icon' => 'feather-briefcase',
                 'routes' => [
-                    'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php',
-                    'applications-review.php', 'attendance.php', 'attendance-corrections.php', 'print_attendance.php', 'demo-biometric.php',
+                    'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php', 'students-internal-dtr.php',
+                    'applications-review.php', 'attendance.php', 'external-attendance.php', 'attendance-corrections.php', 'print_attendance.php', 'demo-biometric.php',
                     'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
                     'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-attendance-exceptions.php',
@@ -51,7 +51,8 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'items' => [
                             ['label' => 'Students List', 'href' => 'students.php', 'icon' => 'feather-users'],
                             ['label' => 'Applications Review', 'href' => 'applications-review.php', 'icon' => 'feather-clipboard'],
-                            ['label' => 'Attendance DTR', 'href' => 'attendance.php', 'icon' => 'feather-clock'],
+                            ['label' => 'Internal DTR', 'href' => 'attendance.php', 'icon' => 'feather-clock'],
+                            ['label' => 'External DTR', 'href' => 'external-attendance.php', 'icon' => 'feather-briefcase'],
                             ['label' => 'Fingerprint Mapping', 'href' => 'fingerprint_mapping.php', 'icon' => 'feather-link'],
                             ['label' => 'F20H Machine Manager', 'href' => 'biometric-machine.php', 'icon' => 'feather-cpu'],
                             ['label' => 'Sync Biometric Machine', 'href' => 'biometric_machine_sync.php?redirect=biometric-machine.php', 'icon' => 'feather-refresh-cw'],

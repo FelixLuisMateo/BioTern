@@ -1,27 +1,14 @@
-:root {
-        --chatlogs-surface: #ffffff;
-        --chatlogs-surface-soft: #f8fafc;
-        --chatlogs-border: rgba(80, 102, 144, 0.14);
-        --chatlogs-text: #0f172a;
-        --chatlogs-muted: #64748b;
-        --chatlogs-input-bg: #ffffff;
-        --chatlogs-input-border: #cbd5e1;
-        --chatlogs-row-odd: #ffffff;
-        --chatlogs-row-even: #f8fafc;
-        --chatlogs-row-hover: #eef2ff;
-    }
-
-    html.app-skin-dark {
-        --chatlogs-surface: #162033;
-        --chatlogs-surface-soft: #0f172a;
-        --chatlogs-border: rgba(148, 163, 184, 0.28);
-        --chatlogs-text: #e5edf8;
-        --chatlogs-muted: #9fb0c8;
-        --chatlogs-input-bg: #0b1324;
-        --chatlogs-input-border: rgba(148, 163, 184, 0.36);
-        --chatlogs-row-odd: #101a30;
-        --chatlogs-row-even: #17243f;
-        --chatlogs-row-hover: #23375a;
+body.reports-page {
+        --chatlogs-surface: var(--report-surface);
+        --chatlogs-surface-soft: var(--report-surface-soft);
+        --chatlogs-border: var(--report-border);
+        --chatlogs-text: var(--report-text);
+        --chatlogs-muted: var(--report-muted);
+        --chatlogs-input-bg: var(--report-surface-soft);
+        --chatlogs-input-border: var(--report-border);
+        --chatlogs-row-odd: var(--report-surface);
+        --chatlogs-row-even: color-mix(in srgb, var(--report-surface-soft) 82%, var(--report-surface) 18%);
+        --chatlogs-row-hover: var(--report-hover);
     }
 
     .chatlogs-card {
@@ -261,13 +248,8 @@
         font-size: 0.62rem;
         font-weight: 700;
         background: rgba(var(--biotern-primary-rgb),0.14);
-        color: var(--biotern-primary);
+        color: var(--report-primary);
         flex-shrink: 0;
-    }
-
-    html.app-skin-dark .chatlogs-convo-participants .avatar-badge {
-        background: rgba(99,147,255,0.18);
-        color: #93b4ff;
     }
 
 .chatlogs-convo-participants .sep {
@@ -344,20 +326,12 @@
 
     .chatlogs-sender-own {
         font-weight: 600;
-        color: var(--biotern-primary);
-    }
-
-    html.app-skin-dark .chatlogs-sender-own {
-        color: #93b4ff;
+        color: var(--report-primary);
     }
 
     .chatlogs-sender-other {
         font-weight: 600;
-        color: var(--biotern-primary-hover);
-    }
-
-    html.app-skin-dark .chatlogs-sender-other {
-        color: #67d4f8;
+        color: var(--report-primary-hover);
     }
 
     .chatlogs-thread-sender {

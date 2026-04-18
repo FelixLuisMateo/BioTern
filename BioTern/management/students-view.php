@@ -4,6 +4,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 
 require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 $current_user_id = (int)($_SESSION['user_id'] ?? 0);
@@ -12,17 +13,12 @@ $can_manage_eval_unlock = in_array($current_user_role, ['admin', 'coordinator'],
 $eval_flash_message = '';
 $eval_flash_type = 'success';
 
-function resolve_profile_image_url(string $profilePath): ?string {
-    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
-    if ($clean === '') {
+function resolve_profile_image_url(string $profilePath, int $userId = 0): ?string {
+    $resolved = biotern_avatar_public_src($profilePath, $userId);
+    if ($resolved === '') {
         return null;
     }
-    $rootPath = dirname(__DIR__) . '/' . $clean;
-    if (!file_exists($rootPath)) {
-        return null;
-    }
-    $mtime = @filemtime($rootPath);
-    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+    return $resolved;
 }
 
 // Get student ID from URL parameter
@@ -94,6 +90,59 @@ if ($result->num_rows == 0) {
 }
 
 $student = $result->fetch_assoc();
+
+function internship_column_exists(mysqli $conn, string $column): bool
+{
+    static $cache = [];
+    if (array_key_exists($column, $cache)) {
+        return $cache[$column];
+    }
+
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM internships LIKE '{$safeColumn}'");
+    $cache[$column] = ($res instanceof mysqli_result) && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+
+    return $cache[$column];
+}
+
+function student_internship_start_date(mysqli $conn, int $studentId, string $type): ?string
+{
+    if ($studentId <= 0 || !internship_column_exists($conn, 'start_date')) {
+        return null;
+    }
+
+    $sql = "SELECT MIN(start_date) AS start_date FROM internships WHERE student_id = ? AND start_date IS NOT NULL AND start_date <> ''";
+    if (internship_column_exists($conn, 'type')) {
+        $sql .= " AND LOWER(TRIM(COALESCE(type, 'internal'))) = ?";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            return null;
+        }
+        $stmt->bind_param('is', $studentId, $type);
+    } else {
+        if ($type === 'external') {
+            return null;
+        }
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            return null;
+        }
+        $stmt->bind_param('i', $studentId);
+    }
+
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc() ?: null;
+    $stmt->close();
+
+    $value = trim((string)($row['start_date'] ?? ''));
+    return $value !== '' ? $value : null;
+}
+
+$student['internal_start_date'] = student_internship_start_date($conn, $student_id, 'internal');
+$student['external_start_date'] = student_internship_start_date($conn, $student_id, 'external');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eval_unlock_action'])) {
     if (!$can_manage_eval_unlock) {
@@ -452,7 +501,7 @@ endif; ?>
                                     <div class="wd-150 ht-150 mx-auto mb-3 position-relative">
                                         <div class="avatar-image wd-150 ht-150 border border-5 border-gray-3">
                                             <?php
-$profile_img = resolve_profile_image_url((string)($student['profile_picture'] ?? ''));
+$profile_img = resolve_profile_image_url((string)($student['profile_picture'] ?? ''), (int)($student['user_id'] ?? 0));
                                             if ($profile_img !== null):
                                             ?>
                                                 <img src="<?php
@@ -669,6 +718,20 @@ echo intval($external_total_hours); ?></div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Internal Start Date</div>
+                                                    <div class="fw-semibold"><?php
+echo formatDate($student['internal_start_date'] ?? null); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">External Start Date</div>
+                                                    <div class="fw-semibold"><?php
+echo formatDate($student['external_start_date'] ?? null); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Email Address</div>
                                                     <div class="fw-semibold"><?php
 echo htmlspecialchars($student['email']); ?></div>
@@ -753,8 +816,8 @@ echo formatDate($student['biometric_registered_at']); ?></div>
                                     <div class="recent-activity app-students-view-recent-activity">
                                         <div class="mb-4 pb-2 d-flex justify-content-between">
                                             <h5 class="fw-bold">Recent Attendance Records:</h5>
-                                            <a href="students-dtr.php?id=<?php
-echo intval($student['id']); ?>" class="btn btn-sm btn-light-brand">Open DTR</a>
+                                            <a href="students-internal-dtr.php?id=<?php
+echo intval($student['id']); ?>" class="btn btn-sm btn-light-brand">Open Internal DTR</a>
                                         </div>
                                         <ul class="list-unstyled activity-feed">
                                             <?php

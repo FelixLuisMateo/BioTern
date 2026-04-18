@@ -62,6 +62,7 @@ $map = [
   'students-edit.php' => 'management/students-edit.php',
   'students-view.php' => 'management/students-view.php',
   'students-dtr.php' => 'management/students-dtr.php',
+  'students-internal-dtr.php' => 'management/students-dtr.php',
   'courses.php' => 'management/courses.php',
   'courses-create.php' => 'management/courses-create.php',
   'courses-edit.php' => 'management/courses-edit.php',
@@ -111,6 +112,8 @@ $map = [
   'import-ojt-internal.php' => 'tools/import-ojt-internal.php',
   'import-ojt-external.php' => 'tools/import-ojt-external.php',
   'print_attendance.php' => 'pages/print_attendance.php',
+  'external-attendance.php' => 'pages/external-attendance.php',
+  'external-attendance-manual.php' => 'pages/external-attendance-manual.php',
 
   'document_application.php' => 'documents/document_application.php',
   'document_endorsement.php' => 'documents/document_endorsement.php',
@@ -121,6 +124,7 @@ $map = [
   'document_waiver.php' => 'documents/document_waiver.php',
   'student-profile.php' => 'pages/student-profile.php',
   'student-dtr.php' => 'pages/student-dtr.php',
+  'student-internal-dtr.php' => 'pages/student-dtr.php',
 
   'reports-ojt.php' => 'reports/reports-ojt.php',
   'reports-project.php' => 'reports/reports-project.php',
@@ -165,6 +169,7 @@ $map = [
   'process_attendance.php' => 'api/process_attendance.php',
   'register_fingerprint.php' => 'api/register_fingerprint.php',
   'register_submit.php' => 'api/register_submit.php',
+  'notifications-actions.php' => 'api/notifications-actions.php',
 
   'create_admin.php' => 'auth/create_admin.php',
   'users.php' => 'auth/users.php',
@@ -175,12 +180,17 @@ $map = [
   'auth-maintenance-cover.php' => 'auth/auth-maintenance-cover.php',
   'auth-register.php' => 'auth/auth-register.php',
   'auth-register-verify.php' => 'auth/auth-register-verify.php',
+  'auth-two-factor.php' => 'auth/auth-two-factor.php',
   'auth-reset-cover.php' => 'auth/auth-reset-cover.php',
   'auth-resetting-minimal.php' => 'auth/auth-resetting-minimal.php',
   'auth-verify-cover.php' => 'auth/auth-verify-cover.php',
 ];
 
 $file = isset($_GET['file']) ? basename((string)$_GET['file']) : '';
+$request_path_for_route = strtolower((string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) ?? ''));
+if ($file === 'theme-customizer.php' && preg_match('#/api/theme-customizer\.php$#', $request_path_for_route) === 1) {
+  $map[$file] = 'api/theme-customizer.php';
+}
 if ($file === '' || !isset($map[$file])) {
     http_response_code(404);
     exit('Not found');
@@ -248,6 +258,7 @@ $public_files = [
   'auth-login-cover.php',
   'auth-register.php',
   'auth-register-verify.php',
+  'auth-two-factor.php',
   'auth-reset-cover.php',
   'auth-resetting-minimal.php',
   'auth-verify-cover.php',

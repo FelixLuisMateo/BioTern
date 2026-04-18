@@ -2,9 +2,14 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/attendance_bonus_rules.php';
+require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
+attendance_bonus_rules_ensure_schema($conn);
+external_attendance_ensure_schema($conn);
 
 $attendance_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 if ($attendance_role === 'student') {
@@ -28,6 +33,7 @@ try {
         die("Connection failed: " . $conn->connect_error);
     }
     section_schedule_ensure_columns($conn);
+    external_attendance_ensure_schema($conn);
 
     $calendarColumns = [];
     $calendarColumnsRes = $conn->query("SHOW COLUMNS FROM calendar_events");
@@ -179,6 +185,20 @@ $filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) :
 $filter_status = isset($_GET['status']) ? trim($_GET['status']) : '';
 $valid_approval_statuses = ['approved', 'pending', 'rejected'];
 $has_valid_approval_status_filter = in_array($filter_status, $valid_approval_statuses, true);
+
+$has_application_status = false;
+$col_app = $conn->query("SHOW COLUMNS FROM users LIKE 'application_status'");
+if ($col_app instanceof mysqli_result) {
+    $has_application_status = $col_app->num_rows > 0;
+    $col_app->close();
+}
+
+$has_school_year_column = false;
+$col_sy = $conn->query("SHOW COLUMNS FROM students LIKE 'school_year'");
+if ($col_sy instanceof mysqli_result) {
+    $has_school_year_column = $col_sy->num_rows > 0;
+    $col_sy->close();
+}
 
 $school_year_options = [];
 $school_year_start = 2005;
@@ -339,11 +359,15 @@ $attendance_query = "
          a.afternoon_time_out,
          a.total_hours,
          a.source,
-         a.status,
-         a.approved_by,
+        a.status,
+        a.approved_by,
         a.approved_at,
         a.remarks,
+        'internal' AS record_origin,
+        NULL AS proof_photo_path,
         s.id as student_id,
+        s.user_id,
+        s.department_id,
         COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         s.student_id as student_number,
         s.first_name,
@@ -393,14 +417,121 @@ if ($attendance_result && $attendance_result->num_rows > 0) {
     }
 }
 
+$externalWhere = ["ea.status = 'approved'"];
+if ($has_application_status) {
+    $externalWhere[] = "COALESCE(u_student.application_status, 'approved') = 'approved'";
+}
+if ($filter_date !== '') {
+    $safeDate = $conn->real_escape_string($filter_date);
+    $externalWhere[] = "ea.attendance_date = '{$safeDate}'";
+}
+if ($filter_course > 0) {
+    $externalWhere[] = "s.course_id = " . (int)$filter_course;
+}
+if ($filter_department > 0) {
+    $externalWhere[] = "COALESCE(s.department_id, i.department_id) = " . (int)$filter_department;
+}
+if ($filter_section > 0) {
+    $externalWhere[] = "s.section_id = " . (int)$filter_section;
+}
+if ($has_school_year_column && $filter_school_year !== '' && preg_match('/^\d{4}-\d{4}$/', $filter_school_year) && in_array($filter_school_year, $school_year_options, true)) {
+    $externalWhere[] = "s.school_year = '" . $conn->real_escape_string($filter_school_year) . "'";
+}
+if (!empty($filter_supervisor)) {
+    $escSup = $conn->real_escape_string($filter_supervisor);
+    $externalWhere[] = "(
+        TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)) LIKE '%{$escSup}%'
+        OR s.supervisor_name LIKE '%{$escSup}%'
+    )";
+}
+if (!empty($filter_coordinator)) {
+    $escCoor = $conn->real_escape_string($filter_coordinator);
+    $externalWhere[] = "(
+        TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)) LIKE '%{$escCoor}%'
+        OR s.coordinator_name LIKE '%{$escCoor}%'
+    )";
+}
+if ($attendance_is_supervisor && $attendance_user_id > 0) {
+    $scopeParts = ["(i.supervisor_id = " . (int)$attendance_user_id . " OR s.supervisor_id = " . (int)$attendance_user_id . ")"];
+    if ($attendance_supervisor_profile_id > 0 && $attendance_supervisor_profile_id !== $attendance_user_id) {
+        $scopeParts[] = "(i.supervisor_id = " . (int)$attendance_supervisor_profile_id . " OR s.supervisor_id = " . (int)$attendance_supervisor_profile_id . ")";
+    }
+    $externalWhere[] = '(' . implode(' OR ', $scopeParts) . ')';
+}
+
+$externalAttendanceQuery = "
+     SELECT
+         ea.id,
+         ea.attendance_date,
+         ea.morning_time_in,
+         ea.morning_time_out,
+         ea.break_time_in,
+         ea.break_time_out,
+         ea.afternoon_time_in,
+         ea.afternoon_time_out,
+         ea.total_hours,
+         ea.source,
+         ea.status,
+         ea.reviewed_by AS approved_by,
+         ea.reviewed_at AS approved_at,
+         ea.notes AS remarks,
+         'external' AS record_origin,
+         ea.photo_path AS proof_photo_path,
+         s.id AS student_id,
+         s.user_id,
+         COALESCE(s.department_id, i.department_id) AS department_id,
+         COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
+         s.student_id AS student_number,
+         s.first_name,
+         s.last_name,
+         s.email,
+         s.section_id,
+         s.supervisor_name,
+         s.coordinator_name,
+         sec.code AS section_code,
+         sec.name AS section_name,
+         c.name AS course_name,
+         d.name AS department_name,
+         sec.attendance_session,
+         sec.schedule_time_in,
+         sec.schedule_time_out,
+         sec.late_after_time,
+         sec.weekly_schedule_json,
+         u.name AS approver_name,
+         ea.multiplier,
+         ea.multiplier_reason
+     FROM external_attendance ea
+     LEFT JOIN students s ON ea.student_id = s.id
+     LEFT JOIN users u_student ON s.user_id = u_student.id
+     LEFT JOIN sections sec ON s.section_id = sec.id
+     LEFT JOIN courses c ON s.course_id = c.id
+     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
+     LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
+     LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
+     LEFT JOIN departments d ON d.id = COALESCE(s.department_id, i.department_id)
+     LEFT JOIN users u ON ea.reviewed_by = u.id
+     WHERE " . implode(' AND ', $externalWhere) . "
+     ORDER BY ea.attendance_date DESC, ea.id DESC, s.last_name ASC
+     LIMIT 100
+";
+
+$externalAttendanceResult = $conn->query($externalAttendanceQuery);
+if ($externalAttendanceResult instanceof mysqli_result) {
+    while ($row = $externalAttendanceResult->fetch_assoc()) {
+        $attendances[] = $row;
+    }
+    $externalAttendanceResult->close();
+}
+
 // Remove same-day duplicates per student, preferring the row that has actual punches.
 if (count($attendances) > 1) {
     $attendance_by_student_date = [];
     foreach ($attendances as $attendance) {
         $student_id_key = isset($attendance['student_id']) ? (string)$attendance['student_id'] : '';
         $attendance_date_key = isset($attendance['attendance_date']) ? (string)$attendance['attendance_date'] : '';
+        $record_origin_key = trim((string)($attendance['record_origin'] ?? 'internal'));
         $dedupe_key = ($student_id_key !== '' && $attendance_date_key !== '')
-            ? ($student_id_key . '|' . $attendance_date_key)
+            ? ($student_id_key . '|' . $attendance_date_key . '|' . $record_origin_key)
             : ('id|' . (string)($attendance['id'] ?? ''));
 
         if (!isset($attendance_by_student_date[$dedupe_key]) || shouldPreferAttendanceRow($attendance, $attendance_by_student_date[$dedupe_key])) {
@@ -436,8 +567,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 echo '<td><span class="text-muted fs-12" title="Biometric records are auto-verified">Auto</span></td>';
             }
             // build avatar (use uploaded profile picture when available)
-            $avatar_html = '<a href="students-dtr.php?id=' . (int)$attendance['student_id'] . '" class="hstack gap-3">';
-            $pp_url = resolve_attendance_profile_image_url((string)($attendance['profile_picture'] ?? ''));
+            $avatar_html = '<a href="students-internal-dtr.php?id=' . (int)$attendance['student_id'] . '" class="hstack gap-3">';
+            $pp_url = resolve_attendance_profile_image_url((string)($attendance['profile_picture'] ?? ''), (int)($attendance['user_id'] ?? 0));
             if ($pp_url !== null) {
                 $avatar_html .= '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid"></div>';
             } else {
@@ -600,17 +731,9 @@ function attendanceDisplayTimeHtml(array $attendance, string $column, string $ba
         . '<div class="fs-11 text-muted mt-1">' . htmlspecialchars($scheduledLabel, ENT_QUOTES, 'UTF-8') . '</div>';
 }
 
-function resolve_attendance_profile_image_url(string $profilePath): ?string {
-    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
-    if ($clean === '') {
-        return null;
-    }
-    $rootPath = dirname(__DIR__) . '/' . $clean;
-    if (!file_exists($rootPath)) {
-        return null;
-    }
-    $mtime = @filemtime($rootPath);
-    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+function resolve_attendance_profile_image_url(string $profilePath, int $userId = 0): ?string {
+    $resolved = biotern_avatar_public_src($profilePath, $userId);
+    return $resolved !== '' ? $resolved : null;
 }
 
 // Helper function to get status badge
@@ -661,6 +784,13 @@ function attendancePlacementContextShortLabel(array $attendance): string {
 }
 
 function getSourceBadge($source, array $attendance = []) {
+    if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
+        $label = strtolower(trim((string)($attendance['status'] ?? 'approved'))) === 'approved'
+            ? 'External Approved'
+            : 'External Upload';
+        return '<span class="badge bg-soft-info text-info">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
+    }
+
     $placementLabel = attendancePlacementContextLabel($attendance);
     $placementShortLabel = attendancePlacementContextShortLabel($attendance);
     $titleAttr = $placementLabel !== '' ? (' title="' . htmlspecialchars($placementLabel, ENT_QUOTES, 'UTF-8') . '" data-bs-toggle="tooltip"') : '';
@@ -887,14 +1017,34 @@ function attendanceCalendarBonusRulesForDate(string $dateKey): array {
 }
 
 function attendanceMultiplierContext(array $attendance, ?array $metrics = null): array {
+    global $conn;
     $dateKey = substr((string)($attendance['attendance_date'] ?? ''), 0, 10);
     $rules = attendanceCalendarBonusRulesForDate($dateKey);
-    if ($rules === []) {
-        return ['multiplier' => 1.0, 'rule' => null];
+    $customRules = [];
+    if ($conn instanceof mysqli) {
+        $customRules = attendance_bonus_rules_for_context(
+            $conn,
+            $dateKey,
+            'internal',
+            (int)($attendance['section_id'] ?? 0),
+            (int)($attendance['department_id'] ?? 0)
+        );
     }
 
     $metrics = is_array($metrics) ? $metrics : attendance_window_metrics($attendance);
     $weekday = attendanceDateWeekdayKey($dateKey);
+    $best = ['multiplier' => 1.0, 'rule' => null];
+
+    foreach ($customRules as $rule) {
+        $multiplier = (float)($rule['multiplier'] ?? 1);
+        if ($multiplier <= $best['multiplier']) {
+            continue;
+        }
+        $best = [
+            'multiplier' => $multiplier,
+            'rule' => ['title' => 'Rule: ' . (string)($rule['title'] ?? 'Attendance bonus')],
+        ];
+    }
 
     foreach ($rules as $rule) {
         $ruleWeekday = strtolower(trim((string)($rule['applies_to_weekday'] ?? '')));
@@ -927,13 +1077,15 @@ function attendanceMultiplierContext(array $attendance, ?array $metrics = null):
             continue;
         }
 
-        return [
-            'multiplier' => $multiplier,
-            'rule' => $rule,
-        ];
+        if ($multiplier > (float)$best['multiplier']) {
+            $best = [
+                'multiplier' => $multiplier,
+                'rule' => $rule,
+            ];
+        }
     }
 
-    return ['multiplier' => 1.0, 'rule' => null];
+    return $best;
 }
 
 function attendance_format_hours_label(float $hours): string {
@@ -941,6 +1093,16 @@ function attendance_format_hours_label(float $hours): string {
 }
 
 function attendance_hours_cell_html(array $attendance): string {
+    if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
+        $hours = (float)($attendance['total_hours'] ?? 0);
+        $html = '<span class="badge bg-soft-info text-info">' . attendance_format_hours_label($hours) . '</span>';
+        $multiplierReason = trim((string)($attendance['multiplier_reason'] ?? ''));
+        if ($multiplierReason !== '') {
+            $html .= '<div class="fs-11 text-muted mt-1">' . htmlspecialchars($multiplierReason, ENT_QUOTES, 'UTF-8') . '</div>';
+        }
+        return $html;
+    }
+
     $computedHours = isset($attendance['computed_total_hours'])
         ? (float)$attendance['computed_total_hours']
         : calculateAttendanceRowHours($attendance);
@@ -949,6 +1111,11 @@ function attendance_hours_cell_html(array $attendance): string {
 }
 
 function attendance_status_cell_html(array $attendance): string {
+    if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
+        return '<span class="badge bg-soft-success text-success">Approved</span>'
+            . '<div class="fs-11 text-muted mt-1">Teacher-reviewed external DTR</div>';
+    }
+
     $metrics = attendance_window_metrics($attendance);
     $status = (string)($metrics['arrival_status'] ?? 'absent');
 
@@ -975,6 +1142,10 @@ function attendance_status_cell_html(array $attendance): string {
 }
 
 function calculateAttendanceRowHours(array $attendance): float {
+    if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
+        return round((float)($attendance['total_hours'] ?? 0), 2);
+    }
+
     $baseHours = round(attendance_credited_seconds($attendance) / 3600, 2);
     if ($baseHours <= 0) {
         return 0.0;
@@ -994,6 +1165,10 @@ function synchronizeAttendanceProgress(mysqli $conn, array &$attendances): void 
     $updateAttendanceStmt = $conn->prepare("UPDATE attendances SET total_hours = ?, updated_at = NOW() WHERE id = ?");
 
     foreach ($attendances as &$attendance) {
+        if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
+            continue;
+        }
+
         $computedHours = calculateAttendanceRowHours($attendance);
         $attendance['computed_total_hours'] = $computedHours;
 
@@ -1136,6 +1311,10 @@ function attendanceIsBiometricRecord(array $attendance): bool
 
 function getReviewBadge(array $attendance): string
 {
+    if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
+        return '<span class="badge bg-soft-success text-success">Teacher Approved</span>';
+    }
+
     if (attendanceIsBiometricRecord($attendance)) {
         return '<span class="badge bg-soft-success text-success">Auto-Verified</span>';
     }
@@ -1152,17 +1331,32 @@ function attendance_reports_cell_html(array $attendance): string
         return '<span class="text-muted">N/A</span>';
     }
 
-    $dtrUrl = 'students-dtr.php?id=' . $studentId;
+    if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
+        $proofPath = trim((string)($attendance['proof_photo_path'] ?? ''));
+        $externalUrl = 'external-attendance.php?status=approved';
+        $html = '<div class="d-flex flex-wrap gap-1">'
+            . '<a class="badge bg-soft-info text-info" href="' . htmlspecialchars($externalUrl, ENT_QUOTES, 'UTF-8') . '">External Queue</a>';
+        if ($proofPath !== '') {
+            $html .= '<a class="badge bg-soft-secondary text-secondary" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener">Proof</a>';
+        }
+        return $html . '</div>';
+    }
+
+    $dtrUrl = 'students-internal-dtr.php?id=' . $studentId;
     $printUrl = 'print_attendance.php?id=' . $attendanceId;
 
     return '<div class="d-flex flex-wrap gap-1">'
-        . '<a class="badge bg-soft-primary text-primary" href="' . htmlspecialchars($dtrUrl, ENT_QUOTES, 'UTF-8') . '">DTR</a>'
+        . '<a class="badge bg-soft-primary text-primary" href="' . htmlspecialchars($dtrUrl, ENT_QUOTES, 'UTF-8') . '">Internal DTR</a>'
         . '<a class="badge bg-soft-secondary text-secondary" href="' . htmlspecialchars($printUrl, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener">Print</a>'
         . '</div>';
 }
 
 function attendanceCanReview(array $attendance): bool
 {
+    if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
+        return false;
+    }
+
     return !attendanceIsBiometricRecord($attendance);
 }
 
@@ -1170,6 +1364,17 @@ function attendanceActionMenuItems(array $attendance): string
 {
     $attendanceId = (int)($attendance['id'] ?? 0);
     $studentId = (int)($attendance['student_id'] ?? 0);
+
+    if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
+        $items = [];
+        $proofPath = trim((string)($attendance['proof_photo_path'] ?? ''));
+        $items[] = '<li><a class="dropdown-item" href="external-attendance.php?status=approved"><i class="feather feather-briefcase me-3"></i><span>Open External Queue</span></a></li>';
+        if ($proofPath !== '') {
+            $items[] = '<li><a class="dropdown-item" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener"><i class="feather feather-image me-3"></i><span>Open Proof</span></a></li>';
+        }
+        return '<div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $studentId . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end">' . implode('', $items) . '</ul></div></div>';
+    }
+
     $items = [];
 
     if (attendanceCanReview($attendance)) {
@@ -1261,6 +1466,10 @@ include 'includes/header.php';
                             <a href="legacy_router.php?file=biometric-machine.php" class="btn btn-light-brand">
                                 <i class="feather-cpu me-2"></i>
                                 <span>Machine Manager</span>
+                            </a>
+                            <a href="external-attendance.php" class="btn btn-light-brand">
+                                <i class="feather-briefcase me-2"></i>
+                                <span>External Attendance</span>
                             </a>
                             <button type="button" class="btn btn-primary" id="manualSyncMachineButton">
                                 <i class="feather-refresh-cw me-2"></i>
@@ -1648,7 +1857,7 @@ echo (int)$index; ?>"></label>
                                                             <?php endif; ?>
                                                         </td>
                                                         <td>
-                                                            <a href="students-dtr.php?id=<?php
+                                                            <a href="students-internal-dtr.php?id=<?php
 echo $attendance['student_id']; ?>" class="hstack gap-3">
                                                                 <?php
 $pp = $attendance['profile_picture'] ?? '';

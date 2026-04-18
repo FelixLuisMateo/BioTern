@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS calendar_events (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id INT UNSIGNED NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    location VARCHAR(255) NULL,
+    description TEXT NULL,
+    start_at DATETIME NOT NULL,
+    end_at DATETIME NOT NULL,
+    color VARCHAR(24) NOT NULL DEFAULT '#0d6efd',
+    is_all_day TINYINT(1) NOT NULL DEFAULT 0,
+    attendance_multiplier DECIMAL(6,2) NULL,
+    apply_when_not_late TINYINT(1) NOT NULL DEFAULT 0,
+    late_grace_minutes INT NULL,
+    applies_to_weekday VARCHAR(16) NULL,
+    deleted_at DATETIME NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_calendar_events_user_range (user_id, start_at, end_at),
+    KEY idx_calendar_events_deleted (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

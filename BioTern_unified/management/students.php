@@ -1760,6 +1760,10 @@ echo htmlspecialchars($current_user_email, ENT_QUOTES, 'UTF-8'); ?></span>
                         <i class="feather-printer me-2"></i>
                         <span>Print List</span>
                     </button>
+                    <button type="button" class="btn btn-light d-none js-print-selected" id="printSelectedStudents" aria-hidden="true">
+                        <i class="feather-printer me-2"></i>
+                        <span>Print Selected</span>
+                    </button>
                     <a href="students-create.php" class="btn btn-primary">
                         <i class="feather-plus me-2"></i>
                         <span>Create Students</span>
@@ -2017,7 +2021,13 @@ echo $stats['biometric_registered'] ? $stats['biometric_registered'] : '0'; ?></
 if (count($students) > 0): ?>
                                                 <?php
 foreach ($students as $index => $student): ?>
-                                                    <tr class="single-item">
+                                                    <tr
+                                                        class="single-item"
+                                                        data-print-student-id="<?php echo htmlspecialchars((string)($student['student_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-print-last-name="<?php echo htmlspecialchars((string)($student['last_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-print-first-name="<?php echo htmlspecialchars((string)($student['first_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-print-middle-name="<?php echo htmlspecialchars((string)($student['middle_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                    >
                                                         <td data-label="Select">
                                                             <div class="item-checkbox ms-1">
                                                                 <div class="custom-control custom-checkbox">
@@ -2299,12 +2309,141 @@ endif; ?>
                 });
             }
 
+            function getTableRows() {
+                return Array.prototype.slice.call(document.querySelectorAll('#customerList tbody tr.single-item'));
+            }
+
+            function getSelectedRows() {
+                return getTableRows().filter(function (row) {
+                    var checkbox = row.querySelector('.checkbox');
+                    return !!(checkbox && checkbox.checked);
+                });
+            }
+
+            function escapeHtml(value) {
+                return String(value || '').replace(/[&<>'\"]/g, function (char) {
+                    return {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        "'": '&#39;',
+                        '"': '&quot;'
+                    }[char];
+                });
+            }
+
+            function buildPrintRowMarkup(row, index) {
+                var studentId = (row.dataset.printStudentId || '').trim();
+                var lastName = (row.dataset.printLastName || '').trim();
+                var firstName = (row.dataset.printFirstName || '').trim();
+                var middleName = (row.dataset.printMiddleName || '').trim();
+
+                return '<tr>' +
+                    '<td class="col-index">' + String(index + 1) + '</td>' +
+                    '<td>' + escapeHtml(studentId) + '</td>' +
+                    '<td>' + escapeHtml(lastName) + '</td>' +
+                    '<td>' + escapeHtml(firstName) + '</td>' +
+                    '<td>' + escapeHtml(middleName) + '</td>' +
+                    '<td></td>' +
+                    '</tr>';
+            }
+
+            function syncPrintSheetRows(forceSelectedOnly) {
+                var printSheetBody = document.querySelector('.student-list-print-sheet tbody');
+                if (!printSheetBody) return true;
+
+                var selectedRows = getSelectedRows();
+                var sourceRows = forceSelectedOnly ? selectedRows : getTableRows();
+
+                if (sourceRows.length === 0) {
+                    printSheetBody.innerHTML = '<tr><td class="col-index">1</td><td colspan="5">No students found for current filter.</td></tr>';
+                    return false;
+                }
+
+                printSheetBody.innerHTML = sourceRows.map(function (row, index) {
+                    return buildPrintRowMarkup(row, index);
+                }).join('');
+
+                return true;
+            }
+
+            function updateSelectedPrintButton() {
+                var selectedBtn = document.getElementById('printSelectedStudents');
+                if (!selectedBtn) return;
+
+                var selectedCount = getSelectedRows().length;
+                selectedBtn.classList.toggle('d-none', selectedCount === 0);
+                selectedBtn.setAttribute('aria-hidden', selectedCount === 0 ? 'true' : 'false');
+                var label = selectedBtn.querySelector('span');
+                if (label) {
+                    label.textContent = selectedCount > 0 ? ('Print Selected (' + selectedCount + ')') : 'Print Selected';
+                }
+            }
+
             document.querySelectorAll('.js-print-page').forEach(function (btn) {
                 btn.addEventListener('click', function (e) {
                     e.preventDefault();
+                    if (!syncPrintSheetRows(false)) {
+                        alert('No student rows available to print.');
+                        return;
+                    }
                     window.print();
                 });
             });
+
+            var printSelectedBtn = document.getElementById('printSelectedStudents');
+            if (printSelectedBtn) {
+                printSelectedBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (!syncPrintSheetRows(true)) {
+                        alert('Select at least one student to print.');
+                        return;
+                    }
+                    window.print();
+                });
+            }
+
+            var selectAll = document.getElementById('checkAllStudent');
+            var rowCheckboxes = Array.prototype.slice.call(document.querySelectorAll('#customerList tbody .checkbox'));
+
+            function toggleRowState(checkboxEl) {
+                var row = checkboxEl ? checkboxEl.closest('tr') : null;
+                if (!row) return;
+                row.classList.toggle('selected', !!checkboxEl.checked);
+            }
+
+            function refreshSelectAllState() {
+                if (!selectAll || rowCheckboxes.length === 0) {
+                    updateSelectedPrintButton();
+                    return;
+                }
+                var checkedCount = rowCheckboxes.filter(function (cb) {
+                    return cb.checked;
+                }).length;
+                selectAll.checked = checkedCount > 0 && checkedCount === rowCheckboxes.length;
+                selectAll.indeterminate = checkedCount > 0 && checkedCount < rowCheckboxes.length;
+                updateSelectedPrintButton();
+            }
+
+            if (selectAll) {
+                selectAll.addEventListener('change', function () {
+                    rowCheckboxes.forEach(function (checkboxEl) {
+                        checkboxEl.checked = !!selectAll.checked;
+                        toggleRowState(checkboxEl);
+                    });
+                    refreshSelectAllState();
+                });
+            }
+
+            rowCheckboxes.forEach(function (checkboxEl) {
+                checkboxEl.addEventListener('change', function () {
+                    toggleRowState(checkboxEl);
+                    refreshSelectAllState();
+                });
+                toggleRowState(checkboxEl);
+            });
+
+            refreshSelectAllState();
 
             // Keep row action menus outside scrollable table wrapper so they are not clipped.
             var activeActionMenu = null;

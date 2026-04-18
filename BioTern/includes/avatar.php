@@ -128,6 +128,60 @@ if (!function_exists('biotern_avatar_db_src')) {
     }
 }
 
+if (!function_exists('biotern_avatar_has_db_picture')) {
+    function biotern_avatar_has_db_picture(int $userId): bool
+    {
+        static $cache = [];
+
+        if ($userId <= 0) {
+            return false;
+        }
+
+        if (array_key_exists($userId, $cache)) {
+            return $cache[$userId];
+        }
+
+        if (!isset($GLOBALS['conn']) || !($GLOBALS['conn'] instanceof mysqli) || $GLOBALS['conn']->connect_errno) {
+            $dbConfig = dirname(__DIR__) . '/config/db.php';
+            if (is_file($dbConfig)) {
+                require_once $dbConfig;
+            }
+        }
+
+        if (!isset($GLOBALS['conn']) || !($GLOBALS['conn'] instanceof mysqli) || $GLOBALS['conn']->connect_errno) {
+            $cache[$userId] = false;
+            return false;
+        }
+
+        $conn = $GLOBALS['conn'];
+        $conn->query("CREATE TABLE IF NOT EXISTS user_profile_pictures (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id INT UNSIGNED NOT NULL,
+            image_mime VARCHAR(64) NOT NULL,
+            image_data LONGBLOB NOT NULL,
+            image_size INT UNSIGNED NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_user_profile_picture (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        $stmt = $conn->prepare('SELECT 1 FROM user_profile_pictures WHERE user_id = ? LIMIT 1');
+        if (!$stmt) {
+            $cache[$userId] = false;
+            return false;
+        }
+
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        $exists = (bool)$stmt->get_result()->fetch_row();
+        $stmt->close();
+
+        $cache[$userId] = $exists;
+        return $exists;
+    }
+}
+
 if (!function_exists('biotern_avatar_public_src')) {
     function biotern_avatar_public_src(string $rawPath, int $userId = 0): string
     {
@@ -139,6 +193,10 @@ if (!function_exists('biotern_avatar_public_src')) {
         $resolved = biotern_avatar_resolve_existing_path($rawPath);
         if ($resolved !== '') {
             return $resolved;
+        }
+
+        if ($userId > 0 && biotern_avatar_has_db_picture($userId)) {
+            return biotern_avatar_db_src('db-avatar', $userId);
         }
 
         return biotern_avatar_default_path($userId);

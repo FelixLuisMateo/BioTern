@@ -9,6 +9,7 @@ if ($student_id <= 0) {
 }
 
 $month_invalid = false;
+$range_invalid = false;
 $month_input = isset($_GET['month']) ? trim((string)$_GET['month']) : date('Y-m');
 if (!preg_match('/^\d{4}-\d{2}$/', $month_input)) {
     $month_invalid = true;
@@ -26,6 +27,22 @@ if ($month_ts === false) {
 $month_end = date('Y-m-t', $month_ts);
 $days_in_month = (int)date('t', $month_ts);
 $prev_month_input = date('Y-m', strtotime('-1 month', $month_ts));
+$start_date_input = isset($_GET['start_date']) ? trim((string)$_GET['start_date']) : $month_start;
+$end_date_input = isset($_GET['end_date']) ? trim((string)$_GET['end_date']) : $month_end;
+
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start_date_input) || strtotime($start_date_input) === false) {
+    $range_invalid = true;
+    $start_date_input = $month_start;
+}
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end_date_input) || strtotime($end_date_input) === false) {
+    $range_invalid = true;
+    $end_date_input = $month_end;
+}
+if (strtotime($end_date_input) < strtotime($start_date_input)) {
+    $range_invalid = true;
+    $start_date_input = $month_start;
+    $end_date_input = $month_end;
+}
 
 $student_stmt = $conn->prepare("
     SELECT
@@ -61,7 +78,7 @@ $att_stmt = $conn->prepare("
     WHERE student_id = ? AND attendance_date BETWEEN ? AND ?
     ORDER BY attendance_date ASC
 ");
-$att_stmt->bind_param("iss", $student_id, $month_start, $month_end);
+$att_stmt->bind_param("iss", $student_id, $start_date_input, $end_date_input);
 $att_stmt->execute();
 $att_res = $att_stmt->get_result();
 
@@ -76,6 +93,7 @@ $att_stmt->close();
 
 $present_days = count($records_by_day);
 $month_label = date('F Y', $month_ts);
+$selected_range_label = date('M d, Y', strtotime($start_date_input)) . ' to ' . date('M d, Y', strtotime($end_date_input));
 $student_name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_name'] ?? '') . ' ' . ($student['last_name'] ?? ''));
 if ($student_name === '') {
     $student_name = 'Student #' . (string)($student['student_id'] ?? $student_id);
@@ -121,7 +139,7 @@ function status_badge($status) {
     return '<span class="badge bg-soft-warning text-warning">Pending</span>';
 }
 
-$page_title = 'BioTern || Student DTR';
+$page_title = 'BioTern || Student Internal DTR';
 $page_styles = ['assets/css/modules/management/management-students-dtr.css'];
 include 'includes/header.php';
 ?>
@@ -131,17 +149,17 @@ include 'includes/header.php';
 <div class="page-header app-students-dtr-page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title">
-            <h5 class="m-b-10">Student Daily Time Record</h5>
+            <h5 class="m-b-10">Student Internal Daily Time Record</h5>
         </div>
         <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="students-view.php?id=<?php echo intval($student_id); ?>">Student Profile</a></li>
-            <li class="breadcrumb-item">DTR</li>
+            <li class="breadcrumb-item">Internal DTR</li>
         </ul>
     </div>
     <div class="page-header-right ms-auto">
         <div class="page-header-right-items">
             <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                <a href="students-dtr.php?id=<?php echo intval($student_id); ?>&month=<?php echo h($prev_month_input); ?>" class="btn btn-light-brand">
+                <a href="students-internal-dtr.php?id=<?php echo intval($student_id); ?>&month=<?php echo h($prev_month_input); ?>" class="btn btn-light-brand">
                     <i class="feather-corner-up-left me-2"></i>
                     <span>Last Month</span>
                 </a>
@@ -149,9 +167,9 @@ include 'includes/header.php';
                     <i class="feather-arrow-left me-2"></i>
                     <span>Back to Profile</span>
                 </a>
-                <a href="document_dtr.php?student_id=<?php echo intval($student_id); ?>&start_date=<?php echo h($month_start); ?>&end_date=<?php echo h($month_end); ?>" target="_blank" rel="noopener" class="btn btn-primary">
+                <a href="document_dtr.php?student_id=<?php echo intval($student_id); ?>&start_date=<?php echo h($start_date_input); ?>&end_date=<?php echo h($end_date_input); ?>" target="_blank" rel="noopener" class="btn btn-primary">
                     <i class="feather-printer me-2"></i>
-                    <span>Print DTR</span>
+                    <span>Print Internal DTR</span>
                 </a>
             </div>
         </div>
@@ -162,13 +180,16 @@ include 'includes/header.php';
     <?php if ($month_invalid): ?>
         <div class="alert alert-info py-2">Invalid month format detected. Showing current month instead.</div>
     <?php endif; ?>
+    <?php if ($range_invalid): ?>
+        <div class="alert alert-info py-2">Invalid date range detected. Showing the selected month range instead.</div>
+    <?php endif; ?>
     <div class="card stretch stretch-full mb-3 app-students-dtr-hero-card">
         <div class="card-body">
             <div class="toolbar app-students-dtr-toolbar">
                 <div class="app-students-dtr-hero-copy">
-                    <p class="app-students-dtr-overline">Attendance Overview</p>
+                    <p class="app-students-dtr-overline">Internal Attendance Overview</p>
                     <h5 class="mb-1"><?php echo h($student_name); ?></h5>
-                    <p class="app-students-dtr-copy-note mb-0">Review daily logs, selected month totals, and overall OJT hour progress without wasting space.</p>
+                    <p class="app-students-dtr-copy-note mb-0">Review internal attendance logs, selected range totals, and printable date coverage without wasting space.</p>
                     <div class="student-meta-highlight app-students-dtr-meta-highlight">
                         <span class="chip app-students-dtr-chip">Student ID: <?php echo h($student['student_id']); ?></span>
                         <span class="chip app-students-dtr-chip">Course: <?php echo h($student['course_name'] ?? 'N/A'); ?></span>
@@ -180,10 +201,14 @@ include 'includes/header.php';
                         <input type="hidden" name="id" value="<?php echo intval($student_id); ?>">
                         <label class="app-students-dtr-filter-label" for="students-dtr-month">Month</label>
                         <input id="students-dtr-month" type="month" name="month" class="form-control" value="<?php echo h($month_input); ?>">
+                        <label class="app-students-dtr-filter-label" for="students-dtr-start">Start</label>
+                        <input id="students-dtr-start" type="date" name="start_date" class="form-control" value="<?php echo h($start_date_input); ?>">
+                        <label class="app-students-dtr-filter-label" for="students-dtr-end">End</label>
+                        <input id="students-dtr-end" type="date" name="end_date" class="form-control" value="<?php echo h($end_date_input); ?>">
                         <button type="submit" class="btn btn-light-brand">Load</button>
                     </form>
                     <div class="app-students-dtr-hours-chip">
-                        <p class="app-students-dtr-hours-chip-label mb-0">Hours (<?php echo h(strtoupper($assignment_track)); ?>)</p>
+                        <p class="app-students-dtr-hours-chip-label mb-0">Internal Hours Snapshot</p>
                         <div class="app-students-dtr-hours-chip-pill">
                             <span class="app-students-dtr-hours-chip-value"><?php echo h(fmt_hours_compact($total_hours_completed)); ?> / <?php echo h(fmt_hours_compact($total_hours_target)); ?></span>
                         </div>
@@ -197,8 +222,8 @@ include 'includes/header.php';
     <div class="row g-3 mb-3">
         <div class="col-md-3 col-6">
             <div class="dtr-summary-card app-students-dtr-summary-card">
-                <div class="dtr-summary-label app-students-dtr-summary-label">Month</div>
-                <div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h($month_label); ?></div>
+                <div class="dtr-summary-label app-students-dtr-summary-label">Date Range</div>
+                <div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h($selected_range_label); ?></div>
             </div>
         </div>
         <div class="col-md-3 col-6">
@@ -215,7 +240,7 @@ include 'includes/header.php';
         </div>
         <div class="col-md-3 col-6">
             <div class="dtr-summary-card app-students-dtr-summary-card">
-                <div class="dtr-summary-label app-students-dtr-summary-label">Logged This Month</div>
+                <div class="dtr-summary-label app-students-dtr-summary-label">Logged In Range</div>
                 <div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h(fmt_hours_hm($month_total_hours)); ?></div>
             </div>
         </div>
@@ -223,7 +248,7 @@ include 'includes/header.php';
 
     <div class="card stretch stretch-full">
         <div class="card-header">
-            <h6 class="mb-0">Attendance History</h6>
+            <h6 class="mb-0">Internal Attendance History</h6>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive dtr-desktop-table app-students-dtr-desktop-table">
@@ -241,10 +266,16 @@ include 'includes/header.php';
                         </tr>
                     </thead>
                     <tbody>
-                        <?php for ($day = 1; $day <= $days_in_month; $day++): ?>
-                            <?php
+                        <?php
+                        $range_start_ts = strtotime($start_date_input);
+                        $range_end_ts = strtotime($end_date_input);
+                        for ($cursor = $range_start_ts; $cursor !== false && $range_end_ts !== false && $cursor <= $range_end_ts; $cursor = strtotime('+1 day', $cursor)):
+                            $date_iso = date('Y-m-d', $cursor);
+                            $day = (int)date('j', $cursor);
                             $row = $records_by_day[$day] ?? null;
-                            $date_iso = date('Y-m-', $month_ts) . str_pad((string)$day, 2, '0', STR_PAD_LEFT);
+                            if ($row && (string)($row['attendance_date'] ?? '') !== $date_iso) {
+                                $row = null;
+                            }
                             ?>
                             <tr>
                                 <td data-label="Day"><?php echo $day; ?></td>
@@ -261,10 +292,14 @@ include 'includes/header.php';
                 </table>
             </div>
             <div class="dtr-mobile-list app-students-dtr-mobile-list">
-                <?php for ($day = 1; $day <= $days_in_month; $day++): ?>
+                <?php for ($cursor = $range_start_ts; $cursor !== false && $range_end_ts !== false && $cursor <= $range_end_ts; $cursor = strtotime('+1 day', $cursor)): ?>
                     <?php
+                    $date_iso = date('Y-m-d', $cursor);
+                    $day = (int)date('j', $cursor);
                     $row = $records_by_day[$day] ?? null;
-                    $date_iso = date('Y-m-', $month_ts) . str_pad((string)$day, 2, '0', STR_PAD_LEFT);
+                    if ($row && (string)($row['attendance_date'] ?? '') !== $date_iso) {
+                        $row = null;
+                    }
                     ?>
                     <div class="dtr-day-card app-students-dtr-day-card">
                         <div class="dtr-day-top app-students-dtr-day-top">

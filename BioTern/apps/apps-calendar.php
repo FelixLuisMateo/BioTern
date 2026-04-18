@@ -178,34 +178,41 @@ include 'includes/header.php';
                     </div>
                 </div>
             </div>
-            <div class="row g-3 mt-1 app-calendar-field-row">
-                <div class="col-sm-4 app-calendar-field">
-                    <label class="form-label" for="appCalendarAttendanceMultiplier">Attendance Multiplier</label>
-                    <input type="number" class="form-control" id="appCalendarAttendanceMultiplier" name="attendance_multiplier" min="1" step="0.25" placeholder="e.g. 2">
-                </div>
-                <div class="col-sm-4 app-calendar-field">
-                    <label class="form-label" for="appCalendarAppliesToWeekday">Applies To Day</label>
-                    <select class="form-select" id="appCalendarAppliesToWeekday" name="applies_to_weekday">
-                        <option value="">Any day</option>
-                        <option value="monday">Monday</option>
-                        <option value="tuesday">Tuesday</option>
-                        <option value="wednesday">Wednesday</option>
-                        <option value="thursday">Thursday</option>
-                        <option value="friday">Friday</option>
-                        <option value="saturday">Saturday</option>
-                        <option value="sunday">Sunday</option>
-                    </select>
-                </div>
-                <div class="col-sm-4 app-calendar-field">
-                    <label class="form-label" for="appCalendarLateGraceMinutes">Late Grace (minutes)</label>
-                    <input type="number" class="form-control" id="appCalendarLateGraceMinutes" name="late_grace_minutes" min="0" step="1" placeholder="e.g. 30">
-                </div>
+            <div class="app-calendar-field mt-3">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="appCalendarToggleAttendanceBonus" data-toggle-attendance-bonus aria-expanded="false">
+                    Add Attendance Multiplier
+                </button>
             </div>
-            <div class="row g-3 mt-1 app-calendar-field-row">
-                <div class="col-sm-12 app-calendar-field">
-                    <div class="form-check app-calendar-check">
-                        <input class="form-check-input" type="checkbox" id="appCalendarApplyWhenNotLate" name="apply_when_not_late">
-                        <label class="form-check-label" for="appCalendarApplyWhenNotLate">Apply bonus only if student is not late beyond grace minutes</label>
+            <div class="app-calendar-attendance-bonus-settings d-none" data-attendance-bonus-settings hidden>
+                <div class="row g-3 mt-1 app-calendar-field-row">
+                    <div class="col-sm-4 app-calendar-field">
+                        <label class="form-label" for="appCalendarAttendanceMultiplier">Attendance Multiplier</label>
+                        <input type="number" class="form-control" id="appCalendarAttendanceMultiplier" name="attendance_multiplier" min="1" step="0.25" placeholder="e.g. 2">
+                    </div>
+                    <div class="col-sm-4 app-calendar-field">
+                        <label class="form-label" for="appCalendarAppliesToWeekday">Applies To Day</label>
+                        <select class="form-select" id="appCalendarAppliesToWeekday" name="applies_to_weekday">
+                            <option value="">Any day</option>
+                            <option value="monday">Monday</option>
+                            <option value="tuesday">Tuesday</option>
+                            <option value="wednesday">Wednesday</option>
+                            <option value="thursday">Thursday</option>
+                            <option value="friday">Friday</option>
+                            <option value="saturday">Saturday</option>
+                            <option value="sunday">Sunday</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-4 app-calendar-field">
+                        <label class="form-label" for="appCalendarLateGraceMinutes">Late Grace (minutes)</label>
+                        <input type="number" class="form-control" id="appCalendarLateGraceMinutes" name="late_grace_minutes" min="0" step="1" placeholder="e.g. 30">
+                    </div>
+                </div>
+                <div class="row g-3 mt-1 app-calendar-field-row">
+                    <div class="col-sm-12 app-calendar-field">
+                        <div class="form-check app-calendar-check">
+                            <input class="form-check-input" type="checkbox" id="appCalendarApplyWhenNotLate" name="apply_when_not_late">
+                            <label class="form-check-label" for="appCalendarApplyWhenNotLate">Apply bonus only if student is not late beyond grace minutes</label>
+                        </div>
                     </div>
                 </div>
             </div>

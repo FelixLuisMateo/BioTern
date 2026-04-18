@@ -1,8 +1,26 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/document_access.php';
+require_once dirname(__DIR__) . '/includes/auth-session.php';
+biotern_boot_session(isset($conn) ? $conn : null);
 
 $prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$documentsCurrentUserId = (int)($_SESSION['user_id'] ?? 0);
+$documentsCurrentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+$documentsIsStudentViewOnly = ($documentsCurrentRole === 'student');
+
+if ($documentsIsStudentViewOnly && $documentsCurrentUserId > 0) {
+    $studentLookupStmt = $conn->prepare("SELECT id FROM students WHERE user_id = ? LIMIT 1");
+    if ($studentLookupStmt) {
+        $studentLookupStmt->bind_param('i', $documentsCurrentUserId);
+        $studentLookupStmt->execute();
+        $studentLookupRow = $studentLookupStmt->get_result()->fetch_assoc() ?: null;
+        $studentLookupStmt->close();
+        if ($studentLookupRow) {
+            $prefill_student_id = (int)($studentLookupRow['id'] ?? 0);
+        }
+    }
+}
 
 if (isset($_GET['action'])) {
     $action = (string)$_GET['action'];
@@ -116,7 +134,7 @@ include __DIR__ . '/../includes/header.php';
                 </ul>
             </div>
             <div class="page-header-middle">
-                <p class="page-header-statement">Use one workspace to fill application data, preview the letter, and generate a print-ready copy.</p>
+                <p class="page-header-statement"><?php echo $documentsIsStudentViewOnly ? 'Preview your application document in read-only mode.' : 'Use one workspace to fill application data, preview the letter, and generate a print-ready copy.'; ?></p>
             </div>
             <div class="page-header-right ms-auto">
                 <div class="d-md-none d-flex align-items-center">
@@ -141,43 +159,43 @@ include __DIR__ . '/../includes/header.php';
                         <div class="builder-card">
                             <div class="builder-card-head">
                                 <h6>Record Source</h6>
-                                <p>Load a student, pull saved application-letter data, and keep the preview updated live.</p>
+                                <p><?php echo $documentsIsStudentViewOnly ? 'Your document is loaded from your linked student record.' : 'Load a student, pull saved application-letter data, and keep the preview updated live.'; ?></p>
                             </div>
 
                             <div class="builder-field">
                                 <label for="student_select" class="form-label">Search Student</label>
-                                <select id="student_select" class="student-select-full" data-placeholder="Search by name or student id"></select>
+                                <select id="student_select" class="student-select-full" data-placeholder="Search by name or student id" <?php echo $documentsIsStudentViewOnly ? 'disabled' : ''; ?>></select>
                             </div>
 
                             <div class="builder-field-grid">
                                 <div class="builder-field">
                                     <label for="input_name" class="form-label">Recipient</label>
-                                    <input id="input_name" class="form-control" type="text" placeholder="Mr./Ms. full name" autocomplete="off">
+                                    <input id="input_name" class="form-control" type="text" placeholder="Mr./Ms. full name" autocomplete="off" <?php echo $documentsIsStudentViewOnly ? 'readonly' : ''; ?>>
                                 </div>
                                 <div class="builder-field">
                                     <label for="input_position" class="form-label">Position</label>
-                                    <input id="input_position" class="form-control" type="text" placeholder="Recipient position" autocomplete="off">
+                                    <input id="input_position" class="form-control" type="text" placeholder="Recipient position" autocomplete="off" <?php echo $documentsIsStudentViewOnly ? 'readonly' : ''; ?>>
                                 </div>
                             </div>
 
                             <div class="builder-field">
                                 <label for="input_company" class="form-label">Company</label>
-                                <input id="input_company" class="form-control" type="text" placeholder="Company name" autocomplete="off">
+                                <input id="input_company" class="form-control" type="text" placeholder="Company name" autocomplete="off" <?php echo $documentsIsStudentViewOnly ? 'readonly' : ''; ?>>
                             </div>
 
                             <div class="builder-field">
                                 <label for="input_company_address" class="form-label">Company Address</label>
-                                <textarea id="input_company_address" class="form-control" rows="3" placeholder="Company address" autocomplete="off"></textarea>
+                                <textarea id="input_company_address" class="form-control" rows="3" placeholder="Company address" autocomplete="off" <?php echo $documentsIsStudentViewOnly ? 'readonly' : ''; ?>></textarea>
                             </div>
 
                             <div class="builder-field-grid builder-field-grid-compact">
                                 <div class="builder-field">
                                     <label for="input_hours" class="form-label">Required Hours</label>
-                                    <input id="input_hours" class="form-control" type="text" value="250" placeholder="Hours" autocomplete="off">
+                                    <input id="input_hours" class="form-control" type="text" value="250" placeholder="Hours" autocomplete="off" <?php echo $documentsIsStudentViewOnly ? 'readonly' : ''; ?>>
                                 </div>
                                 <div class="builder-field">
                                     <label for="builder_date" class="form-label">Letter Date</label>
-                                    <input id="builder_date" class="form-control" type="text" value="<?php echo htmlspecialchars(date('F j, Y'), ENT_QUOTES, 'UTF-8'); ?>" autocomplete="off">
+                                    <input id="builder_date" class="form-control" type="text" value="<?php echo htmlspecialchars(date('F j, Y'), ENT_QUOTES, 'UTF-8'); ?>" autocomplete="off" <?php echo $documentsIsStudentViewOnly ? 'readonly' : ''; ?>>
                                 </div>
                             </div>
                         </div>
@@ -199,17 +217,19 @@ include __DIR__ . '/../includes/header.php';
                             <div class="builder-editor-head">
                                 <div>
                                     <h6>Template Builder</h6>
-                                    <p>Application letter preview, editor, and print layout in one place.</p>
+                                    <p><?php echo $documentsIsStudentViewOnly ? 'Application letter preview only. Editing is limited to staff accounts.' : 'Application letter preview, editor, and print layout in one place.'; ?></p>
                                 </div>
                                 <div class="builder-editor-actions">
-                                    <button id="btn_toggle_edit" class="btn btn-light" type="button" aria-pressed="false">Edit Template</button>
-                                    <button id="btn_save" class="btn btn-primary" type="button">Save Template</button>
-                                    <button id="btn_reset" class="btn btn-light" type="button">Reset</button>
+                                    <?php if (!$documentsIsStudentViewOnly): ?>
+                                        <button id="btn_toggle_edit" class="btn btn-light" type="button" aria-pressed="false">Edit Template</button>
+                                        <button id="btn_save" class="btn btn-primary" type="button">Save Template</button>
+                                        <button id="btn_reset" class="btn btn-light" type="button">Reset</button>
+                                    <?php endif; ?>
                                     <button id="btn_print" class="btn btn-success" type="button">Print Letter</button>
                                 </div>
                             </div>
 
-                            <div class="builder-toolbar is-disabled" id="builder_toolbar" aria-label="Template formatting tools" aria-hidden="true">
+                            <div class="builder-toolbar is-disabled" id="builder_toolbar" aria-label="Template formatting tools" aria-hidden="true" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>
                                 <button id="btn_bold" class="btn btn-light" type="button"><strong>B</strong></button>
                                 <button id="btn_italic" class="btn btn-light" type="button"><em>I</em></button>
                                 <button id="btn_underline" class="btn btn-light" type="button"><u>U</u></button>
@@ -229,7 +249,7 @@ include __DIR__ . '/../includes/header.php';
 
                             <div class="builder-paper-shell">
                                 <div class="builder-paper">
-                                    <div id="editor" class="builder-editor-surface is-locked" contenteditable="false" spellcheck="true"></div>
+                                    <div id="editor" class="builder-editor-surface is-locked" contenteditable="false" spellcheck="<?php echo $documentsIsStudentViewOnly ? 'false' : 'true'; ?>"></div>
                                 </div>
                             </div>
                         </div>

@@ -447,7 +447,7 @@ function activity_feed_detail_preview(string $text, int $max = 110): string
     return strlen($text) > $max ? substr($text, 0, $max - 3) . '...' : $text;
 }
 
-$page_title$page_title = 'BioTern || Activity Feed';
+$page_title = 'BioTern || Activity Feed';
 $page_body_class = 'apps-activity-page';
 $page_styles = [
     'assets/css/modules/pages/page-activity-feed.css',
@@ -569,7 +569,7 @@ include 'includes/header.php';
         <div class="content-area-body p-0">
             <div class="account-toolbar">
                 <a href="profile-details.php"><i class="feather-user"></i><span>Profile Details</span></a>
-                <a href="profile-details.php#account-settings"><i class="feather-settings"></i><span>Account Settings</span></a>
+                <a href="account-settings.php#security"><i class="feather-settings"></i><span>Account Settings</span></a>
                 <a href="activity-feed.php?feed=<?php echo urlencode($feed); ?>"><i class="feather-activity"></i><span>Activity Feed</span></a>
                 <a href="notifications.php"><i class="feather-bell"></i><span>Notifications</span></a>
             </div>

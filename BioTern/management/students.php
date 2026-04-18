@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
@@ -31,6 +32,58 @@ $current_role = strtolower(trim((string) (
     ''
 )));
 $is_student_user = ($current_role === 'student');
+
+function biotern_students_has_column(mysqli $conn, string $table, string $column): bool
+{
+    $stmt = $conn->prepare("
+        SELECT 1
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+        LIMIT 1
+    ");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('ss', $table, $column);
+    $stmt->execute();
+    $exists = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
+    return $exists;
+}
+
+function biotern_students_redirect_self(): void
+{
+    $target = 'students.php';
+    $query = trim((string)($_SERVER['QUERY_STRING'] ?? ''));
+    if ($query !== '') {
+        $target .= '?' . $query;
+    }
+    header('Location: ' . $target);
+    exit;
+}
+
+$studentColumns = [];
+$studentColumnsRes = $db->query("SHOW COLUMNS FROM students");
+if ($studentColumnsRes instanceof mysqli_result) {
+    while ($columnRow = $studentColumnsRes->fetch_assoc()) {
+        $studentColumns[strtolower((string)($columnRow['Field'] ?? ''))] = true;
+    }
+    $studentColumnsRes->close();
+}
+
+$internshipColumns = [];
+$internshipColumnsRes = $db->query("SHOW COLUMNS FROM internships");
+if ($internshipColumnsRes instanceof mysqli_result) {
+    while ($columnRow = $internshipColumnsRes->fetch_assoc()) {
+        $internshipColumns[strtolower((string)($columnRow['Field'] ?? ''))] = true;
+    }
+    $internshipColumnsRes->close();
+}
+
+$studentsFlash = $_SESSION['students_flash'] ?? null;
+unset($_SESSION['students_flash']);
 
 $has_application_status = false;
 $col_app = $db->query("SHOW COLUMNS FROM users LIKE 'application_status'");
@@ -147,14 +200,18 @@ if ($section_res && $section_res->num_rows) {
 }
 
 $supervisors = [];
+$supervisorOptions = [];
 $sup_res = $db->query("
-    SELECT DISTINCT TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS supervisor_name
+    SELECT id, user_id, TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS supervisor_name, department_id
     FROM supervisors
     WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
     ORDER BY supervisor_name ASC
 ");
 if ($sup_res && $sup_res->num_rows) {
-    while ($r = $sup_res->fetch_assoc()) $supervisors[] = $r['supervisor_name'];
+    while ($r = $sup_res->fetch_assoc()) {
+        $supervisors[] = $r['supervisor_name'];
+        $supervisorOptions[] = $r;
+    }
 }
 
 $coordinators = [];
@@ -166,6 +223,346 @@ $coor_res = $db->query("
 ");
 if ($coor_res && $coor_res->num_rows) {
     while ($r = $coor_res->fetch_assoc()) $coordinators[] = $r['coordinator_name'];
+}
+
+$hasCoordinatorCourses = false;
+$coordinatorCoursesTable = $db->query("SHOW TABLES LIKE 'coordinator_courses'");
+if ($coordinatorCoursesTable instanceof mysqli_result && $coordinatorCoursesTable->num_rows > 0) {
+    $hasCoordinatorCourses = true;
+    $coordinatorCoursesTable->close();
+}
+
+$coordinatorCourseMap = [];
+if ($hasCoordinatorCourses) {
+    $coordinatorMapRes = $db->query("
+        SELECT
+            cc.course_id,
+            cc.coordinator_user_id,
+            c.id AS coordinator_profile_id,
+            COALESCE(NULLIF(u.name, ''), TRIM(CONCAT_WS(' ', c.first_name, c.middle_name, c.last_name))) AS coordinator_name
+        FROM coordinator_courses cc
+        LEFT JOIN coordinators c ON c.user_id = cc.coordinator_user_id
+        LEFT JOIN users u ON u.id = cc.coordinator_user_id
+        ORDER BY cc.id DESC
+    ");
+    if ($coordinatorMapRes instanceof mysqli_result) {
+        while ($row = $coordinatorMapRes->fetch_assoc()) {
+            $courseId = (int)($row['course_id'] ?? 0);
+            if ($courseId <= 0 || isset($coordinatorCourseMap[$courseId])) {
+                continue;
+            }
+            $coordinatorCourseMap[$courseId] = [
+                'user_id' => (int)($row['coordinator_user_id'] ?? 0),
+                'profile_id' => (int)($row['coordinator_profile_id'] ?? 0),
+                'name' => trim((string)($row['coordinator_name'] ?? '')),
+            ];
+        }
+        $coordinatorMapRes->close();
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
+    $action = strtolower(trim((string)($_POST['student_action'] ?? '')));
+    if ($action === 'assign_track') {
+        $studentId = (int)($_POST['student_id'] ?? 0);
+        $assignmentTrack = strtolower(trim((string)($_POST['assignment_track'] ?? 'internal')));
+        $departmentId = (int)($_POST['department_id'] ?? 0);
+        $supervisorProfileId = (int)($_POST['supervisor_id'] ?? 0);
+        $startDate = trim((string)($_POST['start_date'] ?? date('Y-m-d')));
+
+        if ($studentId <= 0) {
+            $_SESSION['students_flash'] = ['type' => 'danger', 'message' => 'Student assignment could not be saved.'];
+            biotern_students_redirect_self();
+        }
+        if (!in_array($assignmentTrack, ['internal', 'external'], true)) {
+            $assignmentTrack = 'internal';
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
+            $startDate = date('Y-m-d');
+        }
+
+        $studentStmt = $db->prepare("
+            SELECT id, course_id, first_name, last_name, supervisor_name, coordinator_name,
+                   internal_total_hours, external_total_hours
+            FROM students
+            WHERE id = ?
+            LIMIT 1
+        ");
+        $studentRow = null;
+        if ($studentStmt) {
+            $studentStmt->bind_param('i', $studentId);
+            $studentStmt->execute();
+            $studentRow = $studentStmt->get_result()->fetch_assoc() ?: null;
+            $studentStmt->close();
+        }
+
+        if (!$studentRow) {
+            $_SESSION['students_flash'] = ['type' => 'danger', 'message' => 'Student record not found.'];
+            biotern_students_redirect_self();
+        }
+
+        $supervisorProfile = null;
+        foreach ($supervisorOptions as $option) {
+            if ((int)($option['id'] ?? 0) === $supervisorProfileId) {
+                $supervisorProfile = $option;
+                break;
+            }
+        }
+        if (!$supervisorProfile) {
+            $_SESSION['students_flash'] = ['type' => 'danger', 'message' => 'Select a valid supervisor before assigning the student.'];
+            biotern_students_redirect_self();
+        }
+
+        $courseId = (int)($studentRow['course_id'] ?? 0);
+        $coordinatorInfo = $coordinatorCourseMap[$courseId] ?? ['user_id' => 0, 'profile_id' => 0, 'name' => trim((string)($studentRow['coordinator_name'] ?? ''))];
+        $supervisorName = trim((string)($supervisorProfile['supervisor_name'] ?? ''));
+        $supervisorUserId = (int)($supervisorProfile['user_id'] ?? 0);
+        $coordinatorName = trim((string)($coordinatorInfo['name'] ?? ''));
+        $coordinatorUserId = (int)($coordinatorInfo['user_id'] ?? 0);
+        $coordinatorProfileId = (int)($coordinatorInfo['profile_id'] ?? 0);
+
+        $studentSets = [];
+        $studentTypes = '';
+        $studentValues = [];
+
+        if (isset($studentColumns['assignment_track'])) {
+            $studentSets[] = 'assignment_track = ?';
+            $studentTypes .= 's';
+            $studentValues[] = $assignmentTrack;
+        }
+        if (isset($studentColumns['department_id'])) {
+            $studentSets[] = 'department_id = NULLIF(?, 0)';
+            $studentTypes .= 'i';
+            $studentValues[] = $departmentId;
+        }
+        if (isset($studentColumns['supervisor_name'])) {
+            $studentSets[] = 'supervisor_name = ?';
+            $studentTypes .= 's';
+            $studentValues[] = $supervisorName;
+        }
+        if (isset($studentColumns['supervisor_id'])) {
+            $studentSets[] = 'supervisor_id = NULLIF(?, 0)';
+            $studentTypes .= 'i';
+            $studentValues[] = $supervisorProfileId;
+        }
+        if (isset($studentColumns['coordinator_name'])) {
+            $studentSets[] = 'coordinator_name = ?';
+            $studentTypes .= 's';
+            $studentValues[] = $coordinatorName;
+        }
+        if (isset($studentColumns['coordinator_id'])) {
+            $studentSets[] = 'coordinator_id = NULLIF(?, 0)';
+            $studentTypes .= 'i';
+            $studentValues[] = $coordinatorProfileId;
+        }
+        if (isset($studentColumns['updated_at'])) {
+            $studentSets[] = 'updated_at = NOW()';
+        }
+
+        $saveOk = false;
+        $db->begin_transaction();
+        try {
+            if ($studentSets !== []) {
+                $studentTypes .= 'i';
+                $studentValues[] = $studentId;
+                $studentSql = 'UPDATE students SET ' . implode(', ', $studentSets) . ' WHERE id = ? LIMIT 1';
+                $studentUpdate = $db->prepare($studentSql);
+                if (!$studentUpdate) {
+                    throw new RuntimeException('Could not prepare the student assignment update.');
+                }
+                $studentUpdate->bind_param($studentTypes, ...$studentValues);
+                if (!$studentUpdate->execute()) {
+                    $studentUpdate->close();
+                    throw new RuntimeException('Could not save the student assignment.');
+                }
+                $studentUpdate->close();
+            }
+
+            $internshipId = 0;
+            $internshipLookup = $db->prepare("
+                SELECT id
+                FROM internships
+                WHERE student_id = ?
+                ORDER BY (status = 'ongoing') DESC, id DESC
+                LIMIT 1
+            ");
+            if ($internshipLookup) {
+                $internshipLookup->bind_param('i', $studentId);
+                $internshipLookup->execute();
+                $internshipRow = $internshipLookup->get_result()->fetch_assoc() ?: null;
+                $internshipLookup->close();
+                $internshipId = (int)($internshipRow['id'] ?? 0);
+            }
+
+            $requiredHours = $assignmentTrack === 'external'
+                ? max(0, (int)($studentRow['external_total_hours'] ?? 0))
+                : max(0, (int)($studentRow['internal_total_hours'] ?? 0));
+            if ($requiredHours <= 0) {
+                $requiredHours = $assignmentTrack === 'external' ? 250 : 600;
+            }
+
+            if ($internshipId > 0) {
+                $internshipSets = ['status = \'ongoing\''];
+                $internshipTypes = '';
+                $internshipValues = [];
+
+                if (isset($internshipColumns['type'])) {
+                    $internshipSets[] = 'type = ?';
+                    $internshipTypes .= 's';
+                    $internshipValues[] = $assignmentTrack;
+                }
+                if (isset($internshipColumns['course_id'])) {
+                    $internshipSets[] = 'course_id = NULLIF(?, 0)';
+                    $internshipTypes .= 'i';
+                    $internshipValues[] = $courseId;
+                }
+                if (isset($internshipColumns['department_id'])) {
+                    $internshipSets[] = 'department_id = NULLIF(?, 0)';
+                    $internshipTypes .= 'i';
+                    $internshipValues[] = $departmentId;
+                }
+                if (isset($internshipColumns['supervisor_id'])) {
+                    $internshipSets[] = 'supervisor_id = NULLIF(?, 0)';
+                    $internshipTypes .= 'i';
+                    $internshipValues[] = $supervisorUserId;
+                }
+                if (isset($internshipColumns['coordinator_id'])) {
+                    $internshipSets[] = 'coordinator_id = NULLIF(?, 0)';
+                    $internshipTypes .= 'i';
+                    $internshipValues[] = $coordinatorUserId;
+                }
+                if (isset($internshipColumns['start_date'])) {
+                    $internshipSets[] = 'start_date = ?';
+                    $internshipTypes .= 's';
+                    $internshipValues[] = $startDate;
+                }
+                if (isset($internshipColumns['required_hours'])) {
+                    $internshipSets[] = 'required_hours = ?';
+                    $internshipTypes .= 'i';
+                    $internshipValues[] = $requiredHours;
+                }
+                if (isset($internshipColumns['updated_at'])) {
+                    $internshipSets[] = 'updated_at = NOW()';
+                }
+
+                $internshipTypes .= 'i';
+                $internshipValues[] = $internshipId;
+                $internshipSql = 'UPDATE internships SET ' . implode(', ', $internshipSets) . ' WHERE id = ?';
+                $internshipUpdate = $db->prepare($internshipSql);
+                if (!$internshipUpdate) {
+                    throw new RuntimeException('Could not prepare the internship update.');
+                }
+                $internshipUpdate->bind_param($internshipTypes, ...$internshipValues);
+                if (!$internshipUpdate->execute()) {
+                    $internshipUpdate->close();
+                    throw new RuntimeException('Could not update the internship assignment.');
+                }
+                $internshipUpdate->close();
+            } else {
+                $insertColumns = ['student_id'];
+                $insertPlaceholders = ['?'];
+                $insertTypes = 'i';
+                $insertValues = [$studentId];
+
+                if (isset($internshipColumns['course_id'])) {
+                    $insertColumns[] = 'course_id';
+                    $insertPlaceholders[] = 'NULLIF(?, 0)';
+                    $insertTypes .= 'i';
+                    $insertValues[] = $courseId;
+                }
+                if (isset($internshipColumns['department_id'])) {
+                    $insertColumns[] = 'department_id';
+                    $insertPlaceholders[] = 'NULLIF(?, 0)';
+                    $insertTypes .= 'i';
+                    $insertValues[] = $departmentId;
+                }
+                if (isset($internshipColumns['coordinator_id'])) {
+                    $insertColumns[] = 'coordinator_id';
+                    $insertPlaceholders[] = 'NULLIF(?, 0)';
+                    $insertTypes .= 'i';
+                    $insertValues[] = $coordinatorUserId;
+                }
+                if (isset($internshipColumns['supervisor_id'])) {
+                    $insertColumns[] = 'supervisor_id';
+                    $insertPlaceholders[] = 'NULLIF(?, 0)';
+                    $insertTypes .= 'i';
+                    $insertValues[] = $supervisorUserId;
+                }
+                if (isset($internshipColumns['type'])) {
+                    $insertColumns[] = 'type';
+                    $insertPlaceholders[] = '?';
+                    $insertTypes .= 's';
+                    $insertValues[] = $assignmentTrack;
+                }
+                if (isset($internshipColumns['start_date'])) {
+                    $insertColumns[] = 'start_date';
+                    $insertPlaceholders[] = '?';
+                    $insertTypes .= 's';
+                    $insertValues[] = $startDate;
+                }
+                if (isset($internshipColumns['status'])) {
+                    $insertColumns[] = 'status';
+                    $insertPlaceholders[] = '\'ongoing\'';
+                }
+                if (isset($internshipColumns['required_hours'])) {
+                    $insertColumns[] = 'required_hours';
+                    $insertPlaceholders[] = '?';
+                    $insertTypes .= 'i';
+                    $insertValues[] = $requiredHours;
+                }
+                if (isset($internshipColumns['rendered_hours'])) {
+                    $insertColumns[] = 'rendered_hours';
+                    $insertPlaceholders[] = '0';
+                }
+                if (isset($internshipColumns['completion_percentage'])) {
+                    $insertColumns[] = 'completion_percentage';
+                    $insertPlaceholders[] = '0';
+                }
+                if (isset($internshipColumns['created_at'])) {
+                    $insertColumns[] = 'created_at';
+                    $insertPlaceholders[] = 'NOW()';
+                }
+                if (isset($internshipColumns['updated_at'])) {
+                    $insertColumns[] = 'updated_at';
+                    $insertPlaceholders[] = 'NOW()';
+                }
+
+                $insertSql = 'INSERT INTO internships (' . implode(', ', $insertColumns) . ') VALUES (' . implode(', ', $insertPlaceholders) . ')';
+                $internshipInsert = $db->prepare($insertSql);
+                if (!$internshipInsert) {
+                    throw new RuntimeException('Could not prepare the internship creation.');
+                }
+                if ($insertTypes !== '') {
+                    $internshipInsert->bind_param($insertTypes, ...$insertValues);
+                }
+                if (!$internshipInsert->execute()) {
+                    $internshipInsert->close();
+                    throw new RuntimeException('Could not create the internship assignment.');
+                }
+                $internshipInsert->close();
+            }
+
+            $db->commit();
+            $saveOk = true;
+        } catch (Throwable $e) {
+            $db->rollback();
+            $_SESSION['students_flash'] = [
+                'type' => 'danger',
+                'message' => $e->getMessage(),
+            ];
+        }
+
+        if ($saveOk) {
+            $studentLabel = trim((string)($studentRow['first_name'] ?? '') . ' ' . (string)($studentRow['last_name'] ?? ''));
+            $coordMessage = $coordinatorName !== '' ? (' Coordinator: ' . $coordinatorName . '.') : ' Coordinator is not yet mapped for this course.';
+            $_SESSION['students_flash'] = [
+                'type' => 'success',
+                'message' => $studentLabel . ' is now assigned to ' . ucfirst($assignmentTrack) . '. Supervisor: ' . $supervisorName . '.' . $coordMessage,
+            ];
+        }
+
+        biotern_students_redirect_self();
+    }
 }
 
 // Build WHERE clauses depending on provided filters
@@ -237,13 +634,18 @@ if ($filter_status >= 0) {
 $students_query = "
     SELECT 
         s.id,
+        s.user_id,
         s.student_id,
         s.first_name,
         s.middle_name,
         s.last_name,
         s.email,
         s.phone,
+        s.department_id,
+        s.supervisor_id AS student_supervisor_ref_id,
+        s.coordinator_id AS student_coordinator_ref_id,
         s.status,
+        COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'internal') AS assignment_track,
         CASE
             WHEN EXISTS (
                 SELECT 1 FROM attendances a_live
@@ -264,6 +666,7 @@ $students_query = "
         s.created_at,
         COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         c.name as course_name,
+        d.name as department_name,
         COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '-') AS section_name,
         c.id as course_id,
         i.supervisor_id,
@@ -285,6 +688,7 @@ $students_query = "
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
     LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
     LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
+    LEFT JOIN departments d ON d.id = COALESCE(i.department_id, s.department_id)
     " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
     ORDER BY s.first_name ASC
     LIMIT 100
@@ -313,17 +717,12 @@ function formatDate($date) {
     return '-';
 }
 
-function resolve_profile_image_url(string $profilePath): ?string {
-    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
-    if ($clean === '') {
+function resolve_profile_image_url(string $profilePath, int $userId = 0): ?string {
+    $resolved = biotern_avatar_public_src($profilePath, $userId);
+    if ($resolved === '') {
         return null;
     }
-    $rootPath = dirname(__DIR__) . '/' . $clean;
-    if (!file_exists($rootPath)) {
-        return null;
-    }
-    $mtime = @filemtime($rootPath);
-    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+    return $resolved;
 }
 
 $selected_section_label = 'ALL';
@@ -488,6 +887,10 @@ include 'includes/header.php';
                                 <i class="feather-printer me-2"></i>
                                 <span>Print List</span>
                             </button>
+                            <button type="button" class="btn btn-light d-none js-print-selected" id="printSelectedStudents" aria-hidden="true">
+                                <i class="feather-printer me-2"></i>
+                                <span>Print Selected</span>
+                            </button>
                             <a href="students-create.php" class="btn btn-primary">
                                 <i class="feather-plus me-2"></i>
                                 <span>Create Students</span>
@@ -497,6 +900,12 @@ include 'includes/header.php';
                     </div>
                 </div>
             </div>
+
+            <?php if (is_array($studentsFlash) && !empty($studentsFlash['message'])): ?>
+                <div class="alert alert-<?php echo htmlspecialchars((string)($studentsFlash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> mb-3">
+                    <?php echo htmlspecialchars((string)$studentsFlash['message'], ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+            <?php endif; ?>
 
             <!-- Filters -->
             <div class="collapse" id="studentsFilterCollapse">
@@ -689,6 +1098,7 @@ include 'includes/header.php';
                                                     $student_name = trim((string)($student['first_name'] . ' ' . $student['last_name']));
                                                     $student_id_label = (string)($student['student_id'] ?? '-');
                                                     $course_name = (string)($student['course_name'] ?? 'N/A');
+                                                    $department_name = trim((string)($student['department_name'] ?? ''));
                                                     $section_name = biotern_format_section_code((string)($student['section_name'] ?? '-'));
                                                     $supervisor_name = (string)($student['supervisor_name'] ?? '-');
                                                     $coordinator_name = (string)($student['coordinator_name'] ?? '-');
@@ -696,6 +1106,11 @@ include 'includes/header.php';
                                                     $email_value = trim((string)($student['email'] ?? ''));
                                                     $phone_value = trim((string)($student['phone'] ?? ''));
                                                     $biometric_ready = ((int)($student['biometric_ready'] ?? 0) === 1);
+                                                    $track_key = strtolower(trim((string)($student['assignment_track'] ?? 'internal')));
+                                                    if (!in_array($track_key, ['internal', 'external'], true)) {
+                                                        $track_key = 'internal';
+                                                    }
+                                                    $track_label = ucfirst($track_key);
                                                     ?>
                                                     <tr
                                                         class="single-item app-students-table-row"
@@ -725,7 +1140,7 @@ include 'includes/header.php';
                                                                 <div class="avatar-image avatar-md">
                                                                     <?php
                                                                     $pp = $student['profile_picture'] ?? '';
-                                                                    $pp_url = resolve_profile_image_url($pp);
+                                                                    $pp_url = resolve_profile_image_url($pp, (int)($student['user_id'] ?? 0));
                                                                     if ($pp_url !== null) {
                                                                         echo '<img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid">';
                                                                     } else {
@@ -736,11 +1151,15 @@ include 'includes/header.php';
                                                                 <div class="app-students-student-copy">
                                                                     <span class="app-students-student-name"><?php echo htmlspecialchars($student_name); ?></span>
                                                                     <span class="app-students-student-meta"><?php echo htmlspecialchars($student_id_label); ?></span>
-                                                                    <span class="app-students-student-submeta"><?php echo htmlspecialchars($course_name); ?></span>
+                                                                    <span class="app-students-student-submeta"><?php echo htmlspecialchars($course_name); ?><?php echo $department_name !== '' ? ' | ' . htmlspecialchars($department_name) : ''; ?></span>
                                                                 </div>
                                                             </a>
                                                             <div class="collapse app-students-inline-collapse" id="studentRowDetails<?php echo (int)$student['id']; ?>">
                                                                 <div class="app-students-inline-details">
+                                                                    <div class="app-students-inline-detail-item">
+                                                                        <span class="app-students-inline-detail-label">Track</span>
+                                                                        <span class="app-students-section-pill"><?php echo htmlspecialchars($track_label); ?></span>
+                                                                    </div>
                                                                     <div class="app-students-inline-detail-item">
                                                                         <span class="app-students-inline-detail-label">Section</span>
                                                                         <span class="app-students-section-pill"><?php echo htmlspecialchars($section_name); ?></span>
@@ -760,14 +1179,14 @@ include 'includes/header.php';
                                                             <div class="app-students-cell-stack">
                                                                 <span class="app-students-cell-title">Course</span>
                                                                 <span class="app-students-cell-value"><?php echo htmlspecialchars($course_name); ?></span>
-                                                                <span class="app-students-cell-meta">Section <?php echo htmlspecialchars($section_name); ?></span>
+                                                                <span class="app-students-cell-meta"><?php echo htmlspecialchars($department_name !== '' ? $department_name : ('Section ' . $section_name)); ?></span>
                                                             </div>
                                                         </td>
                                                         <td data-label="Mentors">
                                                             <div class="app-students-cell-stack">
                                                                 <span class="app-students-cell-title">Supervisor</span>
                                                                 <span class="app-students-cell-value"><?php echo htmlspecialchars($supervisor_name); ?></span>
-                                                                <span class="app-students-cell-meta">Coordinator <?php echo htmlspecialchars($coordinator_name); ?></span>
+                                                                <span class="app-students-cell-meta">Coordinator <?php echo htmlspecialchars($coordinator_name !== '' ? $coordinator_name : 'Not Assigned'); ?></span>
                                                             </div>
                                                         </td>
                                                         <td data-label="Activity">
@@ -780,6 +1199,9 @@ include 'includes/header.php';
                                                         <td data-label="Status">
                                                             <div class="app-students-status-block">
                                                                 <?php echo getStatusBadge($student['live_clock_status']); ?>
+                                                                <span class="app-students-biometric-pill <?php echo $track_key === 'external' ? 'is-ready' : 'is-missing'; ?>">
+                                                                    <?php echo htmlspecialchars($track_label . ' Track'); ?>
+                                                                </span>
                                                                 <span class="app-students-biometric-pill <?php echo $biometric_ready ? 'is-ready' : 'is-missing'; ?>">
                                                                     <?php echo $biometric_ready ? 'Biometric Ready' : 'Biometric Missing'; ?>
                                                                 </span>
@@ -796,6 +1218,37 @@ include 'includes/header.php';
                                                                             <i class="feather feather-more-horizontal"></i>
                                                                         </a>
                                                                         <ul class="dropdown-menu">
+                                                                            <li class="px-3 py-2">
+                                                                                <div class="small text-muted text-uppercase mb-2">Assign Track</div>
+                                                                                <form method="post" class="d-grid gap-2">
+                                                                                    <input type="hidden" name="student_action" value="assign_track">
+                                                                                    <input type="hidden" name="student_id" value="<?php echo (int)$student['id']; ?>">
+                                                                                    <select name="assignment_track" class="form-select form-select-sm" required>
+                                                                                        <option value="internal" <?php echo $track_key === 'internal' ? 'selected' : ''; ?>>Internal</option>
+                                                                                        <option value="external" <?php echo $track_key === 'external' ? 'selected' : ''; ?>>External</option>
+                                                                                    </select>
+                                                                                    <select name="department_id" class="form-select form-select-sm" required>
+                                                                                        <option value="0">Select department</option>
+                                                                                        <?php foreach ($departments as $department): ?>
+                                                                                            <option value="<?php echo (int)$department['id']; ?>" <?php echo (int)($student['department_id'] ?? 0) === (int)$department['id'] ? 'selected' : ''; ?>>
+                                                                                                <?php echo htmlspecialchars((string)$department['name'], ENT_QUOTES, 'UTF-8'); ?>
+                                                                                            </option>
+                                                                                        <?php endforeach; ?>
+                                                                                    </select>
+                                                                                    <select name="supervisor_id" class="form-select form-select-sm" required>
+                                                                                        <option value="0">Select supervisor</option>
+                                                                                        <?php foreach ($supervisorOptions as $supervisorOption): ?>
+                                                                                            <option value="<?php echo (int)$supervisorOption['id']; ?>" <?php echo (int)($student['student_supervisor_ref_id'] ?? 0) === (int)$supervisorOption['id'] ? 'selected' : ''; ?>>
+                                                                                                <?php echo htmlspecialchars((string)$supervisorOption['supervisor_name'], ENT_QUOTES, 'UTF-8'); ?>
+                                                                                            </option>
+                                                                                        <?php endforeach; ?>
+                                                                                    </select>
+                                                                                    <input type="date" name="start_date" class="form-control form-control-sm" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
+                                                                                    <button type="submit" class="btn btn-sm btn-primary">Save Assignment</button>
+                                                                                    <small class="text-muted">Coordinator follows the student's course automatically.</small>
+                                                                                </form>
+                                                                            </li>
+                                                                            <li><hr class="dropdown-divider"></li>
                                                                             <li>
                                                                                 <a class="dropdown-item" href="students-edit.php?id=<?php echo (int)$student['id']; ?>">
                                                                                     <i class="feather feather-edit-3 me-3"></i>
@@ -855,6 +1308,11 @@ include 'includes/header.php';
                                             <?php
                                             $status_raw = strtolower(trim((string)($student['live_clock_status'] ?? '')));
                                             $status_class = 'status-unknown';
+                                            $track_key = strtolower(trim((string)($student['assignment_track'] ?? 'internal')));
+                                            if (!in_array($track_key, ['internal', 'external'], true)) {
+                                                $track_key = 'internal';
+                                            }
+                                            $track_label = ucfirst($track_key);
                                             if (in_array($status_raw, ['1', 'active', 'present', 'online'], true) || strpos($status_raw, 'active') !== false) {
                                                 $status_class = 'status-active';
                                             } elseif (in_array($status_raw, ['0', 'inactive', 'offline', 'absent'], true) || strpos($status_raw, 'inactive') !== false) {
@@ -867,7 +1325,7 @@ include 'includes/header.php';
                                                         <div class="avatar-image avatar-md">
                                                             <?php
                                                             $pp = $student['profile_picture'] ?? '';
-                                                            $pp_url = resolve_profile_image_url($pp);
+                                                            $pp_url = resolve_profile_image_url($pp, (int)($student['user_id'] ?? 0));
                                                             if ($pp_url !== null) {
                                                                 echo '<img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid">';
                                                             } else {
@@ -877,7 +1335,7 @@ include 'includes/header.php';
                                                         </div>
                                                         <div class="app-student-mobile-summary-text app-mobile-summary-text">
                                                             <span class="app-student-mobile-name app-mobile-name"><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></span>
-                                                            <span class="app-student-mobile-subtext app-mobile-subtext">ID: <?php echo htmlspecialchars((string)$student['student_id']); ?> &middot; <?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?></span>
+                                                            <span class="app-student-mobile-subtext app-mobile-subtext">ID: <?php echo htmlspecialchars((string)$student['student_id']); ?> &middot; <?php echo htmlspecialchars($student['course_name'] ?? 'N/A'); ?> &middot; <?php echo htmlspecialchars($track_label); ?></span>
                                                         </div>
                                                     </div>
                                                     <span class="app-student-mobile-status-dot <?php echo htmlspecialchars($status_class); ?>" aria-hidden="true"></span>
@@ -894,6 +1352,10 @@ include 'includes/header.php';
                                                     <div class="app-student-mobile-row app-mobile-row">
                                                         <span class="app-student-mobile-label app-mobile-label">Section</span>
                                                         <span class="app-student-mobile-value app-mobile-value"><?php echo htmlspecialchars($student['section_name'] ?? '-'); ?></span>
+                                                    </div>
+                                                    <div class="app-student-mobile-row app-mobile-row">
+                                                        <span class="app-student-mobile-label app-mobile-label">Track</span>
+                                                        <span class="app-student-mobile-value app-mobile-value"><?php echo htmlspecialchars($track_label); ?></span>
                                                     </div>
                                                     <div class="app-student-mobile-row app-mobile-row">
                                                         <span class="app-student-mobile-label app-mobile-label">Supervisor</span>
@@ -918,6 +1380,36 @@ include 'includes/header.php';
                                                             <div class="dropdown students-action-dropdown">
                                                                 <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm app-students-menu-toggle" data-bs-toggle="dropdown" data-bs-offset="0,21">More</a>
                                                                 <ul class="dropdown-menu">
+                                                                    <li class="px-3 py-2">
+                                                                        <div class="small text-muted text-uppercase mb-2">Assign Track</div>
+                                                                        <form method="post" class="d-grid gap-2">
+                                                                            <input type="hidden" name="student_action" value="assign_track">
+                                                                            <input type="hidden" name="student_id" value="<?php echo (int)$student['id']; ?>">
+                                                                            <select name="assignment_track" class="form-select form-select-sm" required>
+                                                                                <option value="internal" <?php echo $track_key === 'internal' ? 'selected' : ''; ?>>Internal</option>
+                                                                                <option value="external" <?php echo $track_key === 'external' ? 'selected' : ''; ?>>External</option>
+                                                                            </select>
+                                                                            <select name="department_id" class="form-select form-select-sm" required>
+                                                                                <option value="0">Select department</option>
+                                                                                <?php foreach ($departments as $department): ?>
+                                                                                    <option value="<?php echo (int)$department['id']; ?>" <?php echo (int)($student['department_id'] ?? 0) === (int)$department['id'] ? 'selected' : ''; ?>>
+                                                                                        <?php echo htmlspecialchars((string)$department['name'], ENT_QUOTES, 'UTF-8'); ?>
+                                                                                    </option>
+                                                                                <?php endforeach; ?>
+                                                                            </select>
+                                                                            <select name="supervisor_id" class="form-select form-select-sm" required>
+                                                                                <option value="0">Select supervisor</option>
+                                                                                <?php foreach ($supervisorOptions as $supervisorOption): ?>
+                                                                                    <option value="<?php echo (int)$supervisorOption['id']; ?>" <?php echo (int)($student['student_supervisor_ref_id'] ?? 0) === (int)$supervisorOption['id'] ? 'selected' : ''; ?>>
+                                                                                        <?php echo htmlspecialchars((string)$supervisorOption['supervisor_name'], ENT_QUOTES, 'UTF-8'); ?>
+                                                                                    </option>
+                                                                                <?php endforeach; ?>
+                                                                            </select>
+                                                                            <input type="date" name="start_date" class="form-control form-control-sm" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
+                                                                            <button type="submit" class="btn btn-sm btn-primary">Save Assignment</button>
+                                                                        </form>
+                                                                    </li>
+                                                                    <li><hr class="dropdown-divider"></li>
                                                                     <li>
                                                                         <a class="dropdown-item" href="students-edit.php?id=<?php echo (int)$student['id']; ?>">
                                                                             <i class="feather feather-edit-3 me-3"></i>

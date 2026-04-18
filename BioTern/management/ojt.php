@@ -854,7 +854,7 @@ include 'includes/header.php';
                                     <div class="app-ojt-row-actions">
                                         <a class="btn btn-sm btn-light app-ojt-action-btn" href="<?php echo htmlspecialchars($ojt_view_link); ?>">Open Record</a>
                                         <a class="btn btn-sm btn-outline-primary app-ojt-action-btn" href="<?php echo htmlspecialchars($ojt_edit_link); ?>">Update OJT</a>
-                                        <a class="btn btn-sm btn-outline-success app-ojt-action-btn app-ojt-action-btn-wide" href="students-dtr.php?id=<?php echo (int)$r['id']; ?>">Open DTR</a>
+                                        <a class="btn btn-sm btn-outline-success app-ojt-action-btn app-ojt-action-btn-wide" href="students-internal-dtr.php?id=<?php echo (int)$r['id']; ?>">Open Internal DTR</a>
                                     </div>
                                 </td>
                             </tr>
@@ -967,7 +967,7 @@ include 'includes/header.php';
                                     <div class="app-ojt-mobile-actions">
                                         <a class="btn btn-sm btn-light" href="<?php echo htmlspecialchars($ojt_view_link); ?>">View</a>
                                         <a class="btn btn-sm btn-outline-primary" href="<?php echo htmlspecialchars($ojt_edit_link); ?>">Edit</a>
-                                        <a class="btn btn-sm btn-outline-success" href="students-dtr.php?id=<?php echo (int)$r['id']; ?>">DTR</a>
+                                        <a class="btn btn-sm btn-outline-success" href="students-internal-dtr.php?id=<?php echo (int)$r['id']; ?>">Internal DTR</a>
                                     </div>
                                 </div>
                             </details>
