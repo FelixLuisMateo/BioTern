@@ -167,6 +167,10 @@ if (!$user || (int)($user['is_active'] ?? 0) !== 1) { header('Location: auth-log
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = strtolower(trim((string)($_POST['action'] ?? '')));
     if ($action === 'save_profile') {
+        if ($role === 'student') {
+            aflash('warning', 'Students can only edit personal details such as birthday, address, gender, and emergency contact.');
+            aredirect();
+        }
         $name = trim((string)($_POST['name'] ?? '')); $username = trim((string)($_POST['username'] ?? '')); $email = trim((string)($_POST['email'] ?? ''));
         if ($name === '' || $username === '' || $email === '') { aflash('danger', 'Name, username, and email are required.'); aredirect(); }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { aflash('danger', 'Please provide a valid email address.'); aredirect(); }

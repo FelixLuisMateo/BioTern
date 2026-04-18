@@ -68,7 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $profile_flash_type = 'warning';
         } else {
             $studentRecordId = (int)($_POST['student_record_id'] ?? 0);
-            $studentEmail = trim((string)($_POST['student_email'] ?? ''));
             $phone = trim((string)($_POST['phone'] ?? ''));
             $address = trim((string)($_POST['address'] ?? ''));
             $dateOfBirth = trim((string)($_POST['date_of_birth'] ?? ''));
@@ -80,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $profile_flash_type = 'warning';
             } else {
                 $updateSql = "UPDATE students
-                    SET email = ?, phone = ?, address = ?, date_of_birth = ?, gender = ?, emergency_contact = ?
+                    SET phone = ?, address = ?, date_of_birth = ?, gender = ?, emergency_contact = ?
                     WHERE ";
                 if ($studentRecordId > 0) {
                     $updateSql .= "id = ? LIMIT 1";
@@ -95,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $dateParam = $dateOfBirth !== '' ? $dateOfBirth : null;
                     $recordTarget = $studentRecordId > 0 ? $studentRecordId : $userId;
-                    $studentUpdateStmt->bind_param('ssssssi', $studentEmail, $phone, $address, $dateParam, $gender, $emergencyContact, $recordTarget);
+                    $studentUpdateStmt->bind_param('sssssi', $phone, $address, $dateParam, $gender, $emergencyContact, $recordTarget);
                     if ($studentUpdateStmt->execute()) {
                         $profile_flash_message = 'Student profile details updated successfully.';
                         $profile_flash_type = 'success';
