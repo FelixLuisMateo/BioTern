@@ -212,14 +212,13 @@ if ($displayName === '') {
     $displayName = 'Student User';
 }
 
-$sectionParts = array_filter([
-    biotern_format_section_code((string)($student['section_code'] ?? '')),
-    trim((string)($student['section_name'] ?? '')),
-]);
 $studentNumber = trim((string)($student['student_id'] ?? ''));
 $courseName = trim((string)($student['course_name'] ?? ''));
 $departmentName = trim((string)($student['department_name'] ?? ''));
-$sectionName = !empty($sectionParts) ? implode(' | ', $sectionParts) : '';
+$sectionName = biotern_format_section_label(
+    (string)($student['section_code'] ?? ''),
+    (string)($student['section_name'] ?? '')
+);
 $assignmentTrack = strtolower(trim((string)($student['assignment_track'] ?? 'internal')));
 if (!in_array($assignmentTrack, ['internal', 'external'], true)) {
     $assignmentTrack = 'internal';

@@ -359,11 +359,10 @@ $accountSecurityState = ((int)($user['is_active'] ?? 0) === 1) ? 'Protected' : '
 $roleWorkspaceLabel = ucfirst((string)($user['role'] ?? 'user')) . ' Workspace';
 $contactPhone = trim((string)($studentProfile['phone'] ?? ''));
 $contactAddress = trim((string)($studentProfile['address'] ?? ''));
-$studentSectionParts = array_filter([
-    biotern_format_section_code((string)($studentProfile['section_code'] ?? '')),
-    trim((string)($studentProfile['section_name'] ?? '')),
-]);
-$studentSectionDisplay = !empty($studentSectionParts) ? implode(' | ', $studentSectionParts) : trim((string)($studentProfile['section_name'] ?? ''));
+$studentSectionDisplay = biotern_format_section_label(
+    (string)($studentProfile['section_code'] ?? ''),
+    (string)($studentProfile['section_name'] ?? '')
+);
 $studentStatusRaw = trim((string)($studentProfile['student_status'] ?? ''));
 $studentStatusDisplay = match (strtolower($studentStatusRaw)) {
     '1', 'true', 'active', 'approved' => 'Active',

@@ -85,26 +85,7 @@ if (!function_exists('dashboard_safe_table_count')) {
 if (!function_exists('dashboard_format_section_chip')) {
     function dashboard_format_section_chip($code, $name)
     {
-        $code = trim((string)$code);
-        $name = trim((string)$name);
-
-        if ($code === '' && $name === '') {
-            return '';
-        }
-
-        if ($code !== '' && $name !== '') {
-            $compactName = strtoupper((string)preg_replace('/\s+/', '', $name));
-            if (
-                preg_match('/^([A-Za-z]+)\s*-?\s*([0-9]+[A-Za-z]?)$/', $code, $matches)
-                && strtoupper($matches[2]) === $compactName
-            ) {
-                return strtoupper($matches[1]) . ' | ' . $name;
-            }
-
-            return $code . ' | ' . $name;
-        }
-
-        return $code !== '' ? $code : $name;
+        return biotern_format_section_label((string)$code, (string)$name);
     }
 }
 
