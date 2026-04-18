@@ -186,6 +186,20 @@ $filter_status = isset($_GET['status']) ? trim($_GET['status']) : '';
 $valid_approval_statuses = ['approved', 'pending', 'rejected'];
 $has_valid_approval_status_filter = in_array($filter_status, $valid_approval_statuses, true);
 
+$has_application_status = false;
+$col_app = $conn->query("SHOW COLUMNS FROM users LIKE 'application_status'");
+if ($col_app instanceof mysqli_result) {
+    $has_application_status = $col_app->num_rows > 0;
+    $col_app->close();
+}
+
+$has_school_year_column = false;
+$col_sy = $conn->query("SHOW COLUMNS FROM students LIKE 'school_year'");
+if ($col_sy instanceof mysqli_result) {
+    $has_school_year_column = $col_sy->num_rows > 0;
+    $col_sy->close();
+}
+
 $school_year_options = [];
 $school_year_start = 2005;
 $attendance_today_local = attendance_local_today();

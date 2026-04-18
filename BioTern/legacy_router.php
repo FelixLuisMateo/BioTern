@@ -113,6 +113,7 @@ $map = [
   'import-ojt-external.php' => 'tools/import-ojt-external.php',
   'print_attendance.php' => 'pages/print_attendance.php',
   'external-attendance.php' => 'pages/external-attendance.php',
+  'external-attendance-manual.php' => 'pages/external-attendance-manual.php',
 
   'document_application.php' => 'documents/document_application.php',
   'document_endorsement.php' => 'documents/document_endorsement.php',

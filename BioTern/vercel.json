@@ -72,6 +72,26 @@
       "dest": "/legacy_router.php?file=avatar-image.php"
     },
     {
+      "src": "^/attendance(?:\\.php)?$",
+      "dest": "/legacy_router.php?file=attendance.php"
+    },
+    {
+      "src": "^/external-attendance(?:\\.php)?$",
+      "dest": "/legacy_router.php?file=external-attendance.php"
+    },
+    {
+      "src": "^/external-attendance-manual(?:\\.php)?$",
+      "dest": "/legacy_router.php?file=external-attendance-manual.php"
+    },
+    {
+      "src": "^/student-internal-dtr(?:\\.php)?$",
+      "dest": "/legacy_router.php?file=student-internal-dtr.php"
+    },
+    {
+      "src": "^/student-dtr(?:\\.php)?$",
+      "dest": "/legacy_router.php?file=student-dtr.php"
+    },
+    {
       "handle": "filesystem"
     },
     {

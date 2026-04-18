@@ -504,36 +504,46 @@ include 'includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <div class="page-header">
+            <div class="page-header page-header-with-middle page-header-condensed-actions">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
                         <h5 class="m-b-10">External Attendance DTR</h5>
                     </div>
+                    <ul class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                        <li class="breadcrumb-item"><a href="attendance.php">Internal DTR</a></li>
+                        <li class="breadcrumb-item">External DTR</li>
+                    </ul>
+                </div>
+                <div class="page-header-middle">
+                    <p class="page-header-statement">Review submitted external DTR entries and update approval statuses in one place.</p>
                 </div>
                 <div class="page-header-right ms-auto">
-                    <form method="get" class="d-flex gap-2 align-items-center">
-                        <select name="status" class="form-select">
-                            <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                            <option value="approved" <?php echo $statusFilter === 'approved' ? 'selected' : ''; ?>>Approved</option>
-                            <option value="rejected" <?php echo $statusFilter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
-                            <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All</option>
-                        </select>
-                        <button type="submit" class="btn btn-light-brand">Filter</button>
-                    </form>
+                    <div class="page-header-right-items-wrapper">
+                        <form method="get" class="d-flex gap-2 align-items-center">
+                            <select name="status" class="form-select">
+                                <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                                <option value="approved" <?php echo $statusFilter === 'approved' ? 'selected' : ''; ?>>Approved</option>
+                                <option value="rejected" <?php echo $statusFilter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
+                                <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All</option>
+                            </select>
+                            <button type="submit" class="btn btn-light-brand">Filter</button>
+                        </form>
+                        <a href="apps-calendar.php" class="btn btn-primary">
+                            <i class="feather-calendar me-2"></i>
+                            <span>Open Calendar</span>
+                        </a>
+                    </div>
                 </div>
             </div>
 
             <div class="card stretch stretch-full mb-4">
                 <div class="card-body">
-                    <div class="d-flex flex-wrap justify-content-between gap-3 align-items-center">
+                    <div>
                         <div>
                             <h5 class="mb-1">External Attendance Review Queue</h5>
                             <p class="text-muted mb-0">Attendance multipliers are now managed from the calendar event modal instead of this page.</p>
                         </div>
-                        <a href="apps-calendar.php" class="btn btn-primary">
-                            <i class="feather-calendar me-2"></i>
-                            <span>Open Calendar</span>
-                        </a>
                     </div>
                 </div>
             </div>
