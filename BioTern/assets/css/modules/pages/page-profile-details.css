@@ -320,6 +320,22 @@
         font-size: 12px;
         color: #64748b;
     }
+
+    .profile-edit-grid .form-control {
+        margin-top: 8px;
+    }
+
+    .profile-edit-grid textarea.form-control {
+        min-height: 108px;
+        resize: vertical;
+    }
+
+    .profile-edit-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 16px;
+    }
     
     .form-label span {
         font-size: 1.1em;
@@ -579,6 +595,16 @@
     html.app-skin-dark .profile-action-note,
     html.app-skin-dark .profile-upload-status {
         color: #94a3b8;
+    }
+
+    html.app-skin-dark .profile-edit-grid .form-control {
+        background: #0d1929;
+        border-color: rgba(148, 163, 184, 0.28);
+        color: #e2e8f0;
+    }
+
+    html.app-skin-dark .profile-edit-grid .form-control::placeholder {
+        color: #7f92b5;
     }
     
     html.app-skin-dark .form-label {

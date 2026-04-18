@@ -569,6 +569,51 @@ include 'includes/header.php';
                             </div>
                         </div>
                     </div>
+
+                    <div class="card profile-panel mt-3" id="student-personal-edit">
+                        <div class="card-header">
+                            <h6 class="mb-0">Edit Personal Details</h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="profile-action-note mb-3">Students can update personal details here. Profile picture remains available in Account Settings.</p>
+                            <form method="post">
+                                <input type="hidden" name="action" value="update_student_profile">
+                                <input type="hidden" name="student_record_id" value="<?php echo (int)($studentProfile['id'] ?? 0); ?>">
+                                <div class="profile-grid profile-edit-grid">
+                                    <div class="profile-field">
+                                        <label class="profile-field-label" for="date_of_birth">Birth Date</label>
+                                        <input type="date" id="date_of_birth" name="date_of_birth" class="form-control" value="<?php echo htmlspecialchars((string)($studentProfile['date_of_birth'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                    </div>
+                                    <div class="profile-field">
+                                        <label class="profile-field-label" for="gender">Gender</label>
+                                        <select id="gender" name="gender" class="form-control">
+                                            <option value="">Select gender</option>
+                                            <option value="Male" <?php echo strcasecmp((string)($studentProfile['gender'] ?? ''), 'Male') === 0 ? 'selected' : ''; ?>>Male</option>
+                                            <option value="Female" <?php echo strcasecmp((string)($studentProfile['gender'] ?? ''), 'Female') === 0 ? 'selected' : ''; ?>>Female</option>
+                                            <option value="Other" <?php echo strcasecmp((string)($studentProfile['gender'] ?? ''), 'Other') === 0 ? 'selected' : ''; ?>>Other</option>
+                                            <option value="Prefer not to say" <?php echo strcasecmp((string)($studentProfile['gender'] ?? ''), 'Prefer not to say') === 0 ? 'selected' : ''; ?>>Prefer not to say</option>
+                                        </select>
+                                    </div>
+                                    <div class="profile-field">
+                                        <label class="profile-field-label" for="phone">Phone</label>
+                                        <input type="text" id="phone" name="phone" class="form-control" value="<?php echo htmlspecialchars((string)($studentProfile['phone'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Enter phone number">
+                                    </div>
+                                    <div class="profile-field">
+                                        <label class="profile-field-label" for="emergency_contact">Emergency Contact</label>
+                                        <input type="text" id="emergency_contact" name="emergency_contact" class="form-control" value="<?php echo htmlspecialchars((string)($studentProfile['emergency_contact'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Enter emergency contact">
+                                    </div>
+                                    <div class="profile-field full">
+                                        <label class="profile-field-label" for="address">Address</label>
+                                        <textarea id="address" name="address" class="form-control" rows="3" placeholder="Enter complete address"><?php echo htmlspecialchars((string)($studentProfile['address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                                    </div>
+                                </div>
+                                <div class="profile-edit-actions">
+                                    <button type="submit" class="btn btn-primary">Save Personal Details</button>
+                                    <a href="account-settings.php#overview" class="btn btn-outline-secondary">Change Profile Picture</a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                     <?php endif; ?>
                 </div>
 

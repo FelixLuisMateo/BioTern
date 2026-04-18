@@ -440,6 +440,10 @@ include 'includes/header.php';
                                 <strong><?php echo htmlspecialchars(student_profile_value($emergencyContact, 'Not yet available'), ENT_QUOTES, 'UTF-8'); ?></strong>
                             </div>
                         </div>
+                        <div class="d-grid gap-2 d-md-flex mt-3">
+                            <a href="profile-details.php#student-personal-edit" class="btn btn-primary">Edit Personal Details</a>
+                            <a href="account-settings.php#overview" class="btn btn-outline-secondary">Change Profile Picture</a>
+                        </div>
                     </div>
                 </section>
             </div>
