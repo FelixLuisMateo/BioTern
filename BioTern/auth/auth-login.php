@@ -240,6 +240,7 @@ if ($logoutRequested) {
         $logoutIp = biotern_auth_client_ip();
         $logoutUserAgent = isset($_SERVER['HTTP_USER_AGENT']) ? substr((string)$_SERVER['HTTP_USER_AGENT'], 0, 255) : '';
         log_login_attempt($mysqli, $logoutUserId, $logoutIdentifier, $logoutRole, 'success', 'logout_success', $logoutIp, $logoutUserAgent);
+        biotern_login_session_revoke_current($mysqli, $logoutUserId, 'logout');
     }
 
     $_SESSION = [];
@@ -431,6 +432,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
                     $_SESSION['logged_in'] = true;
                     biotern_set_auth_cookie((int)$user['id']);
+                    biotern_login_session_start($mysqli, (int)$user['id']);
 
                     log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'success', 'login_success', $client_ip, $client_user_agent);
 

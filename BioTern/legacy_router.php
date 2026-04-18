@@ -184,6 +184,10 @@ $map = [
 ];
 
 $file = isset($_GET['file']) ? basename((string)$_GET['file']) : '';
+$request_path_for_route = strtolower((string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) ?? ''));
+if ($file === 'theme-customizer.php' && preg_match('#/api/theme-customizer\.php$#', $request_path_for_route) === 1) {
+  $map[$file] = 'api/theme-customizer.php';
+}
 if ($file === '' || !isset($map[$file])) {
     http_response_code(404);
     exit('Not found');

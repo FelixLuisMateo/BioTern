@@ -1146,8 +1146,6 @@
           if (showToast) {
             showThemeToast("success", "Theme preferences saved");
           }
-        } else {
-          showThemeToast("error", "Unable to save preferences");
         }
       });
       syncCustomizerInputs();
