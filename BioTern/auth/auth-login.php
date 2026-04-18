@@ -558,11 +558,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <div class="text-center text-muted my-4">or</div>
                     <a href="<?php echo htmlspecialchars($route_prefix . 'auth/auth-register.php?role=student', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-lg btn-outline-primary w-100">Apply as Student</a>
-                    <div class="text-center text-muted fs-11 mt-2">Student applications only. Staff accounts are created by the school administrator.</div>
-                    <ul class="text-start text-muted fs-12 mt-3 mb-0 auth-login-guidance">
-                        <li>Students: Login using Student ID Number and password only.</li>
-                        <li>Admin, Coordinator, Supervisor: Login using Username and password only.</li>
-                    </ul>
                 </div>
             </div>
         </div>
