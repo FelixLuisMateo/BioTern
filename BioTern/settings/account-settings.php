@@ -477,7 +477,7 @@ include dirname(__DIR__) . '/includes/header.php';
                         </section>
 
                         <div class="row g-3 account-dual-grid">
-                            <div class="col-xl-6">
+                            <div class="<?php echo $role === 'student' ? 'col-12' : 'col-xl-6'; ?>">
                                 <section class="card settings-panel-card">
                                     <div class="card-header"><h6 class="settings-section-title">Account overview</h6><p class="settings-section-subtitle">Current identity and contact information.</p></div>
                                     <div class="card-body">
@@ -491,6 +491,7 @@ include dirname(__DIR__) . '/includes/header.php';
                                     </div>
                                 </section>
                             </div>
+                            <?php if ($role !== 'student'): ?>
                             <div class="col-xl-6">
                                 <section class="card settings-panel-card" id="profile-form">
                                     <div class="card-header"><h6 class="settings-section-title">Edit profile</h6><p class="settings-section-subtitle">Update the details that appear throughout the app.</p></div>
@@ -507,6 +508,7 @@ include dirname(__DIR__) . '/includes/header.php';
                                     </div>
                                 </section>
                             </div>
+                            <?php endif; ?>
                         </div>
 
                         <div class="row g-3 account-dual-grid">
