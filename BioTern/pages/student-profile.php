@@ -331,6 +331,30 @@ include 'includes/header.php';
                 </section>
 
                 <div class="student-profile-metric-grid">
+                    <!-- Timers for Internal/External Hours -->
+                    <div class="student-profile-timer-row mb-3">
+                        <?php if ($assignmentTrack === 'internal'): ?>
+                            <div class="student-profile-timer-card">
+                                <span class="student-metric-label">Internal Hours Timer</span>
+                                <div class="student-profile-timer-value" id="internalHoursTimer">
+                                    <?php echo number_format($internalRenderedHours, 2); ?> / <?php echo number_format((float)($student['internal_total_hours'] ?? 0), 0); ?> hrs
+                                </div>
+                            </div>
+                        <?php elseif ($assignmentTrack === 'external'): ?>
+                            <div class="student-profile-timer-card">
+                                <span class="student-metric-label">Internal Hours Timer</span>
+                                <div class="student-profile-timer-value" id="internalHoursTimer">
+                                    <?php echo number_format($internalRenderedHours, 2); ?> / <?php echo number_format((float)($student['internal_total_hours'] ?? 0), 0); ?> hrs
+                                </div>
+                            </div>
+                            <div class="student-profile-timer-card">
+                                <span class="student-metric-label">External Hours Timer</span>
+                                <div class="student-profile-timer-value" id="externalHoursTimer">
+                                    <?php echo number_format($externalRenderedHours, 2); ?> / <?php echo number_format((float)($student['external_total_hours'] ?? 0), 0); ?> hrs
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                     <article class="card student-metric-card">
                         <div class="card-body">
                             <span class="student-metric-label">Approved Logs</span>

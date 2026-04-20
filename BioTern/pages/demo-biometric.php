@@ -1,4 +1,10 @@
 <?php
+// This file has been renamed. Please use external-biometric.php instead.
+header('Location: external-biometric.php');
+exit;
+
+?>
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';

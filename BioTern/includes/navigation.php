@@ -73,7 +73,7 @@ $nav_active_ojt = biotern_nav_any_active($nav_current_file, [
     'ojt-internal-list.php', 'ojt-external-list.php',
 ]);
 $nav_active_machine = biotern_nav_any_active($nav_current_file, [
-    'demo-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
+    'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
 ]);
 $nav_active_documents = biotern_nav_any_active($nav_current_file, [
     'document_application.php',

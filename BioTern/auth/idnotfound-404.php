@@ -60,7 +60,7 @@ $route_prefix = $asset_prefix;
                                 $label = 'Student not found (Students View)';
                             } elseif ($source === 'ojt-view') {
                                 $label = 'Student not found (OJT View)';
-                            } elseif ($source === 'demo-biometric') {
+                            } elseif ($source === 'external-biometric') {
                                 $label = 'Student ID not found (Biometric)';
                             }
                         ?>

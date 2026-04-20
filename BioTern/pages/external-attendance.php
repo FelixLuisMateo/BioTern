@@ -142,7 +142,7 @@ if ($currentRole === 'student') {
                 $notes,
                 $currentUserId,
                 true,
-                'demo-biometric'
+                'external-biometric'
             );
 
             if (!empty($save['ok'])) {
@@ -195,7 +195,7 @@ if ($currentRole === 'student') {
     $page_styles = [
         'assets/css/homepage-student.css',
         'assets/css/student-dtr.css',
-        'assets/css/modules/pages/page-demo-biometric.css',
+        'assets/css/modules/pages/page-external-biometric.css',
         'assets/css/modules/pages/page-external-attendance-student.css',
     ];
     include 'includes/header.php';
