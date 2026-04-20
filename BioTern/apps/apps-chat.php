@@ -776,17 +776,17 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentUserName = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
 $currentUserRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 $isStudentChatUser = ($currentUserRole === 'student');
-$currentStudentCourseId = 0;
-$studentScopeErrorMessage = 'Students can only chat with students from the same course.';
+$currentStudentSectionId = 0;
+$studentScopeErrorMessage = 'Students can only chat with students from the same section. To add someone else, please ask an authorized personnel member.';
 
 if ($isStudentChatUser && $currentUserId > 0) {
-    $studentCourseStmt = $conn->prepare('SELECT course_id FROM students WHERE user_id = ? LIMIT 1');
-    if ($studentCourseStmt) {
-        $studentCourseStmt->bind_param('i', $currentUserId);
-        $studentCourseStmt->execute();
-        $studentCourseRow = $studentCourseStmt->get_result()->fetch_assoc();
-        $studentCourseStmt->close();
-        $currentStudentCourseId = (int)($studentCourseRow['course_id'] ?? 0);
+    $studentSectionStmt = $conn->prepare('SELECT section_id FROM students WHERE user_id = ? LIMIT 1');
+    if ($studentSectionStmt) {
+        $studentSectionStmt->bind_param('i', $currentUserId);
+        $studentSectionStmt->execute();
+        $studentSectionRow = $studentSectionStmt->get_result()->fetch_assoc();
+        $studentSectionStmt->close();
+        $currentStudentSectionId = (int)($studentSectionRow['section_id'] ?? 0);
     }
 }
 
@@ -1268,18 +1268,18 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
         if (!$recipient) {
             $errorMessage = 'The selected recipient was not found.';
         } elseif ($isStudentChatUser && $selectedUserId !== $currentUserId) {
-            if ($currentStudentCourseId <= 0) {
+            if ($currentStudentSectionId <= 0) {
                 $errorMessage = $studentScopeErrorMessage;
             } else {
-                $sameCourseStmt = $conn->prepare('SELECT 1 FROM students WHERE user_id = ? AND course_id = ? LIMIT 1');
-                $isSameCourseRecipient = false;
-                if ($sameCourseStmt) {
-                    $sameCourseStmt->bind_param('ii', $selectedUserId, $currentStudentCourseId);
-                    $sameCourseStmt->execute();
-                    $isSameCourseRecipient = (bool)$sameCourseStmt->get_result()->fetch_assoc();
-                    $sameCourseStmt->close();
+                $sameSectionStmt = $conn->prepare('SELECT 1 FROM students WHERE user_id = ? AND section_id = ? LIMIT 1');
+                $isSameSectionRecipient = false;
+                if ($sameSectionStmt) {
+                    $sameSectionStmt->bind_param('ii', $selectedUserId, $currentStudentSectionId);
+                    $sameSectionStmt->execute();
+                    $isSameSectionRecipient = (bool)$sameSectionStmt->get_result()->fetch_assoc();
+                    $sameSectionStmt->close();
                 }
-                if (!$isSameCourseRecipient) {
+                if (!$isSameSectionRecipient) {
                     $errorMessage = $studentScopeErrorMessage;
                 }
             }
@@ -1500,10 +1500,10 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
 
     $studentScopeFilterSql = '';
     if ($isStudentChatUser) {
-        $studentScopeFilterSql = ' AND (u.id = ? OR EXISTS (SELECT 1 FROM students su WHERE su.user_id = u.id AND su.course_id = ?))';
+        $studentScopeFilterSql = ' AND (u.id = ? OR EXISTS (SELECT 1 FROM students su WHERE su.user_id = u.id AND su.section_id = ?))';
         $contactTypes .= 'ii';
         $contactParams[] = $currentUserId;
-        $contactParams[] = $currentStudentCourseId;
+        $contactParams[] = $currentStudentSectionId;
     }
 
     $contactsSql = '

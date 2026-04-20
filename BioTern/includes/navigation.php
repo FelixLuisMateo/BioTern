@@ -87,9 +87,9 @@ $nav_active_documents = biotern_nav_any_active($nav_current_file, [
 $nav_active_student = biotern_nav_any_active($nav_current_file, [
     'student-profile.php',
     'student-dtr.php', 'student-internal-dtr.php',
-    'demo-biometric.php',
-    'external-attendance.php', 'external-attendance-manual.php',
-    'document_application.php',
+    'student-external-dtr.php',
+    'student-manual-dtr.php',
+    'student-documents.php',
 ]);
 $nav_active_reports = biotern_nav_any_active($nav_current_file, [
     'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-attendance-exceptions.php',
@@ -244,20 +244,26 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <span class="nxl-mtext">My Internal DTR</span>
                     </a>
                 </li>
-                <li class="nxl-item<?php echo biotern_nav_is_active('demo-biometric.php', $nav_current_file) ? ' active' : ''; ?>">
-                    <a href="demo-biometric.php" class="nxl-link">
+                <li class="nxl-item<?php echo biotern_nav_is_active('student-external-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="student-external-dtr.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-shield"></i></span>
                         <span class="nxl-mtext">Biometric DTR</span>
                     </a>
                 </li>
-                <li class="nxl-item<?php echo biotern_nav_is_active('external-attendance.php', $nav_current_file) ? ' active' : ''; ?>">
-                    <a href="external-attendance.php" class="nxl-link">
+                <li class="nxl-item<?php echo biotern_nav_is_active('student-manual-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="student-manual-dtr.php" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-edit-3"></i></span>
+                        <span class="nxl-mtext">Manual DTR</span>
+                    </a>
+                </li>
+                <li class="nxl-item<?php echo biotern_nav_is_active('student-external-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="student-external-dtr.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-briefcase"></i></span>
                         <span class="nxl-mtext">My External DTR</span>
                     </a>
                 </li>
-                <li class="nxl-item<?php echo biotern_nav_is_active('document_application.php', $nav_current_file) ? ' active' : ''; ?>">
-                    <a href="document_application.php" class="nxl-link">
+                <li class="nxl-item<?php echo biotern_nav_is_active('student-documents.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="student-documents.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-file-text"></i></span>
                         <span class="nxl-mtext">My Documents</span>
                     </a>

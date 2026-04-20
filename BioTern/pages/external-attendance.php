@@ -17,6 +17,11 @@ if ($currentUserId <= 0) {
     exit;
 }
 
+if ($currentRole === 'student' && !defined('BIOTERN_ALLOW_STUDENT_EXTERNAL_DTR')) {
+    header('Location: student-external-dtr.php');
+    exit;
+}
+
 $externalFlash = $_SESSION['external_attendance_flash'] ?? null;
 unset($_SESSION['external_attendance_flash']);
 

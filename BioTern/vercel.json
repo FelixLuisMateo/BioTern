@@ -88,6 +88,18 @@
       "dest": "/legacy_router.php?file=student-internal-dtr.php"
     },
     {
+      "src": "^/student-external-dtr(?:\\.php)?$",
+      "dest": "/legacy_router.php?file=student-external-dtr.php"
+    },
+    {
+      "src": "^/student-manual-dtr(?:\\.php)?$",
+      "dest": "/legacy_router.php?file=student-manual-dtr.php"
+    },
+    {
+      "src": "^/student-documents(?:\\.php)?$",
+      "dest": "/legacy_router.php?file=student-documents.php"
+    },
+    {
       "src": "^/student-dtr(?:\\.php)?$",
       "dest": "/legacy_router.php?file=student-dtr.php"
     },

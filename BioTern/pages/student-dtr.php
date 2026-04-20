@@ -188,8 +188,6 @@ $monthOptions = [
     11 => 'November',
     12 => 'December',
 ];
-$manualTimeOptions = student_dtr_time_options(30, 5, 20);
-
 $monthStart = $selectedMonth . '-01';
 $monthEnd = date('Y-m-t', strtotime($monthStart));
 $monthLabel = date('F Y', strtotime($monthStart));
@@ -760,7 +758,7 @@ include 'includes/header.php';
             </article>
         </div>
 
-        <section class="card student-panel mt-4 student-dtr-fallback-card">
+        <section class="card student-panel mt-4 student-dtr-fallback-card" id="manual-dtr">
             <div class="card-body">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                     <div>
@@ -800,39 +798,19 @@ include 'includes/header.php';
                     </div>
                     <div class="col-md-2">
                         <label class="form-label" for="fallbackMorningIn">Morning In</label>
-                        <select class="form-select student-dtr-time-select" id="fallbackMorningIn" name="morning_time_in">
-                            <option value="">Select time</option>
-                            <?php foreach ($manualTimeOptions as $timeValue => $timeLabel): ?>
-                            <option value="<?php echo htmlspecialchars($timeValue, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8'); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <input type="time" class="form-control" id="fallbackMorningIn" name="morning_time_in">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label" for="fallbackMorningOut">Morning Out</label>
-                        <select class="form-select student-dtr-time-select" id="fallbackMorningOut" name="morning_time_out">
-                            <option value="">Select time</option>
-                            <?php foreach ($manualTimeOptions as $timeValue => $timeLabel): ?>
-                            <option value="<?php echo htmlspecialchars($timeValue, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8'); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <input type="time" class="form-control" id="fallbackMorningOut" name="morning_time_out">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
-                        <select class="form-select student-dtr-time-select" id="fallbackAfternoonIn" name="afternoon_time_in">
-                            <option value="">Select time</option>
-                            <?php foreach ($manualTimeOptions as $timeValue => $timeLabel): ?>
-                            <option value="<?php echo htmlspecialchars($timeValue, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8'); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <input type="time" class="form-control" id="fallbackAfternoonIn" name="afternoon_time_in">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
-                        <select class="form-select student-dtr-time-select" id="fallbackAfternoonOut" name="afternoon_time_out">
-                            <option value="">Select time</option>
-                            <?php foreach ($manualTimeOptions as $timeValue => $timeLabel): ?>
-                            <option value="<?php echo htmlspecialchars($timeValue, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8'); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <input type="time" class="form-control" id="fallbackAfternoonOut" name="afternoon_time_out">
                     </div>
                     <div class="col-12">
                         <label class="form-label" for="fallbackReason">Reason / What happened</label>
@@ -980,7 +958,8 @@ include 'includes/header.php';
                         <span class="student-metric-label">Quick Links</span>
                         <div class="d-grid gap-2">
                             <a href="student-profile.php" class="btn btn-outline-primary">My Profile</a>
-                            <a href="document_application.php" class="btn btn-outline-secondary">My Documents</a>
+                            <a href="student-documents.php" class="btn btn-outline-secondary">My Documents</a>
+                            <a href="student-manual-dtr.php" class="btn btn-outline-secondary">Manual DTR</a>
                             <a href="apps-calendar.php" class="btn btn-outline-secondary">Calendar</a>
                         </div>
                     </div>
