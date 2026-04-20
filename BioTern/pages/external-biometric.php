@@ -108,21 +108,21 @@ if ($studentMode) {
 				<div class="card-body">
 					<div class="d-flex flex-column align-items-center">
 						<div id="externalBiometricClock" style="font-size:2rem;font-weight:bold;letter-spacing:2px;">--:--:--</div>
-						<form method="post" action="external-attendance.php" class="mt-3">
+						<form method="post" action="external-attendance.php" class="mt-3 w-100">
 							<input type="hidden" name="external_action" value="quick_clock">
 							<input type="hidden" name="clock_date" value="<?php echo htmlspecialchars($today); ?>">
-							<div class="row g-2 mb-2">
-								<div class="col">
-									<button type="submit" name="clock_type" value="morning_in" class="btn btn-lg btn-outline-primary w-100" <?php echo !empty($todayRecord['morning_time_in']) ? 'disabled style="opacity:0.5"' : ''; ?>>Morning In</button>
+							<div class="row g-2 mb-2 flex-wrap">
+								<div class="col-12 col-sm-6 col-md-3 mb-2 mb-md-0">
+									<button type="submit" name="clock_type" value="morning_in" class="btn btn-lg btn-outline-primary w-100" <?php echo !empty($todayRecord['morning_time_in']) ? 'disabled style=\"opacity:0.5\"' : ''; ?>>Morning In</button>
 								</div>
-								<div class="col">
-									<button type="submit" name="clock_type" value="morning_out" class="btn btn-lg btn-outline-primary w-100" <?php echo !empty($todayRecord['morning_time_out']) ? 'disabled style="opacity:0.5"' : ''; ?>>Morning Out</button>
+								<div class="col-12 col-sm-6 col-md-3 mb-2 mb-md-0">
+									<button type="submit" name="clock_type" value="morning_out" class="btn btn-lg btn-outline-primary w-100" <?php echo !empty($todayRecord['morning_time_out']) ? 'disabled style=\"opacity:0.5\"' : ''; ?>>Morning Out</button>
 								</div>
-								<div class="col">
-									<button type="submit" name="clock_type" value="afternoon_in" class="btn btn-lg btn-outline-primary w-100" <?php echo !empty($todayRecord['afternoon_time_in']) ? 'disabled style="opacity:0.5"' : ''; ?>>Afternoon In</button>
+								<div class="col-12 col-sm-6 col-md-3 mb-2 mb-md-0">
+									<button type="submit" name="clock_type" value="afternoon_in" class="btn btn-lg btn-outline-primary w-100" <?php echo !empty($todayRecord['afternoon_time_in']) ? 'disabled style=\"opacity:0.5\"' : ''; ?>>Afternoon In</button>
 								</div>
-								<div class="col">
-									<button type="submit" name="clock_type" value="afternoon_out" class="btn btn-lg btn-outline-primary w-100" <?php echo !empty($todayRecord['afternoon_time_out']) ? 'disabled style="opacity:0.5"' : ''; ?>>Afternoon Out</button>
+								<div class="col-12 col-sm-6 col-md-3 mb-2 mb-md-0">
+									<button type="submit" name="clock_type" value="afternoon_out" class="btn btn-lg btn-outline-primary w-100" <?php echo !empty($todayRecord['afternoon_time_out']) ? 'disabled style=\"opacity:0.5\"' : ''; ?>>Afternoon Out</button>
 								</div>
 							</div>
 							<input type="text" name="notes" class="form-control mt-2" placeholder="Optional note for this punch">
@@ -134,24 +134,24 @@ if ($studentMode) {
 			<h3>Manual DTR Input (Range)</h3>
 			<form id="manualDtrRangeForm" class="mb-3">
 				<div class="row g-3 align-items-end">
-					<div class="col-md-4">
+					<div class="col-12 col-sm-6 col-md-4 mb-2 mb-md-0">
 						<label for="manual_date_from" class="form-label">Date From</label>
 						<input type="date" class="form-control" name="manual_date_from" id="manual_date_from" required>
 					</div>
-					<div class="col-md-4">
+					<div class="col-12 col-sm-6 col-md-4 mb-2 mb-md-0">
 						<label for="manual_date_to" class="form-label">Date To</label>
 						<input type="date" class="form-control" name="manual_date_to" id="manual_date_to" required>
 					</div>
-					<div class="col-md-4">
+					<div class="col-12 col-md-4">
 						<button type="button" class="btn btn-success w-100" id="generateManualDtrRows">Generate Days</button>
 					</div>
 				</div>
 			</form>
-			<form method="post" action="external-attendance.php" id="manualDtrTableForm" style="display:none;">
+			<form method="post" action="external-attendance.php" id="manualDtrTableForm" style="display:none;overflow-x:auto;">
 				<input type="hidden" name="external_action" value="manual_range">
-				<div id="manualDtrRows"></div>
+				<div id="manualDtrRows" style="overflow-x:auto;"></div>
 				<div class="mt-3">
-					<button type="submit" class="btn btn-primary">Submit Manual DTR</button>
+					<button type="submit" class="btn btn-primary w-100">Submit Manual DTR</button>
 				</div>
 			</form>
 		</div>
@@ -189,7 +189,7 @@ document.getElementById('generateManualDtrRows').onclick = function() {
 		'</tr>');
 		idx++;
 	}
-	var table = '<table class="table table-bordered mt-3"><thead><tr><th>Date</th><th>Morning In</th><th>Morning Out</th><th>Afternoon In</th><th>Afternoon Out</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+	var table = '<div style="overflow-x:auto;"><table class="table table-bordered mt-3"><thead><tr><th>Date</th><th>Morning In</th><th>Morning Out</th><th>Afternoon In</th><th>Afternoon Out</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
 	document.getElementById('manualDtrRows').innerHTML = table;
 	document.getElementById('manualDtrTableForm').style.display = '';
 };
