@@ -17,7 +17,7 @@ if ($currentUserId <= 0) {
     exit;
 }
 
-if ($currentRole === 'student' && !defined('BIOTERN_ALLOW_STUDENT_EXTERNAL_DTR')) {
+if ($currentRole === 'student' && $_SERVER['REQUEST_METHOD'] !== 'POST' && !defined('BIOTERN_ALLOW_STUDENT_EXTERNAL_DTR')) {
     header('Location: student-external-dtr.php');
     exit;
 }
@@ -30,6 +30,23 @@ function external_attendance_flash_redirect(string $message, string $type, strin
     $_SESSION['external_attendance_flash'] = ['message' => $message, 'type' => $type];
     header('Location: ' . $target);
     exit;
+}
+
+function external_attendance_student_target(string $fallback = 'student-external-dtr.php'): string
+{
+    $requested = trim((string)($_POST['return_to'] ?? $_GET['return_to'] ?? ''));
+    $candidate = strtolower(basename($requested));
+    $allowed = [
+        'student-external-dtr.php',
+        'external-biometric.php',
+        'external-attendance-manual.php',
+    ];
+
+    if ($candidate !== '' && in_array($candidate, $allowed, true)) {
+        return $candidate;
+    }
+
+    return $fallback;
 }
 
 function external_attendance_month_rows(mysqli $conn, int $studentId, string $monthStart, string $monthEnd): array
@@ -96,6 +113,8 @@ if ($currentRole === 'student') {
         external_attendance_flash_redirect('Student profile not found for external attendance.', 'danger', 'homepage.php');
     }
 
+    $studentTarget = external_attendance_student_target();
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = strtolower(trim((string)($_POST['external_action'] ?? '')));
         if ($action === 'quick_clock') {
@@ -105,7 +124,7 @@ if ($currentRole === 'student') {
             $notes = trim((string)($_POST['notes'] ?? ''));
 
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $clockDate)) {
-                external_attendance_flash_redirect('A valid clock date is required.', 'danger');
+                external_attendance_flash_redirect('A valid clock date is required.', 'danger', $studentTarget);
             }
 
             $existing = external_attendance_student_record($conn, (int)$student['id'], $clockDate) ?: [
@@ -117,12 +136,12 @@ if ($currentRole === 'student') {
 
             $validation = attendance_validate_transition($existing, $clockType, $clockTime);
             if (!($validation['ok'] ?? false)) {
-                external_attendance_flash_redirect((string)($validation['message'] ?? 'Invalid external DTR punch.'), 'warning');
+                external_attendance_flash_redirect((string)($validation['message'] ?? 'Invalid external DTR punch.'), 'warning', $studentTarget);
             }
 
             $column = attendance_action_to_column($clockType);
             if ($column === null) {
-                external_attendance_flash_redirect('Invalid external DTR punch.', 'danger');
+                external_attendance_flash_redirect('Invalid external DTR punch.', 'danger', $studentTarget);
             }
 
             $payload = [
@@ -148,11 +167,76 @@ if ($currentRole === 'student') {
             if (!empty($save['ok'])) {
                 external_attendance_flash_redirect(
                     ucfirst(str_replace('_', ' ', $clockType)) . ' recorded at ' . date('h:i A', strtotime($clockTime)) . '.',
-                    'success'
+                    'success',
+                    $studentTarget
                 );
             }
 
-            external_attendance_flash_redirect((string)($save['message'] ?? 'Could not save the external DTR punch.'), 'danger');
+            external_attendance_flash_redirect((string)($save['message'] ?? 'Could not save the external DTR punch.'), 'danger', $studentTarget);
+        }
+
+        if ($action === 'manual_range') {
+            $dates = isset($_POST['dates']) && is_array($_POST['dates']) ? $_POST['dates'] : [];
+            $morningIn = isset($_POST['morning_time_in']) && is_array($_POST['morning_time_in']) ? $_POST['morning_time_in'] : [];
+            $morningOut = isset($_POST['morning_time_out']) && is_array($_POST['morning_time_out']) ? $_POST['morning_time_out'] : [];
+            $afternoonIn = isset($_POST['afternoon_time_in']) && is_array($_POST['afternoon_time_in']) ? $_POST['afternoon_time_in'] : [];
+            $afternoonOut = isset($_POST['afternoon_time_out']) && is_array($_POST['afternoon_time_out']) ? $_POST['afternoon_time_out'] : [];
+            $notes = trim((string)($_POST['notes'] ?? ''));
+            $savedCount = 0;
+            $lastError = '';
+
+            foreach ($dates as $index => $dateValue) {
+                $dateValue = trim((string)$dateValue);
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateValue)) {
+                    continue;
+                }
+
+                $payload = [
+                    'morning_time_in' => external_attendance_normalize_time((string)($morningIn[$index] ?? '')),
+                    'morning_time_out' => external_attendance_normalize_time((string)($morningOut[$index] ?? '')),
+                    'afternoon_time_in' => external_attendance_normalize_time((string)($afternoonIn[$index] ?? '')),
+                    'afternoon_time_out' => external_attendance_normalize_time((string)($afternoonOut[$index] ?? '')),
+                ];
+
+                $hasPunch = false;
+                foreach ($payload as $value) {
+                    if ($value !== null && $value !== '') {
+                        $hasPunch = true;
+                        break;
+                    }
+                }
+                if (!$hasPunch) {
+                    continue;
+                }
+
+                $save = external_attendance_upsert_day(
+                    $conn,
+                    $student,
+                    $dateValue,
+                    $payload,
+                    null,
+                    $notes,
+                    $currentUserId,
+                    false,
+                    'manual'
+                );
+
+                if (!empty($save['ok'])) {
+                    $savedCount++;
+                } else {
+                    $lastError = trim((string)($save['message'] ?? ''));
+                }
+            }
+
+            if ($savedCount > 0) {
+                external_attendance_flash_redirect('Manual external DTR saved for ' . $savedCount . ' day(s).', 'success', $studentTarget);
+            }
+
+            external_attendance_flash_redirect(
+                $lastError !== '' ? $lastError : 'No manual external DTR rows were saved. Fill at least one row first.',
+                'warning',
+                $studentTarget
+            );
         }
 
     }
@@ -325,7 +409,7 @@ if ($currentRole === 'student') {
                                     <div class="fw-semibold">Need to encode many dates?</div>
                                     <div class="text-muted small">Use the standalone page for long physical DTR batches like 10 to 20 daily rows.</div>
                                 </div>
-                                <a href="external-attendance-manual.php" class="btn btn-primary">
+                                <a href="external-biometric.php#manual-dtr" class="btn btn-primary">
                                     <i class="feather-edit-3 me-2"></i>
                                     <span>Open Manual DTR Page</span>
                                 </a>

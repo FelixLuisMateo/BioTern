@@ -22,7 +22,7 @@ if ($studentStmt) {
 }
 
 if ($assignmentTrack === 'external') {
-    header('Location: external-attendance-manual.php');
+    header('Location: external-biometric.php#manual-dtr');
     exit;
 }
 

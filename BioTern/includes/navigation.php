@@ -1,12 +1,33 @@
 <?php
 // Centralized navigation include (grouped/relabeled).
 require_once __DIR__ . '/auth-session.php';
+require_once dirname(__DIR__) . '/config/db.php';
 biotern_boot_session();
 $nav_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? 'guest')));
 $nav_is_admin = ($nav_role === 'admin');
 $nav_is_coordinator = ($nav_role === 'coordinator');
 $nav_is_supervisor = ($nav_role === 'supervisor');
 $nav_is_student = ($nav_role === 'student');
+$nav_student_track = 'internal';
+$nav_student_has_external_access = false;
+
+if ($nav_is_student && isset($conn) && $conn instanceof mysqli) {
+    $nav_student_user_id = (int)($_SESSION['user_id'] ?? 0);
+    if ($nav_student_user_id > 0) {
+        $nav_track_stmt = $conn->prepare('SELECT assignment_track FROM students WHERE user_id = ? LIMIT 1');
+        if ($nav_track_stmt) {
+            $nav_track_stmt->bind_param('i', $nav_student_user_id);
+            $nav_track_stmt->execute();
+            $nav_track_row = $nav_track_stmt->get_result()->fetch_assoc() ?: null;
+            $nav_track_stmt->close();
+            $nav_student_track = strtolower(trim((string)($nav_track_row['assignment_track'] ?? 'internal')));
+            if (!in_array($nav_student_track, ['internal', 'external'], true)) {
+                $nav_student_track = 'internal';
+            }
+            $nav_student_has_external_access = ($nav_student_track === 'external');
+        }
+    }
+}
 
 $nav_can_internship = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 $nav_can_academic = ($nav_is_admin || $nav_is_coordinator);
@@ -244,22 +265,18 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <span class="nxl-mtext">My Internal DTR</span>
                     </a>
                 </li>
-                <li class="nxl-item<?php echo biotern_nav_is_active('student-external-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
-                    <a href="student-external-dtr.php" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-shield"></i></span>
-                        <span class="nxl-mtext">Biometric DTR</span>
-                    </a>
-                </li>
-                <li class="nxl-item<?php echo biotern_nav_is_active('student-manual-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
-                    <a href="student-manual-dtr.php" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-edit-3"></i></span>
-                        <span class="nxl-mtext">Manual DTR</span>
-                    </a>
-                </li>
+                <?php if ($nav_student_has_external_access): ?>
                 <li class="nxl-item<?php echo biotern_nav_is_active('student-external-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
                     <a href="student-external-dtr.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-briefcase"></i></span>
                         <span class="nxl-mtext">My External DTR</span>
+                    </a>
+                </li>
+                <?php endif; ?>
+                <li class="nxl-item<?php echo biotern_nav_is_active('student-manual-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="student-manual-dtr.php" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-edit-3"></i></span>
+                        <span class="nxl-mtext">Manual DTR</span>
                     </a>
                 </li>
                 <li class="nxl-item<?php echo biotern_nav_is_active('student-documents.php', $nav_current_file) ? ' active' : ''; ?>">
