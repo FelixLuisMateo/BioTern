@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 require_once dirname(__DIR__) . '/lib/section_format.php';
 $ops_helpers = dirname(__DIR__) . '/lib/ops_helpers.php';
@@ -75,17 +76,9 @@ function stage_badge_class(string $stage): string {
     return $map[$stage] ?? 'app-ojt-stage-pill';
 }
 
-function resolve_profile_image_url(string $profilePath): ?string {
-    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
-    if ($clean === '') {
-        return null;
-    }
-    $rootPath = dirname(__DIR__) . '/' . $clean;
-    if (!file_exists($rootPath)) {
-        return null;
-    }
-    $mtime = @filemtime($rootPath);
-    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+function resolve_profile_image_url(string $profilePath, int $userId = 0): ?string {
+    $resolved = biotern_avatar_public_src($profilePath, $userId);
+    return $resolved !== '' ? $resolved : null;
 }
 
 function formatSectionDisplayLabel($code, $name): string {
@@ -757,7 +750,7 @@ include 'includes/header.php';
                             <?php
                             $profile = trim((string)($r['profile_picture'] ?? ''));
                             $img = 'assets/images/avatar/' . (($index % 5) + 1) . '.png';
-                            $profile_url = resolve_profile_image_url($profile);
+                            $profile_url = resolve_profile_image_url($profile, (int)($r['user_id'] ?? 0));
                             if ($profile_url !== null) {
                                 $img = $profile_url;
                             }
@@ -870,7 +863,7 @@ include 'includes/header.php';
                             <?php
                             $profile = trim((string)($r['profile_picture'] ?? ''));
                             $img = 'assets/images/avatar/' . (($index % 5) + 1) . '.png';
-                            $profile_url = resolve_profile_image_url($profile);
+                            $profile_url = resolve_profile_image_url($profile, (int)($r['user_id'] ?? 0));
                             if ($profile_url !== null) {
                                 $img = $profile_url;
                             }

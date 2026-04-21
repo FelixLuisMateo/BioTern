@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 
 if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
     session_start();
@@ -107,14 +108,7 @@ function chat_time_label(?string $value): string
 
 function chat_avatar_path(string $profilePicture, int $userId = 0): string
 {
-    $normalized = ltrim(str_replace('\\', '/', trim($profilePicture)), '/');
-    if ($normalized !== '') {
-        return $normalized;
-    }
-
-    // No picture stored - use a numbered default avatar so different users look distinct
-    $num = $userId > 0 ? (($userId % 12) + 1) : 1;
-    return 'assets/images/avatar/' . $num . '.png';
+    return biotern_avatar_public_src($profilePicture, $userId);
 }
 
 function chat_json_response(array $payload, int $statusCode = 200): void
