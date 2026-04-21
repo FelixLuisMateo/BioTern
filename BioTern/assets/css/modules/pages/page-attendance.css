@@ -45,7 +45,14 @@ body.attendance-page .page-header .page-header-right {
 }
 
 body.attendance-page .page-header .page-header-actions {
-    z-index: 1600 !important;
+    z-index: 5000 !important;
+}
+
+body.attendance-page #attendanceFilterCollapse,
+body.attendance-page #collapseAttendanceStats,
+body.attendance-page .filter-panel {
+    position: relative;
+    z-index: 1;
 }
 
 body.attendance-page #attendanceFilterCollapse.show,

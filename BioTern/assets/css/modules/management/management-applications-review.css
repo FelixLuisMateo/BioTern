@@ -76,8 +76,9 @@ html.app-skin-dark .apps-review-toolbar .form-label {
     letter-spacing: 0.35px;
     text-transform: uppercase;
     color: #9aa7c0;
-    white-space: normal;
-    word-break: break-word;
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
 }
 
 .apps-review-table th,
@@ -95,6 +96,15 @@ html.app-skin-dark .apps-review-toolbar .form-label {
 .apps-review-table th:nth-child(2),
 .apps-review-table td:nth-child(2) {
     width: 23%;
+}
+
+.apps-review-table th:nth-child(3),
+.apps-review-table td:nth-child(3) {
+    width: 110px;
+    min-width: 110px;
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
 }
 
 .apps-review-table th:nth-child(4),
