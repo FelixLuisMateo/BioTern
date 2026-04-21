@@ -95,6 +95,24 @@
             font-size: 14px;
             border-radius: 9px;
         }
+
+        #editStudentForm input[type="file"].form-control,
+        .app-students-edit-form input[type="file"].form-control {
+            min-height: 44px;
+            padding: 4px;
+            line-height: 1.2;
+        }
+
+        #editStudentForm input[type="file"].form-control::file-selector-button,
+        #editStudentForm input[type="file"].form-control::-webkit-file-upload-button,
+        .app-students-edit-form input[type="file"].form-control::file-selector-button,
+        .app-students-edit-form input[type="file"].form-control::-webkit-file-upload-button {
+            height: 34px;
+            margin: 0 12px 0 0;
+            padding: 0 14px;
+            border-radius: 8px;
+            vertical-align: middle;
+        }
         #editStudentForm textarea.form-control,
         .app-students-edit-form textarea.form-control {
             min-height: 98px;

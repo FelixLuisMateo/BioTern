@@ -295,7 +295,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $finfo = finfo_open(FILEINFO_MIME_TYPE);
                 if ($finfo) {
                     $mime_type = (string)finfo_file($finfo, $file_tmp);
-                    finfo_close($finfo);
                 }
             }
             if ($mime_type === '' || $mime_type === 'application/octet-stream') {

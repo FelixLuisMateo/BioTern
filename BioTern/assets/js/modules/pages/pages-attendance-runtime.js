@@ -18,7 +18,8 @@
                     { "orderable": false, "targets": [0, 11] }
                 ],
                 "language": {
-                    "emptyTable": "No attendance records found"
+                    "emptyTable": "No attendance records found",
+                    "lengthMenu": '<span class="attendance-length-prefix">Show</span> _MENU_ <span class="attendance-length-suffix">entries</span>'
                 }
             });
         }
@@ -138,6 +139,40 @@
         // Initialize DataTable
         $(document).ready(function() {
             initAttendanceDataTable();
+
+            function closeAttendanceActionsMenu() {
+                var actionsMenu = document.getElementById('attendanceActionsMenu');
+                var actionsToggle = document.querySelector('.page-header-actions-toggle[aria-controls="attendanceActionsMenu"]');
+
+                if (actionsMenu) {
+                    actionsMenu.classList.remove('is-open');
+                    actionsMenu.classList.remove('show');
+                }
+
+                if (actionsToggle) {
+                    actionsToggle.setAttribute('aria-expanded', 'false');
+                    actionsToggle.classList.remove('is-open');
+                }
+            }
+
+            $(document).on('click', '[data-bs-target="#attendanceFilterCollapse"], [data-bs-target="#collapseAttendanceStats"]', function() {
+                window.setTimeout(closeAttendanceActionsMenu, 0);
+            });
+
+            ['attendanceFilterCollapse', 'collapseAttendanceStats'].forEach(function(id) {
+                var collapseElement = document.getElementById(id);
+                if (!collapseElement) {
+                    return;
+                }
+
+                collapseElement.addEventListener('show.bs.collapse', function() {
+                    closeAttendanceActionsMenu();
+                });
+
+                collapseElement.addEventListener('shown.bs.collapse', function() {
+                    closeAttendanceActionsMenu();
+                });
+            });
 
             var $attendanceFilterForm = $('#attendanceFilterForm');
             ['#filter-course', '#filter-department', '#filter-section', '#filter-school-year'].forEach(function (selector) {

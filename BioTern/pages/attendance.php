@@ -1520,6 +1520,7 @@ include 'includes/header.php';
                                     </a>
                                 </div>
                             </div>
+                            </div>
                         </div>
                     </div>
                     <div class="d-md-none d-flex align-items-center">
@@ -1770,7 +1771,6 @@ echo $stats['total_count'] ?? 0; ?></span>
                                     </div>
                                 </div>
                             </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -1806,10 +1806,10 @@ echo $stats['total_count'] ?? 0; ?></span>
                 <div class="row">
                     <div class="col-lg-12">
 
-                        <div class="card stretch stretch-full attendance-table-card">
+                        <div class="card stretch stretch-full attendance-table-card app-data-card app-data-toolbar">
                             <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-hover" id="attendanceList">
+                                <div class="table-responsive app-data-table-wrap">
+                                    <table class="table table-hover app-data-table" id="attendanceList">
                                         <thead>
                                             <tr>
                                                 <th class="wd-30">

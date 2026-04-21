@@ -32,6 +32,161 @@ footer.footer {
     margin-top: auto;
 }
 
+body.attendance-page #attendanceFilterCollapse,
+body.attendance-page #collapseAttendanceStats {
+    width: 100%;
+    clear: both;
+}
+
+body.attendance-page .page-header,
+body.attendance-page .page-header .page-header-right {
+    overflow: visible !important;
+    z-index: 1300 !important;
+}
+
+body.attendance-page .page-header .page-header-actions {
+    z-index: 5000 !important;
+}
+
+body.attendance-page #attendanceFilterCollapse,
+body.attendance-page #collapseAttendanceStats,
+body.attendance-page .filter-panel {
+    position: relative;
+    z-index: 1;
+}
+
+body.attendance-page #attendanceFilterCollapse.show,
+body.attendance-page #attendanceFilterCollapse.collapsing,
+body.attendance-page #collapseAttendanceStats.show,
+body.attendance-page #collapseAttendanceStats.collapsing {
+    display: block;
+    width: 100%;
+}
+
+body.attendance-page #attendanceFilterCollapse > .row,
+body.attendance-page #collapseAttendanceStats > .accordion-body > .row {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+body.attendance-page #attendanceFilterCollapse > .row {
+    padding-left: 30px !important;
+    padding-right: 30px !important;
+    margin-bottom: 0.75rem !important;
+}
+
+body.attendance-page #attendanceFilterCollapse > .row > .col-12 {
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 100%;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* Section: attendance stats cards */
+body.attendance-page #collapseAttendanceStats .accordion-body {
+    padding: 1rem 30px 0.75rem;
+}
+
+body.attendance-page #collapseAttendanceStats .row {
+    --bs-gutter-x: 1rem;
+    --bs-gutter-y: 1rem;
+}
+
+body.attendance-page #collapseAttendanceStats .col-xxl-3,
+body.attendance-page #collapseAttendanceStats .col-md-6 {
+    display: flex;
+}
+
+body.attendance-page #collapseAttendanceStats .card.stretch.stretch-full {
+    width: 100%;
+    min-height: 0;
+    margin-bottom: 0;
+}
+
+body.attendance-page #collapseAttendanceStats .card-body {
+    padding: 1rem 1.1rem;
+}
+
+body.attendance-page #collapseAttendanceStats .avatar-text.avatar-xl {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+    max-width: 48px;
+    max-height: 48px;
+    border-radius: 14px !important;
+}
+
+body.attendance-page #collapseAttendanceStats .avatar-text.avatar-xl i {
+    font-size: 1rem;
+}
+
+body.attendance-page #collapseAttendanceStats .card-body .d-flex.align-items-center.justify-content-between {
+    gap: 0.9rem;
+    align-items: center !important;
+}
+
+body.attendance-page #collapseAttendanceStats .card-body .d-flex.align-items-center.gap-3 {
+    gap: 0.85rem !important;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+body.attendance-page #collapseAttendanceStats .card-body a.fw-bold.d-block {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+body.attendance-page #collapseAttendanceStats .text-truncate-1-line {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+body.attendance-page #collapseAttendanceStats .fs-24.fw-bolder {
+    margin-top: 0.15rem;
+    font-size: 1.9rem !important;
+    line-height: 1;
+}
+
+body.attendance-page #collapseAttendanceStats .badge {
+    align-self: center;
+    flex-shrink: 0;
+}
+
+@media (min-width: 1200px) {
+    body.attendance-page #collapseAttendanceStats .row {
+        flex-wrap: nowrap;
+    }
+
+    body.attendance-page #collapseAttendanceStats .col-xxl-3,
+    body.attendance-page #collapseAttendanceStats .col-md-6 {
+        width: 25%;
+        flex: 0 0 25%;
+        max-width: 25%;
+    }
+}
+
+@media (max-width: 767.98px) {
+    body.attendance-page #attendanceFilterCollapse > .row {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    body.attendance-page #collapseAttendanceStats .accordion-body {
+        padding: 0.85rem 16px 0.65rem;
+    }
+
+    body.attendance-page #collapseAttendanceStats .card-body {
+        padding: 0.9rem 0.95rem;
+    }
+}
+
 /* Section: filter panel layout */
 .filter-form {
     display: grid !important;
@@ -339,8 +494,76 @@ html.app-skin-dark .filter-toggle-btn:focus {
             margin-top: 5px;
         }
 
-        /* Section: DataTable footer spacing */
+        /* Section: DataTable toolbar/footer spacing */
         /* Used by pages/attendance.php: #attendanceList DataTable wrapper */
+        .attendanceList_wrapper .row:first-child {
+            align-items: center;
+            margin-bottom: 0;
+            padding: 0.85rem 1rem 0.35rem;
+            min-height: 0;
+        }
+
+        .attendanceList_wrapper .row:first-child > [class*="col-"] {
+            display: flex;
+            align-items: center;
+            min-height: 0;
+        }
+
+        .attendanceList_wrapper .dataTables_length,
+        .attendanceList_wrapper .dataTables_filter {
+            margin: 0;
+        }
+
+        .attendanceList_wrapper .dataTables_length {
+            display: flex;
+            align-items: center;
+            min-width: max-content;
+            width: auto !important;
+        }
+
+        .attendanceList_wrapper .dataTables_length label,
+        .attendanceList_wrapper .dataTables_filter label {
+            margin: 0;
+        }
+
+        .attendanceList_wrapper .dataTables_length label {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 0.55rem;
+            flex-wrap: nowrap;
+            white-space: nowrap !important;
+            width: max-content !important;
+            min-width: max-content;
+            line-height: 1;
+        }
+
+        .attendanceList_wrapper .attendance-length-prefix,
+        .attendanceList_wrapper .attendance-length-suffix {
+            display: inline-block;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .attendanceList_wrapper .dataTables_length select {
+            margin: 0 !important;
+            display: inline-block !important;
+            flex: 0 0 auto;
+            vertical-align: middle;
+        }
+
+        .attendanceList_wrapper .dataTables_filter {
+            margin-left: auto;
+        }
+
+        .attendance-table-card .dataTables_wrapper .row:first-child {
+            padding-top: 0.9rem;
+            padding-bottom: 0.9rem;
+        }
+
+        .attendance-table-card .dataTables_wrapper .row:first-child > div:last-child {
+            justify-content: flex-end;
+        }
+
         .attendanceList_wrapper .row:last-child {
             margin-top: 0.5rem;
             padding-bottom: 6px;
