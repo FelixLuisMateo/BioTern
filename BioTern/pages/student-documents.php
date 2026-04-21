@@ -106,7 +106,7 @@ $documentCards = [
     [
         'title' => 'Application Letter',
         'status' => $applicationRow ? 'Ready to view and print.' : 'No saved application letter yet.',
-        'view_url' => $applicationRow ? 'document_application.php' : '',
+        'view_url' => $applicationRow ? 'student-application-letter.php' : '',
     ],
     [
         'title' => 'Endorsement Letter',

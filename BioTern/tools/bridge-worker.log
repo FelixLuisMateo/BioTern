@@ -31467,3 +31467,242 @@
 [2026-04-21 17:33:07] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
 [2026-04-21 17:34:34] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
 [2026-04-21 17:34:57] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:35:47] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:35:55] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:36:26] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:36:32] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:37:02] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:37:23] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:38:15] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:38:23] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:38:51] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:38:57] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:39:24] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:39:30] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:40:05] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:40:11] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:40:45] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:41:00] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:41:29] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:41:35] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:42:20] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:42:31] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:42:59] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:43:05] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:44:17] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:45:13] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:46:24] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:46:37] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:47:16] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:47:52] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:48:47] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:48:59] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:49:40] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:49:50] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:50:36] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:50:50] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:51:32] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:51:38] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:52:05] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:52:11] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:52:54] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:53:00] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:53:45] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:55:03] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:55:45] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:56:00] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:56:28] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:56:34] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:57:14] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:57:20] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:57:47] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:57:53] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:58:20] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:58:27] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:58:54] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:59:01] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 17:59:31] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 17:59:38] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:00:04] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:00:10] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:00:39] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:00:44] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:01:11] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:01:17] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:01:43] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:01:49] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:02:16] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:02:22] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:02:48] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:02:54] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:03:20] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:03:26] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:03:54] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:03:59] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:04:26] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:04:32] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:04:59] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:05:04] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:05:31] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:05:37] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:06:04] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:06:09] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:06:36] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:06:42] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:07:08] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:07:14] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:07:40] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:07:46] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:08:12] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:08:18] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:08:45] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:08:50] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:09:17] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:09:23] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:09:50] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:09:56] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:10:23] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:10:29] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:10:56] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:11:01] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:11:28] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:11:34] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:12:00] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:12:06] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:12:32] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:12:38] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:13:05] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:13:10] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:13:37] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:13:43] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:14:09] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:14:15] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:14:42] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:14:47] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:15:14] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:15:20] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:15:46] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:15:52] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:16:18] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:16:24] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:16:51] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:16:56] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:17:23] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:17:28] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:17:55] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:18:01] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:18:27] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:18:33] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:18:59] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:19:05] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:19:32] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:19:38] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:20:04] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:20:10] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:20:37] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:20:43] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:21:09] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:21:15] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:21:41] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:21:47] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:22:14] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:22:19] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:22:46] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:22:51] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:23:18] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:23:24] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:23:50] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:23:56] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:24:23] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:24:29] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:24:55] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:25:01] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:25:27] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:25:33] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:26:00] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:26:05] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:26:32] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:26:38] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:27:04] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:27:10] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:27:36] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:27:42] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:28:09] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:28:14] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:28:41] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:28:47] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:29:13] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:29:19] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:29:45] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:29:51] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:30:18] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:30:23] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:30:50] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:30:56] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:31:22] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:31:28] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:31:55] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:32:01] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:32:27] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:32:33] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:33:00] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:33:05] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:33:32] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:33:38] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:34:04] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:34:10] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:34:36] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:34:42] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:35:09] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:35:15] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:35:41] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:35:47] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:36:13] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:36:19] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:36:46] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:36:51] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:37:18] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:37:24] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:37:50] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:37:56] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:38:22] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:38:28] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:38:54] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:39:00] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:39:27] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:39:33] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:40:00] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:40:06] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:40:33] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:40:38] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:41:05] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:41:10] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:41:37] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:41:43] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:42:09] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:42:15] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:42:41] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:42:47] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:43:13] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:43:19] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:43:46] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:43:51] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:44:18] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:44:24] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:44:50] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:44:56] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:45:22] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:45:28] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:45:55] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:46:00] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:46:27] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:46:33] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:46:59] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:47:05] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:47:31] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:47:37] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:48:04] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:48:09] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:48:36] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.
+[2026-04-21 18:48:42] Bridge loop error: Primary network failed: Device connection failed. | Fallback network failed: Device connection failed.
+[2026-04-21 18:49:09] Primary connector network failed: Device connection failed.. Retrying fallback network 192.168.110.201 via gateway 192.168.110.1.

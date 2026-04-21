@@ -303,7 +303,7 @@ include 'includes/header.php';
                             <a href="account-settings.php#overview" class="btn btn-primary">Account Settings</a>
                             <a href="student-internal-dtr.php" class="btn btn-outline-primary">Internal DTR</a>
                             <?php if ($studentHasExternalAccess): ?>
-                            <a href="student-external-dtr.php" class="btn btn-outline-primary">External DTR</a>
+                            <a href="external-biometric.php" class="btn btn-outline-primary">External DTR</a>
                             <?php endif; ?>
                             <a href="student-manual-dtr.php" class="btn btn-outline-secondary"><?php echo $studentHasExternalAccess ? 'Manual DTR (Track-Based)' : 'Manual Internal DTR'; ?></a>
                             <a href="student-documents.php" class="btn btn-outline-secondary">My Documents</a>

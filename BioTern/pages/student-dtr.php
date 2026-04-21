@@ -114,6 +114,33 @@ function student_dtr_format_time(?string $value): string
     return $ts !== false ? date('g:i A', $ts) : $raw;
 }
 
+function student_dtr_build_date_range(string $startDate, string $endDate, bool $weekdaysOnly = false): array
+{
+    $days = [];
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+        return $days;
+    }
+
+    $startTs = strtotime($startDate);
+    $endTs = strtotime($endDate);
+    if ($startTs === false || $endTs === false || $endTs < $startTs) {
+        return $days;
+    }
+
+    $todayTs = strtotime(date('Y-m-d')) ?: time();
+    for ($cursor = $startTs; $cursor <= $endTs; $cursor += 86400) {
+        if ($cursor > $todayTs) {
+            continue;
+        }
+        if ($weekdaysOnly && (int)date('N', $cursor) >= 6) {
+            continue;
+        }
+        $days[] = date('Y-m-d', $cursor);
+    }
+
+    return $days;
+}
+
 function student_dtr_review_meta(array $attendance): array
 {
     if (strtolower(trim((string)($attendance['source'] ?? ''))) === 'biometric') {
@@ -387,6 +414,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
     $fallbackReason = trim((string)($_POST['fallback_reason'] ?? ''));
     $proofClockTime = trim((string)($_POST['proof_clock_time'] ?? ''));
     $proofFile = $_FILES['proof_image'] ?? null;
+    $generatedEntries = isset($_POST['generated_entries']) && is_array($_POST['generated_entries']) ? $_POST['generated_entries'] : [];
 
     $normalize = static function (string $value): ?string {
         if ($value === '') {
@@ -416,10 +444,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
         : (int)($student['internal_total_hours_remaining'] ?? 0);
 
     $errors = [];
-    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $attendanceDate)) {
+    $useGeneratedEntries = ($generatedEntries !== []);
+    if (!$useGeneratedEntries && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $attendanceDate)) {
         $errors[] = 'Valid attendance date is required.';
     }
-    if ($fallbackMode === 'weekly' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $attendanceEndDate)) {
+    if (!$useGeneratedEntries && $fallbackMode === 'weekly' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $attendanceEndDate)) {
         $errors[] = 'Valid week end date is required for weekly fallback.';
     }
     if ($fallbackReason === '') {
@@ -431,42 +460,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
     if (!is_array($proofFile) || (int)($proofFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         $errors[] = 'Proof image is required.';
     }
-    if ($payload['morning_time_in'] === null && $payload['morning_time_out'] === null && $payload['afternoon_time_in'] === null && $payload['afternoon_time_out'] === null) {
+    if (!$useGeneratedEntries && $payload['morning_time_in'] === null && $payload['morning_time_out'] === null && $payload['afternoon_time_in'] === null && $payload['afternoon_time_out'] === null) {
         $errors[] = 'Enter at least one time.';
     }
-    $validation = attendance_validate_full_record($payload);
-    if (!($validation['ok'] ?? false)) {
-        $errors[] = (string)($validation['message'] ?? 'Invalid attendance values.');
+    if (!$useGeneratedEntries) {
+        $validation = attendance_validate_full_record($payload);
+        if (!($validation['ok'] ?? false)) {
+            $errors[] = (string)($validation['message'] ?? 'Invalid attendance values.');
+        }
     }
 
     $targetDates = [];
+    $payloadsByDate = [];
     if ($errors === []) {
-        $startTs = strtotime($attendanceDate);
-        if ($startTs === false) {
-            $errors[] = 'Invalid start date.';
-        } else {
-            $endTs = $fallbackMode === 'weekly' ? strtotime($attendanceEndDate) : $startTs;
-            if ($endTs === false) {
-                $errors[] = 'Invalid end date.';
-            } elseif ($endTs < $startTs) {
-                $errors[] = 'Week end date must be the same as or later than start date.';
-            } elseif ($fallbackMode === 'weekly' && (($endTs - $startTs) / 86400) > 6) {
-                $errors[] = 'Weekly fallback can cover up to 7 days only.';
-            } else {
-                $today = strtotime(date('Y-m-d'));
-                for ($cursor = $startTs; $cursor <= $endTs; $cursor += 86400) {
-                    if ($cursor > $today) {
-                        continue;
-                    }
-                    $dayOfWeek = (int)date('N', $cursor);
-                    if ($dayOfWeek >= 6) {
-                        continue;
-                    }
-                    $targetDates[] = date('Y-m-d', $cursor);
+        if ($useGeneratedEntries) {
+            foreach ($generatedEntries as $dateKey => $row) {
+                $dateKey = trim((string)$dateKey);
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateKey)) {
+                    continue;
                 }
 
-                if ($targetDates === []) {
-                    $errors[] = 'No valid weekday dates found in the selected range.';
+                $rowPayload = [
+                    'morning_time_in' => $normalize((string)($row['morning_time_in'] ?? '')),
+                    'morning_time_out' => $normalize((string)($row['morning_time_out'] ?? '')),
+                    'break_time_in' => null,
+                    'break_time_out' => null,
+                    'afternoon_time_in' => $normalize((string)($row['afternoon_time_in'] ?? '')),
+                    'afternoon_time_out' => $normalize((string)($row['afternoon_time_out'] ?? '')),
+                ];
+
+                $hasValue = false;
+                foreach (['morning_time_in', 'morning_time_out', 'afternoon_time_in', 'afternoon_time_out'] as $timeKey) {
+                    if ($rowPayload[$timeKey] !== null) {
+                        $hasValue = true;
+                        break;
+                    }
+                }
+                if (!$hasValue) {
+                    continue;
+                }
+
+                $validation = attendance_validate_full_record($rowPayload);
+                if (!($validation['ok'] ?? false)) {
+                    $errors[] = $dateKey . ': ' . (string)($validation['message'] ?? 'Invalid attendance values.');
+                    break;
+                }
+
+                $targetDates[] = $dateKey;
+                $payloadsByDate[$dateKey] = $rowPayload;
+            }
+
+            if ($errors === [] && $targetDates === []) {
+                $errors[] = 'Generate the date rows first and fill at least one day.';
+            }
+        } else {
+            $startTs = strtotime($attendanceDate);
+            if ($startTs === false) {
+                $errors[] = 'Invalid start date.';
+            } else {
+                $endTs = $fallbackMode === 'weekly' ? strtotime($attendanceEndDate) : $startTs;
+                if ($endTs === false) {
+                    $errors[] = 'Invalid end date.';
+                } elseif ($endTs < $startTs) {
+                    $errors[] = 'Week end date must be the same as or later than start date.';
+                } elseif ($fallbackMode === 'weekly' && (($endTs - $startTs) / 86400) > 31) {
+                    $errors[] = 'Range fallback can cover up to 31 days only.';
+                } else {
+                    $targetDates = student_dtr_build_date_range($attendanceDate, $fallbackMode === 'weekly' ? $attendanceEndDate : $attendanceDate, false);
+                    foreach ($targetDates as $targetDate) {
+                        $payloadsByDate[$targetDate] = $payload;
+                    }
+
+                    if ($targetDates === []) {
+                        $errors[] = 'No valid dates found in the selected range.';
+                    }
                 }
             }
         }
@@ -514,19 +581,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
     }
 
     if ($errors === []) {
-        $metrics = student_dtr_manual_metrics($payload);
-        $baseReason = $fallbackReason;
-        $notes = [];
-        if ($metrics['lunch_deduction_hours'] > 0) {
-            $notes[] = 'Lunch deduction: ' . number_format((float)$metrics['lunch_deduction_hours'], 2) . ' hr';
-        }
-        if ($metrics['overtime_hours'] > 0) {
-            $notes[] = 'Overtime: ' . number_format((float)$metrics['overtime_hours'], 2) . ' hr';
-        }
-        if ($notes !== []) {
-            $baseReason .= ' | ' . implode(' | ', $notes);
-        }
-
         $uploadDir = student_dtr_manual_upload_dir();
         $proofRelativePath = '';
         $proofOriginalName = trim((string)($proofFile['name'] ?? 'proof-image'));
@@ -557,16 +611,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
             $attendanceIds = [];
             $successCount = 0;
             foreach ($targetDates as $targetDate) {
+                $targetPayload = $payloadsByDate[$targetDate] ?? $payload;
+                $metrics = student_dtr_manual_metrics($targetPayload);
+                $remarks = $fallbackReason;
+                $notes = [];
+                if ($metrics['lunch_deduction_hours'] > 0) {
+                    $notes[] = 'Lunch deduction: ' . number_format((float)$metrics['lunch_deduction_hours'], 2) . ' hr';
+                }
+                if ($metrics['overtime_hours'] > 0) {
+                    $notes[] = 'Overtime: ' . number_format((float)$metrics['overtime_hours'], 2) . ' hr';
+                }
+                if ($notes !== []) {
+                    $remarks .= ' | ' . implode(' | ', $notes);
+                }
+
                 $netHours = (float)$metrics['net_hours'];
-                $remarks = $baseReason;
                 $insert->bind_param(
                     'isssssds',
                     $studentId,
                     $targetDate,
-                    $payload['morning_time_in'],
-                    $payload['morning_time_out'],
-                    $payload['afternoon_time_in'],
-                    $payload['afternoon_time_out'],
+                    $targetPayload['morning_time_in'],
+                    $targetPayload['morning_time_out'],
+                    $targetPayload['afternoon_time_in'],
+                    $targetPayload['afternoon_time_out'],
                     $netHours,
                     $remarks
                 );
@@ -619,9 +686,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
             $_SESSION['student_dtr_flash'] = [
                 'type' => $success ? 'success' : 'danger',
                 'message' => $success
-                    ? ($fallbackMode === 'weekly'
-                        ? ('Machine-down fallback attendance submitted for review for ' . $successCount . ' day(s).')
-                        : 'Machine-down fallback attendance submitted for review.')
+                    ? ('Machine-down fallback attendance submitted for review for ' . $successCount . ' day(s).')
                     : 'Could not submit the fallback attendance.',
             ];
         } else {
@@ -773,8 +838,8 @@ include 'includes/header.php';
                     <div class="col-md-4">
                         <label class="form-label" for="fallbackMode">Mode</label>
                         <select class="form-select" id="fallbackMode" name="fallback_mode">
-                            <option value="daily" selected>Daily (single date)</option>
-                            <option value="weekly">Weekly (Mon-Fri range)</option>
+                            <option value="weekly" selected>Date range generator</option>
+                            <option value="daily">Single date only</option>
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -796,19 +861,43 @@ include 'includes/header.php';
                         <label class="form-label" for="proofImage">Proof Image</label>
                         <input type="file" class="form-control" id="proofImage" name="proof_image" accept="image/png,image/jpeg,image/webp" capture="environment" required>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-12">
+                        <div class="d-flex flex-wrap align-items-end gap-3">
+                            <div>
+                                <button type="button" class="btn btn-outline-primary" id="generateFallbackRows">Generate Range Dates</button>
+                            </div>
+                            <small class="text-muted">Choose a start and end date, then generate one row per day so you can encode morning and afternoon times directly.</small>
+                        </div>
+                    </div>
+                    <div class="col-12" id="fallbackGeneratedRowsWrap" style="display:none;">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Morning In</th>
+                                        <th>Morning Out</th>
+                                        <th>Afternoon In</th>
+                                        <th>Afternoon Out</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fallbackGeneratedRows"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label" for="fallbackMorningIn">Morning In</label>
                         <input type="time" class="form-control" id="fallbackMorningIn" name="morning_time_in">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label" for="fallbackMorningOut">Morning Out</label>
                         <input type="time" class="form-control" id="fallbackMorningOut" name="morning_time_out">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
                         <input type="time" class="form-control" id="fallbackAfternoonIn" name="afternoon_time_in">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
                         <input type="time" class="form-control" id="fallbackAfternoonOut" name="afternoon_time_out">
                     </div>
@@ -818,7 +907,7 @@ include 'includes/header.php';
                     </div>
                     <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
                         <button type="submit" class="btn btn-warning" <?php echo max(0, $remainingHours) <= 0 ? 'disabled' : ''; ?>>Submit Fallback Attendance</button>
-                        <small class="text-muted">Weekly mode submits weekdays only. Lunch is auto-deducted to at least 1 hour when needed, and overtime is noted in remarks.</small>
+                        <small class="text-muted">Generated rows submit one entry per day. The single-date time inputs still work if you only need one date. Lunch is auto-deducted when needed, and overtime is noted in remarks.</small>
                     </div>
                 </form>
             </div>
@@ -970,5 +1059,74 @@ include 'includes/header.php';
 </div>
     </div>
 </main>
+<script>
+(function () {
+    var generateButton = document.getElementById('generateFallbackRows');
+    var startInput = document.getElementById('fallbackAttendanceDate');
+    var endInput = document.getElementById('fallbackAttendanceEndDate');
+    var rowsWrap = document.getElementById('fallbackGeneratedRowsWrap');
+    var rowsBody = document.getElementById('fallbackGeneratedRows');
+    var modeSelect = document.getElementById('fallbackMode');
+
+    if (!generateButton || !startInput || !endInput || !rowsWrap || !rowsBody) {
+        return;
+    }
+
+    var escapeHtml = function (value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    };
+
+    var formatLabel = function (dateValue) {
+        var parts = dateValue.split('-');
+        if (parts.length !== 3) {
+            return dateValue;
+        }
+        var dateObj = new Date(parts[0], parseInt(parts[1], 10) - 1, parts[2]);
+        if (isNaN(dateObj.getTime())) {
+            return dateValue;
+        }
+        return dateObj.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric', weekday: 'short' });
+    };
+
+    generateButton.addEventListener('click', function () {
+        var startValue = startInput.value;
+        var endValue = endInput.value || startValue;
+        if (!startValue || !endValue) {
+            return;
+        }
+
+        var startDate = new Date(startValue + 'T00:00:00');
+        var endDate = new Date(endValue + 'T00:00:00');
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || endDate < startDate) {
+            return;
+        }
+
+        var rows = [];
+        for (var cursor = new Date(startDate); cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
+            var isoDate = new Date(cursor.getTime() - (cursor.getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
+            rows.push(
+                '<tr>' +
+                    '<td><strong>' + escapeHtml(formatLabel(isoDate)) + '</strong></td>' +
+                    '<td><input type="time" class="form-control" name="generated_entries[' + escapeHtml(isoDate) + '][morning_time_in]"></td>' +
+                    '<td><input type="time" class="form-control" name="generated_entries[' + escapeHtml(isoDate) + '][morning_time_out]"></td>' +
+                    '<td><input type="time" class="form-control" name="generated_entries[' + escapeHtml(isoDate) + '][afternoon_time_in]"></td>' +
+                    '<td><input type="time" class="form-control" name="generated_entries[' + escapeHtml(isoDate) + '][afternoon_time_out]"></td>' +
+                '</tr>'
+            );
+        }
+
+        rowsBody.innerHTML = rows.join('');
+        rowsWrap.style.display = rows.length ? '' : 'none';
+        if (modeSelect) {
+            modeSelect.value = 'weekly';
+        }
+    });
+}());
+</script>
 <?php include 'includes/footer.php'; ?>
 

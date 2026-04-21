@@ -108,7 +108,7 @@ $nav_active_documents = biotern_nav_any_active($nav_current_file, [
 $nav_active_student = biotern_nav_any_active($nav_current_file, [
     'student-profile.php',
     'student-dtr.php', 'student-internal-dtr.php',
-    'student-external-dtr.php',
+    'student-external-dtr.php', 'external-biometric.php',
     'student-manual-dtr.php',
     'student-documents.php',
 ]);
@@ -266,8 +266,8 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                     </a>
                 </li>
                 <?php if ($nav_student_has_external_access): ?>
-                <li class="nxl-item<?php echo biotern_nav_is_active('student-external-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
-                    <a href="student-external-dtr.php" class="nxl-link">
+                <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['student-external-dtr.php', 'external-biometric.php']) ? ' active' : ''; ?>">
+                    <a href="external-biometric.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-briefcase"></i></span>
                         <span class="nxl-mtext">My External DTR</span>
                     </a>

@@ -4,10 +4,12 @@
 // Strictly for external DTR only.
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
+require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 require_roles_page(['admin', 'coordinator', 'supervisor', 'student']);
+external_attendance_ensure_schema($conn);
 
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
@@ -62,12 +64,36 @@ function external_biometric_action_locked(array $record, string $clockType): boo
 	return false;
 }
 
+function external_biometric_month_rows(mysqli $conn, int $studentId, string $monthStart, string $monthEnd): array {
+	$rows = [];
+	$stmt = $conn->prepare("
+		SELECT *
+		FROM external_attendance
+		WHERE student_id = ? AND attendance_date BETWEEN ? AND ?
+		ORDER BY attendance_date DESC, id DESC
+	");
+	if (!$stmt) {
+		return $rows;
+	}
+	$stmt->bind_param('iss', $studentId, $monthStart, $monthEnd);
+	$stmt->execute();
+	$result = $stmt->get_result();
+	while ($result && ($row = $result->fetch_assoc())) {
+		$rows[] = $row;
+	}
+	$stmt->close();
+	return $rows;
+}
+
 $externalFlash = $_SESSION['external_attendance_flash'] ?? null;
 unset($_SESSION['external_attendance_flash']);
 
 $page_title = 'BioTern || External Biometric DTR';
 $page_styles = [
+	'assets/css/homepage-student.css',
+	'assets/css/student-dtr.css',
 	'assets/css/modules/pages/page-external-biometric.css',
+	'assets/css/modules/pages/page-external-attendance-student.css',
 ];
 $page_scripts = [
 	'assets/js/theme-customizer-init.min.js',
@@ -76,6 +102,36 @@ include 'includes/header.php';
 ?>
 
 <?php
+$studentContext = null;
+$monthHours = 0.0;
+$approvedCount = 0;
+$pendingCount = 0;
+$clockTypes = [
+	'morning_in' => ['Morning In', 'feather-sunrise'],
+	'morning_out' => ['Morning Out', 'feather-arrow-up-right'],
+	'afternoon_in' => ['Afternoon In', 'feather-sun'],
+	'afternoon_out' => ['Afternoon Out', 'feather-sunset'],
+];
+
+if ($studentMode) {
+	$studentContext = external_attendance_student_context($conn, $currentUserId);
+	if ($studentContext) {
+		$selectedMonth = date('Y-m');
+		$monthStart = $selectedMonth . '-01';
+		$monthEnd = date('Y-m-t', strtotime($monthStart));
+		$monthRows = external_biometric_month_rows($conn, (int)$studentContext['id'], $monthStart, $monthEnd);
+		foreach ($monthRows as $monthRow) {
+			$monthHours += (float)($monthRow['total_hours'] ?? 0);
+			$status = strtolower(trim((string)($monthRow['status'] ?? 'pending')));
+			if ($status === 'approved') {
+				$approvedCount++;
+			} elseif ($status === 'pending') {
+				$pendingCount++;
+			}
+		}
+	}
+}
+
 // Fetch today's external attendance for disabling buttons
 $today = date('Y-m-d');
 $todayRecord = [
@@ -103,36 +159,93 @@ if ($studentMode) {
 					<?php echo htmlspecialchars((string)$externalFlash['message'], ENT_QUOTES, 'UTF-8'); ?>
 				</div>
 			<?php endif; ?>
-			<h2>Quick External DTR Punch</h2>
-			<div class="card mb-4">
-				<div class="card-body">
-					<div class="d-flex flex-column align-items-center">
-						<div id="externalBiometricClock" style="font-size:2rem;font-weight:bold;letter-spacing:2px;">--:--:--</div>
-						<form method="post" action="external-attendance.php" class="mt-3 w-100">
-							<input type="hidden" name="external_action" value="quick_clock">
-							<input type="hidden" name="clock_date" value="<?php echo htmlspecialchars($today); ?>">
-							<input type="hidden" name="return_to" value="external-biometric.php">
-							<div class="row g-2 mb-2 flex-wrap">
-								<div class="col-12 col-sm-6 col-md-3 mb-2 mb-md-0">
-									<button type="submit" name="clock_type" value="morning_in" class="btn btn-lg btn-outline-primary w-100" <?php echo external_biometric_action_locked($todayRecord, 'morning_in') ? 'disabled style=\"opacity:0.5\"' : ''; ?>>Morning In</button>
-								</div>
-								<div class="col-12 col-sm-6 col-md-3 mb-2 mb-md-0">
-									<button type="submit" name="clock_type" value="morning_out" class="btn btn-lg btn-outline-primary w-100" <?php echo external_biometric_action_locked($todayRecord, 'morning_out') ? 'disabled style=\"opacity:0.5\"' : ''; ?>>Morning Out</button>
-								</div>
-								<div class="col-12 col-sm-6 col-md-3 mb-2 mb-md-0">
-									<button type="submit" name="clock_type" value="afternoon_in" class="btn btn-lg btn-outline-primary w-100" <?php echo external_biometric_action_locked($todayRecord, 'afternoon_in') ? 'disabled style=\"opacity:0.5\"' : ''; ?>>Afternoon In</button>
-								</div>
-								<div class="col-12 col-sm-6 col-md-3 mb-2 mb-md-0">
-									<button type="submit" name="clock_type" value="afternoon_out" class="btn btn-lg btn-outline-primary w-100" <?php echo external_biometric_action_locked($todayRecord, 'afternoon_out') ? 'disabled style=\"opacity:0.5\"' : ''; ?>>Afternoon Out</button>
-								</div>
-							</div>
-							<input type="text" name="notes" class="form-control mt-2" placeholder="Optional note for this punch">
-						</form>
+			<?php if ($studentMode && $studentContext): ?>
+			<section class="bio-hero">
+				<div class="bio-hero-chip">
+					<i class="feather-shield"></i>
+					<span>External Biometric DTR</span>
+				</div>
+				<h2><?php echo htmlspecialchars(trim((string)($studentContext['first_name'] . ' ' . $studentContext['last_name'])), ENT_QUOTES, 'UTF-8'); ?></h2>
+				<p>Clock in for your external duty with one tap, then use the date-range generator below if you need to encode multiple DTR days manually.</p>
+				<div class="student-home-meta mt-3">
+					<span><?php echo htmlspecialchars((string)($studentContext['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></span>
+					<span><?php echo htmlspecialchars((string)($studentContext['section_code'] ?? 'No section'), ENT_QUOTES, 'UTF-8'); ?></span>
+					<span>External target: <?php echo (int)($studentContext['external_total_hours'] ?? 0); ?> hrs</span>
+					<span>Remaining: <?php echo (int)($studentContext['external_total_hours_remaining'] ?? 0); ?> hrs</span>
+				</div>
+			</section>
+
+			<div class="row g-3 mb-4">
+				<div class="col-md-4">
+					<div class="dtr-summary-card">
+						<div class="dtr-summary-label">Month Hours</div>
+						<div class="dtr-summary-value"><?php echo number_format($monthHours, 2); ?> hrs</div>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="dtr-summary-card">
+						<div class="dtr-summary-label">Approved Entries</div>
+						<div class="dtr-summary-value"><?php echo (int)$approvedCount; ?></div>
+					</div>
+				</div>
+				<div class="col-md-4">
+					<div class="dtr-summary-card">
+						<div class="dtr-summary-label">Pending Review</div>
+						<div class="dtr-summary-value"><?php echo (int)$pendingCount; ?></div>
 					</div>
 				</div>
 			</div>
+			<?php endif; ?>
 
-			<h3 id="manual-dtr">Manual DTR Input (Range)</h3>
+			<div class="bio-layout mb-4">
+				<aside class="scanner-card">
+					<figure class="fingerprint-image">
+						<div class="display-4 text-primary"><i class="feather-shield"></i></div>
+						<p class="scan-label">ACCOUNT-LINKED BIOMETRIC ACTION</p>
+					</figure>
+					<div class="scanner-stat">
+						External DTR for <?php echo htmlspecialchars(date('F d, Y', strtotime($today)), ENT_QUOTES, 'UTF-8'); ?>
+					</div>
+				</aside>
+
+				<section class="clock-section">
+					<h3>Quick External DTR Punch</h3>
+					<div class="time-display mb-3" id="externalBiometricClock"><?php echo date('H:i:s'); ?></div>
+					<form method="post" action="external-attendance.php" id="externalBiometricForm">
+						<input type="hidden" name="external_action" value="quick_clock">
+						<input type="hidden" name="clock_date" value="<?php echo htmlspecialchars($today, ENT_QUOTES, 'UTF-8'); ?>">
+						<input type="hidden" name="return_to" value="external-biometric.php">
+						<div class="form-group-custom">
+							<label>Clock Type</label>
+							<div class="clock-type-grid">
+								<?php foreach ($clockTypes as $type => [$label, $iconClass]): ?>
+								<?php $isLocked = external_biometric_action_locked($todayRecord, $type); ?>
+								<button
+									type="submit"
+									class="clock-btn external-clock-btn<?php echo $isLocked ? ' is-complete' : ''; ?>"
+									name="clock_type"
+									value="<?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?>"
+									<?php echo $isLocked ? 'disabled aria-disabled="true"' : ''; ?>
+								>
+									<i class="<?php echo htmlspecialchars($iconClass, ENT_QUOTES, 'UTF-8'); ?>"></i><br><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
+								</button>
+								<?php endforeach; ?>
+							</div>
+						</div>
+						<div class="form-group-custom">
+							<label for="externalPunchNotes">Notes</label>
+							<input type="text" name="notes" id="externalPunchNotes" maxlength="255" placeholder="Optional note for this punch">
+						</div>
+					</form>
+				</section>
+			</div>
+
+			<section class="record-section mb-4" id="manual-dtr">
+				<div class="card-header border-0 bg-transparent px-4 pt-4">
+					<h5 class="mb-1">Manual External DTR Range Input</h5>
+					<p class="text-muted mb-0">Select your date range, generate one row per day, then enter morning and afternoon times directly.</p>
+				</div>
+				<div class="card-body pt-3">
 			<form id="manualDtrRangeForm" class="mb-3">
 				<div class="row g-3 align-items-end">
 					<div class="col-12 col-sm-6 col-md-4 mb-2 mb-md-0">
@@ -160,6 +273,8 @@ if ($studentMode) {
 					<button type="submit" class="btn btn-primary w-100">Submit Manual DTR</button>
 				</div>
 			</form>
+				</div>
+			</section>
 		</div>
 	</div>
 </main>
