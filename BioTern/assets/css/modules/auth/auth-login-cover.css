@@ -199,6 +199,18 @@ body.auth-login-page .auth-cover-card .form-control::placeholder {
     color: var(--auth-field-placeholder);
 }
 
+body.auth-login-page .auth-cover-card input[type="password"]::-ms-reveal,
+body.auth-login-page .auth-cover-card input[type="password"]::-ms-clear {
+    display: none;
+}
+
+body.auth-login-page .auth-cover-card input[type="password"]::-webkit-credentials-auto-fill-button,
+body.auth-login-page .auth-cover-card input[type="password"]::-webkit-strong-password-auto-fill-button {
+    visibility: hidden;
+    pointer-events: none;
+    display: none !important;
+}
+
 body.auth-login-page .auth-cover-card .form-control:focus,
 body.auth-login-page .auth-cover-card .form-check-input:focus {
     box-shadow: 0 0 0 0.2rem rgba(var(--biotern-primary-rgb), 0.14);
