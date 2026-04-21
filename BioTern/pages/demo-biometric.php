@@ -1,4 +1,10 @@
 <?php
+// This file has been renamed. Please use external-biometric.php instead.
+header('Location: external-biometric.php');
+exit;
+
+?>
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
@@ -504,7 +510,8 @@ if ($studentMode) {
                                                 value="<?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?>"
                                                 <?php echo $locked ? 'disabled aria-disabled="true"' : ''; ?>
                                             >
-                                                <i class="<?php echo htmlspecialchars($icon, ENT_QUOTES, 'UTF-8'); ?>"></i><br><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
+                                                <i class="<?php echo htmlspecialchars($icon, ENT_QUOTES, 'UTF-8'); ?>"></i>
+                                                <span><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></span>
                                             </button>
                                         <?php endforeach; ?>
                                     </div>

@@ -1,12 +1,104 @@
 <?php
 // Centralized navigation include (grouped/relabeled).
 require_once __DIR__ . '/auth-session.php';
+require_once dirname(__DIR__) . '/config/db.php';
 biotern_boot_session();
 $nav_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? 'guest')));
 $nav_is_admin = ($nav_role === 'admin');
 $nav_is_coordinator = ($nav_role === 'coordinator');
 $nav_is_supervisor = ($nav_role === 'supervisor');
 $nav_is_student = ($nav_role === 'student');
+$nav_student_track = 'internal';
+$nav_student_id = 0;
+$nav_student_has_external_access = false;
+
+if ($nav_is_student && isset($conn) && $conn instanceof mysqli) {
+    $nav_student_user_id = (int)($_SESSION['user_id'] ?? 0);
+    $nav_session_track = strtolower(trim((string)($_SESSION['assignment_track'] ?? '')));
+    if (in_array($nav_session_track, ['internal', 'external'], true)) {
+        $nav_student_track = $nav_session_track;
+    }
+
+    if ($nav_student_user_id > 0) {
+        $nav_track_stmt = $conn->prepare('
+            SELECT id, assignment_track
+            FROM students
+            WHERE user_id = ? OR id = ?
+            ORDER BY CASE WHEN user_id = ? THEN 0 ELSE 1 END, id DESC
+            LIMIT 1
+        ');
+        if ($nav_track_stmt) {
+            $nav_track_stmt->bind_param('iii', $nav_student_user_id, $nav_student_user_id, $nav_student_user_id);
+            $nav_track_stmt->execute();
+            $nav_track_row = $nav_track_stmt->get_result()->fetch_assoc() ?: null;
+            $nav_track_stmt->close();
+
+            $nav_student_id = (int)($nav_track_row['id'] ?? 0);
+            $nav_db_track = strtolower(trim((string)($nav_track_row['assignment_track'] ?? '')));
+            if (in_array($nav_db_track, ['internal', 'external'], true)) {
+                $nav_student_track = $nav_db_track;
+            }
+        }
+
+        if (!in_array($nav_student_track, ['internal', 'external'], true) || $nav_student_track === 'internal') {
+            $nav_user_stmt = $conn->prepare('SELECT username, email, name FROM users WHERE id = ? LIMIT 1');
+            if ($nav_user_stmt) {
+                $nav_user_stmt->bind_param('i', $nav_student_user_id);
+                $nav_user_stmt->execute();
+                $nav_user_row = $nav_user_stmt->get_result()->fetch_assoc() ?: null;
+                $nav_user_stmt->close();
+                if ($nav_user_row) {
+                    $nav_username = trim((string)($nav_user_row['username'] ?? ''));
+                    $nav_email = trim((string)($nav_user_row['email'] ?? ''));
+                    $nav_name = trim((string)($nav_user_row['name'] ?? ''));
+                    if ($nav_username !== '' || $nav_email !== '' || $nav_name !== '') {
+                        $nav_fallback_stmt = $conn->prepare("
+                            SELECT id, assignment_track
+                            FROM students
+                            WHERE ((? <> '' AND LOWER(COALESCE(student_id, '')) = LOWER(?))
+                                OR (? <> '' AND LOWER(COALESCE(email, '')) = LOWER(?))
+                                OR (? <> '' AND LOWER(TRIM(CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')))) = LOWER(?)))
+                            ORDER BY
+                                CASE
+                                    WHEN (? <> '' AND LOWER(COALESCE(student_id, '')) = LOWER(?)) THEN 0
+                                    WHEN (? <> '' AND LOWER(COALESCE(email, '')) = LOWER(?)) THEN 1
+                                    WHEN (? <> '' AND LOWER(TRIM(CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')))) = LOWER(?)) THEN 2
+                                    ELSE 3
+                                END,
+                                id DESC
+                            LIMIT 1
+                        ");
+                        if ($nav_fallback_stmt) {
+                            $nav_fallback_stmt->bind_param(
+                                'ssssssssssss',
+                                $nav_username,
+                                $nav_username,
+                                $nav_email,
+                                $nav_email,
+                                $nav_name,
+                                $nav_name,
+                                $nav_username,
+                                $nav_username,
+                                $nav_email,
+                                $nav_email,
+                                $nav_name,
+                                $nav_name
+                            );
+                            $nav_fallback_stmt->execute();
+                            $nav_fallback_row = $nav_fallback_stmt->get_result()->fetch_assoc() ?: null;
+                            $nav_fallback_stmt->close();
+                            $nav_student_id = (int)($nav_fallback_row['id'] ?? $nav_student_id);
+                            $nav_fallback_track = strtolower(trim((string)($nav_fallback_row['assignment_track'] ?? '')));
+                            if (in_array($nav_fallback_track, ['internal', 'external'], true)) {
+                                $nav_student_track = $nav_fallback_track;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 $nav_can_internship = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
 $nav_can_academic = ($nav_is_admin || $nav_is_coordinator);
@@ -21,6 +113,16 @@ if (isset($_GET['file'])) {
 if ($nav_current_file === '') {
     $nav_request_path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
     $nav_current_file = strtolower(basename((string)$nav_request_path));
+}
+$nav_student_has_external_access = ($nav_student_track === 'external') || ($nav_is_student && $nav_current_file === 'external-biometric.php');
+if ($nav_is_student && !$nav_student_has_external_access && $nav_student_id > 0 && isset($conn) && $conn instanceof mysqli) {
+    $nav_external_stmt = $conn->prepare('SELECT 1 FROM external_attendance WHERE student_id = ? LIMIT 1');
+    if ($nav_external_stmt) {
+        $nav_external_stmt->bind_param('i', $nav_student_id);
+        $nav_external_stmt->execute();
+        $nav_student_has_external_access = (bool)($nav_external_stmt->get_result()->fetch_assoc() ?: null);
+        $nav_external_stmt->close();
+    }
 }
 
 if (!function_exists('biotern_nav_route_key')) {
@@ -73,7 +175,7 @@ $nav_active_ojt = biotern_nav_any_active($nav_current_file, [
     'ojt-internal-list.php', 'ojt-external-list.php',
 ]);
 $nav_active_machine = biotern_nav_any_active($nav_current_file, [
-    'demo-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
+    'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
 ]);
 $nav_active_documents = biotern_nav_any_active($nav_current_file, [
     'document_application.php',
@@ -87,9 +189,9 @@ $nav_active_documents = biotern_nav_any_active($nav_current_file, [
 $nav_active_student = biotern_nav_any_active($nav_current_file, [
     'student-profile.php',
     'student-dtr.php', 'student-internal-dtr.php',
-    'demo-biometric.php',
-    'external-attendance.php', 'external-attendance-manual.php',
-    'document_application.php',
+    'student-external-dtr.php', 'external-biometric.php',
+    'student-manual-dtr.php',
+    'student-documents.php',
 ]);
 $nav_active_reports = biotern_nav_any_active($nav_current_file, [
     'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-attendance-exceptions.php',
@@ -244,20 +346,22 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <span class="nxl-mtext">My Internal DTR</span>
                     </a>
                 </li>
-                <li class="nxl-item<?php echo biotern_nav_is_active('demo-biometric.php', $nav_current_file) ? ' active' : ''; ?>">
-                    <a href="demo-biometric.php" class="nxl-link">
-                        <span class="nxl-micon"><i class="feather-shield"></i></span>
-                        <span class="nxl-mtext">Biometric DTR</span>
-                    </a>
-                </li>
-                <li class="nxl-item<?php echo biotern_nav_is_active('external-attendance.php', $nav_current_file) ? ' active' : ''; ?>">
-                    <a href="external-attendance.php" class="nxl-link">
+                <?php if ($nav_student_has_external_access): ?>
+                <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['student-external-dtr.php', 'external-biometric.php']) ? ' active' : ''; ?>">
+                    <a href="external-biometric.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-briefcase"></i></span>
                         <span class="nxl-mtext">My External DTR</span>
                     </a>
                 </li>
-                <li class="nxl-item<?php echo biotern_nav_is_active('document_application.php', $nav_current_file) ? ' active' : ''; ?>">
-                    <a href="document_application.php" class="nxl-link">
+                <?php endif; ?>
+                <li class="nxl-item<?php echo biotern_nav_is_active('student-manual-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="student-manual-dtr.php" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-edit-3"></i></span>
+                        <span class="nxl-mtext">Manual DTR</span>
+                    </a>
+                </li>
+                <li class="nxl-item<?php echo biotern_nav_is_active('student-documents.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="student-documents.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-file-text"></i></span>
                         <span class="nxl-mtext">My Documents</span>
                     </a>

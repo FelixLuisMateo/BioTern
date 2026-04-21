@@ -223,6 +223,7 @@ $assignmentTrack = strtolower(trim((string)($student['assignment_track'] ?? 'int
 if (!in_array($assignmentTrack, ['internal', 'external'], true)) {
     $assignmentTrack = 'internal';
 }
+$studentHasExternalAccess = ($assignmentTrack === 'external');
 $studentStatus = student_profile_value((string)($student['student_status'] ?? ''), 'Not yet available');
 $contactEmail = trim((string)($student['student_email'] ?? ($user['email'] ?? '')));
 $contactPhone = trim((string)($student['phone'] ?? ''));
@@ -301,8 +302,11 @@ include 'includes/header.php';
                         <div class="student-profile-actions">
                             <a href="account-settings.php#overview" class="btn btn-primary">Account Settings</a>
                             <a href="student-internal-dtr.php" class="btn btn-outline-primary">Internal DTR</a>
-                            <a href="external-attendance.php" class="btn btn-outline-primary">External DTR</a>
-                            <a href="document_application.php" class="btn btn-outline-secondary">My Documents</a>
+                            <?php if ($studentHasExternalAccess): ?>
+                            <a href="external-biometric.php" class="btn btn-outline-primary">External DTR</a>
+                            <?php endif; ?>
+                            <a href="student-manual-dtr.php" class="btn btn-outline-secondary"><?php echo $studentHasExternalAccess ? 'Manual DTR (Track-Based)' : 'Manual Internal DTR'; ?></a>
+                            <a href="student-documents.php" class="btn btn-outline-secondary">My Documents</a>
                         </div>
                     </div>
                 </section>
@@ -327,6 +331,30 @@ include 'includes/header.php';
                 </section>
 
                 <div class="student-profile-metric-grid">
+                    <!-- Timers for Internal/External Hours -->
+                    <div class="student-profile-timer-row mb-3">
+                        <?php if ($assignmentTrack === 'internal'): ?>
+                            <div class="student-profile-timer-card">
+                                <span class="student-metric-label">Internal Hours Timer</span>
+                                <div class="student-profile-timer-value">
+                                    <?php echo number_format($internalRenderedHours, 2); ?> / <?php echo number_format((float)($student['internal_total_hours'] ?? 0), 0); ?> hrs
+                                </div>
+                            </div>
+                        <?php elseif ($assignmentTrack === 'external'): ?>
+                            <div class="student-profile-timer-card">
+                                <span class="student-metric-label">Internal Hours Timer</span>
+                                <div class="student-profile-timer-value">
+                                    <?php echo number_format($internalRenderedHours, 2); ?> / <?php echo number_format((float)($student['internal_total_hours'] ?? 0), 0); ?> hrs
+                                </div>
+                            </div>
+                            <div class="student-profile-timer-card">
+                                <span class="student-metric-label">External Hours Timer</span>
+                                <div class="student-profile-timer-value">
+                                    <?php echo number_format($externalRenderedHours, 2); ?> / <?php echo number_format((float)($student['external_total_hours'] ?? 0), 0); ?> hrs
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                     <article class="card student-metric-card">
                         <div class="card-body">
                             <span class="student-metric-label">Approved Logs</span>
@@ -348,6 +376,7 @@ include 'includes/header.php';
                             <p>Approved and recorded internal attendance hours.</p>
                         </div>
                     </article>
+                    <?php if ($studentHasExternalAccess): ?>
                     <article class="card student-metric-card">
                         <div class="card-body">
                             <span class="student-metric-label">External Hours</span>
@@ -355,6 +384,7 @@ include 'includes/header.php';
                             <p>Hours from student-submitted external DTR entries.</p>
                         </div>
                     </article>
+                    <?php endif; ?>
                 </div>
 
                 <section class="card student-panel mt-4">
@@ -482,10 +512,12 @@ include 'includes/header.php';
                                 <span>Internal Hours</span>
                                 <strong><?php echo number_format($internalRenderedHours, 2); ?> / <?php echo number_format((float)($student['internal_total_hours'] ?? 0), 0); ?></strong>
                             </div>
+                            <?php if ($studentHasExternalAccess): ?>
                             <div>
                                 <span>External Hours</span>
                                 <strong><?php echo number_format($externalRenderedHours, 2); ?> / <?php echo number_format((float)($student['external_total_hours'] ?? 0), 0); ?></strong>
                             </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </section>
@@ -531,7 +563,7 @@ include 'includes/header.php';
                         </div>
                         <div class="d-grid gap-2 mt-3">
                             <a href="account-settings.php#overview" class="btn btn-primary">Update My Details</a>
-                            <a href="document_application.php" class="btn btn-outline-secondary">Review My Documents</a>
+                            <a href="student-documents.php" class="btn btn-outline-secondary">Review My Documents</a>
                         </div>
                     </div>
                 </section>

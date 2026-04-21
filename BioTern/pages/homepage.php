@@ -4,6 +4,7 @@ include_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 include_once dirname(__DIR__) . '/includes/dashboard_data.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 
 if (!function_exists('dashboard_fetch_count')) {
     function dashboard_fetch_count($conn, $sql, $key = 'count')
@@ -550,7 +551,7 @@ include 'includes/header.php';
                                 <div class="student-quick-grid">
                                     <a href="student-profile.php" class="student-shortcut-card"><i class="feather-user"></i><span>My Profile</span><small>Review your student details.</small></a>
                                     <a href="student-internal-dtr.php" class="student-shortcut-card"><i class="feather-clock"></i><span>My Internal DTR</span><small>Check attendance and hours.</small></a>
-                                    <a href="document_application.php" class="student-shortcut-card"><i class="feather-file-text"></i><span>Documents</span><small>Open your internship documents.</small></a>
+                                    <a href="student-documents.php" class="student-shortcut-card"><i class="feather-file-text"></i><span>Documents</span><small>Open your internship documents.</small></a>
                                     <a href="apps-storage.php" class="student-shortcut-card"><i class="feather-folder"></i><span>Storage</span><small>Manage files and requirements.</small></a>
                                     <a href="apps-notes.php" class="student-shortcut-card"><i class="feather-edit-3"></i><span>Notes</span><small>Keep reminders and internship notes.</small></a>
                                     <a href="apps-chat.php" class="student-shortcut-card"><i class="feather-message-circle"></i><span>Chat</span><small>Stay in touch with your team.</small></a>

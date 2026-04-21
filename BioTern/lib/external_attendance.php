@@ -369,10 +369,9 @@ if (!function_exists('external_attendance_student_context')) {
             LEFT JOIN sections sec ON sec.id = s.section_id
             LEFT JOIN departments d ON d.id = s.department_id
             LEFT JOIN courses c ON c.id = s.course_id
-            WHERE s.user_id = ?
-            LIMIT 1
         ";
-        $stmt = $conn->prepare($sql);
+
+        $stmt = $conn->prepare($sql . " WHERE s.user_id = ? LIMIT 1");
         if (!$stmt) {
             return null;
         }
@@ -382,7 +381,80 @@ if (!function_exists('external_attendance_student_context')) {
         $row = $stmt->get_result()->fetch_assoc() ?: null;
         $stmt->close();
 
-        return $row ?: null;
+        if ($row) {
+            return $row;
+        }
+
+        // Fallback 1: some deployments map students.id directly to session user_id.
+        $idStmt = $conn->prepare($sql . " WHERE s.id = ? LIMIT 1");
+        if ($idStmt) {
+            $idStmt->bind_param('i', $userId);
+            $idStmt->execute();
+            $idRow = $idStmt->get_result()->fetch_assoc() ?: null;
+            $idStmt->close();
+            if ($idRow) {
+                return $idRow;
+            }
+        }
+
+        // Fallback 2: match by linked user profile identity (student number/email/name).
+        $userStmt = $conn->prepare("SELECT username, email, name FROM users WHERE id = ? LIMIT 1");
+        if (!$userStmt) {
+            return null;
+        }
+        $userStmt->bind_param('i', $userId);
+        $userStmt->execute();
+        $userRow = $userStmt->get_result()->fetch_assoc() ?: null;
+        $userStmt->close();
+        if (!$userRow) {
+            return null;
+        }
+
+        $username = trim((string)($userRow['username'] ?? ''));
+        $email = trim((string)($userRow['email'] ?? ''));
+        $name = trim((string)($userRow['name'] ?? ''));
+        if ($username === '' && $email === '' && $name === '') {
+            return null;
+        }
+
+        $fallbackStmt = $conn->prepare(
+            $sql . "
+            WHERE ((? <> '' AND LOWER(COALESCE(s.student_id, '')) = LOWER(?))
+                OR (? <> '' AND LOWER(COALESCE(s.email, '')) = LOWER(?))
+                OR (? <> '' AND LOWER(TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')))) = LOWER(?)))
+            ORDER BY
+                CASE
+                    WHEN (? <> '' AND LOWER(COALESCE(s.student_id, '')) = LOWER(?)) THEN 0
+                    WHEN (? <> '' AND LOWER(COALESCE(s.email, '')) = LOWER(?)) THEN 1
+                    WHEN (? <> '' AND LOWER(TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, '')))) = LOWER(?)) THEN 2
+                    ELSE 3
+                END,
+                s.id DESC
+            LIMIT 1"
+        );
+        if (!$fallbackStmt) {
+            return null;
+        }
+        $fallbackStmt->bind_param(
+            'ssssssssssss',
+            $username,
+            $username,
+            $email,
+            $email,
+            $name,
+            $name,
+            $username,
+            $username,
+            $email,
+            $email,
+            $name,
+            $name
+        );
+        $fallbackStmt->execute();
+        $fallbackRow = $fallbackStmt->get_result()->fetch_assoc() ?: null;
+        $fallbackStmt->close();
+
+        return $fallbackRow ?: null;
     }
 }
 
