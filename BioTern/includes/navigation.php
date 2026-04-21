@@ -13,18 +13,29 @@ $nav_student_has_external_access = false;
 
 if ($nav_is_student && isset($conn) && $conn instanceof mysqli) {
     $nav_student_user_id = (int)($_SESSION['user_id'] ?? 0);
+    $nav_session_track = strtolower(trim((string)($_SESSION['assignment_track'] ?? '')));
+    if (in_array($nav_session_track, ['internal', 'external'], true)) {
+        $nav_student_track = $nav_session_track;
+    }
+
     if ($nav_student_user_id > 0) {
-        $nav_track_stmt = $conn->prepare('SELECT assignment_track FROM students WHERE user_id = ? LIMIT 1');
+        $nav_track_stmt = $conn->prepare('
+            SELECT assignment_track
+            FROM students
+            WHERE user_id = ? OR id = ?
+            ORDER BY CASE WHEN user_id = ? THEN 0 ELSE 1 END, id DESC
+            LIMIT 1
+        ');
         if ($nav_track_stmt) {
-            $nav_track_stmt->bind_param('i', $nav_student_user_id);
+            $nav_track_stmt->bind_param('iii', $nav_student_user_id, $nav_student_user_id, $nav_student_user_id);
             $nav_track_stmt->execute();
             $nav_track_row = $nav_track_stmt->get_result()->fetch_assoc() ?: null;
             $nav_track_stmt->close();
-            $nav_student_track = strtolower(trim((string)($nav_track_row['assignment_track'] ?? 'internal')));
-            if (!in_array($nav_student_track, ['internal', 'external'], true)) {
-                $nav_student_track = 'internal';
+
+            $nav_db_track = strtolower(trim((string)($nav_track_row['assignment_track'] ?? '')));
+            if (in_array($nav_db_track, ['internal', 'external'], true)) {
+                $nav_student_track = $nav_db_track;
             }
-            $nav_student_has_external_access = ($nav_student_track === 'external');
         }
     }
 }
@@ -43,6 +54,7 @@ if ($nav_current_file === '') {
     $nav_request_path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
     $nav_current_file = strtolower(basename((string)$nav_request_path));
 }
+$nav_student_has_external_access = ($nav_student_track === 'external') || ($nav_is_student && $nav_current_file === 'external-biometric.php');
 
 if (!function_exists('biotern_nav_route_key')) {
     function biotern_nav_route_key($href) {
