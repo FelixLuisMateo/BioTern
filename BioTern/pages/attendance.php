@@ -1520,6 +1520,7 @@ include 'includes/header.php';
                                     </a>
                                 </div>
                             </div>
+                            </div>
                         </div>
                     </div>
                     <div class="d-md-none d-flex align-items-center">
@@ -1769,7 +1770,6 @@ echo $stats['total_count'] ?? 0; ?></span>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
                             </div>
                         </div>
                     </div>
