@@ -14,21 +14,26 @@ external_attendance_ensure_schema($conn);
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 $studentMode = ($currentRole === 'student');
-
-// Only allow students with external assignment track
-function get_student_assignment_track(mysqli $conn, int $userId): string {
-	$stmt = $conn->prepare("SELECT assignment_track FROM students WHERE user_id = ? LIMIT 1");
-	if (!$stmt) return 'internal';
-	$stmt->bind_param("i", $userId);
-	$stmt->execute();
-	$row = $stmt->get_result()->fetch_assoc();
-	$stmt->close();
-	return strtolower(trim((string)($row['assignment_track'] ?? 'internal')));
-}
-
+$studentContext = null;
 if ($studentMode) {
-	$track = get_student_assignment_track($conn, $currentUserId);
-	if ($track !== 'external') {
+	$studentContext = external_attendance_student_context($conn, $currentUserId);
+	$track = strtolower(trim((string)($studentContext['assignment_track'] ?? 'internal')));
+	$allowExternal = ($track === 'external');
+
+	if ($studentContext && !$allowExternal) {
+		$studentId = (int)($studentContext['id'] ?? 0);
+		if ($studentId > 0) {
+			$accessStmt = $conn->prepare("SELECT 1 FROM external_attendance WHERE student_id = ? LIMIT 1");
+			if ($accessStmt) {
+				$accessStmt->bind_param('i', $studentId);
+				$accessStmt->execute();
+				$allowExternal = (bool)($accessStmt->get_result()->fetch_assoc() ?: null);
+				$accessStmt->close();
+			}
+		}
+	}
+
+	if (!$studentContext || !$allowExternal) {
 		header('Location: homepage.php');
 		exit;
 	}
@@ -102,7 +107,6 @@ include 'includes/header.php';
 ?>
 
 <?php
-$studentContext = null;
 $monthHours = 0.0;
 $approvedCount = 0;
 $pendingCount = 0;
@@ -114,20 +118,17 @@ $clockTypes = [
 ];
 
 if ($studentMode) {
-	$studentContext = external_attendance_student_context($conn, $currentUserId);
-	if ($studentContext) {
-		$selectedMonth = date('Y-m');
-		$monthStart = $selectedMonth . '-01';
-		$monthEnd = date('Y-m-t', strtotime($monthStart));
-		$monthRows = external_biometric_month_rows($conn, (int)$studentContext['id'], $monthStart, $monthEnd);
-		foreach ($monthRows as $monthRow) {
-			$monthHours += (float)($monthRow['total_hours'] ?? 0);
-			$status = strtolower(trim((string)($monthRow['status'] ?? 'pending')));
-			if ($status === 'approved') {
-				$approvedCount++;
-			} elseif ($status === 'pending') {
-				$pendingCount++;
-			}
+	$selectedMonth = date('Y-m');
+	$monthStart = $selectedMonth . '-01';
+	$monthEnd = date('Y-m-t', strtotime($monthStart));
+	$monthRows = external_biometric_month_rows($conn, (int)$studentContext['id'], $monthStart, $monthEnd);
+	foreach ($monthRows as $monthRow) {
+		$monthHours += (float)($monthRow['total_hours'] ?? 0);
+		$status = strtolower(trim((string)($monthRow['status'] ?? 'pending')));
+		if ($status === 'approved') {
+			$approvedCount++;
+		} elseif ($status === 'pending') {
+			$pendingCount++;
 		}
 	}
 }
@@ -143,7 +144,8 @@ $todayRecord = [
 if ($studentMode) {
 	$stmt = $conn->prepare("SELECT morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out FROM external_attendance WHERE student_id = ? AND attendance_date = ? LIMIT 1");
 	if ($stmt) {
-		$stmt->bind_param("is", $currentUserId, $today);
+		$studentId = (int)$studentContext['id'];
+		$stmt->bind_param("is", $studentId, $today);
 		$stmt->execute();
 		$row = $stmt->get_result()->fetch_assoc();
 		$stmt->close();

@@ -9,6 +9,7 @@ $nav_is_coordinator = ($nav_role === 'coordinator');
 $nav_is_supervisor = ($nav_role === 'supervisor');
 $nav_is_student = ($nav_role === 'student');
 $nav_student_track = 'internal';
+$nav_student_id = 0;
 $nav_student_has_external_access = false;
 
 if ($nav_is_student && isset($conn) && $conn instanceof mysqli) {
@@ -20,7 +21,7 @@ if ($nav_is_student && isset($conn) && $conn instanceof mysqli) {
 
     if ($nav_student_user_id > 0) {
         $nav_track_stmt = $conn->prepare('
-            SELECT assignment_track
+            SELECT id, assignment_track
             FROM students
             WHERE user_id = ? OR id = ?
             ORDER BY CASE WHEN user_id = ? THEN 0 ELSE 1 END, id DESC
@@ -32,9 +33,68 @@ if ($nav_is_student && isset($conn) && $conn instanceof mysqli) {
             $nav_track_row = $nav_track_stmt->get_result()->fetch_assoc() ?: null;
             $nav_track_stmt->close();
 
+            $nav_student_id = (int)($nav_track_row['id'] ?? 0);
             $nav_db_track = strtolower(trim((string)($nav_track_row['assignment_track'] ?? '')));
             if (in_array($nav_db_track, ['internal', 'external'], true)) {
                 $nav_student_track = $nav_db_track;
+            }
+        }
+
+        if (!in_array($nav_student_track, ['internal', 'external'], true) || $nav_student_track === 'internal') {
+            $nav_user_stmt = $conn->prepare('SELECT username, email, name FROM users WHERE id = ? LIMIT 1');
+            if ($nav_user_stmt) {
+                $nav_user_stmt->bind_param('i', $nav_student_user_id);
+                $nav_user_stmt->execute();
+                $nav_user_row = $nav_user_stmt->get_result()->fetch_assoc() ?: null;
+                $nav_user_stmt->close();
+                if ($nav_user_row) {
+                    $nav_username = trim((string)($nav_user_row['username'] ?? ''));
+                    $nav_email = trim((string)($nav_user_row['email'] ?? ''));
+                    $nav_name = trim((string)($nav_user_row['name'] ?? ''));
+                    if ($nav_username !== '' || $nav_email !== '' || $nav_name !== '') {
+                        $nav_fallback_stmt = $conn->prepare("
+                            SELECT id, assignment_track
+                            FROM students
+                            WHERE ((? <> '' AND LOWER(COALESCE(student_id, '')) = LOWER(?))
+                                OR (? <> '' AND LOWER(COALESCE(email, '')) = LOWER(?))
+                                OR (? <> '' AND LOWER(TRIM(CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')))) = LOWER(?)))
+                            ORDER BY
+                                CASE
+                                    WHEN (? <> '' AND LOWER(COALESCE(student_id, '')) = LOWER(?)) THEN 0
+                                    WHEN (? <> '' AND LOWER(COALESCE(email, '')) = LOWER(?)) THEN 1
+                                    WHEN (? <> '' AND LOWER(TRIM(CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')))) = LOWER(?)) THEN 2
+                                    ELSE 3
+                                END,
+                                id DESC
+                            LIMIT 1
+                        ");
+                        if ($nav_fallback_stmt) {
+                            $nav_fallback_stmt->bind_param(
+                                'ssssssssssss',
+                                $nav_username,
+                                $nav_username,
+                                $nav_email,
+                                $nav_email,
+                                $nav_name,
+                                $nav_name,
+                                $nav_username,
+                                $nav_username,
+                                $nav_email,
+                                $nav_email,
+                                $nav_name,
+                                $nav_name
+                            );
+                            $nav_fallback_stmt->execute();
+                            $nav_fallback_row = $nav_fallback_stmt->get_result()->fetch_assoc() ?: null;
+                            $nav_fallback_stmt->close();
+                            $nav_student_id = (int)($nav_fallback_row['id'] ?? $nav_student_id);
+                            $nav_fallback_track = strtolower(trim((string)($nav_fallback_row['assignment_track'] ?? '')));
+                            if (in_array($nav_fallback_track, ['internal', 'external'], true)) {
+                                $nav_student_track = $nav_fallback_track;
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -55,6 +115,15 @@ if ($nav_current_file === '') {
     $nav_current_file = strtolower(basename((string)$nav_request_path));
 }
 $nav_student_has_external_access = ($nav_student_track === 'external') || ($nav_is_student && $nav_current_file === 'external-biometric.php');
+if ($nav_is_student && !$nav_student_has_external_access && $nav_student_id > 0 && isset($conn) && $conn instanceof mysqli) {
+    $nav_external_stmt = $conn->prepare('SELECT 1 FROM external_attendance WHERE student_id = ? LIMIT 1');
+    if ($nav_external_stmt) {
+        $nav_external_stmt->bind_param('i', $nav_student_id);
+        $nav_external_stmt->execute();
+        $nav_student_has_external_access = (bool)($nav_external_stmt->get_result()->fetch_assoc() ?: null);
+        $nav_external_stmt->close();
+    }
+}
 
 if (!function_exists('biotern_nav_route_key')) {
     function biotern_nav_route_key($href) {
