@@ -155,6 +155,66 @@ function chat_has_table(mysqli $conn, string $table): bool
     return $result instanceof mysqli_result && $result->num_rows > 0;
 }
 
+function chat_student_scope(mysqli $conn, int $userId): ?array
+{
+    if ($userId <= 0) {
+        return null;
+    }
+
+    $stmt = $conn->prepare(
+        'SELECT s.id, s.user_id, COALESCE(s.section_id, 0) AS section_id
+         FROM students s
+         WHERE s.user_id = ?
+         LIMIT 1'
+    );
+    if (!$stmt) {
+        return null;
+    }
+
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!is_array($row)) {
+        return null;
+    }
+
+    return [
+        'student_id' => (int)($row['id'] ?? 0),
+        'user_id' => (int)($row['user_id'] ?? 0),
+        'section_id' => (int)($row['section_id'] ?? 0),
+    ];
+}
+
+function chat_student_can_contact_user(mysqli $conn, array $studentScope, int $recipientUserId): bool
+{
+    $recipientUserId = (int)$recipientUserId;
+    $sectionId = (int)($studentScope['section_id'] ?? 0);
+
+    if ($recipientUserId <= 0 || $sectionId <= 0) {
+        return false;
+    }
+
+    $stmt = $conn->prepare(
+        'SELECT 1
+         FROM students
+         WHERE user_id = ?
+           AND COALESCE(section_id, 0) = ?
+         LIMIT 1'
+    );
+    if (!$stmt) {
+        return false;
+    }
+
+    $stmt->bind_param('ii', $recipientUserId, $sectionId);
+    $stmt->execute();
+    $allowed = (bool)$stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    return $allowed;
+}
+
 function chat_fetch_recent_login_user_ids(mysqli $conn): array
 {
     if (!chat_has_table($conn, 'login_logs')) {
@@ -770,7 +830,9 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentUserName = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
 $currentUserRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 $isStudentChatUser = ($currentUserRole === 'student');
-$studentScopeErrorMessage = 'Students can only chat with other student accounts.';
+$studentScope = $isStudentChatUser ? chat_student_scope($conn, $currentUserId) : null;
+$studentScopeErrorMessage = 'Students can only chat with classmates from their current section.';
+$studentScopeMissingMessage = 'Your student profile needs an assigned section before chat classmates can appear.';
 
 $page_title = 'BioTern || Chat';
 $requestMethod = (string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
@@ -1249,16 +1311,10 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
 
         if (!$recipient) {
             $errorMessage = 'The selected recipient was not found.';
-        } elseif ($isStudentChatUser && $selectedUserId !== $currentUserId) {
-            $studentRecipientStmt = $conn->prepare('SELECT 1 FROM students WHERE user_id = ? LIMIT 1');
-            $isStudentRecipient = false;
-            if ($studentRecipientStmt) {
-                $studentRecipientStmt->bind_param('i', $selectedUserId);
-                $studentRecipientStmt->execute();
-                $isStudentRecipient = (bool)$studentRecipientStmt->get_result()->fetch_assoc();
-                $studentRecipientStmt->close();
-            }
-            if (!$isStudentRecipient) {
+        } elseif ($isStudentChatUser) {
+            if (!$studentScope || (int)($studentScope['section_id'] ?? 0) <= 0) {
+                $errorMessage = $studentScopeMissingMessage;
+            } elseif (!chat_student_can_contact_user($conn, $studentScope, $selectedUserId)) {
                 $errorMessage = $studentScopeErrorMessage;
             }
         } else {
@@ -1478,9 +1534,14 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
 
     $studentScopeFilterSql = '';
     if ($isStudentChatUser) {
-        $studentScopeFilterSql = ' AND (u.id = ? OR EXISTS (SELECT 1 FROM students su WHERE su.user_id = u.id))';
-        $contactTypes .= 'i';
-        $contactParams[] = $currentUserId;
+        if ($studentScope && (int)($studentScope['section_id'] ?? 0) > 0) {
+            $studentScopeFilterSql = ' AND u.id <> ? AND EXISTS (SELECT 1 FROM students su WHERE su.user_id = u.id AND COALESCE(su.section_id, 0) = ?)';
+            $contactTypes .= 'ii';
+            $contactParams[] = $currentUserId;
+            $contactParams[] = (int)$studentScope['section_id'];
+        } else {
+            $studentScopeFilterSql = ' AND 1 = 0';
+        }
     }
 
     $contactsSql = '
@@ -1562,7 +1623,9 @@ if ($selectedUserId > 0) {
     if ($isStudentChatUser && $selectedContact === null) {
         $selectedUserId = 0;
         if ($errorMessage === '') {
-            $errorMessage = $studentScopeErrorMessage;
+            $errorMessage = ($studentScope && (int)($studentScope['section_id'] ?? 0) > 0)
+                ? $studentScopeErrorMessage
+                : $studentScopeMissingMessage;
         }
     }
 
@@ -1822,6 +1885,11 @@ if ($selectedContact) {
 }
 
 $normalizedMessages = chat_normalize_messages($conversationMessages, $currentUserId);
+$hasStudentSectionScope = $isStudentChatUser && $studentScope && (int)($studentScope['section_id'] ?? 0) > 0;
+$contactSearchPlaceholder = $isStudentChatUser ? 'Search classmates' : 'Search contacts';
+$emptyContactsMessage = $isStudentChatUser
+    ? ($hasStudentSectionScope ? 'No classmates available in your current section.' : $studentScopeMissingMessage)
+    : 'No users available.';
 
 if ($isAjaxRequest) {
     if ($errorMessage !== '') {
@@ -1874,14 +1942,14 @@ include 'includes/header.php';
     <div class="btchat-shell" id="btchat-app" data-selected-user-id="<?php echo (int)$selectedUserId; ?>" data-chat-base-url="<?php echo chat_esc(chat_page_url()); ?>" data-current-user-id="<?php echo (int)$currentUserId; ?>">
         <aside class="btchat-left">
             <div class="btchat-left-header">
-                <h2 class="btchat-left-title">Inbox</h2>
+                <h2 class="btchat-left-title"><?php echo $isStudentChatUser ? 'Classmates' : 'Inbox'; ?></h2>
             </div>
             <div class="btchat-search-wrap">
-                <input type="search" class="btchat-search" id="btchat-search" placeholder="Search contacts">
+                <input type="search" class="btchat-search" id="btchat-search" placeholder="<?php echo chat_esc($contactSearchPlaceholder); ?>">
             </div>
             <div class="btchat-list" id="btchat-list">
                 <?php if (empty($contacts)): ?>
-                    <div class="px-3 py-4 text-white-50">No users available.</div>
+                    <div class="px-3 py-4 text-white-50"><?php echo chat_esc($emptyContactsMessage); ?></div>
                 <?php else: ?>
                     <?php foreach ($normalizedContacts as $contact): ?>
                         <?php
