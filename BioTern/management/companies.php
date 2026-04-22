@@ -3,10 +3,11 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/company_profiles.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
 $role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
-if (!in_array($role, ['admin', 'coordinator'], true)) {
+if (!in_array($role, ['admin', 'coordinator', 'supervisor'], true)) {
     header('Location: homepage.php');
     exit;
 }
@@ -21,15 +22,6 @@ function companies_table_exists(mysqli $conn, string $table): bool
     $escaped = $conn->real_escape_string($table);
     $res = $conn->query("SHOW TABLES LIKE '{$escaped}'");
     return $res instanceof mysqli_result && $res->num_rows > 0;
-}
-
-function company_normalize_key(string $value): string
-{
-    $value = function_exists('mb_strtolower')
-        ? trim(mb_strtolower($value, 'UTF-8'))
-        : trim(strtolower($value));
-    $value = preg_replace('/\s+/', ' ', $value);
-    return (string)$value;
 }
 
 function company_display_name(?string $value): string
@@ -91,8 +83,29 @@ function company_status_tone(string $status): string
 
 function company_track_label(string $track): string
 {
-    $track = strtolower(trim($track));
-    return $track === 'external' ? 'External' : 'Internal';
+    return strtolower(trim($track)) === 'external' ? 'External' : 'Internal';
+}
+
+function company_initials(?string $value): string
+{
+    $value = trim((string)$value);
+    if ($value === '') {
+        return 'CO';
+    }
+
+    $parts = preg_split('/\s+/', $value) ?: [];
+    $letters = '';
+    foreach ($parts as $part) {
+        if ($part === '') {
+            continue;
+        }
+        $letters .= strtoupper(substr($part, 0, 1));
+        if (strlen($letters) >= 2) {
+            break;
+        }
+    }
+
+    return $letters !== '' ? $letters : 'CO';
 }
 
 function resolve_profile_image_url(string $profilePath, int $userId = 0): ?string
@@ -101,21 +114,160 @@ function resolve_profile_image_url(string $profilePath, int $userId = 0): ?strin
     return $resolved !== '' ? $resolved : null;
 }
 
-$ensureCompaniesSql = "CREATE TABLE IF NOT EXISTS ojt_partner_companies (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    company_lookup_key VARCHAR(255) NOT NULL,
-    company_name VARCHAR(255) NOT NULL,
-    company_address TEXT DEFAULT NULL,
-    supervisor_name VARCHAR(255) DEFAULT NULL,
-    supervisor_position VARCHAR(255) DEFAULT NULL,
-    company_representative VARCHAR(255) DEFAULT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    UNIQUE KEY uniq_company_lookup (company_lookup_key)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-$companyTableReady = (bool)$conn->query($ensureCompaniesSql);
+$companyTableReady = biotern_company_profiles_ensure_table($conn);
 $internshipsTableReady = companies_table_exists($conn, 'internships');
+
+$companyFlash = $_SESSION['companies_flash'] ?? null;
+unset($_SESSION['companies_flash']);
+
+$companyForm = [
+    'company_name' => '',
+    'company_address' => '',
+    'supervisor_name' => '',
+    'supervisor_position' => '',
+    'company_representative' => '',
+    'company_representative_position' => '',
+];
+$companyFormErrors = [];
+$showAddCompanyModal = false;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'save_company') {
+    $companyForm = [
+        'company_name' => trim((string)($_POST['company_name'] ?? '')),
+        'company_address' => trim((string)($_POST['company_address'] ?? '')),
+        'supervisor_name' => trim((string)($_POST['supervisor_name'] ?? '')),
+        'supervisor_position' => trim((string)($_POST['supervisor_position'] ?? '')),
+        'company_representative' => trim((string)($_POST['company_representative'] ?? '')),
+        'company_representative_position' => trim((string)($_POST['company_representative_position'] ?? '')),
+    ];
+    $returnSearch = trim((string)($_POST['return_q'] ?? ''));
+    $returnSort = strtolower(trim((string)($_POST['return_sort'] ?? 'updated')));
+    if (!in_array($returnSort, ['updated', 'name', 'interns'], true)) {
+        $returnSort = 'updated';
+    }
+
+    if (!$companyTableReady) {
+        $companyFormErrors[] = 'The company table is not available right now.';
+    }
+    if ($companyForm['company_name'] === '') {
+        $companyFormErrors[] = 'Company name is required.';
+    }
+
+    $uploadedCompanyPicture = '';
+    if ($companyFormErrors === [] && isset($_FILES['company_profile_picture']) && is_array($_FILES['company_profile_picture'])) {
+        $uploadError = (int)($_FILES['company_profile_picture']['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($uploadError !== UPLOAD_ERR_NO_FILE) {
+            if ($uploadError !== UPLOAD_ERR_OK) {
+                $companyFormErrors[] = 'The company image upload failed.';
+            } else {
+                $tmpName = (string)($_FILES['company_profile_picture']['tmp_name'] ?? '');
+                $originalName = (string)($_FILES['company_profile_picture']['name'] ?? 'company-image');
+                $extension = strtolower((string)pathinfo($originalName, PATHINFO_EXTENSION));
+                $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+                if (!in_array($extension, $allowedExtensions, true)) {
+                    $companyFormErrors[] = 'Use a JPG, PNG, WEBP, or GIF image for the company profile.';
+                } else {
+                    $uploadDirAbsolute = dirname(__DIR__) . '/uploads/company-profiles';
+                    if (!is_dir($uploadDirAbsolute)) {
+                        @mkdir($uploadDirAbsolute, 0775, true);
+                    }
+
+                    if (!is_dir($uploadDirAbsolute) || !is_writable($uploadDirAbsolute)) {
+                        $companyFormErrors[] = 'The company profile image folder is not writable.';
+                    } else {
+                        try {
+                            $randomSuffix = bin2hex(random_bytes(6));
+                        } catch (Throwable $e) {
+                            $randomSuffix = substr(md5((string)microtime(true)), 0, 12);
+                        }
+
+                        $targetFileName = 'company-' . date('YmdHis') . '-' . $randomSuffix . '.' . $extension;
+                        $targetAbsolute = $uploadDirAbsolute . '/' . $targetFileName;
+                        if (!@move_uploaded_file($tmpName, $targetAbsolute)) {
+                            $companyFormErrors[] = 'Unable to move the uploaded company image.';
+                        } else {
+                            $uploadedCompanyPicture = 'uploads/company-profiles/' . $targetFileName;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if ($companyFormErrors === []) {
+        $lookupKey = biotern_company_profile_lookup_key($companyForm['company_name'], $companyForm['company_address']);
+        if ($lookupKey === '') {
+            $companyFormErrors[] = 'Unable to generate a valid company lookup key.';
+        } else {
+            $saveStmt = $conn->prepare("
+                INSERT INTO ojt_partner_companies (
+                    company_lookup_key,
+                    company_name,
+                    company_address,
+                    supervisor_name,
+                    supervisor_position,
+                    company_representative,
+                    company_representative_position,
+                    company_profile_picture,
+                    created_at,
+                    updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE
+                    company_name = VALUES(company_name),
+                    company_address = VALUES(company_address),
+                    supervisor_name = VALUES(supervisor_name),
+                    supervisor_position = VALUES(supervisor_position),
+                    company_representative = VALUES(company_representative),
+                    company_representative_position = VALUES(company_representative_position),
+                    company_profile_picture = CASE
+                        WHEN VALUES(company_profile_picture) IS NULL OR VALUES(company_profile_picture) = '' THEN company_profile_picture
+                        ELSE VALUES(company_profile_picture)
+                    END,
+                    updated_at = NOW()
+            ");
+
+            if (!$saveStmt) {
+                $companyFormErrors[] = 'Unable to save the company right now.';
+            } else {
+                $saveStmt->bind_param(
+                    'ssssssss',
+                    $lookupKey,
+                    $companyForm['company_name'],
+                    $companyForm['company_address'],
+                    $companyForm['supervisor_name'],
+                    $companyForm['supervisor_position'],
+                    $companyForm['company_representative'],
+                    $companyForm['company_representative_position'],
+                    $uploadedCompanyPicture
+                );
+
+                if ($saveStmt->execute()) {
+                    $_SESSION['companies_flash'] = [
+                        'type' => 'success',
+                        'message' => 'Company profile saved successfully.',
+                    ];
+                    $saveStmt->close();
+
+                    $redirectParams = [
+                        'company' => biotern_company_profile_normalized_name($companyForm['company_name']),
+                        'sort' => $returnSort,
+                    ];
+                    if ($returnSearch !== '') {
+                        $redirectParams['q'] = $returnSearch;
+                    }
+
+                    header('Location: companies.php?' . http_build_query($redirectParams));
+                    exit;
+                }
+
+                $companyFormErrors[] = 'Saving failed: ' . $saveStmt->error;
+                $saveStmt->close();
+            }
+        }
+    }
+
+    $showAddCompanyModal = true;
+}
 
 $search = trim((string)($_GET['q'] ?? ''));
 $sort = strtolower(trim((string)($_GET['sort'] ?? 'updated')));
@@ -137,6 +289,8 @@ if ($companyTableReady) {
             supervisor_name,
             supervisor_position,
             company_representative,
+            company_representative_position,
+            company_profile_picture,
             created_at,
             updated_at
         FROM ojt_partner_companies
@@ -146,7 +300,7 @@ if ($companyTableReady) {
     if ($partnerResult) {
         while ($row = $partnerResult->fetch_assoc()) {
             $companyName = trim((string)($row['company_name'] ?? ''));
-            $key = company_normalize_key($companyName);
+            $key = biotern_company_profile_normalized_name($companyName);
             if ($key === '') {
                 continue;
             }
@@ -160,6 +314,9 @@ if ($companyTableReady) {
                 'supervisor_name' => trim((string)($row['supervisor_name'] ?? '')),
                 'supervisor_position' => trim((string)($row['supervisor_position'] ?? '')),
                 'company_representative' => trim((string)($row['company_representative'] ?? '')),
+                'company_representative_position' => trim((string)($row['company_representative_position'] ?? '')),
+                'company_profile_picture' => trim((string)($row['company_profile_picture'] ?? '')),
+                'company_profile_picture_src' => biotern_company_profile_public_src((string)($row['company_profile_picture'] ?? '')),
                 'created_at' => trim((string)($row['created_at'] ?? '')),
                 'updated_at' => trim((string)($row['updated_at'] ?? '')),
                 'intern_count' => 0,
@@ -196,7 +353,7 @@ if ($internshipsTableReady) {
         while ($row = $internshipAggregateResult->fetch_assoc()) {
             $key = trim((string)($row['company_key'] ?? ''));
             if ($key === '') {
-                $key = company_normalize_key((string)($row['company_name'] ?? ''));
+                $key = biotern_company_profile_normalized_name((string)($row['company_name'] ?? ''));
             }
             if ($key === '') {
                 continue;
@@ -212,6 +369,9 @@ if ($internshipsTableReady) {
                     'supervisor_name' => '',
                     'supervisor_position' => '',
                     'company_representative' => '',
+                    'company_representative_position' => '',
+                    'company_profile_picture' => '',
+                    'company_profile_picture_src' => '',
                     'created_at' => '',
                     'updated_at' => '',
                     'intern_count' => 0,
@@ -221,8 +381,12 @@ if ($internshipsTableReady) {
                 ];
             }
 
-            $companyMap[$key]['company_name'] = $companyMap[$key]['company_name'] !== '' ? $companyMap[$key]['company_name'] : trim((string)($row['company_name'] ?? ''));
-            $companyMap[$key]['company_address'] = $companyMap[$key]['company_address'] !== '' ? $companyMap[$key]['company_address'] : trim((string)($row['company_address'] ?? ''));
+            if ($companyMap[$key]['company_name'] === '') {
+                $companyMap[$key]['company_name'] = trim((string)($row['company_name'] ?? ''));
+            }
+            if ($companyMap[$key]['company_address'] === '') {
+                $companyMap[$key]['company_address'] = trim((string)($row['company_address'] ?? ''));
+            }
             $companyMap[$key]['intern_count'] = (int)($row['intern_count'] ?? 0);
             $companyMap[$key]['ongoing_count'] = (int)($row['ongoing_count'] ?? 0);
             $companyMap[$key]['latest_activity'] = trim((string)($row['latest_activity'] ?? ''));
@@ -239,20 +403,25 @@ $totalOngoingInterns = 0;
 $companiesWithProfiles = 0;
 foreach ($companies as $company) {
     $totalOngoingInterns += (int)($company['ongoing_count'] ?? 0);
-    if (trim((string)($company['supervisor_name'] ?? '')) !== '' || trim((string)($company['company_representative'] ?? '')) !== '') {
+    if (
+        trim((string)($company['supervisor_name'] ?? '')) !== ''
+        || trim((string)($company['company_representative'] ?? '')) !== ''
+        || trim((string)($company['company_profile_picture'] ?? '')) !== ''
+    ) {
         $companiesWithProfiles++;
     }
 }
 
 if ($search !== '') {
-    $needle = company_normalize_key($search);
+    $needle = biotern_company_profile_normalized_name($search);
     $companies = array_values(array_filter($companies, static function (array $company) use ($needle): bool {
-        $haystack = company_normalize_key(implode(' ', [
+        $haystack = biotern_company_profile_normalized_name(implode(' ', [
             (string)($company['company_name'] ?? ''),
             (string)($company['company_address'] ?? ''),
             (string)($company['supervisor_name'] ?? ''),
             (string)($company['supervisor_position'] ?? ''),
             (string)($company['company_representative'] ?? ''),
+            (string)($company['company_representative_position'] ?? ''),
         ]));
 
         return $haystack !== '' && strpos($haystack, $needle) !== false;
@@ -283,7 +452,7 @@ usort($companies, static function (array $a, array $b) use ($sort): int {
 $selectedCompany = null;
 $selectedCompanyKey = '';
 if ($selectedCompanyParam !== '') {
-    $normalizedSelectedKey = company_normalize_key($selectedCompanyParam);
+    $normalizedSelectedKey = biotern_company_profile_normalized_name($selectedCompanyParam);
     foreach ($companies as $company) {
         if ($company['key'] === $selectedCompanyParam || $company['key'] === $normalizedSelectedKey) {
             $selectedCompany = $company;
@@ -359,18 +528,14 @@ if ($selectedCompany !== null && $internshipsTableReady) {
                 $sectionLabel = '-';
             }
 
-            $profileUrl = resolve_profile_image_url((string)($row['profile_picture'] ?? ''), (int)($row['user_id'] ?? 0));
-            $requiredHours = (int)($row['required_hours'] ?? 0);
-            $renderedHours = (int)($row['rendered_hours'] ?? 0);
-
             $row['display_name'] = trim(implode(' ', array_filter([
                 (string)($row['first_name'] ?? ''),
                 (string)($row['middle_name'] ?? ''),
                 (string)($row['last_name'] ?? ''),
             ])));
             $row['section_label'] = $sectionLabel;
-            $row['profile_url'] = $profileUrl;
-            $row['progress_pct'] = company_progress_pct($renderedHours, $requiredHours);
+            $row['profile_url'] = resolve_profile_image_url((string)($row['profile_picture'] ?? ''), (int)($row['user_id'] ?? 0));
+            $row['progress_pct'] = company_progress_pct((int)($row['rendered_hours'] ?? 0), (int)($row['required_hours'] ?? 0));
             $companyInterns[] = $row;
         }
         $internStmt->close();
@@ -393,11 +558,15 @@ include 'includes/header.php';
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                    <li class="breadcrumb-item">Academic</li>
+                    <li class="breadcrumb-item">Internship</li>
                     <li class="breadcrumb-item">Companies</li>
                 </ul>
             </div>
             <div class="page-header-right ms-auto">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCompanyModal">
+                    <i class="feather-plus me-2"></i>
+                    <span>Add Company</span>
+                </button>
                 <a href="companies.php" class="btn btn-outline-primary">
                     <i class="feather-refresh-cw me-2"></i>
                     <span>Refresh</span>
@@ -406,6 +575,17 @@ include 'includes/header.php';
         </div>
 
         <div class="main-content">
+            <?php if (is_array($companyFlash) && !empty($companyFlash['message'])): ?>
+                <div class="alert alert-<?php echo h((string)($companyFlash['type'] ?? 'info')); ?> companies-page-alert">
+                    <?php echo h((string)$companyFlash['message']); ?>
+                </div>
+            <?php endif; ?>
+            <?php if ($companyFormErrors !== []): ?>
+                <div class="alert alert-danger companies-page-alert">
+                    <?php echo h($companyFormErrors[0]); ?>
+                </div>
+            <?php endif; ?>
+
             <div class="row g-3 companies-stat-grid">
                 <div class="col-12 col-md-4">
                     <article class="card companies-stat-card h-100">
@@ -421,16 +601,16 @@ include 'includes/header.php';
                         <div class="card-body">
                             <span class="companies-stat-label">Ongoing Interns</span>
                             <h3 class="companies-stat-value"><?php echo (int)$totalOngoingInterns; ?></h3>
-                            <p class="companies-stat-note mb-0">Students currently attached to company assignments with active internship status.</p>
+                            <p class="companies-stat-note mb-0">Students currently attached to active company internship records.</p>
                         </div>
                     </article>
                 </div>
                 <div class="col-12 col-md-4">
                     <article class="card companies-stat-card h-100">
                         <div class="card-body">
-                            <span class="companies-stat-label">With Company Profile</span>
+                            <span class="companies-stat-label">Profiled Companies</span>
                             <h3 class="companies-stat-value"><?php echo (int)$companiesWithProfiles; ?></h3>
-                            <p class="companies-stat-note mb-0">Companies that already have supervisor or representative information saved.</p>
+                            <p class="companies-stat-note mb-0">Companies that already include people, image, or richer profile information.</p>
                         </div>
                     </article>
                 </div>
@@ -440,13 +620,13 @@ include 'includes/header.php';
                 <div class="card-header companies-shell-header">
                     <div>
                         <h5 class="card-title mb-1">Company Directory</h5>
-                        <p class="companies-shell-copy mb-0">Browse companies on the left, then inspect one company’s profile and its assigned interns on the right.</p>
+                        <p class="companies-shell-copy mb-0">Browse companies on the left, inspect one company on the right, or open its full profile popup with the student list.</p>
                     </div>
                     <form method="get" class="companies-toolbar" action="companies.php">
                         <input type="hidden" name="company" value="<?php echo h($selectedCompanyKey); ?>">
                         <label class="companies-toolbar-field">
                             <span class="visually-hidden">Search companies</span>
-                            <input type="search" class="form-control" name="q" value="<?php echo h($search); ?>" placeholder="Search company, address, supervisor">
+                            <input type="search" class="form-control" name="q" value="<?php echo h($search); ?>" placeholder="Search company, address, representative">
                         </label>
                         <label class="companies-toolbar-field companies-toolbar-select">
                             <span class="visually-hidden">Sort companies</span>
@@ -459,6 +639,7 @@ include 'includes/header.php';
                         <button type="submit" class="btn btn-primary">Apply</button>
                     </form>
                 </div>
+
                 <div class="card-body companies-shell-body">
                     <div class="companies-layout">
                         <aside class="companies-list-panel">
@@ -470,7 +651,7 @@ include 'includes/header.php';
                                 <div class="companies-empty-state companies-list-empty-state">
                                     <div class="companies-empty-icon"><i class="feather-briefcase"></i></div>
                                     <h6>No companies found</h6>
-                                    <p class="mb-0">Add internship company names or import partner companies to populate this directory.</p>
+                                    <p class="mb-0">Add company profiles or assign company names in internship records to populate this directory.</p>
                                 </div>
                             <?php else: ?>
                                 <div class="companies-list-scroll">
@@ -485,9 +666,24 @@ include 'includes/header.php';
                                         ?>
                                         <a href="<?php echo h($companyHref); ?>" class="companies-list-item<?php echo $isActive ? ' is-active' : ''; ?>">
                                             <div class="companies-list-item-main">
+                                                <div class="companies-list-thumb">
+                                                    <?php if (!empty($company['company_profile_picture_src'])): ?>
+                                                        <img src="<?php echo h((string)$company['company_profile_picture_src']); ?>" alt="<?php echo h(company_display_name($company['company_name'] ?? '')); ?>">
+                                                    <?php else: ?>
+                                                        <span><?php echo h(company_initials((string)($company['company_name'] ?? ''))); ?></span>
+                                                    <?php endif; ?>
+                                                </div>
                                                 <div class="companies-list-item-copy">
                                                     <h6 class="mb-1"><?php echo h(company_display_name($company['company_name'] ?? '')); ?></h6>
-                                                    <p class="mb-0"><?php echo h(trim((string)($company['supervisor_name'] ?? '')) !== '' ? (string)$company['supervisor_name'] : 'No supervisor profile yet'); ?></p>
+                                                    <p class="mb-0">
+                                                        <?php
+                                                        $listContact = trim((string)($company['company_representative'] ?? ''));
+                                                        if ($listContact === '') {
+                                                            $listContact = trim((string)($company['supervisor_name'] ?? ''));
+                                                        }
+                                                        echo h($listContact !== '' ? $listContact : 'No company contact profile yet');
+                                                        ?>
+                                                    </p>
                                                 </div>
                                                 <span class="companies-list-count"><?php echo (int)($company['intern_count'] ?? 0); ?></span>
                                             </div>
@@ -506,7 +702,7 @@ include 'includes/header.php';
                                 <div class="companies-empty-state">
                                     <div class="companies-empty-icon"><i class="feather-alert-circle"></i></div>
                                     <h6>Company data source unavailable</h6>
-                                    <p class="mb-0">The page is ready, but the supporting company and internship tables are not accessible right now.</p>
+                                    <p class="mb-0">The page is ready, but the company and internship tables are not accessible right now.</p>
                                 </div>
                             <?php elseif ($selectedCompany === null): ?>
                                 <div class="companies-empty-state">
@@ -516,29 +712,30 @@ include 'includes/header.php';
                                 </div>
                             <?php else: ?>
                                 <div class="companies-detail-head">
-                                    <div>
-                                        <div class="companies-detail-badges">
-                                            <span class="companies-detail-badge"><?php echo h(company_display_name($selectedCompany['company_name'] ?? '')); ?></span>
-                                            <?php if (!empty($selectedCompany['has_partner_record'])): ?>
-                                                <span class="companies-detail-badge is-neutral">Profile Linked</span>
+                                    <div class="companies-detail-primary">
+                                        <div class="companies-detail-thumb">
+                                            <?php if (!empty($selectedCompany['company_profile_picture_src'])): ?>
+                                                <img src="<?php echo h((string)$selectedCompany['company_profile_picture_src']); ?>" alt="<?php echo h(company_display_name($selectedCompany['company_name'] ?? '')); ?>">
+                                            <?php else: ?>
+                                                <span><?php echo h(company_initials((string)($selectedCompany['company_name'] ?? ''))); ?></span>
                                             <?php endif; ?>
                                         </div>
-                                        <h4 class="companies-detail-title mb-1"><?php echo h(company_display_name($selectedCompany['company_name'] ?? '')); ?></h4>
-                                        <p class="companies-detail-subtitle mb-0"><?php echo h(trim((string)($selectedCompany['company_address'] ?? '')) !== '' ? (string)$selectedCompany['company_address'] : 'No company address saved yet.'); ?></p>
+                                        <div>
+                                            <div class="companies-detail-badges">
+                                                <span class="companies-detail-badge"><?php echo h(company_display_name($selectedCompany['company_name'] ?? '')); ?></span>
+                                                <?php if (!empty($selectedCompany['has_partner_record'])): ?>
+                                                    <span class="companies-detail-badge is-neutral">Profile Linked</span>
+                                                <?php endif; ?>
+                                            </div>
+                                            <h4 class="companies-detail-title mb-1"><?php echo h(company_display_name($selectedCompany['company_name'] ?? '')); ?></h4>
+                                            <p class="companies-detail-subtitle mb-0"><?php echo h(trim((string)($selectedCompany['company_address'] ?? '')) !== '' ? (string)$selectedCompany['company_address'] : 'No company address saved yet.'); ?></p>
+                                        </div>
                                     </div>
-                                    <div class="companies-detail-metrics">
-                                        <div class="companies-mini-stat">
-                                            <span>Interns</span>
-                                            <strong><?php echo (int)($selectedCompany['intern_count'] ?? 0); ?></strong>
-                                        </div>
-                                        <div class="companies-mini-stat">
-                                            <span>Ongoing</span>
-                                            <strong><?php echo (int)($selectedCompany['ongoing_count'] ?? 0); ?></strong>
-                                        </div>
-                                        <div class="companies-mini-stat">
-                                            <span>Updated</span>
-                                            <strong><?php echo h(company_datetime_label((string)($selectedCompany['latest_activity'] ?: $selectedCompany['updated_at'] ?: ''))); ?></strong>
-                                        </div>
+                                    <div class="companies-detail-actions">
+                                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewCompanyProfileModal">
+                                            <i class="feather-eye me-2"></i>
+                                            <span>Open Profile</span>
+                                        </button>
                                     </div>
                                 </div>
 
@@ -548,16 +745,20 @@ include 'includes/header.php';
                                             <h6 class="mb-3">Company Information</h6>
                                             <dl class="companies-info-list mb-0">
                                                 <div>
+                                                    <dt>Representative</dt>
+                                                    <dd><?php echo h(trim((string)($selectedCompany['company_representative'] ?? '')) !== '' ? (string)$selectedCompany['company_representative'] : 'Not provided'); ?></dd>
+                                                </div>
+                                                <div>
+                                                    <dt>Representative Position</dt>
+                                                    <dd><?php echo h(trim((string)($selectedCompany['company_representative_position'] ?? '')) !== '' ? (string)$selectedCompany['company_representative_position'] : 'Not provided'); ?></dd>
+                                                </div>
+                                                <div>
                                                     <dt>Supervisor</dt>
                                                     <dd><?php echo h(trim((string)($selectedCompany['supervisor_name'] ?? '')) !== '' ? (string)$selectedCompany['supervisor_name'] : 'Not provided'); ?></dd>
                                                 </div>
                                                 <div>
                                                     <dt>Supervisor Position</dt>
                                                     <dd><?php echo h(trim((string)($selectedCompany['supervisor_position'] ?? '')) !== '' ? (string)$selectedCompany['supervisor_position'] : 'Not provided'); ?></dd>
-                                                </div>
-                                                <div>
-                                                    <dt>Representative</dt>
-                                                    <dd><?php echo h(trim((string)($selectedCompany['company_representative'] ?? '')) !== '' ? (string)$selectedCompany['company_representative'] : 'Not provided'); ?></dd>
                                                 </div>
                                                 <div>
                                                     <dt>Address</dt>
@@ -603,9 +804,9 @@ include 'includes/header.php';
                                                                     </div>
                                                                     <p class="mb-0">
                                                                         <?php echo h((string)($intern['course_name'] ?? '-')); ?>
-                                                                        <span class="companies-dot">•</span>
+                                                                        <span class="companies-dot">|</span>
                                                                         <?php echo h((string)($intern['section_label'] ?? '-')); ?>
-                                                                        <span class="companies-dot">•</span>
+                                                                        <span class="companies-dot">|</span>
                                                                         <?php echo h(company_track_label((string)($intern['assignment_track'] ?? 'internal'))); ?>
                                                                     </p>
                                                                 </div>
@@ -644,5 +845,194 @@ include 'includes/header.php';
         </div>
     </div>
 </main>
+
+<div class="modal fade" id="addCompanyModal" tabindex="-1" aria-labelledby="addCompanyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content companies-modal">
+            <form method="post" action="companies.php" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="save_company">
+                <input type="hidden" name="return_q" value="<?php echo h($search); ?>">
+                <input type="hidden" name="return_sort" value="<?php echo h($sort); ?>">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title" id="addCompanyModalLabel">Add Company</h5>
+                        <p class="companies-modal-copy mb-0">Save a reusable company profile for the company directory and document autofill.</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" for="company_profile_picture">Company Profile Picture</label>
+                            <input
+                                type="file"
+                                class="form-control"
+                                id="company_profile_picture"
+                                name="company_profile_picture"
+                                accept=".jpg,.jpeg,.png,.webp,.gif,image/*"
+                            >
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" for="company_name">Company Name</label>
+                            <input type="text" class="form-control" id="company_name" name="company_name" value="<?php echo h($companyForm['company_name']); ?>" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold" for="company_address">Company Address</label>
+                            <textarea class="form-control" id="company_address" name="company_address" rows="3"><?php echo h($companyForm['company_address']); ?></textarea>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="company_representative">Company Representative</label>
+                            <input type="text" class="form-control" id="company_representative" name="company_representative" value="<?php echo h($companyForm['company_representative']); ?>">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="company_representative_position">Representative Position</label>
+                            <input type="text" class="form-control" id="company_representative_position" name="company_representative_position" value="<?php echo h($companyForm['company_representative_position']); ?>">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="supervisor_name">Supervisor Name</label>
+                            <input type="text" class="form-control" id="supervisor_name" name="supervisor_name" value="<?php echo h($companyForm['supervisor_name']); ?>">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="supervisor_position">Supervisor Position</label>
+                            <input type="text" class="form-control" id="supervisor_position" name="supervisor_position" value="<?php echo h($companyForm['supervisor_position']); ?>">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Company</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<?php if ($selectedCompany !== null): ?>
+<div class="modal fade" id="viewCompanyProfileModal" tabindex="-1" aria-labelledby="viewCompanyProfileModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content companies-modal companies-profile-modal">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="viewCompanyProfileModalLabel">Company Profile</h5>
+                    <p class="companies-modal-copy mb-0">Profile view for <?php echo h(company_display_name($selectedCompany['company_name'] ?? '')); ?> with the current student intern list.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="companies-profile-hero">
+                    <div class="companies-profile-hero-thumb">
+                        <?php if (!empty($selectedCompany['company_profile_picture_src'])): ?>
+                            <img src="<?php echo h((string)$selectedCompany['company_profile_picture_src']); ?>" alt="<?php echo h(company_display_name($selectedCompany['company_name'] ?? '')); ?>">
+                        <?php else: ?>
+                            <span><?php echo h(company_initials((string)($selectedCompany['company_name'] ?? ''))); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="companies-profile-hero-copy">
+                        <h3 class="mb-1"><?php echo h(company_display_name($selectedCompany['company_name'] ?? '')); ?></h3>
+                        <p class="mb-2"><?php echo h(trim((string)($selectedCompany['company_address'] ?? '')) !== '' ? (string)$selectedCompany['company_address'] : 'No company address saved yet.'); ?></p>
+                        <div class="companies-profile-chip-row">
+                            <span class="companies-meta-chip"><?php echo (int)($selectedCompany['intern_count'] ?? 0); ?> interns</span>
+                            <span class="companies-meta-chip"><?php echo (int)($selectedCompany['ongoing_count'] ?? 0); ?> ongoing</span>
+                            <span class="companies-meta-chip"><?php echo h(company_datetime_label((string)($selectedCompany['latest_activity'] ?: $selectedCompany['updated_at'] ?: ''))); ?></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-12 col-lg-4">
+                        <article class="companies-info-card h-100">
+                            <h6 class="mb-3">Company Information</h6>
+                            <dl class="companies-info-list mb-0">
+                                <div>
+                                    <dt>Representative</dt>
+                                    <dd><?php echo h(trim((string)($selectedCompany['company_representative'] ?? '')) !== '' ? (string)$selectedCompany['company_representative'] : 'Not provided'); ?></dd>
+                                </div>
+                                <div>
+                                    <dt>Representative Position</dt>
+                                    <dd><?php echo h(trim((string)($selectedCompany['company_representative_position'] ?? '')) !== '' ? (string)$selectedCompany['company_representative_position'] : 'Not provided'); ?></dd>
+                                </div>
+                                <div>
+                                    <dt>Supervisor</dt>
+                                    <dd><?php echo h(trim((string)($selectedCompany['supervisor_name'] ?? '')) !== '' ? (string)$selectedCompany['supervisor_name'] : 'Not provided'); ?></dd>
+                                </div>
+                                <div>
+                                    <dt>Supervisor Position</dt>
+                                    <dd><?php echo h(trim((string)($selectedCompany['supervisor_position'] ?? '')) !== '' ? (string)$selectedCompany['supervisor_position'] : 'Not provided'); ?></dd>
+                                </div>
+                            </dl>
+                        </article>
+                    </div>
+                    <div class="col-12 col-lg-8">
+                        <article class="companies-intern-card h-100">
+                            <div class="companies-intern-card-head">
+                                <div>
+                                    <h6 class="mb-1">Assigned Students</h6>
+                                    <p class="mb-0">Same live list used by the company directory detail panel.</p>
+                                </div>
+                                <span class="companies-intern-count"><?php echo count($companyInterns); ?> student(s)</span>
+                            </div>
+
+                            <?php if ($companyInterns === []): ?>
+                                <div class="companies-empty-state companies-intern-empty-state">
+                                    <div class="companies-empty-icon"><i class="feather-users"></i></div>
+                                    <h6>No student interns linked yet</h6>
+                                    <p class="mb-0">This company profile is ready, but there are no current student internship rows attached to it.</p>
+                                </div>
+                            <?php else: ?>
+                                <div class="companies-intern-list">
+                                    <?php foreach ($companyInterns as $intern): ?>
+                                        <article class="companies-intern-item">
+                                            <div class="companies-intern-primary">
+                                                <div class="companies-intern-avatar">
+                                                    <?php if (!empty($intern['profile_url'])): ?>
+                                                        <img src="<?php echo h((string)$intern['profile_url']); ?>" alt="<?php echo h((string)$intern['display_name']); ?>">
+                                                    <?php else: ?>
+                                                        <span><?php echo h(strtoupper(substr((string)($intern['first_name'] ?? 'S'), 0, 1))); ?></span>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="companies-intern-copy">
+                                                    <div class="companies-intern-name-row">
+                                                        <h6 class="mb-0"><?php echo h((string)$intern['display_name']); ?></h6>
+                                                        <span class="companies-status-pill <?php echo h(company_status_tone((string)($intern['internship_status'] ?? ''))); ?>">
+                                                            <?php echo h(ucfirst((string)($intern['internship_status'] ?? 'Unknown'))); ?>
+                                                        </span>
+                                                    </div>
+                                                    <p class="mb-0">
+                                                        <?php echo h((string)($intern['course_name'] ?? '-')); ?>
+                                                        <span class="companies-dot">|</span>
+                                                        <?php echo h((string)($intern['section_label'] ?? '-')); ?>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div class="companies-intern-actions">
+                                                <a href="students-view.php?id=<?php echo (int)($intern['student_record_id'] ?? 0); ?>" class="btn btn-sm btn-outline-primary">Student</a>
+                                                <a href="ojt-view.php?id=<?php echo (int)($intern['student_record_id'] ?? 0); ?>" class="btn btn-sm btn-outline-secondary">OJT</a>
+                                            </div>
+                                        </article>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </article>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <?php
 include 'includes/footer.php';
+if ($showAddCompanyModal):
+?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var modalElement = document.getElementById('addCompanyModal');
+    if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+        return;
+    }
+    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+});
+</script>
+<?php
+endif;

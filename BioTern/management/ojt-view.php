@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
+require_once dirname(__DIR__) . '/lib/company_profiles.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 $view_user_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $selected_student_id = $view_user_id;
@@ -89,6 +90,7 @@ $workflow = [
     'moa' => ['status' => 'draft', 'review_notes' => '', 'approved_by' => 0, 'approved_at' => ''],
     'dau_moa' => ['status' => 'draft', 'review_notes' => '', 'approved_by' => 0, 'approved_at' => ''],
 ];
+$company_profile = null;
 $review_notes = [];
 $current_user_id = intval($_SESSION['user_id'] ?? 0);
 $current_role = strtolower((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? ''));
@@ -853,6 +855,77 @@ try {
             $stmt_i->execute();
             $internship_data = $stmt_i->get_result()->fetch_assoc();
             $stmt_i->close();
+        }
+
+        $internship_company_name = trim((string)($internship_data['company_name'] ?? ''));
+        if ($internship_company_name !== '') {
+            $company_profile = biotern_company_profile_fetch_by_name($conn, $internship_company_name);
+        }
+
+        if ($company_profile) {
+            $companyProfileName = trim((string)($company_profile['company_name'] ?? ''));
+            $companyProfileAddress = trim((string)($company_profile['company_address'] ?? ''));
+            $companyProfileRepresentative = trim((string)($company_profile['company_representative'] ?? ''));
+            $companyProfileRepresentativePosition = trim((string)($company_profile['company_representative_position'] ?? ''));
+            $companyProfileSupervisor = trim((string)($company_profile['supervisor_name'] ?? ''));
+            $companyProfileSupervisorPosition = trim((string)($company_profile['supervisor_position'] ?? ''));
+
+            $documentContactName = $companyProfileRepresentative !== '' ? $companyProfileRepresentative : $companyProfileSupervisor;
+            $documentContactPosition = $companyProfileRepresentativePosition !== '' ? $companyProfileRepresentativePosition : $companyProfileSupervisorPosition;
+            $documentPartnerName = $companyProfileRepresentative !== '' ? $companyProfileRepresentative : $companyProfileSupervisor;
+            $documentPartnerPosition = $companyProfileRepresentativePosition !== '' ? $companyProfileRepresentativePosition : $companyProfileSupervisorPosition;
+
+            if ($app_letter['company_name'] === '' && $companyProfileName !== '') {
+                $app_letter['company_name'] = $companyProfileName;
+            }
+            if ($app_letter['company_address'] === '' && $companyProfileAddress !== '') {
+                $app_letter['company_address'] = $companyProfileAddress;
+            }
+            if ($app_letter['application_person'] === '' && $documentContactName !== '') {
+                $app_letter['application_person'] = $documentContactName;
+            }
+            if ($app_letter['position'] === '' && $documentContactPosition !== '') {
+                $app_letter['position'] = $documentContactPosition;
+            }
+
+            if ($endorsement_data['company_name'] === '' && $companyProfileName !== '') {
+                $endorsement_data['company_name'] = $companyProfileName;
+            }
+            if ($endorsement_data['company_address'] === '' && $companyProfileAddress !== '') {
+                $endorsement_data['company_address'] = $companyProfileAddress;
+            }
+            if ($endorsement_data['recipient_name'] === '' && $documentContactName !== '') {
+                $endorsement_data['recipient_name'] = $documentContactName;
+            }
+            if ($endorsement_data['recipient_position'] === '' && $documentContactPosition !== '') {
+                $endorsement_data['recipient_position'] = $documentContactPosition;
+            }
+
+            if ($moa_data['company_name'] === '' && $companyProfileName !== '') {
+                $moa_data['company_name'] = $companyProfileName;
+            }
+            if ($moa_data['company_address'] === '' && $companyProfileAddress !== '') {
+                $moa_data['company_address'] = $companyProfileAddress;
+            }
+            if ($moa_data['partner_representative'] === '' && $documentPartnerName !== '') {
+                $moa_data['partner_representative'] = $documentPartnerName;
+            }
+            if ($moa_data['position'] === '' && $documentPartnerPosition !== '') {
+                $moa_data['position'] = $documentPartnerPosition;
+            }
+
+            if ($dau_moa_data['company_name'] === '' && $companyProfileName !== '') {
+                $dau_moa_data['company_name'] = $companyProfileName;
+            }
+            if ($dau_moa_data['company_address'] === '' && $companyProfileAddress !== '') {
+                $dau_moa_data['company_address'] = $companyProfileAddress;
+            }
+            if ($dau_moa_data['partner_representative'] === '' && $documentPartnerName !== '') {
+                $dau_moa_data['partner_representative'] = $documentPartnerName;
+            }
+            if ($dau_moa_data['position'] === '' && $documentPartnerPosition !== '') {
+                $dau_moa_data['position'] = $documentPartnerPosition;
+            }
         }
 
         if (ojt_table_exists($conn, 'attendances')) {
