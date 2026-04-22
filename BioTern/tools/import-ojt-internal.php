@@ -73,6 +73,8 @@ $headerCandidates = [
     'email' => ['email', 'email_address'],
     'password' => ['password', 'pass'],
     'status' => ['status', 'state'],
+    'created_at' => ['created_at', 'created'],
+    'updated_at' => ['updated_at', 'update_at', 'updated'],
 ];
 
 
@@ -151,15 +153,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_import']) && 
             (student_no, user_id, last_name, first_name, middle_name, course_id, section_id, email, password, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
-                user_id = COALESCE(VALUES(user_id), ojt_internal.user_id),
+                user_id = CASE
+                    WHEN ojt_internal.user_id IS NULL OR ojt_internal.user_id = 0
+                        THEN COALESCE(NULLIF(VALUES(user_id), 0), ojt_internal.user_id)
+                    ELSE ojt_internal.user_id
+                END,
                 last_name = VALUES(last_name),
                 first_name = VALUES(first_name),
                 middle_name = VALUES(middle_name),
-                course_id = COALESCE(VALUES(course_id), ojt_internal.course_id),
-                section_id = COALESCE(VALUES(section_id), ojt_internal.section_id),
-                email = VALUES(email),
-                password = VALUES(password),
-                status = VALUES(status),
+                course_id = COALESCE(NULLIF(VALUES(course_id), 0), ojt_internal.course_id),
+                section_id = COALESCE(NULLIF(VALUES(section_id), 0), ojt_internal.section_id),
+                email = COALESCE(NULLIF(VALUES(email), ''), ojt_internal.email),
+                password = CASE
+                    WHEN ojt_internal.user_id IS NOT NULL AND ojt_internal.user_id > 0
+                        THEN ojt_internal.password
+                    WHEN NULLIF(VALUES(password), '') IS NULL
+                        THEN ojt_internal.password
+                    ELSE VALUES(password)
+                END,
+                status = COALESCE(NULLIF(VALUES(status), ''), ojt_internal.status),
                 updated_at = CURRENT_TIMESTAMP");
         if (!$stmt) {
             throw new RuntimeException('Failed to prepare import query.');
@@ -168,6 +180,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_import']) && 
         $inserted = 0;
         $updated = 0;
         $duplicateStudentNos = [];
+        $existingStudentNos = [];
+        $existingRes = $conn->query('SELECT student_no FROM ojt_internal');
+        if ($existingRes instanceof mysqli_result) {
+            while ($existing = $existingRes->fetch_assoc()) {
+                $existingNo = trim((string)($existing['student_no'] ?? ''));
+                if ($existingNo !== '') {
+                    $existingStudentNos[$normalizeValue($existingNo)] = true;
+                }
+            }
+            $existingRes->close();
+        }
         $seenStudentNos = [];
         $invalidSkipped = 0;
         foreach ($rows as $row) {
@@ -194,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_import']) && 
                 continue;
             }
             $normalizedStudentNo = $normalizeValue($studentNo);
-            if (isset($seenStudentNos[$normalizedStudentNo])) {
+            if (isset($existingStudentNos[$normalizedStudentNo]) || isset($seenStudentNos[$normalizedStudentNo])) {
                 $duplicateStudentNos[$studentNo] = true;
             }
             $seenStudentNos[$normalizedStudentNo] = true;
@@ -232,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_import']) && 
         $duplicateList = array_keys($duplicateStudentNos);
         $flashType = 'success';
         if (!empty($duplicateList)) {
-            $flashMessage = 'Import completed. Duplicate Student Numbers were merged by replacement.';
+            $flashMessage = 'Import completed. Duplicate Student Numbers were updated (info only).';
         } else {
             $flashMessage = 'Import completed successfully.';
         }
@@ -300,7 +323,7 @@ ob_end_flush();
                             </div>
                         </div>
                         <div class="col-12 col-md-8">
-                            <p class="text-muted mb-0">Required Excel columns: Student No, Last Name, First Name. Recommended: User Id, Middle Name, Course Id, Section Id, Email, Password, Status.</p>
+                            <p class="text-muted mb-0">Template columns: student_no, user_id, last_name, first_name, middle_name, course_id, section_id, email, password, status, created_at, update_at. Keep <strong>user_id</strong> blank for new imports.</p>
                         </div>
                     </div>
 
@@ -313,12 +336,10 @@ ob_end_flush();
                             <div class="col-12 col-md-4 fm-actions d-flex flex-column gap-2 align-items-stretch">
                                 <button type="submit" class="btn btn-primary mb-2">Import Excel</button>
                                 <a href="ojt-internal-list.php" class="btn btn-light mb-2">View Internal List</a>
-                                <a href="tools/download-internal-template.php" class="btn btn-outline-info">
+                                <a href="download-internal-template.php" class="btn btn-outline-info">
                                     <i class="bi bi-download"></i> Download Template
                                 </a>
                             </div>
-                        <!-- Optionally add icon support if Bootstrap Icons are not loaded -->
-                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
                         </form>
                     </div>
                 </div>
@@ -350,7 +371,7 @@ ob_end_flush();
             }
             echo '</tbody></table></div>';
             if (!empty($duplicates)) {
-                echo '<div class="alert alert-warning mt-2">Duplicate Student No detected: ' . implode(', ', array_keys($duplicates)) . '</div>';
+                echo '<div class="alert alert-warning mt-2">Duplicate Student No detected: ' . implode(', ', array_keys($duplicates)) . '. These rows will update student information only while keeping linked account/user_id data safe.</div>';
             }
             echo '<form method="post"><button type="submit" name="confirm_import" value="1" class="btn btn-success">Confirm Import</button></form>';
             echo '</div></div>';

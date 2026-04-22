@@ -299,6 +299,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($userId <= 0 && $stagedApplication && !empty($stagedApplication['user_id'])) {
         $userId = (int)$stagedApplication['user_id'];
     }
+    $stagedStudentNo = $stagedApplication ? trim((string)($stagedApplication['student_id'] ?? '')) : '';
     $stagedDateOfBirth = $stagedApplication ? trim((string)($stagedApplication['date_of_birth'] ?? '')) : '';
     $stagedGender = $stagedApplication ? trim((string)($stagedApplication['gender'] ?? '')) : '';
 
@@ -358,6 +359,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($userId <= 0) {
                     throw new Exception('Unable to resolve user account for this application.');
+                }
+
+                if ($stagedStudentNo !== '') {
+                    $linkInternalStmt = $conn->prepare("
+                        UPDATE ojt_internal
+                        SET user_id = NULLIF(?, 0), updated_at = NOW()
+                        WHERE TRIM(COALESCE(student_no, '')) COLLATE utf8mb4_unicode_ci = TRIM(?) COLLATE utf8mb4_unicode_ci
+                          AND (user_id IS NULL OR user_id = 0 OR user_id = ?)
+                    ");
+                    if ($linkInternalStmt) {
+                        $linkInternalStmt->bind_param('isi', $userId, $stagedStudentNo, $userId);
+                        $linkInternalStmt->execute();
+                        $linkInternalStmt->close();
+                    }
                 }
 
                 $stmt = $conn->prepare("UPDATE users SET application_status = 'approved', is_active = 1, approved_by = ?, approved_at = NOW(), rejected_at = NULL, approval_notes = ?, disciplinary_remark = ? WHERE id = ? LIMIT 1");
