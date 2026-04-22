@@ -51,7 +51,6 @@ $conn->query("CREATE TABLE IF NOT EXISTS ojt_internal (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
 
-session_start();
 $flashType = '';
 $flashMessage = '';
 $flashDetail = '';
@@ -314,7 +313,7 @@ ob_end_flush();
                             <div class="col-12 col-md-4 fm-actions d-flex flex-column gap-2 align-items-stretch">
                                 <button type="submit" class="btn btn-primary mb-2">Import Excel</button>
                                 <a href="ojt-internal-list.php" class="btn btn-light mb-2">View Internal List</a>
-                                <a href="../assets/Internal%20Students%20Template.xlsx" download class="btn btn-outline-info">
+                                <a href="download-internal-template.php" class="btn btn-outline-info">
                                     <i class="bi bi-download"></i> Download Template
                                 </a>
                             </div>
