@@ -151,6 +151,127 @@
     padding: 1rem 1.25rem 1.25rem;
 }
 
+.student-hours-timer {
+    margin-bottom: 1rem;
+    padding: 1rem 1.05rem;
+    border-radius: 1.1rem;
+    border: 1px solid color-mix(in srgb, var(--student-soft-border) 70%, rgba(var(--bs-primary-rgb), 0.32) 30%);
+    background:
+        radial-gradient(circle at top right, rgba(var(--bs-primary-rgb), 0.14), transparent 40%),
+        linear-gradient(135deg, color-mix(in srgb, var(--student-soft-bg) 92%, rgba(255, 255, 255, 0.65) 8%), var(--student-card-bg));
+}
+
+.student-hours-timer__header,
+.student-hours-timer__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+}
+
+.student-hours-timer__header h6 {
+    margin: 0.2rem 0 0;
+    color: var(--student-text);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.student-hours-timer__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.38rem 0.72rem;
+    border-radius: 999px;
+    background: rgba(var(--bs-primary-rgb), 0.12);
+    border: 1px solid rgba(var(--bs-primary-rgb), 0.18);
+    color: var(--student-accent-strong);
+    font-size: 0.78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.student-hours-timer__clock {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 1rem 0 0.8rem;
+}
+
+.student-hours-timer__segment {
+    min-width: 0;
+    flex: 1 1 0;
+    padding: 0.8rem 0.7rem;
+    border-radius: 0.95rem;
+    border: 1px solid var(--student-soft-border);
+    background: rgba(255, 255, 255, 0.72);
+    text-align: center;
+}
+
+.student-hours-timer__segment strong {
+    display: block;
+    color: var(--student-text);
+    font-size: clamp(1.35rem, 2.6vw, 2rem);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.06em;
+}
+
+.student-hours-timer__segment small {
+    display: block;
+    margin-top: 0.4rem;
+    color: var(--student-muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.student-hours-timer__divider {
+    color: var(--student-accent-strong);
+    font-size: 1.3rem;
+    font-weight: 800;
+    opacity: 0.7;
+}
+
+.student-hours-timer__summary {
+    margin: 0;
+    color: var(--student-muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+}
+
+.student-hours-timer__progress {
+    height: 0.45rem;
+    margin: 0.9rem 0 0.85rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+
+.student-hours-timer__progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(var(--bs-primary-rgb), 0.82), rgba(var(--bs-primary-rgb), 1));
+}
+
+.student-hours-timer__sync {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--student-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.student-hours-timer__sync i {
+    color: var(--student-accent-strong);
+}
+
+.student-hours-timer__sync strong {
+    color: var(--student-text);
+    font-weight: 800;
+}
+
 .student-quick-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -279,6 +400,13 @@ html.app-skin-dark .student-panel {
     box-shadow: var(--student-card-shadow);
 }
 
+html.app-skin-dark .student-hours-timer {
+    border-color: color-mix(in srgb, var(--student-soft-border) 68%, rgba(var(--bs-primary-rgb), 0.34) 32%);
+    background:
+        radial-gradient(circle at top right, rgba(var(--bs-primary-rgb), 0.16), transparent 40%),
+        linear-gradient(135deg, color-mix(in srgb, var(--student-soft-bg) 88%, rgba(15, 23, 42, 0.28) 12%), var(--student-card-bg));
+}
+
 html.app-skin-dark .student-home-hero {
     background: var(--student-card-bg);
     border: 1px solid var(--student-card-border);
@@ -312,6 +440,9 @@ html.app-skin-dark .student-home-actions .btn-light-brand {
 html.app-skin-dark .student-metric-card h3,
 html.app-skin-dark .student-panel .card-title,
 html.app-skin-dark .student-shortcut-card,
+html.app-skin-dark .student-hours-timer__header h6,
+html.app-skin-dark .student-hours-timer__segment strong,
+html.app-skin-dark .student-hours-timer__sync strong,
 html.app-skin-dark .student-detail-list strong,
 html.app-skin-dark .student-attendance-item strong,
 html.app-skin-dark .student-attendance-item b {
@@ -320,6 +451,9 @@ html.app-skin-dark .student-attendance-item b {
 
 html.app-skin-dark .student-metric-card p,
 html.app-skin-dark .student-shortcut-card small,
+html.app-skin-dark .student-hours-timer__summary,
+html.app-skin-dark .student-hours-timer__segment small,
+html.app-skin-dark .student-hours-timer__sync,
 html.app-skin-dark .student-detail-list span,
 html.app-skin-dark .student-attendance-item span,
 html.app-skin-dark .student-empty-state,
@@ -328,6 +462,7 @@ html.app-skin-dark .student-progress-row {
 }
 
 html.app-skin-dark .student-shortcut-card,
+html.app-skin-dark .student-hours-timer__segment,
 html.app-skin-dark .student-detail-list div,
 html.app-skin-dark .student-attendance-item,
 html.app-skin-dark .student-empty-state {
@@ -356,6 +491,12 @@ html.app-skin-dark .student-shortcut-card i {
         justify-content: flex-start;
         align-self: stretch;
     }
+
+    .student-hours-timer__header,
+    .student-hours-timer__footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 
 @media (max-width: 767.98px) {
@@ -380,6 +521,22 @@ html.app-skin-dark .student-shortcut-card i {
 
     .student-home-meta span {
         width: 100%;
+    }
+
+    .student-hours-timer__clock {
+        gap: 0.25rem;
+    }
+
+    .student-hours-timer__segment {
+        padding: 0.72rem 0.45rem;
+    }
+
+    .student-hours-timer__segment strong {
+        font-size: 1.2rem;
+    }
+
+    .student-hours-timer__segment small {
+        font-size: 0.66rem;
     }
 
     .student-attendance-item,
