@@ -467,18 +467,8 @@ endforeach; ?>
                                     </div>
                                 </div>
                                 <input type="hidden" name="department_id" id="studentDepartmentSelect" value="">
-                                <div class="row g-3">
-                                    <div class="col-12 col-md-4 mb-2">
-                                        <label class="form-label fs-12" for="studentSchoolYearDisplay">School Year</label>
-                                        <input type="text" id="studentSchoolYearDisplay" class="form-control" value="<?php echo htmlspecialchars($register_default_school_year, ENT_QUOTES, 'UTF-8'); ?>" readonly>
-                                        <input type="hidden" name="school_year" id="studentSchoolYear" value="<?php echo htmlspecialchars($register_default_school_year, ENT_QUOTES, 'UTF-8'); ?>">
-                                    </div>
-                                    <div class="col-12 col-md-4 mb-2">
-                                        <label class="form-label fs-12" for="studentSemesterDisplay">Semester</label>
-                                        <input type="text" id="studentSemesterDisplay" class="form-control" value="<?php echo htmlspecialchars($register_default_semester, ENT_QUOTES, 'UTF-8'); ?>" readonly>
-                                        <input type="hidden" name="semester" id="studentSemester" value="<?php echo htmlspecialchars($register_default_semester, ENT_QUOTES, 'UTF-8'); ?>">
-                                    </div>
-                                </div>
+                                <input type="hidden" name="school_year" id="studentSchoolYear" value="<?php echo htmlspecialchars($register_default_school_year, ENT_QUOTES, 'UTF-8'); ?>">
+                                <input type="hidden" name="semester" id="studentSemester" value="<?php echo htmlspecialchars($register_default_semester, ENT_QUOTES, 'UTF-8'); ?>">
                                 <div class="row g-3">
                                     <div class="col-12 col-md-6 mb-2">
                                         <label class="form-label fs-12" for="studentCoordinatorSelect">Coordinator</label>
