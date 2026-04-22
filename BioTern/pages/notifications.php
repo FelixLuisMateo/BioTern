@@ -320,7 +320,16 @@ include dirname(__DIR__) . '/includes/header.php';
                                             <?php
                                             $isUnread = (int)($item['is_read'] ?? 0) === 0;
                                             $typeMeta = is_array($item['_type_meta'] ?? null) ? $item['_type_meta'] : biotern_notification_type_meta('system');
-                                            $openUrl = biotern_notification_open_url((string)($item['action_url'] ?? ''), (int)($item['id'] ?? 0), 'notifications.php');
+                                            $openUrl = biotern_notification_open_url(
+                                                (string)($item['action_url'] ?? ''),
+                                                (int)($item['id'] ?? 0),
+                                                'notifications.php',
+                                                (string)($item['title'] ?? ''),
+                                                (string)($item['message'] ?? ''),
+                                                (string)($item['_resolved_type'] ?? '')
+                                            );
+                                            $defaultNotificationUrl = biotern_notification_open_url('', (int)($item['id'] ?? 0), 'notifications.php');
+                                            $hasRelatedPage = $openUrl !== $defaultNotificationUrl;
                                             ?>
                                             <article class="notification-card<?php echo $isUnread ? ' is-unread' : ''; ?>">
                                                 <div class="notification-icon"><i class="<?php echo notifications_h((string)($typeMeta['icon'] ?? 'feather-bell')); ?>"></i></div>
@@ -337,7 +346,7 @@ include dirname(__DIR__) . '/includes/header.php';
                                                     <p class="notification-message"><?php echo notifications_h((string)($item['message'] ?? '')); ?></p>
                                                     <div class="notification-footer">
                                                         <span class="notification-time"><?php echo notifications_h((string)($item['_time_ago'] ?? '')); ?></span>
-                                                        <?php if (!empty($item['action_url'])): ?>
+                                                        <?php if ($hasRelatedPage): ?>
                                                             <a href="<?php echo notifications_h($openUrl); ?>" class="btn btn-link btn-sm p-0">Open related page</a>
                                                         <?php endif; ?>
                                                     </div>

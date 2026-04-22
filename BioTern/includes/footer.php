@@ -143,6 +143,7 @@ if (!function_exists('footer_asset_versioned_src')) {
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/page-header-consistency.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/page-header-actions-scheme.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/header-search-runtime.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/header-notifications-runtime.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/theme-preferences-runtime.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/navigation-core.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/navigation-state.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
@@ -170,7 +171,6 @@ if (!function_exists('footer_asset_versioned_src')) {
 </body>
 
 </html>
-
 
 
 

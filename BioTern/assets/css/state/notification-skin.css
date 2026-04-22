@@ -474,4 +474,135 @@ html.app-skin-dark .app-theme-toast-static-icon {
   color: #6ee7b7;
 }
 
+.biotern-live-toast-stack {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 12060;
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.biotern-live-toast-stack .app-theme-toast-static {
+  position: relative;
+  top: auto;
+  right: auto;
+  z-index: auto;
+  width: min(370px, calc(100vw - 1.2rem));
+  max-width: min(370px, calc(100vw - 1.2rem));
+  margin: 0;
+  padding-right: 2.6rem;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+}
+
+.biotern-live-toast-stack .app-theme-toast-static:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 42px rgba(15, 23, 42, 0.22);
+}
+
+.biotern-live-toast-body {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.biotern-live-toast-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.biotern-live-toast-message,
+.biotern-live-toast-meta {
+  color: var(--biotern-notify-muted);
+}
+
+.biotern-live-toast-message {
+  font-size: 0.79rem;
+  line-height: 1.28;
+}
+
+.biotern-live-toast-meta {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.biotern-live-toast-dismiss {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--biotern-notify-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+.biotern-live-toast-dismiss:hover {
+  background: color-mix(in srgb, var(--biotern-notify-border) 60%, transparent);
+  color: var(--biotern-notify-text);
+}
+
+.header-notification-browser-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.34rem 0.56rem;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.header-notification-browser-link:hover {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.24);
+  color: var(--biotern-primary, #2563eb);
+}
+
+.header-notification-browser-link.is-enabled {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.24);
+  color: #047857;
+}
+
+.header-notification-browser-link.is-blocked {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #b91c1c;
+}
+
+.header-notification-browser-link.is-unsupported,
+.header-notification-browser-link:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (max-width: 767.98px) {
+  .biotern-live-toast-stack {
+    left: 0.6rem;
+    right: 0.6rem;
+    top: 0.7rem;
+  }
+
+  .biotern-live-toast-stack .app-theme-toast-static {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
 

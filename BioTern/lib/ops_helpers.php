@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/includes/auth-session.php';
+require_once __DIR__ . '/notifications.php';
 
 function get_current_user_role(): string
 {
@@ -109,6 +110,7 @@ function create_notification(mysqli $conn, int $user_id, string $title, string $
     $has_message = false;
     $has_type = false;
     $has_data = false;
+    $has_action_url = false;
 
     $col_res = $conn->query("SHOW COLUMNS FROM notifications");
     if ($col_res instanceof mysqli_result) {
@@ -118,10 +120,44 @@ function create_notification(mysqli $conn, int $user_id, string $title, string $
             if ($field === 'message') $has_message = true;
             if ($field === 'type') $has_type = true;
             if ($field === 'data') $has_data = true;
+            if ($field === 'action_url') $has_action_url = true;
         }
     }
 
+    $resolvedType = function_exists('biotern_notification_normalize_type')
+        ? biotern_notification_normalize_type('', $title, $message, '')
+        : 'system';
+    $resolvedActionUrl = function_exists('biotern_notification_infer_target')
+        ? biotern_notification_infer_target('', $title, $message, $resolvedType, 'homepage.php')
+        : 'homepage.php';
+
     if ($has_title && $has_message) {
+        if ($has_type && $has_action_url) {
+            $stmt = $conn->prepare(
+                "INSERT INTO notifications (user_id, title, message, type, action_url, is_read, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, 0, NOW(), NOW())"
+            );
+            if ($stmt) {
+                $stmt->bind_param('issss', $user_id, $title, $message, $resolvedType, $resolvedActionUrl);
+                $stmt->execute();
+                $stmt->close();
+            }
+            return;
+        }
+
+        if ($has_type) {
+            $stmt = $conn->prepare(
+                "INSERT INTO notifications (user_id, title, message, type, is_read, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, 0, NOW(), NOW())"
+            );
+            if ($stmt) {
+                $stmt->bind_param('isss', $user_id, $title, $message, $resolvedType);
+                $stmt->execute();
+                $stmt->close();
+            }
+            return;
+        }
+
         $stmt = $conn->prepare(
             "INSERT INTO notifications (user_id, title, message, is_read, created_at, updated_at)
              VALUES (?, ?, ?, 0, NOW(), NOW())"

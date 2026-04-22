@@ -196,6 +196,7 @@ if (!isset($base_href) || trim((string)$base_href) === '') {
     $base_href = $header_root;
 }
 $header_notification_actions_url = (string)$base_href . 'api/notifications-actions.php';
+$header_notification_feed_url = (string)$base_href . 'api/notifications-feed.php';
 
 $favicon_ico_path = dirname(__DIR__) . '/assets/images/favicon.ico';
 $favicon_png_path = dirname(__DIR__) . '/assets/images/favicon-rounded.png';
@@ -658,10 +659,21 @@ if ($header_db instanceof mysqli) {
                                         <span class="badge bg-danger nxl-h-badge"><?php echo (int)$header_notifications_unread; ?></span>
                                     <?php endif; ?>
                                 </a>
-                                <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu" data-notification-actions-url="<?php echo htmlspecialchars($header_notification_actions_url, ENT_QUOTES, 'UTF-8'); ?>">
+                                <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu"
+                                    data-notification-actions-url="<?php echo htmlspecialchars($header_notification_actions_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-notification-feed-url="<?php echo htmlspecialchars($header_notification_feed_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-notifications-url="<?php echo htmlspecialchars($header_notifications_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-current-user-id="<?php echo (int)$header_user_id_session; ?>"
+                                    data-notification-browser-icon="<?php echo htmlspecialchars(header_asset_versioned_href('assets/images/logo-abbr.png'), ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-notification-browser-badge="<?php echo htmlspecialchars(header_asset_versioned_href('assets/images/favicon-rounded.png'), ENT_QUOTES, 'UTF-8'); ?>"
+                                    data-notification-service-worker-url="<?php echo htmlspecialchars((string)$base_href . 'service-worker.js', ENT_QUOTES, 'UTF-8'); ?>">
                                     <div class="d-flex justify-content-between align-items-center notifications-head px-3 py-2 border-bottom">
                                         <span class="fw-semibold">Notifications</span>
                                         <div class="header-notifications-head-tools">
+                                            <button type="button" class="header-notification-browser-link" data-notification-browser-enable title="Enable browser alerts" aria-label="Enable browser alerts">
+                                                <i class="feather-monitor"></i>
+                                                <span>Enable Alerts</span>
+                                            </button>
                                             <button type="button" class="header-notification-remove-all-link<?php echo $header_notifications_read > 0 ? '' : ' is-disabled'; ?>" data-notification-remove-all aria-label="Remove all read notifications" title="Remove all read notifications"<?php echo $header_notifications_read > 0 ? '' : ' disabled aria-disabled="true"'; ?>>
                                                 <i class="feather-trash-2"></i>
                                                 <span>Remove All</span>
@@ -669,7 +681,7 @@ if ($header_db instanceof mysqli) {
                                             <a href="<?php echo htmlspecialchars($header_notifications_url, ENT_QUOTES, 'UTF-8'); ?>" class="header-notification-settings-link" title="Notification settings" aria-label="Notification settings">
                                                 <i class="feather-settings"></i>
                                             </a>
-                                            <span class="badge bg-soft-primary text-primary"><?php echo (int)$header_notifications_unread; ?> unread</span>
+                                            <span class="badge bg-soft-primary text-primary header-notifications-unread-pill"><?php echo (int)$header_notifications_unread; ?> unread</span>
                                         </div>
                                     </div>
                                     <?php if (!empty($header_notifications)): ?>
@@ -686,7 +698,14 @@ if ($header_db instanceof mysqli) {
                                                 (string)($n['action_url'] ?? '')
                                             );
                                             $notificationMeta = biotern_notification_type_meta($notificationType);
-                                            $notificationTarget = biotern_notification_open_url((string)($n['action_url'] ?? ''), (int)($n['id'] ?? 0), 'notifications.php');
+                                            $notificationTarget = biotern_notification_open_url(
+                                                (string)($n['action_url'] ?? ''),
+                                                (int)($n['id'] ?? 0),
+                                                'notifications.php',
+                                                $notificationTitle,
+                                                $notificationMessage,
+                                                (string)($n['type'] ?? '')
+                                            );
                                             $notificationIsUnread = (int)($n['is_read'] ?? 0) === 0;
                                             $notificationRemoveTarget = basename((string)($_SERVER['PHP_SELF'] ?? 'homepage.php'));
                                             $notificationRemoveParams = $_GET;
@@ -792,7 +811,7 @@ if ($header_db instanceof mysqli) {
                                                     <span class="user-dropdown-icon-box"><i class="feather-bell"></i></span>
                                                     <span>Notifications</span>
                                                 </span>
-                                                <span class="badge <?php echo (int)$header_notifications_unread > 0 ? 'bg-soft-warning text-warning' : 'bg-soft-secondary text-secondary'; ?>"><?php echo (int)$header_notifications_unread > 0 ? ((int)$header_notifications_unread . ' unread') : 'All read'; ?></span>
+                                                <span class="badge header-profile-notifications-pill <?php echo (int)$header_notifications_unread > 0 ? 'bg-soft-warning text-warning' : 'bg-soft-secondary text-secondary'; ?>"><?php echo (int)$header_notifications_unread > 0 ? ((int)$header_notifications_unread . ' unread') : 'All read'; ?></span>
                                             </span>
                                         </div>
                                     </div>

@@ -45,13 +45,15 @@ if (!function_exists('biotern_notify')) {
 
         $hasType = isset($columns['type']);
         $hasActionUrl = isset($columns['action_url']);
+        $resolvedType = biotern_notification_normalize_type($type, $title, $message, (string)$actionUrl);
+        $resolvedActionUrl = biotern_notification_infer_target((string)$actionUrl, $title, $message, $resolvedType, 'homepage.php');
 
         if ($hasType && $hasActionUrl) {
             $stmt = $conn->prepare("INSERT INTO notifications (user_id, title, message, type, action_url, is_read, created_at) VALUES (?, ?, ?, ?, ?, 0, NOW())");
             if (!$stmt) {
                 return false;
             }
-            $stmt->bind_param('issss', $userId, $title, $message, $type, $actionUrl);
+            $stmt->bind_param('issss', $userId, $title, $message, $resolvedType, $resolvedActionUrl);
         } else {
             $stmt = $conn->prepare("INSERT INTO notifications (user_id, title, message, is_read, created_at) VALUES (?, ?, ?, 0, NOW())");
             if (!$stmt) {
@@ -121,11 +123,93 @@ if (!function_exists('biotern_notification_time_ago')) {
     }
 }
 
+if (!function_exists('biotern_notification_infer_target')) {
+    function biotern_notification_infer_target(string $actionUrl = '', string $title = '', string $message = '', string $type = '', string $fallback = 'homepage.php'): string {
+        $target = trim($actionUrl);
+        if ($target !== '' && !preg_match('~^(?:[a-z][a-z0-9+.-]*:)?//~i', $target)) {
+            return $target;
+        }
+
+        $resolvedType = biotern_notification_normalize_type($type, $title, $message, $actionUrl);
+        $haystack = strtolower(trim($title . ' ' . $message . ' ' . $actionUrl));
+        $currentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+        $isStudent = $currentRole === 'student';
+
+        if ($resolvedType === 'chat') {
+            return 'apps-chat.php';
+        }
+
+        if ($resolvedType === 'attendance') {
+            if ($isStudent) {
+                return 'student-dtr.php';
+            }
+            if (strpos($haystack, 'external') !== false) {
+                return 'external-attendance.php';
+            }
+            return 'attendance.php';
+        }
+
+        if ($resolvedType === 'assignment') {
+            if (strpos($haystack, 'evaluation') !== false || strpos($haystack, 'unlocked') !== false || strpos($haystack, 'ojt') !== false) {
+                return $isStudent ? 'student-profile.php' : 'ojt.php';
+            }
+            if (
+                strpos($haystack, 'application') !== false
+                || strpos($haystack, 'endorsement') !== false
+                || strpos($haystack, 'moa') !== false
+                || strpos($haystack, 'document') !== false
+            ) {
+                return $isStudent ? 'student-documents.php' : 'ojt.php';
+            }
+            return $isStudent ? 'student-profile.php' : 'ojt.php';
+        }
+
+        if ($resolvedType === 'account') {
+            if (strpos($haystack, 'password') !== false || strpos($haystack, 'security') !== false || strpos($haystack, 'login') !== false) {
+                return 'account-settings.php#security';
+            }
+            if (strpos($haystack, 'profile') !== false) {
+                return 'profile-details.php';
+            }
+            return 'account-settings.php';
+        }
+
+        if (strpos($haystack, 'chat') !== false || strpos($haystack, 'message') !== false) {
+            return 'apps-chat.php';
+        }
+        if (
+            strpos($haystack, 'application') !== false
+            || strpos($haystack, 'endorsement') !== false
+            || strpos($haystack, 'moa') !== false
+            || strpos($haystack, 'document') !== false
+        ) {
+            return $isStudent ? 'student-documents.php' : 'ojt.php';
+        }
+        if (strpos($haystack, 'evaluation') !== false || strpos($haystack, 'ojt') !== false) {
+            return $isStudent ? 'student-profile.php' : 'ojt.php';
+        }
+        if (
+            strpos($haystack, 'attendance') !== false
+            || strpos($haystack, 'time in') !== false
+            || strpos($haystack, 'time out') !== false
+            || strpos($haystack, 'dtr') !== false
+        ) {
+            return $isStudent ? 'student-dtr.php' : ((strpos($haystack, 'external') !== false) ? 'external-attendance.php' : 'attendance.php');
+        }
+        if (strpos($haystack, 'profile') !== false) {
+            return 'profile-details.php';
+        }
+        if (strpos($haystack, 'account') !== false || strpos($haystack, 'settings') !== false || strpos($haystack, 'password') !== false) {
+            return 'account-settings.php';
+        }
+
+        return trim($fallback) !== '' ? trim($fallback) : 'homepage.php';
+    }
+}
+
 if (!function_exists('biotern_notification_open_url')) {
-    function biotern_notification_open_url(string $url, int $notificationId = 0, string $fallback = 'homepage.php'): string {
-        $target = trim($url);
-        if ($target === '') $target = $fallback;
-        if (preg_match('~^(?:[a-z][a-z0-9+.-]*:)?//~i', $target)) $target = $fallback;
+    function biotern_notification_open_url(string $url, int $notificationId = 0, string $fallback = 'homepage.php', string $title = '', string $message = '', string $type = ''): string {
+        $target = biotern_notification_infer_target($url, $title, $message, $type, $fallback);
         if ($notificationId <= 0) return $target;
         $fragment = '';
         $hashPos = strpos($target, '#');
