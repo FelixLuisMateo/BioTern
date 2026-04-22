@@ -2045,7 +2045,7 @@ include 'includes/header.php';
     <div class="btchat-shell" id="btchat-app" data-selected-user-id="<?php echo (int)$selectedUserId; ?>" data-chat-base-url="<?php echo chat_esc(chat_page_url()); ?>" data-current-user-id="<?php echo (int)$currentUserId; ?>">
         <aside class="btchat-left">
             <div class="btchat-left-header">
-                <h2 class="btchat-left-title"><?php echo $isStudentChatUser ? 'Classmates' : 'Inbox'; ?></h2>
+                <h2 class="btchat-left-title">Chat</h2>
             </div>
             <div class="btchat-search-wrap">
                 <input type="search" class="btchat-search" id="btchat-search" placeholder="<?php echo chat_esc($contactSearchPlaceholder); ?>">
