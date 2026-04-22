@@ -50,9 +50,14 @@ $conn->query("CREATE TABLE IF NOT EXISTS ojt_internal (
     KEY idx_ojt_internal_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+
+session_start();
 $flashType = '';
 $flashMessage = '';
 $flashDetail = '';
+$previewRows = [];
+$previewHeaders = [];
+$previewDuplicates = [];
 
 $normalizeValue = static function (string $value): string {
     return strtolower(trim($value));
@@ -71,26 +76,21 @@ $headerCandidates = [
     'status' => ['status', 'state'],
 ];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    try {
-        if (!isset($_FILES['excel_file']) || !is_array($_FILES['excel_file'])) {
-            throw new RuntimeException('Upload an Excel file first.');
-        }
 
+// Step 1: Preview (file upload)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
+    try {
         $tmp = (string)($_FILES['excel_file']['tmp_name'] ?? '');
         $originalName = trim((string)($_FILES['excel_file']['name'] ?? 'uploaded-workbook.xlsx'));
         if ($tmp === '' || !is_uploaded_file($tmp)) {
             throw new RuntimeException('Invalid uploaded file.');
         }
-
         $workbookReadError = '';
         $rows = ojt_import_load_workbook_rows($tmp, $originalName, $workbookReadError);
         if ($rows === []) {
             throw new RuntimeException($workbookReadError !== '' ? $workbookReadError : 'Unable to read uploaded workbook.');
         }
-
         $normalizedHeader = array_keys($rows[0]);
-
         $resolved = [];
         foreach ($headerCandidates as $target => $candidates) {
             $resolved[$target] = null;
@@ -101,11 +101,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
-
         if ($resolved['student_no'] === null || $resolved['last_name'] === null || $resolved['first_name'] === null) {
             throw new RuntimeException('Workbook must include Student No, Last Name, and First Name columns.');
         }
+        $existingStudentNos = [];
+        $existingRes = $conn->query('SELECT student_no FROM ojt_internal');
+        if ($existingRes instanceof mysqli_result) {
+            while ($existing = $existingRes->fetch_assoc()) {
+                $existingNo = trim((string)($existing['student_no'] ?? ''));
+                if ($existingNo !== '') {
+                    $existingStudentNos[$normalizeValue($existingNo)] = true;
+                }
+            }
+            $existingRes->close();
+        }
+        $seenStudentNos = [];
+        $previewRows = [];
+        $previewDuplicates = [];
+        foreach ($rows as $row) {
+            $studentNo = trim((string)($row[$resolved['student_no']] ?? ''));
+            $normalizedStudentNo = $normalizeValue($studentNo);
+            if ($studentNo === '') continue;
+            if (isset($existingStudentNos[$normalizedStudentNo]) || isset($seenStudentNos[$normalizedStudentNo])) {
+                $previewDuplicates[$studentNo] = true;
+            }
+            $seenStudentNos[$normalizedStudentNo] = true;
+            $previewRows[] = $row;
+        }
+        $previewHeaders = $normalizedHeader;
+        $_SESSION['ojt_internal_preview'] = [
+            'rows' => $previewRows,
+            'headers' => $previewHeaders,
+            'duplicates' => $previewDuplicates,
+            'resolved' => $resolved
+        ];
+    } catch (Throwable $e) {
+        $flashType = 'danger';
+        $flashMessage = $e->getMessage();
+        $flashDetail = '';
+    }
+}
 
+// Step 2: Confirm Import
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_import']) && isset($_SESSION['ojt_internal_preview'])) {
+    try {
+        $preview = $_SESSION['ojt_internal_preview'];
+        $rows = $preview['rows'];
+        $resolved = $preview['resolved'];
         $stmt = $conn->prepare("INSERT INTO ojt_internal
             (student_no, user_id, last_name, first_name, middle_name, course_id, section_id, email, password, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -120,71 +162,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 password = VALUES(password),
                 status = VALUES(status),
                 updated_at = CURRENT_TIMESTAMP");
-
         if (!$stmt) {
             throw new RuntimeException('Failed to prepare import query.');
         }
-
-        $existingStudentNos = [];
-        $existingRes = $conn->query('SELECT student_no, last_name, first_name, middle_name, email FROM ojt_internal');
-        if ($existingRes instanceof mysqli_result) {
-            while ($existing = $existingRes->fetch_assoc()) {
-                $existingNo = trim((string)($existing['student_no'] ?? ''));
-                if ($existingNo !== '') {
-                    $existingStudentNos[$normalizeValue($existingNo)] = true;
-                }
-            }
-            $existingRes->close();
-        }
-
         $processed = 0;
         $inserted = 0;
         $updated = 0;
         $duplicateStudentNos = [];
         $seenStudentNos = [];
         $invalidSkipped = 0;
-        $lineNumber = 1;
         foreach ($rows as $row) {
-            $lineNumber++;
-            if (!is_array($row)) {
-                continue;
-            }
-
             $studentNo = trim((string)($row[$resolved['student_no']] ?? ''));
             if ($studentNo === '') {
                 $invalidSkipped++;
                 continue;
             }
-
             $userIdRaw = $resolved['user_id'] !== null ? trim((string)($row[$resolved['user_id']] ?? '')) : '';
             $courseIdRaw = $resolved['course_id'] !== null ? trim((string)($row[$resolved['course_id']] ?? '')) : '';
             $sectionIdRaw = $resolved['section_id'] !== null ? trim((string)($row[$resolved['section_id']] ?? '')) : '';
-
             $userId = (ctype_digit($userIdRaw) && (int)$userIdRaw > 0) ? (int)$userIdRaw : null;
             $courseId = (ctype_digit($courseIdRaw) && (int)$courseIdRaw > 0) ? (int)$courseIdRaw : null;
             $sectionId = (ctype_digit($sectionIdRaw) && (int)$sectionIdRaw > 0) ? (int)$sectionIdRaw : null;
-
             $lastName = trim((string)($row[$resolved['last_name']] ?? ''));
             $firstName = trim((string)($row[$resolved['first_name']] ?? ''));
             $middleName = $resolved['middle_name'] !== null ? trim((string)($row[$resolved['middle_name']] ?? '')) : '';
             $email = $resolved['email'] !== null ? trim((string)($row[$resolved['email']] ?? '')) : '';
             $password = $resolved['password'] !== null ? trim((string)($row[$resolved['password']] ?? '')) : '';
             $status = $resolved['status'] !== null ? trim((string)($row[$resolved['status']] ?? '')) : 'active';
-            if ($status === '') {
-                $status = 'active';
-            }
-
+            if ($status === '') $status = 'active';
             if ($lastName === '' || $firstName === '') {
                 $invalidSkipped++;
                 continue;
             }
-
             $normalizedStudentNo = $normalizeValue($studentNo);
-            if (isset($existingStudentNos[$normalizedStudentNo]) || isset($seenStudentNos[$normalizedStudentNo])) {
+            if (isset($seenStudentNos[$normalizedStudentNo])) {
                 $duplicateStudentNos[$studentNo] = true;
             }
             $seenStudentNos[$normalizedStudentNo] = true;
-
             $stmt->bind_param(
                 'sisssiisss',
                 $studentNo,
@@ -199,10 +213,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $status
             );
             if (!$stmt->execute()) {
-                throw new RuntimeException('Import failed at CSV line ' . $lineNumber . ': ' . $stmt->error);
+                throw new RuntimeException('Import failed for Student No ' . $studentNo . ': ' . $stmt->error);
             }
-
-            $existingStudentNos[$normalizedStudentNo] = true;
             if ((int)$stmt->affected_rows === 1) {
                 $inserted++;
             } else {
@@ -210,9 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $processed++;
         }
-
         $stmt->close();
-
         // Auto-link imported internal data to students table via student number.
         $conn->query("UPDATE ojt_internal oi
                         INNER JOIN students s ON TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci = TRIM(COALESCE(oi.student_no, '')) COLLATE utf8mb4_unicode_ci
@@ -220,7 +230,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             WHERE (oi.user_id IS NULL OR oi.user_id = 0)
               AND s.user_id IS NOT NULL
               AND s.user_id > 0");
-
         $duplicateList = array_keys($duplicateStudentNos);
         $flashType = 'success';
         if (!empty($duplicateList)) {
@@ -229,12 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $flashMessage = 'Import completed successfully.';
         }
         $flashDetail = 'Processed: ' . $processed . ' | New: ' . $inserted . ' | Replaced: ' . $updated . ' | Duplicate Student No detected: ' . count($duplicateList) . ' | Invalid rows skipped: ' . $invalidSkipped;
-        if (!empty($duplicateList)) {
-            $flashDetail .= ' | Student No: ' . implode(', ', array_slice($duplicateList, 0, 8));
-            if (count($duplicateList) > 8) {
-                $flashDetail .= ' ...';
-            }
-        }
+        unset($_SESSION['ojt_internal_preview']);
     } catch (Throwable $e) {
         $flashType = 'danger';
         $flashMessage = $e->getMessage();
@@ -307,16 +311,52 @@ ob_end_flush();
                                 <label class="form-label" for="excel_file">OJT Internal Excel File</label>
                                 <input type="file" class="form-control" id="excel_file" name="excel_file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required>
                             </div>
-                            <div class="col-12 col-md-4 fm-actions">
-                                <button type="submit" class="btn btn-primary">Import Excel</button>
-                                <a href="ojt-internal-list.php" class="btn btn-light">View Internal List</a>
+                            <div class="col-12 col-md-4 fm-actions d-flex flex-column gap-2 align-items-stretch">
+                                <button type="submit" class="btn btn-primary mb-2">Import Excel</button>
+                                <a href="ojt-internal-list.php" class="btn btn-light mb-2">View Internal List</a>
+                                <a href="../assets/Internal%20Students%20Template.xlsx" download class="btn btn-outline-info">
+                                    <i class="bi bi-download"></i> Download Template
+                                </a>
                             </div>
+                        <!-- Optionally add icon support if Bootstrap Icons are not loaded -->
+                        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
                         </form>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+        <!-- Preview Table -->
+        <?php
+        if (!empty($_SESSION['ojt_internal_preview']['rows'])) {
+            $preview = $_SESSION['ojt_internal_preview'];
+            $headers = $preview['headers'];
+            $rows = $preview['rows'];
+            $duplicates = $preview['duplicates'];
+            echo '<div class="card mt-4"><div class="card-header"><strong>Preview Import Data</strong></div><div class="card-body">';
+            echo '<div class="table-responsive"><table class="table table-bordered table-sm align-middle">';
+            echo '<thead><tr>';
+            foreach ($headers as $h) {
+                echo '<th>' . htmlspecialchars($h) . '</th>';
+            }
+            echo '</tr></thead><tbody>';
+            foreach ($rows as $row) {
+                $studentNo = $row[$preview['resolved']['student_no']] ?? '';
+                $isDup = isset($duplicates[$studentNo]);
+                echo '<tr' . ($isDup ? ' style="background:#ffeaea"' : '') . '>';
+                foreach ($headers as $h) {
+                    echo '<td>' . htmlspecialchars($row[$h] ?? '') . '</td>';
+                }
+                echo '</tr>';
+            }
+            echo '</tbody></table></div>';
+            if (!empty($duplicates)) {
+                echo '<div class="alert alert-warning mt-2">Duplicate Student No detected: ' . implode(', ', array_keys($duplicates)) . '</div>';
+            }
+            echo '<form method="post"><button type="submit" name="confirm_import" value="1" class="btn btn-success">Confirm Import</button></form>';
+            echo '</div></div>';
+        }
+        ?>
 </main>
 <?php if ($flashMessage !== ''): ?>
     <div id="import-toast" class="biotern-toast biotern-toast-<?php echo $flashType === 'success' ? 'success' : 'danger'; ?>">
