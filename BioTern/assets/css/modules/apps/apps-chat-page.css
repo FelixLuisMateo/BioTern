@@ -1569,6 +1569,30 @@
         box-shadow: var(--chat-own-bubble-shadow);
     }
 
+    /* Incoming (other user) messages: boost contrast in dark mode */
+    html.app-skin-dark .msg-row:not(.own) .msg-bubble {
+        color: color-mix(in srgb, #ffffff 92%, var(--chat-bubble-color) 8%);
+    }
+
+    html.app-skin-dark .msg-row:not(.own) .msg-bubble .text-muted,
+    html.app-skin-dark .msg-row:not(.own) .msg-bubble small {
+        color: color-mix(in srgb, #ffffff 72%, var(--chat-meta-color) 28%) !important;
+    }
+
+    html.app-skin-dark .msg-row:not(.own) .msg-reply-quote {
+        color: color-mix(in srgb, #ffffff 90%, var(--chat-header-name-color) 10%);
+    }
+
+    html.app-skin-dark .msg-row:not(.own) .msg-reply-quote strong {
+        color: color-mix(in srgb, #ffffff 70%, var(--chat-header-sub-color) 30%);
+        opacity: 1;
+    }
+
+    html.app-skin-dark .msg-row:not(.own) .msg-reply-quote-text {
+        color: color-mix(in srgb, #ffffff 92%, var(--chat-header-name-color) 8%);
+        opacity: 1;
+    }
+
     .msg-bubble.has-media {
         background: transparent !important;
         border: 0 !important;
