@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 /** @var mysqli $conn */
 
 section_schedule_ensure_columns($conn);
@@ -92,9 +93,30 @@ if (!$section) {
     die('Section not found.');
 }
 
+$existingSectionCodeIndex = [];
+$existingSectionSql = "SELECT id, code FROM sections WHERE id <> ?";
+if ($hasSectionDeletedAt) {
+    $existingSectionSql .= " AND deleted_at IS NULL";
+}
+$existingSectionStmt = $conn->prepare($existingSectionSql);
+if ($existingSectionStmt) {
+    $existingSectionStmt->bind_param('i', $id);
+    $existingSectionStmt->execute();
+    $existingSectionRes = $existingSectionStmt->get_result();
+    if ($existingSectionRes) {
+        while ($row = $existingSectionRes->fetch_assoc()) {
+            $normalizedCode = biotern_normalize_section_code((string)($row['code'] ?? ''));
+            if ($normalizedCode !== '') {
+                $existingSectionCodeIndex[$normalizedCode] = (int)($row['id'] ?? 0);
+            }
+        }
+    }
+    $existingSectionStmt->close();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $name = trim((string)($_POST['name'] ?? ''));
-    $code = strtoupper(trim((string)($_POST['code'] ?? '')));
+    $code = biotern_normalize_section_code((string)($_POST['code'] ?? ''));
     $course_id = (int)($_POST['course_id'] ?? 0);
     $department_id = (int)($_POST['department_id'] ?? 0);
     $status_text = strtolower(trim((string)($_POST['status'] ?? 'active')));
@@ -121,21 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Department is required.';
         $message_type = 'danger';
     } else {
-        $dupSql = "SELECT id FROM sections WHERE code = ? AND id <> ?";
-        if ($hasSectionDeletedAt) {
-            $dupSql .= " AND deleted_at IS NULL";
-        }
-        $dupSql .= " LIMIT 1";
-        $dupStmt = $conn->prepare($dupSql);
-        $exists = false;
-        if ($dupStmt) {
-            $dupStmt->bind_param('si', $code, $id);
-            $dupStmt->execute();
-            $exists = (bool)$dupStmt->get_result()->fetch_assoc();
-            $dupStmt->close();
-        }
-
-        if ($exists) {
+        if ($code === '' || isset($existingSectionCodeIndex[$code])) {
             $message = 'Section code already exists.';
             $message_type = 'warning';
         } else {

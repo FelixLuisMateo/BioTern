@@ -9,7 +9,7 @@ if (!function_exists('biotern_section_parts')) {
         $program = '';
         $section = '';
 
-        $normalizedCode = preg_replace('/\s*-\s*/', ' ', $rawCode);
+        $normalizedCode = preg_replace('/\s*[-|]\s*/', ' ', $rawCode);
         $normalizedCode = preg_replace('/\s+/', ' ', (string)$normalizedCode);
         $normalizedCode = trim((string)$normalizedCode);
 
@@ -28,13 +28,20 @@ if (!function_exists('biotern_section_parts')) {
             }
         }
 
-        $normalizedName = preg_replace('/\s*-\s*/', ' ', $rawName);
+        $normalizedName = preg_replace('/\s*[-|]\s*/', ' ', $rawName);
         $normalizedName = preg_replace('/\s+/', ' ', (string)$normalizedName);
         $normalizedName = trim((string)$normalizedName);
 
         if ($normalizedName !== '') {
             $nameProgram = '';
             $nameSection = '';
+            $nameCandidate = $normalizedName;
+
+            if ($program !== '' && $nameCandidate !== '') {
+                $pattern = '/^' . preg_quote($program, '/') . '(?:\s+|\s*[-|]\s*)/i';
+                $nameCandidate = preg_replace($pattern, '', $nameCandidate);
+                $nameCandidate = trim((string)$nameCandidate);
+            }
 
             if (preg_match('/^(\d+[A-Za-z]*)\s+([A-Za-z][A-Za-z0-9]*)$/', $normalizedName, $matches)) {
                 $nameProgram = strtoupper((string)$matches[2]);
@@ -47,24 +54,34 @@ if (!function_exists('biotern_section_parts')) {
                 $nameSection = strtoupper((string)$matches[2]);
             }
 
+            if ($nameSection === '' && $nameCandidate !== '') {
+                if (preg_match('/^(\d+[A-Za-z]*)$/', $nameCandidate, $matches)) {
+                    $nameSection = strtoupper((string)$matches[1]);
+                } elseif (preg_match('/^([A-Za-z0-9]+)$/', $nameCandidate, $matches)) {
+                    $nameSection = strtoupper((string)$matches[1]);
+                }
+            }
+
             if ($program !== '' && $section !== '') {
                 if ($nameSection !== '' && ($nameProgram === '' || $nameProgram === $program)) {
                     $section = $nameSection;
                 } elseif (strcasecmp($normalizedName, $section) === 0) {
                     $section = $rawName !== '' ? $rawName : $section;
+                } elseif ($nameCandidate !== '' && strcasecmp($nameCandidate, $section) !== 0) {
+                    $section = $nameCandidate;
                 }
             } elseif ($program !== '' && $section === '') {
                 if ($nameSection !== '' && ($nameProgram === '' || $nameProgram === $program)) {
                     $section = $nameSection;
                 } elseif (strcasecmp($normalizedName, $program) !== 0) {
-                    $section = $rawName !== '' ? $rawName : $normalizedName;
+                    $section = $nameCandidate !== '' ? $nameCandidate : ($rawName !== '' ? $rawName : $normalizedName);
                 }
             } elseif ($program === '' && $section === '') {
                 if ($nameProgram !== '') {
                     $program = $nameProgram;
                     $section = $nameSection;
                 } else {
-                    $section = $rawName !== '' ? $rawName : $normalizedName;
+                    $section = $nameCandidate !== '' ? $nameCandidate : ($rawName !== '' ? $rawName : $normalizedName);
                 }
             }
         }
@@ -73,6 +90,25 @@ if (!function_exists('biotern_section_parts')) {
             'program' => trim((string)$program),
             'section' => trim((string)$section),
         ];
+    }
+}
+
+if (!function_exists('biotern_normalize_section_code')) {
+    function biotern_normalize_section_code(?string $code): string
+    {
+        $parts = biotern_section_parts($code, null);
+        $program = strtoupper(trim((string)($parts['program'] ?? '')));
+        $section = strtoupper(trim((string)($parts['section'] ?? '')));
+
+        if ($program !== '' && $section !== '') {
+            return $program . '-' . $section;
+        }
+
+        if ($program !== '') {
+            return $program;
+        }
+
+        return $section;
     }
 }
 
@@ -88,7 +124,7 @@ if (!function_exists('biotern_format_section_code')) {
         }
 
         if ($program !== '' && $section !== '') {
-            return $program . ' ' . strtoupper((string)$section);
+            return $program . ' | ' . strtoupper((string)$section);
         }
 
         return $program !== '' ? $program : $section;

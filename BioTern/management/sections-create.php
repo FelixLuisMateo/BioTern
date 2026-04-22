@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 /** @var mysqli $conn */
 
 section_schedule_ensure_columns($conn);
@@ -47,6 +48,18 @@ if ($courseRes) {
         $courseId = isset($row['id']) ? (int)$row['id'] : 0;
         if ($courseId > 0) {
             $courseCodeById[$courseId] = strtoupper(trim((string)($row['code'] ?? '')));
+        }
+    }
+}
+
+$existingSectionCodeIndex = [];
+$existingSectionSql = "SELECT id, code FROM sections" . ($hasSectionDeletedAt ? " WHERE deleted_at IS NULL" : "");
+$existingSectionRes = $conn->query($existingSectionSql);
+if ($existingSectionRes) {
+    while ($row = $existingSectionRes->fetch_assoc()) {
+        $normalizedCode = biotern_normalize_section_code((string)($row['code'] ?? ''));
+        if ($normalizedCode !== '') {
+            $existingSectionCodeIndex[$normalizedCode] = (int)($row['id'] ?? 0);
         }
     }
 }
@@ -118,33 +131,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $codesToCreate = [];
             for ($letter = $startLetter; $letter <= $endLetter; $letter++) {
                 $suffix = $startNumber . chr($letter);
-                $codesToCreate[] = $selectedCourseCode . '-' . $suffix;
+                $codesToCreate[] = biotern_normalize_section_code($selectedCourseCode . '-' . $suffix);
             }
-
-            $dupSql = "SELECT id FROM sections WHERE code = ?";
-            if ($hasSectionDeletedAt) {
-                $dupSql .= " AND deleted_at IS NULL";
-            }
-            $dupSql .= " LIMIT 1";
-            $dupStmt = $conn->prepare($dupSql);
 
             $createdCount = 0;
             $skippedCount = 0;
             $errorText = '';
 
             foreach ($codesToCreate as $code) {
-                $exists = false;
-                if ($dupStmt) {
-                    $dupStmt->bind_param('s', $code);
-                    $dupStmt->execute();
-                    $exists = (bool)$dupStmt->get_result()->fetch_assoc();
-                }
-
-                if ($exists) {
+                if ($code === '' || isset($existingSectionCodeIndex[$code])) {
                     $skippedCount++;
                     continue;
                 }
 
+                $existingSectionCodeIndex[$code] = 1;
                 $name = $code;
                 $columns = ['code', 'name', 'course_id'];
                 $values = ["'" . $conn->real_escape_string($code) . "'", "'" . $conn->real_escape_string($name) . "'", (string)$course_id];
@@ -189,10 +189,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $errorText = $conn->error;
                     break;
                 }
-            }
-
-            if ($dupStmt) {
-                $dupStmt->close();
             }
 
             if ($errorText !== '') {

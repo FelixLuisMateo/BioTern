@@ -19,28 +19,7 @@ function has_col(array $cols, string $name): bool {
 }
 
 function format_section_code(string $code): string {
-    $value = trim($code);
-    if ($value === '') {
-        return '';
-    }
-
-    $value = preg_replace('/\s*-\s*/', ' ', $value);
-    $value = preg_replace('/\s+/', ' ', (string)$value);
-    $value = trim((string)$value);
-
-    if (preg_match('/^(\d+[A-Za-z]*)\s+([A-Za-z][A-Za-z0-9]*)$/', $value, $matches)) {
-        return strtoupper((string)$matches[2]) . ' ' . strtoupper((string)$matches[1]);
-    }
-
-    if (preg_match('/^([A-Za-z][A-Za-z0-9]*)\s+(\d+[A-Za-z]*)$/', $value, $matches)) {
-        return strtoupper((string)$matches[1]) . ' ' . strtoupper((string)$matches[2]);
-    }
-
-    if (preg_match('/^([A-Za-z]+)([0-9]+[A-Za-z]*)$/', $value, $matches)) {
-        return strtoupper($matches[1]) . ' ' . strtoupper($matches[2]);
-    }
-
-    return $value;
+    return biotern_format_section_label($code, null);
 }
 
 $sectionCols = get_table_columns($conn, 'sections');
@@ -298,7 +277,7 @@ include 'includes/header.php';
                         <?php foreach ($sections as $sec): ?>
                             <tr>
                                 <td><span class="app-academic-id-pill"><?php echo (int)$sec['id']; ?></span></td>
-                                <td><span class="app-academic-code-pill"><?php echo htmlspecialchars(format_section_code((string)($sec['code'] ?? ''))); ?></span></td>
+                                <td><span class="app-academic-code-pill"><?php echo htmlspecialchars(biotern_format_section_label((string)($sec['code'] ?? ''), (string)($sec['name'] ?? ''))); ?></span></td>
                                 <td>
                                     <div class="app-academic-name-cell">
                                         <span class="app-academic-name"><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></span>
@@ -345,7 +324,7 @@ include 'includes/header.php';
                                 <div class="app-mobile-summary-main app-ojt-mobile-summary-main">
                                     <div class="app-mobile-summary-text app-ojt-mobile-summary-text">
                                         <span class="app-mobile-name app-ojt-mobile-name"><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></span>
-                                        <span class="app-mobile-subtext app-ojt-mobile-subtext">Code: <?php echo htmlspecialchars(format_section_code((string)($sec['code'] ?? '-'))); ?></span>
+                                        <span class="app-mobile-subtext app-ojt-mobile-subtext">Code: <?php echo htmlspecialchars(biotern_format_section_label((string)($sec['code'] ?? ''), (string)($sec['name'] ?? ''))); ?></span>
                                     </div>
                                 </div>
                                 <?php

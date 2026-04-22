@@ -760,8 +760,6 @@ function setupFloatingTextFields() {
                     ['Course', getFieldDisplay('course_id')],
                     ['Department', getFieldDisplay('department_id')],
                     ['Section', getFieldDisplay('section')],
-                    ['School Year', getFieldDisplay('school_year')],
-                    ['Semester', getFieldDisplay('semester')],
                     ['Coordinator', getFieldDisplay('coordinator_id')],
                     ['Supervisor', getFieldDisplay('supervisor_id')],
                     ['Phone', getFieldDisplay('phone')],
@@ -1183,6 +1181,13 @@ function setupFloatingTextFields() {
                     .replace(/\s+/g, ' ')
                     .trim();
                 const normalizedSectionName = sectionName.toUpperCase();
+                let strippedSectionName = sectionName;
+
+                if (codeParts.code && strippedSectionName) {
+                    const safeCode = codeParts.code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const codePrefix = new RegExp('^' + safeCode + '(?:\\s+|\\s*[-|]\\s*)', 'i');
+                    strippedSectionName = strippedSectionName.replace(codePrefix, '').trim();
+                }
 
                 if (codeParts.code && codeParts.section) {
                     if (normalizedSectionName && normalizedSectionName === codeParts.section) {
@@ -1193,7 +1198,7 @@ function setupFloatingTextFields() {
                         return codeParts.code + ' | ' + codeParts.section;
                     }
 
-                    return codeParts.code + ' | ' + sectionName;
+                    return codeParts.code + ' | ' + (strippedSectionName || sectionName);
                 }
 
                 if (codeParts.code && normalizedSectionName) {
@@ -1201,10 +1206,10 @@ function setupFloatingTextFields() {
                         return codeParts.code;
                     }
 
-                    return codeParts.code + ' | ' + sectionName;
+                    return codeParts.code + ' | ' + (strippedSectionName || sectionName);
                 }
 
-                return codeParts.code || sectionName || '';
+                return codeParts.code || strippedSectionName || sectionName || '';
             }
 
             sectionRecords.forEach(function(rec) {
@@ -1214,7 +1219,7 @@ function setupFloatingTextFields() {
 
                 const code = (rec.code || '').trim();
                 const name = (rec.name || '').trim();
-                const label = formatSectionLabel(code, name) || ('Section #' + rec.id);
+                const label = String(rec.label || '').trim() || formatSectionLabel(code, name) || ('Section #' + rec.id);
 
                 const option = document.createElement('option');
                 option.value = code || String(rec.id);
