@@ -41,7 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
             $receiver_id,
             'New message',
             $sender_display . ' sent you a message.',
-            'message'
+            'message',
+            'apps-chat.php?user_id=' . $current_user_id
         );
     } elseif ($msg !== '' && $receiver_id <= 0) {
         $messages[] = [

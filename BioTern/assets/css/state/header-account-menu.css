@@ -78,11 +78,11 @@ html.app-skin-dark {
 }
 
 .nxl-header .dropdown-menu.nxl-notifications-menu {
-    width: 380px;
-    min-width: 380px;
-    max-width: min(380px, calc(100vw - 1.5rem));
+    width: 480px;
+    min-width: 480px;
+    max-width: min(480px, calc(100vw - 1.5rem));
     display: none;
-    max-height: min(76vh, 600px);
+    max-height: min(82vh, 720px);
 }
 
 .nxl-header .dropdown-menu.nxl-search-dropdown {
@@ -474,7 +474,7 @@ html.app-skin-dark {
     gap: 8px;
     padding: 10px 12px 12px;
     overflow-y: auto;
-    max-height: calc(min(76vh, 600px) - 108px);
+    max-height: calc(min(82vh, 720px) - 112px);
 }
 
 .header-notification-row {
@@ -741,9 +741,9 @@ html.app-skin-dark .user-dropdown-logout:focus {
     }
 
     .nxl-header .dropdown-menu.nxl-notifications-menu {
-        width: 340px;
-        min-width: 340px;
-        max-width: min(340px, calc(100vw - 24px));
+        width: 420px;
+        min-width: 420px;
+        max-width: min(420px, calc(100vw - 24px));
     }
 
     .nxl-header .dropdown-menu.nxl-search-dropdown {
