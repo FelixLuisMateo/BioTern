@@ -9,7 +9,7 @@ if (!function_exists('biotern_section_parts')) {
         $program = '';
         $section = '';
 
-        $normalizedCode = preg_replace('/\s*-\s*/', ' ', $rawCode);
+        $normalizedCode = preg_replace('/\s*[-|]\s*/', ' ', $rawCode);
         $normalizedCode = preg_replace('/\s+/', ' ', (string)$normalizedCode);
         $normalizedCode = trim((string)$normalizedCode);
 
@@ -28,7 +28,7 @@ if (!function_exists('biotern_section_parts')) {
             }
         }
 
-        $normalizedName = preg_replace('/\s*-\s*/', ' ', $rawName);
+        $normalizedName = preg_replace('/\s*[-|]\s*/', ' ', $rawName);
         $normalizedName = preg_replace('/\s+/', ' ', (string)$normalizedName);
         $normalizedName = trim((string)$normalizedName);
 
@@ -93,6 +93,25 @@ if (!function_exists('biotern_section_parts')) {
     }
 }
 
+if (!function_exists('biotern_normalize_section_code')) {
+    function biotern_normalize_section_code(?string $code): string
+    {
+        $parts = biotern_section_parts($code, null);
+        $program = strtoupper(trim((string)($parts['program'] ?? '')));
+        $section = strtoupper(trim((string)($parts['section'] ?? '')));
+
+        if ($program !== '' && $section !== '') {
+            return $program . '-' . $section;
+        }
+
+        if ($program !== '') {
+            return $program;
+        }
+
+        return $section;
+    }
+}
+
 if (!function_exists('biotern_format_section_code')) {
     function biotern_format_section_code(?string $code): string
     {
@@ -105,7 +124,7 @@ if (!function_exists('biotern_format_section_code')) {
         }
 
         if ($program !== '' && $section !== '') {
-            return $program . ' ' . strtoupper((string)$section);
+            return $program . ' | ' . strtoupper((string)$section);
         }
 
         return $program !== '' ? $program : $section;

@@ -1219,7 +1219,7 @@ function setupFloatingTextFields() {
 
                 const code = (rec.code || '').trim();
                 const name = (rec.name || '').trim();
-                const label = formatSectionLabel(code, name) || ('Section #' + rec.id);
+                const label = String(rec.label || '').trim() || formatSectionLabel(code, name) || ('Section #' + rec.id);
 
                 const option = document.createElement('option');
                 option.value = code || String(rec.id);
