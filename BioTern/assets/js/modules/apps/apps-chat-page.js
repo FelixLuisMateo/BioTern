@@ -1645,6 +1645,10 @@
                     window.location.href = link.getAttribute('href') || chatBaseUrl;
                     return;
                 }
+                if (!headerEl || !threadEl || !formEl) {
+                    window.location.href = link.getAttribute('href') || (chatBaseUrl + '?user_id=' + selectedUserId);
+                    return;
+                }
                 var wasMobileConversationOpen = isMobileLayout() && app.classList.contains('btchat-mobile-convo-open');
                 setActiveContactVisual(selectedUserId);
                 primeHeaderFromListItem(link);

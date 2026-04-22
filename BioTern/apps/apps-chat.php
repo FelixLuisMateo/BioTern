@@ -1746,6 +1746,11 @@ if ($selectedUserId > 0) {
     }
 }
 
+if ($selectedContact === null && !empty($contacts)) {
+    $selectedContact = $contacts[0];
+    $selectedUserId = (int)($selectedContact['id'] ?? 0);
+}
+
 if ($selectedContact && $messageMeta['is_read_col'] !== '') {
     $markReadSql = 'UPDATE messages SET ' . $messageMeta['is_read_col'] . ' = 1';
     if ($messageMeta['read_at_col'] !== '') {
