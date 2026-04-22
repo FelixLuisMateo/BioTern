@@ -1640,13 +1640,14 @@
                     return;
                 }
                 event.preventDefault();
+                event.stopPropagation();
                 selectedUserId = parseInt(link.getAttribute('data-user-id') || '0', 10) || 0;
                 if (!selectedUserId) {
-                    window.location.href = link.getAttribute('href') || chatBaseUrl;
+                    showAlert('error', 'Unable to open that conversation.');
                     return;
                 }
                 if (!headerEl || !threadEl || !formEl) {
-                    window.location.href = link.getAttribute('href') || (chatBaseUrl + '?user_id=' + selectedUserId);
+                    showAlert('error', 'Chat view is still loading.');
                     return;
                 }
                 var wasMobileConversationOpen = isMobileLayout() && app.classList.contains('btchat-mobile-convo-open');
@@ -1666,7 +1667,7 @@
                 fetchState(true, { forceScroll: true }).then(function (payload) {
                     if (!payload || !payload.ok) {
                         setThreadLoading(false);
-                        window.location.href = link.getAttribute('href') || (chatBaseUrl + '?user_id=' + selectedUserId);
+                        showAlert('error', 'Unable to load that conversation right now.');
                     }
                 });
             });
