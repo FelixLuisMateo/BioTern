@@ -220,6 +220,15 @@
         padding-bottom: 0.5rem;
     }
 
+    .btchat-group-label {
+        padding: 0.75rem 1rem 0.35rem;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--chat-time-color);
+    }
+
     .btchat-item {
         display: flex;
         align-items: center;
