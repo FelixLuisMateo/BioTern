@@ -1357,7 +1357,7 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
     } elseif ($draftMessage === '' && $uploadedMediaPath === '') {
         $errorMessage = 'Message cannot be empty.';
     } elseif ($errorMessage === '') {
-        $recipientStmt = $conn->prepare("SELECT id, name FROM users WHERE id = ? AND (is_active = 1 OR is_active IS NULL) LIMIT 1");
+        $recipientStmt = $conn->prepare("SELECT id, name, COALESCE(role, '') AS role FROM users WHERE id = ? AND (is_active = 1 OR is_active IS NULL) LIMIT 1");
         $recipient = null;
         if ($recipientStmt) {
             $recipientStmt->bind_param('i', $selectedUserId);
@@ -1369,12 +1369,19 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
         if (!$recipient) {
             $errorMessage = 'The selected recipient was not found.';
         } elseif ($isStudentChatUser) {
-            if (!$studentScope || (int)($studentScope['section_id'] ?? 0) <= 0) {
+            $recipientRole = chat_normalize_role((string)($recipient['role'] ?? ''));
+
+            if (!$studentScope) {
                 $errorMessage = $studentScopeMissingMessage;
             } elseif (!chat_student_can_contact_user($conn, $studentScope, $selectedUserId)) {
-                $errorMessage = $studentScopeErrorMessage;
+                $hasStudentSection = (int)($studentScope['section_id'] ?? 0) > 0;
+                $errorMessage = (!$hasStudentSection && $recipientRole === 'student')
+                    ? $studentScopeMissingMessage
+                    : $studentScopeErrorMessage;
             }
-        } else {
+        }
+
+        if ($errorMessage === '') {
             if ($replyToMessageId > 0 && $messageMeta['id_col'] !== '') {
                 $replyCheckSql = 'SELECT ' . $messageMeta['id_col'] . ' AS id FROM messages
                     WHERE ' . $messageMeta['id_col'] . ' = ?
