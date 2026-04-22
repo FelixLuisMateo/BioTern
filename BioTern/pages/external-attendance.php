@@ -107,6 +107,73 @@ function external_attendance_action_locked(array $record, string $clockType): bo
     return false;
 }
 
+function external_attendance_admin_filters(array $source, string $prefix = ''): array
+{
+    $status = strtolower(trim((string)($source[$prefix . 'status'] ?? 'all')));
+    if (!in_array($status, ['all', 'pending', 'approved', 'rejected'], true)) {
+        $status = 'all';
+    }
+
+    $date = trim((string)($source[$prefix . 'date'] ?? ''));
+    if ($date !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        $date = '';
+    }
+
+    $sourceFilter = strtolower(trim((string)($source[$prefix . 'source'] ?? 'all')));
+    if (!in_array($sourceFilter, ['all', 'manual', 'biometric', 'external-biometric'], true)) {
+        $sourceFilter = 'all';
+    }
+
+    $photo = strtolower(trim((string)($source[$prefix . 'photo'] ?? 'all')));
+    if (($source[$prefix . 'reports'] ?? '') === 'proof' && $photo === 'all') {
+        $photo = 'with';
+    }
+    if (!in_array($photo, ['all', 'with', 'without'], true)) {
+        $photo = 'all';
+    }
+
+    $student = trim((string)($source[$prefix . 'student'] ?? ''));
+    if ($student !== '') {
+        $student = function_exists('mb_substr') ? (string)mb_substr($student, 0, 80) : (string)substr($student, 0, 80);
+    }
+
+    return [
+        'status' => $status,
+        'date' => $date,
+        'source' => $sourceFilter,
+        'photo' => $photo,
+        'student' => $student,
+    ];
+}
+
+function external_attendance_admin_filter_target(array $filters): string
+{
+    $params = ['status' => (string)($filters['status'] ?? 'all')];
+
+    $date = trim((string)($filters['date'] ?? ''));
+    if ($date !== '') {
+        $params['date'] = $date;
+    }
+
+    $source = trim((string)($filters['source'] ?? 'all'));
+    if ($source !== '' && $source !== 'all') {
+        $params['source'] = $source;
+    }
+
+    $photo = trim((string)($filters['photo'] ?? 'all'));
+    if ($photo !== '' && $photo !== 'all') {
+        $params['photo'] = $photo;
+    }
+
+    $student = trim((string)($filters['student'] ?? ''));
+    if ($student !== '') {
+        $params['student'] = $student;
+    }
+
+    $query = http_build_query($params);
+    return 'external-attendance.php' . ($query !== '' ? ('?' . $query) : '');
+}
+
 if ($currentRole === 'student') {
     $student = external_attendance_student_context($conn, $currentUserId);
     if (!$student) {
@@ -506,8 +573,16 @@ if (!$canManage) {
     external_attendance_flash_redirect('You do not have access to external attendance.', 'danger', 'homepage.php');
 }
 
+$adminFilters = external_attendance_admin_filters($_GET);
+$statusFilter = $adminFilters['status'];
+$dateFilter = $adminFilters['date'];
+$sourceFilter = $adminFilters['source'];
+$photoFilter = $adminFilters['photo'];
+$studentFilter = $adminFilters['student'];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = strtolower(trim((string)($_POST['external_admin_action'] ?? '')));
+    $redirectTarget = external_attendance_admin_filter_target(external_attendance_admin_filters($_POST, 'filter_'));
     if ($action === 'review') {
         $recordId = (int)($_POST['record_id'] ?? 0);
         $status = strtolower(trim((string)($_POST['status'] ?? 'pending')));
@@ -535,17 +610,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         external_attendance_sync_student_hours($conn, (int)$row['student_id']);
                     }
                 }
-                external_attendance_flash_redirect('External attendance review updated.', 'success');
+                external_attendance_flash_redirect('External attendance review updated.', 'success', $redirectTarget);
             }
         }
 
-        external_attendance_flash_redirect('Could not update external attendance review.', 'danger');
+        external_attendance_flash_redirect('Could not update external attendance review.', 'danger', $redirectTarget);
     }
-}
-
-$statusFilter = strtolower(trim((string)($_GET['status'] ?? 'pending')));
-if (!in_array($statusFilter, ['all', 'pending', 'approved', 'rejected'], true)) {
-    $statusFilter = 'pending';
 }
 
 $rows = [];
@@ -563,29 +633,140 @@ $sql = "
     LEFT JOIN users u ON u.id = s.user_id
     LEFT JOIN courses c ON c.id = s.course_id
 ";
+$whereClauses = [];
 if ($statusFilter !== 'all') {
-    $sql .= " WHERE ea.status = ?";
+    $whereClauses[] = "ea.status = '" . $conn->real_escape_string($statusFilter) . "'";
 }
-$sql .= " ORDER BY ea.attendance_date DESC, ea.id DESC LIMIT 200";
-$stmt = $conn->prepare($sql);
-if ($stmt) {
-    if ($statusFilter !== 'all') {
-        $stmt->bind_param('s', $statusFilter);
+
+if ($dateFilter !== '') {
+    $whereClauses[] = "ea.attendance_date = '" . $conn->real_escape_string($dateFilter) . "'";
+}
+
+if ($sourceFilter !== 'all') {
+    if ($sourceFilter === 'biometric') {
+        $whereClauses[] = "(ea.source = 'biometric' OR ea.source = 'external-biometric')";
+    } else {
+        $whereClauses[] = "ea.source = '" . $conn->real_escape_string($sourceFilter) . "'";
     }
-    $stmt->execute();
-    $result = $stmt->get_result();
+}
+
+if ($photoFilter === 'with') {
+    $whereClauses[] = "TRIM(COALESCE(ea.photo_path, '')) <> ''";
+} elseif ($photoFilter === 'without') {
+    $whereClauses[] = "TRIM(COALESCE(ea.photo_path, '')) = ''";
+}
+
+if ($studentFilter !== '') {
+    $safeStudent = $conn->real_escape_string($studentFilter);
+    $whereClauses[] = "(
+        s.student_id LIKE '%{$safeStudent}%'
+        OR CONCAT_WS(' ', s.first_name, s.last_name) LIKE '%{$safeStudent}%'
+        OR CONCAT_WS(' ', s.last_name, s.first_name) LIKE '%{$safeStudent}%'
+    )";
+}
+
+if ($whereClauses !== []) {
+    $sql .= " WHERE " . implode(' AND ', $whereClauses);
+}
+
+$sql .= " ORDER BY ea.attendance_date DESC, ea.id DESC LIMIT 200";
+$result = $conn->query($sql);
+if ($result instanceof mysqli_result) {
     while ($row = $result->fetch_assoc()) {
         $rows[] = $row;
     }
-    $stmt->close();
+    $result->close();
 }
 
+$externalStatusLabels = [
+    'all' => 'All statuses',
+    'pending' => 'Pending',
+    'approved' => 'Approved',
+    'rejected' => 'Rejected',
+];
+$externalSourceLabels = [
+    'all' => 'All sources',
+    'manual' => 'Manual',
+    'biometric' => 'Biometric',
+    'external-biometric' => 'External biometric',
+];
+$externalPhotoLabels = [
+    'all' => 'All photos',
+    'with' => 'With photo',
+    'without' => 'Without photo',
+];
+$externalActiveFilters = [];
+if ($statusFilter !== 'all') {
+    $externalActiveFilters[] = 'Status: ' . ($externalStatusLabels[$statusFilter] ?? ucfirst($statusFilter));
+}
+if ($sourceFilter !== 'all') {
+    $externalActiveFilters[] = 'Source: ' . ($externalSourceLabels[$sourceFilter] ?? ucfirst($sourceFilter));
+}
+if ($photoFilter !== 'all') {
+    $externalActiveFilters[] = 'Photo: ' . ($externalPhotoLabels[$photoFilter] ?? ucfirst($photoFilter));
+}
+if ($dateFilter !== '') {
+    $externalActiveFilters[] = 'Date: ' . date('M d, Y', strtotime($dateFilter));
+}
+if ($studentFilter !== '') {
+    $externalActiveFilters[] = 'Student: ' . $studentFilter;
+}
+$externalHasActiveFilters = $externalActiveFilters !== [];
+
 $page_title = 'BioTern || External Attendance';
-$page_styles = ['assets/css/modules/management/management-students.css'];
+$page_body_class = 'external-attendance-page';
+$page_styles = [
+    'assets/css/modules/management/management-students.css',
+    'assets/css/modules/pages/page-external-attendance.css?v=20260422f',
+];
 include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
+        <div class="page-header dashboard-page-header page-header-with-middle external-attendance-page-header">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">External Attendance DTR</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                    <li class="breadcrumb-item"><a href="attendance.php">Internal DTR</a></li>
+                    <li class="breadcrumb-item">External DTR</li>
+                </ul>
+            </div>
+            <div class="page-header-middle">
+                <p class="page-header-statement">Review submitted external DTR entries, inspect proof quickly, and update approvals without jumping between cards.</p>
+                <?php if ($externalHasActiveFilters): ?>
+                    <div class="external-attendance-active-filters" aria-label="Active filters">
+                        <?php foreach ($externalActiveFilters as $externalFilterLabel): ?>
+                            <span class="external-attendance-filter-pill"><?php echo htmlspecialchars($externalFilterLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div class="page-header-right ms-auto">
+                <div class="d-md-none d-flex align-items-center">
+                    <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#externalAttendanceActionsCollapse" aria-expanded="false" aria-controls="externalAttendanceActionsCollapse">
+                        <i class="feather-more-horizontal"></i>
+                    </button>
+                </div>
+                <div class="page-header-right-items collapse d-md-flex" id="externalAttendanceActionsCollapse">
+                    <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                        <span class="badge bg-soft-primary text-primary fs-11">
+                            <i class="feather-layers me-1"></i> <?php echo (int)count($rows); ?> Records
+                        </span>
+                        <a href="apps-calendar.php" class="btn btn-primary">
+                            <i class="feather-calendar me-1"></i> Open Calendar
+                        </a>
+                        <?php if ($externalHasActiveFilters): ?>
+                            <a href="external-attendance.php" class="btn btn-outline-secondary">
+                                <i class="feather-rotate-ccw me-1"></i> Clear Filters
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
         <div class="main-content">
             <?php if (is_array($externalFlash) && !empty($externalFlash['message'])): ?>
                 <div class="alert alert-<?php echo htmlspecialchars((string)($externalFlash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?>">
@@ -593,57 +774,61 @@ include 'includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <div class="page-header page-header-with-middle page-header-condensed-actions">
-                <div class="page-header-left d-flex align-items-center">
-                    <div class="page-header-title">
-                        <h5 class="m-b-10">External Attendance DTR</h5>
-                    </div>
-                    <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                        <li class="breadcrumb-item"><a href="attendance.php">Internal DTR</a></li>
-                        <li class="breadcrumb-item">External DTR</li>
-                    </ul>
-                </div>
-                <div class="page-header-middle">
-                    <p class="page-header-statement">Review submitted external DTR entries and update approval statuses in one place.</p>
-                </div>
-                <div class="page-header-right ms-auto">
-                    <div class="page-header-right-items-wrapper">
-                        <form method="get" class="d-flex gap-2 align-items-center">
-                            <select name="status" class="form-select">
+            <div class="card stretch stretch-full mb-4 external-attendance-filter-card">
+                <div class="card-body">
+                    <form method="get" class="filter-form" id="externalAttendanceFilterForm">
+                        <div class="external-filter-field">
+                            <label class="form-label" for="external-filter-date">Date</label>
+                            <input id="external-filter-date" type="date" name="date" class="form-control" value="<?php echo htmlspecialchars((string)$dateFilter, ENT_QUOTES, 'UTF-8'); ?>">
+                        </div>
+                        <div class="external-filter-field">
+                            <label class="form-label" for="external-filter-status">Status</label>
+                            <select id="external-filter-status" name="status" class="form-control">
+                                <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All</option>
                                 <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>Pending</option>
                                 <option value="approved" <?php echo $statusFilter === 'approved' ? 'selected' : ''; ?>>Approved</option>
                                 <option value="rejected" <?php echo $statusFilter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
-                                <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All</option>
                             </select>
-                            <button type="submit" class="btn btn-light-brand">Filter</button>
-                        </form>
-                        <a href="apps-calendar.php" class="btn btn-primary">
-                            <i class="feather-calendar me-2"></i>
-                            <span>Open Calendar</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card stretch stretch-full mb-4">
-                <div class="card-body">
-                    <div>
-                        <div>
-                            <h5 class="mb-1">External Attendance Review Queue</h5>
-                            <p class="text-muted mb-0">Attendance multipliers are now managed from the calendar event modal instead of this page.</p>
                         </div>
-                    </div>
+                        <div class="external-filter-field">
+                            <label class="form-label" for="external-filter-source">Source</label>
+                            <select id="external-filter-source" name="source" class="form-control">
+                                <option value="all" <?php echo $sourceFilter === 'all' ? 'selected' : ''; ?>>All Sources</option>
+                                <option value="biometric" <?php echo $sourceFilter === 'biometric' ? 'selected' : ''; ?>>Biometric</option>
+                                <option value="external-biometric" <?php echo $sourceFilter === 'external-biometric' ? 'selected' : ''; ?>>External Biometric</option>
+                                <option value="manual" <?php echo $sourceFilter === 'manual' ? 'selected' : ''; ?>>Manual</option>
+                            </select>
+                        </div>
+                        <div class="external-filter-field">
+                            <label class="form-label" for="external-filter-photo">Photo</label>
+                            <select id="external-filter-photo" name="photo" class="form-control">
+                                <option value="all" <?php echo $photoFilter === 'all' ? 'selected' : ''; ?>>All</option>
+                                <option value="with" <?php echo $photoFilter === 'with' ? 'selected' : ''; ?>>With Photo</option>
+                                <option value="without" <?php echo $photoFilter === 'without' ? 'selected' : ''; ?>>Without Photo</option>
+                            </select>
+                        </div>
+                        <div class="external-filter-field external-filter-field-student">
+                            <label class="form-label" for="external-filter-student">Student</label>
+                            <input id="external-filter-student" type="text" name="student" class="form-control" placeholder="ID, first name, or last name" value="<?php echo htmlspecialchars((string)$studentFilter, ENT_QUOTES, 'UTF-8'); ?>">
+                        </div>
+                        <div class="external-filter-actions">
+                            <button type="submit" class="btn btn-primary">Apply Filters</button>
+                            <a href="external-attendance.php" class="btn btn-outline-secondary">Reset</a>
+                        </div>
+                    </form>
                 </div>
             </div>
 
             <div class="card stretch stretch-full">
-                <div class="card-header">
-                    <h5 class="mb-0">External Attendance Review Queue</h5>
+                <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                        <h5 class="mb-0">External Attendance Review Queue</h5>
+                    </div>
+                    <span class="badge bg-soft-primary text-primary"><?php echo (int)count($rows); ?> record(s)</span>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
+                    <div class="table-responsive external-review-table-wrap">
+                        <table class="table table-hover mb-0 external-review-table">
                             <thead>
                                 <tr>
                                     <th>Student</th>
@@ -662,9 +847,12 @@ include 'includes/header.php';
                                     <tr><td colspan="9" class="text-center text-muted py-4">No external attendance records found.</td></tr>
                                 <?php else: ?>
                                     <?php foreach ($rows as $row): ?>
-                                        <?php $avatar = biotern_avatar_public_src((string)($row['profile_picture'] ?? ''), (int)($row['user_id'] ?? 0)); ?>
+                                        <?php
+                                        $avatar = biotern_avatar_public_src((string)($row['profile_picture'] ?? ''), (int)($row['user_id'] ?? 0));
+                                        $rowStatus = strtolower(trim((string)($row['status'] ?? 'pending')));
+                                        ?>
                                         <tr>
-                                            <td>
+                                            <td class="external-review-student">
                                                 <div class="d-flex align-items-center gap-3">
                                                     <div class="avatar-image avatar-md"><img src="<?php echo htmlspecialchars($avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="" class="img-fluid"></div>
                                                     <div>
@@ -675,7 +863,7 @@ include 'includes/header.php';
                                                 </div>
                                             </td>
                                             <td><?php echo htmlspecialchars(date('M d, Y', strtotime((string)$row['attendance_date'])), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td>
+                                            <td class="external-review-schedule">
                                                 <div class="small"><?php echo htmlspecialchars(trim((string)($row['morning_time_in'] ?? '')) !== '' ? (date('g:i A', strtotime((string)$row['morning_time_in'])) . ' - ' . (trim((string)($row['morning_time_out'] ?? '')) !== '' ? date('g:i A', strtotime((string)$row['morning_time_out'])) : '--')) : 'No morning record', ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <div class="small"><?php echo htmlspecialchars(trim((string)($row['break_time_in'] ?? '')) !== '' ? (date('g:i A', strtotime((string)$row['break_time_in'])) . ' - ' . (trim((string)($row['break_time_out'] ?? '')) !== '' ? date('g:i A', strtotime((string)$row['break_time_out'])) : '--')) : 'No break record', ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <div class="small"><?php echo htmlspecialchars(trim((string)($row['afternoon_time_in'] ?? '')) !== '' ? (date('g:i A', strtotime((string)$row['afternoon_time_in'])) . ' - ' . (trim((string)($row['afternoon_time_out'] ?? '')) !== '' ? date('g:i A', strtotime((string)$row['afternoon_time_out'])) : '--')) : 'No afternoon record', ENT_QUOTES, 'UTF-8'); ?></div>
@@ -686,20 +874,29 @@ include 'includes/header.php';
                                                     <div class="small text-muted"><?php echo htmlspecialchars((string)($row['multiplier_reason'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <?php endif; ?>
                                             </td>
-                                            <td><?php echo htmlspecialchars(ucfirst((string)($row['status'] ?? 'pending')), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td>
+                                                <span class="badge bg-soft-<?php echo $rowStatus === 'approved' ? 'success text-success' : ($rowStatus === 'rejected' ? 'danger text-danger' : 'warning text-warning'); ?>">
+                                                    <?php echo htmlspecialchars(ucfirst($rowStatus), ENT_QUOTES, 'UTF-8'); ?>
+                                                </span>
+                                            </td>
                                             <td><?php echo htmlspecialchars((string)($row['source'] ?? 'manual'), ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td><?php if (trim((string)($row['photo_path'] ?? '')) !== ''): ?><a href="<?php echo htmlspecialchars((string)$row['photo_path'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">Open</a><?php else: ?>-<?php endif; ?></td>
-                                            <td class="small"><?php echo htmlspecialchars((string)($row['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td class="small external-review-notes"><?php echo htmlspecialchars((string)($row['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td>
-                                                <form method="post" class="d-grid gap-2">
+                                                <form method="post" class="d-grid gap-2 external-review-form">
                                                     <input type="hidden" name="external_admin_action" value="review">
                                                     <input type="hidden" name="record_id" value="<?php echo (int)$row['id']; ?>">
+                                                    <input type="hidden" name="filter_status" value="<?php echo htmlspecialchars((string)$statusFilter, ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <input type="hidden" name="filter_date" value="<?php echo htmlspecialchars((string)$dateFilter, ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <input type="hidden" name="filter_source" value="<?php echo htmlspecialchars((string)$sourceFilter, ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <input type="hidden" name="filter_photo" value="<?php echo htmlspecialchars((string)$photoFilter, ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <input type="hidden" name="filter_student" value="<?php echo htmlspecialchars((string)$studentFilter, ENT_QUOTES, 'UTF-8'); ?>">
                                                     <select name="status" class="form-select form-select-sm">
-                                                        <option value="approved">Approve</option>
-                                                        <option value="pending" <?php echo strtolower((string)($row['status'] ?? 'pending')) === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                                                        <option value="rejected" <?php echo strtolower((string)($row['status'] ?? 'pending')) === 'rejected' ? 'selected' : ''; ?>>Reject</option>
+                                                        <option value="approved" <?php echo $rowStatus === 'approved' ? 'selected' : ''; ?>>Approve</option>
+                                                        <option value="pending" <?php echo $rowStatus === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                                                        <option value="rejected" <?php echo $rowStatus === 'rejected' ? 'selected' : ''; ?>>Reject</option>
                                                     </select>
-                                                    <input type="text" name="admin_note" class="form-control form-control-sm" placeholder="Review note">
+                                                    <input type="text" name="admin_note" class="form-control form-control-sm" placeholder="Review note (optional)">
                                                     <button type="submit" class="btn btn-sm btn-primary">Save</button>
                                                 </form>
                                             </td>

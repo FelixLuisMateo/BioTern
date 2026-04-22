@@ -401,11 +401,35 @@
                 listEl.innerHTML = '<div class="px-3 py-4 text-white-50">No matching users.</div>';
                 return;
             }
+            items = items.slice().sort(function (left, right) {
+                var leftOrder = parseInt(left && left.group_order != null ? left.group_order : 99, 10) || 99;
+                var rightOrder = parseInt(right && right.group_order != null ? right.group_order : 99, 10) || 99;
+                if (leftOrder !== rightOrder) {
+                    return leftOrder - rightOrder;
+                }
+
+                var leftTs = left && left.last_message_at ? Date.parse(left.last_message_at) : 0;
+                var rightTs = right && right.last_message_at ? Date.parse(right.last_message_at) : 0;
+                leftTs = isNaN(leftTs) ? 0 : leftTs;
+                rightTs = isNaN(rightTs) ? 0 : rightTs;
+                if (leftTs !== rightTs) {
+                    return rightTs - leftTs;
+                }
+
+                return String((left && left.name) || '').localeCompare(String((right && right.name) || ''));
+            });
+
+            var currentGroupKey = '';
             listEl.innerHTML = items.map(function (contact) {
                 var activeClass = contact.id === selectedUserId ? ' active' : '';
                 var unread = contact.unread_count > 0 ? '<span class="badge rounded-pill bg-primary">' + contact.unread_count + '</span>' : '';
                 var snippet = contact.last_message ? contact.last_message : 'No messages yet';
-                return '' +
+                var markup = '';
+                if (contact.group_key && contact.group_key !== currentGroupKey) {
+                    currentGroupKey = contact.group_key;
+                    markup += '<div class="btchat-group-label">' + escapeHtml(contact.group_label || '') + '</div>';
+                }
+                markup += '' +
                     '<a class="btchat-item' + activeClass + '" href="' + chatBaseUrl + '?user_id=' + contact.id + '" data-user-id="' + contact.id + '">' +
                         avatarMarkup(contact) +
                         '<div class="btchat-meta">' +
@@ -419,6 +443,7 @@
                             '</div>' +
                         '</div>' +
                     '</a>';
+                return markup;
             }).join('');
             bindAvatarFallback(listEl);
         }
@@ -1618,6 +1643,10 @@
                 selectedUserId = parseInt(link.getAttribute('data-user-id') || '0', 10) || 0;
                 if (!selectedUserId) {
                     window.location.href = link.getAttribute('href') || chatBaseUrl;
+                    return;
+                }
+                if (!headerEl || !threadEl || !formEl) {
+                    window.location.href = link.getAttribute('href') || (chatBaseUrl + '?user_id=' + selectedUserId);
                     return;
                 }
                 var wasMobileConversationOpen = isMobileLayout() && app.classList.contains('btchat-mobile-convo-open');

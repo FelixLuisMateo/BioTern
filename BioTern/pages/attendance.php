@@ -176,15 +176,29 @@ $stats = $stats_result->fetch_assoc();
 $filter_date = isset($_GET['date']) && $_GET['date'] !== '' ? $_GET['date'] : '';
 $start_date = isset($_GET['start_date']) && $_GET['start_date'] !== '' ? $_GET['start_date'] : '';
 $end_date = isset($_GET['end_date']) && $_GET['end_date'] !== '' ? $_GET['end_date'] : '';
-$filter_course = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
-$filter_department = isset($_GET['department_id']) ? intval($_GET['department_id']) : 0;
-$filter_section = isset($_GET['section_id']) ? intval($_GET['section_id']) : 0;
-$filter_school_year = isset($_GET['school_year']) ? trim((string)$_GET['school_year']) : '';
-$filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
-$filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
-$filter_status = isset($_GET['status']) ? trim($_GET['status']) : '';
-$valid_approval_statuses = ['approved', 'pending', 'rejected'];
-$has_valid_approval_status_filter = in_array($filter_status, $valid_approval_statuses, true);
+$filter_course = 0;
+$filter_department = 0;
+$filter_section = 0;
+$filter_school_year = '';
+$filter_supervisor = '';
+$filter_coordinator = '';
+$filter_source = isset($_GET['source']) ? trim((string)$_GET['source']) : 'all';
+$valid_source_filters = ['all', 'manual', 'biometric', 'external-biometric'];
+if (!in_array($filter_source, $valid_source_filters, true)) {
+    $filter_source = 'all';
+}
+$filter_status = strtolower(trim((string)($_GET['status'] ?? 'all')));
+$valid_status_filters = ['all', 'early', 'present', 'late', 'absent', 'approved'];
+if (!in_array($filter_status, $valid_status_filters, true)) {
+    $filter_status = 'all';
+}
+$has_active_status_filter = $filter_status !== 'all';
+$filter_reports = isset($_GET['reports']) ? trim((string)$_GET['reports']) : 'all';
+$valid_report_filters = ['all', 'internal_dtr', 'external_queue', 'proof'];
+$has_valid_report_filter = in_array($filter_reports, $valid_report_filters, true);
+if (!$has_valid_report_filter) {
+    $filter_reports = 'all';
+}
 
 $has_application_status = false;
 $col_app = $conn->query("SHOW COLUMNS FROM users LIKE 'application_status'");
@@ -211,8 +225,14 @@ for ($year = $latest_school_year_start; $year >= $school_year_start; $year--) {
     $school_year_options[] = sprintf('%d-%d', $year, $year + 1);
 }
 
+$has_additional_filters = (
+    $has_active_status_filter
+    || $filter_reports !== 'all'
+    || $filter_source !== 'all'
+);
+
 // default to local current date when no date filters provided
-if (empty($filter_date) && empty($start_date) && empty($end_date) && !$has_valid_approval_status_filter) {
+if (empty($filter_date) && empty($start_date) && empty($end_date) && !$has_additional_filters) {
     $filter_date = $attendance_today_local;
 }
 
@@ -313,9 +333,11 @@ if (!empty($start_date) && !empty($end_date)) {
 } elseif (!empty($filter_date)) {
     $where[] = "a.attendance_date = '" . $conn->real_escape_string($filter_date) . "'";
 }
-if (!empty($filter_status)) {
-    if ($has_valid_approval_status_filter) {
-        $where[] = "a.status = '" . $conn->real_escape_string($filter_status) . "'";
+if ($filter_source !== 'all') {
+    if ($filter_source === 'biometric') {
+        $where[] = "(a.source = 'biometric' OR a.source = 'external-biometric')";
+    } else {
+        $where[] = "a.source = '" . $conn->real_escape_string($filter_source) . "'";
     }
 }
 if ($filter_course > 0) {
@@ -346,6 +368,9 @@ if (!empty($filter_coordinator)) {
         OR s.coordinator_name LIKE '%{$esc_coor}%'
     )";
 }
+
+$include_internal_records = in_array($filter_reports, ['all', 'internal_dtr'], true);
+$include_external_records = in_array($filter_reports, ['all', 'external_queue', 'proof'], true);
 
 $attendance_query = "
      SELECT 
@@ -401,19 +426,21 @@ $attendance_query = "
     LIMIT 100
 ";
 
-$attendance_result = $conn->query($attendance_query);
 $attendances = [];
-if ($attendance_result && $attendance_result->num_rows > 0) {
-    $seen_attendance_ids = [];
-    while ($row = $attendance_result->fetch_assoc()) {
-        $aid = isset($row['id']) ? (int)$row['id'] : 0;
-        if ($aid > 0 && isset($seen_attendance_ids[$aid])) {
-            continue;
+if ($include_internal_records) {
+    $attendance_result = $conn->query($attendance_query);
+    if ($attendance_result && $attendance_result->num_rows > 0) {
+        $seen_attendance_ids = [];
+        while ($row = $attendance_result->fetch_assoc()) {
+            $aid = isset($row['id']) ? (int)$row['id'] : 0;
+            if ($aid > 0 && isset($seen_attendance_ids[$aid])) {
+                continue;
+            }
+            if ($aid > 0) {
+                $seen_attendance_ids[$aid] = true;
+            }
+            $attendances[] = $row;
         }
-        if ($aid > 0) {
-            $seen_attendance_ids[$aid] = true;
-        }
-        $attendances[] = $row;
     }
 }
 
@@ -421,7 +448,21 @@ $externalWhere = ["ea.status = 'approved'"];
 if ($has_application_status) {
     $externalWhere[] = "COALESCE(u_student.application_status, 'approved') = 'approved'";
 }
-if ($filter_date !== '') {
+if ($filter_source !== 'all') {
+    if ($filter_source === 'biometric') {
+        $externalWhere[] = "(ea.source = 'biometric' OR ea.source = 'external-biometric')";
+    } else {
+        $externalWhere[] = "ea.source = '" . $conn->real_escape_string($filter_source) . "'";
+    }
+}
+if ($filter_reports === 'proof') {
+    $externalWhere[] = "TRIM(COALESCE(ea.photo_path, '')) <> ''";
+}
+if ($start_date !== '' && $end_date !== '') {
+    $safeStartDate = $conn->real_escape_string($start_date);
+    $safeEndDate = $conn->real_escape_string($end_date);
+    $externalWhere[] = "ea.attendance_date BETWEEN '{$safeStartDate}' AND '{$safeEndDate}'";
+} elseif ($filter_date !== '') {
     $safeDate = $conn->real_escape_string($filter_date);
     $externalWhere[] = "ea.attendance_date = '{$safeDate}'";
 }
@@ -515,7 +556,10 @@ $externalAttendanceQuery = "
      LIMIT 100
 ";
 
-$externalAttendanceResult = $conn->query($externalAttendanceQuery);
+$externalAttendanceResult = null;
+if ($include_external_records) {
+    $externalAttendanceResult = $conn->query($externalAttendanceQuery);
+}
 if ($externalAttendanceResult instanceof mysqli_result) {
     while ($row = $externalAttendanceResult->fetch_assoc()) {
         $attendances[] = $row;
@@ -539,6 +583,12 @@ if (count($attendances) > 1) {
         }
     }
     $attendances = array_values($attendance_by_student_date);
+}
+
+if ($has_active_status_filter) {
+    $attendances = array_values(array_filter($attendances, function (array $attendance) use ($filter_status): bool {
+        return attendance_list_status_key($attendance) === $filter_status;
+    }));
 }
 
 synchronizeAttendanceProgress($conn, $attendances);
@@ -1110,14 +1160,24 @@ function attendance_hours_cell_html(array $attendance): string {
     return '<span class="badge bg-soft-secondary text-secondary">' . attendance_format_hours_label($computedHours) . '</span>';
 }
 
+function attendance_list_status_key(array $attendance): string {
+    if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
+        return 'approved';
+    }
+
+    $metrics = attendance_window_metrics($attendance);
+    $status = strtolower(trim((string)($metrics['arrival_status'] ?? 'absent')));
+
+    return in_array($status, ['early', 'present', 'late', 'absent'], true) ? $status : 'absent';
+}
+
 function attendance_status_cell_html(array $attendance): string {
     if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
         return '<span class="badge bg-soft-success text-success">Approved</span>'
             . '<div class="fs-11 text-muted mt-1">Teacher-reviewed external DTR</div>';
     }
 
-    $metrics = attendance_window_metrics($attendance);
-    $status = (string)($metrics['arrival_status'] ?? 'absent');
+    $status = attendance_list_status_key($attendance);
 
     if ($status === 'early') {
         $badge = '<span class="badge bg-soft-info text-info">Early</span>';
@@ -1128,6 +1188,8 @@ function attendance_status_cell_html(array $attendance): string {
     } else {
         $badge = '<span class="badge bg-soft-danger text-danger">Absent</span>';
     }
+
+    $metrics = attendance_window_metrics($attendance);
 
     $notes = [];
     if ((($metrics['schedule']['window_source'] ?? '') === 'school')) {
@@ -1423,10 +1485,10 @@ function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
 <?php
 $page_title = 'BioTern || Student Attendance';
 $page_body_class = 'attendance-page';
-$page_styles = ['assets/css/modules/pages/page-attendance.css'];
+$page_styles = ['assets/css/modules/pages/page-attendance.css?v=20260422d'];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',
-    'assets/js/modules/pages/pages-attendance-runtime.js',
+    'assets/js/modules/pages/pages-attendance-runtime.js?v=20260422d',
 ];
 include 'includes/header.php';
 ?>
@@ -1485,13 +1547,17 @@ include 'includes/header.php';
                                         <i class="feather-check-circle me-3"></i>
                                         <span>Approved</span>
                                     </a>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="pending">
-                                        <i class="feather-clock me-3"></i>
-                                        <span>Pending</span>
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="present">
+                                        <i class="feather-check-square me-3"></i>
+                                        <span>Present</span>
                                     </a>
-                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="rejected">
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="late">
+                                        <i class="feather-clock me-3"></i>
+                                        <span>Late</span>
+                                    </a>
+                                    <a href="javascript:void(0);" class="dropdown-item attendance-filter" data-type="status" data-value="absent">
                                         <i class="feather-x-circle me-3"></i>
-                                        <span>Rejected</span>
+                                        <span>Absent</span>
                                     </a>
                                 </div>
                             </div>
@@ -1565,111 +1631,48 @@ include 'includes/header.php';
             <div id="attendanceSyncAlertHost" class="mx-3"></div>
 
             <!-- Filters -->
-            <div class="collapse" id="attendanceFilterCollapse">
+            <div class="collapse show" id="attendanceFilterCollapse">
                 <div class="row mb-3 px-3">
                     <div class="col-12">
-                        <div class="filter-panel">
-                            <div class="filter-panel-head">
-                                <div>
-                                    <div class="filter-panel-label">
-                                        <i class="feather-sliders"></i>
-                                        <span>Filter Attendance</span>
-                                    </div>
-                                    <p class="filter-panel-sub">Narrow down results by school year, date, course, section, supervisor, and coordinator.</p>
-                                </div>
-                                <div class="filter-panel-head-actions">
-                                    <a href="attendance.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
-                                </div>
-                            </div>
-                            <form method="GET" class="filter-form row g-2 align-items-end" id="attendanceFilterForm">
-                        <div class="col-sm-2">
-                            <label class="form-label" for="filter-school-year">School Year</label>
-                            <select id="filter-school-year" name="school_year" class="form-control">
-                                <option value="">-- All School Years --</option>
-                                <?php
-foreach ($school_year_options as $school_year): ?>
-                                    <option value="<?php
-echo htmlspecialchars($school_year, ENT_QUOTES, 'UTF-8'); ?>" <?php
-echo $filter_school_year === $school_year ? 'selected' : ''; ?>><?php
-echo htmlspecialchars($school_year, ENT_QUOTES, 'UTF-8'); ?></option>
-                                <?php
-endforeach; ?>
-                            </select>
-                        </div>
+                        <div class="filter-panel filter-panel-compact">
+                            <form method="GET" action="attendance.php" class="filter-form row g-2 align-items-end" id="attendanceFilterForm">
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-date">Date</label>
                             <input id="filter-date" type="date" name="date" class="form-control" value="<?php
-echo htmlspecialchars($_GET['date'] ?? ''); ?>">
+echo htmlspecialchars((string)$filter_date, ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label" for="filter-course">Course</label>
-                            <select id="filter-course" name="course_id" class="form-control">
-                                <option value="0">-- All Courses --</option>
-                                <?php
-foreach ($courses as $course): ?>
-                                    <option value="<?php
-echo $course['id']; ?>" <?php
-echo $filter_course == $course['id'] ? 'selected' : ''; ?>><?php
-echo htmlspecialchars($course['name']); ?></option>
-                                <?php
-endforeach; ?>
+                            <label class="form-label" for="filter-status">Status</label>
+                            <select id="filter-status" name="status" class="form-control">
+                                <option value="all" <?php echo $filter_status === 'all' ? 'selected' : ''; ?>>All Statuses</option>
+                                <option value="early" <?php echo $filter_status === 'early' ? 'selected' : ''; ?>>Early</option>
+                                <option value="present" <?php echo $filter_status === 'present' ? 'selected' : ''; ?>>Present</option>
+                                <option value="late" <?php echo $filter_status === 'late' ? 'selected' : ''; ?>>Late</option>
+                                <option value="absent" <?php echo $filter_status === 'absent' ? 'selected' : ''; ?>>Absent</option>
+                                <option value="approved" <?php echo $filter_status === 'approved' ? 'selected' : ''; ?>>Approved</option>
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label" for="filter-department">Department</label>
-                            <select id="filter-department" name="department_id" class="form-control">
-                                <option value="0">-- All Departments --</option>
-                                <?php
-foreach ($departments as $dept): ?>
-                                    <option value="<?php
-echo $dept['id']; ?>" <?php
-echo $filter_department == $dept['id'] ? 'selected' : ''; ?>><?php
-echo htmlspecialchars($dept['name']); ?></option>
-                                <?php
-endforeach; ?>
+                            <label class="form-label" for="filter-source">Source</label>
+                            <select id="filter-source" name="source" class="form-control">
+                                <option value="all" <?php echo $filter_source === 'all' ? 'selected' : ''; ?>>All Sources</option>
+                                <option value="manual" <?php echo $filter_source === 'manual' ? 'selected' : ''; ?>>Manual</option>
+                                <option value="biometric" <?php echo $filter_source === 'biometric' ? 'selected' : ''; ?>>Biometric</option>
+                                <option value="external-biometric" <?php echo $filter_source === 'external-biometric' ? 'selected' : ''; ?>>External Biometric</option>
                             </select>
                         </div>
                         <div class="col-sm-2">
-                            <label class="form-label" for="filter-section">Section</label>
-                            <select id="filter-section" name="section_id" class="form-control">
-                                <option value="0">-- All Sections --</option>
-                                <?php
-foreach ($sections as $section): ?>
-                                    <option value="<?php
-echo (int)$section['id']; ?>" <?php
-echo $filter_section == $section['id'] ? 'selected' : ''; ?>><?php
-echo htmlspecialchars($section['section_label']); ?></option>
-                                <?php
-endforeach; ?>
+                            <label class="form-label" for="filter-reports">Reports</label>
+                            <select id="filter-reports" name="reports" class="form-control">
+                                <option value="all" <?php echo $filter_reports === 'all' ? 'selected' : ''; ?>>All Reports</option>
+                                <option value="internal_dtr" <?php echo $filter_reports === 'internal_dtr' ? 'selected' : ''; ?>>Internal DTR / Print</option>
+                                <option value="external_queue" <?php echo $filter_reports === 'external_queue' ? 'selected' : ''; ?>>External Queue</option>
+                                <option value="proof" <?php echo $filter_reports === 'proof' ? 'selected' : ''; ?>>With Proof</option>
                             </select>
                         </div>
-                        <div class="col-sm-2">
-                            <label class="form-label" for="filter-supervisor">Supervisor</label>
-                            <select id="filter-supervisor" name="supervisor" class="form-control">
-                                <option value="">-- Any Supervisor --</option>
-                                <?php
-foreach ($supervisors as $sup): ?>
-                                    <option value="<?php
-echo htmlspecialchars($sup); ?>" <?php
-echo $filter_supervisor == $sup ? 'selected' : ''; ?>><?php
-echo htmlspecialchars($sup); ?></option>
-                                <?php
-endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-sm-2">
-                            <label class="form-label" for="filter-coordinator">Coordinator</label>
-                            <select id="filter-coordinator" name="coordinator" class="form-control">
-                                <option value="">-- Any Coordinator --</option>
-                                <?php
-foreach ($coordinators as $coor): ?>
-                                    <option value="<?php
-echo htmlspecialchars($coor); ?>" <?php
-echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php
-echo htmlspecialchars($coor); ?></option>
-                                <?php
-endforeach; ?>
-                            </select>
+                        <div class="col-sm-2 filter-form-actions">
+                            <a href="attendance.php" class="btn btn-outline-secondary">Reset</a>
+                            <button type="submit" class="btn btn-primary">Apply</button>
                         </div>
                             </form>
                         </div>

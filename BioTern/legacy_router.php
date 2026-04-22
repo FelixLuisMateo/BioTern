@@ -128,6 +128,10 @@ $map = [
   'student-dtr.php' => 'pages/student-dtr.php',
   'student-internal-dtr.php' => 'pages/student-dtr.php',
   'student-documents.php' => 'pages/student-documents.php',
+  'student-application-letter.php' => 'pages/student-application-letter.php',
+  'student-endorsement-letter.php' => 'pages/student-endorsement-letter.php',
+  'student-moa.php' => 'pages/student-moa.php',
+  'student-dau-moa.php' => 'pages/student-dau-moa.php',
 
   'reports-ojt.php' => 'reports/reports-ojt.php',
   'reports-project.php' => 'reports/reports-project.php',
@@ -380,7 +384,18 @@ if ($is_logged_in) {
 
   $deny = false;
   if (in_array($file, $internship_files, true) && !in_array($current_role, ['admin', 'coordinator', 'supervisor'], true)) {
-    $deny = true;
+    $student_internship_allowed_files = [
+      'external-biometric.php',
+      'student-external-dtr.php',
+      'student-manual-dtr.php',
+      'student-dtr.php',
+      'student-internal-dtr.php',
+      'student-profile.php',
+      'student-documents.php',
+    ];
+    if (!($current_role === 'student' && in_array($file, $student_internship_allowed_files, true))) {
+      $deny = true;
+    }
   }
   if (in_array($file, $academic_files, true) && !in_array($current_role, ['admin', 'coordinator'], true)) {
     $deny = true;

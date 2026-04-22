@@ -184,8 +184,18 @@ body .page-header .page-header-actions-toggle {
     display: none;
   }
 
+  body .page-header .page-header-right .page-header-actions.collapse:not(.show) {
+    display: none !important;
+  }
+
+  body .page-header .page-header-right .page-header-actions.collapse.show {
+    display: block !important;
+    pointer-events: auto !important;
+  }
+
   body .page-header .page-header-right .page-header-actions.is-open {
     display: block !important;
+    pointer-events: auto !important;
   }
 
   body .page-header .page-header-actions-toggle {

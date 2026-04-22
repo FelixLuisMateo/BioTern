@@ -77,6 +77,42 @@ function chat_initials(string $name): string
     return $initials !== '' ? $initials : 'BT';
 }
 
+function chat_normalize_role(?string $role): string
+{
+    return strtolower(trim((string)$role));
+}
+
+function chat_contact_group_meta(string $role, bool $isStudentView): array
+{
+    $normalizedRole = chat_normalize_role($role);
+
+    if ($isStudentView) {
+        if ($normalizedRole === 'supervisor') {
+            return ['key' => 'supervisors', 'label' => 'Supervisors', 'order' => 10];
+        }
+        if ($normalizedRole === 'coordinator') {
+            return ['key' => 'coordinators', 'label' => 'Coordinators', 'order' => 20];
+        }
+        if ($normalizedRole === 'student') {
+            return ['key' => 'classmates', 'label' => 'Classmates', 'order' => 30];
+        }
+
+        return ['key' => 'others', 'label' => 'Other Users', 'order' => 40];
+    }
+
+    if ($normalizedRole === 'supervisor') {
+        return ['key' => 'supervisors', 'label' => 'Supervisors', 'order' => 10];
+    }
+    if ($normalizedRole === 'coordinator') {
+        return ['key' => 'coordinators', 'label' => 'Coordinators', 'order' => 20];
+    }
+    if ($normalizedRole === 'student') {
+        return ['key' => 'students', 'label' => 'Students', 'order' => 30];
+    }
+
+    return ['key' => 'others', 'label' => 'Other Users', 'order' => 40];
+}
+
 function chat_time_label(?string $value): string
 {
     if (!$value) {
@@ -153,6 +189,80 @@ function chat_has_table(mysqli $conn, string $table): bool
     $safeTable = $conn->real_escape_string($table);
     $result = $conn->query("SHOW TABLES LIKE '" . $safeTable . "'");
     return $result instanceof mysqli_result && $result->num_rows > 0;
+}
+
+function chat_student_scope(mysqli $conn, int $userId): ?array
+{
+    if ($userId <= 0) {
+        return null;
+    }
+
+    $stmt = $conn->prepare(
+        'SELECT s.id, s.user_id, COALESCE(s.section_id, 0) AS section_id
+         FROM students s
+         WHERE s.user_id = ?
+         LIMIT 1'
+    );
+    if (!$stmt) {
+        return null;
+    }
+
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!is_array($row)) {
+        return null;
+    }
+
+    return [
+        'student_id' => (int)($row['id'] ?? 0),
+        'user_id' => (int)($row['user_id'] ?? 0),
+        'section_id' => (int)($row['section_id'] ?? 0),
+    ];
+}
+
+function chat_student_can_contact_user(mysqli $conn, array $studentScope, int $recipientUserId): bool
+{
+    $recipientUserId = (int)$recipientUserId;
+    $sectionId = (int)($studentScope['section_id'] ?? 0);
+
+    if ($recipientUserId <= 0) {
+        return false;
+    }
+
+    $stmt = $conn->prepare(
+        'SELECT LOWER(TRIM(COALESCE(u.role, ""))) AS role, COALESCE(s.section_id, 0) AS section_id
+         FROM users u
+         LEFT JOIN students s ON s.user_id = u.id
+         WHERE u.id = ?
+           AND (u.is_active = 1 OR u.is_active IS NULL)
+         LIMIT 1'
+    );
+    if (!$stmt) {
+        return false;
+    }
+
+    $stmt->bind_param('i', $recipientUserId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    if (!is_array($row)) {
+        return false;
+    }
+
+    $role = chat_normalize_role((string)($row['role'] ?? ''));
+    if (in_array($role, ['supervisor', 'coordinator'], true)) {
+        return true;
+    }
+
+    if ($sectionId <= 0) {
+        return false;
+    }
+
+    return $role === 'student' && (int)($row['section_id'] ?? 0) === $sectionId;
 }
 
 function chat_fetch_recent_login_user_ids(mysqli $conn): array
@@ -358,7 +468,7 @@ function chat_contains_inappropriate(string $text): bool
     return chat_moderation_error($text) !== '';
 }
 
-function chat_normalize_contact(array $contact, array $recentLoginUserIds): array
+function chat_normalize_contact(array $contact, array $recentLoginUserIds, bool $isStudentView = false): array
 {
     $name = trim((string)($contact['name'] ?? ''));
     if ($name === '') {
@@ -394,11 +504,18 @@ function chat_normalize_contact(array $contact, array $recentLoginUserIds): arra
         $lastMessage = 'Sent a video';
     }
 
+    $role = chat_normalize_role((string)($contact['role'] ?? $contact['user_role'] ?? ''));
+    $groupMeta = chat_contact_group_meta($role, $isStudentView);
+
     return [
         'id' => $userId,
         'name' => $name,
         'username' => (string)($contact['username'] ?? ''),
         'email' => (string)($contact['email'] ?? ''),
+        'role' => $role,
+        'group_key' => (string)$groupMeta['key'],
+        'group_label' => (string)$groupMeta['label'],
+        'group_order' => (int)$groupMeta['order'],
         'avatar_path' => $avatarPath,
         'has_custom_avatar' => $hasCustomAvatar,
         'initials' => chat_initials($name),
@@ -770,19 +887,9 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentUserName = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
 $currentUserRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 $isStudentChatUser = ($currentUserRole === 'student');
-$currentStudentSectionId = 0;
-$studentScopeErrorMessage = 'Students can only chat with students from the same section. To add someone else, please ask an authorized personnel member.';
-
-if ($isStudentChatUser && $currentUserId > 0) {
-    $studentSectionStmt = $conn->prepare('SELECT section_id FROM students WHERE user_id = ? LIMIT 1');
-    if ($studentSectionStmt) {
-        $studentSectionStmt->bind_param('i', $currentUserId);
-        $studentSectionStmt->execute();
-        $studentSectionRow = $studentSectionStmt->get_result()->fetch_assoc();
-        $studentSectionStmt->close();
-        $currentStudentSectionId = (int)($studentSectionRow['section_id'] ?? 0);
-    }
-}
+$studentScope = $isStudentChatUser ? chat_student_scope($conn, $currentUserId) : null;
+$studentScopeErrorMessage = 'Students can only chat with classmates from their current section.';
+$studentScopeMissingMessage = 'Your student profile needs an assigned section before chat classmates can appear.';
 
 $page_title = 'BioTern || Chat';
 $requestMethod = (string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
@@ -1250,7 +1357,7 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
     } elseif ($draftMessage === '' && $uploadedMediaPath === '') {
         $errorMessage = 'Message cannot be empty.';
     } elseif ($errorMessage === '') {
-        $recipientStmt = $conn->prepare("SELECT id, name FROM users WHERE id = ? AND (is_active = 1 OR is_active IS NULL) LIMIT 1");
+        $recipientStmt = $conn->prepare("SELECT id, name, COALESCE(role, '') AS role FROM users WHERE id = ? AND (is_active = 1 OR is_active IS NULL) LIMIT 1");
         $recipient = null;
         if ($recipientStmt) {
             $recipientStmt->bind_param('i', $selectedUserId);
@@ -1261,23 +1368,20 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
 
         if (!$recipient) {
             $errorMessage = 'The selected recipient was not found.';
-        } elseif ($isStudentChatUser && $selectedUserId !== $currentUserId) {
-            if ($currentStudentSectionId <= 0) {
-                $errorMessage = $studentScopeErrorMessage;
-            } else {
-                $sameSectionStmt = $conn->prepare('SELECT 1 FROM students WHERE user_id = ? AND section_id = ? LIMIT 1');
-                $isSameSectionRecipient = false;
-                if ($sameSectionStmt) {
-                    $sameSectionStmt->bind_param('ii', $selectedUserId, $currentStudentSectionId);
-                    $sameSectionStmt->execute();
-                    $isSameSectionRecipient = (bool)$sameSectionStmt->get_result()->fetch_assoc();
-                    $sameSectionStmt->close();
-                }
-                if (!$isSameSectionRecipient) {
-                    $errorMessage = $studentScopeErrorMessage;
-                }
+        } elseif ($isStudentChatUser) {
+            $recipientRole = chat_normalize_role((string)($recipient['role'] ?? ''));
+
+            if (!$studentScope) {
+                $errorMessage = $studentScopeMissingMessage;
+            } elseif (!chat_student_can_contact_user($conn, $studentScope, $selectedUserId)) {
+                $hasStudentSection = (int)($studentScope['section_id'] ?? 0) > 0;
+                $errorMessage = (!$hasStudentSection && $recipientRole === 'student')
+                    ? $studentScopeMissingMessage
+                    : $studentScopeErrorMessage;
             }
-        } else {
+        }
+
+        if ($errorMessage === '') {
             if ($replyToMessageId > 0 && $messageMeta['id_col'] !== '') {
                 $replyCheckSql = 'SELECT ' . $messageMeta['id_col'] . ' AS id FROM messages
                     WHERE ' . $messageMeta['id_col'] . ' = ?
@@ -1494,10 +1598,24 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
 
     $studentScopeFilterSql = '';
     if ($isStudentChatUser) {
-        $studentScopeFilterSql = ' AND (u.id = ? OR EXISTS (SELECT 1 FROM students su WHERE su.user_id = u.id AND su.section_id = ?))';
-        $contactTypes .= 'ii';
-        $contactParams[] = $currentUserId;
-        $contactParams[] = $currentStudentSectionId;
+        if ($studentScope && (int)($studentScope['section_id'] ?? 0) > 0) {
+            $studentScopeFilterSql = ' AND u.id <> ? AND (
+                LOWER(TRIM(COALESCE(u.role, ""))) IN ("coordinator", "supervisor")
+                OR EXISTS (
+                    SELECT 1
+                    FROM students su
+                    WHERE su.user_id = u.id
+                      AND COALESCE(su.section_id, 0) = ?
+                )
+            )';
+            $contactTypes .= 'ii';
+            $contactParams[] = $currentUserId;
+            $contactParams[] = (int)$studentScope['section_id'];
+        } else {
+            $studentScopeFilterSql = ' AND u.id <> ? AND LOWER(TRIM(COALESCE(u.role, ""))) IN ("coordinator", "supervisor")';
+            $contactTypes .= 'i';
+            $contactParams[] = $currentUserId;
+        }
     }
 
     $contactsSql = '
@@ -1506,6 +1624,7 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
             u.name,
             u.username,
             u.email,
+            COALESCE(u.role, "") AS role,
             u.profile_picture,
             (
                 SELECT m.message
@@ -1549,6 +1668,7 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
                 'name' => (string)($row['name'] ?? $row['username'] ?? 'Unknown User'),
                 'username' => (string)($row['username'] ?? ''),
                 'email' => (string)($row['email'] ?? ''),
+                'role' => (string)($row['role'] ?? ''),
                 'profile_picture' => (string)($row['profile_picture'] ?? ''),
                 'last_message' => (string)($row['last_message'] ?? ''),
                 'last_media_path' => (string)($row['last_media_path'] ?? ''),
@@ -1558,6 +1678,27 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
             ];
         }
         $contactsStmt->close();
+    }
+
+    if (!empty($contacts)) {
+        usort($contacts, static function (array $left, array $right) use ($isStudentChatUser): int {
+            $leftGroup = chat_contact_group_meta((string)($left['role'] ?? ''), $isStudentChatUser);
+            $rightGroup = chat_contact_group_meta((string)($right['role'] ?? ''), $isStudentChatUser);
+
+            $leftOrder = (int)($leftGroup['order'] ?? 99);
+            $rightOrder = (int)($rightGroup['order'] ?? 99);
+            if ($leftOrder !== $rightOrder) {
+                return $leftOrder <=> $rightOrder;
+            }
+
+            $leftTs = strtotime((string)($left['last_message_at'] ?? '')) ?: 0;
+            $rightTs = strtotime((string)($right['last_message_at'] ?? '')) ?: 0;
+            if ($leftTs !== $rightTs) {
+                return $rightTs <=> $leftTs;
+            }
+
+            return strcasecmp((string)($left['name'] ?? ''), (string)($right['name'] ?? ''));
+        });
     }
 }
 
@@ -1579,12 +1720,14 @@ if ($selectedUserId > 0) {
     if ($isStudentChatUser && $selectedContact === null) {
         $selectedUserId = 0;
         if ($errorMessage === '') {
-            $errorMessage = $studentScopeErrorMessage;
+            $errorMessage = ($studentScope && (int)($studentScope['section_id'] ?? 0) > 0)
+                ? $studentScopeErrorMessage
+                : $studentScopeMissingMessage;
         }
     }
 
     if ($selectedContact === null) {
-        $selectedStmt = $conn->prepare('SELECT id, name, username, email, profile_picture FROM users WHERE id = ? LIMIT 1');
+        $selectedStmt = $conn->prepare('SELECT id, name, username, email, COALESCE(role, "") AS role, profile_picture FROM users WHERE id = ? LIMIT 1');
         if ($selectedStmt) {
             $selectedStmt->bind_param('i', $selectedUserId);
             $selectedStmt->execute();
@@ -1596,6 +1739,7 @@ if ($selectedUserId > 0) {
                     'name' => (string)($selectedRow['name'] ?? $selectedRow['username'] ?? 'Unknown User'),
                     'username' => (string)($selectedRow['username'] ?? ''),
                     'email' => (string)($selectedRow['email'] ?? ''),
+                    'role' => (string)($selectedRow['role'] ?? ''),
                     'profile_picture' => (string)($selectedRow['profile_picture'] ?? ''),
                     'last_message' => '',
                     'last_media_path' => '',
@@ -1607,6 +1751,11 @@ if ($selectedUserId > 0) {
             }
         }
     }
+}
+
+if ($selectedContact === null && !empty($contacts)) {
+    $selectedContact = $contacts[0];
+    $selectedUserId = (int)($selectedContact['id'] ?? 0);
 }
 
 if ($selectedContact && $messageMeta['is_read_col'] !== '') {
@@ -1830,15 +1979,20 @@ if ($selectedContact && $messageMeta['ready']) {
 
 $normalizedContacts = [];
 foreach ($contacts as $contact) {
-    $normalizedContacts[] = chat_normalize_contact($contact, $recentLoginUserIds);
+    $normalizedContacts[] = chat_normalize_contact($contact, $recentLoginUserIds, $isStudentChatUser);
 }
 
 $normalizedSelectedContact = null;
 if ($selectedContact) {
-    $normalizedSelectedContact = chat_normalize_contact($selectedContact, $recentLoginUserIds);
+    $normalizedSelectedContact = chat_normalize_contact($selectedContact, $recentLoginUserIds, $isStudentChatUser);
 }
 
 $normalizedMessages = chat_normalize_messages($conversationMessages, $currentUserId);
+$hasStudentSectionScope = $isStudentChatUser && $studentScope && (int)($studentScope['section_id'] ?? 0) > 0;
+$contactSearchPlaceholder = $isStudentChatUser ? 'Search classmates' : 'Search contacts';
+$emptyContactsMessage = $isStudentChatUser
+    ? ($hasStudentSectionScope ? 'No classmates available in your current section.' : $studentScopeMissingMessage)
+    : 'No users available.';
 
 if ($isAjaxRequest) {
     if ($errorMessage !== '') {
@@ -1891,20 +2045,27 @@ include 'includes/header.php';
     <div class="btchat-shell" id="btchat-app" data-selected-user-id="<?php echo (int)$selectedUserId; ?>" data-chat-base-url="<?php echo chat_esc(chat_page_url()); ?>" data-current-user-id="<?php echo (int)$currentUserId; ?>">
         <aside class="btchat-left">
             <div class="btchat-left-header">
-                <h2 class="btchat-left-title">Inbox</h2>
+                <h2 class="btchat-left-title"><?php echo $isStudentChatUser ? 'Classmates' : 'Inbox'; ?></h2>
             </div>
             <div class="btchat-search-wrap">
-                <input type="search" class="btchat-search" id="btchat-search" placeholder="Search contacts">
+                <input type="search" class="btchat-search" id="btchat-search" placeholder="<?php echo chat_esc($contactSearchPlaceholder); ?>">
             </div>
             <div class="btchat-list" id="btchat-list">
                 <?php if (empty($contacts)): ?>
-                    <div class="px-3 py-4 text-white-50">No users available.</div>
+                    <div class="px-3 py-4 text-white-50"><?php echo chat_esc($emptyContactsMessage); ?></div>
                 <?php else: ?>
+                    <?php $currentContactGroupKey = ''; ?>
                     <?php foreach ($normalizedContacts as $contact): ?>
                         <?php
                         $isActiveContact = (int)$contact['id'] === $selectedUserId;
                         $contactName = (string)$contact['name'];
+                        $contactGroupKey = (string)($contact['group_key'] ?? '');
+                        $contactGroupLabel = (string)($contact['group_label'] ?? '');
                         ?>
+                        <?php if ($contactGroupKey !== '' && $contactGroupKey !== $currentContactGroupKey): ?>
+                            <div class="btchat-group-label"><?php echo chat_esc($contactGroupLabel); ?></div>
+                            <?php $currentContactGroupKey = $contactGroupKey; ?>
+                        <?php endif; ?>
                         <a class="btchat-item<?php echo $isActiveContact ? ' active' : ''; ?>" href="<?php echo chat_esc(chat_page_url((int)$contact['id'])); ?>" data-user-id="<?php echo (int)$contact['id']; ?>">
                             <span class="btchat-avatar-wrap">
                                 <img src="<?php echo chat_esc((string)$contact['avatar_path']); ?>" alt="<?php echo chat_esc($contactName); ?>" class="btchat-avatar js-avatar-fallback">

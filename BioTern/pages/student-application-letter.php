@@ -135,6 +135,9 @@ $letterDate = $letterDateRaw !== '' && $letterDateRaw !== '0000-00-00'
 </head>
 <body>
     <div class="page">
+        <p style="margin:0 0 12px;text-align:right;">
+            <button type="button" onclick="window.print()" style="padding:8px 14px;border:1px solid #1f3b75;background:#1f3b75;color:#fff;border-radius:6px;cursor:pointer;">Print</button>
+        </p>
         <div class="header">
             <img src="../assets/images/ccstlogo.png" alt="CCST Logo">
             <div class="school">

@@ -428,7 +428,7 @@
     var panel = findRightPanel(right);
     var toggle = findToggle(right);
 
-    if (!panel || !toggle) {
+    if (!panel) {
       return;
     }
 
@@ -437,7 +437,19 @@
       return;
     }
 
+    if (!toggle) {
+      var existingActions = collectActionNodes(findActionsWrapper(panel));
+      if (existingActions.length > 2) {
+        toggle = createAutoToggle(right);
+      }
+    }
+
+    if (!toggle) {
+      return;
+    }
+
     normalizePanelPresentation(panel, toggle);
+    condenseHeaderActions(header, right, panel);
     ensureHomepageActionsPanel(panel);
     normalizeTogglePresentation(toggle, right);
     bindPair(header, toggle, panel);
