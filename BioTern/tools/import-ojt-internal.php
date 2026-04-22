@@ -313,7 +313,7 @@ ob_end_flush();
                             <div class="col-12 col-md-4 fm-actions d-flex flex-column gap-2 align-items-stretch">
                                 <button type="submit" class="btn btn-primary mb-2">Import Excel</button>
                                 <a href="ojt-internal-list.php" class="btn btn-light mb-2">View Internal List</a>
-                                <a href="download-internal-template.php" class="btn btn-outline-info">
+                                <a href="tools/download-internal-template.php" class="btn btn-outline-info">
                                     <i class="bi bi-download"></i> Download Template
                                 </a>
                             </div>
