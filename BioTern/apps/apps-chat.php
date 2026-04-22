@@ -226,7 +226,6 @@ function chat_student_scope(mysqli $conn, int $userId): ?array
 function chat_student_can_contact_user(mysqli $conn, array $studentScope, int $recipientUserId): bool
 {
     $recipientUserId = (int)$recipientUserId;
-    $sectionId = (int)($studentScope['section_id'] ?? 0);
 
     if ($recipientUserId <= 0) {
         return false;
@@ -258,11 +257,7 @@ function chat_student_can_contact_user(mysqli $conn, array $studentScope, int $r
         return true;
     }
 
-    if ($sectionId <= 0) {
-        return false;
-    }
-
-    return $role === 'student' && (int)($row['section_id'] ?? 0) === $sectionId;
+    return $role === 'student';
 }
 
 function chat_fetch_recent_login_user_ids(mysqli $conn): array
@@ -1598,24 +1593,11 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
 
     $studentScopeFilterSql = '';
     if ($isStudentChatUser) {
-        if ($studentScope && (int)($studentScope['section_id'] ?? 0) > 0) {
-            $studentScopeFilterSql = ' AND u.id <> ? AND (
-                LOWER(TRIM(COALESCE(u.role, ""))) IN ("coordinator", "supervisor")
-                OR EXISTS (
-                    SELECT 1
-                    FROM students su
-                    WHERE su.user_id = u.id
-                      AND COALESCE(su.section_id, 0) = ?
-                )
-            )';
-            $contactTypes .= 'ii';
-            $contactParams[] = $currentUserId;
-            $contactParams[] = (int)$studentScope['section_id'];
-        } else {
-            $studentScopeFilterSql = ' AND u.id <> ? AND LOWER(TRIM(COALESCE(u.role, ""))) IN ("coordinator", "supervisor")';
-            $contactTypes .= 'i';
-            $contactParams[] = $currentUserId;
-        }
+        $studentScopeFilterSql = ' AND u.id <> ? AND (
+            LOWER(TRIM(COALESCE(u.role, ""))) IN ("student", "coordinator", "supervisor")
+        )';
+        $contactTypes .= 'i';
+        $contactParams[] = $currentUserId;
     }
 
     $contactsSql = '
