@@ -90,6 +90,18 @@ if (!function_exists('dashboard_format_section_chip')) {
     }
 }
 
+if (!function_exists('dashboard_format_duration_clock')) {
+    function dashboard_format_duration_clock($seconds)
+    {
+        $totalSeconds = max(0, (int)round((float)$seconds));
+        $hours = (int)floor($totalSeconds / 3600);
+        $minutes = (int)floor(($totalSeconds % 3600) / 60);
+        $remainingSeconds = $totalSeconds % 60;
+
+        return sprintf('%03d:%02d:%02d', $hours, $minutes, $remainingSeconds);
+    }
+}
+
 // Initialize dashboard values
 $dashboard_stats = array(
     'attendance_awaiting' => 0,
@@ -384,7 +396,10 @@ $student_dashboard = [
 
 if ($dashboard_role === 'student' && isset($conn) && $dashboard_user_id > 0) {
     $student_stmt = $conn->prepare(
-        "SELECT s.id, s.student_id, s.first_name, s.last_name, c.name AS course_name, sec.code AS section_code, sec.name AS section_name
+        "SELECT s.id, s.student_id, s.first_name, s.last_name, s.assignment_track,
+                s.internal_total_hours, s.internal_total_hours_remaining,
+                s.external_total_hours, s.external_total_hours_remaining,
+                c.name AS course_name, sec.code AS section_code, sec.name AS section_name
          FROM students s
          LEFT JOIN courses c ON c.id = s.course_id
          LEFT JOIN sections sec ON sec.id = s.section_id
@@ -475,6 +490,9 @@ $page_scripts = array(
     'assets/js/modules/pages/homepage-movable.js',
     'assets/js/theme-customizer-init.min.js',
 );
+if ($dashboard_role === 'student') {
+    $page_scripts[] = 'assets/js/modules/pages/homepage-student-live-timer.js';
+}
 include 'includes/header.php';
 ?>
 <main class="nxl-container">
@@ -495,6 +513,39 @@ include 'includes/header.php';
                 $student_company = trim((string)($student_internship['company_name'] ?? ''));
                 $student_required_hours = (float)($student_internship['required_hours'] ?? 0);
                 $student_rendered_hours = (float)($student_internship['rendered_hours'] ?? 0);
+                $student_assignment_track = strtolower(trim((string)($student_dashboard['student']['assignment_track'] ?? 'internal')));
+                $student_has_external_track = $student_assignment_track === 'external';
+                $student_timer_total_hours = (float)($student_has_external_track
+                    ? ($student_dashboard['student']['external_total_hours'] ?? 0)
+                    : ($student_dashboard['student']['internal_total_hours'] ?? 0));
+                $student_timer_remaining_value = $student_has_external_track
+                    ? ($student_dashboard['student']['external_total_hours_remaining'] ?? null)
+                    : ($student_dashboard['student']['internal_total_hours_remaining'] ?? null);
+                $student_timer_remaining_hours = is_numeric($student_timer_remaining_value)
+                    ? max(0, (float)$student_timer_remaining_value)
+                    : max(0, $student_timer_total_hours - $student_rendered_hours);
+                $student_timer_rendered_hours = max(0, $student_timer_total_hours - $student_timer_remaining_hours);
+                $student_timer_progress = $student_timer_total_hours > 0
+                    ? min(100, max(0, ($student_timer_rendered_hours / $student_timer_total_hours) * 100))
+                    : 0;
+                $student_timer_seconds = (int)round($student_timer_remaining_hours * 3600);
+                $student_timer_clock = explode(':', dashboard_format_duration_clock($student_timer_seconds));
+                $student_timer_label = $student_has_external_track ? 'External Hours Remaining' : 'Internal Hours Remaining';
+                $student_timer_track_label = $student_has_external_track ? 'External Track' : 'Internal Track';
+                $student_timer_summary = $student_timer_total_hours > 0
+                    ? number_format($student_timer_remaining_hours, 2) . ' hrs remaining'
+                        . ' | ' . number_format($student_timer_rendered_hours, 2)
+                        . ' of ' . number_format($student_timer_total_hours, 0) . ' hrs completed'
+                    : 'No required hours are configured yet. Check your profile for assignment details.';
+                $student_dtr_route = $student_has_external_track ? 'external-biometric.php' : 'student-internal-dtr.php';
+                $student_dtr_label = $student_has_external_track ? 'My External DTR' : 'My Internal DTR';
+                $student_dtr_summary = $student_has_external_track
+                    ? 'Check your external attendance and hours.'
+                    : 'Check attendance and hours.';
+                $student_timer_route = $student_timer_total_hours > 0
+                    ? $student_dtr_route
+                    : 'student-profile.php';
+                $student_timer_button_label = $student_timer_total_hours > 0 ? 'Open DTR' : 'View Profile';
                 $student_has_started = (
                     (int)($student_dashboard['attendance_this_month'] ?? 0) > 0
                     || !empty($student_dashboard['recent_attendance'])
@@ -529,7 +580,7 @@ include 'includes/header.php';
                                 </div>
                             </div>
                             <div class="student-home-actions">
-                                <a href="student-internal-dtr.php" class="btn btn-primary"><i class="feather-clock me-1"></i> My Internal DTR</a>
+                                <a href="<?php echo htmlspecialchars($student_dtr_route, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary"><i class="feather-clock me-1"></i> <?php echo htmlspecialchars($student_dtr_label, ENT_QUOTES, 'UTF-8'); ?></a>
                                 <a href="student-profile.php" class="btn btn-light-brand"><i class="feather-user me-1"></i> My Profile</a>
                             </div>
                         </div>
@@ -548,9 +599,49 @@ include 'includes/header.php';
                         <div class="card student-panel h-100">
                             <div class="card-header"><h5 class="card-title mb-0">Quick Access</h5></div>
                             <div class="card-body">
+                                <div
+                                    class="student-hours-timer"
+                                    data-student-hours-timer
+                                    data-remaining-seconds="<?php echo (int)$student_timer_seconds; ?>"
+                                >
+                                    <div class="student-hours-timer__header">
+                                        <div>
+                                            <span class="student-metric-label">Live Hours Timer</span>
+                                            <h6><?php echo htmlspecialchars($student_timer_label, ENT_QUOTES, 'UTF-8'); ?></h6>
+                                        </div>
+                                        <span class="student-hours-timer__badge"><?php echo htmlspecialchars($student_timer_track_label, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </div>
+                                    <div class="student-hours-timer__clock">
+                                        <div class="student-hours-timer__segment">
+                                            <strong data-student-hours-part="hours"><?php echo htmlspecialchars((string)($student_timer_clock[0] ?? '000'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                            <small>Hours</small>
+                                        </div>
+                                        <span class="student-hours-timer__divider">:</span>
+                                        <div class="student-hours-timer__segment">
+                                            <strong data-student-hours-part="minutes"><?php echo htmlspecialchars((string)($student_timer_clock[1] ?? '00'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                            <small>Minutes</small>
+                                        </div>
+                                        <span class="student-hours-timer__divider">:</span>
+                                        <div class="student-hours-timer__segment">
+                                            <strong data-student-hours-part="seconds"><?php echo htmlspecialchars((string)($student_timer_clock[2] ?? '00'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                            <small>Seconds</small>
+                                        </div>
+                                    </div>
+                                    <p class="student-hours-timer__summary"><?php echo htmlspecialchars($student_timer_summary, ENT_QUOTES, 'UTF-8'); ?></p>
+                                    <div class="student-hours-timer__progress" aria-hidden="true">
+                                        <span style="width: <?php echo htmlspecialchars(number_format($student_timer_progress, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>%;"></span>
+                                    </div>
+                                    <div class="student-hours-timer__footer">
+                                        <span class="student-hours-timer__sync">
+                                            <i class="feather-activity"></i>
+                                            Synced at <strong data-student-hours-sync><?php echo htmlspecialchars(date('h:i:s A'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                        </span>
+                                        <a href="<?php echo htmlspecialchars($student_timer_route, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-primary"><?php echo htmlspecialchars($student_timer_button_label, ENT_QUOTES, 'UTF-8'); ?></a>
+                                    </div>
+                                </div>
                                 <div class="student-quick-grid">
                                     <a href="student-profile.php" class="student-shortcut-card"><i class="feather-user"></i><span>My Profile</span><small>Review your student details.</small></a>
-                                    <a href="student-internal-dtr.php" class="student-shortcut-card"><i class="feather-clock"></i><span>My Internal DTR</span><small>Check attendance and hours.</small></a>
+                                    <a href="<?php echo htmlspecialchars($student_dtr_route, ENT_QUOTES, 'UTF-8'); ?>" class="student-shortcut-card"><i class="feather-clock"></i><span><?php echo htmlspecialchars($student_dtr_label, ENT_QUOTES, 'UTF-8'); ?></span><small><?php echo htmlspecialchars($student_dtr_summary, ENT_QUOTES, 'UTF-8'); ?></small></a>
                                     <a href="student-documents.php" class="student-shortcut-card"><i class="feather-file-text"></i><span>Documents</span><small>Open your internship documents.</small></a>
                                     <a href="apps-storage.php" class="student-shortcut-card"><i class="feather-folder"></i><span>Storage</span><small>Manage files and requirements.</small></a>
                                     <a href="apps-notes.php" class="student-shortcut-card"><i class="feather-edit-3"></i><span>Notes</span><small>Keep reminders and internship notes.</small></a>

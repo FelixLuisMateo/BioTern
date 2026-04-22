@@ -48,6 +48,10 @@
       "dest": "/legacy_router.php?file=$1"
     },
     {
+      "src": "^/tools/download-internal-template\\.php$",
+      "dest": "/legacy_router.php?file=download-internal-template.php"
+    },
+    {
       "src": "^/f20h_ingest\\.php$",
       "dest": "/legacy_router.php?file=f20h_ingest.php"
     },
