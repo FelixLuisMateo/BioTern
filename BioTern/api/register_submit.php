@@ -274,6 +274,17 @@ function studentAccountAlreadyCreated(mysqli $mysqli, ?string $studentId, ?strin
     $email = trim((string)$email);
 
     if ($studentId !== '') {
+        $stmt = $mysqli->prepare("SELECT user_id FROM ojt_internal WHERE TRIM(COALESCE(student_no, '')) COLLATE utf8mb4_unicode_ci = TRIM(?) COLLATE utf8mb4_unicode_ci AND user_id IS NOT NULL AND user_id > 0 LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param('s', $studentId);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if ($row) {
+                return true;
+            }
+        }
+
         $stmt = $mysqli->prepare('SELECT id FROM students WHERE student_id = ? LIMIT 1');
         if ($stmt) {
             $stmt->bind_param('s', $studentId);
@@ -300,6 +311,26 @@ function studentAccountAlreadyCreated(mysqli $mysqli, ?string $studentId, ?strin
     }
 
     return false;
+}
+
+function linkedInternalUserId(mysqli $mysqli, ?string $studentId): int
+{
+    $studentId = trim((string)$studentId);
+    if ($studentId === '') {
+        return 0;
+    }
+
+    $stmt = $mysqli->prepare("SELECT user_id FROM ojt_internal WHERE TRIM(COALESCE(student_no, '')) COLLATE utf8mb4_unicode_ci = TRIM(?) COLLATE utf8mb4_unicode_ci LIMIT 1");
+    if (!$stmt) {
+        return 0;
+    }
+
+    $stmt->bind_param('s', $studentId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    return (int)($row['user_id'] ?? 0);
 }
 
 function generateRegistrationCode(): string
@@ -739,6 +770,11 @@ if ($role === 'student') {
     $emergency_contact = getPost('emergency_contact');
     $emergency_contact_phone = getPost('emergency_contact_phone');
 
+    $ojtInternalUserId = linkedInternalUserId($mysqli, $student_id);
+    if ($ojtInternalUserId > 0) {
+        studentApplicationRedirect('exists', 'Your account was already created by the school. Please use the account credentials provided by your teacher/admin.');
+    }
+
     if (studentAccountAlreadyCreated($mysqli, $student_id, $account_email ?: $email)) {
         studentApplicationRedirect('exists', 'Your account was already created by the school. Please use your Student ID Number to log in or contact the administrator.');
     }
@@ -1043,7 +1079,7 @@ if ($role === 'student') {
 
     // Hash password for staging; user account is created only after approval.
     $pwdHash = password_hash($password ?: bin2hex(random_bytes(4)), PASSWORD_DEFAULT);
-    $user_id = 0;
+    $user_id = $ojtInternalUserId > 0 ? $ojtInternalUserId : 0;
 
     $existingUserStmt = $mysqli->prepare("SELECT id, COALESCE(application_status, 'approved') AS application_status FROM users WHERE email = ? LIMIT 1");
     if ($existingUserStmt) {

@@ -111,6 +111,7 @@ $map = [
   'import-students-excel.php' => 'tools/import-students-excel.php',
   'import-ojt-internal.php' => 'tools/import-ojt-internal.php',
   'import-ojt-external.php' => 'tools/import-ojt-external.php',
+  'download-internal-template.php' => 'tools/download-internal-template.php',
   'print_attendance.php' => 'pages/print_attendance.php',
   'external-attendance.php' => 'pages/external-attendance.php',
   'external-attendance-manual.php' => 'pages/external-attendance-manual.php',
