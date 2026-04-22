@@ -481,13 +481,14 @@ include 'includes/header.php';
     <div class="nxl-content">
         <div class="page-header email-page-header">
             <div class="page-header-left d-flex align-items-center">
-                <div class="email-page-header-copy">
-                    <ul class="breadcrumb mb-0">
-                        <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                        <li class="breadcrumb-item">Apps</li>
-                        <li class="breadcrumb-item">Email</li>
-                    </ul>
+                <div class="page-header-title">
+                    <h5 class="m-b-10">Email</h5>
                 </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                    <li class="breadcrumb-item">Apps</li>
+                    <li class="breadcrumb-item">Email</li>
+                </ul>
             </div>
             <div class="page-header-right ms-auto">
                 <div class="email-page-header-actions">

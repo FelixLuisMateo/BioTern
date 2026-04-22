@@ -202,6 +202,7 @@ $nav_active_academic = biotern_nav_any_active($nav_current_file, [
     'courses.php', 'courses-create.php', 'courses-edit.php',
     'departments.php', 'departments-create.php', 'departments-edit.php',
     'sections.php', 'sections-create.php', 'sections-edit.php',
+    'companies.php',
     'coordinators.php', 'coordinators-create.php', 'coordinators-edit.php',
     'supervisors.php', 'supervisors-create.php', 'supervisors-edit.php',
 ]);
@@ -381,6 +382,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('courses.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="courses.php">Courses</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('departments.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="departments.php">Departments</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('sections.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="sections.php">Sections</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('companies.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="companies.php">Companies</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('coordinators.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="coordinators.php">Coordinators</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('supervisors.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="supervisors.php">Supervisors</a></li>
                     </ul>

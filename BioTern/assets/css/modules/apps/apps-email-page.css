@@ -33,6 +33,10 @@ body.apps-email-page .email-page-header .breadcrumb {
     margin-bottom: 0;
 }
 
+body.apps-email-page .email-page-header .page-header-title h5 {
+    margin-bottom: 0 !important;
+}
+
 body.apps-email-page .email-page-header-actions {
     display: flex;
     align-items: center;
@@ -476,7 +480,7 @@ body.apps-email-page #composeMail .modal-footer {
         padding: 0.85rem;
     }
 
-    body.apps-email-page .email-page-header-copy {
+    body.apps-email-page .email-page-header .page-header-left {
         width: 100%;
     }
 }
