@@ -56,20 +56,16 @@ include 'includes/header.php';
         <div class="page-header-middle">
             <p class="page-header-statement">Operational visibility for attendance corrections and biometric queue health.</p>
         </div>
-        <div class="page-header-right ms-auto">
-            <div class="d-md-none d-flex align-items-center">
-                <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#reportsAttendanceOpsActionsCollapse" aria-expanded="false" aria-controls="reportsAttendanceOpsActionsCollapse">
-                    <i class="feather-more-horizontal"></i>
-                </button>
-            </div>
-            <div class="page-header-right-items collapse d-md-flex" id="reportsAttendanceOpsActionsCollapse">
-                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                    <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
-                    <a href="attendance-corrections.php" class="btn btn-outline-primary"><i class="feather-edit-2 me-1"></i>Corrections</a>
-                    <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
-                </div>
-            </div>
-        </div>
+        <?php ob_start(); ?>
+            <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+            <a href="attendance-corrections.php" class="btn btn-outline-primary"><i class="feather-edit-2 me-1"></i>Corrections</a>
+            <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
+        <?php
+        biotern_render_page_header_actions([
+            'menu_id' => 'reportsAttendanceOpsActionsMenu',
+            'items_html' => ob_get_clean(),
+        ]);
+        ?>
     </div>
 
     <div class="row mb-4">

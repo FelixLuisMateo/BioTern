@@ -136,20 +136,16 @@ include __DIR__ . '/../includes/header.php';
             <div class="page-header-middle">
                 <p class="page-header-statement"><?php echo $documentsIsStudentViewOnly ? 'Preview your application document in read-only mode.' : 'Use one workspace to fill application data, preview the letter, and generate a print-ready copy.'; ?></p>
             </div>
-            <div class="page-header-right ms-auto">
-                <div class="d-md-none d-flex align-items-center">
-                    <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#documentApplicationActionsCollapse" aria-expanded="false" aria-controls="documentApplicationActionsCollapse">
-                        <i class="feather-more-horizontal"></i>
-                    </button>
-                </div>
-                <div class="page-header-right-items collapse d-md-flex" id="documentApplicationActionsCollapse">
-                    <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                        <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
-                        <a href="document_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>MOA</a>
-                        <a href="document_dau_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>DAU MOA</a>
-                    </div>
-                </div>
-            </div>
+            <?php ob_start(); ?>
+                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                <a href="document_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>MOA</a>
+                <a href="document_dau_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>DAU MOA</a>
+            <?php
+            biotern_render_page_header_actions([
+                'menu_id' => 'documentApplicationActionsMenu',
+                'items_html' => ob_get_clean(),
+            ]);
+            ?>
         </div>
 
         <div class="application-document-builder" data-prefill-student-id="<?php echo (int)$prefill_student_id; ?>">
