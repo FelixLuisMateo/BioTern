@@ -13,12 +13,14 @@
 
     var isDau = page === 'dau_moa';
     var prefillStudentId = parseInt(root.getAttribute('data-prefill-student-id') || '0', 10) || 0;
+    var prefillCompanyKey = (root.getAttribute('data-prefill-company') || '').trim();
     var pageUrl = isDau ? 'documents/document_dau_moa.php' : 'documents/document_moa.php';
     var templateStorageKey = isDau ? 'biotern_dau_moa_template_html_v2' : 'biotern_moa_template_html_v2';
     var legacyStorageKey = isDau ? 'biotern_dau_moa_template_html_v1' : 'biotern_moa_template_html_v1';
 
     var editor = document.getElementById('moa_content');
     var select = window.jQuery ? window.jQuery('#student_select') : null;
+    var companySelect = window.jQuery ? window.jQuery('#company_select') : null;
 
     var partnerName = document.getElementById('moa_partner_name');
     var partnerRep = document.getElementById('moa_partner_rep');
@@ -55,6 +57,8 @@
     var templateRuntime = null;
     var isEditMode = false;
     var initialTemplateHtml = editor ? editor.innerHTML : '';
+    var draftBaseline = '';
+    var hasDraftChanges = false;
 
     function getStorage(key) {
         try {
@@ -91,6 +95,82 @@
         if (templateRuntime && typeof templateRuntime.setStatus === 'function') {
             templateRuntime.setStatus(text);
         }
+    }
+
+    function serializeDraftState() {
+        return JSON.stringify({
+            partnerName: partnerName && partnerName.value ? partnerName.value : '',
+            partnerRep: partnerRep && partnerRep.value ? partnerRep.value : '',
+            partnerPosition: partnerPosition && partnerPosition.value ? partnerPosition.value : '',
+            partnerAddress: partnerAddress && partnerAddress.value ? partnerAddress.value : '',
+            companyReceipt: companyReceipt && companyReceipt.value ? companyReceipt.value : '',
+            totalHours: totalHours && totalHours.value ? totalHours.value : '',
+            schoolRep: schoolRep && schoolRep.value ? schoolRep.value : '',
+            schoolPosition: schoolPosition && schoolPosition.value ? schoolPosition.value : '',
+            signedAt: signedAt && signedAt.value ? signedAt.value : '',
+            signedDay: signedDay && signedDay.value ? signedDay.value : '',
+            signedMonth: signedMonth && signedMonth.value ? signedMonth.value : '',
+            signedYear: signedYear && signedYear.value ? signedYear.value : '',
+            presencePartnerRep: presencePartnerRep && presencePartnerRep.value ? presencePartnerRep.value : '',
+            presenceSchoolAdmin: presenceSchoolAdmin && presenceSchoolAdmin.value ? presenceSchoolAdmin.value : '',
+            presenceSchoolAdminPosition: presenceSchoolAdminPosition && presenceSchoolAdminPosition.value ? presenceSchoolAdminPosition.value : '',
+            notaryCity: notaryCity && notaryCity.value ? notaryCity.value : '',
+            notaryAppeared1: notaryAppeared1 && notaryAppeared1.value ? notaryAppeared1.value : '',
+            notaryAppeared2: notaryAppeared2 && notaryAppeared2.value ? notaryAppeared2.value : '',
+            notaryDay: notaryDay && notaryDay.value ? notaryDay.value : '',
+            notaryMonth: notaryMonth && notaryMonth.value ? notaryMonth.value : '',
+            notaryYear: notaryYear && notaryYear.value ? notaryYear.value : '',
+            notaryPlace: notaryPlace && notaryPlace.value ? notaryPlace.value : '',
+            docNo: docNo && docNo.value ? docNo.value : '',
+            pageNo: pageNo && pageNo.value ? pageNo.value : '',
+            bookNo: bookNo && bookNo.value ? bookNo.value : '',
+            seriesNo: seriesNo && seriesNo.value ? seriesNo.value : ''
+        });
+    }
+
+    function captureDraftBaseline() {
+        draftBaseline = serializeDraftState();
+        hasDraftChanges = false;
+    }
+
+    function updateDraftState() {
+        hasDraftChanges = serializeDraftState() !== draftBaseline;
+    }
+
+    function clearFormFields() {
+        [
+            partnerName, partnerRep, partnerPosition, partnerAddress, companyReceipt, totalHours, schoolRep, schoolPosition,
+            signedAt, signedDay, signedMonth, signedYear,
+            presencePartnerRep, presenceSchoolAdmin, presenceSchoolAdminPosition,
+            notaryCity, notaryAppeared1, notaryAppeared2,
+            notaryDay, notaryMonth, notaryYear, notaryPlace,
+            docNo, pageNo, bookNo, seriesNo
+        ].forEach(function (field) {
+            if (field) {
+                field.value = '';
+            }
+        });
+
+        if (select && select.length) {
+            select.empty().trigger('change');
+        }
+
+        if (companySelect && companySelect.length) {
+            companySelect.empty().trigger('change');
+        }
+    }
+
+    function initDraftGuard() {
+        window.addEventListener('beforeunload', function (event) {
+            if (!hasDraftChanges) {
+                return;
+            }
+
+            var warning = 'You have unsaved form changes. Reloading will clear them.';
+            event.preventDefault();
+            event.returnValue = warning;
+            return warning;
+        });
     }
 
     function setTextSafe(ids, value) {
@@ -313,6 +393,38 @@
                 }
 
                 updatePreview();
+                captureDraftBaseline();
+            })
+            .catch(function () {});
+    }
+
+    function applyCompanyProfile(data) {
+        if (!data || typeof data !== 'object') return;
+
+        if (partnerName) partnerName.value = (data.company_name || '').toString();
+        if (partnerAddress) partnerAddress.value = (data.company_address || '').toString();
+        if (partnerRep) partnerRep.value = (data.partner_representative || data.contact_name || '').toString();
+        if (partnerPosition) partnerPosition.value = (data.partner_position || data.contact_position || '').toString();
+
+        if (companySelect && companySelect.length) {
+            var optionLabel = (data.company_name || '').toString();
+            var optionValue = (data.key || data.company_lookup_key || data.company_name || '').toString();
+            if (optionValue) {
+                var option = new Option(optionLabel || optionValue, optionValue, true, true);
+                companySelect.empty().append(option).trigger('change.select2');
+            }
+        }
+
+        updatePreview();
+        captureDraftBaseline();
+    }
+
+    function loadCompanyProfile(companyKey) {
+        if (!companyKey) return;
+        fetch(pageUrl + '?action=get_company_profile&company=' + encodeURIComponent(companyKey), { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                applyCompanyProfile(data);
             })
             .catch(function () {});
     }
@@ -353,6 +465,30 @@
             var id = String(select.val() || '');
             if (!id) return;
             loadMoaData(id);
+        });
+    }
+
+    function initCompanySelect() {
+        if (!companySelect || !companySelect.length || typeof companySelect.select2 !== 'function') return;
+        companySelect.select2({
+            placeholder: companySelect.attr('data-placeholder') || 'Search company, address, or representative',
+            ajax: {
+                url: pageUrl,
+                dataType: 'json',
+                delay: 250,
+                data: function (params) { return { action: 'search_companies', q: params.term }; },
+                processResults: function (data) { return { results: data.results }; }
+            },
+            minimumInputLength: 1,
+            width: 'resolve',
+            dropdownParent: window.jQuery(document.body),
+            dropdownCssClass: 'select2-dropdown biotern-doc-select2-dropdown'
+        });
+
+        companySelect.on('select2:select', function () {
+            var companyKey = String(companySelect.val() || '');
+            if (!companyKey) return;
+            loadCompanyProfile(companyKey);
         });
     }
 
@@ -442,29 +578,49 @@
             if (!el) {
                 return;
             }
-            el.addEventListener('input', updatePreview);
+            el.addEventListener('input', function () {
+                updatePreview();
+                updateDraftState();
+            });
         });
     }
 
     initTemplateEditor().then(function () {
         initSelect();
+        initCompanySelect();
+        initDraftGuard();
         bindFieldInputs();
         initEditToggle();
         initPrintButtons();
         setEditMode(false);
 
+        clearFormFields();
         updatePreview();
+        captureDraftBaseline();
 
+        var prefillPromise = Promise.resolve();
         if (prefillStudentId > 0) {
-            prefillByStudentId(prefillStudentId);
+            prefillPromise = prefillByStudentId(prefillStudentId) || Promise.resolve();
         }
+        prefillPromise.finally(function () {
+            if (prefillCompanyKey) {
+                loadCompanyProfile(prefillCompanyKey);
+            }
+        });
     }).catch(function () {
         setStatus('Template bootstrap recovered.');
         initSelect();
+        initCompanySelect();
+        initDraftGuard();
         bindFieldInputs();
         initEditToggle();
         initPrintButtons();
         setEditMode(false);
+        clearFormFields();
         updatePreview();
+        captureDraftBaseline();
+        if (prefillCompanyKey) {
+            loadCompanyProfile(prefillCompanyKey);
+        }
     });
 })();

@@ -2,7 +2,9 @@
 // Documents page - UI to prepare Memorandum of Agreement (MOA)
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/document_access.php';
+require_once dirname(__DIR__) . '/lib/company_profiles.php';
 $prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$prefill_company_key = trim((string)($_GET['company'] ?? ''));
 
 // Simple AJAX endpoints served by this file (reuse same endpoints as application document)
 if (isset($_GET['action'])) {
@@ -22,6 +24,36 @@ if (isset($_GET['action'])) {
             }
         }
         echo json_encode(['results' => $out]);
+        exit;
+    }
+
+    if ($action === 'search_companies') {
+        $term = trim((string)($_GET['q'] ?? ''));
+        $results = [];
+        foreach (biotern_company_profiles_search($conn, $term, 25) as $company) {
+            $labelParts = [trim((string)($company['company_name'] ?? ''))];
+            $contactText = trim((string)($company['contact_name'] ?? ''));
+            if ($contactText !== '') {
+                $labelParts[] = $contactText;
+            } elseif (trim((string)($company['company_address'] ?? '')) !== '') {
+                $labelParts[] = trim((string)($company['company_address'] ?? ''));
+            }
+
+            $results[] = [
+                'id' => (string)($company['key'] ?? ''),
+                'text' => implode(' - ', array_filter($labelParts, static function ($value): bool {
+                    return trim((string)$value) !== '';
+                })),
+            ];
+        }
+        echo json_encode(['results' => $results]);
+        exit;
+    }
+
+    if ($action === 'get_company_profile') {
+        $companyIdentifier = trim((string)($_GET['company'] ?? ''));
+        $company = biotern_company_profile_find($conn, $companyIdentifier);
+        echo json_encode($company ?: new stdClass());
         exit;
     }
 
@@ -67,6 +99,7 @@ if (isset($_GET['action'])) {
                 $data = $res ? $res->fetch_assoc() : null;
             }
         }
+        $data = biotern_company_profile_merge_moa($conn, $id, $data);
         echo json_encode($data ?: new stdClass());
         exit;
     }
@@ -78,7 +111,7 @@ if (isset($_GET['action'])) {
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/documents/') !== false) ? '../' : '';
 
-$page_title = 'DAU MOA Builder';
+$page_title = 'DAU MOA';
 $base_href = $asset_prefix;
 $page_body_class = 'application-builder-page document-builder-page moa-builder-page';
 $page_styles = [
@@ -96,11 +129,11 @@ include __DIR__ . '/../includes/header.php';
         <div class="page-header dashboard-page-header page-header-with-middle">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">Documents - DAU MOA</h5>
+                    <h5 class="m-b-10">DAU MOA</h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                    <li class="breadcrumb-item">Documents</li>
+                    <li class="breadcrumb-item"><a href="index.php">Documents</a></li>
                     <li class="breadcrumb-item">DAU MOA Builder</li>
                 </ul>
             </div>
@@ -118,12 +151,17 @@ include __DIR__ . '/../includes/header.php';
             ]);
             ?>
         </div>
-<div class="application-document-builder moa-page doc-page-root" data-page="dau_moa" data-prefill-student-id="<?php echo intval($prefill_student_id); ?>">
+<div class="application-document-builder moa-page doc-page-root" data-page="dau_moa" data-prefill-student-id="<?php echo intval($prefill_student_id); ?>" data-prefill-company="<?php echo htmlspecialchars($prefill_company_key, ENT_QUOTES, 'UTF-8'); ?>">
         <div class="main-content">
         <div class="container moa-content">
             <div class="row doc-workspace-row">
                 <div class="col-lg-6 doc-form-pane">
                     <div class="card p-3">
+
+                        <div class="mt-3">
+                            <label for="company_select" class="form-label">Search Company</label>
+                            <select id="company_select" data-placeholder="Search company, address, or representative" class="company-select-full"></select>
+                        </div>
 
                         <div class="mt-3">
                             <label class="form-label">Barangay Name</label>

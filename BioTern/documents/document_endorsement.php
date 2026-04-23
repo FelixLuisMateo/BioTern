@@ -1,8 +1,10 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/document_access.php';
+require_once dirname(__DIR__) . '/lib/company_profiles.php';
 
 $prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$prefill_company_key = trim((string)($_GET['company'] ?? ''));
 $prefill_recipient_title = strtolower(trim((string)($_GET['recipient_title'] ?? 'auto')));
 if (!in_array($prefill_recipient_title, ['auto', 'mr', 'ms', 'none'], true)) {
     $prefill_recipient_title = 'auto';
@@ -36,6 +38,36 @@ if (isset($_GET['action'])) {
         exit;
     }
 
+    if ($action === 'search_companies') {
+        $term = trim((string)($_GET['q'] ?? ''));
+        $results = [];
+        foreach (biotern_company_profiles_search($conn, $term, 25) as $company) {
+            $labelParts = [trim((string)($company['company_name'] ?? ''))];
+            $contactText = trim((string)($company['contact_name'] ?? ''));
+            if ($contactText !== '') {
+                $labelParts[] = $contactText;
+            } elseif (trim((string)($company['company_address'] ?? '')) !== '') {
+                $labelParts[] = trim((string)($company['company_address'] ?? ''));
+            }
+
+            $results[] = [
+                'id' => (string)($company['key'] ?? ''),
+                'text' => implode(' - ', array_filter($labelParts, static function ($value): bool {
+                    return trim((string)$value) !== '';
+                })),
+            ];
+        }
+        echo json_encode(['results' => $results]);
+        exit;
+    }
+
+    if ($action === 'get_company_profile') {
+        $companyIdentifier = trim((string)($_GET['company'] ?? ''));
+        $company = biotern_company_profile_find($conn, $companyIdentifier);
+        echo json_encode($company ?: new stdClass());
+        exit;
+    }
+
     if ($action === 'get_student' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
         $access = documents_student_can_generate($conn, $id);
@@ -60,13 +92,15 @@ if (isset($_GET['action'])) {
         }
         $exists = $conn->query("SHOW TABLES LIKE 'endorsement_letter'");
         if (!$exists || $exists->num_rows === 0) {
-            echo json_encode(new stdClass());
+            $row = biotern_company_profile_merge_endorsement_letter($conn, $id, []);
+            echo json_encode($row ?: new stdClass());
             exit;
         }
         $stmt = $conn->prepare("SELECT * FROM endorsement_letter WHERE user_id = ? LIMIT 1");
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
+        $row = biotern_company_profile_merge_endorsement_letter($conn, $id, $row);
         echo json_encode($row ?: new stdClass());
         exit;
     }
@@ -74,7 +108,7 @@ if (isset($_GET['action'])) {
     echo json_encode(new stdClass());
     exit;
 }
-$page_title = 'Endorsement Builder';
+$page_title = 'Endorsement Letter';
 $base_href = '../';
 $page_body_class = 'application-builder-page document-builder-page endorsement-builder-page';
 $page_styles = [
@@ -92,11 +126,11 @@ include __DIR__ . '/../includes/header.php';
         <div class="page-header dashboard-page-header page-header-with-middle">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">Documents - Endorsement Letter</h5>
+                    <h5 class="m-b-10">Endorsement Letter</h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                    <li class="breadcrumb-item">Documents</li>
+                    <li class="breadcrumb-item"><a href="index.php">Documents</a></li>
                     <li class="breadcrumb-item">Endorsement Builder</li>
                 </ul>
             </div>
@@ -117,6 +151,7 @@ include __DIR__ . '/../includes/header.php';
         <div
             class="application-document-builder endorsement-page"
             data-prefill-student-id="<?php echo intval($prefill_student_id); ?>"
+            data-prefill-company="<?php echo htmlspecialchars($prefill_company_key, ENT_QUOTES, 'UTF-8'); ?>"
             data-prefill-recipient-title="<?php echo htmlspecialchars($prefill_recipient_title, ENT_QUOTES, 'UTF-8'); ?>"
         >
             <div class="main-content">
@@ -131,6 +166,11 @@ include __DIR__ . '/../includes/header.php';
                             <div class="builder-field">
                                 <label for="student_select" class="form-label">Search Student</label>
                                 <select id="student_select" class="student-select-full" data-placeholder="Search by name or student id"></select>
+                            </div>
+
+                            <div class="builder-field">
+                                <label for="company_select" class="form-label">Search Company</label>
+                                <select id="company_select" class="company-select-full" data-placeholder="Search company, address, or representative"></select>
                             </div>
 
                             <div class="builder-field">

@@ -562,7 +562,23 @@ include 'includes/header.php';
                     <li class="breadcrumb-item">Companies</li>
                 </ul>
             </div>
-            <div class="page-header-right ms-auto">
+            <div class="page-header-right ms-auto companies-page-header-actions">
+                <form method="get" class="companies-toolbar companies-page-header-toolbar" action="companies.php">
+                    <input type="hidden" name="company" value="<?php echo h($selectedCompanyKey); ?>">
+                    <label class="companies-toolbar-field">
+                        <span class="visually-hidden">Search companies</span>
+                        <input type="search" class="form-control" name="q" value="<?php echo h($search); ?>" placeholder="Search company, address, representative">
+                    </label>
+                    <label class="companies-toolbar-field companies-toolbar-select">
+                        <span class="visually-hidden">Sort companies</span>
+                        <select class="form-select" name="sort">
+                            <option value="updated" <?php echo $sort === 'updated' ? 'selected' : ''; ?>>Recently Updated</option>
+                            <option value="interns" <?php echo $sort === 'interns' ? 'selected' : ''; ?>>Most Interns</option>
+                            <option value="name" <?php echo $sort === 'name' ? 'selected' : ''; ?>>Company Name</option>
+                        </select>
+                    </label>
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                </form>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCompanyModal">
                     <i class="feather-plus me-2"></i>
                     <span>Add Company</span>
@@ -586,60 +602,7 @@ include 'includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <div class="row g-3 companies-stat-grid">
-                <div class="col-12 col-md-4">
-                    <article class="card companies-stat-card h-100">
-                        <div class="card-body">
-                            <span class="companies-stat-label">Companies</span>
-                            <h3 class="companies-stat-value"><?php echo count($companies); ?></h3>
-                            <p class="companies-stat-note mb-0">Distinct company records merged from partner profiles and internship assignments.</p>
-                        </div>
-                    </article>
-                </div>
-                <div class="col-12 col-md-4">
-                    <article class="card companies-stat-card h-100">
-                        <div class="card-body">
-                            <span class="companies-stat-label">Ongoing Interns</span>
-                            <h3 class="companies-stat-value"><?php echo (int)$totalOngoingInterns; ?></h3>
-                            <p class="companies-stat-note mb-0">Students currently attached to active company internship records.</p>
-                        </div>
-                    </article>
-                </div>
-                <div class="col-12 col-md-4">
-                    <article class="card companies-stat-card h-100">
-                        <div class="card-body">
-                            <span class="companies-stat-label">Profiled Companies</span>
-                            <h3 class="companies-stat-value"><?php echo (int)$companiesWithProfiles; ?></h3>
-                            <p class="companies-stat-note mb-0">Companies that already include people, image, or richer profile information.</p>
-                        </div>
-                    </article>
-                </div>
-            </div>
-
             <div class="card stretch stretch-full companies-shell-card">
-                <div class="card-header companies-shell-header">
-                    <div>
-                        <h5 class="card-title mb-1">Company Directory</h5>
-                        <p class="companies-shell-copy mb-0">Browse companies on the left, inspect one company on the right, or open its full profile popup with the student list.</p>
-                    </div>
-                    <form method="get" class="companies-toolbar" action="companies.php">
-                        <input type="hidden" name="company" value="<?php echo h($selectedCompanyKey); ?>">
-                        <label class="companies-toolbar-field">
-                            <span class="visually-hidden">Search companies</span>
-                            <input type="search" class="form-control" name="q" value="<?php echo h($search); ?>" placeholder="Search company, address, representative">
-                        </label>
-                        <label class="companies-toolbar-field companies-toolbar-select">
-                            <span class="visually-hidden">Sort companies</span>
-                            <select class="form-select" name="sort">
-                                <option value="updated" <?php echo $sort === 'updated' ? 'selected' : ''; ?>>Recently Updated</option>
-                                <option value="interns" <?php echo $sort === 'interns' ? 'selected' : ''; ?>>Most Interns</option>
-                                <option value="name" <?php echo $sort === 'name' ? 'selected' : ''; ?>>Company Name</option>
-                            </select>
-                        </label>
-                        <button type="submit" class="btn btn-primary">Apply</button>
-                    </form>
-                </div>
-
                 <div class="card-body companies-shell-body">
                     <div class="companies-layout">
                         <aside class="companies-list-panel">
@@ -732,6 +695,22 @@ include 'includes/header.php';
                                         </div>
                                     </div>
                                     <div class="companies-detail-actions">
+                                        <a href="document_application.php?company=<?php echo urlencode((string)$selectedCompanyKey); ?>" class="btn btn-primary">
+                                            <i class="feather-file-text me-2"></i>
+                                            <span>Application</span>
+                                        </a>
+                                        <a href="document_endorsement.php?company=<?php echo urlencode((string)$selectedCompanyKey); ?>" class="btn btn-outline-primary">
+                                            <i class="feather-send me-2"></i>
+                                            <span>Endorsement</span>
+                                        </a>
+                                        <a href="document_moa.php?company=<?php echo urlencode((string)$selectedCompanyKey); ?>" class="btn btn-outline-secondary">
+                                            <i class="feather-briefcase me-2"></i>
+                                            <span>MOA</span>
+                                        </a>
+                                        <a href="document_dau_moa.php?company=<?php echo urlencode((string)$selectedCompanyKey); ?>" class="btn btn-outline-secondary">
+                                            <i class="feather-map-pin me-2"></i>
+                                            <span>DAU MOA</span>
+                                        </a>
                                         <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewCompanyProfileModal">
                                             <i class="feather-eye me-2"></i>
                                             <span>Open Profile</span>
@@ -934,6 +913,12 @@ include 'includes/header.php';
                             <span class="companies-meta-chip"><?php echo (int)($selectedCompany['intern_count'] ?? 0); ?> interns</span>
                             <span class="companies-meta-chip"><?php echo (int)($selectedCompany['ongoing_count'] ?? 0); ?> ongoing</span>
                             <span class="companies-meta-chip"><?php echo h(company_datetime_label((string)($selectedCompany['latest_activity'] ?: $selectedCompany['updated_at'] ?: ''))); ?></span>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mt-3">
+                            <a href="document_application.php?company=<?php echo urlencode((string)$selectedCompanyKey); ?>" class="btn btn-primary btn-sm">Application</a>
+                            <a href="document_endorsement.php?company=<?php echo urlencode((string)$selectedCompanyKey); ?>" class="btn btn-outline-primary btn-sm">Endorsement</a>
+                            <a href="document_moa.php?company=<?php echo urlencode((string)$selectedCompanyKey); ?>" class="btn btn-outline-secondary btn-sm">MOA</a>
+                            <a href="document_dau_moa.php?company=<?php echo urlencode((string)$selectedCompanyKey); ?>" class="btn btn-outline-secondary btn-sm">DAU MOA</a>
                         </div>
                     </div>
                 </div>

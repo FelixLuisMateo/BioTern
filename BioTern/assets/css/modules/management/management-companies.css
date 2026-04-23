@@ -76,32 +76,46 @@ body.companies-page .companies-page-alert {
     margin-bottom: 1rem;
 }
 
+body.companies-page .companies-page-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    width: auto;
+    min-width: 0;
+}
+
 body.companies-page .companies-shell-card {
     overflow: hidden;
 }
 
-body.companies-page .companies-shell-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 1.2rem 1.25rem;
-    border-bottom: 1px solid var(--biotern-border, var(--bs-border-color));
-    background: var(--biotern-surface-muted, var(--bs-tertiary-bg));
+body.companies-page .companies-page-header-toolbar {
+    margin-right: 0.25rem;
+    flex: 0 1 auto;
+    min-width: 0;
 }
 
 body.companies-page .companies-toolbar {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    flex-wrap: wrap;
-    min-width: min(100%, 540px);
+    flex-wrap: nowrap;
+    min-width: 0;
     justify-content: flex-end;
 }
 
 body.companies-page .companies-toolbar-field {
-    flex: 1 1 220px;
-    min-width: 180px;
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+body.companies-page .companies-page-header-toolbar .companies-toolbar-field:first-of-type {
+    width: min(320px, 28vw);
+}
+
+body.companies-page .companies-page-header-toolbar .companies-toolbar-select {
+    width: 170px;
 }
 
 body.companies-page .companies-toolbar-select {
@@ -490,8 +504,28 @@ html.app-skin-dark body.companies-page .companies-modal .modal-content {
     }
 }
 
+@media (max-width: 1399.98px) {
+    body.companies-page .companies-page-header-actions {
+        flex-wrap: wrap;
+    }
+
+    body.companies-page .companies-page-header-toolbar {
+        width: 100%;
+        margin-right: 0;
+    }
+
+    body.companies-page .companies-toolbar {
+        flex-wrap: wrap;
+    }
+
+    body.companies-page .companies-page-header-toolbar .companies-toolbar-field:first-of-type,
+    body.companies-page .companies-page-header-toolbar .companies-toolbar-select {
+        width: auto;
+    }
+}
+
 @media (max-width: 991.98px) {
-    body.companies-page .companies-shell-header,
+    body.companies-page .companies-page-header-actions,
     body.companies-page .companies-detail-head,
     body.companies-page .companies-intern-item,
     body.companies-page .companies-profile-hero {
@@ -499,6 +533,7 @@ html.app-skin-dark body.companies-page .companies-modal .modal-content {
         gap: 1rem;
     }
 
+    body.companies-page .companies-page-header-toolbar,
     body.companies-page .companies-toolbar {
         width: 100%;
         justify-content: stretch;

@@ -13,11 +13,14 @@
     var endpoint = 'documents/document_endorsement.php';
 
     var prefillStudentId = parseInt(root.getAttribute('data-prefill-student-id') || '0', 10) || 0;
+    var prefillCompanyKey = (root.getAttribute('data-prefill-company') || '').trim();
     var prefillRecipientTitle = (root.getAttribute('data-prefill-recipient-title') || 'auto').toLowerCase();
 
     var editor = document.getElementById('editor');
     var selectElement = document.getElementById('student_select');
     var studentSearchInput = null;
+    var companySelectElement = document.getElementById('company_select');
+    var companySearchInput = null;
     var inputRecipient = document.getElementById('input_recipient');
     var inputPosition = document.getElementById('input_position');
     var inputCompany = document.getElementById('input_company');
@@ -29,8 +32,11 @@
     var recipientTitleRadios = Array.prototype.slice.call(document.querySelectorAll('input[name="recipient_title"]'));
 
     var selectedStudentId = null;
+    var selectedCompanyKey = '';
     var templateRuntime = null;
     var isEditMode = false;
+    var draftBaseline = '';
+    var hasDraftChanges = false;
 
     function storageGet(key) {
         try {
@@ -71,6 +77,39 @@
         if (templateRuntime && typeof templateRuntime.setStatus === 'function') {
             templateRuntime.setStatus(text);
         }
+    }
+
+    function serializeDraftState() {
+        return JSON.stringify({
+            recipient: inputRecipient && inputRecipient.value ? inputRecipient.value : '',
+            position: inputPosition && inputPosition.value ? inputPosition.value : '',
+            company: inputCompany && inputCompany.value ? inputCompany.value : '',
+            companyAddress: inputCompanyAddress && inputCompanyAddress.value ? inputCompanyAddress.value : '',
+            students: inputStudents && inputStudents.value ? inputStudents.value : '',
+            recipientTitle: (recipientTitleRadios.find(function (radio) { return radio.checked; }) || {}).value || ''
+        });
+    }
+
+    function captureDraftBaseline() {
+        draftBaseline = serializeDraftState();
+        hasDraftChanges = false;
+    }
+
+    function updateDraftState() {
+        hasDraftChanges = serializeDraftState() !== draftBaseline;
+    }
+
+    function initDraftGuard() {
+        window.addEventListener('beforeunload', function (event) {
+            if (!hasDraftChanges) {
+                return;
+            }
+
+            var warning = 'You have unsaved form changes. Reloading will clear them.';
+            event.preventDefault();
+            event.returnValue = warning;
+            return warning;
+        });
     }
 
     function normalizeLoadedTemplateMarkup() {
@@ -253,6 +292,23 @@
         selectElement.value = target;
     }
 
+    function setCompanySelectValue(value, label) {
+        if (!companySelectElement) {
+            return;
+        }
+
+        var target = String(value || '');
+        if (!target) {
+            companySelectElement.innerHTML = '';
+            return;
+        }
+
+        var option = new Option(label || target, target, true, true);
+        companySelectElement.innerHTML = '';
+        companySelectElement.appendChild(option);
+        companySelectElement.value = target;
+    }
+
     function getCurrentStudentName() {
         if (!selectElement) {
             return '';
@@ -317,6 +373,26 @@
         } catch (err) {
             return null;
         }
+    }
+
+    function clearFormFields() {
+        inputRecipient.value = '';
+        inputPosition.value = '';
+        inputCompany.value = '';
+        inputCompanyAddress.value = '';
+        inputStudents.value = '';
+        selectedStudentId = null;
+        selectedCompanyKey = '';
+
+        if (studentSearchInput) {
+            studentSearchInput.value = '';
+        }
+        if (companySearchInput) {
+            companySearchInput.value = '';
+        }
+
+        setSelectValue('', '');
+        setCompanySelectValue('', '');
     }
 
     function updatePreview() {
@@ -434,6 +510,10 @@
         }
         if (data.company_name) {
             inputCompany.value = String(data.company_name);
+            if (companySearchInput) {
+                companySearchInput.value = inputCompany.value;
+            }
+            setCompanySelectValue(inputCompany.value, inputCompany.value);
             changed = true;
         }
         if (data.company_address) {
@@ -457,14 +537,47 @@
         return changed;
     }
 
+    function applyCompanyProfile(company, rowLabel) {
+        if (!company || typeof company !== 'object') {
+            return;
+        }
+
+        selectedCompanyKey = String(company.key || company.company_lookup_key || company.company_name || '');
+        inputCompany.value = (company.company_name || '').toString();
+        inputCompanyAddress.value = (company.company_address || '').toString();
+        inputRecipient.value = (company.contact_name || company.partner_representative || '').toString();
+        inputPosition.value = (company.contact_position || company.partner_position || '').toString();
+
+        if (companySearchInput) {
+            companySearchInput.value = rowLabel || inputCompany.value || '';
+        }
+
+        setCompanySelectValue(company.key || inputCompany.value || '', rowLabel || inputCompany.value || '');
+        updatePreview();
+        captureDraftBaseline();
+    }
+
+    function loadCompanyProfile(companyIdentifier, rowLabel) {
+        if (!companyIdentifier) {
+            return Promise.resolve();
+        }
+
+        return fetch(endpoint + '?action=get_company_profile&company=' + encodeURIComponent(companyIdentifier), { credentials: 'same-origin' })
+            .then(function (response) { return response.json(); })
+            .then(function (company) {
+                applyCompanyProfile(company, rowLabel);
+            })
+            .catch(function () {});
+    }
+
     function loadStudentAndData(studentId, keepSelectionLabel) {
         if (!studentId) {
-            return;
+            return Promise.resolve();
         }
 
         selectedStudentId = String(studentId);
 
-        fetch(endpoint + '?action=get_student&id=' + encodeURIComponent(studentId), { credentials: 'same-origin' })
+        return fetch(endpoint + '?action=get_student&id=' + encodeURIComponent(studentId), { credentials: 'same-origin' })
             .then(function (response) { return response.json(); })
             .then(function (student) {
                 if (!student || !student.id) {
@@ -502,10 +615,20 @@
             .then(function (saved) {
                 applySavedEndorsement(saved);
                 updatePreview();
+                captureDraftBaseline();
             })
             .catch(function () {
                 updatePreview();
+                captureDraftBaseline();
             });
+    }
+
+    function prefillByCompanyKey(companyKey) {
+        if (!companyKey) {
+            return Promise.resolve();
+        }
+        selectedCompanyKey = String(companyKey);
+        return loadCompanyProfile(companyKey);
     }
 
     function initSelect() {
@@ -747,6 +870,244 @@
         });
     }
 
+    function initCompanySelect() {
+        if (!companySelectElement) {
+            return;
+        }
+
+        companySelectElement.setAttribute('data-ui-select', 'native');
+
+        if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
+            var jqSelect = window.jQuery(companySelectElement);
+            if (jqSelect.hasClass('select2-hidden-accessible')) {
+                try {
+                    jqSelect.select2('destroy');
+                } catch (err) {}
+            }
+        }
+
+        var select2Sibling = companySelectElement.nextElementSibling;
+        if (select2Sibling && select2Sibling.classList && select2Sibling.classList.contains('select2')) {
+            select2Sibling.parentNode.removeChild(select2Sibling);
+        }
+
+        var selectWrap = companySelectElement.parentElement;
+        if (selectWrap && selectWrap.classList && selectWrap.classList.contains('biotern-select-wrap')) {
+            var wrapParent = selectWrap.parentElement;
+            if (wrapParent) {
+                wrapParent.insertBefore(companySelectElement, selectWrap);
+                wrapParent.removeChild(selectWrap);
+            }
+        }
+
+        var field = companySelectElement.closest('.builder-field');
+        if (!field) {
+            return;
+        }
+
+        var wrap = document.createElement('div');
+        wrap.className = 'app-student-search-wrap';
+
+        var control = document.createElement('div');
+        control.className = 'app-student-search-control';
+
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control app-student-search-input';
+        input.placeholder = companySelectElement.getAttribute('data-placeholder') || 'Search company, address, or representative';
+        input.autocomplete = 'off';
+
+        var toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'app-student-search-toggle';
+        toggle.setAttribute('aria-label', 'Toggle company list');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.innerHTML = '<i class="feather-chevron-down"></i>';
+
+        var panel = document.createElement('div');
+        panel.className = 'app-student-search-panel';
+
+        var message = document.createElement('div');
+        message.className = 'app-student-search-message';
+
+        var list = document.createElement('div');
+        list.className = 'app-student-search-results';
+
+        panel.appendChild(message);
+        panel.appendChild(list);
+        control.appendChild(input);
+        control.appendChild(toggle);
+        wrap.appendChild(control);
+        wrap.appendChild(panel);
+
+        companySelectElement.style.display = 'none';
+        companySelectElement.setAttribute('aria-hidden', 'true');
+        companySelectElement.setAttribute('tabindex', '-1');
+        companySelectElement.insertAdjacentElement('afterend', wrap);
+
+        companySearchInput = input;
+
+        var searchTimer = null;
+        var requestToken = 0;
+        var activeIndex = -1;
+        var currentItems = [];
+
+        function setMessage(text) {
+            message.textContent = text;
+        }
+
+        function openPanel() {
+            panel.classList.add('is-open');
+            toggle.setAttribute('aria-expanded', 'true');
+        }
+
+        function closePanel() {
+            panel.classList.remove('is-open');
+            toggle.setAttribute('aria-expanded', 'false');
+            activeIndex = -1;
+        }
+
+        function markActiveRow() {
+            var rows = list.querySelectorAll('.app-student-search-option');
+            for (var i = 0; i < rows.length; i += 1) {
+                rows[i].classList.toggle('is-active', i === activeIndex);
+            }
+        }
+
+        function selectCompanyById(companyKey, rowLabel) {
+            if (!companyKey) {
+                return;
+            }
+            input.value = rowLabel || '';
+            closePanel();
+            loadCompanyProfile(companyKey, rowLabel || '');
+        }
+
+        function renderResults(items) {
+            currentItems = items || [];
+            list.innerHTML = '';
+            activeIndex = -1;
+
+            if (!currentItems.length) {
+                setMessage('No companies found.');
+                return;
+            }
+
+            setMessage('Select a company to load the company profile data.');
+            currentItems.forEach(function (item) {
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'app-student-search-option';
+                button.textContent = item.text || ('Company ' + item.id);
+                button.addEventListener('click', function () {
+                    selectCompanyById(String(item.id || ''), item.text || '');
+                });
+                list.appendChild(button);
+            });
+        }
+
+        function runSearch(term) {
+            var value = String(term || '').trim();
+            if (value.length < 1) {
+                currentItems = [];
+                list.innerHTML = '';
+                setMessage('Please enter 1 or more characters');
+                return;
+            }
+
+            requestToken += 1;
+            var token = requestToken;
+            setMessage('Searching...');
+
+            fetch(endpoint + '?action=search_companies&q=' + encodeURIComponent(value), { credentials: 'same-origin' })
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
+                    if (token !== requestToken) {
+                        return;
+                    }
+                    renderResults(Array.isArray(data.results) ? data.results : []);
+                })
+                .catch(function () {
+                    if (token !== requestToken) {
+                        return;
+                    }
+                    currentItems = [];
+                    list.innerHTML = '';
+                    setMessage('Search failed. Try again.');
+                });
+        }
+
+        input.addEventListener('focus', function () {
+            openPanel();
+            if (input.value.trim().length >= 1) {
+                runSearch(input.value.trim());
+            } else {
+                setMessage('Please enter 1 or more characters');
+            }
+        });
+
+        input.addEventListener('input', function () {
+            if (searchTimer) {
+                clearTimeout(searchTimer);
+            }
+            openPanel();
+            searchTimer = setTimeout(function () {
+                runSearch(input.value.trim());
+            }, 220);
+        });
+
+        input.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closePanel();
+                return;
+            }
+
+            if (event.key === 'ArrowDown') {
+                if (currentItems.length > 0) {
+                    event.preventDefault();
+                    activeIndex = Math.min(activeIndex + 1, currentItems.length - 1);
+                    markActiveRow();
+                }
+                return;
+            }
+
+            if (event.key === 'ArrowUp') {
+                if (currentItems.length > 0) {
+                    event.preventDefault();
+                    activeIndex = Math.max(activeIndex - 1, 0);
+                    markActiveRow();
+                }
+                return;
+            }
+
+            if (event.key === 'Enter' && activeIndex >= 0 && currentItems[activeIndex]) {
+                event.preventDefault();
+                var item = currentItems[activeIndex];
+                selectCompanyById(String(item.id || ''), item.text || '');
+            }
+        });
+
+        toggle.addEventListener('click', function () {
+            if (panel.classList.contains('is-open')) {
+                closePanel();
+                return;
+            }
+            openPanel();
+            if (input.value.trim().length >= 1) {
+                runSearch(input.value.trim());
+            } else {
+                setMessage('Please enter 1 or more characters');
+            }
+            input.focus();
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!wrap.contains(event.target)) {
+                closePanel();
+            }
+        });
+    }
+
     function initTemplateEditor() {
         templateRuntime = window.AppCore.TemplateEditor.create({
             editorId: 'editor',
@@ -818,11 +1179,17 @@
             if (!field) {
                 return;
             }
-            field.addEventListener('input', updatePreview);
+            field.addEventListener('input', function () {
+                updatePreview();
+                updateDraftState();
+            });
         });
 
         recipientTitleRadios.forEach(function (radio) {
-            radio.addEventListener('change', updatePreview);
+            radio.addEventListener('change', function () {
+                updatePreview();
+                updateDraftState();
+            });
         });
 
     }
@@ -836,30 +1203,40 @@
     }
 
     purgeLegacyState();
+    storageRemove(STORAGE_FORM);
     applyPrefillDefaults();
 
     function finishInitBindings() {
         initSelect();
+        initCompanySelect();
+        initDraftGuard();
         bindInputs();
         initEditToggle();
         initPrintButton();
         setEditMode(false);
 
-        // Start clean by default; preserve explicit prefill workflow only.
-        if (prefillStudentId > 0) {
-            loadFormState();
-        }
+        clearFormFields();
+        applyPrefillDefaults();
         updatePreview();
+        captureDraftBaseline();
 
+        var prefillPromise = Promise.resolve();
         if (prefillStudentId > 0) {
-            loadStudentAndData(prefillStudentId, '');
-            return;
+            prefillPromise = loadStudentAndData(prefillStudentId, '') || Promise.resolve();
+        } else {
+            if (studentSearchInput) {
+                studentSearchInput.value = '';
+            }
+            setSelectValue('', '');
         }
 
-        if (studentSearchInput) {
-            studentSearchInput.value = '';
-        }
-        setSelectValue('', '');
+        prefillPromise.finally(function () {
+            if (prefillCompanyKey) {
+                (prefillByCompanyKey(prefillCompanyKey) || Promise.resolve()).finally(captureDraftBaseline);
+                return;
+            }
+            captureDraftBaseline();
+        });
     }
 
     initTemplateEditor()
