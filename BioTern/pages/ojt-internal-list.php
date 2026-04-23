@@ -732,6 +732,16 @@ ob_end_flush();
         </div>
     </div>
 </main>
+<section class="app-ojt-selected-print-sheet" data-ojt-print-sheet="ojtInternalListTable" aria-hidden="true">
+    <h1 data-ojt-print-title>Internal Student List</h1>
+    <p data-ojt-print-subtitle><?php echo htmlspecialchars($mapFingerId > 0 ? 'Fingerprint mapping mode' : 'Filtered internal list', ENT_QUOTES, 'UTF-8'); ?></p>
+    <table>
+        <thead>
+            <tr></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</section>
 <?php
 include __DIR__ . '/../includes/footer.php';
 $conn->close();

@@ -308,6 +308,16 @@ ob_end_flush();
         </div>
     </div>
 </main>
+<section class="app-ojt-selected-print-sheet" data-ojt-print-sheet="ojtExternalListTable" aria-hidden="true">
+    <h1 data-ojt-print-title>External Student List</h1>
+    <p data-ojt-print-subtitle>Filtered external list</p>
+    <table>
+        <thead>
+            <tr></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</section>
 <?php
 include __DIR__ . '/../includes/footer.php';
 $conn->close();

@@ -153,6 +153,77 @@ html.app-skin-dark .page-ojt-external-list .bio-console-table tbody tr.is-select
     gap: 1rem;
 }
 
+.app-ojt-selected-print-sheet {
+    display: none;
+}
+
+@media print {
+    .app-ojt-selected-print-sheet,
+    .app-ojt-selected-print-sheet * {
+        visibility: visible !important;
+    }
+
+    .app-ojt-selected-print-sheet {
+        display: block !important;
+        position: static !important;
+        inset: auto !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: #fff !important;
+        color: #111827 !important;
+    }
+
+    .app-ojt-selected-print-sheet h1 {
+        margin: 0 0 6px;
+        font-size: 18px;
+    }
+
+    .app-ojt-selected-print-sheet p {
+        margin: 0 0 16px;
+        color: #6b7280;
+        font-size: 12px;
+    }
+
+    .app-ojt-selected-print-sheet table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+
+    .app-ojt-selected-print-sheet th,
+    .app-ojt-selected-print-sheet td {
+        border: 1px solid #d1d5db;
+        padding: 8px 10px;
+        vertical-align: top;
+        text-align: left;
+    }
+
+    .app-ojt-selected-print-sheet th {
+        background: #f3f4f6;
+        font-weight: 700;
+    }
+
+    .app-ojt-selected-print-sheet .print-index {
+        width: 40px;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .page-header,
+    .bio-console-shell,
+    .footer,
+    .page-header-actions,
+    .page-header-actions-toggle,
+    .nxl-navigation,
+    .biotern-bottom-nav,
+    .biotern-bottom-sheet,
+    .page-header-right-items,
+    .page-header-right-items-wrapper {
+        display: none !important;
+    }
+}
+
 .bio-console-header-actions .page-header-right-items-wrapper {
     flex-wrap: wrap;
 }

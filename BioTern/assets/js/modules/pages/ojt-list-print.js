@@ -48,9 +48,7 @@
         });
     }
 
-    function buildPrintHtml(table, selectedRows, options) {
-        var title = escapeHtml(options.title || document.title || 'Selected List');
-        var subtitle = escapeHtml(options.subtitle || '');
+    function buildPrintRows(table, selectedRows) {
         var headers = getHeaderCells(table).map(function (headerCell) {
             return '<th>' + escapeHtml(tableText(headerCell)) + '</th>';
         }).join('');
@@ -62,55 +60,19 @@
             return '<tr><td class="print-index">' + (index + 1) + '</td>' + cells + '</tr>';
         }).join('');
 
-        var emptyFallback = '<tr><td class="print-index">1</td><td colspan="' + (getHeaderCells(table).length + 1) + '">No selected rows.</td></tr>';
-
-        return [
-            '<!doctype html>',
-            '<html>',
-            '<head>',
-            '<meta charset="utf-8">',
-            '<meta name="viewport" content="width=device-width, initial-scale=1">',
-            '<title>' + title + '</title>',
-            '<style>',
-            'body{font-family:Arial,Helvetica,sans-serif;margin:24px;color:#111827;}',
-            'h1{font-size:18px;margin:0 0 6px;}',
-            '.subtitle{font-size:12px;color:#6b7280;margin:0 0 16px;}',
-            'table{width:100%;border-collapse:collapse;font-size:12px;}',
-            'th,td{border:1px solid #d1d5db;padding:8px 10px;vertical-align:top;text-align:left;}',
-            'th{background:#f3f4f6;font-weight:700;}',
-            '.print-index{width:40px;text-align:center;white-space:nowrap;}',
-            '@media print{body{margin:12mm;}}',
-            '</style>',
-            '</head>',
-            '<body>',
-            '<h1>' + title + '</h1>',
-            subtitle ? '<p class="subtitle">' + subtitle + '</p>' : '',
-            '<table>',
-            '<thead><tr><th class="print-index">#</th>' + headers + '</tr></thead>',
-            '<tbody>',
-            rows || emptyFallback,
-            '</tbody>',
-            '</table>',
-            '</body>',
-            '</html>'
-        ].join('');
-    }
-
-    function openPrintWindow(html) {
-        var win = window.open('', '_blank', 'noopener,noreferrer,width=1200,height=900');
-        if (!win) {
-            alert('Please allow popups to print the selected rows.');
-            return null;
+        if (!rows) {
+            rows = '<tr><td class="print-index">1</td><td colspan="' + (getHeaderCells(table).length + 1) + '">No selected rows.</td></tr>';
         }
 
-        win.document.open();
-        win.document.write(html);
-        win.document.close();
-        return win;
+        return {
+            headers: headers,
+            rows: rows
+        };
     }
 
     function initTable(table) {
         var printBtn = document.querySelector('[data-ojt-print-selected="' + table.id + '"]');
+        var printSheet = document.querySelector('[data-ojt-print-sheet="' + table.id + '"]');
         if (!printBtn) {
             return;
         }
@@ -123,27 +85,34 @@
                 return;
             }
 
-            var html = buildPrintHtml(table, selectedRows, {
-                title: table.getAttribute('data-print-title'),
-                subtitle: table.getAttribute('data-print-subtitle')
-            });
-            var win = openPrintWindow(html);
-            if (!win) {
+            if (!printSheet) {
+                alert('Print layout is not available for this list.');
                 return;
             }
 
-            win.onload = function () {
-                win.focus();
-                win.print();
-            };
-            setTimeout(function () {
-                try {
-                    win.focus();
-                    win.print();
-                } catch (error) {
-                    // Ignore transient print timing issues.
-                }
-            }, 250);
+            var printRows = buildPrintRows(table, selectedRows);
+            var titleNode = printSheet.querySelector('[data-ojt-print-title]');
+            var subtitleNode = printSheet.querySelector('[data-ojt-print-subtitle]');
+            var headNode = printSheet.querySelector('thead tr');
+            var bodyNode = printSheet.querySelector('tbody');
+
+            if (titleNode) {
+                titleNode.textContent = table.getAttribute('data-print-title') || 'Selected List';
+            }
+            if (subtitleNode) {
+                subtitleNode.textContent = table.getAttribute('data-print-subtitle') || '';
+                subtitleNode.hidden = !subtitleNode.textContent;
+            }
+            if (headNode) {
+                headNode.innerHTML = '<th class="print-index">#</th>' + printRows.headers;
+            }
+            if (bodyNode) {
+                bodyNode.innerHTML = printRows.rows;
+            }
+
+            window.setTimeout(function () {
+                window.print();
+            }, 50);
         });
     }
 

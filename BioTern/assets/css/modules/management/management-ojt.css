@@ -1909,13 +1909,15 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
         }
 
         .ojt-print-sheet,
-        .app-ojt-print-sheet { display: none; }
+        .app-ojt-print-sheet,
+        .app-ojt-selected-print-sheet { display: none; }
         @media print {
             body * { visibility: hidden !important; }
             .ojt-print-sheet, .ojt-print-sheet *,
             .app-ojt-print-sheet, .app-ojt-print-sheet * { visibility: visible !important; }
             .ojt-print-sheet,
-            .app-ojt-print-sheet {
+            .app-ojt-print-sheet,
+            .app-ojt-selected-print-sheet {
                 display: block !important;
                 position: absolute;
                 left: 0;
@@ -1969,7 +1971,8 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
                 font-size: 12pt;
             }
             .ojt-print-sheet .print-title,
-            .app-ojt-print-sheet .app-ojt-print-title {
+            .app-ojt-print-sheet .app-ojt-print-title,
+            .app-ojt-selected-print-sheet h1 {
                 text-align: center;
                 font-size: 24px;
                 letter-spacing: 1px;
@@ -1977,7 +1980,8 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
                 margin: 18px 0 16px;
             }
             .ojt-print-sheet .print-meta,
-            .app-ojt-print-sheet .app-ojt-print-meta-row {
+            .app-ojt-print-sheet .app-ojt-print-meta-row,
+            .app-ojt-selected-print-sheet p {
                 margin-bottom: 14px;
                 font-size: 13px;
             }
@@ -1987,7 +1991,8 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
                 display: inline-block;
             }
             .ojt-print-sheet table,
-            .app-ojt-print-sheet table {
+            .app-ojt-print-sheet table,
+            .app-ojt-selected-print-sheet table {
                 width: 100%;
                 min-width: 100%;
                 border-collapse: collapse;
@@ -1995,13 +2000,15 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
                 table-layout: auto;
             }
             .ojt-print-sheet th, .ojt-print-sheet td,
-            .app-ojt-print-sheet th, .app-ojt-print-sheet td {
+            .app-ojt-print-sheet th, .app-ojt-print-sheet td,
+            .app-ojt-selected-print-sheet th, .app-ojt-selected-print-sheet td {
                 border: 1px solid #d9d9d9;
                 padding: 9px 8px;
                 text-align: left;
             }
             .ojt-print-sheet th,
-            .app-ojt-print-sheet th {
+            .app-ojt-print-sheet th,
+            .app-ojt-selected-print-sheet th {
                 text-transform: uppercase;
                 font-weight: 700;
                 background: #f8f8f8;
@@ -2009,7 +2016,8 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
             .ojt-print-sheet td.col-index,
             .ojt-print-sheet th.col-index,
             .app-ojt-print-sheet td.app-ojt-print-col-index,
-            .app-ojt-print-sheet th.app-ojt-print-col-index {
+            .app-ojt-print-sheet th.app-ojt-print-col-index,
+            .app-ojt-selected-print-sheet .print-index {
                 width: 46px;
                 text-align: center;
             }

@@ -987,6 +987,16 @@ include 'includes/header.php';
         </div>
     </div>
 </main>
+<section class="app-ojt-selected-print-sheet" data-ojt-print-sheet="ojtListTable" aria-hidden="true">
+    <h1 data-ojt-print-title>OJT Student List</h1>
+    <p data-ojt-print-subtitle><?php echo htmlspecialchars(trim($print_section_label !== 'ALL' ? 'Section: ' . $print_section_label : 'Current filtered OJT list'), ENT_QUOTES, 'UTF-8'); ?></p>
+    <table>
+        <thead>
+            <tr></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</section>
 <?php include 'includes/footer.php'; ?>
 <?php $conn->close(); ?>
 
