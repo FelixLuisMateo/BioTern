@@ -36,6 +36,15 @@
             });
         }
 
+        var toolbarForm = document.querySelector('.email-toolbar-form');
+        if (toolbarForm) {
+            toolbarForm.querySelectorAll('select').forEach(function (field) {
+                field.addEventListener('change', function () {
+                    toolbarForm.submit();
+                });
+            });
+        }
+
         if (composeOpen && composeModal && window.bootstrap && window.bootstrap.Modal) {
             window.bootstrap.Modal.getOrCreateInstance(composeModal).show();
         }
