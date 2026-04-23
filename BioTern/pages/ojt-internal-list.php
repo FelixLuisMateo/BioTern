@@ -99,86 +99,13 @@ function ojt_internal_list_matches_search(array $row, string $search): bool {
     return strpos($haystack, $needle) !== false;
 }
 
-$conn->query("CREATE TABLE IF NOT EXISTS ojt_internal (
-    student_no VARCHAR(100) NOT NULL,
-    user_id INT NULL,
-    last_name VARCHAR(150) NOT NULL DEFAULT '',
-    first_name VARCHAR(150) NOT NULL DEFAULT '',
-    middle_name VARCHAR(150) NOT NULL DEFAULT '',
-    course_id INT NULL,
-    section_id INT NULL,
-    email VARCHAR(190) NOT NULL DEFAULT '',
-    password VARCHAR(255) NOT NULL DEFAULT '',
-    status VARCHAR(50) NOT NULL DEFAULT 'active',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (student_no),
-    KEY idx_ojt_internal_user_id (user_id),
-    KEY idx_ojt_internal_course_id (course_id),
-    KEY idx_ojt_internal_section_id (section_id),
-    KEY idx_ojt_internal_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-// Auto-link OJT Internal records to registered students via student number.
-$conn->query("UPDATE ojt_internal oi
-    INNER JOIN students s ON TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci = TRIM(COALESCE(oi.student_no, '')) COLLATE utf8mb4_unicode_ci
-    SET oi.user_id = s.user_id
-    WHERE (oi.user_id IS NULL OR oi.user_id = 0)
-      AND s.user_id IS NOT NULL
-      AND s.user_id > 0");
-
-$trackColumnRes = $conn->query("SHOW COLUMNS FROM students LIKE 'assignment_track'");
-$hasAssignmentTrack = ($trackColumnRes instanceof mysqli_result) && $trackColumnRes->num_rows > 0;
-if ($trackColumnRes instanceof mysqli_result) {
-    $trackColumnRes->close();
-}
-
-$mapFingerId = (int)($_GET['map_finger_id'] ?? 0);
-$filterCourseId = (int)($_GET['course_id'] ?? 0);
-$filterSectionId = (int)($_GET['section_id'] ?? 0);
-$search = trim((string)($_GET['search'] ?? ''));
-$filterOjtStatus = strtolower(trim((string)($_GET['ojt_status'] ?? 'all')));
-if (!in_array($filterOjtStatus, ['all', 'ongoing', 'finished', 'not_started'], true)) {
-    $filterOjtStatus = 'all';
-}
-
-$internshipsTableExists = ojt_internal_table_exists($conn, 'internships');
-$internshipsHasTypeColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'type');
-$internshipsHasStartDateColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'start_date');
-$internshipsHasStatusColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'status');
-$internshipsHasRequiredHoursColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'required_hours');
-$internshipsHasStudentIdColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'student_id');
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['internal_action'] ?? '') === 'start_internal') {
-    $targetStudentId = (int)($_POST['student_id'] ?? 0);
-    $startDate = trim((string)($_POST['start_date'] ?? ''));
-    $redirectQuery = [];
-    if ($filterCourseId > 0) {
-        $redirectQuery['course_id'] = $filterCourseId;
-    }
-    if ($filterSectionId > 0) {
-        $redirectQuery['section_id'] = $filterSectionId;
-    }
-    if ($search !== '') {
-        $redirectQuery['search'] = $search;
-    }
-    if ($filterOjtStatus !== 'all') {
-        $redirectQuery['ojt_status'] = $filterOjtStatus;
-    }
-    $redirectTarget = 'ojt-internal-list.php' . ($redirectQuery !== [] ? ('?' . http_build_query($redirectQuery)) : '');
-
+function ojt_internal_apply_start(mysqli $conn, int $targetStudentId, string $startDate, bool $internshipsTableExists, bool $internshipsHasTypeColumn, bool $internshipsHasStartDateColumn, bool $internshipsHasStatusColumn, bool $internshipsHasRequiredHoursColumn, bool $internshipsHasStudentIdColumn, bool $hasAssignmentTrack): array {
     if (!$internshipsTableExists || !$internshipsHasStudentIdColumn) {
-        $_SESSION['ojt_internal_flash_type'] = 'danger';
-        $_SESSION['ojt_internal_flash_message'] = 'Internship table is not ready for internal start dates.';
-        header('Location: ' . $redirectTarget);
-        exit;
+        return ['ok' => false, 'message' => 'Internship table is not ready for internal start dates.'];
     }
 
     if ($targetStudentId <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
-        $_SESSION['ojt_internal_flash_type'] = 'danger';
-        $_SESSION['ojt_internal_flash_message'] = 'A valid internal start date is required.';
-        header('Location: ' . $redirectTarget);
-        exit;
+        return ['ok' => false, 'message' => 'A valid internal start date is required.'];
     }
 
     $studentLookup = $conn->prepare("
@@ -196,10 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['internal_action'] 
     }
 
     if (!$studentRow) {
-        $_SESSION['ojt_internal_flash_type'] = 'danger';
-        $_SESSION['ojt_internal_flash_message'] = 'Student record was not found.';
-        header('Location: ' . $redirectTarget);
-        exit;
+        return ['ok' => false, 'message' => 'Student record was not found.'];
     }
 
     $latestInternalSql = "
@@ -317,8 +241,134 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['internal_action'] 
         }
     }
 
-    $_SESSION['ojt_internal_flash_type'] = 'success';
-    $_SESSION['ojt_internal_flash_message'] = 'Internal start date saved successfully.';
+    return ['ok' => true, 'message' => 'Internal start date saved successfully.'];
+}
+
+$conn->query("CREATE TABLE IF NOT EXISTS ojt_internal (
+    student_no VARCHAR(100) NOT NULL,
+    user_id INT NULL,
+    last_name VARCHAR(150) NOT NULL DEFAULT '',
+    first_name VARCHAR(150) NOT NULL DEFAULT '',
+    middle_name VARCHAR(150) NOT NULL DEFAULT '',
+    course_id INT NULL,
+    section_id INT NULL,
+    email VARCHAR(190) NOT NULL DEFAULT '',
+    password VARCHAR(255) NOT NULL DEFAULT '',
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (student_no),
+    KEY idx_ojt_internal_user_id (user_id),
+    KEY idx_ojt_internal_course_id (course_id),
+    KEY idx_ojt_internal_section_id (section_id),
+    KEY idx_ojt_internal_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// Auto-link OJT Internal records to registered students via student number.
+$conn->query("UPDATE ojt_internal oi
+    INNER JOIN students s ON TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci = TRIM(COALESCE(oi.student_no, '')) COLLATE utf8mb4_unicode_ci
+    SET oi.user_id = s.user_id
+    WHERE (oi.user_id IS NULL OR oi.user_id = 0)
+      AND s.user_id IS NOT NULL
+      AND s.user_id > 0");
+
+$trackColumnRes = $conn->query("SHOW COLUMNS FROM students LIKE 'assignment_track'");
+$hasAssignmentTrack = ($trackColumnRes instanceof mysqli_result) && $trackColumnRes->num_rows > 0;
+if ($trackColumnRes instanceof mysqli_result) {
+    $trackColumnRes->close();
+}
+
+$mapFingerId = (int)($_GET['map_finger_id'] ?? 0);
+$filterCourseId = (int)($_GET['course_id'] ?? 0);
+$filterSectionId = (int)($_GET['section_id'] ?? 0);
+$search = trim((string)($_GET['search'] ?? ''));
+$filterOjtStatus = strtolower(trim((string)($_GET['ojt_status'] ?? 'all')));
+if (!in_array($filterOjtStatus, ['all', 'ongoing', 'finished', 'not_started'], true)) {
+    $filterOjtStatus = 'all';
+}
+
+$internshipsTableExists = ojt_internal_table_exists($conn, 'internships');
+$internshipsHasTypeColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'type');
+$internshipsHasStartDateColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'start_date');
+$internshipsHasStatusColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'status');
+$internshipsHasRequiredHoursColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'required_hours');
+$internshipsHasStudentIdColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'student_id');
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['internal_action'] ?? '') === 'start_internal') {
+    $redirectQuery = [];
+    if ($filterCourseId > 0) {
+        $redirectQuery['course_id'] = $filterCourseId;
+    }
+    if ($filterSectionId > 0) {
+        $redirectQuery['section_id'] = $filterSectionId;
+    }
+    if ($search !== '') {
+        $redirectQuery['search'] = $search;
+    }
+    if ($filterOjtStatus !== 'all') {
+        $redirectQuery['ojt_status'] = $filterOjtStatus;
+    }
+    $redirectTarget = 'ojt-internal-list.php' . ($redirectQuery !== [] ? ('?' . http_build_query($redirectQuery)) : '');
+    $startDate = trim((string)($_POST['start_date'] ?? ''));
+    $rawStudentIds = trim((string)($_POST['student_ids'] ?? ''));
+    $targetStudentIds = [];
+    foreach (preg_split('/[,\s]+/', $rawStudentIds, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $candidateId) {
+        $id = (int)$candidateId;
+        if ($id > 0) {
+            $targetStudentIds[$id] = $id;
+        }
+    }
+    if ($targetStudentIds === [] && isset($_POST['student_id'])) {
+        $singleId = (int)($_POST['student_id'] ?? 0);
+        if ($singleId > 0) {
+            $targetStudentIds[$singleId] = $singleId;
+        }
+    }
+
+    if ($targetStudentIds === []) {
+        $_SESSION['ojt_internal_flash_type'] = 'danger';
+        $_SESSION['ojt_internal_flash_message'] = 'Please select at least one student.';
+        header('Location: ' . $redirectTarget);
+        exit;
+    }
+
+    $messages = [];
+    $successCount = 0;
+    foreach ($targetStudentIds as $targetStudentId) {
+        $result = ojt_internal_apply_start(
+            $conn,
+            (int)$targetStudentId,
+            $startDate,
+            $internshipsTableExists,
+            $internshipsHasTypeColumn,
+            $internshipsHasStartDateColumn,
+            $internshipsHasStatusColumn,
+            $internshipsHasRequiredHoursColumn,
+            $internshipsHasStudentIdColumn,
+            $hasAssignmentTrack
+        );
+
+        if (!empty($result['ok'])) {
+            $successCount++;
+            continue;
+        }
+
+        $messages[] = (string)($result['message'] ?? 'Unable to save internal start date.');
+    }
+
+    if ($successCount > 0 && $messages === []) {
+        $_SESSION['ojt_internal_flash_type'] = 'success';
+        $_SESSION['ojt_internal_flash_message'] = $successCount === 1
+            ? 'Internal start date saved successfully.'
+            : $successCount . ' internal start dates saved successfully.';
+    } elseif ($successCount > 0) {
+        $_SESSION['ojt_internal_flash_type'] = 'warning';
+        $_SESSION['ojt_internal_flash_message'] = $successCount . ' student(s) updated. ' . implode(' ', $messages);
+    } else {
+        $_SESSION['ojt_internal_flash_type'] = 'danger';
+        $_SESSION['ojt_internal_flash_message'] = implode(' ', $messages);
+    }
+
     header('Location: ' . $redirectTarget);
     exit;
 }
@@ -513,6 +563,7 @@ $page_styles = [
 $page_scripts = [
     'assets/js/modules/pages/ojt-list-select.js',
     'assets/js/modules/pages/ojt-list-print.js',
+    'assets/js/modules/pages/ojt-internal-actions.js',
 ];
 $base_href = '';
 include __DIR__ . '/../includes/header.php';
@@ -659,7 +710,7 @@ ob_end_flush();
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($rows as $row): ?>
-                                    <tr>
+                                    <tr data-ojt-student-row-id="<?php echo (int)($row['student_row_id'] ?? 0); ?>" data-ojt-student-label="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
                                         <td class="app-ojt-select-column" data-print-exclude="1">
                                             <div class="form-check app-ojt-select-check">
                                                 <input class="form-check-input" type="checkbox" data-ojt-row-select aria-label="Select student <?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?>">
@@ -702,27 +753,21 @@ ob_end_flush();
                                                     <span class="text-muted small">Student account not linked yet</span>
                                                 <?php endif; ?>
                                             <?php else: ?>
-                                                <div class="dropdown d-inline-block">
-                                                    <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <?php if ((int)($row['student_row_id'] ?? 0) > 0): ?>
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-sm btn-light"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#ojtInternalActionModal"
+                                                        data-ojt-internal-action-trigger
+                                                        data-ojt-student-id="<?php echo (int)$row['student_row_id']; ?>"
+                                                        data-ojt-student-label="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
+                                                    >
                                                         Actions
                                                     </button>
-                                                    <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 260px;">
-                                                        <?php if ((int)($row['student_row_id'] ?? 0) > 0): ?>
-                                                            <a class="dropdown-item mb-2" href="students-view.php?id=<?php echo (int)$row['student_row_id']; ?>">
-                                                                View Student
-                                                            </a>
-                                                            <form method="post" class="d-grid gap-2">
-                                                                <input type="hidden" name="internal_action" value="start_internal">
-                                                                <input type="hidden" name="student_id" value="<?php echo (int)$row['student_row_id']; ?>">
-                                                                <label class="form-label small mb-0">Start Internal Date</label>
-                                                                <input type="date" name="start_date" class="form-control form-control-sm" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
-                                                                <button type="submit" class="btn btn-sm btn-primary">Start Internal</button>
-                                                            </form>
-                                                        <?php else: ?>
-                                                            <span class="text-muted small">Linked student record not available yet.</span>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                </div>
+                                                <?php else: ?>
+                                                    <span class="text-muted small">Linked student record not available yet.</span>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </td>
                                     </tr>
@@ -736,6 +781,37 @@ ob_end_flush();
         </div>
     </div>
 </main>
+<div class="modal fade" id="ojtInternalActionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title mb-1">Start Internal</h5>
+                        <div class="text-muted small" data-ojt-internal-action-summary>Choose one row or use the checked rows.</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="internal_action" value="start_internal">
+                    <input type="hidden" name="student_ids" value="">
+                    <input type="hidden" name="student_id" value="">
+                    <div class="mb-3">
+                        <label class="form-label" for="ojtInternalStartDate">Start Date</label>
+                        <input type="date" class="form-control" id="ojtInternalStartDate" name="start_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
+                    </div>
+                    <div class="alert alert-info py-2 mb-0" data-ojt-internal-action-note>
+                        The action will apply to the selected students if any checkboxes are ticked. Otherwise it will apply to the clicked row.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Start Internal</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 <section class="student-list-print-sheet app-students-print-sheet app-ojt-selected-print-sheet" data-ojt-print-sheet="ojtInternalListTable" aria-hidden="true">
     <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
     <div class="header">
