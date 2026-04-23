@@ -735,7 +735,7 @@ include 'includes/header.php';
         <div class="card app-ojt-dashboard-card stretch stretch-full app-ojt-table-card app-data-card app-data-toolbar" id="ojtWorklist">
             <div class="card-body p-0">
                 <div class="table-responsive students-table-wrap app-ojt-table-wrap app-data-table-wrap">
-                    <table class="table table-hover mb-0 app-ojt-list-table app-data-table" id="ojtListTable" data-print-title="OJT Student List" data-print-subtitle="<?php echo htmlspecialchars(trim($print_section_label !== 'ALL' ? 'Section: ' . $print_section_label : 'Current filtered OJT list'), ENT_QUOTES, 'UTF-8'); ?>">
+                    <table class="table table-hover mb-0 app-ojt-list-table app-data-table" id="ojtListTable" data-ojt-select-table data-print-title="OJT Student List" data-print-subtitle="<?php echo htmlspecialchars(trim($print_section_label !== 'ALL' ? 'Section: ' . $print_section_label : 'Current filtered OJT list'), ENT_QUOTES, 'UTF-8'); ?>">
                         <thead>
                         <tr>
                             <th class="app-ojt-select-column">
@@ -987,9 +987,15 @@ include 'includes/header.php';
         </div>
     </div>
 </main>
-<section class="app-ojt-selected-print-sheet" data-ojt-print-sheet="ojtListTable" aria-hidden="true">
-    <h1 data-ojt-print-title>OJT Student List</h1>
-    <p data-ojt-print-subtitle><?php echo htmlspecialchars(trim($print_section_label !== 'ALL' ? 'Section: ' . $print_section_label : 'Current filtered OJT list'), ENT_QUOTES, 'UTF-8'); ?></p>
+<section class="student-list-print-sheet app-students-print-sheet app-ojt-selected-print-sheet" data-ojt-print-sheet="ojtListTable" aria-hidden="true">
+    <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
+    <div class="header">
+        <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+        <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga &middot;</div>
+        <div class="tel">Telefax No.: (045) 624-0215</div>
+    </div>
+    <div class="print-title" data-ojt-print-title>OJT STUDENT LIST</div>
+    <p class="print-meta" data-ojt-print-subtitle><?php echo htmlspecialchars(trim($print_section_label !== 'ALL' ? 'Section: ' . $print_section_label : 'Current filtered OJT list'), ENT_QUOTES, 'UTF-8'); ?></p>
     <table>
         <thead>
             <tr></tr>

@@ -110,6 +110,12 @@
                 bodyNode.innerHTML = printRows.rows;
             }
 
+            document.body.classList.add('app-ojt-print-selected-mode');
+            window.addEventListener('afterprint', function cleanupSelectedPrintMode() {
+                document.body.classList.remove('app-ojt-print-selected-mode');
+                window.removeEventListener('afterprint', cleanupSelectedPrintMode);
+            });
+
             window.setTimeout(function () {
                 window.print();
             }, 50);
