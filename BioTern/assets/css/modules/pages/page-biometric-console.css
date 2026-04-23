@@ -108,6 +108,46 @@
     font-size: 0.72rem;
 }
 
+.page-ojt-internal-list .bio-console-table .app-ojt-select-column,
+.page-ojt-external-list .bio-console-table .app-ojt-select-column {
+    width: 3rem;
+    min-width: 3rem;
+    max-width: 3rem;
+    padding-left: 0.7rem;
+    padding-right: 0.25rem;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.page-ojt-internal-list .bio-console-table .app-ojt-select-check,
+.page-ojt-external-list .bio-console-table .app-ojt-select-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding-left: 0;
+    min-height: 1rem;
+}
+
+.page-ojt-internal-list .bio-console-table .app-ojt-select-check .form-check-input,
+.page-ojt-external-list .bio-console-table .app-ojt-select-check .form-check-input {
+    float: none;
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    cursor: pointer;
+}
+
+.page-ojt-internal-list .bio-console-table tbody tr.is-selected,
+.page-ojt-external-list .bio-console-table tbody tr.is-selected {
+    background: rgba(var(--biotern-primary-rgb), 0.08);
+}
+
+html.app-skin-dark .page-ojt-internal-list .bio-console-table tbody tr.is-selected,
+html.app-skin-dark .page-ojt-external-list .bio-console-table tbody tr.is-selected {
+    background: rgba(var(--biotern-primary-rgb), 0.12);
+}
+
 .bio-console-shell {
     display: grid;
     gap: 1rem;

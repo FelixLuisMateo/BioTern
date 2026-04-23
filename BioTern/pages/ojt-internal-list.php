@@ -510,6 +510,10 @@ $page_styles = [
     'assets/css/modules/pages/page-biometric-console.css',
     'assets/css/modules/pages/page-ojt-internal-list.css',
 ];
+$page_scripts = [
+    'assets/js/modules/pages/ojt-list-select.js',
+    'assets/js/modules/pages/ojt-list-print.js',
+];
 $base_href = '';
 include __DIR__ . '/../includes/header.php';
 ob_end_flush();
@@ -527,12 +531,37 @@ ob_end_flush();
                 </ul>
             </div>
             <div class="page-header-right ms-auto bio-console-header-actions">
-                <div class="page-header-right-items">
-                    <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                        <a href="import-ojt-internal.php" class="btn btn-light-brand">Import OJT Internal</a>
-                        <a href="import-ojt-external.php" class="btn btn-outline-secondary">Import OJT External</a>
-                        <a href="ojt-external-list.php" class="btn btn-outline-secondary">View External List</a>
-                        <a href="fingerprint_mapping.php" class="btn btn-outline-secondary">Back To Fingerprints</a>
+                <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="ojtInternalActionsMenu">
+                    <i class="feather-grid me-1"></i>
+                    <span>Actions</span>
+                </button>
+                <div class="page-header-actions app-ojt-actions-panel" id="ojtInternalActionsMenu">
+                    <div class="dashboard-actions-panel">
+                        <div class="dashboard-actions-meta">
+                            <span class="text-muted fs-12">Quick Actions</span>
+                        </div>
+                        <div class="dashboard-actions-grid page-header-right-items-wrapper">
+                            <a href="import-ojt-internal.php" class="action-tile action-tile-primary" data-action-priority="1">
+                                <i class="feather-download"></i>
+                                <span>Import OJT Internal</span>
+                            </a>
+                            <a href="import-ojt-external.php" class="action-tile">
+                                <i class="feather-download-cloud"></i>
+                                <span>Import OJT External</span>
+                            </a>
+                            <button type="button" class="action-tile" data-ojt-print-selected="ojtInternalListTable">
+                                <i class="feather-printer"></i>
+                                <span>Print Selected</span>
+                            </button>
+                            <a href="ojt-external-list.php" class="action-tile">
+                                <i class="feather-list"></i>
+                                <span>View External List</span>
+                            </a>
+                            <a href="fingerprint_mapping.php" class="action-tile">
+                                <i class="feather-hash"></i>
+                                <span>Back To Fingerprints</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -597,13 +626,20 @@ ob_end_flush();
                     </form>
                 </div>
                 <div class="card-body py-2">
-                    <small class="text-muted">Total internal rows: <?php echo count($rows); ?> | Linked with registered account: <?php echo $linkedCount; ?> | Ongoing: <?php echo (int)$statusCounts['ongoing']; ?> | Finished: <?php echo (int)$statusCounts['finished']; ?> | Not Started: <?php echo (int)$statusCounts['not_started']; ?></small>
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <small class="text-muted">Total internal rows: <?php echo count($rows); ?> | Linked with registered account: <?php echo $linkedCount; ?> | Ongoing: <?php echo (int)$statusCounts['ongoing']; ?> | Finished: <?php echo (int)$statusCounts['finished']; ?> | Not Started: <?php echo (int)$statusCounts['not_started']; ?></small>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 bio-console-table">
+                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtInternalListTable" data-ojt-select-table data-print-title="Internal Student List" data-print-subtitle="<?php echo htmlspecialchars($mapFingerId > 0 ? 'Fingerprint mapping mode' : 'Filtered internal list', ENT_QUOTES, 'UTF-8'); ?>">
                             <thead>
                                 <tr>
+                                    <th class="app-ojt-select-column">
+                                        <div class="form-check app-ojt-select-check">
+                                            <input class="form-check-input" type="checkbox" data-ojt-select-all aria-label="Select all internal students">
+                                        </div>
+                                    </th>
                                     <th>Student No</th>
                                     <th>Name</th>
                                     <th>Course / Section</th>
@@ -615,11 +651,16 @@ ob_end_flush();
                             <tbody>
                             <?php if (empty($rows)): ?>
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-4">No internal students found for the selected filters.</td>
+                                    <td colspan="7" class="text-center text-muted py-4" data-print-exclude="1">No internal students found for the selected filters.</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($rows as $row): ?>
                                     <tr>
+                                        <td class="app-ojt-select-column" data-print-exclude="1">
+                                            <div class="form-check app-ojt-select-check">
+                                                <input class="form-check-input" type="checkbox" data-ojt-row-select aria-label="Select student <?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?>">
+                                            </div>
+                                        </td>
                                         <td><?php echo htmlspecialchars(trim((string)($row['student_no'] ?? '')) !== '' ? (string)$row['student_no'] : 'N/A', ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td>
                                             <div class="fw-semibold"><?php echo htmlspecialchars(trim((string)$row['last_name'] . ', ' . (string)$row['first_name'] . ' ' . (string)$row['middle_name']), ENT_QUOTES, 'UTF-8'); ?></div>
@@ -643,7 +684,7 @@ ob_end_flush();
                                                 <div><small class="text-muted">Internship: <?php echo htmlspecialchars(ucfirst((string)$row['internship_status']), ENT_QUOTES, 'UTF-8'); ?></small></div>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="text-end">
+                                        <td class="text-end" data-print-exclude="1">
                                             <?php if ($mapFingerId > 0): ?>
                                                 <?php $candidateUserId = (int)($row['student_user_id'] ?: $row['ojt_user_id']); ?>
                                                 <?php if ($candidateUserId > 0): ?>

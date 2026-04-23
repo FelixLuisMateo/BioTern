@@ -514,6 +514,8 @@ $page_styles = [
     'assets/css/modules/management/management-ojt.css',
 ];
 $page_scripts = [
+    'assets/js/modules/pages/ojt-list-select.js',
+    'assets/js/modules/pages/ojt-list-print.js',
     'assets/js/modules/management/ojt-dashboard-runtime.js',
     'assets/js/theme-customizer-init.min.js',
 ];
@@ -628,6 +630,10 @@ include 'includes/header.php';
                                 <i class="feather-printer"></i>
                                 <span>Print List</span>
                             </button>
+                            <button type="button" class="action-tile" data-ojt-print-selected="ojtListTable">
+                                <i class="feather-check-square"></i>
+                                <span>Print Selected</span>
+                            </button>
                             <form method="post" class="d-inline">
                                 <button type="submit" name="queue_reminders" value="1" class="action-tile">
                                     <i class="feather-bell"></i>
@@ -729,9 +735,14 @@ include 'includes/header.php';
         <div class="card app-ojt-dashboard-card stretch stretch-full app-ojt-table-card app-data-card app-data-toolbar" id="ojtWorklist">
             <div class="card-body p-0">
                 <div class="table-responsive students-table-wrap app-ojt-table-wrap app-data-table-wrap">
-                    <table class="table table-hover mb-0 app-ojt-list-table app-data-table" id="ojtListTable">
+                    <table class="table table-hover mb-0 app-ojt-list-table app-data-table" id="ojtListTable" data-print-title="OJT Student List" data-print-subtitle="<?php echo htmlspecialchars(trim($print_section_label !== 'ALL' ? 'Section: ' . $print_section_label : 'Current filtered OJT list'), ENT_QUOTES, 'UTF-8'); ?>">
                         <thead>
                         <tr>
+                            <th class="app-ojt-select-column">
+                                <div class="form-check app-ojt-select-check">
+                                    <input class="form-check-input" type="checkbox" data-ojt-select-all aria-label="Select all OJT students">
+                                </div>
+                            </th>
                             <th>Student</th>
                             <th>Section</th>
                             <th>Stage</th>
@@ -739,12 +750,12 @@ include 'includes/header.php';
                             <th>Hours</th>
                             <th>Risk</th>
                             <th>Risk Score</th>
-                            <th class="text-end">Actions</th>
+                            <th class="text-end" data-print-exclude="1">Actions</th>
                         </tr>
                         </thead>
                         <tbody>
                         <?php if (!$rows): ?>
-                            <tr><td colspan="8" class="text-center py-4 text-muted">No records found.</td></tr>
+                            <tr><td colspan="9" class="text-center py-4 text-muted">No records found.</td></tr>
                         <?php endif; ?>
                         <?php foreach ($rows as $index => $r): ?>
                             <?php
@@ -785,6 +796,11 @@ include 'includes/header.php';
                             $ojt_edit_link = 'ojt-edit.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '');
                             ?>
                             <tr class="app-ojt-table-row app-ojt-table-row-<?php echo htmlspecialchars($risk_band); ?>">
+                                <td class="app-ojt-select-column">
+                                    <div class="form-check app-ojt-select-check">
+                                        <input class="form-check-input" type="checkbox" data-ojt-row-select aria-label="Select student <?php echo htmlspecialchars(trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
+                                    </div>
+                                </td>
                                 <td data-label="Student">
                                     <a class="student-link app-ojt-student-link app-ojt-student-block" href="<?php echo htmlspecialchars($ojt_view_link); ?>">
                                         <img src="<?php echo htmlspecialchars($img); ?>" class="app-avatar-42" alt="profile">
@@ -843,7 +859,7 @@ include 'includes/header.php';
                                         <span class="app-ojt-risk-score app-ojt-risk-score-<?php echo htmlspecialchars($risk_band); ?>"><?php echo $risk_score_int; ?></span>
                                     </div>
                                 </td>
-                                <td data-label="Actions">
+                                <td data-label="Actions" data-print-exclude="1">
                                     <div class="app-ojt-row-actions">
                                         <a class="btn btn-sm btn-light app-ojt-action-btn" href="<?php echo htmlspecialchars($ojt_view_link); ?>">Open Record</a>
                                         <a class="btn btn-sm btn-outline-primary app-ojt-action-btn" href="<?php echo htmlspecialchars($ojt_edit_link); ?>">Update OJT</a>
