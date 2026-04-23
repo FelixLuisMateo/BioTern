@@ -18,9 +18,7 @@
             return;
         }
 
-        var modalBody = modal.querySelector('.modal-body');
         var summaryNode = modal.querySelector('[data-ojt-internal-action-summary]');
-        var noteNode = modal.querySelector('[data-ojt-internal-action-note]');
         var idsInput = modal.querySelector('input[name="student_ids"]');
         var singleIdInput = modal.querySelector('input[name="student_id"]');
         var dateInput = modal.querySelector('input[name="start_date"]');
@@ -50,11 +48,6 @@
                 } else {
                     summaryNode.textContent = 'Choose one row or use the checked rows.';
                 }
-            }
-            if (noteNode) {
-                noteNode.textContent = ids.length > 1
-                    ? 'The modal will apply the chosen start date to all checked internal students.'
-                    : 'The modal will apply the chosen start date to the clicked row.';
             }
         });
 
