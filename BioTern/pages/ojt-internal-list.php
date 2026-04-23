@@ -800,9 +800,6 @@ ob_end_flush();
                         <label class="form-label" for="ojtInternalStartDate">Start Date</label>
                         <input type="date" class="form-control" id="ojtInternalStartDate" name="start_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
                     </div>
-                    <div class="alert alert-info py-2 mb-0" data-ojt-internal-action-note>
-                        The action will apply to the selected students if any checkboxes are ticked. Otherwise it will apply to the clicked row.
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
