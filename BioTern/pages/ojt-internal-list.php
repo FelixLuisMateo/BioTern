@@ -549,6 +549,10 @@ ob_end_flush();
                                 <i class="feather-download-cloud"></i>
                                 <span>Import OJT External</span>
                             </a>
+                            <button type="button" class="action-tile" data-ojt-print-full="ojtInternalListTable">
+                                <i class="feather-printer"></i>
+                                <span>Print List</span>
+                            </button>
                             <button type="button" class="action-tile" data-ojt-print-selected="ojtInternalListTable">
                                 <i class="feather-printer"></i>
                                 <span>Print Selected</span>
