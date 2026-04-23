@@ -645,7 +645,7 @@ ob_end_flush();
                                     <th>Course / Section</th>
                                     <th>Linked Account</th>
                                     <th>Status</th>
-                                    <th class="text-end">Action</th>
+                                    <th class="text-end" data-print-exclude="1">Action</th>
                                 </tr>
                             </thead>
                             <tbody>

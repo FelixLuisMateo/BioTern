@@ -1914,7 +1914,12 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
         @media print {
             body * { visibility: hidden !important; }
             .ojt-print-sheet, .ojt-print-sheet *,
-            .app-ojt-print-sheet, .app-ojt-print-sheet * { visibility: visible !important; }
+            .app-ojt-print-sheet, .app-ojt-print-sheet *,
+            .app-ojt-selected-print-sheet, .app-ojt-selected-print-sheet * { visibility: visible !important; }
+            body.app-ojt-print-selected-mode .ojt-print-sheet,
+            body.app-ojt-print-selected-mode .app-ojt-print-sheet {
+                display: none !important;
+            }
             .ojt-print-sheet,
             .app-ojt-print-sheet,
             .app-ojt-selected-print-sheet {
@@ -2020,6 +2025,55 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
             .app-ojt-selected-print-sheet .print-index {
                 width: 46px;
                 text-align: center;
+            }
+            .app-ojt-selected-print-sheet .header {
+                position: relative;
+                min-height: 0.9in;
+                text-align: center;
+                border-bottom: 1px solid #8ab0e6;
+                padding: 0.08in 0 0.06in 0;
+                margin-bottom: 14px;
+            }
+            .app-ojt-selected-print-sheet .crest {
+                position: absolute;
+                top: 0.22in;
+                left: 0.22in;
+                width: 0.77in;
+                height: 0.76in;
+                object-fit: contain;
+            }
+            .app-ojt-selected-print-sheet .header h2 {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 14pt;
+                margin: 6px 0 2px 0;
+                font-weight: 700;
+                text-transform: uppercase;
+            }
+            .app-ojt-selected-print-sheet .header .meta {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 10pt;
+            }
+            .app-ojt-selected-print-sheet .header .tel {
+                font-family: Calibri, Arial, sans-serif;
+                color: #1b4f9c;
+                font-size: 12pt;
+            }
+            .app-ojt-selected-print-sheet .print-title {
+                text-align: center;
+                font-size: 24px;
+                letter-spacing: 1px;
+                font-weight: 700;
+                margin: 18px 0 16px;
+            }
+            .app-ojt-selected-print-sheet .print-meta {
+                margin-bottom: 14px;
+                font-size: 13px;
+            }
+            .app-ojt-selected-print-sheet .print-meta strong {
+                min-width: 76px;
+                display: inline-block;
             }
         }
 
