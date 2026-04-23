@@ -158,6 +158,10 @@ html.app-skin-dark .page-ojt-external-list .bio-console-table tbody tr.is-select
 }
 
 @media print {
+    body * {
+        visibility: hidden !important;
+    }
+
     .app-ojt-selected-print-sheet,
     .app-ojt-selected-print-sheet * {
         visibility: visible !important;
@@ -165,24 +169,74 @@ html.app-skin-dark .page-ojt-external-list .bio-console-table tbody tr.is-select
 
     .app-ojt-selected-print-sheet {
         display: block !important;
-        position: static !important;
-        inset: auto !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
         width: 100% !important;
-        padding: 0 !important;
+        max-width: 7.45in !important;
+        padding: 18px 24px !important;
         margin: 0 !important;
         background: #fff !important;
-        color: #111827 !important;
+        color: #111 !important;
+        font-family: Arial, Helvetica, sans-serif !important;
+        font-size: 12px !important;
     }
 
-    .app-ojt-selected-print-sheet h1 {
-        margin: 0 0 6px;
-        font-size: 18px;
+    .app-ojt-selected-print-sheet .header {
+        position: relative;
+        min-height: 0.9in;
+        text-align: center;
+        border-bottom: 1px solid #8ab0e6;
+        padding: 0.08in 0 0.06in 0;
+        margin-bottom: 14px;
     }
 
-    .app-ojt-selected-print-sheet p {
-        margin: 0 0 16px;
-        color: #6b7280;
-        font-size: 12px;
+    .app-ojt-selected-print-sheet .crest {
+        position: absolute;
+        top: 0.22in;
+        left: 0.22in;
+        width: 0.77in;
+        height: 0.76in;
+        object-fit: contain;
+    }
+
+    .app-ojt-selected-print-sheet .header h2 {
+        font-family: Calibri, Arial, sans-serif;
+        color: #1b4f9c;
+        font-size: 14pt;
+        margin: 6px 0 2px 0;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .app-ojt-selected-print-sheet .header .meta {
+        font-family: Calibri, Arial, sans-serif;
+        color: #1b4f9c;
+        font-size: 10pt;
+    }
+
+    .app-ojt-selected-print-sheet .header .tel {
+        font-family: Calibri, Arial, sans-serif;
+        color: #1b4f9c;
+        font-size: 12pt;
+    }
+
+    .app-ojt-selected-print-sheet .print-title {
+        text-align: center;
+        font-size: 34px;
+        letter-spacing: 1px;
+        font-weight: 700;
+        margin: 26px 0 22px;
+    }
+
+    .app-ojt-selected-print-sheet .print-meta {
+        margin-bottom: 14px;
+        font-size: 13px;
+    }
+
+    .app-ojt-selected-print-sheet .print-meta strong {
+        min-width: 76px;
+        display: inline-block;
     }
 
     .app-ojt-selected-print-sheet table {
@@ -194,18 +248,19 @@ html.app-skin-dark .page-ojt-external-list .bio-console-table tbody tr.is-select
     .app-ojt-selected-print-sheet th,
     .app-ojt-selected-print-sheet td {
         border: 1px solid #d1d5db;
-        padding: 8px 10px;
+        padding: 8px 8px;
         vertical-align: top;
         text-align: left;
     }
 
     .app-ojt-selected-print-sheet th {
-        background: #f3f4f6;
+        text-transform: uppercase;
         font-weight: 700;
+        background: #f8f8f8;
     }
 
     .app-ojt-selected-print-sheet .print-index {
-        width: 40px;
+        width: 46px;
         text-align: center;
         white-space: nowrap;
     }

@@ -732,9 +732,15 @@ ob_end_flush();
         </div>
     </div>
 </main>
-<section class="app-ojt-selected-print-sheet" data-ojt-print-sheet="ojtInternalListTable" aria-hidden="true">
-    <h1 data-ojt-print-title>Internal Student List</h1>
-    <p data-ojt-print-subtitle><?php echo htmlspecialchars($mapFingerId > 0 ? 'Fingerprint mapping mode' : 'Filtered internal list', ENT_QUOTES, 'UTF-8'); ?></p>
+<section class="student-list-print-sheet app-students-print-sheet app-ojt-selected-print-sheet" data-ojt-print-sheet="ojtInternalListTable" aria-hidden="true">
+    <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
+    <div class="header">
+        <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+        <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga &middot;</div>
+        <div class="tel">Telefax No.: (045) 624-0215</div>
+    </div>
+    <div class="print-title" data-ojt-print-title>INTERNAL STUDENT LIST</div>
+    <div class="print-meta"><strong>FILTER:</strong> <span data-ojt-print-subtitle><?php echo htmlspecialchars($mapFingerId > 0 ? 'Fingerprint mapping mode' : 'Filtered internal list', ENT_QUOTES, 'UTF-8'); ?></span></div>
     <table>
         <thead>
             <tr></tr>
