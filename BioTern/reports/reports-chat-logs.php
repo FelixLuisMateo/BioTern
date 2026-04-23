@@ -330,21 +330,17 @@ include 'includes/header.php';
     <div class="page-header-middle">
         <p class="page-header-statement">Real-time visibility into conversations, delivery status, and user message activity.</p>
     </div>
-    <div class="page-header-right ms-auto">
-        <div class="d-md-none d-flex align-items-center">
-            <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#reportsChatLogsActionsCollapse" aria-expanded="false" aria-controls="reportsChatLogsActionsCollapse">
-                <i class="feather-more-horizontal"></i>
-            </button>
-        </div>
-        <div class="page-header-right-items collapse d-md-flex" id="reportsChatLogsActionsCollapse">
-            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
-                <a href="reports-chat-reports.php" class="btn btn-outline-primary"><i class="feather-alert-triangle me-1"></i>Reported Chats</a>
-                <a href="reports-chat-logs.php?<?php echo chatlogs_esc($exportQuery); ?>" class="btn btn-outline-success"><i class="feather-download me-1"></i>Export</a>
-                <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
-            </div>
-        </div>
-    </div>
+    <?php ob_start(); ?>
+        <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+        <a href="reports-chat-reports.php" class="btn btn-outline-primary"><i class="feather-alert-triangle me-1"></i>Reported Chats</a>
+        <a href="reports-chat-logs.php?<?php echo chatlogs_esc($exportQuery); ?>" class="btn btn-outline-success"><i class="feather-download me-1"></i>Export</a>
+        <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
+    <?php
+    biotern_render_page_header_actions([
+        'menu_id' => 'reportsChatLogsActionsMenu',
+        'items_html' => ob_get_clean(),
+    ]);
+    ?>
 </div>
 
 <div class="main-content pb-5">

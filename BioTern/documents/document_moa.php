@@ -84,8 +84,6 @@ include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-<div class="application-document-builder moa-page doc-page-root" data-page="moa" data-prefill-student-id="<?php echo intval($prefill_student_id); ?>">
-        <div class="main-content">
         <div class="page-header dashboard-page-header page-header-with-middle">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
@@ -100,22 +98,19 @@ include __DIR__ . '/../includes/header.php';
             <div class="page-header-middle">
                 <p class="page-header-statement">Use the template builder flow to update and generate the printable Memorandum of Agreement.</p>
             </div>
-            <div class="page-header-right ms-auto">
-                <div class="d-md-none d-flex align-items-center">
-                    <button type="button" class="btn btn-light-brand page-header-actions-toggle" data-bs-toggle="collapse" data-bs-target="#documentMoaActionsCollapse" aria-expanded="false" aria-controls="documentMoaActionsCollapse">
-                        <i class="feather-more-horizontal"></i>
-                    </button>
-                </div>
-                <div class="page-header-right-items collapse d-md-flex" id="documentMoaActionsCollapse">
-                    <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                        <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
-                        <a href="document_application.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>Application</a>
-                        <a href="document_dau_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>DAU MOA</a>
-                    </div>
-                </div>
-            </div>
+            <?php ob_start(); ?>
+                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                <a href="document_application.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>Application</a>
+                <a href="document_dau_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>DAU MOA</a>
+            <?php
+            biotern_render_page_header_actions([
+                'menu_id' => 'documentMoaActionsMenu',
+                'items_html' => ob_get_clean(),
+            ]);
+            ?>
         </div>
-
+<div class="application-document-builder moa-page doc-page-root" data-page="moa" data-prefill-student-id="<?php echo intval($prefill_student_id); ?>">
+        <div class="main-content">
         <div class="container moa-content">
             <div class="row doc-workspace-row">
                 <div class="col-lg-6 doc-form-pane">

@@ -272,6 +272,11 @@ body .page-header .page-header-actions-toggle {
     color: var(--ph-actions-item-text, var(--biotern-btn-text, #fff)) !important;
   }
 
+  body .page-header .page-header-actions .dashboard-actions-grid .action-tile-static {
+    cursor: default !important;
+    pointer-events: none !important;
+  }
+
   body .page-header .page-header-actions .dashboard-actions-grid .action-tile-primary {
     background: var(--ph-actions-item-primary-bg, rgba(var(--bs-primary-rgb), 0.9)) !important;
     border-color: transparent !important;

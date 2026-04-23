@@ -3,6 +3,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once __DIR__ . '/auth-session.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
 require_once __DIR__ . '/avatar.php';
+require_once __DIR__ . '/page-header-actions.php';
 // Shared header include.  Sets up HTML <head> and page header/navigation.
 // Pages can set a $page_title variable before including this file.
 biotern_boot_session(isset($conn) ? $conn : null);
