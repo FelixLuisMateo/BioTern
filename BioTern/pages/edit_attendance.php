@@ -3,12 +3,14 @@ require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
+require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
 $attendance_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $attendance = null;
 $student = null;
+attendance_workflow_ensure_correction_schema($conn);
 
 if ($attendance_id > 0) {
     $query = "
@@ -47,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $attendance_id > 0) {
     $current_user_id = get_current_user_id_or_zero();
     $current_role = get_current_user_role();
     $can_direct_edit = in_array($current_role, ['admin', 'coordinator'], true);
+    $openInfo = $attendance ? attendance_workflow_open_session_info($conn, $attendance) : ['requires_correction' => false];
     $morning_in = isset($_POST['morning_time_in']) ? $_POST['morning_time_in'] : $attendance['morning_time_in'];
     $morning_out = isset($_POST['morning_time_out']) ? $_POST['morning_time_out'] : $attendance['morning_time_out'];
     $break_in = isset($_POST['break_time_in']) ? $_POST['break_time_in'] : $attendance['break_time_in'];
@@ -67,8 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $attendance_id > 0) {
     $validation = attendance_validate_full_record($candidate);
     if (!$validation['ok']) {
         $error_msg = $validation['message'];
-    } elseif ($can_direct_edit) {
+    } elseif ($can_direct_edit && empty($openInfo['requires_correction'])) {
         $before_data = $attendance;
+        $total_hours = attendance_workflow_calculate_internal_hours($conn, array_merge($attendance, $candidate));
         $update_query = "
             UPDATE attendances SET
                 morning_time_in = ?,
@@ -77,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $attendance_id > 0) {
                 break_time_out = ?,
                 afternoon_time_in = ?,
                 afternoon_time_out = ?,
+                total_hours = ?,
                 status = ?,
                 remarks = ?,
                 updated_at = NOW()
@@ -84,10 +89,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $attendance_id > 0) {
         ";
         
         $stmt = $conn->prepare($update_query);
-        $stmt->bind_param('ssssssssi', $morning_in, $morning_out, $break_in, $break_out, $afternoon_in, $afternoon_out, $status, $remarks, $attendance_id);
+        $stmt->bind_param('ssssssdssi', $morning_in, $morning_out, $break_in, $break_out, $afternoon_in, $afternoon_out, $total_hours, $status, $remarks, $attendance_id);
         
         if ($stmt->execute()) {
             $success_msg = "Attendance record updated successfully!";
+            attendance_workflow_sync_student_progress($conn, (int)($attendance['student_id'] ?? 0));
             insert_audit_log(
                 $conn,
                 $current_user_id,
@@ -113,49 +119,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $attendance_id > 0) {
         }
         $stmt->close();
     } else {
-        if (!table_exists($conn, 'attendance_correction_requests')) {
-            $error_msg = "Correction workflow table is missing. Run db_updates_operations.sql first.";
-        } else {
-            $payload = json_encode([
-                'morning_time_in' => $morning_in,
-                'morning_time_out' => $morning_out,
-                'break_time_in' => $break_in,
-                'break_time_out' => $break_out,
-                'afternoon_time_in' => $afternoon_in,
-                'afternoon_time_out' => $afternoon_out,
-                'status' => $status,
-                'remarks' => $remarks
-            ]);
-            $reason = isset($_POST['correction_reason']) ? trim((string)$_POST['correction_reason']) : '';
-            if ($reason === '') {
-                $reason = 'Requested via edit attendance form';
-            }
-            $req_stmt = $conn->prepare("
-                INSERT INTO attendance_correction_requests
-                (attendance_id, requested_by, requester_role, correction_reason, requested_changes, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 'pending', NOW(), NOW())
-            ");
-            $req_stmt->bind_param('iisss', $attendance_id, $current_user_id, $current_role, $reason, $payload);
-            if ($req_stmt->execute()) {
-                $success_msg = "Correction request submitted for approval.";
-                insert_audit_log(
-                    $conn,
-                    $current_user_id,
-                    'attendance_correction_requested',
-                    'attendance_correction_request',
-                    (int)$req_stmt->insert_id,
-                    [],
-                    ['attendance_id' => $attendance_id, 'reason' => $reason],
-                    $_SERVER['REMOTE_ADDR'] ?? '',
-                    $_SERVER['HTTP_USER_AGENT'] ?? ''
-                );
-            } else {
-                $error_msg = "Error submitting correction request: " . $req_stmt->error;
-            }
-            $req_stmt->close();
+        $payload = json_encode([
+            'morning_time_in' => $morning_in,
+            'morning_time_out' => $morning_out,
+            'break_time_in' => $break_in,
+            'break_time_out' => $break_out,
+            'afternoon_time_in' => $afternoon_in,
+            'afternoon_time_out' => $afternoon_out,
+            'status' => $status,
+            'remarks' => $remarks
+        ]);
+        $reason = isset($_POST['correction_reason']) ? trim((string)$_POST['correction_reason']) : '';
+        if ($reason === '') {
+            $reason = !empty($openInfo['requires_correction'])
+                ? 'Missing clock-out. Requesting manual correction for final attendance credit.'
+                : 'Requested via edit attendance form';
         }
+        $req_stmt = $conn->prepare("
+            INSERT INTO attendance_correction_requests
+            (attendance_id, requested_by, requester_role, correction_reason, requested_changes, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, 'pending', NOW(), NOW())
+        ");
+        $req_stmt->bind_param('iisss', $attendance_id, $current_user_id, $current_role, $reason, $payload);
+        if ($req_stmt->execute()) {
+            $success_msg = !empty($openInfo['requires_correction'])
+                ? "Manual clock-out request submitted. Hours will not be credited until this correction is approved."
+                : "Correction request submitted for approval.";
+            insert_audit_log(
+                $conn,
+                $current_user_id,
+                'attendance_correction_requested',
+                'attendance_correction_request',
+                (int)$req_stmt->insert_id,
+                [],
+                ['attendance_id' => $attendance_id, 'reason' => $reason],
+                $_SERVER['REMOTE_ADDR'] ?? '',
+                $_SERVER['HTTP_USER_AGENT'] ?? ''
+            );
+        } else {
+            $error_msg = "Error submitting correction request: " . $req_stmt->error;
+        }
+        $req_stmt->close();
     }
 }
+
+$attendance_open_info = $attendance ? attendance_workflow_open_session_info($conn, $attendance) : ['requires_correction' => false];
 
 $conn->close();
 
@@ -236,6 +244,11 @@ include 'includes/header.php';
                 </div>
                 
                 <div class="card-body">
+                    <?php if (!empty($attendance_open_info['requires_correction'])): ?>
+                        <div class="alert alert-warning">
+                            This attendance is missing a clock-out and has been frozen for correction. Any manual clock-out must be submitted as a correction request and approved before the student's hours are credited.
+                        </div>
+                    <?php endif; ?>
                     <!-- Student Info -->
                     <div class="row mb-4 pb-3 border-bottom">
                         <div class="col-md-2">
@@ -303,6 +316,7 @@ include 'includes/header.php';
                                 <label class="form-label">Status</label>
                                 <select name="status" class="form-control">
                                     <option value="pending" <?php echo $attendance['status'] === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                                    <option value="pending_correction" <?php echo $attendance['status'] === 'pending_correction' ? 'selected' : ''; ?>>Needs Correction</option>
                                     <option value="approved" <?php echo $attendance['status'] === 'approved' ? 'selected' : ''; ?>>Approved</option>
                                     <option value="rejected" <?php echo $attendance['status'] === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
                                 </select>
@@ -314,8 +328,8 @@ include 'includes/header.php';
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-12">
-                                <label class="form-label">Correction Reason (used when direct edit permission is missing)</label>
-                                <input type="text" name="correction_reason" class="form-control" placeholder="Explain why this attendance should be corrected">
+                                <label class="form-label">Correction Reason</label>
+                                <input type="text" name="correction_reason" class="form-control" placeholder="Explain the manual clock-out or attendance correction request">
                             </div>
                         </div>
                         

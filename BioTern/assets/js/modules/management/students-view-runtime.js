@@ -25,6 +25,7 @@
     );
     var isClockedIn = String((cfg && cfg.dataset.isClockedIn) || "0") === "1";
     var openClockInRaw = (cfg && cfg.dataset.openClockInRaw) || "";
+    var sessionCutoffRaw = (cfg && cfg.dataset.sessionCutoffRaw) || "";
 
     var storageKey = "student_timer_state_" + String(studentId);
     var nowRef = new Date();
@@ -33,9 +34,6 @@
       String(nowRef.getMonth() + 1).padStart(2, "0"),
       String(nowRef.getDate()).padStart(2, "0"),
     ].join("-");
-
-    var lastSyncedHour = null;
-    var syncInFlight = false;
 
     function formatHMS(totalSeconds) {
       var safe = Math.max(0, Math.floor(totalSeconds));
@@ -96,36 +94,6 @@
       } catch (e) {}
     }
 
-    function syncRemainingHourToDb() {
-      if (!isClockedIn) return;
-      var currentHour = Math.max(0, Math.floor(remainingSeconds / 3600));
-      if (lastSyncedHour === currentHour) return;
-      if (syncInFlight) return;
-      syncInFlight = true;
-
-      var body = new URLSearchParams();
-      body.set("student_id", String(studentId));
-      body.set("remaining_hours", String(currentHour));
-
-      fetch("update_remaining_hours.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8" },
-        body: body.toString(),
-      })
-        .then(function (r) {
-          return r.json();
-        })
-        .then(function (data) {
-          if (data && data.ok) {
-            lastSyncedHour = currentHour;
-          }
-        })
-        .catch(function () {})
-        .finally(function () {
-          syncInFlight = false;
-        });
-    }
-
     function elapsedSinceOpenClockIn() {
       if (!isClockedIn || !openClockInRaw) return 0;
       var now = new Date();
@@ -142,9 +110,50 @@
       return Math.max(0, Math.floor((now.getTime() - start.getTime()) / 1000));
     }
 
+    function secondsUntilCutoff() {
+      if (!isClockedIn || !sessionCutoffRaw) return 0;
+      var now = new Date();
+      var parts = String(sessionCutoffRaw).split(":");
+      if (parts.length < 2) return 0;
+      var cutoff = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        parseInt(parts[0], 10),
+        parseInt(parts[1], 10),
+        parseInt(parts[2] || "0", 10)
+      );
+      return Math.max(0, Math.floor((cutoff.getTime() - now.getTime()) / 1000));
+    }
+
+    function maxPreviewSeconds() {
+      if (!isClockedIn || !openClockInRaw || !sessionCutoffRaw) return 0;
+      var now = new Date();
+      var startParts = String(openClockInRaw).split(":");
+      var cutoffParts = String(sessionCutoffRaw).split(":");
+      if (startParts.length < 2 || cutoffParts.length < 2) return 0;
+      var start = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        parseInt(startParts[0], 10),
+        parseInt(startParts[1], 10),
+        parseInt(startParts[2] || "0", 10)
+      );
+      var cutoff = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        parseInt(cutoffParts[0], 10),
+        parseInt(cutoffParts[1], 10),
+        parseInt(cutoffParts[2] || "0", 10)
+      );
+      return Math.max(0, Math.floor((cutoff.getTime() - start.getTime()) / 1000));
+    }
+
     var saved = loadState();
     if (isClockedIn) {
-      var elapsed = elapsedSinceOpenClockIn();
+      var elapsed = Math.min(elapsedSinceOpenClockIn(), maxPreviewSeconds());
       if (elapsed > 0) {
         remainingSeconds = Math.max(0, remainingSecondsWithoutOpen - elapsed);
       }
@@ -163,16 +172,12 @@
       updateInternalHoursFromSeconds();
       updateCompletionFromSeconds();
 
-      if (isClockedIn && remainingSeconds > 0) {
+      if (isClockedIn && remainingSeconds > 0 && secondsUntilCutoff() > 0) {
         remainingSeconds--;
       }
 
       if (isClockedIn && remainingSeconds % 10 === 0) {
         saveState();
-      }
-
-      if (isClockedIn && remainingSeconds > 0 && remainingSeconds % 3600 === 0) {
-        syncRemainingHourToDb();
       }
     }
 

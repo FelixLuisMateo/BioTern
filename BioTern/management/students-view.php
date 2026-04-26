@@ -3,6 +3,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 
 require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
+require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
@@ -186,14 +187,25 @@ $has_attendance_today = $active_row['count'] > 0 ? true : false;
 // Check if student is currently clocked in (has morning_time_in but no morning_time_out)
 $clocked_in_query = "
     SELECT 
-        id,
-        morning_time_in,
-        morning_time_out,
-        afternoon_time_in,
-        afternoon_time_out
-    FROM attendances 
-    WHERE student_id = ? AND attendance_date = ?
-    ORDER BY id DESC
+        a.id,
+        a.student_id,
+        a.attendance_date,
+        a.status,
+        a.remarks,
+        a.morning_time_in,
+        a.morning_time_out,
+        a.afternoon_time_in,
+        a.afternoon_time_out,
+        sec.attendance_session,
+        sec.schedule_time_in,
+        sec.schedule_time_out,
+        sec.late_after_time,
+        sec.weekly_schedule_json
+    FROM attendances a
+    LEFT JOIN students s2 ON a.student_id = s2.id
+    LEFT JOIN sections sec ON s2.section_id = sec.id
+    WHERE a.student_id = ? AND a.attendance_date = ?
+    ORDER BY a.id DESC
     LIMIT 1
 ";
 $stmt_clock = $conn->prepare($clocked_in_query);
@@ -202,21 +214,8 @@ $stmt_clock->execute();
 $clock_result = $stmt_clock->get_result();
 $attendance_record = $clock_result->fetch_assoc();
 
-// Determine if student is currently clocked in
-$is_clocked_in = false;
-if ($attendance_record) {
-    $morning_in = $attendance_record['morning_time_in'];
-    $morning_out = $attendance_record['morning_time_out'];
-    $afternoon_in = $attendance_record['afternoon_time_in'];
-    $afternoon_out = $attendance_record['afternoon_time_out'];
-    
-    // Student is clocked in if:
-    // - Morning clock in exists but no clock out, OR
-    // - Afternoon clock in exists but no afternoon clock out
-    if (($morning_in && !$morning_out) || ($afternoon_in && !$afternoon_out)) {
-        $is_clocked_in = true;
-    }
-}
+$open_session = $attendance_record ? attendance_workflow_mark_incomplete_if_needed($conn, $attendance_record) : ['clocked_in_now' => false, 'is_open' => false, 'elapsed_preview_seconds' => 0, 'cutoff_time' => null];
+$is_clocked_in = !empty($open_session['clocked_in_now']);
 
 // Keep student status aligned with actual clock state (clocked-in => active, else inactive).
 $live_clock_status = $is_clocked_in ? 1 : 0;
@@ -231,12 +230,8 @@ if ((int)($student['status'] ?? -1) !== $live_clock_status) {
 }
 
 $open_clock_in_time = null;
-if ($attendance_record) {
-    if (!empty($attendance_record['afternoon_time_in']) && empty($attendance_record['afternoon_time_out'])) {
-        $open_clock_in_time = $attendance_record['afternoon_time_in'];
-    } elseif (!empty($attendance_record['morning_time_in']) && empty($attendance_record['morning_time_out'])) {
-        $open_clock_in_time = $attendance_record['morning_time_in'];
-    }
+if ($attendance_record && !empty($open_session['in_time'])) {
+    $open_clock_in_time = (string)$open_session['in_time'];
 }
 
 // Calculate hours remaining and completion percentage based on real attendance totals
@@ -256,15 +251,10 @@ if ($hours_rendered <= 0 && isset($student['rendered_hours'])) {
     $hours_rendered = (float)$student['rendered_hours'];
 }
 
-$open_session_seconds = 0;
-if ($is_clocked_in && !empty($open_clock_in_time)) {
-    $open_ts = strtotime($today . ' ' . $open_clock_in_time);
-    if ($open_ts !== false) {
-        $open_session_seconds = max(0, time() - $open_ts);
-    }
-}
-
-$live_rendered_hours = $hours_rendered + ($open_session_seconds / 3600);
+$open_session_seconds = ($attendance_record && !empty($open_session['is_open']))
+    ? (int)($open_session['elapsed_preview_seconds'] ?? 0)
+    : 0;
+$live_rendered_hours = $hours_rendered;
 
 $internal_total_hours = isset($student['internal_total_hours']) ? intval($student['internal_total_hours']) : 600;
 if ($internal_total_hours < 0) {
@@ -294,32 +284,11 @@ $hours_remaining_without_open = ($assignment_track === 'external')
     ? max(0, $external_total_hours - $hours_rendered)
     : max(0, $internal_total_hours - $hours_rendered);
 
-$remaining_seconds = (int)max(0, round($hours_remaining * 3600));
+$remaining_seconds = (int)max(0, round($hours_remaining_without_open * 3600));
 $remaining_seconds_without_open = (int)max(0, round($hours_remaining_without_open * 3600));
+$preview_remaining_seconds = (int)max(0, $remaining_seconds_without_open - $open_session_seconds);
 $internal_remaining_display = max(0, (int)floor($internal_remaining_hours_live));
 $external_remaining_display = max(0, (int)floor($external_remaining_hours_live));
-
-// Keep stored remaining hours aligned with computed remaining to avoid future timer resets.
-$remaining_for_storage = max(0, (int)floor($hours_remaining));
-if ($assignment_track === 'external') {
-    if ($stored_external_remaining === null || $stored_external_remaining !== $remaining_for_storage) {
-        $upd_remaining = $conn->prepare("UPDATE students SET external_total_hours_remaining = ?, updated_at = NOW() WHERE id = ?");
-        if ($upd_remaining) {
-            $upd_remaining->bind_param("ii", $remaining_for_storage, $student_id);
-            $upd_remaining->execute();
-            $upd_remaining->close();
-        }
-    }
-} else {
-    if ($stored_internal_remaining === null || $stored_internal_remaining !== $remaining_for_storage) {
-        $upd_remaining = $conn->prepare("UPDATE students SET internal_total_hours_remaining = ?, updated_at = NOW() WHERE id = ?");
-        if ($upd_remaining) {
-            $upd_remaining->bind_param("ii", $remaining_for_storage, $student_id);
-            $upd_remaining->execute();
-            $upd_remaining->close();
-        }
-    }
-}
 $internal_completed_hours = max(0, $internal_total_hours - $internal_remaining_display);
 $completion_percentage = $internal_total_hours > 0
     ? ($internal_completed_hours / $internal_total_hours) * 100
@@ -527,13 +496,21 @@ echo htmlspecialchars($student['email']); ?></a>
                                         <div class="stat-card hours-remaining-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
                                             <h6 class="fs-15 fw-bolder mb-0" id="hoursRemaining">
                                                 <?php
-$hours = intdiv($remaining_seconds, 3600);
-                                                $mins = intdiv(($remaining_seconds % 3600), 60);
-                                                $secs = $remaining_seconds % 60;
+                                                $hours = intdiv($preview_remaining_seconds, 3600);
+                                                $mins = intdiv(($preview_remaining_seconds % 3600), 60);
+                                                $secs = $preview_remaining_seconds % 60;
                                                 echo $hours . 'h:' . str_pad((string)$mins, 2, '0', STR_PAD_LEFT) . 'm:' . str_pad((string)$secs, 2, '0', STR_PAD_LEFT) . 's';
                                                 ?>
                                             </h6>
-                                            <p class="fs-12 text-muted mb-0">Hours Remaining</p>
+                                            <p class="fs-12 text-muted mb-0">
+                                                <?php if (!empty($open_session['requires_correction'])): ?>
+                                                    Frozen until manual clock-out is approved
+                                                <?php elseif ($is_clocked_in): ?>
+                                                    Live preview only until clock-out
+                                                <?php else: ?>
+                                                    Hours Remaining
+                                                <?php endif; ?>
+                                            </p>
                                         </div>
                                         <div class="stat-card completion-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
                                             <h6 class="fs-15 fw-bolder mb-0" id="completionValue"><?php
@@ -963,11 +940,12 @@ echo $is_evaluation_unlocked ? 'Waiting for supervisor submission' : 'Waiting fo
             <div id="students-view-runtime-config"
          data-internal-total-hours="<?php echo (int)$internal_total_hours; ?>"
          data-student-id="<?php echo (int)$student['id']; ?>"
-         data-remaining-seconds="<?php echo (int)$remaining_seconds; ?>"
+         data-remaining-seconds="<?php echo (int)$preview_remaining_seconds; ?>"
          data-remaining-seconds-without-open="<?php echo (int)$remaining_seconds_without_open; ?>"
          data-is-clocked-in="<?php echo $is_clocked_in ? '1' : '0'; ?>"
-         data-open-clock-in-raw="<?php echo htmlspecialchars((string)($open_clock_in_time ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
-         hidden></div>
+          data-open-clock-in-raw="<?php echo htmlspecialchars((string)($open_clock_in_time ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+         data-session-cutoff-raw="<?php echo htmlspecialchars((string)($open_session['cutoff_time'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+          hidden></div>
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>

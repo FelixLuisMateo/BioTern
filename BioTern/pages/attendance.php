@@ -3,6 +3,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/attendance_bonus_rules.php';
+require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
@@ -145,7 +146,7 @@ $machineConfig = attendance_load_machine_config();
 $stats_query = "
     SELECT 
         SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_count,
-        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+        SUM(CASE WHEN status IN ('pending', 'pending_correction', 'incomplete') THEN 1 ELSE 0 END) as pending_count,
         SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_count,
         COUNT(*) as total_count
     FROM attendances
@@ -162,7 +163,7 @@ if (!empty($attendance_stats_where)) {
     $stats_query = "
         SELECT 
             SUM(CASE WHEN a.status = 'approved' THEN 1 ELSE 0 END) as approved_count,
-            SUM(CASE WHEN a.status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+            SUM(CASE WHEN a.status IN ('pending', 'pending_correction', 'incomplete') THEN 1 ELSE 0 END) as pending_count,
             SUM(CASE WHEN a.status = 'rejected' THEN 1 ELSE 0 END) as rejected_count,
             COUNT(*) as total_count
         FROM attendances a
@@ -188,7 +189,7 @@ if (!in_array($filter_source, $valid_source_filters, true)) {
     $filter_source = 'all';
 }
 $filter_status = strtolower(trim((string)($_GET['status'] ?? 'all')));
-$valid_status_filters = ['all', 'early', 'present', 'late', 'absent', 'approved'];
+$valid_status_filters = ['all', 'early', 'present', 'late', 'absent', 'approved', 'pending_correction'];
 if (!in_array($filter_status, $valid_status_filters, true)) {
     $filter_status = 'all';
 }
@@ -585,8 +586,19 @@ if (count($attendances) > 1) {
     $attendances = array_values($attendance_by_student_date);
 }
 
+foreach ($attendances as &$attendance) {
+    if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
+        continue;
+    }
+    attendance_workflow_mark_incomplete_if_needed($conn, $attendance);
+}
+unset($attendance);
+
 if ($has_active_status_filter) {
     $attendances = array_values(array_filter($attendances, function (array $attendance) use ($filter_status): bool {
+        if ($filter_status === 'pending_correction') {
+            return strtolower(trim((string)($attendance['status'] ?? ''))) === 'pending_correction';
+        }
         return attendance_list_status_key($attendance) === $filter_status;
     }));
 }
@@ -793,6 +805,10 @@ function getStatusBadge($status) {
             return '<span class="badge bg-soft-success text-success">Approved</span>';
         case 'rejected':
             return '<span class="badge bg-soft-danger text-danger">Rejected</span>';
+        case 'pending_correction':
+            return '<span class="badge bg-soft-warning text-warning">Needs Correction</span>';
+        case 'incomplete':
+            return '<span class="badge bg-soft-warning text-warning">Incomplete</span>';
         case 'pending':
             return '<span class="badge bg-soft-warning text-warning">Pending</span>';
         default:
@@ -1650,6 +1666,7 @@ echo htmlspecialchars((string)$filter_date, ENT_QUOTES, 'UTF-8'); ?>">
                                 <option value="late" <?php echo $filter_status === 'late' ? 'selected' : ''; ?>>Late</option>
                                 <option value="absent" <?php echo $filter_status === 'absent' ? 'selected' : ''; ?>>Absent</option>
                                 <option value="approved" <?php echo $filter_status === 'approved' ? 'selected' : ''; ?>>Approved</option>
+                                <option value="pending_correction" <?php echo $filter_status === 'pending_correction' ? 'selected' : ''; ?>>Needs Correction</option>
                             </select>
                         </div>
                         <div class="col-sm-2">

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/ops_helpers.php';
+require_once __DIR__ . '/attendance_workflow.php';
 
 function eval_table_has_column(mysqli $conn, string $table, string $column): bool
 {
@@ -256,10 +257,14 @@ function evaluate_and_finalize_student(mysqli $conn, int $student_id, int $actor
     if (table_exists($conn, 'attendances')) {
         $today = date('Y-m-d');
         $open_stmt = $conn->prepare(
-            "SELECT morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out
-             FROM attendances
-             WHERE student_id = ? AND attendance_date = ?
-             ORDER BY id DESC LIMIT 1"
+            "SELECT a.id, a.student_id, a.attendance_date, a.status, a.remarks,
+                    a.morning_time_in, a.morning_time_out, a.afternoon_time_in, a.afternoon_time_out,
+                    sec.attendance_session, sec.schedule_time_in, sec.schedule_time_out, sec.late_after_time, sec.weekly_schedule_json
+             FROM attendances a
+             LEFT JOIN students s ON a.student_id = s.id
+             LEFT JOIN sections sec ON s.section_id = sec.id
+             WHERE a.student_id = ? AND a.attendance_date = ?
+             ORDER BY a.id DESC LIMIT 1"
         );
         if ($open_stmt) {
             $open_stmt->bind_param('is', $student_id, $today);
@@ -267,8 +272,8 @@ function evaluate_and_finalize_student(mysqli $conn, int $student_id, int $actor
             $row = $open_stmt->get_result()->fetch_assoc();
             $open_stmt->close();
             if ($row) {
-                $open_session = (!empty($row['morning_time_in']) && empty($row['morning_time_out']))
-                    || (!empty($row['afternoon_time_in']) && empty($row['afternoon_time_out']));
+                $openInfo = attendance_workflow_mark_incomplete_if_needed($conn, $row);
+                $open_session = !empty($openInfo['clocked_in_now']);
             }
         }
     }

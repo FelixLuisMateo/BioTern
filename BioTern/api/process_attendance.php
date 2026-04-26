@@ -3,6 +3,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/tools/biometric_db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
+require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -16,6 +17,8 @@ try {
     http_response_code(500);
     die(json_encode(['success' => false, 'message' => 'Database Error: ' . $e->getMessage()]));
 }
+
+attendance_workflow_ensure_correction_schema($conn);
 
 $current_user_id = get_current_user_id_or_zero();
 $current_role = get_current_user_role();
@@ -330,9 +333,7 @@ function requestCorrection($conn, $ids, $remarks, $current_user_id, $current_rol
     if ($remarks === '') {
         return ['success' => false, 'message' => 'Correction reason is required', 'updated_count' => 0];
     }
-    if (!table_exists($conn, 'attendance_correction_requests')) {
-        return ['success' => false, 'message' => 'Correction workflow table is missing. Run db_updates_operations.sql first.', 'updated_count' => 0];
-    }
+    attendance_workflow_ensure_correction_schema($conn);
 
     $count = 0;
     foreach ($ids as $id) {
@@ -378,19 +379,46 @@ function reviewCorrection($conn, $ids, $decision, $remarks, $current_user_id) {
     if (!in_array($decision, ['approved', 'rejected'], true)) {
         return ['success' => false, 'message' => 'Decision must be approved or rejected.', 'updated_count' => 0];
     }
-    if (!table_exists($conn, 'attendance_correction_requests')) {
-        return ['success' => false, 'message' => 'Correction workflow table is missing. Run db_updates_operations.sql first.', 'updated_count' => 0];
-    }
+    attendance_workflow_ensure_correction_schema($conn);
 
     $count = 0;
+    $errors = [];
     foreach ($ids as $id) {
         $request_id = (int)$id;
+        $requestStmt = $conn->prepare("
+            SELECT *
+            FROM attendance_correction_requests
+            WHERE id = ? AND status = 'pending'
+            LIMIT 1
+        ");
+        if (!$requestStmt) {
+            $errors[] = "Request #{$request_id}: failed to load request.";
+            continue;
+        }
+        $requestStmt->bind_param('i', $request_id);
+        $requestStmt->execute();
+        $request = $requestStmt->get_result()->fetch_assoc() ?: null;
+        $requestStmt->close();
+        if (!$request) {
+            continue;
+        }
+
+        if ($decision === 'approved') {
+            try {
+                attendance_workflow_apply_approved_correction($conn, $request, $current_user_id, $remarks);
+            } catch (Throwable $e) {
+                $errors[] = "Request #{$request_id}: " . $e->getMessage();
+                continue;
+            }
+        }
+
         $stmt = $conn->prepare("
             UPDATE attendance_correction_requests
             SET status = ?, reviewed_by = ?, reviewed_at = NOW(), review_remarks = ?, updated_at = NOW()
             WHERE id = ? AND status = 'pending'
         ");
         if (!$stmt) {
+            $errors[] = "Request #{$request_id}: failed to store review.";
             continue;
         }
         $stmt->bind_param('sisi', $decision, $current_user_id, $remarks, $request_id);
@@ -415,7 +443,9 @@ function reviewCorrection($conn, $ids, $decision, $remarks, $current_user_id) {
 
     return [
         'success' => $count > 0,
-        'message' => $count > 0 ? "Reviewed $count correction request(s)." : 'No correction request was updated.',
+        'message' => $count > 0
+            ? ("Reviewed $count correction request(s)." . ($errors !== [] ? (' Issues: ' . implode(' ', $errors)) : ''))
+            : ($errors !== [] ? implode(' ', $errors) : 'No correction request was updated.'),
         'updated_count' => $count
     ];
 }

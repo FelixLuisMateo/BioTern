@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/tools/biometric_db.php';
+require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 
 header('Content-Type: application/json');
 
@@ -26,12 +27,25 @@ $today = date('Y-m-d');
 // Check if student is currently clocked in
 $query = $conn->prepare("
     SELECT 
-        morning_time_in,
-        morning_time_out,
-        afternoon_time_in,
-        afternoon_time_out
+        a.id,
+        a.student_id,
+        a.attendance_date,
+        a.status,
+        a.remarks,
+        a.morning_time_in,
+        a.morning_time_out,
+        a.afternoon_time_in,
+        a.afternoon_time_out,
+        sec.attendance_session,
+        sec.schedule_time_in,
+        sec.schedule_time_out,
+        sec.late_after_time,
+        sec.weekly_schedule_json
     FROM attendances 
-    WHERE student_id = ? AND attendance_date = ?
+    a
+    LEFT JOIN students s ON a.student_id = s.id
+    LEFT JOIN sections sec ON s.section_id = sec.id
+    WHERE a.student_id = ? AND a.attendance_date = ?
     LIMIT 1
 ");
 
@@ -43,17 +57,8 @@ $record = $result->fetch_assoc();
 $is_clocked_in = false;
 
 if ($record) {
-    $morning_in = $record['morning_time_in'];
-    $morning_out = $record['morning_time_out'];
-    $afternoon_in = $record['afternoon_time_in'];
-    $afternoon_out = $record['afternoon_time_out'];
-    
-    // Student is clocked in if:
-    // - Morning clock in exists but no clock out, OR
-    // - Afternoon clock in exists but no afternoon clock out
-    if (($morning_in && !$morning_out) || ($afternoon_in && !$afternoon_out)) {
-        $is_clocked_in = true;
-    }
+    $openInfo = attendance_workflow_mark_incomplete_if_needed($conn, $record);
+    $is_clocked_in = !empty($openInfo['clocked_in_now']);
 }
 
 echo json_encode(['is_clocked_in' => $is_clocked_in]);
