@@ -167,7 +167,7 @@ include 'includes/header.php';
                     <i class="feather-arrow-left me-2"></i>
                     <span>Back to Profile</span>
                 </a>
-                <a href="document_dtr.php?student_id=<?php echo intval($student_id); ?>&start_date=<?php echo h($start_date_input); ?>&end_date=<?php echo h($end_date_input); ?>" target="_blank" rel="noopener" class="btn btn-primary">
+                <a href="document_dtr.php?track=internal&student_id=<?php echo intval($student_id); ?>&start_date=<?php echo h($start_date_input); ?>&end_date=<?php echo h($end_date_input); ?>" target="_blank" rel="noopener" class="btn btn-primary">
                     <i class="feather-printer me-2"></i>
                     <span>Print Internal DTR</span>
                 </a>

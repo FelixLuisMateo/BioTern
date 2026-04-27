@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
 require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/company_profiles.php';
+require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
@@ -276,8 +277,7 @@ if ($attendance_record && !empty($open_session['in_time'])) {
     $open_clock_in_time = (string)$open_session['in_time'];
 }
 
-// Calculate hours remaining and completion percentage based on real attendance totals
-// so timer stays consistent and does not jump back to preset values.
+// Calculate hours per track so internal/external totals stay isolated after track changes.
 $sum_stmt = $conn->prepare("
     SELECT COALESCE(SUM(total_hours), 0) AS rendered
     FROM attendances
@@ -288,17 +288,31 @@ $sum_stmt->execute();
 $sum_row = $sum_stmt->get_result()->fetch_assoc();
 $sum_stmt->close();
 
-$hours_rendered = isset($sum_row['rendered']) ? (float)$sum_row['rendered'] : 0.0;
-if ($hours_rendered <= 0 && isset($student['rendered_hours'])) {
-    $hours_rendered = (float)$student['rendered_hours'];
+external_attendance_ensure_schema($conn);
+$external_sum_stmt = $conn->prepare("
+    SELECT COALESCE(SUM(total_hours), 0) AS rendered
+    FROM external_attendance
+    WHERE student_id = ? AND status <> 'rejected'
+");
+$external_hours_rendered = 0.0;
+if ($external_sum_stmt) {
+    $external_sum_stmt->bind_param("i", $student_id);
+    $external_sum_stmt->execute();
+    $external_sum_row = $external_sum_stmt->get_result()->fetch_assoc();
+    $external_hours_rendered = isset($external_sum_row['rendered']) ? (float)$external_sum_row['rendered'] : 0.0;
+    $external_sum_stmt->close();
+}
+
+$internal_hours_rendered = isset($sum_row['rendered']) ? (float)$sum_row['rendered'] : 0.0;
+if ($internal_hours_rendered <= 0 && isset($student['rendered_hours']) && strtolower(trim((string)($student['assignment_track'] ?? 'internal'))) !== 'external') {
+    $internal_hours_rendered = (float)$student['rendered_hours'];
 }
 
 $open_session_seconds = ($attendance_record && !empty($open_session['is_open']))
     ? (int)($open_session['elapsed_preview_seconds'] ?? 0)
     : 0;
-$live_rendered_hours = $hours_rendered;
 
-$internal_total_hours = isset($student['internal_total_hours']) ? intval($student['internal_total_hours']) : 600;
+$internal_total_hours = isset($student['internal_total_hours']) ? intval($student['internal_total_hours']) : 140;
 if ($internal_total_hours < 0) {
     $internal_total_hours = 0;
 }
@@ -308,7 +322,7 @@ if ($external_total_hours < 0) {
 }
 if ($internal_total_hours <= 0) {
     // Prevent division by zero and keep dashboard usable when hours are not configured yet.
-    $internal_total_hours = 600;
+    $internal_total_hours = 140;
 }
 
 $assignment_track = strtolower((string)($student['assignment_track'] ?? 'internal'));
@@ -319,8 +333,8 @@ $stored_external_remaining = isset($student['external_total_hours_remaining']) &
     ? (int)$student['external_total_hours_remaining']
     : null;
 
-$internal_remaining_hours_live = max(0, $internal_total_hours - $live_rendered_hours);
-$external_remaining_hours_live = max(0, $external_total_hours - $live_rendered_hours);
+$internal_remaining_hours_live = max(0, $internal_total_hours - $internal_hours_rendered);
+$external_remaining_hours_live = max(0, $external_total_hours - $external_hours_rendered);
 $internal_remaining_hours_effective = $stored_internal_remaining !== null
     ? max(0, $stored_internal_remaining)
     : $internal_remaining_hours_live;
@@ -331,6 +345,7 @@ $hours_remaining = ($assignment_track === 'external') ? $external_remaining_hour
 $hours_remaining_without_open = ($assignment_track === 'external')
     ? $external_remaining_hours_effective
     : $internal_remaining_hours_effective;
+$hours_rendered = ($assignment_track === 'external') ? $external_hours_rendered : $internal_hours_rendered;
 
 $remaining_seconds = (int)max(0, round($hours_remaining_without_open * 3600));
 $remaining_seconds_without_open = (int)max(0, round($hours_remaining_without_open * 3600));
@@ -338,8 +353,11 @@ $preview_remaining_seconds = (int)max(0, $remaining_seconds_without_open - $open
 $internal_remaining_display = max(0, (int)floor($internal_remaining_hours_effective));
 $external_remaining_display = max(0, (int)floor($external_remaining_hours_effective));
 $internal_completed_hours = max(0, $internal_total_hours - $internal_remaining_display);
-$completion_percentage = $internal_total_hours > 0
-    ? ($internal_completed_hours / $internal_total_hours) * 100
+$external_completed_hours = max(0, $external_total_hours - $external_remaining_display);
+$active_completed_hours = ($assignment_track === 'external') ? $external_completed_hours : $internal_completed_hours;
+$active_total_hours = ($assignment_track === 'external') ? $external_total_hours : $internal_total_hours;
+$completion_percentage = $active_total_hours > 0
+    ? ($active_completed_hours / $active_total_hours) * 100
     : 0;
 if ($completion_percentage > 100) {
     $completion_percentage = 100;
@@ -480,20 +498,18 @@ include 'includes/header.php';
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
-                    <div class="page-header-right-items">
-                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                            <a href="javascript:void(0);" class="btn btn-icon btn-light-brand successAlertMessage">
-                                <i class="feather-star"></i>
-                            </a>
-                            <a href="javascript:void(0);" class="btn btn-icon btn-light-brand">
-                                <i class="feather-eye me-2"></i>
-                                <span>Follow</span>
-                            </a>
-                            <a href="students.php" class="btn btn-outline-secondary">
-                                <i class="feather-arrow-left me-2"></i>
-                                <span>Back to List</span>
-                            </a>
-                        </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="javascript:void(0);" class="btn btn-icon btn-light-brand successAlertMessage">
+                            <i class="feather-star"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="btn btn-icon btn-light-brand">
+                            <i class="feather-eye me-2"></i>
+                            <span>Follow</span>
+                        </a>
+                        <a href="students.php" class="btn btn-outline-secondary">
+                            <i class="feather-arrow-left me-2"></i>
+                            <span>Back to List</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -866,8 +882,12 @@ echo formatDate($student['biometric_registered_at']); ?></div>
                                     <div class="recent-activity app-students-view-recent-activity">
                                         <div class="mb-4 pb-2 d-flex justify-content-between">
                                             <h5 class="fw-bold">Recent Attendance Records:</h5>
-                                            <a href="students-internal-dtr.php?id=<?php
+                                            <div class="d-flex gap-2">
+                                                <a href="students-internal-dtr.php?id=<?php
 echo intval($student['id']); ?>" class="btn btn-sm btn-light-brand">Open Internal DTR</a>
+                                                <a href="students-external-dtr.php?id=<?php
+echo intval($student['id']); ?>" class="btn btn-sm btn-outline-secondary">Open External DTR</a>
+                                            </div>
                                         </div>
                                         <ul class="list-unstyled activity-feed">
                                             <?php

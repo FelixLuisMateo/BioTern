@@ -154,6 +154,15 @@ include __DIR__ . '/../includes/header.php';
             data-prefill-company="<?php echo htmlspecialchars($prefill_company_key, ENT_QUOTES, 'UTF-8'); ?>"
             data-prefill-recipient-title="<?php echo htmlspecialchars($prefill_recipient_title, ENT_QUOTES, 'UTF-8'); ?>"
         >
+            <style>
+                .endorsement-fill-line {
+                    display: inline-block;
+                    min-width: 180px;
+                    padding: 0 4px 1px;
+                    border-bottom: 1px solid currentColor;
+                    line-height: 1.2;
+                }
+            </style>
             <div class="main-content">
                 <div class="application-builder-grid">
                     <section class="application-builder-sidebar">
@@ -261,7 +270,7 @@ include __DIR__ . '/../includes/header.php';
                         <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.55in 0.9in 0.85in 0.9in; background:#fff;">
                             <div class="endorsement-letter-template">
                                 <div class="preview-header">
-                                    <img class="crest-preview" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" style="position:absolute; top:12px; left:12px; width:56px; height:56px; object-fit:contain;" onerror="this.style.display='none'">
+                                    <img class="crest-preview" src="assets/images/ccstlogo.png" alt="crest" style="position:absolute; top:12px; left:12px; width:56px; height:56px; object-fit:contain;" onerror="this.style.display='none'">
                                     <div class="preview-header-copy">
                                         <p class="school-name">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</p>
                                         <div class="school-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
@@ -270,10 +279,10 @@ include __DIR__ . '/../includes/header.php';
                                 </div>
                                 <div class="preview-content" id="preview_content">
                                     <h5>ENDORSEMENT LETTER</h5>
-                                    <p><strong id="pv_recipient">__________________________</strong><br>
-                                    <span id="pv_position">__________________________</span><br>
-                                    <span id="pv_company">__________________________</span><br>
-                                    <span id="pv_company_address">__________________________</span></p>
+                                    <p><strong id="pv_recipient" class="endorsement-fill-line">__________________________</strong><br>
+                                    <span id="pv_position" class="endorsement-fill-line">__________________________</span><br>
+                                    <span id="pv_company" class="endorsement-fill-line">__________________________</span><br>
+                                    <span id="pv_company_address" class="endorsement-fill-line">__________________________</span></p>
 
                                     <p><span id="pv_salutation">Dear Ma'am,</span></p>
 
@@ -296,7 +305,7 @@ include __DIR__ . '/../includes/header.php';
                                         <strong>ICT DEPARTMENT HEAD</strong><br>
                                         <strong>Clark College of Science and Technology</strong></p>
                                         <div class="ross-signatory">
-                                            <img class="ross-signature" src="pages/Ross-Signature.png" alt="Ross signature" onerror="this.style.display='none'">
+                                            <img class="ross-signature" src="../pages/Ross-Signature.png" alt="Ross signature" onerror="this.style.display='none'">
                                             <p class="ross-signatory-text"><strong>MR. ROSS CARVEL C. RAMIREZ</strong><br>
                                             <strong>HEAD OF ACADEMIC AFFAIRS</strong><br>
                                             <strong>Clark College of Science and Technology</strong></p>

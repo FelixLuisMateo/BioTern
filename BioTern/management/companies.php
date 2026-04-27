@@ -600,6 +600,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'unlink_company_student') {
+    $selectedCompanyKeyPost = biotern_company_profile_normalized_name((string)($_POST['selected_company_key'] ?? ''));
+    $selectedStudentId = (int)($_POST['student_id'] ?? 0);
+    $selectedInternshipId = (int)($_POST['internship_id'] ?? 0);
+    $returnSearch = trim((string)($_POST['return_q'] ?? ''));
+    $returnSort = strtolower(trim((string)($_POST['return_sort'] ?? 'updated')));
+    $returnSchoolYear = trim((string)($_POST['return_school_year'] ?? ''));
+    $returnSemester = trim((string)($_POST['return_semester'] ?? ''));
+    $returnLocation = trim((string)($_POST['return_location'] ?? ''));
+    $returnCourseId = (int)($_POST['return_course_id'] ?? 0);
+    $returnSectionId = (int)($_POST['return_section_id'] ?? 0);
+
+    $unlinkOk = false;
+    if ($selectedInternshipId > 0) {
+        $unlinkStmt = $conn->prepare("
+            UPDATE internships
+            SET company_name = '', company_address = '', updated_at = NOW()
+            WHERE id = ? AND deleted_at IS NULL
+            LIMIT 1
+        ");
+        if ($unlinkStmt) {
+            $unlinkStmt->bind_param('i', $selectedInternshipId);
+            $unlinkOk = $unlinkStmt->execute();
+            $unlinkStmt->close();
+        }
+    } elseif ($selectedStudentId > 0) {
+        $unlinkStmt = $conn->prepare("
+            UPDATE internships
+            SET company_name = '', company_address = '', updated_at = NOW()
+            WHERE student_id = ? AND deleted_at IS NULL
+            ORDER BY updated_at DESC, id DESC
+            LIMIT 1
+        ");
+        if ($unlinkStmt) {
+            $unlinkStmt->bind_param('i', $selectedStudentId);
+            $unlinkOk = $unlinkStmt->execute();
+            $unlinkStmt->close();
+        }
+    }
+
+    $_SESSION['companies_flash'] = [
+        'type' => $unlinkOk ? 'success' : 'danger',
+        'message' => $unlinkOk
+            ? 'Student removed from this company successfully.'
+            : 'Unable to remove the student from this company right now.',
+    ];
+
+    $redirectParams = [
+        'company' => $selectedCompanyKeyPost,
+        'sort' => in_array($returnSort, ['updated', 'name', 'interns'], true) ? $returnSort : 'updated',
+    ];
+    if ($returnSearch !== '') {
+        $redirectParams['q'] = $returnSearch;
+    }
+    if ($returnSchoolYear !== '') {
+        $redirectParams['school_year'] = $returnSchoolYear;
+    }
+    if ($returnSemester !== '') {
+        $redirectParams['semester'] = $returnSemester;
+    }
+    if ($returnLocation !== '') {
+        $redirectParams['location'] = $returnLocation;
+    }
+    if ($returnCourseId > 0) {
+        $redirectParams['course_id'] = $returnCourseId;
+    }
+    if ($returnSectionId > 0) {
+        $redirectParams['section_id'] = $returnSectionId;
+    }
+
+    header('Location: companies.php?' . http_build_query($redirectParams));
+    exit;
+}
+
 $search = trim((string)($_GET['q'] ?? ''));
 $sort = strtolower(trim((string)($_GET['sort'] ?? 'updated')));
 $selectedCompanyParam = trim((string)($_GET['company'] ?? ''));
@@ -689,6 +763,10 @@ if ($internshipsTableReady) {
             s.course_id,
             s.section_id,
             COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'internal') AS assignment_track,
+            COALESCE(s.internal_total_hours, 0) AS internal_total_hours,
+            COALESCE(s.internal_total_hours_remaining, 0) AS internal_total_hours_remaining,
+            COALESCE(s.external_total_hours, 0) AS external_total_hours,
+            COALESCE(s.external_total_hours_remaining, 0) AS external_total_hours_remaining,
             COALESCE(NULLIF(TRIM(s.school_year), ''), NULLIF(TRIM(i.school_year), ''), '') AS school_year,
             COALESCE(NULLIF(TRIM(s.semester), ''), NULLIF(TRIM(i.semester), ''), '') AS semester,
             COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
@@ -739,7 +817,28 @@ if ($internshipsTableReady) {
             ])));
             $row['section_label'] = $sectionLabel;
             $row['profile_url'] = resolve_profile_image_url((string)($row['profile_picture'] ?? ''), (int)($row['user_id'] ?? 0));
-            $row['progress_pct'] = company_progress_pct((int)($row['rendered_hours'] ?? 0), (int)($row['required_hours'] ?? 0));
+            $track = strtolower(trim((string)($row['assignment_track'] ?? 'internal')));
+            $requiredHours = $track === 'external'
+                ? (int)($row['external_total_hours'] ?? 0)
+                : (int)($row['internal_total_hours'] ?? 0);
+            if ($requiredHours <= 0) {
+                $requiredHours = (int)($row['required_hours'] ?? 0);
+            }
+            if ($requiredHours <= 0) {
+                $requiredHours = $track === 'external' ? 250 : 140;
+            }
+
+            $remainingHours = $track === 'external'
+                ? (int)($row['external_total_hours_remaining'] ?? 0)
+                : (int)($row['internal_total_hours_remaining'] ?? 0);
+            $renderedHours = max(0, $requiredHours - max(0, $remainingHours));
+            if ($renderedHours <= 0 && (int)($row['rendered_hours'] ?? 0) > 0 && strtolower(trim((string)($row['internship_type'] ?? $track))) === $track) {
+                $renderedHours = (int)($row['rendered_hours'] ?? 0);
+            }
+
+            $row['required_hours'] = $requiredHours;
+            $row['rendered_hours'] = $renderedHours;
+            $row['progress_pct'] = company_progress_pct($renderedHours, $requiredHours);
 
             $companyKey = biotern_company_profile_normalized_name((string)($row['company_name'] ?? ''));
             if ($companyKey !== '') {
@@ -1372,6 +1471,20 @@ include 'includes/header.php';
                                                                 <div class="companies-intern-actions">
                                                                     <a href="students-view.php?id=<?php echo (int)($intern['student_record_id'] ?? 0); ?>" class="btn btn-sm btn-outline-primary">Student</a>
                                                                     <a href="ojt-view.php?id=<?php echo (int)($intern['student_record_id'] ?? 0); ?>" class="btn btn-sm btn-outline-secondary">OJT</a>
+                                                                    <form method="post" action="companies.php" class="companies-inline-action-form">
+                                                                        <input type="hidden" name="action" value="unlink_company_student">
+                                                                        <input type="hidden" name="selected_company_key" value="<?php echo h((string)$selectedCompanyKey); ?>">
+                                                                        <input type="hidden" name="student_id" value="<?php echo (int)($intern['student_record_id'] ?? 0); ?>">
+                                                                        <input type="hidden" name="internship_id" value="<?php echo (int)($intern['internship_id'] ?? 0); ?>">
+                                                                        <input type="hidden" name="return_q" value="<?php echo h($search); ?>">
+                                                                        <input type="hidden" name="return_sort" value="<?php echo h($sort); ?>">
+                                                                        <input type="hidden" name="return_school_year" value="<?php echo h($filterSchoolYear); ?>">
+                                                                        <input type="hidden" name="return_semester" value="<?php echo h($filterSemester); ?>">
+                                                                        <input type="hidden" name="return_location" value="<?php echo h($filterLocation); ?>">
+                                                                        <input type="hidden" name="return_course_id" value="<?php echo (int)$filterCourseId; ?>">
+                                                                        <input type="hidden" name="return_section_id" value="<?php echo (int)$filterSectionId; ?>">
+                                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                                                    </form>
                                                                 </div>
                                                             </div>
                                                         </article>

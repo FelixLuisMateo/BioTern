@@ -282,6 +282,11 @@ body.companies-page .companies-profile-chip-row {
     gap: 0.75rem;
 }
 
+body.companies-page .companies-inline-action-form {
+    margin: 0;
+    display: inline-flex;
+}
+
 body.companies-page .companies-list-item-main,
 body.companies-page .companies-detail-primary,
 body.companies-page .companies-profile-hero {
