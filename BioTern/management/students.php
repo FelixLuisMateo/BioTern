@@ -832,6 +832,15 @@ include 'includes/header.php';
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto app-students-header-actions">
+                    <div class="app-table-header-search app-students-table-search">
+                        <label class="visually-hidden" for="studentsHeaderSearchInput">Search student list</label>
+                        <i class="feather-search" aria-hidden="true"></i>
+                        <input type="search" id="studentsHeaderSearchInput" class="form-control" placeholder="Search students">
+                    </div>
+                    <a href="students.php" class="btn btn-sm btn-outline-secondary app-students-reset-btn">
+                        <i class="feather-rotate-ccw me-1"></i>
+                        <span>Reset</span>
+                    </a>
                     <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="studentsActionsMenu">
                         <i class="feather-grid me-1"></i>
                         <span>Actions</span>
@@ -845,10 +854,6 @@ include 'includes/header.php';
                             <button type="button" class="btn btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
                                 <i class="feather-bar-chart me-2"></i>
                                 <span>Statistics</span>
-                            </button>
-                            <button type="button" class="btn filter-toggle-btn" data-bs-toggle="collapse" data-bs-target="#studentsFilterCollapse" aria-expanded="false" aria-controls="studentsFilterCollapse">
-                                <i class="feather-filter me-2"></i>
-                                <span>Filters</span>
                             </button>
                             <div class="dropdown">
                                 <a class="btn btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside" role="button" aria-label="Export options">
@@ -908,22 +913,10 @@ include 'includes/header.php';
             <?php endif; ?>
 
             <!-- Filters -->
-            <div class="collapse" id="studentsFilterCollapse">
+            <div>
                 <div class="row mb-3 px-3">
                     <div class="col-12">
                         <div class="filter-panel">
-                            <div class="filter-panel-head">
-                                <div>
-                                    <div class="filter-panel-label">
-                                        <i class="feather-sliders"></i>
-                                        <span>Filter Students</span>
-                                    </div>
-                                    <p class="filter-panel-sub">Narrow down results by school year, semester, date, course, section, supervisor, and coordinator.</p>
-                                </div>
-                                <div class="filter-panel-head-actions">
-                                    <a href="students.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
-                                </div>
-                            </div>
                             <form method="GET" class="filter-form app-students-filter-form row g-2 align-items-end" id="studentsFilterForm">
                                 <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                                     <label class="form-label" for="filter-school-year">School Year</label>

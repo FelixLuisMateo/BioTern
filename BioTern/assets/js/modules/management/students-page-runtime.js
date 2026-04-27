@@ -33,6 +33,44 @@
 
   }
 
+  function initHeaderTableSearch() {
+    var searchInput = document.getElementById("studentsHeaderSearchInput");
+    if (!searchInput) return;
+    var inputTimer;
+    var bound = false;
+    var attempts = 0;
+
+    function tryBind() {
+      if (bound) return;
+      attempts += 1;
+
+      if (
+        window.jQuery &&
+        window.jQuery.fn &&
+        typeof window.jQuery.fn.DataTable === "function" &&
+        window.jQuery.fn.DataTable.isDataTable("#customerList")
+      ) {
+        var table = window.jQuery("#customerList").DataTable();
+        searchInput.value = table.search() || "";
+        searchInput.addEventListener("input", function () {
+          var query = searchInput.value || "";
+          clearTimeout(inputTimer);
+          inputTimer = setTimeout(function () {
+            table.search(query).draw();
+          }, 120);
+        });
+        bound = true;
+        return;
+      }
+
+      if (attempts < 12) {
+        window.setTimeout(tryBind, 120);
+      }
+    }
+
+    tryBind();
+  }
+
   function initPrintActions() {
     function getSelectedPrintButton() {
       return document.getElementById("printSelectedStudents");
@@ -418,6 +456,7 @@
   function initStudentsPageRuntime() {
     initFilterSelects();
     initFilterAutoSubmit();
+    initHeaderTableSearch();
     initPrintActions();
     initTableCheckboxes();
     initStudentActionModal();

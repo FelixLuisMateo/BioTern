@@ -1327,6 +1327,52 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
             gap: 0.5rem;
         }
 
+        .app-page-ojt-dashboard .app-table-header-search {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-height: 36px;
+            padding: 0.32rem 0.62rem;
+            border: 1px solid var(--app-ojt-border);
+            border-radius: 10px;
+            background: var(--app-ojt-surface);
+        }
+
+        .app-page-ojt-dashboard .app-table-header-search i {
+            color: var(--app-ojt-muted);
+            font-size: 0.9rem;
+        }
+
+        .app-page-ojt-dashboard .app-table-header-search .form-control,
+        .app-page-ojt-dashboard .app-table-header-search input {
+            border: 0;
+            box-shadow: none !important;
+            background: transparent;
+            min-height: 0;
+            height: auto;
+            padding: 0;
+            font-size: 0.84rem;
+            line-height: 1.2;
+            color: var(--app-ojt-text);
+        }
+
+        .app-page-ojt-dashboard .app-table-header-search .form-control:focus,
+        .app-page-ojt-dashboard .app-table-header-search input:focus {
+            border: 0;
+            outline: 0;
+            box-shadow: none !important;
+        }
+
+        .app-page-ojt-dashboard .app-table-header-search .form-control::placeholder,
+        .app-page-ojt-dashboard .app-table-header-search input::placeholder {
+            color: var(--app-ojt-muted);
+        }
+
+        .app-page-ojt-dashboard .app-ojt-table-search {
+            min-width: 220px;
+            max-width: 320px;
+        }
+
         .app-ojt-actions-toggle {
             display: inline-flex;
             align-items: center;
@@ -1580,6 +1626,12 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
                 width: 100%;
                 flex-direction: column;
                 align-items: stretch;
+            }
+
+            .app-page-ojt-dashboard .app-ojt-table-search {
+                width: 100%;
+                min-width: 0;
+                max-width: none;
             }
 
             .app-ojt-actions-toggle {

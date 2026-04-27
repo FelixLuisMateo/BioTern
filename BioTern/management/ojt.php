@@ -596,6 +596,15 @@ include 'includes/header.php';
                 </ul>
             </div>
             <div class="page-header-right app-ojt-page-header-right ms-auto app-ojt-header-actions">
+                <div class="app-table-header-search app-ojt-table-search">
+                    <label class="visually-hidden" for="ojtHeaderSearchInput">Search OJT list</label>
+                    <i class="feather-search" aria-hidden="true"></i>
+                    <input type="search" id="ojtHeaderSearchInput" class="form-control" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search students">
+                </div>
+                <a href="ojt.php" class="btn btn-sm btn-outline-secondary">
+                    <i class="feather-rotate-ccw me-1"></i>
+                    <span>Reset</span>
+                </a>
                 <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="ojtActionsMenu">
                     <i class="feather-grid me-1"></i>
                     <span>Actions</span>
@@ -606,18 +615,6 @@ include 'includes/header.php';
                             <span class="text-muted fs-12">Quick Actions</span>
                         </div>
                         <div class="dashboard-actions-grid page-header-right-items-wrapper">
-                            <button
-                                type="button"
-                                class="action-tile"
-                                id="ojtFiltersToggle"
-                                data-bs-toggle="collapse"
-                                data-bs-target="#ojtFiltersPanel"
-                                aria-expanded="false"
-                                aria-controls="ojtFiltersPanel"
-                            >
-                                <i class="feather-filter"></i>
-                                <span>Show Filters</span>
-                            </button>
                             <a href="ojt-workflow-board.php" class="action-tile">
                                 <i class="feather-kanban"></i>
                                 <span>Workflow Board</span>
@@ -654,26 +651,9 @@ include 'includes/header.php';
         <?php endif; ?>
 
         <section class="app-ojt-filters-section" id="ojtFilters">
-            <div class="collapse" id="ojtFiltersPanel">
+            <div id="ojtFiltersPanel">
             <div class="filter-panel filter-card app-ojt-filter-card">
-                <div class="filter-panel-head app-ojt-filter-panel-head">
-                    <div>
-                        <div class="filter-panel-label app-ojt-filter-panel-label">
-                            <i class="feather-sliders"></i>
-                            <span>Filter OJT</span>
-                        </div>
-                        <p class="filter-panel-sub app-ojt-filter-panel-sub">Narrow down results by student, course, section, school year, semester, stage, and risk level.</p>
-                    </div>
-                    <div class="filter-panel-head-actions app-ojt-filter-panel-actions">
-                        <span class="app-ojt-filter-status"><?php echo $active_filter_count; ?> active filter<?php echo $active_filter_count === 1 ? '' : 's'; ?></span>
-                        <a href="ojt.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
-                    </div>
-                </div>
                 <form method="get" class="filter-form row g-2 align-items-end app-ojt-filter-form" id="ojtFilterForm">
-                    <div class="col-xl-3 col-lg-4 col-md-6">
-                        <label class="form-label" for="ojtFilterSearch">Search Student</label>
-                        <input type="text" name="search" id="ojtFilterSearch" class="form-control" value="<?php echo htmlspecialchars($search); ?>" placeholder="Name / Student ID / Course">
-                    </div>
                     <div class="col-xl-2 col-lg-4 col-md-6">
                         <label class="form-label" for="ojtFilterCourse">Course</label>
                         <select name="course" id="ojtFilterCourse" class="form-control" data-ui-select="custom">

@@ -5,19 +5,11 @@
   function initOjtDashboardRuntime() {
     var dataTableInstance = null;
     var filterForm = document.getElementById("ojtFilterForm");
-    var searchInput = document.getElementById("ojtFilterSearch");
-    var filtersPanel = document.getElementById("ojtFiltersPanel");
-    var filtersToggle = document.getElementById("ojtFiltersToggle");
+    var searchInput = document.getElementById("ojtHeaderSearchInput");
     var forceStackBreakpoint = 1280;
-    var submitTimer;
 
     function submitFilters() {
       if (filterForm) filterForm.submit();
-    }
-
-    function debounceSubmit() {
-      clearTimeout(submitTimer);
-      submitTimer = setTimeout(submitFilters, 350);
     }
 
     ["ojtFilterCourse", "ojtFilterSection", "ojtFilterSchoolYear", "ojtFilterSemester", "ojtFilterStage", "ojtFilterRisk"].forEach(function (id) {
@@ -25,24 +17,12 @@
       if (el) el.addEventListener("change", submitFilters);
     });
 
-    if (searchInput) searchInput.addEventListener("input", debounceSubmit);
-
     var printBtn = document.getElementById("ojtPrintBtn");
     if (printBtn) {
       printBtn.addEventListener("click", function (e) {
         e.preventDefault();
         window.print();
       });
-    }
-
-    function syncFiltersToggle() {
-      if (!filtersPanel || !filtersToggle) return;
-      var expanded = filtersPanel.classList.contains("show");
-      var label = filtersToggle.querySelector("span");
-      filtersToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
-      if (label) {
-        label.textContent = expanded ? "Hide Filters" : "Show Filters";
-      }
     }
 
     function updateResponsiveWorklistMode() {
@@ -61,12 +41,6 @@
     }
 
     updateResponsiveWorklistMode();
-
-    if (filtersPanel) {
-      filtersPanel.addEventListener("shown.bs.collapse", syncFiltersToggle);
-      filtersPanel.addEventListener("hidden.bs.collapse", syncFiltersToggle);
-      syncFiltersToggle();
-    }
 
     if (
       window.jQuery &&
@@ -88,10 +62,8 @@
 
       dataTableInstance = window.jQuery("#ojtListTable").DataTable({
         pageLength: 10,
-        lengthMenu: [
-          [10, 25, 50, 100],
-          [10, 25, 50, 100],
-        ],
+        lengthChange: false,
+        dom: "rtip",
         order: [[6, "desc"]],
         columnDefs: [
           { orderable: false, targets: [7] },
@@ -107,9 +79,22 @@
       dataTableInstance = window.jQuery("#ojtListTable").DataTable();
     }
 
-    var dataTableSearchInput = document.querySelector("#ojtListTable_filter input");
-    if (dataTableSearchInput) {
-      dataTableSearchInput.setAttribute("placeholder", "Search student, section, or risk");
+    if (searchInput && dataTableInstance) {
+      var searchTimer;
+      var initialSearch = searchInput.value || dataTableInstance.search() || "";
+
+      searchInput.value = initialSearch;
+      if (initialSearch) {
+        dataTableInstance.search(initialSearch).draw();
+      }
+
+      searchInput.addEventListener("input", function () {
+        clearTimeout(searchTimer);
+        var query = searchInput.value || "";
+        searchTimer = setTimeout(function () {
+          dataTableInstance.search(query).draw();
+        }, 120);
+      });
     }
 
     if (
