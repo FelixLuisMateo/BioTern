@@ -321,16 +321,22 @@ $stored_external_remaining = isset($student['external_total_hours_remaining']) &
 
 $internal_remaining_hours_live = max(0, $internal_total_hours - $live_rendered_hours);
 $external_remaining_hours_live = max(0, $external_total_hours - $live_rendered_hours);
-$hours_remaining = ($assignment_track === 'external') ? $external_remaining_hours_live : $internal_remaining_hours_live;
+$internal_remaining_hours_effective = $stored_internal_remaining !== null
+    ? max(0, $stored_internal_remaining)
+    : $internal_remaining_hours_live;
+$external_remaining_hours_effective = $stored_external_remaining !== null
+    ? max(0, $stored_external_remaining)
+    : $external_remaining_hours_live;
+$hours_remaining = ($assignment_track === 'external') ? $external_remaining_hours_effective : $internal_remaining_hours_effective;
 $hours_remaining_without_open = ($assignment_track === 'external')
-    ? max(0, $external_total_hours - $hours_rendered)
-    : max(0, $internal_total_hours - $hours_rendered);
+    ? $external_remaining_hours_effective
+    : $internal_remaining_hours_effective;
 
 $remaining_seconds = (int)max(0, round($hours_remaining_without_open * 3600));
 $remaining_seconds_without_open = (int)max(0, round($hours_remaining_without_open * 3600));
 $preview_remaining_seconds = (int)max(0, $remaining_seconds_without_open - $open_session_seconds);
-$internal_remaining_display = max(0, (int)floor($internal_remaining_hours_live));
-$external_remaining_display = max(0, (int)floor($external_remaining_hours_live));
+$internal_remaining_display = max(0, (int)floor($internal_remaining_hours_effective));
+$external_remaining_display = max(0, (int)floor($external_remaining_hours_effective));
 $internal_completed_hours = max(0, $internal_total_hours - $internal_remaining_display);
 $completion_percentage = $internal_total_hours > 0
     ? ($internal_completed_hours / $internal_total_hours) * 100
