@@ -30,7 +30,7 @@
     var openClockInRaw = (cfg && cfg.dataset.openClockInRaw) || "";
     var sessionCutoffRaw = (cfg && cfg.dataset.sessionCutoffRaw) || "";
 
-    var storageKey = "student_timer_state_" + String(studentId);
+    var storageKey = "student_timer_state_" + String(studentId) + "_" + activeTrack;
     var nowRef = new Date();
     var todayKey = [
       nowRef.getFullYear(),
@@ -56,14 +56,22 @@
     }
 
     function updateInternalHoursFromSeconds() {
-      if (!internalHoursElement || !Number.isFinite(internalTotalHours) || internalTotalHours <= 0) return;
       var remainingWholeHours = Math.max(0, Math.floor(remainingSeconds / 3600));
       if (activeTrack === "external") {
         var externalHoursElement = document.querySelector(".stat-card:nth-child(4) h6");
         if (externalHoursElement && Number.isFinite(externalTotalHours) && externalTotalHours > 0) {
           externalHoursElement.textContent = remainingWholeHours + "/" + externalTotalHours;
         }
+        if (internalHoursElement && Number.isFinite(internalTotalHours) && internalTotalHours > 0) {
+          internalHoursElement.textContent =
+            toInt(cfg && cfg.dataset.internalRemainingDisplay, 0) + "/" + internalTotalHours;
+        }
+        if (internalHoursDetailElement && Number.isFinite(internalTotalHours) && internalTotalHours > 0) {
+          internalHoursDetailElement.textContent =
+            toInt(cfg && cfg.dataset.internalRemainingDisplay, 0) + " / " + internalTotalHours;
+        }
       } else {
+        if (!internalHoursElement || !Number.isFinite(internalTotalHours) || internalTotalHours <= 0) return;
         internalHoursElement.textContent = remainingWholeHours + "/" + internalTotalHours;
         if (internalHoursDetailElement) {
           internalHoursDetailElement.textContent = remainingWholeHours + " / " + internalTotalHours;

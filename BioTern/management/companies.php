@@ -834,6 +834,9 @@ if ($internshipsTableReady) {
             $remainingHours = $remainingHoursRaw !== null && $remainingHoursRaw !== ''
                 ? max(0, (int)$remainingHoursRaw)
                 : null;
+            if ($track === 'external' && (int)($row['rendered_hours'] ?? 0) <= 0 && $remainingHours !== null && $remainingHours <= 0) {
+                $remainingHours = $requiredHours;
+            }
             $renderedHours = $remainingHours !== null
                 ? max(0, $requiredHours - $remainingHours)
                 : 0;
@@ -1867,8 +1870,6 @@ include 'includes/header.php';
                 <th>ADDRESS</th>
                 <th>SUPERVISOR</th>
                 <th>REPRESENTATIVE</th>
-                <th>SUPERVISOR POSITION</th>
-                <th>REPRESENTATIVE POSITION</th>
             </tr>
         </thead>
         <tbody>
@@ -1879,8 +1880,6 @@ include 'includes/header.php';
                     <td><?php echo h(trim((string)($company['company_address'] ?? '')) !== '' ? (string)$company['company_address'] : 'Not provided'); ?></td>
                     <td><?php echo h(trim((string)($company['supervisor_name'] ?? '')) !== '' ? (string)$company['supervisor_name'] : 'Not provided'); ?></td>
                     <td><?php echo h(trim((string)($company['company_representative'] ?? '')) !== '' ? (string)$company['company_representative'] : 'Not provided'); ?></td>
-                    <td><?php echo h(trim((string)($company['supervisor_position'] ?? '')) !== '' ? (string)$company['supervisor_position'] : 'Not provided'); ?></td>
-                    <td><?php echo h(trim((string)($company['company_representative_position'] ?? '')) !== '' ? (string)$company['company_representative_position'] : 'Not provided'); ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>

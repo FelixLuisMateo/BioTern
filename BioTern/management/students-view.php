@@ -286,8 +286,15 @@ $stmt_clock->execute();
 $clock_result = $stmt_clock->get_result();
 $attendance_record = $clock_result->fetch_assoc();
 
-$open_session = $attendance_record ? attendance_workflow_mark_incomplete_if_needed($conn, $attendance_record) : ['clocked_in_now' => false, 'is_open' => false, 'elapsed_preview_seconds' => 0, 'cutoff_time' => null];
-$is_clocked_in = !empty($open_session['clocked_in_now']);
+$assignment_track = strtolower((string)($student['assignment_track'] ?? 'internal'));
+if (!in_array($assignment_track, ['internal', 'external'], true)) {
+    $assignment_track = 'internal';
+}
+$open_session = ['clocked_in_now' => false, 'is_open' => false, 'elapsed_preview_seconds' => 0, 'cutoff_time' => null];
+if ($assignment_track === 'internal') {
+    $open_session = $attendance_record ? attendance_workflow_mark_incomplete_if_needed($conn, $attendance_record) : $open_session;
+}
+$is_clocked_in = ($assignment_track === 'internal') && !empty($open_session['clocked_in_now']);
 
 // Keep student status aligned with actual clock state (clocked-in => active, else inactive).
 $live_clock_status = $is_clocked_in ? 1 : 0;
@@ -357,7 +364,6 @@ if ($internal_total_hours <= 0) {
     $internal_total_hours = 140;
 }
 
-$assignment_track = strtolower((string)($student['assignment_track'] ?? 'internal'));
 $stored_internal_remaining = isset($student['internal_total_hours_remaining']) && $student['internal_total_hours_remaining'] !== null
     ? (int)$student['internal_total_hours_remaining']
     : null;
@@ -373,6 +379,12 @@ $internal_remaining_hours_effective = $stored_internal_remaining !== null
 $external_remaining_hours_effective = $stored_external_remaining !== null
     ? max(0, $stored_external_remaining)
     : $external_remaining_hours_live;
+if ($internal_hours_rendered <= 0 && $stored_internal_remaining !== null && $stored_internal_remaining <= 0) {
+    $internal_remaining_hours_effective = $internal_total_hours;
+}
+if ($external_hours_rendered <= 0 && $stored_external_remaining !== null && $stored_external_remaining <= 0) {
+    $external_remaining_hours_effective = $external_total_hours;
+}
 if ($internal_hours_rendered > 0 && $internal_remaining_hours_effective <= 0 && $internal_remaining_hours_live > 0) {
     $internal_remaining_hours_effective = $internal_remaining_hours_live;
 }
@@ -393,7 +405,9 @@ $hours_rendered = ($assignment_track === 'external') ? $external_hours_rendered 
 
 $remaining_seconds = (int)max(0, round($hours_remaining_without_open * 3600));
 $remaining_seconds_without_open = (int)max(0, round($hours_remaining_without_open * 3600));
-$preview_remaining_seconds = (int)max(0, $remaining_seconds_without_open - $open_session_seconds);
+$preview_remaining_seconds = $assignment_track === 'internal'
+    ? (int)max(0, $remaining_seconds_without_open - $open_session_seconds)
+    : $remaining_seconds_without_open;
 $internal_remaining_display = max(0, (int)floor($internal_remaining_hours_effective));
 $external_remaining_display = max(0, (int)floor($external_remaining_hours_effective));
 $internal_completed_hours = max(0, $internal_total_hours - $internal_remaining_display);
@@ -1080,6 +1094,7 @@ echo $is_evaluation_unlocked ? 'Waiting for supervisor submission' : 'Waiting fo
          data-active-track="<?php echo htmlspecialchars($assignment_track, ENT_QUOTES, 'UTF-8'); ?>"
          data-active-total-hours="<?php echo (int)$active_total_hours; ?>"
          data-student-id="<?php echo (int)$student['id']; ?>"
+         data-internal-remaining-display="<?php echo (int)$internal_remaining_display; ?>"
          data-remaining-seconds="<?php echo (int)$preview_remaining_seconds; ?>"
          data-remaining-seconds-without-open="<?php echo (int)$remaining_seconds_without_open; ?>"
          data-is-clocked-in="<?php echo $is_clocked_in ? '1' : '0'; ?>"

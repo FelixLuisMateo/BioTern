@@ -267,7 +267,7 @@ include __DIR__ . '/../includes/header.php';
 
                 <template id="endorsement_default_template">
                     <div class="a4-pages-stack" data-a4-document="true">
-                        <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.55in 0.9in 0.85in 0.9in; background:#fff;">
+                        <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.24in 0.42in 0.4in 0.42in; background:#fff;">
                             <div class="endorsement-letter-template">
                                 <div class="preview-header">
                                     <img class="crest-preview" src="assets/images/ccstlogo.png" alt="crest" style="position:absolute; top:12px; left:12px; width:56px; height:56px; object-fit:contain;" onerror="this.style.display='none'">
@@ -279,10 +279,10 @@ include __DIR__ . '/../includes/header.php';
                                 </div>
                                 <div class="preview-content" id="preview_content">
                                     <h5>ENDORSEMENT LETTER</h5>
-                                    <p><strong id="pv_recipient" class="endorsement-fill-line">__________________________</strong><br>
-                                    <span id="pv_position" class="endorsement-fill-line">__________________________</span><br>
-                                    <span id="pv_company" class="endorsement-fill-line">__________________________</span><br>
-                                    <span id="pv_company_address" class="endorsement-fill-line">__________________________</span></p>
+                                    <p><strong id="pv_recipient" class="endorsement-fill-line">&nbsp;</strong><br>
+                                    <span id="pv_position" class="endorsement-fill-line">&nbsp;</span><br>
+                                    <span id="pv_company" class="endorsement-fill-line">&nbsp;</span><br>
+                                    <span id="pv_company_address" class="endorsement-fill-line">&nbsp;</span></p>
 
                                     <p><span id="pv_salutation">Dear Ma'am,</span></p>
 
@@ -292,7 +292,7 @@ include __DIR__ . '/../includes/header.php';
 
                                     <p>In this regard, we are seeking your esteemed company's support in accommodating the following students:</p>
                                     <ul id="pv_students">
-                                        <li>__________________________</li>
+                                        <li>&nbsp;</li>
                                     </ul>
 
                                     <p>These students are required to complete 250 training hours. We believe that your organization can provide them with invaluable knowledge and skills, helping them to maximize their potential for future careers in IT.</p>

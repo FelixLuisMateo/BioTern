@@ -105,6 +105,24 @@ $stored_remaining_hours = $student['external_total_hours_remaining'];
 $total_hours_remaining = $stored_remaining_hours !== null
     ? max(0, (float)$stored_remaining_hours)
     : max(0, $total_hours_target - $month_total_hours);
+$externalRecordCountStmt = $conn->prepare("
+    SELECT COUNT(*) AS row_count, COALESCE(SUM(total_hours), 0) AS rendered
+    FROM external_attendance
+    WHERE student_id = ? AND status <> 'rejected'
+");
+$externalRecordCount = 0;
+$externalRenderedHours = 0.0;
+if ($externalRecordCountStmt) {
+    $externalRecordCountStmt->bind_param('i', $student_id);
+    $externalRecordCountStmt->execute();
+    $externalRecordRow = $externalRecordCountStmt->get_result()->fetch_assoc() ?: [];
+    $externalRecordCount = (int)($externalRecordRow['row_count'] ?? 0);
+    $externalRenderedHours = isset($externalRecordRow['rendered']) ? (float)$externalRecordRow['rendered'] : 0.0;
+    $externalRecordCountStmt->close();
+}
+if ($externalRecordCount <= 0 && $externalRenderedHours <= 0 && $total_hours_remaining <= 0) {
+    $total_hours_remaining = $total_hours_target;
+}
 $total_hours_completed = max(0, $total_hours_target - $total_hours_remaining);
 
 function h($value) {

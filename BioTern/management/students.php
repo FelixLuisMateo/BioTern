@@ -653,9 +653,9 @@ $students_query = "
         s.last_name,
         s.email,
         s.phone,
-        s.department_id,
-        s.supervisor_id AS student_supervisor_ref_id,
-        s.coordinator_id AS student_coordinator_ref_id,
+        COALESCE(i.department_id, s.department_id) AS department_id,
+        COALESCE(i.supervisor_id, s.supervisor_id) AS student_supervisor_ref_id,
+        COALESCE(i.coordinator_id, s.coordinator_id) AS student_coordinator_ref_id,
         s.status,
         COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'internal') AS assignment_track,
         " . ($has_school_year_column ? "COALESCE(NULLIF(TRIM(s.school_year), ''), '-') AS school_year," : "'-' AS school_year,") . "
@@ -1229,6 +1229,7 @@ include 'includes/header.php';
                                                                         data-student-supervisor-name="<?php echo htmlspecialchars((string)($student['supervisor_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                         data-student-coordinator-name="<?php echo htmlspecialchars((string)($student['coordinator_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                         data-student-email="<?php echo htmlspecialchars((string)($student['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                        data-student-department-name="<?php echo htmlspecialchars((string)($student['department_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                     >
                                                                         <i class="feather feather-more-horizontal"></i>
                                                                     </button>
@@ -1330,6 +1331,7 @@ include 'includes/header.php';
                                                                 data-student-supervisor-name="<?php echo htmlspecialchars((string)($student['supervisor_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                 data-student-coordinator-name="<?php echo htmlspecialchars((string)($student['coordinator_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                 data-student-email="<?php echo htmlspecialchars((string)($student['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                data-student-department-name="<?php echo htmlspecialchars((string)($student['department_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                             >More</button>
                                                         <?php endif; ?>
                                                     </div>
@@ -1385,6 +1387,7 @@ include 'includes/header.php';
                     <input type="date" name="start_date" class="form-control" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
                     <button type="submit" class="btn btn-primary">Save Assignment</button>
                     <small class="text-muted">Coordinator follows the student's course automatically.</small>
+                    <small class="text-muted" data-student-action-selected>Assigned department, supervisor, and coordinator will appear here.</small>
                 </form>
                 <div class="list-group">
                     <a class="list-group-item list-group-item-action" data-action-edit href="#">

@@ -323,13 +323,13 @@ include __DIR__ . '/../includes/header.php';
                     </div>
                     <div class="doc-preview" id="moa_preview">
                         <div id="moa_content" class="a4-pages-stack">
-                            <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.35in 1in 1in 1in; background:#fff;">
+                            <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.24in 0.45in 0.4in 0.45in; background:#fff;">
                             <h5 class="text-center-inline">Memorandum of Agreement</h5>
-                            <p>Date: <span id="moa_date" class="moa-fill-line">__________</span></p>
+                            <p>Date: <span id="moa_date" class="moa-fill-line">&nbsp;</span></p>
                             <p>This Memorandum of Agreement made and executed between: <strong>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</strong>a Higher Education Institution, duly organized and existing under Philippine Laws with office/business address at <strong>AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA</strong> represented herein by <strong>MR. JOMAR G. SANGIL (IT, DEPARTMENT HEAD)</strong>, here in after referred to as the Higher Education Institution.<strong></p>
                             And<br>
-                            <strong><span id="pv_partner_company_name" class="moa-fill-line">__________________________</span></strong> an enterprise duly organized and existing under Philippine Laws with office/ business address at <strong><span id="pv_partner_address" class="moa-fill-line">__________________________</span></strong>represented herein by <strong><span id="pv_partner_name" class="moa-fill-line">__________________________</span></strong> herein after referred to as the PARTNER COMPANY.</p>
-                            <p>Company Receipt / Ref.: <span id="pv_company_receipt" class="moa-fill-line">__________________________</span></p>
+                            <strong><span id="pv_partner_company_name" class="moa-fill-line">&nbsp;</span></strong> an enterprise duly organized and existing under Philippine Laws with office/ business address at <strong><span id="pv_partner_address" class="moa-fill-line">&nbsp;</span></strong>represented herein by <strong><span id="pv_partner_name" class="moa-fill-line">&nbsp;</span></strong> herein after referred to as the PARTNER COMPANY.</p>
+                            <p>Company Receipt / Ref.: <span id="pv_company_receipt" class="moa-fill-line">&nbsp;</span></p>
                             Witnesseth: <br><br>
                             <p>The parties hereby bind themselves to undertake a Memorandum of Agreement for the purpose of supporting the HEI Internship for Learners under the following terms and condition</p>
                             <strong>Clark College of Science and Technology:</strong><br>
@@ -351,12 +351,12 @@ include __DIR__ . '/../includes/header.php';
 
                             </div>
 
-                            <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.35in 1in 1in 1in; background:#fff;">
+                            <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.24in 0.45in 0.4in 0.45in; background:#fff;">
                             <p class="mt-12">
                                 This Memorandum of Agreement shall become effective upon signature of both parties and implementation will begin immediately and shall continue to be valid hereafter until written notice is given by either party thirty (30) days prior to the date of intended termination.
                             </p>
                             <p>
-                                In witness whereof the parties have signed this Memorandum of Agreement at <span id="pv_signed_at" class="moa-fill-line">__________________</span> this <span id="pv_signed_day" class="moa-fill-line">_____</span> day of <span id="pv_signed_month" class="moa-fill-line">__________________</span>, <span id="pv_signed_year" class="moa-fill-line">20__</span>.
+                                In witness whereof the parties have signed this Memorandum of Agreement at <span id="pv_signed_at" class="moa-fill-line">&nbsp;</span> this <span id="pv_signed_day" class="moa-fill-line">&nbsp;</span> day of <span id="pv_signed_month" class="moa-fill-line">&nbsp;</span>, <span id="pv_signed_year" class="moa-fill-line">&nbsp;</span>.
                             </p>
 
                             <div class="flex-between-gap12 mt-24">

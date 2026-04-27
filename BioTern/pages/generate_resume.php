@@ -219,7 +219,7 @@ if ($summary === '') {
         cursor: pointer;
         box-shadow: 0 10px 24px rgba(29, 78, 216, 0.22);
     }
-    @media (max-width: 820px) {
+    @media (max-width: 640px) {
         .resume-shell { margin: 0; }
         .resume-sheet { padding: 20px; }
         .hero { grid-template-columns: 1fr; }
