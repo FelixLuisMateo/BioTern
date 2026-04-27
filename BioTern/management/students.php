@@ -392,18 +392,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                 $internshipRow = $internshipLookup->get_result()->fetch_assoc() ?: null;
                 $internshipLookup->close();
                 $internshipId = (int)($internshipRow['id'] ?? 0);
-            }
-
-            $requiredHours = $assignmentTrack === 'external'
-                ? max(0, (int)($studentRow['external_total_hours'] ?? 0))
-                : max(0, (int)($studentRow['internal_total_hours'] ?? 0));
-            if ($requiredHours <= 0) {
-                $requiredHours = $assignmentTrack === 'external' ? 250 : 600;
-            }
-
-            if ($internshipId > 0) {
-                $internshipSets = ['status = \'ongoing\''];
-                $internshipTypes = '';
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM attendances a_live
+                        WHERE a_live.student_id = s.id
+                          AND a_live.attendance_date = CURDATE()
+                          AND (
+                                (a_live.morning_time_in IS NOT NULL AND (a_live.morning_time_out IS NULL OR a_live.morning_time_out = ''))
+                             OR (a_live.afternoon_time_in IS NOT NULL AND (a_live.afternoon_time_out IS NULL OR a_live.afternoon_time_out = ''))
+                          )
+                    ) THEN 1
+                    ELSE 0
+                END as live_clock_status,
                 $internshipValues = [];
 
                 if (isset($internshipColumns['type'])) {
@@ -742,29 +742,29 @@ if ($filter_supervisor !== '') {
     foreach ($students as $srow) {
         $candidate = trim((string)($srow['supervisor_name'] ?? ''));
         if ($candidate !== '' && $candidate !== '-') {
-            $selected_adviser = $candidate;
-            break;
+        if ($filter_status >= 0) {
+            if (intval($filter_status) === 1) {
+                $where[] = "EXISTS (
+                    SELECT 1 FROM attendances a_live
+                    WHERE a_live.student_id = s.id
+                      AND a_live.attendance_date = CURDATE()
+                      AND (
+                            (a_live.morning_time_in IS NOT NULL AND (a_live.morning_time_out IS NULL OR a_live.morning_time_out = ''))
+                         OR (a_live.afternoon_time_in IS NOT NULL AND (a_live.afternoon_time_out IS NULL OR a_live.afternoon_time_out = ''))
+                      )
+                )";
+            } else {
+                $where[] = "NOT EXISTS (
+                    SELECT 1 FROM attendances a_live
+                    WHERE a_live.student_id = s.id
+                      AND a_live.attendance_date = CURDATE()
+                      AND (
+                            (a_live.morning_time_in IS NOT NULL AND (a_live.morning_time_out IS NULL OR a_live.morning_time_out = ''))
+                         OR (a_live.afternoon_time_in IS NOT NULL AND (a_live.afternoon_time_out IS NULL OR a_live.afternoon_time_out = ''))
+                      )
+                )";
+            }
         }
-    }
-}
-
-$print_students = $students;
-usort($print_students, function ($a, $b) {
-    $a_last = strtolower((string)($a['last_name'] ?? ''));
-    $b_last = strtolower((string)($b['last_name'] ?? ''));
-    if ($a_last === $b_last) {
-        return strcasecmp((string)($a['first_name'] ?? ''), (string)($b['first_name'] ?? ''));
-    }
-    return strcmp($a_last, $b_last);
-});
-
-?>
-<?php
-$page_title = 'BioTern || Students';
-$page_styles = array(
-    'assets/css/layout/page_shell.css',
-    'assets/css/modules/management/management-filters.css',
-    'assets/css/modules/app-ui-lists-tables.css',
     'assets/css/modules/management/management-students-shared.css',
     'assets/css/modules/management/management-students.css'
 );

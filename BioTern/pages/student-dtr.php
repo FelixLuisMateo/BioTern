@@ -801,6 +801,42 @@ include 'includes/header.php';
         <?php endif; ?>
 
         <div class="student-dtr-metrics">
+
+        <!-- Clock-in/Clock-out Report Request Section (Internal Students) -->
+        <section class="card student-dtr-report-export-card mt-4 mb-4">
+            <div class="card-body">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+                    <div>
+                        <span class="student-metric-label">Attendance Report</span>
+                        <h3 class="mb-1">Request Clock-in/Clock-out Report</h3>
+                        <div class="student-dtr-meta">Download a copy of your attendance logs for the selected month as PDF or CSV for your records or submission.</div>
+                    </div>
+                </div>
+                <form method="get" action="print_attendance.php" target="_blank" class="row g-2 align-items-end">
+                    <input type="hidden" name="student_id" value="<?php echo (int)($student['id'] ?? 0); ?>">
+                    <div class="col-md-4">
+                        <label class="form-label" for="exportMonth">Month</label>
+                        <select id="exportMonth" name="month" class="form-select">
+                            <?php foreach ($monthOptions as $monthNumber => $monthLabelOption): ?>
+                            <option value="<?php echo $selectedYear . '-' . sprintf('%02d', $monthNumber); ?>" <?php echo $monthNumber === $selectedMonthNumber ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($monthLabelOption, ENT_QUOTES, 'UTF-8'); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="exportFormat">Format</label>
+                        <select id="exportFormat" name="format" class="form-select">
+                            <option value="pdf">PDF</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-success">Download Report</button>
+                    </div>
+                </form>
+            </div>
+        </section>
             <article class="student-metric-card student-dtr-metric">
                 <div class="student-dtr-meta">Total Logs</div>
                 <strong><?php echo (int)$attendanceSummary['total_logs']; ?></strong>
@@ -957,6 +993,22 @@ include 'includes/header.php';
                                                 <a href="<?php echo htmlspecialchars(student_dtr_manual_upload_web_path((string)$row['proof_attachment']['file_path']), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">View proof image</a>
                                             </div>
                                             <?php endif; ?>
+                                            <?php
+                                            // Show button if missing clock-out
+                                            $missingClockOut = false;
+                                            if (
+                                                (isset($row['morning_time_in']) && $row['morning_time_in'] && empty($row['morning_time_out'])) ||
+                                                (isset($row['afternoon_time_in']) && $row['afternoon_time_in'] && empty($row['afternoon_time_out']))
+                                            ) {
+                                                $missingClockOut = true;
+                                            }
+                                            if ($missingClockOut): ?>
+                                                <form method="post" action="student-manual-dtr.php" style="display:inline; margin-top:4px;">
+                                                    <input type="hidden" name="attendance_id" value="<?php echo (int)($row['id'] ?? 0); ?>">
+                                                    <input type="hidden" name="attendance_date" value="<?php echo htmlspecialchars($row['attendance_date'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <button type="submit" class="btn btn-sm btn-danger mt-1">Report missing clock-out</button>
+                                                </form>
+                                            <?php endif; ?>
                                         </td>
                                         <td data-label="Morning In"><?php echo htmlspecialchars(student_dtr_format_time($row['morning_time_in'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td data-label="Morning Out"><?php echo htmlspecialchars(student_dtr_format_time($row['morning_time_out'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -965,7 +1017,24 @@ include 'includes/header.php';
                                         <td data-label="Afternoon In"><?php echo htmlspecialchars(student_dtr_format_time($row['afternoon_time_in'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td data-label="Afternoon Out"><?php echo htmlspecialchars(student_dtr_format_time($row['afternoon_time_out'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td data-label="Hours"><strong><?php echo number_format((float)($row['display_hours'] ?? 0), 2); ?>h</strong></td>
-                                        <td data-label="Status"><span class="student-dtr-status <?php echo htmlspecialchars((string)$reviewMeta['class'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)$reviewMeta['label'], ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                        <td data-label="Status">
+                                            <span class="student-dtr-status <?php echo htmlspecialchars((string)$reviewMeta['class'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)$reviewMeta['label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <?php
+                                            // Manual correction badge/history panel
+                                            $correctionStatus = null;
+                                            if (isset($row['source']) && strtolower((string)$row['source']) === 'manual') {
+                                                $correctionStatus = strtolower((string)($row['status'] ?? 'pending'));
+                                            }
+                                            if ($correctionStatus): ?>
+                                                <span class="badge ms-1
+                                                    <?php if ($correctionStatus === 'pending') echo 'bg-warning'; ?>
+                                                    <?php if ($correctionStatus === 'approved') echo 'bg-success'; ?>
+                                                    <?php if ($correctionStatus === 'rejected') echo 'bg-danger'; ?>
+                                                ">
+                                                    Manual correction <?php echo ucfirst($correctionStatus); ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td data-label="Source"><?php echo htmlspecialchars(ucfirst((string)($row['source'] ?? 'manual')), ENT_QUOTES, 'UTF-8'); ?></td>
                                     </tr>
                                     <?php endforeach; ?>
