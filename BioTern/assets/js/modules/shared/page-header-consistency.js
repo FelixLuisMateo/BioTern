@@ -358,7 +358,7 @@
     }
 
     var actionsPanel = document.createElement("div");
-    actionsPanel.className = "dashboard-actions-panel app-page-actions-panel";
+    actionsPanel.className = "dashboard-actions-panel app-page-actions-panel biotern-backdrop-glass";
 
     var meta = document.createElement("div");
     meta.className = "dashboard-actions-meta";

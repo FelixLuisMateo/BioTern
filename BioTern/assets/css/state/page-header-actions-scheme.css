@@ -4,9 +4,20 @@
  */
 
 body {
-  --ph-actions-panel-bg: rgba(12, 18, 36, 0.92);
-  --ph-actions-panel-border: rgba(255, 255, 255, 0.08);
-  --ph-actions-panel-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+  /* Shared backdrop component tokens (glass + fade). */
+  --biotern-backdrop-blur: 8px;
+  --biotern-backdrop-surface: rgba(255, 255, 255, 0.96);
+  --biotern-backdrop-surface-muted: rgba(248, 250, 252, 0.9);
+  --biotern-backdrop-border: rgba(15, 23, 42, 0.12);
+  --biotern-backdrop-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+  --biotern-backdrop-fade-from: rgba(var(--biotern-primary-rgb, var(--bs-primary-rgb)), 0.2);
+  --biotern-backdrop-fade-via: rgba(var(--biotern-primary-rgb, var(--bs-primary-rgb)), 0.9);
+  --biotern-backdrop-fade-to: rgba(var(--biotern-primary-rgb, var(--bs-primary-rgb)), 0.2);
+  --biotern-backdrop-fade-glow: rgba(var(--biotern-primary-rgb, var(--bs-primary-rgb)), 0.45);
+
+  --ph-actions-panel-bg: var(--biotern-backdrop-surface);
+  --ph-actions-panel-border: var(--biotern-backdrop-border);
+  --ph-actions-panel-shadow: var(--biotern-backdrop-shadow);
   --ph-actions-item-bg: rgba(255, 255, 255, 0.06);
   --ph-actions-item-bg-hover: rgba(255, 255, 255, 0.12);
   --ph-actions-item-text: #f8fafc;
@@ -14,10 +25,22 @@ body {
   --ph-actions-item-primary-text: #ffffff;
 }
 
+html.app-skin-dark body {
+  --biotern-backdrop-surface: rgba(21, 24, 30, 0.92);
+  --biotern-backdrop-surface-muted: rgba(27, 31, 37, 0.9);
+  --biotern-backdrop-border: rgba(255, 255, 255, 0.08);
+  --biotern-backdrop-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
 body[data-page-header-action-skin="light"] {
-  --ph-actions-panel-bg: rgba(255, 255, 255, 0.96);
-  --ph-actions-panel-border: rgba(15, 23, 42, 0.12);
-  --ph-actions-panel-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+  --biotern-backdrop-surface: rgba(255, 255, 255, 0.96);
+  --biotern-backdrop-surface-muted: rgba(248, 250, 252, 0.9);
+  --biotern-backdrop-border: rgba(15, 23, 42, 0.12);
+  --biotern-backdrop-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+
+  --ph-actions-panel-bg: var(--biotern-backdrop-surface);
+  --ph-actions-panel-border: var(--biotern-backdrop-border);
+  --ph-actions-panel-shadow: var(--biotern-backdrop-shadow);
   --ph-actions-item-bg: rgba(15, 23, 42, 0.05);
   --ph-actions-item-bg-hover: rgba(15, 23, 42, 0.1);
   --ph-actions-item-text: #0f172a;
@@ -31,14 +54,39 @@ body[data-page-header-action-tone="gray"] {
 }
 
 body[data-page-header-action-tone="gray"][data-page-header-action-skin="dark"] {
-  --ph-actions-panel-bg: rgba(24, 27, 31, 0.92);
-  --ph-actions-panel-border: rgba(255, 255, 255, 0.1);
+  --biotern-backdrop-surface: rgba(24, 27, 31, 0.92);
+  --biotern-backdrop-surface-muted: rgba(29, 33, 38, 0.9);
+  --biotern-backdrop-border: rgba(255, 255, 255, 0.1);
+
+  --ph-actions-panel-bg: var(--biotern-backdrop-surface);
+  --ph-actions-panel-border: var(--biotern-backdrop-border);
+}
+
+/* Reusable backdrop component classes for glass and fade accents. */
+.biotern-backdrop-glass {
+  background: var(--biotern-backdrop-surface);
+  border: 1px solid var(--biotern-backdrop-border);
+  box-shadow: var(--biotern-backdrop-shadow);
+  backdrop-filter: blur(var(--biotern-backdrop-blur));
+  -webkit-backdrop-filter: blur(var(--biotern-backdrop-blur));
+}
+
+.biotern-backdrop-fade {
+  background: linear-gradient(
+    90deg,
+    var(--biotern-backdrop-fade-from),
+    var(--biotern-backdrop-fade-via),
+    var(--biotern-backdrop-fade-to)
+  );
+  box-shadow: 0 0 18px var(--biotern-backdrop-fade-glow);
 }
 
 body .page-header .page-header-actions .dashboard-actions-panel {
   background: var(--ph-actions-panel-bg) !important;
   border-color: var(--ph-actions-panel-border) !important;
   box-shadow: var(--ph-actions-panel-shadow) !important;
+  backdrop-filter: blur(var(--biotern-backdrop-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--biotern-backdrop-blur)) !important;
 }
 
 body .page-header .page-header-actions .dashboard-actions-grid .action-tile {

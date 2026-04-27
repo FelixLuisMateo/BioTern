@@ -188,6 +188,44 @@ body.companies-page #linkStudentModal .modal-footer {
     z-index: 2;
 }
 
+body.companies-page .modal {
+    --bs-modal-zindex: 1085;
+    z-index: var(--bs-modal-zindex) !important;
+}
+
+body.companies-page .modal-backdrop {
+    --bs-backdrop-zindex: 1080;
+    --bs-backdrop-bg: #2b3139;
+    --bs-backdrop-opacity: 0.64;
+    background-color: var(--bs-backdrop-bg);
+    z-index: var(--bs-backdrop-zindex) !important;
+}
+
+html.app-skin-dark body.companies-page .modal-backdrop {
+    --bs-backdrop-bg: #141a22;
+    --bs-backdrop-opacity: 0.76;
+}
+
+body.companies-page .modal.show .modal-dialog {
+    margin-top: max(5.75rem, calc(var(--bs-modal-margin) + 5rem));
+}
+
+body.companies-page .modal.show .modal-dialog.modal-dialog-centered {
+    align-items: flex-start;
+}
+
+body.companies-page.modal-open .nxl-header,
+body.companies-page.modal-open .page-header,
+body.companies-page.modal-open .nxl-navigation {
+    z-index: 1030 !important;
+}
+
+@media (max-width: 991.98px) {
+    body.companies-page .modal.show .modal-dialog {
+        margin-top: max(4.75rem, calc(var(--bs-modal-margin) + 4rem));
+    }
+}
+
 body.companies-page .companies-list-panel {
     overflow: hidden;
 }
@@ -380,7 +418,7 @@ body.companies-page .companies-link-student-table tbody tr {
 
 body.companies-page .companies-link-student-table tbody tr.is-selected,
 body.companies-page .companies-link-student-table tbody tr:hover {
-    background: rgba(239, 246, 255, 0.72);
+    background: color-mix(in srgb, var(--biotern-surface-muted, var(--bs-tertiary-bg)) 82%, var(--biotern-border, var(--bs-border-color)) 18%);
 }
 
 body.companies-page .companies-intern-item {

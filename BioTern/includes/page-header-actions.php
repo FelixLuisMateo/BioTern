@@ -41,7 +41,7 @@ if (!function_exists('biotern_render_page_header_actions')) {
                 <span><?php echo htmlspecialchars($toggleLabel, ENT_QUOTES, 'UTF-8'); ?></span>
             </button>
             <div class="<?php echo htmlspecialchars($panelClass, ENT_QUOTES, 'UTF-8'); ?>" id="<?php echo htmlspecialchars($menuId, ENT_QUOTES, 'UTF-8'); ?>">
-                <div class="dashboard-actions-panel">
+                <div class="dashboard-actions-panel biotern-backdrop-glass">
                     <?php if ($showMeta): ?>
                         <div class="dashboard-actions-meta">
                             <span class="text-muted fs-12"><?php echo htmlspecialchars($metaLabel, ENT_QUOTES, 'UTF-8'); ?></span>
