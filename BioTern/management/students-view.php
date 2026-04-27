@@ -379,6 +379,12 @@ $internal_remaining_hours_effective = $stored_internal_remaining !== null
 $external_remaining_hours_effective = $stored_external_remaining !== null
     ? max(0, $stored_external_remaining)
     : $external_remaining_hours_live;
+if ($internal_hours_rendered > 0) {
+    $internal_remaining_hours_effective = $internal_remaining_hours_live;
+}
+if ($external_hours_rendered > 0) {
+    $external_remaining_hours_effective = $external_remaining_hours_live;
+}
 if ($internal_hours_rendered <= 0 && $stored_internal_remaining !== null && $stored_internal_remaining <= 0) {
     $internal_remaining_hours_effective = $internal_total_hours;
 }

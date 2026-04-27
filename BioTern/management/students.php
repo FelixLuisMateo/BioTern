@@ -289,10 +289,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
         }
 
         $studentStmt = $db->prepare("
-            SELECT id, course_id, first_name, last_name, supervisor_name, coordinator_name,
+            SELECT s.id, s.course_id,
+                   COALESCE(i.department_id, s.department_id) AS department_id,
+                   COALESCE(i.supervisor_id, s.supervisor_id) AS supervisor_id,
+                   COALESCE(i.coordinator_id, s.coordinator_id) AS coordinator_id,
+                   first_name, last_name, supervisor_name, coordinator_name,
                    internal_total_hours, external_total_hours
-            FROM students
-            WHERE id = ?
+            FROM students s
+            LEFT JOIN internships i ON i.id = (
+                SELECT i2.id
+                FROM internships i2
+                WHERE i2.student_id = s.id
+                ORDER BY (i2.status = 'ongoing') DESC, i2.id DESC
+                LIMIT 1
+            )
+            WHERE s.id = ?
             LIMIT 1
         ");
         $studentRow = null;
@@ -306,6 +317,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
         if (!$studentRow) {
             $_SESSION['students_flash'] = ['type' => 'danger', 'message' => 'Student record not found.'];
             biotern_students_redirect_self();
+        }
+
+        if ($departmentId <= 0) {
+            $departmentId = (int)($studentRow['department_id'] ?? 0);
+        }
+        if ($supervisorProfileId <= 0) {
+            $supervisorProfileId = (int)($studentRow['supervisor_id'] ?? 0);
         }
 
         $supervisorProfile = null;
@@ -323,9 +341,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
         $courseId = (int)($studentRow['course_id'] ?? 0);
         $coordinatorInfo = $coordinatorCourseMap[$courseId] ?? ['user_id' => 0, 'profile_id' => 0, 'name' => trim((string)($studentRow['coordinator_name'] ?? ''))];
         $supervisorName = trim((string)($supervisorProfile['supervisor_name'] ?? ''));
-        $supervisorUserId = (int)($supervisorProfile['user_id'] ?? 0);
         $coordinatorName = trim((string)($coordinatorInfo['name'] ?? ''));
-        $coordinatorUserId = (int)($coordinatorInfo['user_id'] ?? 0);
         $coordinatorProfileId = (int)($coordinatorInfo['profile_id'] ?? 0);
         $requiredHours = $assignmentTrack === 'external'
             ? (int)($studentRow['external_total_hours'] ?? 0)
@@ -430,12 +446,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                 if (isset($internshipColumns['supervisor_id'])) {
                     $internshipSets[] = 'supervisor_id = NULLIF(?, 0)';
                     $internshipTypes .= 'i';
-                    $internshipValues[] = $supervisorUserId;
+                    $internshipValues[] = $supervisorProfileId;
                 }
                 if (isset($internshipColumns['coordinator_id'])) {
                     $internshipSets[] = 'coordinator_id = NULLIF(?, 0)';
                     $internshipTypes .= 'i';
-                    $internshipValues[] = $coordinatorUserId;
+                    $internshipValues[] = $coordinatorProfileId;
                 }
                 if (isset($internshipColumns['start_date'])) {
                     $internshipSets[] = 'start_date = ?';
@@ -488,13 +504,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                     $insertColumns[] = 'coordinator_id';
                     $insertPlaceholders[] = 'NULLIF(?, 0)';
                     $insertTypes .= 'i';
-                    $insertValues[] = $coordinatorUserId;
+                    $insertValues[] = $coordinatorProfileId;
                 }
                 if (isset($internshipColumns['supervisor_id'])) {
                     $insertColumns[] = 'supervisor_id';
                     $insertPlaceholders[] = 'NULLIF(?, 0)';
                     $insertTypes .= 'i';
-                    $insertValues[] = $supervisorUserId;
+                    $insertValues[] = $supervisorProfileId;
                 }
                 if (isset($internshipColumns['type'])) {
                     $insertColumns[] = 'type';
