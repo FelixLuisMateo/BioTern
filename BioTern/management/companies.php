@@ -582,6 +582,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
     if ($returnSchoolYear !== '') {
         $redirectParams['school_year'] = $returnSchoolYear;
     }
+    $returnSemester = trim((string)($_POST['return_semester'] ?? ''));
+    if ($returnSemester !== '') {
+        $redirectParams['semester'] = $returnSemester;
+    }
     if ($returnLocation !== '') {
         $redirectParams['location'] = $returnLocation;
     }
@@ -600,6 +604,7 @@ $search = trim((string)($_GET['q'] ?? ''));
 $sort = strtolower(trim((string)($_GET['sort'] ?? 'updated')));
 $selectedCompanyParam = trim((string)($_GET['company'] ?? ''));
 $filterSchoolYear = trim((string)($_GET['school_year'] ?? ''));
+$filterSemester = trim((string)($_GET['semester'] ?? ''));
 $filterLocation = trim((string)($_GET['location'] ?? ''));
 $filterCourseId = (int)($_GET['course_id'] ?? 0);
 $filterSectionId = (int)($_GET['section_id'] ?? 0);
@@ -667,6 +672,7 @@ $companyInternshipsByKey = [];
 $courseFilterOptions = [];
 $sectionFilterOptions = [];
 $schoolYearFilterOptions = [];
+$semesterFilterOptions = [];
 $locationFilterOptions = [];
 $studentLinkOptions = [];
 
@@ -684,6 +690,7 @@ if ($internshipsTableReady) {
             s.section_id,
             COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'internal') AS assignment_track,
             COALESCE(NULLIF(TRIM(s.school_year), ''), NULLIF(TRIM(i.school_year), ''), '') AS school_year,
+            COALESCE(NULLIF(TRIM(s.semester), ''), NULLIF(TRIM(i.semester), ''), '') AS semester,
             COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
             COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '') AS section_code,
             COALESCE(sec.name, '') AS section_name,
@@ -791,6 +798,10 @@ if ($internshipsTableReady) {
             if ($schoolYear !== '') {
                 $schoolYearFilterOptions[$schoolYear] = $schoolYear;
             }
+            $semester = trim((string)($row['semester'] ?? ''));
+            if ($semester !== '') {
+                $semesterFilterOptions[$semester] = $semester;
+            }
         }
     }
 
@@ -803,6 +814,9 @@ if ($internshipsTableReady) {
             s.last_name,
             s.assignment_track,
             s.school_year,
+            s.semester,
+            s.course_id,
+            s.section_id,
             c.name AS course_name,
             sec.code AS section_code,
             sec.name AS section_name,
@@ -846,15 +860,19 @@ foreach ($companyMap as $companyOptionRow) {
 ksort($courseFilterOptions, SORT_NATURAL | SORT_FLAG_CASE);
 asort($sectionFilterOptions, SORT_NATURAL | SORT_FLAG_CASE);
 krsort($schoolYearFilterOptions, SORT_NATURAL);
+asort($semesterFilterOptions, SORT_NATURAL | SORT_FLAG_CASE);
 asort($locationFilterOptions, SORT_NATURAL | SORT_FLAG_CASE);
 
-$hasStudentFilters = $filterSchoolYear !== '' || $filterCourseId > 0 || $filterSectionId > 0;
+$hasStudentFilters = $filterSchoolYear !== '' || $filterSemester !== '' || $filterCourseId > 0 || $filterSectionId > 0;
 $companies = [];
 foreach ($companyMap as $key => $company) {
     $companyRows = $companyInternshipsByKey[$key] ?? [];
     $companyLocation = company_extract_location_label((string)($company['company_address'] ?? ''));
-    $filteredRows = array_values(array_filter($companyRows, static function (array $row) use ($filterSchoolYear, $filterCourseId, $filterSectionId): bool {
+    $filteredRows = array_values(array_filter($companyRows, static function (array $row) use ($filterSchoolYear, $filterSemester, $filterCourseId, $filterSectionId): bool {
         if ($filterSchoolYear !== '' && trim((string)($row['school_year'] ?? '')) !== $filterSchoolYear) {
+            return false;
+        }
+        if ($filterSemester !== '' && trim((string)($row['semester'] ?? '')) !== $filterSemester) {
             return false;
         }
         if ($filterCourseId > 0 && (int)($row['course_id'] ?? 0) !== $filterCourseId) {
@@ -975,6 +993,7 @@ $page_title = 'Companies';
 $page_body_class = 'companies-page' . ($printTarget !== '' ? (' companies-print-' . $printTarget) : '');
 $page_styles = [
     'assets/css/modules/management/management-companies.css',
+    'assets/css/modules/management/management-students.css',
 ];
 include 'includes/header.php';
 ?>
@@ -995,6 +1014,7 @@ include 'includes/header.php';
                 <form method="get" class="companies-toolbar companies-page-header-toolbar" action="companies.php">
                     <input type="hidden" name="company" value="<?php echo h($selectedCompanyKey); ?>">
                     <input type="hidden" name="school_year" value="<?php echo h($filterSchoolYear); ?>">
+                    <input type="hidden" name="semester" value="<?php echo h($filterSemester); ?>">
                     <input type="hidden" name="location" value="<?php echo h($filterLocation); ?>">
                     <input type="hidden" name="course_id" value="<?php echo (int)$filterCourseId; ?>">
                     <input type="hidden" name="section_id" value="<?php echo (int)$filterSectionId; ?>">
@@ -1017,6 +1037,7 @@ include 'includes/header.php';
                     'sort' => $sort,
                     'company' => $selectedCompanyKey,
                     'school_year' => $filterSchoolYear,
+                    'semester' => $filterSemester,
                     'location' => $filterLocation,
                     'course_id' => $filterCourseId > 0 ? $filterCourseId : null,
                     'section_id' => $filterSectionId > 0 ? $filterSectionId : null,
@@ -1055,7 +1076,7 @@ include 'includes/header.php';
                 <div class="companies-filter-head">
                     <div>
                         <h6 class="mb-1">Student And Location Filters</h6>
-                        <p class="mb-0">Filter the company list and assigned students by school year, location, course, and section. Print uses the same filtered results.</p>
+                        <p class="mb-0">Filter the company list and assigned students by school year, semester, location, course, and section. Print uses the same filtered results.</p>
                     </div>
                     <div class="companies-filter-actions">
                         <button type="submit" class="btn btn-primary btn-sm">Apply Filters</button>
@@ -1074,6 +1095,17 @@ include 'includes/header.php';
                             <?php foreach ($schoolYearFilterOptions as $schoolYearOption): ?>
                                 <option value="<?php echo h($schoolYearOption); ?>" <?php echo $filterSchoolYear === $schoolYearOption ? 'selected' : ''; ?>>
                                     <?php echo h($schoolYearOption); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <label class="form-label" for="companiesFilterSemester">Semester</label>
+                        <select class="form-select" id="companiesFilterSemester" name="semester">
+                            <option value="">All semesters</option>
+                            <?php foreach ($semesterFilterOptions as $semesterOption): ?>
+                                <option value="<?php echo h($semesterOption); ?>" <?php echo $filterSemester === $semesterOption ? 'selected' : ''; ?>>
+                                    <?php echo h($semesterOption); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -1366,6 +1398,7 @@ include 'includes/header.php';
                 <input type="hidden" name="return_q" value="<?php echo h($search); ?>">
                 <input type="hidden" name="return_sort" value="<?php echo h($sort); ?>">
                 <input type="hidden" name="return_school_year" value="<?php echo h($filterSchoolYear); ?>">
+                <input type="hidden" name="return_semester" value="<?php echo h($filterSemester); ?>">
                 <input type="hidden" name="return_location" value="<?php echo h($filterLocation); ?>">
                 <input type="hidden" name="return_course_id" value="<?php echo (int)$filterCourseId; ?>">
                 <input type="hidden" name="return_section_id" value="<?php echo (int)$filterSectionId; ?>">
@@ -1434,6 +1467,7 @@ include 'includes/header.php';
                 <input type="hidden" name="return_q" value="<?php echo h($search); ?>">
                 <input type="hidden" name="return_sort" value="<?php echo h($sort); ?>">
                 <input type="hidden" name="return_school_year" value="<?php echo h($filterSchoolYear); ?>">
+                <input type="hidden" name="return_semester" value="<?php echo h($filterSemester); ?>">
                 <input type="hidden" name="return_location" value="<?php echo h($filterLocation); ?>">
                 <input type="hidden" name="return_course_id" value="<?php echo (int)$filterCourseId; ?>">
                 <input type="hidden" name="return_section_id" value="<?php echo (int)$filterSectionId; ?>">
@@ -1579,7 +1613,7 @@ include 'includes/header.php';
 </div>
 
 <div class="modal fade" id="linkStudentModal" tabindex="-1" aria-labelledby="linkStudentModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content companies-modal">
             <form method="post" action="companies.php">
                 <input type="hidden" name="action" value="link_company_student">
@@ -1589,6 +1623,7 @@ include 'includes/header.php';
                 <input type="hidden" name="return_q" value="<?php echo h($search); ?>">
                 <input type="hidden" name="return_sort" value="<?php echo h($sort); ?>">
                 <input type="hidden" name="return_school_year" value="<?php echo h($filterSchoolYear); ?>">
+                <input type="hidden" name="return_semester" value="<?php echo h($filterSemester); ?>">
                 <input type="hidden" name="return_location" value="<?php echo h($filterLocation); ?>">
                 <input type="hidden" name="return_course_id" value="<?php echo (int)$filterCourseId; ?>">
                 <input type="hidden" name="return_section_id" value="<?php echo (int)$filterSectionId; ?>">
@@ -1600,33 +1635,91 @@ include 'includes/header.php';
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label fw-semibold" for="link_student_id">Student</label>
-                            <select class="form-select" id="link_student_id" name="student_id" required>
-                                <option value="">Select a student</option>
-                                <?php foreach ($studentLinkOptions as $studentOption): ?>
-                                    <?php
-                                    $studentOptionTrack = company_track_label((string)($studentOption['assignment_track'] ?? 'internal'));
-                                    $studentOptionSection = trim((string)($studentOption['section_label'] ?? ''));
-                                    $studentOptionYear = trim((string)($studentOption['school_year'] ?? ''));
-                                    $studentOptionCurrentCompany = trim((string)($studentOption['current_company_name'] ?? ''));
-                                    $studentOptionLabel = trim(implode(' | ', array_filter([
-                                        trim((string)($studentOption['last_name'] ?? '') . ', ' . (string)($studentOption['first_name'] ?? '') . ' ' . (string)($studentOption['middle_name'] ?? '')),
-                                        trim((string)($studentOption['student_id'] ?? '')),
-                                        trim((string)($studentOption['course_name'] ?? '')),
-                                        $studentOptionSection,
-                                        $studentOptionTrack,
-                                        $studentOptionYear,
-                                        $studentOptionCurrentCompany !== '' ? ('Current: ' . $studentOptionCurrentCompany) : 'No company yet',
-                                    ])));
-                                    ?>
-                                    <option value="<?php echo (int)($studentOption['id'] ?? 0); ?>">
-                                        <?php echo h($studentOptionLabel); ?>
-                                    </option>
+                    <input type="hidden" name="student_id" id="linkStudentSelectedId" value="">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12 col-md-3">
+                            <label class="form-label fw-semibold" for="linkStudentSearch">Search</label>
+                            <input type="search" class="form-control" id="linkStudentSearch" placeholder="Student no, name">
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label fw-semibold" for="linkStudentSchoolYearFilter">School Year</label>
+                            <select class="form-select" id="linkStudentSchoolYearFilter">
+                                <option value="">All school years</option>
+                                <?php foreach ($schoolYearFilterOptions as $schoolYearOption): ?>
+                                    <option value="<?php echo h($schoolYearOption); ?>"><?php echo h($schoolYearOption); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        <div class="col-12 col-md-2">
+                            <label class="form-label fw-semibold" for="linkStudentSemesterFilter">Semester</label>
+                            <select class="form-select" id="linkStudentSemesterFilter">
+                                <option value="">All semesters</option>
+                                <?php foreach ($semesterFilterOptions as $semesterOption): ?>
+                                    <option value="<?php echo h($semesterOption); ?>"><?php echo h($semesterOption); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <label class="form-label fw-semibold" for="linkStudentCourseFilter">Course</label>
+                            <select class="form-select" id="linkStudentCourseFilter">
+                                <option value="">All courses</option>
+                                <?php foreach ($courseFilterOptions as $courseIdOption => $courseNameOption): ?>
+                                    <option value="<?php echo (int)$courseIdOption; ?>"><?php echo h($courseNameOption); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <label class="form-label fw-semibold" for="linkStudentSectionFilter">Section</label>
+                            <select class="form-select" id="linkStudentSectionFilter">
+                                <option value="">All sections</option>
+                                <?php foreach ($sectionFilterOptions as $sectionIdOption => $sectionLabelOption): ?>
+                                    <option value="<?php echo (int)$sectionIdOption; ?>"><?php echo h($sectionLabelOption); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-responsive companies-link-student-table-wrap">
+                        <table class="table table-hover align-middle mb-0 companies-link-student-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Student No</th>
+                                    <th>Name</th>
+                                    <th>Course / Section</th>
+                                    <th>Track</th>
+                                    <th>School Year</th>
+                                    <th>Semester</th>
+                                    <th>Current Company</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($studentLinkOptions as $studentOption): ?>
+                                    <tr
+                                        data-link-student-row
+                                        data-student-id="<?php echo (int)($studentOption['id'] ?? 0); ?>"
+                                        data-search="<?php echo h(strtolower(trim((string)($studentOption['student_id'] ?? '') . ' ' . (string)($studentOption['first_name'] ?? '') . ' ' . (string)($studentOption['middle_name'] ?? '') . ' ' . (string)($studentOption['last_name'] ?? '') . ' ' . (string)($studentOption['course_name'] ?? '') . ' ' . (string)($studentOption['section_label'] ?? '')))); ?>"
+                                        data-school-year="<?php echo h((string)($studentOption['school_year'] ?? '')); ?>"
+                                        data-semester="<?php echo h((string)($studentOption['semester'] ?? '')); ?>"
+                                        data-course-id="<?php echo (int)($studentOption['course_id'] ?? 0); ?>"
+                                        data-section-id="<?php echo (int)($studentOption['section_id'] ?? 0); ?>"
+                                    >
+                                        <td>
+                                            <input class="form-check-input" type="radio" name="link_student_pick" value="<?php echo (int)($studentOption['id'] ?? 0); ?>">
+                                        </td>
+                                        <td><?php echo h((string)($studentOption['student_id'] ?? '-')); ?></td>
+                                        <td><?php echo h(trim((string)($studentOption['last_name'] ?? '') . ', ' . (string)($studentOption['first_name'] ?? '') . ' ' . (string)($studentOption['middle_name'] ?? ''))); ?></td>
+                                        <td>
+                                            <div><?php echo h((string)($studentOption['course_name'] ?? '-')); ?></div>
+                                            <small class="text-muted"><?php echo h((string)($studentOption['section_label'] ?? '-')); ?></small>
+                                        </td>
+                                        <td><?php echo h(company_track_label((string)($studentOption['assignment_track'] ?? 'internal'))); ?></td>
+                                        <td><?php echo h(trim((string)($studentOption['school_year'] ?? '')) !== '' ? (string)$studentOption['school_year'] : '-'); ?></td>
+                                        <td><?php echo h(trim((string)($studentOption['semester'] ?? '')) !== '' ? (string)$studentOption['semester'] : '-'); ?></td>
+                                        <td><?php echo h(trim((string)($studentOption['current_company_name'] ?? '')) !== '' ? (string)$studentOption['current_company_name'] : 'No company yet'); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -1639,80 +1732,80 @@ include 'includes/header.php';
 </div>
 <?php endif; ?>
 
-<section class="companies-print-sheet companies-print-sheet--companies" aria-hidden="true">
-    <div class="companies-print-header">
-        <h2>Company Directory</h2>
-        <p>Generated on <?php echo h(date('F d, Y h:i A')); ?></p>
-        <p>
-            Search: <?php echo h($search !== '' ? $search : 'All'); ?> |
-            School Year: <?php echo h($filterSchoolYear !== '' ? $filterSchoolYear : 'All'); ?> |
-            Location: <?php echo h($filterLocation !== '' ? $filterLocation : 'All'); ?> |
-            Course: <?php echo h($filterCourseId > 0 && isset($courseFilterOptions[$filterCourseId]) ? $courseFilterOptions[$filterCourseId] : 'All'); ?> |
-            Section: <?php echo h($filterSectionId > 0 && isset($sectionFilterOptions[$filterSectionId]) ? $sectionFilterOptions[$filterSectionId] : 'All'); ?>
-        </p>
+<section class="student-list-print-sheet app-students-print-sheet companies-print-sheet companies-print-sheet--companies" aria-hidden="true">
+    <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
+    <div class="header">
+        <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+        <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
+        <div class="tel">Telefax No.: (045) 624-0215</div>
     </div>
-    <div class="companies-print-grid">
-        <?php foreach ($companies as $company): ?>
-            <article class="companies-print-card">
-                <h3><?php echo h(company_display_name((string)($company['company_name'] ?? ''))); ?></h3>
-                <p><strong>Address:</strong> <?php echo h(trim((string)($company['company_address'] ?? '')) !== '' ? (string)$company['company_address'] : 'Not provided'); ?></p>
-                <p><strong>Location:</strong> <?php echo h(trim((string)($company['location_label'] ?? '')) !== '' ? (string)$company['location_label'] : 'Not detected'); ?></p>
-                <p><strong>Representative:</strong> <?php echo h(trim((string)($company['company_representative'] ?? '')) !== '' ? (string)$company['company_representative'] : 'Not provided'); ?></p>
-                <p><strong>Representative Position:</strong> <?php echo h(trim((string)($company['company_representative_position'] ?? '')) !== '' ? (string)$company['company_representative_position'] : 'Not provided'); ?></p>
-                <p><strong>Supervisor:</strong> <?php echo h(trim((string)($company['supervisor_name'] ?? '')) !== '' ? (string)$company['supervisor_name'] : 'Not provided'); ?></p>
-                <p><strong>Supervisor Position:</strong> <?php echo h(trim((string)($company['supervisor_position'] ?? '')) !== '' ? (string)$company['supervisor_position'] : 'Not provided'); ?></p>
-                <p><strong>Students in current filter:</strong> <?php echo (int)($company['intern_count'] ?? 0); ?></p>
-                <p><strong>Ongoing in current filter:</strong> <?php echo (int)($company['ongoing_count'] ?? 0); ?></p>
-            </article>
-        <?php endforeach; ?>
-    </div>
+    <div class="print-title">COMPANY DIRECTORY LIST</div>
+    <div class="print-meta"><strong>FILTER:</strong> <?php echo h(($filterSchoolYear !== '' ? $filterSchoolYear : 'All School Years') . ' / ' . ($filterSemester !== '' ? $filterSemester : 'All Semesters') . ' / ' . ($filterLocation !== '' ? $filterLocation : 'All Locations')); ?></div>
+    <table>
+        <thead>
+            <tr>
+                <th class="col-index">#</th>
+                <th>COMPANY</th>
+                <th>ADDRESS</th>
+                <th>REPRESENTATIVE</th>
+                <th>SUPERVISOR</th>
+                <th>STUDENTS</th>
+                <th>ONGOING</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($companies as $index => $company): ?>
+                <tr>
+                    <td class="col-index"><?php echo (int)$index + 1; ?></td>
+                    <td><?php echo h(company_display_name((string)($company['company_name'] ?? ''))); ?></td>
+                    <td><?php echo h(trim((string)($company['company_address'] ?? '')) !== '' ? (string)$company['company_address'] : 'Not provided'); ?></td>
+                    <td><?php echo h(trim((string)($company['company_representative'] ?? '')) !== '' ? (string)$company['company_representative'] : 'Not provided'); ?></td>
+                    <td><?php echo h(trim((string)($company['supervisor_name'] ?? '')) !== '' ? (string)$company['supervisor_name'] : 'Not provided'); ?></td>
+                    <td><?php echo (int)($company['intern_count'] ?? 0); ?></td>
+                    <td><?php echo (int)($company['ongoing_count'] ?? 0); ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
 </section>
 
 <?php if ($selectedCompany !== null): ?>
-<section class="companies-print-sheet companies-print-sheet--students" aria-hidden="true">
-    <div class="companies-print-header">
-        <h2><?php echo h(company_display_name((string)($selectedCompany['company_name'] ?? ''))); ?> - Student List</h2>
-        <p><?php echo h(trim((string)($selectedCompany['company_address'] ?? '')) !== '' ? (string)$selectedCompany['company_address'] : 'No address saved'); ?></p>
-        <p>
-            School Year: <?php echo h($filterSchoolYear !== '' ? $filterSchoolYear : 'All'); ?> |
-            Location: <?php echo h($filterLocation !== '' ? $filterLocation : 'All'); ?> |
-            Course: <?php echo h($filterCourseId > 0 && isset($courseFilterOptions[$filterCourseId]) ? $courseFilterOptions[$filterCourseId] : 'All'); ?> |
-            Section: <?php echo h($filterSectionId > 0 && isset($sectionFilterOptions[$filterSectionId]) ? $sectionFilterOptions[$filterSectionId] : 'All'); ?>
-        </p>
+<section class="student-list-print-sheet app-students-print-sheet companies-print-sheet companies-print-sheet--students" aria-hidden="true">
+    <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
+    <div class="header">
+        <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+        <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
+        <div class="tel">Telefax No.: (045) 624-0215</div>
     </div>
-    <table class="companies-print-table">
+    <div class="print-title">COMPANY STUDENT LIST</div>
+    <div class="print-meta"><strong>SECTION:</strong> <?php echo h(company_display_name((string)($selectedCompany['company_name'] ?? ''))); ?></div>
+    <div class="print-meta"><strong>ADVISER:</strong> <?php echo h(trim((string)($selectedCompany['supervisor_name'] ?? '')) !== '' ? (string)$selectedCompany['supervisor_name'] : 'Not provided'); ?></div>
+    <table>
         <thead>
             <tr>
-                <th>#</th>
-                <th>Student</th>
-                <th>Student ID</th>
-                <th>Course</th>
-                <th>Section</th>
-                <th>School Year</th>
-                <th>Track</th>
-                <th>Status</th>
-                <th>Position</th>
-                <th>Hours</th>
+                <th class="col-index">#</th>
+                <th>STUDENT NO.</th>
+                <th>LAST NAME</th>
+                <th>FIRST NAME</th>
+                <th>MIDDLE NAME</th>
+                <th>REMARKS</th>
             </tr>
         </thead>
         <tbody>
             <?php if ($companyInterns === []): ?>
                 <tr>
-                    <td colspan="10">No students matched the current filter for this company.</td>
+                    <td class="col-index">1</td>
+                    <td colspan="5">No students matched the current filter for this company.</td>
                 </tr>
             <?php else: ?>
                 <?php foreach ($companyInterns as $index => $intern): ?>
                     <tr>
-                        <td><?php echo (int)$index + 1; ?></td>
-                        <td><?php echo h((string)($intern['display_name'] ?? '')); ?></td>
+                        <td class="col-index"><?php echo (int)$index + 1; ?></td>
                         <td><?php echo h((string)($intern['student_id'] ?? '')); ?></td>
-                        <td><?php echo h((string)($intern['course_name'] ?? '-')); ?></td>
-                        <td><?php echo h((string)($intern['section_label'] ?? '-')); ?></td>
-                        <td><?php echo h(trim((string)($intern['school_year'] ?? '')) !== '' ? (string)$intern['school_year'] : '-'); ?></td>
-                        <td><?php echo h(company_track_label((string)($intern['assignment_track'] ?? 'internal'))); ?></td>
+                        <td><?php echo h((string)($intern['last_name'] ?? '')); ?></td>
+                        <td><?php echo h((string)($intern['first_name'] ?? '')); ?></td>
+                        <td><?php echo h((string)($intern['middle_name'] ?? '')); ?></td>
                         <td><?php echo h(ucfirst((string)($intern['internship_status'] ?? 'Unknown'))); ?></td>
-                        <td><?php echo h(trim((string)($intern['position'] ?? '')) !== '' ? (string)$intern['position'] : 'Position pending'); ?></td>
-                        <td><?php echo (int)($intern['rendered_hours'] ?? 0); ?> / <?php echo (int)($intern['required_hours'] ?? 0); ?></td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
@@ -1720,6 +1813,64 @@ include 'includes/header.php';
     </table>
 </section>
 <?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var selectedInput = document.getElementById('linkStudentSelectedId');
+    var searchInput = document.getElementById('linkStudentSearch');
+    var schoolYearFilter = document.getElementById('linkStudentSchoolYearFilter');
+    var semesterFilter = document.getElementById('linkStudentSemesterFilter');
+    var courseFilter = document.getElementById('linkStudentCourseFilter');
+    var sectionFilter = document.getElementById('linkStudentSectionFilter');
+    var rows = Array.prototype.slice.call(document.querySelectorAll('[data-link-student-row]'));
+
+    function applyStudentLinkFilters() {
+        var search = (searchInput && searchInput.value ? searchInput.value : '').toLowerCase().trim();
+        var schoolYear = schoolYearFilter ? schoolYearFilter.value.trim() : '';
+        var semester = semesterFilter ? semesterFilter.value.trim() : '';
+        var courseId = courseFilter ? courseFilter.value.trim() : '';
+        var sectionId = sectionFilter ? sectionFilter.value.trim() : '';
+        rows.forEach(function (row) {
+            var matches = true;
+            var haystack = (row.getAttribute('data-search') || '').toLowerCase();
+            if (search !== '' && haystack.indexOf(search) === -1) matches = false;
+            if (schoolYear !== '' && (row.getAttribute('data-school-year') || '') !== schoolYear) matches = false;
+            if (semester !== '' && (row.getAttribute('data-semester') || '') !== semester) matches = false;
+            if (courseId !== '' && (row.getAttribute('data-course-id') || '') !== courseId) matches = false;
+            if (sectionId !== '' && (row.getAttribute('data-section-id') || '') !== sectionId) matches = false;
+            row.style.display = matches ? '' : 'none';
+        });
+    }
+
+    function selectStudentRow(row) {
+        if (!selectedInput || !row) return;
+        var studentId = row.getAttribute('data-student-id') || '';
+        selectedInput.value = studentId;
+        rows.forEach(function (item) {
+            item.classList.toggle('is-selected', item === row);
+            var radio = item.querySelector('input[type="radio"]');
+            if (radio) radio.checked = item === row;
+        });
+    }
+
+    rows.forEach(function (row) {
+        row.addEventListener('click', function (event) {
+            if (event.target && event.target.closest('input, button, a, select, label')) {
+                if (event.target.matches('input[type="radio"]')) {
+                    selectStudentRow(row);
+                }
+                return;
+            }
+            selectStudentRow(row);
+        });
+    });
+
+    [searchInput, schoolYearFilter, semesterFilter, courseFilter, sectionFilter].forEach(function (input) {
+        if (input) input.addEventListener('input', applyStudentLinkFilters);
+        if (input) input.addEventListener('change', applyStudentLinkFilters);
+    });
+});
+</script>
 
 <?php
 include 'includes/footer.php';

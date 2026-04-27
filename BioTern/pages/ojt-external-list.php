@@ -56,7 +56,10 @@ $conn->query("UPDATE ojt_external oe
 
 $filterCourseId = (int)($_GET['course_id'] ?? 0);
 $filterSectionId = (int)($_GET['section_id'] ?? 0);
+$filterSchoolYear = trim((string)($_GET['school_year'] ?? ''));
+$filterSemester = trim((string)($_GET['semester'] ?? ''));
 $search = trim((string)($_GET['search'] ?? ''));
+$semesterOptions = ['1st Semester', '2nd Semester', 'Summer'];
 
 $courses = [];
 $courseRes = $conn->query('SELECT id, name FROM courses ORDER BY name ASC');
@@ -77,29 +80,7 @@ if ($sectionRes instanceof mysqli_result) {
     $sectionRes->close();
 }
 
-$where = [];
-if ($filterCourseId > 0) {
-    $where[] = 'COALESCE(oe.course_id, s.course_id, 0) = ' . (int)$filterCourseId;
-}
-if ($filterSectionId > 0) {
-    $where[] = 'COALESCE(oe.section_id, s.section_id, 0) = ' . (int)$filterSectionId;
-}
-if ($search !== '') {
-    $safe = $conn->real_escape_string($search);
-    $like = "'%" . $safe . "%'";
-    $where[] = "(
-        oe.student_no LIKE {$like}
-        OR oe.last_name LIKE {$like}
-        OR oe.first_name LIKE {$like}
-        OR oe.email LIKE {$like}
-        OR s.student_id LIKE {$like}
-        OR s.first_name LIKE {$like}
-        OR s.last_name LIKE {$like}
-        OR s.email LIKE {$like}
-        OR u.name LIKE {$like}
-    )";
-}
-
+$rows = [];
 $sql = "
     SELECT
         oe.student_no,
@@ -114,10 +95,15 @@ $sql = "
         s.user_id AS student_user_id,
         s.student_id,
         s.status AS students_status,
+        COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'external') AS assignment_track,
+        COALESCE(NULLIF(TRIM(s.school_year), ''), '') AS school_year,
+        COALESCE(NULLIF(TRIM(s.semester), ''), '') AS semester,
         s.created_at AS students_created_at,
         COALESCE(u.name, CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS account_name,
         COALESCE(c1.name, c2.name, 'N/A') AS course_name,
-        COALESCE(NULLIF(sec1.code, ''), sec1.name, NULLIF(sec2.code, ''), sec2.name, 'N/A') AS section_name
+        COALESCE(NULLIF(sec1.code, ''), sec1.name, NULLIF(sec2.code, ''), sec2.name, 'N/A') AS section_name,
+        COALESCE(oe.course_id, s.course_id, 0) AS resolved_course_id,
+        COALESCE(oe.section_id, s.section_id, 0) AS resolved_section_id
     FROM ojt_external oe
     LEFT JOIN students s ON TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci = TRIM(COALESCE(oe.student_no, '')) COLLATE utf8mb4_unicode_ci
     LEFT JOIN users u ON u.id = COALESCE(NULLIF(oe.user_id, 0), s.user_id)
@@ -125,13 +111,8 @@ $sql = "
     LEFT JOIN courses c2 ON c2.id = s.course_id
     LEFT JOIN sections sec1 ON sec1.id = oe.section_id
     LEFT JOIN sections sec2 ON sec2.id = s.section_id
+    ORDER BY oe.last_name ASC, oe.first_name ASC, oe.student_no ASC
 ";
-if (!empty($where)) {
-    $sql .= ' WHERE ' . implode(' AND ', $where);
-}
-    $sql .= ' ORDER BY oe.last_name ASC, oe.first_name ASC, oe.student_no ASC';
-
-$rows = [];
 $res = $conn->query($sql);
 if ($res instanceof mysqli_result) {
     while ($row = $res->fetch_assoc()) {
@@ -139,6 +120,83 @@ if ($res instanceof mysqli_result) {
     }
     $res->close();
 }
+
+$studentsOnlySql = "
+    SELECT
+        COALESCE(NULLIF(s.student_id, ''), '') AS student_no,
+        NULL AS ojt_user_id,
+        COALESCE(s.last_name, '') AS last_name,
+        COALESCE(s.first_name, '') AS first_name,
+        COALESCE(s.middle_name, '') AS middle_name,
+        COALESCE(s.email, '') AS ojt_email,
+        'external' AS ojt_status,
+        NULL AS ojt_created_at,
+        s.id AS student_row_id,
+        s.user_id AS student_user_id,
+        s.student_id,
+        s.status AS students_status,
+        COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'external') AS assignment_track,
+        COALESCE(NULLIF(TRIM(s.school_year), ''), '') AS school_year,
+        COALESCE(NULLIF(TRIM(s.semester), ''), '') AS semester,
+        s.created_at AS students_created_at,
+        COALESCE(u.name, CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS account_name,
+        COALESCE(c.name, 'N/A') AS course_name,
+        COALESCE(NULLIF(sec.code, ''), sec.name, 'N/A') AS section_name,
+        COALESCE(s.course_id, 0) AS resolved_course_id,
+        COALESCE(s.section_id, 0) AS resolved_section_id
+    FROM students s
+    LEFT JOIN ojt_external oe_match ON TRIM(COALESCE(oe_match.student_no, '')) COLLATE utf8mb4_unicode_ci = TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci
+    LEFT JOIN users u ON u.id = s.user_id
+    LEFT JOIN courses c ON c.id = s.course_id
+    LEFT JOIN sections sec ON sec.id = s.section_id
+    WHERE oe_match.student_no IS NULL
+      AND LOWER(TRIM(COALESCE(s.assignment_track, 'internal'))) = 'external'
+    ORDER BY s.last_name ASC, s.first_name ASC, s.student_id ASC
+";
+$studentsOnlyRes = $conn->query($studentsOnlySql);
+if ($studentsOnlyRes instanceof mysqli_result) {
+    while ($row = $studentsOnlyRes->fetch_assoc()) {
+        $rows[] = $row;
+    }
+    $studentsOnlyRes->close();
+}
+
+$normalizedRows = [];
+$seenRowKeys = [];
+foreach ($rows as $row) {
+    $rowKey = strtolower(trim((string)($row['student_no'] ?? ''))) . '|' . (int)($row['student_row_id'] ?? 0);
+    if (isset($seenRowKeys[$rowKey])) {
+        continue;
+    }
+    $seenRowKeys[$rowKey] = true;
+    if ($filterCourseId > 0 && (int)($row['resolved_course_id'] ?? 0) !== $filterCourseId) {
+        continue;
+    }
+    if ($filterSectionId > 0 && (int)($row['resolved_section_id'] ?? 0) !== $filterSectionId) {
+        continue;
+    }
+    if ($filterSchoolYear !== '' && strcasecmp(trim((string)($row['school_year'] ?? '')), $filterSchoolYear) !== 0) {
+        continue;
+    }
+    if ($filterSemester !== '' && strcasecmp(trim((string)($row['semester'] ?? '')), $filterSemester) !== 0) {
+        continue;
+    }
+    if ($search !== '') {
+        $haystack = strtolower(trim(implode(' ', [
+            (string)($row['student_no'] ?? ''),
+            (string)($row['last_name'] ?? ''),
+            (string)($row['first_name'] ?? ''),
+            (string)($row['middle_name'] ?? ''),
+            (string)($row['ojt_email'] ?? ''),
+            (string)($row['account_name'] ?? ''),
+        ])));
+        if (strpos($haystack, strtolower($search)) === false) {
+            continue;
+        }
+    }
+    $normalizedRows[] = $row;
+}
+$rows = $normalizedRows;
 
 $linkedCount = 0;
 foreach ($rows as $row) {
@@ -152,10 +210,12 @@ $page_body_class = 'page-fingerprint-mapping page-ojt-external-list';
 $page_styles = [
     'assets/css/layout/page_shell.css',
     'assets/css/modules/pages/page-biometric-console.css',
+    'assets/css/modules/management/management-students.css',
 ];
 $page_scripts = [
     'assets/js/modules/pages/ojt-list-select.js',
     'assets/js/modules/pages/ojt-list-print.js',
+    'assets/js/modules/pages/ojt-row-link.js',
 ];
 $base_href = '';
 include __DIR__ . '/../includes/header.php';
@@ -227,7 +287,20 @@ ob_end_flush();
                             <label class="form-label" for="search">Search</label>
                             <input type="text" class="form-control" id="search" name="search" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Student no, name, email">
                         </div>
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-2">
+                            <label class="form-label" for="school_year">School Year</label>
+                            <input type="text" class="form-control" id="school_year" name="school_year" value="<?php echo htmlspecialchars($filterSchoolYear, ENT_QUOTES, 'UTF-8'); ?>" placeholder="2025-2026">
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <label class="form-label" for="semester">Semester</label>
+                            <select class="form-select" id="semester" name="semester">
+                                <option value="">All Semesters</option>
+                                <?php foreach ($semesterOptions as $semesterOption): ?>
+                                    <option value="<?php echo htmlspecialchars($semesterOption, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filterSemester === $semesterOption ? 'selected' : ''; ?>><?php echo htmlspecialchars($semesterOption, ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-2">
                             <label class="form-label" for="course_id">Course</label>
                             <select class="form-select" id="course_id" name="course_id">
                                 <option value="0">All Courses</option>
@@ -236,7 +309,7 @@ ob_end_flush();
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-2">
                             <label class="form-label" for="section_id">Section</label>
                             <select class="form-select" id="section_id" name="section_id">
                                 <option value="0">All Sections</option>
@@ -252,11 +325,11 @@ ob_end_flush();
                     </form>
                 </div>
                 <div class="card-body py-2 border-bottom">
-                    <small class="text-muted">Total external rows: <?php echo count($rows); ?> | Linked with registered account: <?php echo $linkedCount; ?></small>
+                        <small class="text-muted">Total external rows: <?php echo count($rows); ?> | Linked with registered account: <?php echo $linkedCount; ?><?php echo $filterSchoolYear !== '' ? ' | SY: ' . htmlspecialchars($filterSchoolYear, ENT_QUOTES, 'UTF-8') : ''; ?><?php echo $filterSemester !== '' ? ' | ' . htmlspecialchars($filterSemester, ENT_QUOTES, 'UTF-8') : ''; ?></small>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtExternalListTable" data-ojt-select-table data-print-title="External Student List" data-print-subtitle="<?php echo htmlspecialchars('Filtered external list', ENT_QUOTES, 'UTF-8'); ?>">
+                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtExternalListTable" data-ojt-select-table data-print-title="External Student List" data-print-subtitle="<?php echo htmlspecialchars(trim(($filterSchoolYear !== '' ? $filterSchoolYear . ' / ' : '') . ($filterSemester !== '' ? $filterSemester : 'Filtered external list')), ENT_QUOTES, 'UTF-8'); ?>">
                             <thead>
                                 <tr>
                                     <th class="app-ojt-select-column">
@@ -278,7 +351,7 @@ ob_end_flush();
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($rows as $row): ?>
-                                    <tr>
+                                    <tr data-row-href="ojt-external-view.php?id=<?php echo (int)($row['student_row_id'] ?? 0); ?>">
                                         <td class="app-ojt-select-column" data-print-exclude="1">
                                             <div class="form-check app-ojt-select-check">
                                                 <input class="form-check-input" type="checkbox" data-ojt-row-select aria-label="Select student <?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?>">
@@ -320,7 +393,7 @@ ob_end_flush();
         <div class="tel">Telefax No.: (045) 624-0215</div>
     </div>
     <div class="print-title" data-ojt-print-title>EXTERNAL STUDENT LIST</div>
-    <div class="print-meta"><strong>FILTER:</strong> <span data-ojt-print-subtitle>Filtered external list</span></div>
+    <div class="print-meta"><strong>FILTER:</strong> <span data-ojt-print-subtitle><?php echo htmlspecialchars(trim(($filterSchoolYear !== '' ? $filterSchoolYear . ' / ' : '') . ($filterSemester !== '' ? $filterSemester : 'Filtered external list')), ENT_QUOTES, 'UTF-8'); ?></span></div>
     <table>
         <thead>
             <tr></tr>

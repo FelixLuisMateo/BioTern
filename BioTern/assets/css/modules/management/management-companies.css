@@ -169,6 +169,25 @@ body.companies-page .companies-modal {
     border-radius: 1rem;
 }
 
+body.companies-page .companies-profile-modal .modal-content,
+body.companies-page .companies-profile-modal {
+    max-height: min(92vh, 980px);
+}
+
+body.companies-page .companies-profile-modal .modal-body {
+    overflow-y: auto;
+    padding-bottom: 1rem;
+}
+
+body.companies-page .companies-profile-modal .modal-footer,
+body.companies-page #linkStudentModal .modal-footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--biotern-surface, var(--bs-body-bg));
+    border-top: 1px solid var(--biotern-border, var(--bs-border-color));
+    z-index: 2;
+}
+
 body.companies-page .companies-list-panel {
     overflow: hidden;
 }
@@ -346,6 +365,22 @@ body.companies-page .companies-intern-list {
     display: grid;
     gap: 0.9rem;
     margin-top: 1rem;
+}
+
+body.companies-page .companies-link-student-table-wrap {
+    max-height: 56vh;
+    overflow: auto;
+    border: 1px solid var(--biotern-border, var(--bs-border-color));
+    border-radius: 1rem;
+}
+
+body.companies-page .companies-link-student-table tbody tr {
+    cursor: pointer;
+}
+
+body.companies-page .companies-link-student-table tbody tr.is-selected,
+body.companies-page .companies-link-student-table tbody tr:hover {
+    background: rgba(239, 246, 255, 0.72);
 }
 
 body.companies-page .companies-intern-item {

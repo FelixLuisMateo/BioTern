@@ -96,6 +96,11 @@ $col_sy = $db->query("SHOW COLUMNS FROM students LIKE 'school_year'");
 if ($col_sy && $col_sy->num_rows > 0) {
     $has_school_year_column = true;
 }
+$has_semester_column = false;
+$col_sem = $db->query("SHOW COLUMNS FROM students LIKE 'semester'");
+if ($col_sem && $col_sem->num_rows > 0) {
+    $has_semester_column = true;
+}
 
 $has_fingerprint_user_map = false;
 $map_tbl = $db->query("SHOW TABLES LIKE 'fingerprint_user_map'");
@@ -143,6 +148,7 @@ $filter_course = isset($_GET['course_id']) ? intval($_GET['course_id']) : 0;
 $filter_department = isset($_GET['department_id']) ? intval($_GET['department_id']) : 0;
 $filter_section = isset($_GET['section_id']) ? intval($_GET['section_id']) : 0;
 $filter_school_year = isset($_GET['school_year']) ? trim((string)$_GET['school_year']) : '';
+$filter_semester = isset($_GET['semester']) ? trim((string)$_GET['semester']) : '';
 $filter_supervisor = isset($_GET['supervisor']) ? trim($_GET['supervisor']) : '';
 $filter_coordinator = isset($_GET['coordinator']) ? trim($_GET['coordinator']) : '';
 $filter_status = isset($_GET['status']) ? intval($_GET['status']) : -1;
@@ -156,6 +162,7 @@ $latest_school_year_start = max(2025, $current_school_year_start);
 for ($year = $latest_school_year_start; $year >= $school_year_start; $year--) {
     $school_year_options[] = sprintf('%d-%d', $year, $year + 1);
 }
+$semester_options = ['1st Semester', '2nd Semester', 'Summer'];
 
 // Fetch dropdown lists
 $courses = [];
@@ -580,6 +587,10 @@ if ($has_school_year_column && $filter_school_year !== '' && preg_match('/^\\d{4
     $esc_school_year = $db->real_escape_string($filter_school_year);
     $where[] = "s.school_year = '{$esc_school_year}'";
 }
+if ($has_semester_column && $filter_semester !== '' && in_array($filter_semester, $semester_options, true)) {
+    $esc_semester = $db->real_escape_string($filter_semester);
+    $where[] = "s.semester = '{$esc_semester}'";
+}
 if (!empty($filter_supervisor)) {
     $esc_sup = $db->real_escape_string($filter_supervisor);
     $where[] = "(
@@ -634,6 +645,8 @@ $students_query = "
         s.coordinator_id AS student_coordinator_ref_id,
         s.status,
         COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'internal') AS assignment_track,
+        " . ($has_school_year_column ? "COALESCE(NULLIF(TRIM(s.school_year), ''), '-') AS school_year," : "'-' AS school_year,") . "
+        " . ($has_semester_column ? "COALESCE(NULLIF(TRIM(s.semester), ''), '-') AS semester," : "'-' AS semester,") . "
         CASE
             WHEN EXISTS (
                 SELECT 1 FROM attendances a_live
@@ -892,7 +905,7 @@ include 'includes/header.php';
                                         <i class="feather-sliders"></i>
                                         <span>Filter Students</span>
                                     </div>
-                                    <p class="filter-panel-sub">Narrow down results by school year, date, course, section, supervisor, and coordinator.</p>
+                                    <p class="filter-panel-sub">Narrow down results by school year, semester, date, course, section, supervisor, and coordinator.</p>
                                 </div>
                                 <div class="filter-panel-head-actions">
                                     <a href="students.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
@@ -905,6 +918,15 @@ include 'includes/header.php';
                                         <option value="">-- All School Years --</option>
                                         <?php foreach ($school_year_options as $school_year): ?>
                                             <option value="<?php echo htmlspecialchars($school_year, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filter_school_year === $school_year ? 'selected' : ''; ?>><?php echo htmlspecialchars($school_year, ENT_QUOTES, 'UTF-8'); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                                    <label class="form-label" for="filter-semester">Semester</label>
+                                    <select id="filter-semester" name="semester" class="form-control" data-ui-select="custom">
+                                        <option value="">-- All Semesters --</option>
+                                        <?php foreach ($semester_options as $semester_option): ?>
+                                            <option value="<?php echo htmlspecialchars($semester_option, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filter_semester === $semester_option ? 'selected' : ''; ?>><?php echo htmlspecialchars($semester_option, ENT_QUOTES, 'UTF-8'); ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
@@ -1187,86 +1209,21 @@ include 'includes/header.php';
                                                                     Details
                                                                 </button>
                                                                 <?php if (!$is_student_user): ?>
-                                                                    <div class="dropdown students-action-dropdown">
-                                                                        <a href="javascript:void(0)" class="btn btn-sm btn-light app-students-menu-toggle" data-bs-toggle="dropdown" data-bs-offset="0,21" aria-label="More actions">
-                                                                            <i class="feather feather-more-horizontal"></i>
-                                                                        </a>
-                                                                        <ul class="dropdown-menu">
-                                                                            <li class="px-3 py-2">
-                                                                                <div class="small text-muted text-uppercase mb-2">Assign Track</div>
-                                                                                <form method="post" class="d-grid gap-2">
-                                                                                    <input type="hidden" name="student_action" value="assign_track">
-                                                                                    <input type="hidden" name="student_id" value="<?php echo (int)$student['id']; ?>">
-                                                                                    <select name="assignment_track" class="form-select form-select-sm" required>
-                                                                                        <option value="internal" <?php echo $track_key === 'internal' ? 'selected' : ''; ?>>Internal</option>
-                                                                                        <option value="external" <?php echo $track_key === 'external' ? 'selected' : ''; ?>>External</option>
-                                                                                    </select>
-                                                                                    <select name="department_id" class="form-select form-select-sm" required>
-                                                                                        <option value="0">Select department</option>
-                                                                                        <?php foreach ($departments as $department): ?>
-                                                                                            <option value="<?php echo (int)$department['id']; ?>" <?php echo (int)($student['department_id'] ?? 0) === (int)$department['id'] ? 'selected' : ''; ?>>
-                                                                                                <?php echo htmlspecialchars((string)$department['name'], ENT_QUOTES, 'UTF-8'); ?>
-                                                                                            </option>
-                                                                                        <?php endforeach; ?>
-                                                                                    </select>
-                                                                                    <select name="supervisor_id" class="form-select form-select-sm" required>
-                                                                                        <option value="0">Select supervisor</option>
-                                                                                        <?php foreach ($supervisorOptions as $supervisorOption): ?>
-                                                                                            <option value="<?php echo (int)$supervisorOption['id']; ?>" <?php echo (int)($student['student_supervisor_ref_id'] ?? 0) === (int)$supervisorOption['id'] ? 'selected' : ''; ?>>
-                                                                                                <?php echo htmlspecialchars((string)$supervisorOption['supervisor_name'], ENT_QUOTES, 'UTF-8'); ?>
-                                                                                            </option>
-                                                                                        <?php endforeach; ?>
-                                                                                    </select>
-                                                                                    <input type="date" name="start_date" class="form-control form-control-sm" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
-                                                                                    <button type="submit" class="btn btn-sm btn-primary">Save Assignment</button>
-                                                                                    <small class="text-muted">Coordinator follows the student's course automatically.</small>
-                                                                                </form>
-                                                                            </li>
-                                                                            <li><hr class="dropdown-divider"></li>
-                                                                            <li>
-                                                                                <a class="dropdown-item" href="students-edit.php?id=<?php echo (int)$student['id']; ?>">
-                                                                                    <i class="feather feather-edit-3 me-3"></i>
-                                                                                    <span>Edit</span>
-                                                                                </a>
-                                                                            </li>
-                                                                            <li>
-                                                                                <a class="dropdown-item" href="students-view.php?id=<?php echo (int)$student['id']; ?>" target="_blank" rel="noopener noreferrer">
-                                                                                    <i class="feather feather-printer me-3"></i>
-                                                                                    <span>Print</span>
-                                                                                </a>
-                                                                            </li>
-                                                                            <li>
-                                                                                <a class="dropdown-item" href="mailto:<?php echo rawurlencode((string)($student['email'] ?? '')); ?>?subject=<?php echo rawurlencode('Reminder from BioTern'); ?>">
-                                                                                    <i class="feather feather-clock me-3"></i>
-                                                                                    <span>Remind</span>
-                                                                                </a>
-                                                                            </li>
-                                                                            <li class="dropdown-divider"></li>
-                                                                            <li>
-                                                                                <a class="dropdown-item" href="javascript:void(0)">
-                                                                                    <i class="feather feather-archive me-3"></i>
-                                                                                    <span>Archive</span>
-                                                                                </a>
-                                                                            </li>
-                                                                            <li>
-                                                                                <a class="dropdown-item" href="javascript:void(0)">
-                                                                                    <i class="feather feather-alert-octagon me-3"></i>
-                                                                                    <span>Report Spam</span>
-                                                                                </a>
-                                                                            </li>
-                                                                            <li class="dropdown-divider"></li>
-                                                                            <li>
-                                                                                <form method="post" action="students-view.php?id=<?php echo (int)$student['id']; ?>" onsubmit="return confirm('Delete this student and linked user account permanently?');" class="m-0">
-                                                                                    <input type="hidden" name="action" value="delete_student">
-                                                                                    <input type="hidden" name="student_id" value="<?php echo (int)$student['id']; ?>">
-                                                                                    <button type="submit" class="dropdown-item">
-                                                                                        <i class="feather feather-trash-2 me-3"></i>
-                                                                                        <span>Delete</span>
-                                                                                    </button>
-                                                                                </form>
-                                                                            </li>
-                                                                        </ul>
-                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        class="btn btn-sm btn-light app-students-menu-toggle"
+                                                                        data-bs-toggle="modal"
+                                                                        data-bs-target="#studentsActionModal"
+                                                                        data-student-action-trigger
+                                                                        data-student-id="<?php echo (int)$student['id']; ?>"
+                                                                        data-student-name="<?php echo htmlspecialchars(trim((string)$student['first_name'] . ' ' . (string)$student['last_name']), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                        data-student-track="<?php echo htmlspecialchars($track_key, ENT_QUOTES, 'UTF-8'); ?>"
+                                                                        data-student-department-id="<?php echo (int)($student['department_id'] ?? 0); ?>"
+                                                                        data-student-supervisor-id="<?php echo (int)($student['student_supervisor_ref_id'] ?? 0); ?>"
+                                                                        data-student-email="<?php echo htmlspecialchars((string)($student['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                    >
+                                                                        <i class="feather feather-more-horizontal"></i>
+                                                                    </button>
                                                                 <?php endif; ?>
                                                             </div>
                                                         </td>
@@ -1351,83 +1308,19 @@ include 'includes/header.php';
                                                         <a href="students-view.php?id=<?php echo (int)$student['id']; ?>" class="btn btn-primary btn-sm">View</a>
                                                         <?php if (!$is_student_user): ?>
                                                             <a href="students-edit.php?id=<?php echo (int)$student['id']; ?>" class="btn btn-outline-primary btn-sm">Edit</a>
-                                                            <div class="dropdown students-action-dropdown">
-                                                                <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm app-students-menu-toggle" data-bs-toggle="dropdown" data-bs-offset="0,21">More</a>
-                                                                <ul class="dropdown-menu">
-                                                                    <li class="px-3 py-2">
-                                                                        <div class="small text-muted text-uppercase mb-2">Assign Track</div>
-                                                                        <form method="post" class="d-grid gap-2">
-                                                                            <input type="hidden" name="student_action" value="assign_track">
-                                                                            <input type="hidden" name="student_id" value="<?php echo (int)$student['id']; ?>">
-                                                                            <select name="assignment_track" class="form-select form-select-sm" required>
-                                                                                <option value="internal" <?php echo $track_key === 'internal' ? 'selected' : ''; ?>>Internal</option>
-                                                                                <option value="external" <?php echo $track_key === 'external' ? 'selected' : ''; ?>>External</option>
-                                                                            </select>
-                                                                            <select name="department_id" class="form-select form-select-sm" required>
-                                                                                <option value="0">Select department</option>
-                                                                                <?php foreach ($departments as $department): ?>
-                                                                                    <option value="<?php echo (int)$department['id']; ?>" <?php echo (int)($student['department_id'] ?? 0) === (int)$department['id'] ? 'selected' : ''; ?>>
-                                                                                        <?php echo htmlspecialchars((string)$department['name'], ENT_QUOTES, 'UTF-8'); ?>
-                                                                                    </option>
-                                                                                <?php endforeach; ?>
-                                                                            </select>
-                                                                            <select name="supervisor_id" class="form-select form-select-sm" required>
-                                                                                <option value="0">Select supervisor</option>
-                                                                                <?php foreach ($supervisorOptions as $supervisorOption): ?>
-                                                                                    <option value="<?php echo (int)$supervisorOption['id']; ?>" <?php echo (int)($student['student_supervisor_ref_id'] ?? 0) === (int)$supervisorOption['id'] ? 'selected' : ''; ?>>
-                                                                                        <?php echo htmlspecialchars((string)$supervisorOption['supervisor_name'], ENT_QUOTES, 'UTF-8'); ?>
-                                                                                    </option>
-                                                                                <?php endforeach; ?>
-                                                                            </select>
-                                                                            <input type="date" name="start_date" class="form-control form-control-sm" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
-                                                                            <button type="submit" class="btn btn-sm btn-primary">Save Assignment</button>
-                                                                        </form>
-                                                                    </li>
-                                                                    <li><hr class="dropdown-divider"></li>
-                                                                    <li>
-                                                                        <a class="dropdown-item" href="students-edit.php?id=<?php echo (int)$student['id']; ?>">
-                                                                            <i class="feather feather-edit-3 me-3"></i>
-                                                                            <span>Edit</span>
-                                                                        </a>
-                                                                    </li>
-                                                                    <li>
-                                                                        <a class="dropdown-item" href="students-view.php?id=<?php echo (int)$student['id']; ?>" target="_blank" rel="noopener noreferrer">
-                                                                            <i class="feather feather-printer me-3"></i>
-                                                                            <span>Print</span>
-                                                                        </a>
-                                                                    </li>
-                                                                    <li>
-                                                                        <a class="dropdown-item" href="mailto:<?php echo rawurlencode((string)($student['email'] ?? '')); ?>?subject=<?php echo rawurlencode('Reminder from BioTern'); ?>">
-                                                                            <i class="feather feather-clock me-3"></i>
-                                                                            <span>Remind</span>
-                                                                        </a>
-                                                                    </li>
-                                                                    <li class="dropdown-divider"></li>
-                                                                    <li>
-                                                                        <a class="dropdown-item" href="javascript:void(0)">
-                                                                            <i class="feather feather-archive me-3"></i>
-                                                                            <span>Archive</span>
-                                                                        </a>
-                                                                    </li>
-                                                                    <li>
-                                                                        <a class="dropdown-item" href="javascript:void(0)">
-                                                                            <i class="feather feather-alert-octagon me-3"></i>
-                                                                            <span>Report Spam</span>
-                                                                        </a>
-                                                                    </li>
-                                                                    <li class="dropdown-divider"></li>
-                                                                    <li>
-                                                                        <form method="post" action="students-view.php?id=<?php echo (int)$student['id']; ?>" onsubmit="return confirm('Delete this student and linked user account permanently?');" class="m-0">
-                                                                            <input type="hidden" name="action" value="delete_student">
-                                                                            <input type="hidden" name="student_id" value="<?php echo (int)$student['id']; ?>">
-                                                                            <button type="submit" class="dropdown-item">
-                                                                                <i class="feather feather-trash-2 me-3"></i>
-                                                                                <span>Delete</span>
-                                                                            </button>
-                                                                        </form>
-                                                                    </li>
-                                                                </ul>
-                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                class="btn btn-outline-secondary btn-sm app-students-menu-toggle"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#studentsActionModal"
+                                                                data-student-action-trigger
+                                                                data-student-id="<?php echo (int)$student['id']; ?>"
+                                                                data-student-name="<?php echo htmlspecialchars(trim((string)$student['first_name'] . ' ' . (string)$student['last_name']), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                data-student-track="<?php echo htmlspecialchars($track_key, ENT_QUOTES, 'UTF-8'); ?>"
+                                                                data-student-department-id="<?php echo (int)($student['department_id'] ?? 0); ?>"
+                                                                data-student-supervisor-id="<?php echo (int)($student['student_supervisor_ref_id'] ?? 0); ?>"
+                                                                data-student-email="<?php echo htmlspecialchars((string)($student['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                            >More</button>
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>
@@ -1445,6 +1338,63 @@ include 'includes/header.php';
         </div>
 </div> <!-- .nxl-content -->
 </main>
+<?php if (!$is_student_user): ?>
+<div class="modal fade" id="studentsActionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1">Student Actions</h5>
+                    <div class="text-muted small" data-student-action-summary>Select the assignment details for this student.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" class="d-grid gap-2 mb-3" id="studentsActionAssignForm">
+                    <input type="hidden" name="student_action" value="assign_track">
+                    <input type="hidden" name="student_id" value="">
+                    <select name="assignment_track" class="form-select" required>
+                        <option value="internal">Internal</option>
+                        <option value="external">External</option>
+                    </select>
+                    <select name="department_id" class="form-select" required>
+                        <option value="0">Select department</option>
+                        <?php foreach ($departments as $department): ?>
+                            <option value="<?php echo (int)$department['id']; ?>"><?php echo htmlspecialchars((string)$department['name'], ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select name="supervisor_id" class="form-select" required>
+                        <option value="0">Select supervisor</option>
+                        <?php foreach ($supervisorOptions as $supervisorOption): ?>
+                            <option value="<?php echo (int)$supervisorOption['id']; ?>"><?php echo htmlspecialchars((string)$supervisorOption['supervisor_name'], ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <input type="date" name="start_date" class="form-control" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
+                    <button type="submit" class="btn btn-primary">Save Assignment</button>
+                    <small class="text-muted">Coordinator follows the student's course automatically.</small>
+                </form>
+                <div class="list-group">
+                    <a class="list-group-item list-group-item-action" data-action-edit href="#">
+                        <i class="feather feather-edit-3 me-3"></i><span>Edit</span>
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-action-print href="#" target="_blank" rel="noopener noreferrer">
+                        <i class="feather feather-printer me-3"></i><span>Print</span>
+                    </a>
+                    <a class="list-group-item list-group-item-action" data-action-remind href="#">
+                        <i class="feather feather-clock me-3"></i><span>Remind</span>
+                    </a>
+                    <a class="list-group-item list-group-item-action" href="javascript:void(0)">
+                        <i class="feather feather-archive me-3"></i><span>Archive</span>
+                    </a>
+                    <a class="list-group-item list-group-item-action" href="javascript:void(0)">
+                        <i class="feather feather-alert-octagon me-3"></i><span>Report Spam</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 <?php include 'includes/footer.php'; ?>
 
 
