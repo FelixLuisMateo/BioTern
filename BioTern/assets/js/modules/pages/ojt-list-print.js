@@ -19,6 +19,9 @@
         }
 
         var clone = cell.cloneNode(true);
+        clone.querySelectorAll('[data-print-exclude="1"]').forEach(function (node) {
+            node.remove();
+        });
         clone.querySelectorAll('input, button, select, textarea, script').forEach(function (node) {
             node.remove();
         });

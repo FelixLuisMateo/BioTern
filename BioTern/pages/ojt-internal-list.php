@@ -728,7 +728,7 @@ ob_end_flush();
                                         <td>
                                             <?php if ((int)($row['student_user_id'] ?? 0) > 0 || (int)($row['ojt_user_id'] ?? 0) > 0): ?>
                                                 <div class="fw-semibold"><?php echo htmlspecialchars((string)($row['account_name'] ?? 'Linked Account'), ENT_QUOTES, 'UTF-8'); ?></div>
-                                                <small class="text-muted">User ID: <?php echo (int)($row['student_user_id'] ?: $row['ojt_user_id']); ?></small>
+                                                <small class="text-muted" data-print-exclude="1">User ID: <?php echo (int)($row['student_user_id'] ?: $row['ojt_user_id']); ?></small>
                                             <?php else: ?>
                                                 <span class="badge bg-soft-warning text-warning">Not Linked Yet</span>
                                             <?php endif; ?>
@@ -736,7 +736,7 @@ ob_end_flush();
                                         <td>
                                             <span class="badge <?php echo htmlspecialchars((string)($row['internal_status_badge_class'] ?? 'bg-soft-secondary text-muted'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)($row['internal_status_label'] ?? 'Not Started'), ENT_QUOTES, 'UTF-8'); ?></span>
                                             <?php if (trim((string)($row['internship_status'] ?? '')) !== ''): ?>
-                                                <div><small class="text-muted">Internship: <?php echo htmlspecialchars(ucfirst((string)$row['internship_status']), ENT_QUOTES, 'UTF-8'); ?></small></div>
+                                                <div><small class="text-muted" data-print-exclude="1">Internship: <?php echo htmlspecialchars(ucfirst((string)$row['internship_status']), ENT_QUOTES, 'UTF-8'); ?></small></div>
                                             <?php endif; ?>
                                         </td>
                                         <td class="text-end" data-print-exclude="1">
