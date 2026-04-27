@@ -159,15 +159,14 @@
 .page-ojt-internal-list #ojtInternalActionModal .modal-dialog {
     width: min(92vw, 640px);
     max-width: 640px;
+    margin: 1.75rem auto;
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-content {
     overflow: hidden;
     border: 1px solid rgba(148, 163, 184, 0.22);
     border-radius: 22px;
-    background:
-        radial-gradient(circle at top right, rgba(99, 102, 241, 0.18), transparent 36%),
-        linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(10, 17, 32, 0.98) 100%);
+    background: #0f172a;
     color: #e5e7eb;
     box-shadow: 0 28px 80px rgba(2, 6, 23, 0.48);
 }
@@ -188,7 +187,7 @@
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-footer {
     padding: 1rem 1.25rem 1.1rem;
-    background: rgba(15, 23, 42, 0.36);
+    background: rgba(15, 23, 42, 0.82);
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-title {
@@ -216,7 +215,7 @@
     padding: 0.85rem 0.9rem;
     border-radius: 16px;
     border: 1px solid rgba(148, 163, 184, 0.18);
-    background: rgba(15, 23, 42, 0.5);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .ojt-internal-selection-head {
@@ -255,8 +254,8 @@
     gap: 0.55rem;
     padding: 0.5rem 0.65rem;
     border-radius: 12px;
-    background: rgba(99, 102, 241, 0.09);
-    border: 1px solid rgba(99, 102, 241, 0.16);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .ojt-internal-selection-index {
