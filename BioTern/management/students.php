@@ -327,6 +327,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
         $coordinatorName = trim((string)($coordinatorInfo['name'] ?? ''));
         $coordinatorUserId = (int)($coordinatorInfo['user_id'] ?? 0);
         $coordinatorProfileId = (int)($coordinatorInfo['profile_id'] ?? 0);
+        $requiredHours = $assignmentTrack === 'external'
+            ? (int)($studentRow['external_total_hours'] ?? 0)
+            : (int)($studentRow['internal_total_hours'] ?? 0);
+        if ($requiredHours < 0) {
+            $requiredHours = 0;
+        }
 
         $studentSets = [];
         $studentTypes = '';
@@ -399,6 +405,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                 $internshipRow = $internshipLookup->get_result()->fetch_assoc() ?: null;
                 $internshipLookup->close();
                 $internshipId = (int)($internshipRow['id'] ?? 0);
+            }
+
+            if ($internshipId > 0) {
+                $internshipSets = [];
+                $internshipTypes = '';
                 $internshipValues = [];
 
                 if (isset($internshipColumns['type'])) {
@@ -440,19 +451,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                     $internshipSets[] = 'updated_at = NOW()';
                 }
 
-                $internshipTypes .= 'i';
-                $internshipValues[] = $internshipId;
-                $internshipSql = 'UPDATE internships SET ' . implode(', ', $internshipSets) . ' WHERE id = ?';
-                $internshipUpdate = $db->prepare($internshipSql);
-                if (!$internshipUpdate) {
-                    throw new RuntimeException('Could not prepare the internship update.');
-                }
-                $internshipUpdate->bind_param($internshipTypes, ...$internshipValues);
-                if (!$internshipUpdate->execute()) {
+                if ($internshipSets !== []) {
+                    $internshipTypes .= 'i';
+                    $internshipValues[] = $internshipId;
+                    $internshipSql = 'UPDATE internships SET ' . implode(', ', $internshipSets) . ' WHERE id = ?';
+                    $internshipUpdate = $db->prepare($internshipSql);
+                    if (!$internshipUpdate) {
+                        throw new RuntimeException('Could not prepare the internship update.');
+                    }
+                    $internshipUpdate->bind_param($internshipTypes, ...$internshipValues);
+                    if (!$internshipUpdate->execute()) {
+                        $internshipUpdate->close();
+                        throw new RuntimeException('Could not update the internship assignment.');
+                    }
                     $internshipUpdate->close();
-                    throw new RuntimeException('Could not update the internship assignment.');
                 }
-                $internshipUpdate->close();
             } else {
                 $insertColumns = ['student_id'];
                 $insertPlaceholders = ['?'];
