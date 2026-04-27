@@ -157,7 +157,8 @@
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-dialog {
-    max-width: 460px;
+    width: min(92vw, 640px);
+    max-width: 640px;
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-content {
@@ -178,15 +179,15 @@
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-header {
-    padding: 1rem 1.1rem 0.9rem;
+    padding: 1.15rem 1.25rem 1rem;
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-body {
-    padding: 1rem 1.1rem 1.05rem;
+    padding: 1.1rem 1.25rem 1.15rem;
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-footer {
-    padding: 0.95rem 1.1rem 1.05rem;
+    padding: 1rem 1.25rem 1.1rem;
     background: rgba(15, 23, 42, 0.36);
 }
 
@@ -220,7 +221,7 @@
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .form-control {
-    min-height: 44px;
+    min-height: 48px;
     border-radius: 14px;
     border-color: rgba(148, 163, 184, 0.24);
     background: rgba(15, 23, 42, 0.92);
@@ -235,9 +236,9 @@
 
 .page-ojt-internal-list #ojtInternalActionModal .btn {
     border-radius: 12px;
-    min-height: 40px;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    min-height: 42px;
+    padding-left: 1.1rem;
+    padding-right: 1.1rem;
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .btn-primary {
