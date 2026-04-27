@@ -392,18 +392,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                 $internshipRow = $internshipLookup->get_result()->fetch_assoc() ?: null;
                 $internshipLookup->close();
                 $internshipId = (int)($internshipRow['id'] ?? 0);
-                CASE
-                    WHEN EXISTS (
-                        SELECT 1 FROM attendances a_live
-                        WHERE a_live.student_id = s.id
-                          AND a_live.attendance_date = CURDATE()
-                          AND (
-                                (a_live.morning_time_in IS NOT NULL AND (a_live.morning_time_out IS NULL OR a_live.morning_time_out = ''))
-                             OR (a_live.afternoon_time_in IS NOT NULL AND (a_live.afternoon_time_out IS NULL OR a_live.afternoon_time_out = ''))
-                          )
-                    ) THEN 1
-                    ELSE 0
-                END as live_clock_status,
                 $internshipValues = [];
 
                 if (isset($internshipColumns['type'])) {
@@ -742,29 +730,15 @@ if ($filter_supervisor !== '') {
     foreach ($students as $srow) {
         $candidate = trim((string)($srow['supervisor_name'] ?? ''));
         if ($candidate !== '' && $candidate !== '-') {
-        if ($filter_status >= 0) {
-            if (intval($filter_status) === 1) {
-                $where[] = "EXISTS (
-                    SELECT 1 FROM attendances a_live
-                    WHERE a_live.student_id = s.id
-                      AND a_live.attendance_date = CURDATE()
-                      AND (
-                            (a_live.morning_time_in IS NOT NULL AND (a_live.morning_time_out IS NULL OR a_live.morning_time_out = ''))
-                         OR (a_live.afternoon_time_in IS NOT NULL AND (a_live.afternoon_time_out IS NULL OR a_live.afternoon_time_out = ''))
-                      )
-                )";
-            } else {
-                $where[] = "NOT EXISTS (
-                    SELECT 1 FROM attendances a_live
-                    WHERE a_live.student_id = s.id
-                      AND a_live.attendance_date = CURDATE()
-                      AND (
-                            (a_live.morning_time_in IS NOT NULL AND (a_live.morning_time_out IS NULL OR a_live.morning_time_out = ''))
-                         OR (a_live.afternoon_time_in IS NOT NULL AND (a_live.afternoon_time_out IS NULL OR a_live.afternoon_time_out = ''))
-                      )
-                )";
-            }
+            $selected_adviser = $candidate;
+            break;
         }
+    }
+}
+
+$page_title = 'Students';
+$page_body_class = 'students-page';
+$page_styles = array(
     'assets/css/modules/management/management-students-shared.css',
     'assets/css/modules/management/management-students.css'
 );

@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
+require_once dirname(__DIR__) . '/lib/company_profiles.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -35,6 +36,7 @@ if ($currentRole !== 'student' || $currentUserId <= 0) {
 $user = null;
 $student = null;
 $internship = null;
+$companyProfile = null;
 $recentAttendance = [];
 $lastLoginAt = '';
 $profileStats = [
@@ -138,6 +140,38 @@ if ($student) {
         $internshipStmt->execute();
         $internship = $internshipStmt->get_result()->fetch_assoc() ?: null;
         $internshipStmt->close();
+    }
+
+    $internshipCompanyName = trim((string)($internship['company_name'] ?? ''));
+    if ($internshipCompanyName !== '') {
+        $companyProfile = biotern_company_profile_fetch_by_name($conn, $internshipCompanyName);
+        if ($companyProfile) {
+            $profileCompanyName = trim((string)($companyProfile['company_name'] ?? ''));
+            $profileCompanyAddress = trim((string)($companyProfile['company_address'] ?? ''));
+            $profileRepresentative = trim((string)($companyProfile['company_representative'] ?? ''));
+            $profileRepresentativePosition = trim((string)($companyProfile['company_representative_position'] ?? ''));
+            $profileSupervisor = trim((string)($companyProfile['supervisor_name'] ?? ''));
+            $profileSupervisorPosition = trim((string)($companyProfile['supervisor_position'] ?? ''));
+
+            if ($profileCompanyName !== '') {
+                $internship['company_name'] = $profileCompanyName;
+            }
+            if ($profileCompanyAddress !== '') {
+                $internship['company_address'] = $profileCompanyAddress;
+            }
+            if ($profileRepresentative !== '') {
+                $internship['company_representative'] = $profileRepresentative;
+            }
+            if ($profileRepresentativePosition !== '') {
+                $internship['company_representative_position'] = $profileRepresentativePosition;
+            }
+            if ($profileSupervisor !== '') {
+                $internship['company_supervisor_name'] = $profileSupervisor;
+            }
+            if ($profileSupervisorPosition !== '') {
+                $internship['company_supervisor_position'] = $profileSupervisorPosition;
+            }
+        }
     }
 
     $recentStmt = $conn->prepare(
@@ -487,6 +521,18 @@ include 'includes/header.php';
                             <div>
                                 <span>Company</span>
                                 <strong><?php echo htmlspecialchars(student_profile_value((string)($internship['company_name'] ?? ''), 'No company assigned yet'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                            </div>
+                            <div>
+                                <span>Company Address</span>
+                                <strong><?php echo htmlspecialchars(student_profile_value((string)($internship['company_address'] ?? ''), 'No company address saved yet'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                            </div>
+                            <div>
+                                <span>Representative</span>
+                                <strong><?php echo htmlspecialchars(student_profile_value((string)($internship['company_representative'] ?? ''), student_profile_value((string)($internship['company_supervisor_name'] ?? ''), 'Not provided')), ENT_QUOTES, 'UTF-8'); ?></strong>
+                            </div>
+                            <div>
+                                <span>Representative Position</span>
+                                <strong><?php echo htmlspecialchars(student_profile_value((string)($internship['company_representative_position'] ?? ''), student_profile_value((string)($internship['company_supervisor_position'] ?? ''), 'Not provided')), ENT_QUOTES, 'UTF-8'); ?></strong>
                             </div>
                             <div>
                                 <span>Position</span>
