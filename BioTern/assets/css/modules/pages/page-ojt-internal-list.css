@@ -158,7 +158,7 @@
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-dialog {
     position: relative;
-    transform: translateX(clamp(0px, 4vw, 72px));
+    transform: translateX(clamp(0px, 6vw, 108px));
     width: min(92vw, 720px);
     max-width: 720px;
     margin: 1.5rem auto;
