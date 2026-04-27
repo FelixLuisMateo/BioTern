@@ -327,6 +327,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
         $coordinatorName = trim((string)($coordinatorInfo['name'] ?? ''));
         $coordinatorUserId = (int)($coordinatorInfo['user_id'] ?? 0);
         $coordinatorProfileId = (int)($coordinatorInfo['profile_id'] ?? 0);
+        $requiredHours = $assignmentTrack === 'external'
+            ? (int)($studentRow['external_total_hours'] ?? 0)
+            : (int)($studentRow['internal_total_hours'] ?? 0);
+        if ($requiredHours < 0) {
+            $requiredHours = 0;
+        }
 
         $studentSets = [];
         $studentTypes = '';
@@ -399,6 +405,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                 $internshipRow = $internshipLookup->get_result()->fetch_assoc() ?: null;
                 $internshipLookup->close();
                 $internshipId = (int)($internshipRow['id'] ?? 0);
+            }
+
+            if ($internshipId > 0) {
+                $internshipSets = [];
+                $internshipTypes = '';
                 $internshipValues = [];
 
                 if (isset($internshipColumns['type'])) {
@@ -440,19 +451,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                     $internshipSets[] = 'updated_at = NOW()';
                 }
 
-                $internshipTypes .= 'i';
-                $internshipValues[] = $internshipId;
-                $internshipSql = 'UPDATE internships SET ' . implode(', ', $internshipSets) . ' WHERE id = ?';
-                $internshipUpdate = $db->prepare($internshipSql);
-                if (!$internshipUpdate) {
-                    throw new RuntimeException('Could not prepare the internship update.');
-                }
-                $internshipUpdate->bind_param($internshipTypes, ...$internshipValues);
-                if (!$internshipUpdate->execute()) {
+                if ($internshipSets !== []) {
+                    $internshipTypes .= 'i';
+                    $internshipValues[] = $internshipId;
+                    $internshipSql = 'UPDATE internships SET ' . implode(', ', $internshipSets) . ' WHERE id = ?';
+                    $internshipUpdate = $db->prepare($internshipSql);
+                    if (!$internshipUpdate) {
+                        throw new RuntimeException('Could not prepare the internship update.');
+                    }
+                    $internshipUpdate->bind_param($internshipTypes, ...$internshipValues);
+                    if (!$internshipUpdate->execute()) {
+                        $internshipUpdate->close();
+                        throw new RuntimeException('Could not update the internship assignment.');
+                    }
                     $internshipUpdate->close();
-                    throw new RuntimeException('Could not update the internship assignment.');
                 }
-                $internshipUpdate->close();
             } else {
                 $insertColumns = ['student_id'];
                 $insertPlaceholders = ['?'];
@@ -640,9 +653,9 @@ $students_query = "
         s.last_name,
         s.email,
         s.phone,
-        s.department_id,
-        s.supervisor_id AS student_supervisor_ref_id,
-        s.coordinator_id AS student_coordinator_ref_id,
+        COALESCE(i.department_id, s.department_id) AS department_id,
+        COALESCE(i.supervisor_id, s.supervisor_id) AS student_supervisor_ref_id,
+        COALESCE(i.coordinator_id, s.coordinator_id) AS student_coordinator_ref_id,
         s.status,
         COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'internal') AS assignment_track,
         " . ($has_school_year_column ? "COALESCE(NULLIF(TRIM(s.school_year), ''), '-') AS school_year," : "'-' AS school_year,") . "
@@ -819,6 +832,15 @@ include 'includes/header.php';
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto app-students-header-actions">
+                    <div class="app-table-header-search app-students-table-search">
+                        <label class="visually-hidden" for="studentsHeaderSearchInput">Search student list</label>
+                        <i class="feather-search" aria-hidden="true"></i>
+                        <input type="search" id="studentsHeaderSearchInput" class="form-control" placeholder="Search students">
+                    </div>
+                    <a href="students.php" class="btn btn-sm btn-outline-secondary app-students-reset-btn">
+                        <i class="feather-rotate-ccw me-1"></i>
+                        <span>Reset</span>
+                    </a>
                     <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="studentsActionsMenu">
                         <i class="feather-grid me-1"></i>
                         <span>Actions</span>
@@ -832,10 +854,6 @@ include 'includes/header.php';
                             <button type="button" class="btn btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
                                 <i class="feather-bar-chart me-2"></i>
                                 <span>Statistics</span>
-                            </button>
-                            <button type="button" class="btn filter-toggle-btn" data-bs-toggle="collapse" data-bs-target="#studentsFilterCollapse" aria-expanded="false" aria-controls="studentsFilterCollapse">
-                                <i class="feather-filter me-2"></i>
-                                <span>Filters</span>
                             </button>
                             <div class="dropdown">
                                 <a class="btn btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside" role="button" aria-label="Export options">
@@ -895,22 +913,10 @@ include 'includes/header.php';
             <?php endif; ?>
 
             <!-- Filters -->
-            <div class="collapse" id="studentsFilterCollapse">
+            <div>
                 <div class="row mb-3 px-3">
                     <div class="col-12">
                         <div class="filter-panel">
-                            <div class="filter-panel-head">
-                                <div>
-                                    <div class="filter-panel-label">
-                                        <i class="feather-sliders"></i>
-                                        <span>Filter Students</span>
-                                    </div>
-                                    <p class="filter-panel-sub">Narrow down results by school year, semester, date, course, section, supervisor, and coordinator.</p>
-                                </div>
-                                <div class="filter-panel-head-actions">
-                                    <a href="students.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
-                                </div>
-                            </div>
                             <form method="GET" class="filter-form app-students-filter-form row g-2 align-items-end" id="studentsFilterForm">
                                 <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                                     <label class="form-label" for="filter-school-year">School Year</label>
@@ -1220,7 +1226,10 @@ include 'includes/header.php';
                                                                         data-student-track="<?php echo htmlspecialchars($track_key, ENT_QUOTES, 'UTF-8'); ?>"
                                                                         data-student-department-id="<?php echo (int)($student['department_id'] ?? 0); ?>"
                                                                         data-student-supervisor-id="<?php echo (int)($student['student_supervisor_ref_id'] ?? 0); ?>"
+                                                                        data-student-supervisor-name="<?php echo htmlspecialchars((string)($student['supervisor_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                        data-student-coordinator-name="<?php echo htmlspecialchars((string)($student['coordinator_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                         data-student-email="<?php echo htmlspecialchars((string)($student['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                        data-student-department-name="<?php echo htmlspecialchars((string)($student['department_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                     >
                                                                         <i class="feather feather-more-horizontal"></i>
                                                                     </button>
@@ -1319,7 +1328,10 @@ include 'includes/header.php';
                                                                 data-student-track="<?php echo htmlspecialchars($track_key, ENT_QUOTES, 'UTF-8'); ?>"
                                                                 data-student-department-id="<?php echo (int)($student['department_id'] ?? 0); ?>"
                                                                 data-student-supervisor-id="<?php echo (int)($student['student_supervisor_ref_id'] ?? 0); ?>"
+                                                                data-student-supervisor-name="<?php echo htmlspecialchars((string)($student['supervisor_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                data-student-coordinator-name="<?php echo htmlspecialchars((string)($student['coordinator_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                 data-student-email="<?php echo htmlspecialchars((string)($student['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                data-student-department-name="<?php echo htmlspecialchars((string)($student['department_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                             >More</button>
                                                         <?php endif; ?>
                                                     </div>
@@ -1353,6 +1365,9 @@ include 'includes/header.php';
                 <form method="post" class="d-grid gap-2 mb-3" id="studentsActionAssignForm">
                     <input type="hidden" name="student_action" value="assign_track">
                     <input type="hidden" name="student_id" value="">
+                    <div class="small text-muted border rounded p-2 mb-1" data-student-action-current>
+                        Current assignment details will show here.
+                    </div>
                     <select name="assignment_track" class="form-select" required>
                         <option value="internal">Internal</option>
                         <option value="external">External</option>
@@ -1372,6 +1387,7 @@ include 'includes/header.php';
                     <input type="date" name="start_date" class="form-control" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
                     <button type="submit" class="btn btn-primary">Save Assignment</button>
                     <small class="text-muted">Coordinator follows the student's course automatically.</small>
+                    <small class="text-muted" data-student-action-selected>Assigned department, supervisor, and coordinator will appear here.</small>
                 </form>
                 <div class="list-group">
                     <a class="list-group-item list-group-item-action" data-action-edit href="#">

@@ -17,6 +17,9 @@
 
     var cfg = document.getElementById("students-view-runtime-config");
     var internalTotalHours = toInt(cfg && cfg.dataset.internalTotalHours, 0);
+    var externalTotalHours = toInt(cfg && cfg.dataset.externalTotalHours, 0);
+    var activeTotalHours = toInt(cfg && cfg.dataset.activeTotalHours, internalTotalHours);
+    var activeTrack = String((cfg && cfg.dataset.activeTrack) || "internal").toLowerCase();
     var studentId = toInt(cfg && cfg.dataset.studentId, 0);
     var remainingSeconds = toInt(cfg && cfg.dataset.remainingSeconds, 0);
     var remainingSecondsWithoutOpen = toInt(
@@ -27,7 +30,7 @@
     var openClockInRaw = (cfg && cfg.dataset.openClockInRaw) || "";
     var sessionCutoffRaw = (cfg && cfg.dataset.sessionCutoffRaw) || "";
 
-    var storageKey = "student_timer_state_" + String(studentId);
+    var storageKey = "student_timer_state_" + String(studentId) + "_" + activeTrack;
     var nowRef = new Date();
     var todayKey = [
       nowRef.getFullYear(),
@@ -44,20 +47,35 @@
     }
 
     function updateCompletionFromSeconds() {
-      if (!completionElement || !Number.isFinite(internalTotalHours) || internalTotalHours <= 0) return;
+      if (!completionElement || !Number.isFinite(activeTotalHours) || activeTotalHours <= 0) return;
       var remainingHoursPrecise = Math.max(0, remainingSeconds / 3600);
-      var completed = Math.max(0, internalTotalHours - remainingHoursPrecise);
-      var pct = (completed / internalTotalHours) * 100;
+      var completed = Math.max(0, activeTotalHours - remainingHoursPrecise);
+      var pct = (completed / activeTotalHours) * 100;
       if (pct > 100) pct = 100;
       completionElement.textContent = pct.toFixed(2) + "%";
     }
 
     function updateInternalHoursFromSeconds() {
-      if (!internalHoursElement || !Number.isFinite(internalTotalHours) || internalTotalHours <= 0) return;
       var remainingWholeHours = Math.max(0, Math.floor(remainingSeconds / 3600));
-      internalHoursElement.textContent = remainingWholeHours + "/" + internalTotalHours;
-      if (internalHoursDetailElement) {
-        internalHoursDetailElement.textContent = remainingWholeHours + " / " + internalTotalHours;
+      if (activeTrack === "external") {
+        var externalHoursElement = document.querySelector(".stat-card:nth-child(4) h6");
+        if (externalHoursElement && Number.isFinite(externalTotalHours) && externalTotalHours > 0) {
+          externalHoursElement.textContent = remainingWholeHours + "/" + externalTotalHours;
+        }
+        if (internalHoursElement && Number.isFinite(internalTotalHours) && internalTotalHours > 0) {
+          internalHoursElement.textContent =
+            toInt(cfg && cfg.dataset.internalRemainingDisplay, 0) + "/" + internalTotalHours;
+        }
+        if (internalHoursDetailElement && Number.isFinite(internalTotalHours) && internalTotalHours > 0) {
+          internalHoursDetailElement.textContent =
+            toInt(cfg && cfg.dataset.internalRemainingDisplay, 0) + " / " + internalTotalHours;
+        }
+      } else {
+        if (!internalHoursElement || !Number.isFinite(internalTotalHours) || internalTotalHours <= 0) return;
+        internalHoursElement.textContent = remainingWholeHours + "/" + internalTotalHours;
+        if (internalHoursDetailElement) {
+          internalHoursDetailElement.textContent = remainingWholeHours + " / " + internalTotalHours;
+        }
       }
     }
 
@@ -163,7 +181,15 @@
       var sameSession =
         isClockedIn && saved.sessionDate === todayKey && saved.clockInRaw === openClockInRaw;
       if (sameSession || !isClockedIn) {
-        remainingSeconds = Math.min(remainingSeconds, saved.seconds);
+        if (
+          saved.seconds <= 0 &&
+          remainingSecondsWithoutOpen > 0 &&
+          (!sameSession || !isClockedIn)
+        ) {
+          remainingSeconds = remainingSecondsWithoutOpen;
+        } else {
+          remainingSeconds = Math.min(remainingSeconds, saved.seconds);
+        }
       }
     }
 

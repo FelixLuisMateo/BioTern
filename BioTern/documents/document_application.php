@@ -184,6 +184,17 @@ include __DIR__ . '/../includes/header.php';
         </div>
 
         <div class="application-document-builder" data-prefill-student-id="<?php echo (int)$prefill_student_id; ?>" data-prefill-company="<?php echo htmlspecialchars($prefill_company_key, ENT_QUOTES, 'UTF-8'); ?>">
+            <style>
+                .app-fill-line {
+                    display: inline-block;
+                    min-width: 180px;
+                    padding: 0 4px 1px;
+                    border-bottom: 1px solid currentColor;
+                    line-height: 1.2;
+                }
+                #ap_date.app-fill-line { min-width: 130px; }
+                #ap_student_address.app-fill-line { min-width: 220px; }
+            </style>
             <div class="main-content">
                 <div class="application-builder-grid">
                     <section class="application-builder-sidebar">
@@ -295,7 +306,7 @@ include __DIR__ . '/../includes/header.php';
 
             <template id="application_default_template">
                 <div class="a4-pages-stack" data-a4-document="true">
-                    <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.55in 0.9in 0.85in 0.9in; background:#fff;">
+                    <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.22in 0.42in 0.35in 0.42in; background:#fff;">
                         <div class="container app-application-container">
                             <div class="header app-application-header">
                                 <div class="app-application-header-inner">
@@ -309,19 +320,19 @@ include __DIR__ . '/../includes/header.php';
                             </div>
                             <div class="content app-application-content">
                                 <h3 class="app-application-heading">Application Approval Sheet</h3>
-                                <p>Date: <span id="ap_date">__________</span></p>
-                                <p>Mr./Ms.: <span id="ap_name">__________________________</span></p>
-                                <p>Position: <span id="ap_position">__________________________</span></p>
-                                <p>Name of Company: <span id="ap_company">__________________________</span></p>
-                                <p>Company Address: <span id="ap_address">__________________________</span></p>
+                                <p>Date: <span id="ap_date" class="app-fill-line">&nbsp;</span></p>
+                                <p>Mr./Ms.: <span id="ap_name" class="app-fill-line">&nbsp;</span></p>
+                                <p>Position: <span id="ap_position" class="app-fill-line">&nbsp;</span></p>
+                                <p>Name of Company: <span id="ap_company" class="app-fill-line">&nbsp;</span></p>
+                                <p>Company Address: <span id="ap_address" class="app-fill-line">&nbsp;</span></p>
                                 <p class="mt-30 app-application-mt-30">Dear Sir or Madam:</p>
-                                <p>I am <span id="ap_student">__________________________</span>, student of Clark College of Science and Technology. In partial fulfillment of the requirements of this course, I am required to have an On-the-job Training ( OJT ) for a minimum of <strong><span id="ap_hours">250</span> hours</strong>.</p>
+                                <p>I am <span id="ap_student" class="app-fill-line">&nbsp;</span>, student of Clark College of Science and Technology. In partial fulfillment of the requirements of this course, I am required to have an On-the-job Training ( OJT ) for a minimum of <strong><span id="ap_hours" class="app-fill-line">250</span> hours</strong>.</p>
                                 <p>I would like to apply as a trainee in your company because I believe that the training and experience, I will acquire will broaden my knowledge about my course.</p>
                                 <p>Thank you for any consideration that you may give to this letter of application.</p>
                                 <p class="mt-30 app-application-mt-30">Very truly yours,</p>
-                                <p class="mt-40 app-application-mt-40">Student Name: <span id="ap_student_name">__________________________</span></p>
-                                <p>Student Home Address: <span id="ap_student_address">__________________________</span></p>
-                                <p>Contact No.: <span id="ap_student_contact">__________________________</span></p>
+                                <p class="mt-40 app-application-mt-40">Student Name: <span id="ap_student_name" class="app-fill-line">&nbsp;</span></p>
+                                <p>Student Home Address: <span id="ap_student_address" class="app-fill-line">&nbsp;</span></p>
+                                <p>Contact No.: <span id="ap_student_contact" class="app-fill-line">&nbsp;</span></p>
                             </div>
                         </div>
                     </div>

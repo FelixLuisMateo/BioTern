@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/external_attendance.php';
 
 function dtr_h($value): string
 {
@@ -28,6 +29,11 @@ if (isset($_GET['student_id'])) {
     $studentId = (int)$student['id'];
 }
 
+$track = strtolower(trim((string)($_GET['track'] ?? 'internal')));
+if (!in_array($track, ['internal', 'external'], true)) {
+    $track = 'internal';
+}
+
 $studentMeta = null;
 $startDate = trim((string)($_GET['start_date'] ?? ''));
 $endDate = trim((string)($_GET['end_date'] ?? ''));
@@ -41,6 +47,7 @@ if ($studentId > 0) {
             s.middle_name,
             s.last_name,
             s.school_year,
+            s.semester,
             c.name AS course_name,
             COALESCE(NULLIF(sec.code, ''), sec.name) AS section_label,
             i.start_date AS internship_start_date,
@@ -74,12 +81,16 @@ if (!dtr_valid_date($startDate)) {
 if (!dtr_valid_date($endDate)) {
     $endDate = trim((string)($studentMeta['internship_end_date'] ?? ''));
 }
-
 if (!dtr_valid_date($startDate) && dtr_valid_date($endDate)) {
     $startDate = $endDate;
 }
 if (!dtr_valid_date($endDate) && dtr_valid_date($startDate)) {
     $endDate = $startDate;
+}
+
+$tableName = $track === 'external' ? 'external_attendance' : 'attendances';
+if ($track === 'external') {
+    external_attendance_ensure_schema($conn);
 }
 
 $where = ['student_id = ?'];
@@ -101,7 +112,7 @@ $attendances = [];
 $totalHours = 0.0;
 $attendanceSql = "
     SELECT attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out, total_hours, status
-    FROM attendances
+    FROM {$tableName}
     WHERE " . implode(' AND ', $where) . "
     ORDER BY attendance_date ASC, id ASC
 ";
@@ -122,60 +133,175 @@ if ($attStmt) {
 }
 
 $studentName = trim((string)($studentMeta['first_name'] ?? '') . ' ' . (string)($studentMeta['middle_name'] ?? '') . ' ' . (string)($studentMeta['last_name'] ?? ''));
+$trackLabel = $track === 'external' ? 'External' : 'Internal';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BioTern || DTR - <?php echo dtr_h($studentName); ?></title>
-    <link rel="stylesheet" href="../assets/css/modules/documents/document-dtr.css">
+    <title>BioTern || <?php echo dtr_h($trackLabel); ?> DTR - <?php echo dtr_h($studentName); ?></title>
+    <style>
+        @page { size: A4 portrait; margin: 12mm; }
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #111827;
+            background: #ffffff;
+        }
+        .paper {
+            width: 100%;
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 8mm 10mm 10mm;
+            box-sizing: border-box;
+        }
+        .print-header {
+            display: grid;
+            grid-template-columns: 84px 1fr;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 2px solid #2f5fb3;
+            padding-bottom: 10px;
+        }
+        .print-header img {
+            width: 72px;
+            height: 72px;
+            object-fit: contain;
+        }
+        .print-header-copy {
+            text-align: center;
+            line-height: 1.3;
+        }
+        .print-school {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+        .print-meta {
+            margin: 0;
+            font-size: 14px;
+            color: #1f4e9f;
+            font-weight: 600;
+        }
+        .print-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 800;
+            margin: 22px 0 18px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px 18px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        .meta-row {
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+        }
+        .meta-label {
+            min-width: 118px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        thead th {
+            background: #f8fafc;
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+        tbody td:last-child,
+        tbody td:nth-last-child(2) {
+            white-space: nowrap;
+        }
+        .empty-row {
+            text-align: center;
+            color: #64748b;
+            padding: 18px 10px;
+        }
+        @media print {
+            .paper {
+                max-width: none;
+                padding: 0;
+            }
+        }
+    </style>
 </head>
-<body>
-    <h1>Daily Time Record (DTR)</h1>
-    <div class="meta">
-        <p><strong>Student Number:</strong> <?php echo dtr_h((string)($studentMeta['student_id'] ?? 'N/A')); ?></p>
-        <p><strong>Name:</strong> <?php echo dtr_h($studentName !== '' ? $studentName : 'N/A'); ?></p>
-        <p><strong>Course:</strong> <?php echo dtr_h((string)($studentMeta['course_name'] ?? 'N/A')); ?></p>
-        <p><strong>Section:</strong> <?php echo dtr_h((string)($studentMeta['section_label'] ?? 'N/A')); ?></p>
-        <p><strong>School Year:</strong> <?php echo dtr_h((string)($studentMeta['school_year'] ?? 'N/A')); ?></p>
-        <p><strong>Start Date:</strong> <?php echo dtr_h($startDate !== '' ? $startDate : 'N/A'); ?></p>
-        <p><strong>End Date:</strong> <?php echo dtr_h($endDate !== '' ? $endDate : 'N/A'); ?></p>
-        <p><strong>Total Logged Hours:</strong> <?php echo number_format($totalHours, 2); ?></p>
-    </div>
+<body onload="window.print()">
+    <div class="paper">
+        <div class="print-header">
+            <img src="../assets/images/ccstlogo.png" alt="CCST Logo" onerror="this.style.visibility='hidden'">
+            <div class="print-header-copy">
+                <p class="print-school">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</p>
+                <p class="print-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</p>
+                <p class="print-meta">Telefax No.: (045) 624-0215</p>
+            </div>
+        </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Morning In</th>
-                <th>Morning Out</th>
-                <th>Afternoon In</th>
-                <th>Afternoon Out</th>
-                <th>Total Hours</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if ($attendances !== []): ?>
-                <?php foreach ($attendances as $row): ?>
-                    <tr>
-                        <td><?php echo dtr_h((string)($row['attendance_date'] ?? '')); ?></td>
-                        <td><?php echo dtr_h(dtr_fmt_time($row['morning_time_in'] ?? '')); ?></td>
-                        <td><?php echo dtr_h(dtr_fmt_time($row['morning_time_out'] ?? '')); ?></td>
-                        <td><?php echo dtr_h(dtr_fmt_time($row['afternoon_time_in'] ?? '')); ?></td>
-                        <td><?php echo dtr_h(dtr_fmt_time($row['afternoon_time_out'] ?? '')); ?></td>
-                        <td><?php echo dtr_h(number_format((float)($row['total_hours'] ?? 0), 2)); ?></td>
-                        <td><?php echo dtr_h(ucfirst((string)($row['status'] ?? 'pending'))); ?></td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
+        <div class="print-title"><?php echo dtr_h($trackLabel); ?> Daily Time Record</div>
+
+        <div class="meta-grid">
+            <div class="meta-row"><span class="meta-label">Student No.</span><span><?php echo dtr_h((string)($studentMeta['student_id'] ?? 'N/A')); ?></span></div>
+            <div class="meta-row"><span class="meta-label">Name</span><span><?php echo dtr_h($studentName !== '' ? $studentName : 'N/A'); ?></span></div>
+            <div class="meta-row"><span class="meta-label">Course</span><span><?php echo dtr_h((string)($studentMeta['course_name'] ?? 'N/A')); ?></span></div>
+            <div class="meta-row"><span class="meta-label">Section</span><span><?php echo dtr_h((string)($studentMeta['section_label'] ?? 'N/A')); ?></span></div>
+            <div class="meta-row"><span class="meta-label">School Year</span><span><?php echo dtr_h((string)($studentMeta['school_year'] ?? 'N/A')); ?></span></div>
+            <div class="meta-row"><span class="meta-label">Semester</span><span><?php echo dtr_h((string)($studentMeta['semester'] ?? 'N/A')); ?></span></div>
+            <div class="meta-row"><span class="meta-label">Start Date</span><span><?php echo dtr_h($startDate !== '' ? $startDate : 'N/A'); ?></span></div>
+            <div class="meta-row"><span class="meta-label">End Date</span><span><?php echo dtr_h($endDate !== '' ? $endDate : 'N/A'); ?></span></div>
+            <div class="meta-row"><span class="meta-label">Total Logged</span><span><?php echo number_format($totalHours, 2); ?> hrs</span></div>
+            <div class="meta-row"><span class="meta-label">Track</span><span><?php echo dtr_h($trackLabel); ?></span></div>
+        </div>
+
+        <table>
+            <thead>
                 <tr>
-                    <td colspan="7" class="muted">No attendance records found for selected date range.</td>
+                    <th>Date</th>
+                    <th>Morning In</th>
+                    <th>Morning Out</th>
+                    <th>Afternoon In</th>
+                    <th>Afternoon Out</th>
+                    <th>Total Hours</th>
+                    <th>Status</th>
                 </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                <?php if ($attendances !== []): ?>
+                    <?php foreach ($attendances as $row): ?>
+                        <tr>
+                            <td><?php echo dtr_h((string)($row['attendance_date'] ?? '')); ?></td>
+                            <td><?php echo dtr_h(dtr_fmt_time($row['morning_time_in'] ?? '')); ?></td>
+                            <td><?php echo dtr_h(dtr_fmt_time($row['morning_time_out'] ?? '')); ?></td>
+                            <td><?php echo dtr_h(dtr_fmt_time($row['afternoon_time_in'] ?? '')); ?></td>
+                            <td><?php echo dtr_h(dtr_fmt_time($row['afternoon_time_out'] ?? '')); ?></td>
+                            <td><?php echo dtr_h(number_format((float)($row['total_hours'] ?? 0), 2)); ?></td>
+                            <td><?php echo dtr_h(ucfirst((string)($row['status'] ?? 'pending'))); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="7" class="empty-row">No attendance records found for the selected date range.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>
-
-

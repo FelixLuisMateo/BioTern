@@ -33,6 +33,44 @@
 
   }
 
+  function initHeaderTableSearch() {
+    var searchInput = document.getElementById("studentsHeaderSearchInput");
+    if (!searchInput) return;
+    var inputTimer;
+    var bound = false;
+    var attempts = 0;
+
+    function tryBind() {
+      if (bound) return;
+      attempts += 1;
+
+      if (
+        window.jQuery &&
+        window.jQuery.fn &&
+        typeof window.jQuery.fn.DataTable === "function" &&
+        window.jQuery.fn.DataTable.isDataTable("#customerList")
+      ) {
+        var table = window.jQuery("#customerList").DataTable();
+        searchInput.value = table.search() || "";
+        searchInput.addEventListener("input", function () {
+          var query = searchInput.value || "";
+          clearTimeout(inputTimer);
+          inputTimer = setTimeout(function () {
+            table.search(query).draw();
+          }, 120);
+        });
+        bound = true;
+        return;
+      }
+
+      if (attempts < 12) {
+        window.setTimeout(tryBind, 120);
+      }
+    }
+
+    tryBind();
+  }
+
   function initPrintActions() {
     function getSelectedPrintButton() {
       return document.getElementById("printSelectedStudents");
@@ -215,9 +253,22 @@
     var departmentSelect = form.querySelector('select[name="department_id"]');
     var supervisorSelect = form.querySelector('select[name="supervisor_id"]');
     var summary = modal.querySelector("[data-student-action-summary]");
+    var currentInfo = modal.querySelector("[data-student-action-current]");
+    var selectedInfo = modal.querySelector("[data-student-action-selected]");
     var editLink = modal.querySelector("[data-action-edit]");
     var printLink = modal.querySelector("[data-action-print]");
     var remindLink = modal.querySelector("[data-action-remind]");
+
+    function optionText(select, value) {
+      if (!select) return "";
+      var normalized = String(value || "");
+      for (var i = 0; i < select.options.length; i++) {
+        if (String(select.options[i].value) === normalized) {
+          return (select.options[i].textContent || "").trim();
+        }
+      }
+      return "";
+    }
 
     document.querySelectorAll("[data-student-action-trigger]").forEach(function (trigger) {
       trigger.addEventListener("click", function () {
@@ -226,13 +277,51 @@
         var studentTrack = trigger.getAttribute("data-student-track") || "internal";
         var departmentId = trigger.getAttribute("data-student-department-id") || "0";
         var supervisorId = trigger.getAttribute("data-student-supervisor-id") || "0";
+        var supervisorName = trigger.getAttribute("data-student-supervisor-name") || "";
+        var coordinatorName = trigger.getAttribute("data-student-coordinator-name") || "";
         var email = trigger.getAttribute("data-student-email") || "";
+        var departmentName = trigger.getAttribute("data-student-department-name") || "";
 
         if (studentIdInput) studentIdInput.value = studentId;
         if (trackSelect) trackSelect.value = studentTrack;
         if (departmentSelect) departmentSelect.value = departmentId;
         if (supervisorSelect) supervisorSelect.value = supervisorId;
+        if (departmentSelect && String(departmentSelect.value) !== String(departmentId) && departmentName) {
+          for (var di = 0; di < departmentSelect.options.length; di++) {
+            if ((departmentSelect.options[di].textContent || "").trim() === departmentName) {
+              departmentSelect.value = departmentSelect.options[di].value;
+              break;
+            }
+          }
+        }
+        if (supervisorSelect && String(supervisorSelect.value) !== String(supervisorId) && supervisorName) {
+          for (var si = 0; si < supervisorSelect.options.length; si++) {
+            if ((supervisorSelect.options[si].textContent || "").trim() === supervisorName) {
+              supervisorSelect.value = supervisorSelect.options[si].value;
+              break;
+            }
+          }
+        }
         if (summary) summary.textContent = "Assign track and actions for " + studentName + ".";
+        if (currentInfo) {
+          currentInfo.textContent =
+            "Current track: " +
+            studentTrack.charAt(0).toUpperCase() +
+            studentTrack.slice(1) +
+            " | Supervisor: " +
+            (supervisorName || "Not assigned") +
+            " | Coordinator: " +
+            (coordinatorName || "Not assigned");
+        }
+        if (selectedInfo) {
+          selectedInfo.textContent =
+            "Department: " +
+            (optionText(departmentSelect, departmentSelect && departmentSelect.value) || departmentName || "Not assigned") +
+            " | Supervisor: " +
+            (optionText(supervisorSelect, supervisorSelect && supervisorSelect.value) || supervisorName || "Not assigned") +
+            " | Coordinator: " +
+            (coordinatorName || "Not assigned");
+        }
         if (editLink) editLink.href = "students-edit.php?id=" + encodeURIComponent(studentId);
         if (printLink) printLink.href = "students-view.php?id=" + encodeURIComponent(studentId);
         if (remindLink) {
@@ -418,6 +507,7 @@
   function initStudentsPageRuntime() {
     initFilterSelects();
     initFilterAutoSubmit();
+    initHeaderTableSearch();
     initPrintActions();
     initTableCheckboxes();
     initStudentActionModal();

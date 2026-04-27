@@ -297,6 +297,9 @@ ob_end_flush();
                         </div>
                         <div class="col-12 col-md-8">
                             <p class="text-muted mb-0">Required Excel columns: Student No, Last Name, First Name. Recommended: User Id, Middle Name, Course Id, Section Id, Email, Password, Status.</p>
+                            <div class="mt-2">
+                                <a href="download-external-template.php" class="btn btn-outline-secondary btn-sm">Download External Template</a>
+                            </div>
                         </div>
                     </div>
 
