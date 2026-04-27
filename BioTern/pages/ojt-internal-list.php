@@ -796,6 +796,13 @@ ob_end_flush();
                     <input type="hidden" name="internal_action" value="start_internal">
                     <input type="hidden" name="student_ids" value="">
                     <input type="hidden" name="student_id" value="">
+                    <div class="ojt-internal-selection-box mb-3">
+                        <div class="ojt-internal-selection-head">
+                            <span>Selected Students</span>
+                            <small data-ojt-internal-selection-count>0 selected</small>
+                        </div>
+                        <div class="ojt-internal-selection-list" data-ojt-internal-selection-list></div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label" for="ojtInternalStartDate">Start Date</label>
                         <input type="date" class="form-control" id="ojtInternalStartDate" name="start_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
