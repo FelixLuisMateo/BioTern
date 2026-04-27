@@ -817,7 +817,13 @@ if ($internshipsTableReady) {
             ])));
             $row['section_label'] = $sectionLabel;
             $row['profile_url'] = resolve_profile_image_url((string)($row['profile_picture'] ?? ''), (int)($row['user_id'] ?? 0));
-            $track = strtolower(trim((string)($row['assignment_track'] ?? 'internal')));
+            $track = strtolower(trim((string)($row['internship_type'] ?? '')));
+            if (!in_array($track, ['internal', 'external'], true)) {
+                $track = strtolower(trim((string)($row['assignment_track'] ?? 'internal')));
+            }
+            if (!in_array($track, ['internal', 'external'], true)) {
+                $track = 'internal';
+            }
             $requiredHours = $track === 'external'
                 ? (int)($row['external_total_hours'] ?? 0)
                 : (int)($row['internal_total_hours'] ?? 0);

@@ -1,7 +1,6 @@
 @media print {
     @page {
-           size: A4 portrait;
-           margin: 0.2in;
+        margin: 0;
     }
 
     html.application-builder-page,
@@ -11,26 +10,33 @@
         background: #fff !important;
     }
 
-    body.application-builder-page * {
-        visibility: hidden !important;
+    body.application-builder-page .page-header,
+    body.application-builder-page .application-builder-sidebar,
+    body.application-builder-page .doc-form-pane,
+    body.application-builder-page .builder-card-head,
+    body.application-builder-page .builder-editor-head,
+    body.application-builder-page .builder-toolbar,
+    body.application-builder-page .builder-status-bar,
+    body.application-builder-page .actions,
+    body.application-builder-page .no-print,
+    body.application-builder-page .nxl-footer,
+    body.application-builder-page footer {
+        display: none !important;
     }
 
-    body.application-builder-page #editor,
-    body.application-builder-page #moa_content,
-    body.application-builder-page #editor * {
-        visibility: visible !important;
-    }
-
-    body.application-builder-page #moa_content * {
-        visibility: visible !important;
-    }
-
+    body.application-builder-page .nxl-container,
+    body.application-builder-page .nxl-content,
     body.application-builder-page .application-document-builder,
+    body.application-builder-page .main-content,
     body.application-builder-page .application-builder-grid,
     body.application-builder-page .application-builder-canvas,
+    body.application-builder-page .builder-card,
+    body.application-builder-page .builder-card-editor,
     body.application-builder-page .builder-paper-shell,
     body.application-builder-page .builder-paper,
     body.application-builder-page .builder-editor-surface,
+    body.application-builder-page .doc-workspace-row,
+    body.application-builder-page .moa-content,
     body.application-builder-page #editor,
     body.application-builder-page #moa_content {
         display: block !important;
@@ -40,114 +46,122 @@
         width: 100% !important;
         max-width: none !important;
         min-width: 0 !important;
+        min-height: 0 !important;
         background: #fff !important;
         border: 0 !important;
         box-shadow: none !important;
         overflow: visible !important;
     }
 
-    body.application-builder-page #editor {
-        padding: 0.08in 0.16in 0.16in !important;
-        box-sizing: border-box !important;
-    }
-
-    body.application-builder-page #moa_content {
-            padding: 0 !important;
-        box-sizing: border-box !important;
-    }
-
-        body.application-builder-page #editor .a4-pages-stack,
-        body.application-builder-page #moa_content.a4-pages-stack {
-            width: 210mm !important;
-            margin: 0 auto !important;
-            padding: 0 !important;
-            display: block !important;
-        }
-
-        body.application-builder-page #editor .a4-page,
-        body.application-builder-page #moa_content .a4-page {
-            width: 210mm !important;
-            min-height: 297mm !important;
-            max-width: 210mm !important;
-            margin: 0 auto !important;
-            box-sizing: border-box !important;
-            page-break-after: always !important;
-            break-after: page !important;
-            break-inside: avoid !important;
-            background: #fff !important;
-            box-shadow: none !important;
-        }
-
-        body.application-builder-page #editor .a4-page:last-child,
-        body.application-builder-page #moa_content .a4-page:last-child {
-            page-break-after: auto !important;
-            break-after: auto !important;
-        }
-
-    body.application-builder-page #editor .container,
-    body.application-builder-page #editor .app-application-container {
+    body.application-builder-page #editor .a4-pages-stack,
+    body.application-builder-page #moa_content.a4-pages-stack {
+        display: block !important;
         width: 100% !important;
         max-width: none !important;
         margin: 0 !important;
         padding: 0 !important;
     }
 
-    body.application-builder-page #editor .header,
-    body.application-builder-page #editor .app-application-header {
+    body.application-builder-page #editor .a4-page,
+    body.application-builder-page #moa_content .a4-page {
+        width: 100% !important;
+        max-width: none !important;
         min-height: 0 !important;
-        margin: 0 0 8px !important;
-        padding: 0 0 0.06in !important;
-        overflow: visible !important;
-        border-bottom: 1px solid #c8ccd3 !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        break-inside: avoid !important;
+        background: #fff !important;
+        box-shadow: none !important;
     }
 
-    body.application-builder-page #editor .app-application-header-inner {
+    body.application-builder-page #editor .a4-page:last-child,
+    body.application-builder-page #moa_content .a4-page:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+    }
+
+    body.application-document-builder-page #editor .a4-page,
+    body.endorsement-builder-page #editor .a4-page {
+        min-height: 11in !important;
+    }
+
+    body.moa-builder-page #moa_content .a4-page {
+        min-height: 297mm !important;
+    }
+
+    body.application-document-builder-page #editor {
+        padding: 0 !important;
+    }
+
+    body.application-document-builder-page #editor .a4-page {
+        padding: 0.22in 0.5in 0.24in 0.5in !important;
+    }
+
+    body.endorsement-builder-page #editor .a4-page {
+        padding: 0.20in 0.5in 0.22in 0.5in !important;
+    }
+
+    body.moa-builder-page #moa_content .a4-page {
+        padding: 0.30in 0.81in 0.20in 0.81in !important;
+    }
+
+    body.application-builder-page #editor .container,
+    body.application-builder-page #editor .app-application-container,
+    body.application-builder-page #moa_content .container {
+        width: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: 0 !important;
+    }
+
+    body.application-builder-page #editor .header,
+    body.application-builder-page #editor .app-application-header,
+    body.application-builder-page #moa_content .header {
+        margin-top: 0 !important;
+        margin-bottom: 8px !important;
+        padding-top: 0 !important;
+        overflow: visible !important;
+    }
+
+    body.application-document-builder-page #editor .header,
+    body.application-document-builder-page #editor .app-application-header {
+        border-bottom: 1px solid #c8ccd3 !important;
+        padding-bottom: 0.08in !important;
+    }
+
+    body.endorsement-builder-page #editor .preview-header {
+        border-bottom: 1px solid #9ec1ea !important;
+        margin-bottom: 10px !important;
+        padding-bottom: 0.08in !important;
+        position: relative !important;
+    }
+
+    body.application-document-builder-page #editor .app-application-header-inner {
         display: grid !important;
         grid-template-columns: 0.92in minmax(0, 1fr) !important;
         align-items: center !important;
         column-gap: 0.12in !important;
     }
 
-    body.application-builder-page #editor .app-application-header-copy {
+    body.application-document-builder-page #editor .app-application-header-copy {
         text-align: center !important;
-        padding-top: 0 !important;
         padding-right: 0.16in !important;
     }
 
-    body.application-builder-page #editor .crest,
-    body.application-builder-page #editor .app-application-crest {
-        position: static !important;
-        width: 0.92in !important;
-        max-width: 0.92in !important;
-        height: 0.92in !important;
-        max-height: 0.92in !important;
-        margin: 0 !important;
-        display: block !important;
-        object-fit: contain !important;
-        object-position: center center !important;
+    body.application-document-builder-page #editor .crest,
+    body.application-document-builder-page #editor .app-application-crest,
+    body.endorsement-builder-page #editor .crest-preview,
+    body.moa-builder-page #moa_content .crest {
         print-color-adjust: exact !important;
         -webkit-print-color-adjust: exact !important;
     }
 
-    body.application-builder-page #editor .header h2,
-    body.application-builder-page #editor .app-application-header .app-application-title {
-        margin: 2px 0 1px !important;
-    }
-
-    body.application-builder-page #editor .header .meta,
-    body.application-builder-page #editor .header .tel,
-    body.application-builder-page #editor .app-application-header .app-application-meta,
-    body.application-builder-page #editor .app-application-header .app-application-tel {
-        margin: 0 !important;
-        line-height: 1.2 !important;
-    }
-
-    body.application-builder-page #editor .content,
-    body.application-builder-page #editor .app-application-content {
-        margin-top: 6px !important;
-    }
-
-    body.application-builder-page #editor p {
-        margin: 0 0 12px !important;
+    body.application-builder-page img {
+        print-color-adjust: exact !important;
+        -webkit-print-color-adjust: exact !important;
     }
 }

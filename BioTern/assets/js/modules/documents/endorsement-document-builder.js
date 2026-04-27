@@ -226,7 +226,11 @@
         if (!node) {
             return;
         }
-        node.textContent = value || fallback || '';
+        var nextValue = value || fallback || '';
+        if (!value && node.classList && node.classList.contains('endorsement-fill-line')) {
+            nextValue = '\u00A0';
+        }
+        node.textContent = nextValue;
     }
 
     function sanitizeStudentLines(raw) {
@@ -429,7 +433,7 @@
             studentsList.innerHTML = '';
             if (!lines.length) {
                 var emptyLine = document.createElement('li');
-                emptyLine.textContent = '__________________________';
+                emptyLine.textContent = '\u00A0';
                 studentsList.appendChild(emptyLine);
             } else {
                 lines.forEach(function (line) {
@@ -448,7 +452,7 @@
                     legacyParentList.innerHTML = '';
                     if (!lines.length) {
                         var legacyEmpty = document.createElement('li');
-                        legacyEmpty.textContent = '__________________________';
+                        legacyEmpty.textContent = '\u00A0';
                         legacyParentList.appendChild(legacyEmpty);
                     } else {
                         lines.forEach(function (line) {
@@ -458,7 +462,7 @@
                         });
                     }
                 } else {
-                    legacyStudentsNode.textContent = lines.length ? lines.join(', ') : '__________________________';
+                    legacyStudentsNode.textContent = lines.length ? lines.join(', ') : '\u00A0';
                 }
             } else if (editor) {
                 // Fallback for templates where the students list has no dedicated placeholder id.
@@ -478,7 +482,7 @@
                     targetList.innerHTML = '';
                     if (!lines.length) {
                         var genericEmpty = document.createElement('li');
-                        genericEmpty.textContent = '__________________________';
+                        genericEmpty.textContent = '\u00A0';
                         targetList.appendChild(genericEmpty);
                     } else {
                         lines.forEach(function (line) {

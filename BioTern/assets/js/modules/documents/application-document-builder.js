@@ -176,7 +176,11 @@
         if (!node) {
             return;
         }
-        node.textContent = value || fallback || '';
+        var nextValue = value || fallback || '';
+        if (!value && node.classList && node.classList.contains('app-fill-line')) {
+            nextValue = '\u00A0';
+        }
+        node.textContent = nextValue;
     }
 
     function currentToday() {
