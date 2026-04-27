@@ -253,6 +253,7 @@
     var departmentSelect = form.querySelector('select[name="department_id"]');
     var supervisorSelect = form.querySelector('select[name="supervisor_id"]');
     var summary = modal.querySelector("[data-student-action-summary]");
+    var currentInfo = modal.querySelector("[data-student-action-current]");
     var editLink = modal.querySelector("[data-action-edit]");
     var printLink = modal.querySelector("[data-action-print]");
     var remindLink = modal.querySelector("[data-action-remind]");
@@ -264,6 +265,8 @@
         var studentTrack = trigger.getAttribute("data-student-track") || "internal";
         var departmentId = trigger.getAttribute("data-student-department-id") || "0";
         var supervisorId = trigger.getAttribute("data-student-supervisor-id") || "0";
+        var supervisorName = trigger.getAttribute("data-student-supervisor-name") || "";
+        var coordinatorName = trigger.getAttribute("data-student-coordinator-name") || "";
         var email = trigger.getAttribute("data-student-email") || "";
 
         if (studentIdInput) studentIdInput.value = studentId;
@@ -271,6 +274,16 @@
         if (departmentSelect) departmentSelect.value = departmentId;
         if (supervisorSelect) supervisorSelect.value = supervisorId;
         if (summary) summary.textContent = "Assign track and actions for " + studentName + ".";
+        if (currentInfo) {
+          currentInfo.textContent =
+            "Current track: " +
+            studentTrack.charAt(0).toUpperCase() +
+            studentTrack.slice(1) +
+            " | Supervisor: " +
+            (supervisorName || "Not assigned") +
+            " | Coordinator: " +
+            (coordinatorName || "Not assigned");
+        }
         if (editLink) editLink.href = "students-edit.php?id=" + encodeURIComponent(studentId);
         if (printLink) printLink.href = "students-view.php?id=" + encodeURIComponent(studentId);
         if (remindLink) {

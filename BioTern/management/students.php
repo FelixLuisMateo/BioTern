@@ -1226,6 +1226,8 @@ include 'includes/header.php';
                                                                         data-student-track="<?php echo htmlspecialchars($track_key, ENT_QUOTES, 'UTF-8'); ?>"
                                                                         data-student-department-id="<?php echo (int)($student['department_id'] ?? 0); ?>"
                                                                         data-student-supervisor-id="<?php echo (int)($student['student_supervisor_ref_id'] ?? 0); ?>"
+                                                                        data-student-supervisor-name="<?php echo htmlspecialchars((string)($student['supervisor_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                        data-student-coordinator-name="<?php echo htmlspecialchars((string)($student['coordinator_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                         data-student-email="<?php echo htmlspecialchars((string)($student['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                     >
                                                                         <i class="feather feather-more-horizontal"></i>
@@ -1325,6 +1327,8 @@ include 'includes/header.php';
                                                                 data-student-track="<?php echo htmlspecialchars($track_key, ENT_QUOTES, 'UTF-8'); ?>"
                                                                 data-student-department-id="<?php echo (int)($student['department_id'] ?? 0); ?>"
                                                                 data-student-supervisor-id="<?php echo (int)($student['student_supervisor_ref_id'] ?? 0); ?>"
+                                                                data-student-supervisor-name="<?php echo htmlspecialchars((string)($student['supervisor_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                data-student-coordinator-name="<?php echo htmlspecialchars((string)($student['coordinator_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                 data-student-email="<?php echo htmlspecialchars((string)($student['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                             >More</button>
                                                         <?php endif; ?>
@@ -1359,6 +1363,9 @@ include 'includes/header.php';
                 <form method="post" class="d-grid gap-2 mb-3" id="studentsActionAssignForm">
                     <input type="hidden" name="student_action" value="assign_track">
                     <input type="hidden" name="student_id" value="">
+                    <div class="small text-muted border rounded p-2 mb-1" data-student-action-current>
+                        Current assignment details will show here.
+                    </div>
                     <select name="assignment_track" class="form-select" required>
                         <option value="internal">Internal</option>
                         <option value="external">External</option>

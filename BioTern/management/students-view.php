@@ -341,6 +341,18 @@ $internal_remaining_hours_effective = $stored_internal_remaining !== null
 $external_remaining_hours_effective = $stored_external_remaining !== null
     ? max(0, $stored_external_remaining)
     : $external_remaining_hours_live;
+if ($internal_hours_rendered > 0 && $internal_remaining_hours_effective <= 0 && $internal_remaining_hours_live > 0) {
+    $internal_remaining_hours_effective = $internal_remaining_hours_live;
+}
+if ($external_hours_rendered > 0 && $external_remaining_hours_effective <= 0 && $external_remaining_hours_live > 0) {
+    $external_remaining_hours_effective = $external_remaining_hours_live;
+}
+if ($assignment_track === 'internal' && $internal_remaining_hours_effective >= $internal_total_hours && $internal_hours_rendered > 0) {
+    $internal_remaining_hours_effective = $internal_remaining_hours_live;
+}
+if ($assignment_track === 'external' && $external_remaining_hours_effective >= $external_total_hours && $external_hours_rendered > 0) {
+    $external_remaining_hours_effective = $external_remaining_hours_live;
+}
 $hours_remaining = ($assignment_track === 'external') ? $external_remaining_hours_effective : $internal_remaining_hours_effective;
 $hours_remaining_without_open = ($assignment_track === 'external')
     ? $external_remaining_hours_effective

@@ -306,7 +306,7 @@ include __DIR__ . '/../includes/header.php';
 
             <template id="application_default_template">
                 <div class="a4-pages-stack" data-a4-document="true">
-                    <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.55in 0.9in 0.85in 0.9in; background:#fff;">
+                    <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.35in 0.6in 0.55in 0.6in; background:#fff;">
                         <div class="container app-application-container">
                             <div class="header app-application-header">
                                 <div class="app-application-header-inner">
