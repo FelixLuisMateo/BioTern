@@ -764,9 +764,9 @@ if ($internshipsTableReady) {
             s.section_id,
             COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'internal') AS assignment_track,
             COALESCE(s.internal_total_hours, 0) AS internal_total_hours,
-            COALESCE(s.internal_total_hours_remaining, 0) AS internal_total_hours_remaining,
+            s.internal_total_hours_remaining AS internal_total_hours_remaining,
             COALESCE(s.external_total_hours, 0) AS external_total_hours,
-            COALESCE(s.external_total_hours_remaining, 0) AS external_total_hours_remaining,
+            s.external_total_hours_remaining AS external_total_hours_remaining,
             COALESCE(NULLIF(TRIM(s.school_year), ''), NULLIF(TRIM(i.school_year), ''), '') AS school_year,
             COALESCE(NULLIF(TRIM(s.semester), ''), NULLIF(TRIM(i.semester), ''), '') AS semester,
             COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
@@ -828,10 +828,15 @@ if ($internshipsTableReady) {
                 $requiredHours = $track === 'external' ? 250 : 140;
             }
 
-            $remainingHours = $track === 'external'
-                ? (int)($row['external_total_hours_remaining'] ?? 0)
-                : (int)($row['internal_total_hours_remaining'] ?? 0);
-            $renderedHours = max(0, $requiredHours - max(0, $remainingHours));
+            $remainingHoursRaw = $track === 'external'
+                ? ($row['external_total_hours_remaining'] ?? null)
+                : ($row['internal_total_hours_remaining'] ?? null);
+            $remainingHours = $remainingHoursRaw !== null && $remainingHoursRaw !== ''
+                ? max(0, (int)$remainingHoursRaw)
+                : null;
+            $renderedHours = $remainingHours !== null
+                ? max(0, $requiredHours - $remainingHours)
+                : 0;
             if ($renderedHours <= 0 && (int)($row['rendered_hours'] ?? 0) > 0 && strtolower(trim((string)($row['internship_type'] ?? $track))) === $track) {
                 $renderedHours = (int)($row['rendered_hours'] ?? 0);
             }
@@ -1846,24 +1851,24 @@ include 'includes/header.php';
 <?php endif; ?>
 
 <section class="student-list-print-sheet app-students-print-sheet companies-print-sheet companies-print-sheet--companies" aria-hidden="true">
-    <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
+    <img class="crest" src="assets/images/ccstlogo.png" alt="crest" data-hide-onerror="1">
     <div class="header">
         <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
         <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
         <div class="tel">Telefax No.: (045) 624-0215</div>
     </div>
-    <div class="print-title">COMPANY DIRECTORY LIST</div>
+    <div class="print-title">COMPANY LISTS</div>
     <div class="print-meta"><strong>FILTER:</strong> <?php echo h(($filterSchoolYear !== '' ? $filterSchoolYear : 'All School Years') . ' / ' . ($filterSemester !== '' ? $filterSemester : 'All Semesters') . ' / ' . ($filterLocation !== '' ? $filterLocation : 'All Locations')); ?></div>
     <table>
         <thead>
             <tr>
                 <th class="col-index">#</th>
-                <th>COMPANY</th>
+                <th>COMPANY NAME</th>
                 <th>ADDRESS</th>
-                <th>REPRESENTATIVE</th>
                 <th>SUPERVISOR</th>
-                <th>STUDENTS</th>
-                <th>ONGOING</th>
+                <th>REPRESENTATIVE</th>
+                <th>SUPERVISOR POSITION</th>
+                <th>REPRESENTATIVE POSITION</th>
             </tr>
         </thead>
         <tbody>
@@ -1872,10 +1877,10 @@ include 'includes/header.php';
                     <td class="col-index"><?php echo (int)$index + 1; ?></td>
                     <td><?php echo h(company_display_name((string)($company['company_name'] ?? ''))); ?></td>
                     <td><?php echo h(trim((string)($company['company_address'] ?? '')) !== '' ? (string)$company['company_address'] : 'Not provided'); ?></td>
-                    <td><?php echo h(trim((string)($company['company_representative'] ?? '')) !== '' ? (string)$company['company_representative'] : 'Not provided'); ?></td>
                     <td><?php echo h(trim((string)($company['supervisor_name'] ?? '')) !== '' ? (string)$company['supervisor_name'] : 'Not provided'); ?></td>
-                    <td><?php echo (int)($company['intern_count'] ?? 0); ?></td>
-                    <td><?php echo (int)($company['ongoing_count'] ?? 0); ?></td>
+                    <td><?php echo h(trim((string)($company['company_representative'] ?? '')) !== '' ? (string)$company['company_representative'] : 'Not provided'); ?></td>
+                    <td><?php echo h(trim((string)($company['supervisor_position'] ?? '')) !== '' ? (string)$company['supervisor_position'] : 'Not provided'); ?></td>
+                    <td><?php echo h(trim((string)($company['company_representative_position'] ?? '')) !== '' ? (string)$company['company_representative_position'] : 'Not provided'); ?></td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
@@ -1884,7 +1889,7 @@ include 'includes/header.php';
 
 <?php if ($selectedCompany !== null): ?>
 <section class="student-list-print-sheet app-students-print-sheet companies-print-sheet companies-print-sheet--students" aria-hidden="true">
-    <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
+    <img class="crest" src="assets/images/ccstlogo.png" alt="crest" data-hide-onerror="1">
     <div class="header">
         <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
         <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>

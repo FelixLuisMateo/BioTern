@@ -146,8 +146,37 @@ function student_internship_start_date(mysqli $conn, int $studentId, string $typ
     return $value !== '' ? $value : null;
 }
 
-$student['internal_start_date'] = student_internship_start_date($conn, $student_id, 'internal');
-$student['external_start_date'] = student_internship_start_date($conn, $student_id, 'external');
+$student['internal_start_date'] = null;
+$student['external_start_date'] = null;
+$internalAttendanceStartStmt = $conn->prepare("SELECT MIN(attendance_date) AS start_date FROM attendances WHERE student_id = ?");
+if ($internalAttendanceStartStmt) {
+    $internalAttendanceStartStmt->bind_param('i', $student_id);
+    $internalAttendanceStartStmt->execute();
+    $internalAttendanceStartRow = $internalAttendanceStartStmt->get_result()->fetch_assoc() ?: null;
+    $internalAttendanceStartStmt->close();
+    $internalAttendanceStartValue = trim((string)($internalAttendanceStartRow['start_date'] ?? ''));
+    if ($internalAttendanceStartValue !== '') {
+        $student['internal_start_date'] = $internalAttendanceStartValue;
+    }
+}
+external_attendance_ensure_schema($conn);
+$externalAttendanceStartStmt = $conn->prepare("SELECT MIN(attendance_date) AS start_date FROM external_attendance WHERE student_id = ?");
+if ($externalAttendanceStartStmt) {
+    $externalAttendanceStartStmt->bind_param('i', $student_id);
+    $externalAttendanceStartStmt->execute();
+    $externalAttendanceStartRow = $externalAttendanceStartStmt->get_result()->fetch_assoc() ?: null;
+    $externalAttendanceStartStmt->close();
+    $externalAttendanceStartValue = trim((string)($externalAttendanceStartRow['start_date'] ?? ''));
+    if ($externalAttendanceStartValue !== '') {
+        $student['external_start_date'] = $externalAttendanceStartValue;
+    }
+}
+if (empty($student['internal_start_date'])) {
+    $student['internal_start_date'] = student_internship_start_date($conn, $student_id, 'internal');
+}
+if (empty($student['external_start_date'])) {
+    $student['external_start_date'] = student_internship_start_date($conn, $student_id, 'external');
+}
 
 $latestInternshipStmt = $conn->prepare("
     SELECT company_name, company_address, position, status, start_date, end_date
@@ -319,6 +348,9 @@ if ($internal_total_hours < 0) {
 $external_total_hours = isset($student['external_total_hours']) ? intval($student['external_total_hours']) : 0;
 if ($external_total_hours < 0) {
     $external_total_hours = 0;
+}
+if ($external_total_hours <= 0) {
+    $external_total_hours = 250;
 }
 if ($internal_total_hours <= 0) {
     // Prevent division by zero and keep dashboard usable when hours are not configured yet.
@@ -1044,6 +1076,9 @@ echo $is_evaluation_unlocked ? 'Waiting for supervisor submission' : 'Waiting fo
 
             <div id="students-view-runtime-config"
          data-internal-total-hours="<?php echo (int)$internal_total_hours; ?>"
+         data-external-total-hours="<?php echo (int)$external_total_hours; ?>"
+         data-active-track="<?php echo htmlspecialchars($assignment_track, ENT_QUOTES, 'UTF-8'); ?>"
+         data-active-total-hours="<?php echo (int)$active_total_hours; ?>"
          data-student-id="<?php echo (int)$student['id']; ?>"
          data-remaining-seconds="<?php echo (int)$preview_remaining_seconds; ?>"
          data-remaining-seconds-without-open="<?php echo (int)$remaining_seconds_without_open; ?>"

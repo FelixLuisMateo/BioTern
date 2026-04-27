@@ -744,3 +744,27 @@ html.app-skin-dark body.companies-page .companies-modal .modal-content {
         break-inside: avoid;
     }
 }
+
+body.companies-page .companies-print-sheet--companies table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+body.companies-page .companies-print-sheet--companies th,
+body.companies-page .companies-print-sheet--companies td {
+    white-space: normal;
+    word-break: break-word;
+    vertical-align: top;
+}
+
+body.companies-page .companies-print-sheet--companies .crest,
+body.companies-page .companies-print-sheet--students .crest {
+    width: 74px;
+    height: 74px;
+    object-fit: contain;
+}
+
+body.companies-page .companies-print-sheet--companies .print-title,
+body.companies-page .companies-print-sheet--students .print-title {
+    letter-spacing: 0;
+}

@@ -98,6 +98,9 @@ if ($student_name === '') {
     $student_name = 'Student #' . (string)($student['student_id'] ?? $student_id);
 }
 $total_hours_target = max(0, (float)($student['external_total_hours'] ?? 0));
+if ($total_hours_target <= 0) {
+    $total_hours_target = 250;
+}
 $stored_remaining_hours = $student['external_total_hours_remaining'];
 $total_hours_remaining = $stored_remaining_hours !== null
     ? max(0, (float)$stored_remaining_hours)
