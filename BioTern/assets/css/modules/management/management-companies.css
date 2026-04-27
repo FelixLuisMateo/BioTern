@@ -76,6 +76,34 @@ body.companies-page .companies-page-alert {
     margin-bottom: 1rem;
 }
 
+body.companies-page .companies-filter-card {
+    border: 1px solid var(--biotern-border, var(--bs-border-color));
+    border-radius: 1rem;
+    background: var(--biotern-surface, var(--bs-body-bg));
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
+    padding: 1rem 1.1rem;
+    margin-bottom: 1rem;
+}
+
+body.companies-page .companies-filter-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+body.companies-page .companies-filter-head p {
+    color: var(--bs-secondary-color, #6b7280);
+}
+
+body.companies-page .companies-filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
 body.companies-page .companies-page-header-actions {
     display: flex;
     align-items: center;
@@ -416,6 +444,49 @@ body.companies-page .companies-progress-copy strong {
     font-size: 0.86rem;
 }
 
+body.companies-page .companies-print-sheet {
+    display: none;
+}
+
+body.companies-page .companies-print-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+body.companies-page .companies-print-card {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 1rem;
+    break-inside: avoid;
+}
+
+body.companies-page .companies-print-card h3,
+body.companies-page .companies-print-header h2 {
+    margin-bottom: 0.45rem;
+    font-weight: 800;
+}
+
+body.companies-page .companies-print-card p,
+body.companies-page .companies-print-header p {
+    margin: 0 0 0.35rem;
+}
+
+body.companies-page .companies-print-table {
+    width: 100%;
+    margin-top: 1rem;
+    border-collapse: collapse;
+}
+
+body.companies-page .companies-print-table th,
+body.companies-page .companies-print-table td {
+    border: 1px solid #cbd5e1;
+    padding: 0.5rem;
+    text-align: left;
+    vertical-align: top;
+    font-size: 0.9rem;
+}
+
 body.companies-page .companies-empty-state {
     min-height: 290px;
     display: flex;
@@ -526,6 +597,7 @@ html.app-skin-dark body.companies-page .companies-modal .modal-content {
 
 @media (max-width: 991.98px) {
     body.companies-page .companies-page-header-actions,
+    body.companies-page .companies-filter-head,
     body.companies-page .companies-detail-head,
     body.companies-page .companies-intern-item,
     body.companies-page .companies-profile-hero {
@@ -546,5 +618,44 @@ html.app-skin-dark body.companies-page .companies-modal .modal-content {
     body.companies-page .companies-intern-actions,
     body.companies-page .companies-progress-copy {
         justify-content: flex-start;
+    }
+}
+
+@media (max-width: 767.98px) {
+    body.companies-page .companies-filter-actions,
+    body.companies-page .companies-detail-actions,
+    body.companies-page .companies-page-header-actions,
+    body.companies-page .companies-toolbar {
+        width: 100%;
+    }
+
+    body.companies-page .companies-filter-actions .btn,
+    body.companies-page .companies-detail-actions .btn {
+        width: 100%;
+    }
+}
+
+@media print {
+    body.companies-page .page-header,
+    body.companies-page .main-content > :not(.companies-print-sheet) {
+        display: none !important;
+    }
+
+    body.companies-page .companies-print-sheet {
+        display: none;
+    }
+
+    body.companies-page.companies-print-companies .companies-print-sheet--companies,
+    body.companies-page.companies-print-students .companies-print-sheet--students {
+        display: block;
+    }
+
+    body.companies-page .companies-print-grid {
+        grid-template-columns: 1fr;
+    }
+
+    body.companies-page .companies-print-card,
+    body.companies-page .companies-print-table {
+        break-inside: avoid;
     }
 }

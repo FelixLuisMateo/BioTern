@@ -5,6 +5,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
 require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/company_profiles.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
@@ -91,6 +92,8 @@ if ($result->num_rows == 0) {
 }
 
 $student = $result->fetch_assoc();
+$student_latest_internship = null;
+$student_company_profile = null;
 
 function internship_column_exists(mysqli $conn, string $column): bool
 {
@@ -144,6 +147,45 @@ function student_internship_start_date(mysqli $conn, int $studentId, string $typ
 
 $student['internal_start_date'] = student_internship_start_date($conn, $student_id, 'internal');
 $student['external_start_date'] = student_internship_start_date($conn, $student_id, 'external');
+
+$latestInternshipStmt = $conn->prepare("
+    SELECT company_name, company_address, position, status, start_date, end_date
+    FROM internships
+    WHERE student_id = ? AND deleted_at IS NULL
+    ORDER BY updated_at DESC, id DESC
+    LIMIT 1
+");
+if ($latestInternshipStmt) {
+    $latestInternshipStmt->bind_param('i', $student_id);
+    $latestInternshipStmt->execute();
+    $student_latest_internship = $latestInternshipStmt->get_result()->fetch_assoc() ?: null;
+    $latestInternshipStmt->close();
+}
+
+$latestCompanyName = trim((string)($student_latest_internship['company_name'] ?? ''));
+if ($latestCompanyName !== '') {
+    $student_company_profile = biotern_company_profile_fetch_by_name($conn, $latestCompanyName);
+    if ($student_company_profile) {
+        if (trim((string)($student_company_profile['company_name'] ?? '')) !== '') {
+            $student_latest_internship['company_name'] = trim((string)$student_company_profile['company_name']);
+        }
+        if (trim((string)($student_company_profile['company_address'] ?? '')) !== '') {
+            $student_latest_internship['company_address'] = trim((string)$student_company_profile['company_address']);
+        }
+        if (trim((string)($student_company_profile['company_representative'] ?? '')) !== '') {
+            $student_latest_internship['company_representative'] = trim((string)$student_company_profile['company_representative']);
+        }
+        if (trim((string)($student_company_profile['company_representative_position'] ?? '')) !== '') {
+            $student_latest_internship['company_representative_position'] = trim((string)$student_company_profile['company_representative_position']);
+        }
+        if (trim((string)($student_company_profile['supervisor_name'] ?? '')) !== '') {
+            $student_latest_internship['supervisor_name'] = trim((string)$student_company_profile['supervisor_name']);
+        }
+        if (trim((string)($student_company_profile['supervisor_position'] ?? '')) !== '') {
+            $student_latest_internship['supervisor_position'] = trim((string)$student_company_profile['supervisor_position']);
+        }
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eval_unlock_action'])) {
     if (!$can_manage_eval_unlock) {
@@ -675,6 +717,31 @@ echo htmlspecialchars($student['department_name'] ?? 'N/A'); ?></div>
                                                     <div class="small text-muted mb-1">Section</div>
                                                     <div class="fw-semibold"><?php
 echo htmlspecialchars(biotern_format_section_label((string)($student['section_code'] ?? ''), (string)($student['section_name'] ?? 'N/A'))); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Current Company</div>
+                                                    <div class="fw-semibold"><?php
+echo htmlspecialchars(trim((string)($student_latest_internship['company_name'] ?? '')) !== '' ? (string)$student_latest_internship['company_name'] : 'No company linked yet'); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Company Contact</div>
+                                                    <div class="fw-semibold"><?php
+$studentCompanyContact = trim((string)($student_latest_internship['company_representative'] ?? ''));
+if ($studentCompanyContact === '') {
+    $studentCompanyContact = trim((string)($student_latest_internship['supervisor_name'] ?? ''));
+}
+echo htmlspecialchars($studentCompanyContact !== '' ? $studentCompanyContact : 'Not provided'); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Company Address</div>
+                                                    <div class="fw-semibold"><?php
+echo htmlspecialchars(trim((string)($student_latest_internship['company_address'] ?? '')) !== '' ? (string)$student_latest_internship['company_address'] : 'No company address saved yet'); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">

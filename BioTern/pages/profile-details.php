@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/company_profiles.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
 if (session_status() === PHP_SESSION_NONE) {
@@ -214,6 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $studentProfile = null;
+$studentInternshipProfile = null;
 $currentRole = strtolower(trim((string)($user['role'] ?? $_SESSION['role'] ?? '')));
 if ($currentRole === 'student') {
     $studentStmt = $conn->prepare("SELECT s.id, s.student_id, s.first_name, s.middle_name, s.last_name, s.email AS student_email, s.phone, s.address,
@@ -269,6 +271,48 @@ if ($currentRole === 'student') {
             $fallbackStmt->execute();
             $studentProfile = $fallbackStmt->get_result()->fetch_assoc() ?: null;
             $fallbackStmt->close();
+        }
+    }
+
+    if (is_array($studentProfile) && !empty($studentProfile['id'])) {
+        $internshipStmt = $conn->prepare("
+            SELECT company_name, company_address, position, status, start_date, end_date
+            FROM internships
+            WHERE student_id = ? AND deleted_at IS NULL
+            ORDER BY updated_at DESC, id DESC
+            LIMIT 1
+        ");
+        if ($internshipStmt) {
+            $studentRecordId = (int)($studentProfile['id'] ?? 0);
+            $internshipStmt->bind_param('i', $studentRecordId);
+            $internshipStmt->execute();
+            $studentInternshipProfile = $internshipStmt->get_result()->fetch_assoc() ?: null;
+            $internshipStmt->close();
+        }
+
+        $internshipCompanyName = trim((string)($studentInternshipProfile['company_name'] ?? ''));
+        if ($internshipCompanyName !== '') {
+            $companyProfile = biotern_company_profile_fetch_by_name($conn, $internshipCompanyName);
+            if ($companyProfile) {
+                if (trim((string)($companyProfile['company_name'] ?? '')) !== '') {
+                    $studentInternshipProfile['company_name'] = trim((string)$companyProfile['company_name']);
+                }
+                if (trim((string)($companyProfile['company_address'] ?? '')) !== '') {
+                    $studentInternshipProfile['company_address'] = trim((string)$companyProfile['company_address']);
+                }
+                if (trim((string)($companyProfile['company_representative'] ?? '')) !== '') {
+                    $studentInternshipProfile['company_representative'] = trim((string)$companyProfile['company_representative']);
+                }
+                if (trim((string)($companyProfile['company_representative_position'] ?? '')) !== '') {
+                    $studentInternshipProfile['company_representative_position'] = trim((string)$companyProfile['company_representative_position']);
+                }
+                if (trim((string)($companyProfile['supervisor_name'] ?? '')) !== '') {
+                    $studentInternshipProfile['supervisor_name'] = trim((string)$companyProfile['supervisor_name']);
+                }
+                if (trim((string)($companyProfile['supervisor_position'] ?? '')) !== '') {
+                    $studentInternshipProfile['supervisor_position'] = trim((string)$companyProfile['supervisor_position']);
+                }
+            }
         }
     }
 }
@@ -541,6 +585,22 @@ include 'includes/header.php';
                                 <div class="profile-field">
                                     <div class="profile-field-label">Section</div>
                                     <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_value($studentSectionDisplay, 'Not yet assigned'), ENT_QUOTES, 'UTF-8'); ?></div>
+                                </div>
+                                <div class="profile-field full">
+                                    <div class="profile-field-label">Current Company</div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_value((string)($studentInternshipProfile['company_name'] ?? ''), 'No company linked yet'), ENT_QUOTES, 'UTF-8'); ?></div>
+                                </div>
+                                <div class="profile-field full">
+                                    <div class="profile-field-label">Company Address</div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_value((string)($studentInternshipProfile['company_address'] ?? ''), 'No company address saved yet'), ENT_QUOTES, 'UTF-8'); ?></div>
+                                </div>
+                                <div class="profile-field">
+                                    <div class="profile-field-label">Representative</div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_value((string)($studentInternshipProfile['company_representative'] ?? ''), profile_details_value((string)($studentInternshipProfile['supervisor_name'] ?? ''), 'Not yet available')), ENT_QUOTES, 'UTF-8'); ?></div>
+                                </div>
+                                <div class="profile-field">
+                                    <div class="profile-field-label">Representative Position</div>
+                                    <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_value((string)($studentInternshipProfile['company_representative_position'] ?? ''), profile_details_value((string)($studentInternshipProfile['supervisor_position'] ?? ''), 'Not yet available')), ENT_QUOTES, 'UTF-8'); ?></div>
                                 </div>
                                 <div class="profile-field">
                                     <div class="profile-field-label">Phone</div>
