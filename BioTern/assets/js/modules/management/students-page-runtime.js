@@ -23,6 +23,7 @@
       "filter-department",
       "filter-section",
       "filter-school-year",
+      "filter-semester",
       "filter-supervisor",
       "filter-coordinator",
     ].forEach(function (id) {
@@ -204,88 +205,45 @@
     refreshSelectAllState();
   }
 
-  function initActionDropdownPortal() {
-    var activeActionMenu = null;
+  function initStudentActionModal() {
+    var modal = document.getElementById("studentsActionModal");
+    if (!modal) return;
+    var form = document.getElementById("studentsActionAssignForm");
+    if (!form) return;
+    var studentIdInput = form.querySelector('input[name="student_id"]');
+    var trackSelect = form.querySelector('select[name="assignment_track"]');
+    var departmentSelect = form.querySelector('select[name="department_id"]');
+    var supervisorSelect = form.querySelector('select[name="supervisor_id"]');
+    var summary = modal.querySelector("[data-student-action-summary]");
+    var editLink = modal.querySelector("[data-action-edit]");
+    var printLink = modal.querySelector("[data-action-print]");
+    var remindLink = modal.querySelector("[data-action-remind]");
 
-    function positionActionMenu(dropdownEl, menuEl) {
-      var toggle = dropdownEl.querySelector('[data-bs-toggle="dropdown"]');
-      if (!toggle || !menuEl) return;
-      var tRect = toggle.getBoundingClientRect();
-      var menuWidth = menuEl.offsetWidth || 220;
-      var menuHeight = menuEl.offsetHeight || 220;
+    document.querySelectorAll("[data-student-action-trigger]").forEach(function (trigger) {
+      trigger.addEventListener("click", function () {
+        var studentId = trigger.getAttribute("data-student-id") || "";
+        var studentName = trigger.getAttribute("data-student-name") || "Selected student";
+        var studentTrack = trigger.getAttribute("data-student-track") || "internal";
+        var departmentId = trigger.getAttribute("data-student-department-id") || "0";
+        var supervisorId = trigger.getAttribute("data-student-supervisor-id") || "0";
+        var email = trigger.getAttribute("data-student-email") || "";
 
-      var left = tRect.right - menuWidth;
-      if (left < 12) left = 12;
-      if (left + menuWidth > window.innerWidth - 12) {
-        left = window.innerWidth - menuWidth - 12;
-      }
-
-      var top = tRect.bottom + 1;
-      if (top + menuHeight > window.innerHeight - 12) {
-        top = Math.max(12, tRect.top - menuHeight - 1);
-      }
-
-      menuEl.style.position = "fixed";
-      menuEl.style.top = top + "px";
-      menuEl.style.left = left + "px";
-    }
-
-    document.querySelectorAll(".students-action-dropdown").forEach(function (dropdownEl) {
-      dropdownEl.addEventListener("shown.bs.dropdown", function () {
-        var menuEl = dropdownEl.querySelector(".dropdown-menu");
-        var toggle = dropdownEl.querySelector('[data-bs-toggle="dropdown"]');
-        if (!menuEl) return;
-        if (!menuEl.dataset.portalParentId) {
-          if (!dropdownEl.id) {
-            dropdownEl.id = "students-action-dd-" + Math.random().toString(36).slice(2, 10);
-          }
-          menuEl.dataset.portalParentId = dropdownEl.id;
-        }
-        document.body.appendChild(menuEl);
-        menuEl.classList.add("students-action-menu-portal", "show");
-        if (toggle) {
-          toggle.classList.add("portal-open");
-        }
-        positionActionMenu(dropdownEl, menuEl);
-        activeActionMenu = { dropdown: dropdownEl, menu: menuEl };
-      });
-
-      dropdownEl.addEventListener("hide.bs.dropdown", function () {
-        var toggle = dropdownEl.querySelector('[data-bs-toggle="dropdown"]');
-        var menuEl =
-          document.querySelector(
-            '.students-action-menu-portal[data-portal-parent-id="' + dropdownEl.id + '"]'
-          ) || dropdownEl.querySelector(".dropdown-menu");
-        if (!menuEl) return;
-        menuEl.classList.remove("students-action-menu-portal", "show");
-        menuEl.style.position = "";
-        menuEl.style.top = "";
-        menuEl.style.left = "";
-        dropdownEl.appendChild(menuEl);
-        if (toggle) {
-          toggle.classList.remove("portal-open");
-        }
-        if (activeActionMenu && activeActionMenu.dropdown === dropdownEl) {
-          activeActionMenu = null;
+        if (studentIdInput) studentIdInput.value = studentId;
+        if (trackSelect) trackSelect.value = studentTrack;
+        if (departmentSelect) departmentSelect.value = departmentId;
+        if (supervisorSelect) supervisorSelect.value = supervisorId;
+        if (summary) summary.textContent = "Assign track and actions for " + studentName + ".";
+        if (editLink) editLink.href = "students-edit.php?id=" + encodeURIComponent(studentId);
+        if (printLink) printLink.href = "students-view.php?id=" + encodeURIComponent(studentId);
+        if (remindLink) {
+          remindLink.href =
+            "mailto:" +
+            encodeURIComponent(email) +
+            "?subject=" +
+            encodeURIComponent("Reminder from BioTern");
         }
       });
     });
-
-    window.addEventListener("resize", function () {
-      if (activeActionMenu && activeActionMenu.dropdown && activeActionMenu.menu) {
-        positionActionMenu(activeActionMenu.dropdown, activeActionMenu.menu);
-      }
-    });
-
-    window.addEventListener(
-      "scroll",
-      function () {
-        if (activeActionMenu && activeActionMenu.dropdown && activeActionMenu.menu) {
-          positionActionMenu(activeActionMenu.dropdown, activeActionMenu.menu);
-        }
-      },
-      true
-    );
   }
 
   function initExportActions() {
@@ -462,7 +420,7 @@
     initFilterAutoSubmit();
     initPrintActions();
     initTableCheckboxes();
-    initActionDropdownPortal();
+    initStudentActionModal();
     initExportActions();
   }
 

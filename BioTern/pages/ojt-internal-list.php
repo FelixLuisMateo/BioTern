@@ -281,8 +281,13 @@ if ($trackColumnRes instanceof mysqli_result) {
 $mapFingerId = (int)($_GET['map_finger_id'] ?? 0);
 $filterCourseId = (int)($_GET['course_id'] ?? 0);
 $filterSectionId = (int)($_GET['section_id'] ?? 0);
+$filterSchoolYear = trim((string)($_GET['school_year'] ?? ''));
+$filterSemester = trim((string)($_GET['semester'] ?? ''));
 $search = trim((string)($_GET['search'] ?? ''));
 $filterOjtStatus = strtolower(trim((string)($_GET['ojt_status'] ?? 'all')));
+if (!in_array($filterSemester, ['', '1st Semester', '2nd Semester', 'Summer'], true)) {
+    $filterSemester = '';
+}
 if (!in_array($filterOjtStatus, ['all', 'ongoing', 'finished', 'not_started'], true)) {
     $filterOjtStatus = 'all';
 }
@@ -301,6 +306,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['internal_action'] 
     }
     if ($filterSectionId > 0) {
         $redirectQuery['section_id'] = $filterSectionId;
+    }
+    if ($filterSchoolYear !== '') {
+        $redirectQuery['school_year'] = $filterSchoolYear;
+    }
+    if ($filterSemester !== '') {
+        $redirectQuery['semester'] = $filterSemester;
     }
     if ($search !== '') {
         $redirectQuery['search'] = $search;
@@ -432,6 +443,8 @@ $sql = "
         s.student_id,
         s.status AS students_status,
         " . ($hasAssignmentTrack ? "s.assignment_track" : "''") . " AS assignment_track,
+        COALESCE(NULLIF(TRIM(s.school_year), ''), '') AS school_year,
+        COALESCE(NULLIF(TRIM(s.semester), ''), '') AS semester,
         s.created_at AS students_created_at,
         COALESCE(oi.course_id, s.course_id, 0) AS resolved_course_id,
         COALESCE(oi.section_id, s.section_id, 0) AS resolved_section_id,
@@ -479,6 +492,8 @@ $studentsOnlySql = "
         s.student_id,
         s.status AS students_status,
         " . ($hasAssignmentTrack ? "s.assignment_track" : "'internal'") . " AS assignment_track,
+        COALESCE(NULLIF(TRIM(s.school_year), ''), '') AS school_year,
+        COALESCE(NULLIF(TRIM(s.semester), ''), '') AS semester,
         s.created_at AS students_created_at,
         COALESCE(s.course_id, 0) AS resolved_course_id,
         COALESCE(s.section_id, 0) AS resolved_section_id,
@@ -526,6 +541,12 @@ foreach ($rows as $row) {
     if ($filterSectionId > 0 && $row['resolved_section_id'] !== $filterSectionId) {
         continue;
     }
+    if ($filterSchoolYear !== '' && strcasecmp(trim((string)($row['school_year'] ?? '')), $filterSchoolYear) !== 0) {
+        continue;
+    }
+    if ($filterSemester !== '' && strcasecmp(trim((string)($row['semester'] ?? '')), $filterSemester) !== 0) {
+        continue;
+    }
     if ($filterOjtStatus !== 'all' && $statusKey !== $filterOjtStatus) {
         continue;
     }
@@ -559,11 +580,13 @@ $page_styles = [
     'assets/css/layout/page_shell.css',
     'assets/css/modules/pages/page-biometric-console.css',
     'assets/css/modules/pages/page-ojt-internal-list.css',
+    'assets/css/modules/management/management-students.css',
 ];
 $page_scripts = [
     'assets/js/modules/pages/ojt-list-select.js',
     'assets/js/modules/pages/ojt-list-print.js',
     'assets/js/modules/pages/ojt-internal-actions.js',
+    'assets/js/modules/pages/ojt-row-link.js',
 ];
 $base_href = '';
 include __DIR__ . '/../includes/header.php';
@@ -648,6 +671,19 @@ ob_end_flush();
                             <input type="text" class="form-control" id="search" name="search" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Student no, name, email">
                         </div>
                         <div class="col-12 col-md-2">
+                            <label class="form-label" for="school_year">School Year</label>
+                            <input type="text" class="form-control" id="school_year" name="school_year" value="<?php echo htmlspecialchars($filterSchoolYear, ENT_QUOTES, 'UTF-8'); ?>" placeholder="2025-2026">
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <label class="form-label" for="semester">Semester</label>
+                            <select class="form-select" id="semester" name="semester">
+                                <option value="">All Semesters</option>
+                                <option value="1st Semester" <?php echo $filterSemester === '1st Semester' ? 'selected' : ''; ?>>1st Semester</option>
+                                <option value="2nd Semester" <?php echo $filterSemester === '2nd Semester' ? 'selected' : ''; ?>>2nd Semester</option>
+                                <option value="Summer" <?php echo $filterSemester === 'Summer' ? 'selected' : ''; ?>>Summer</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-2">
                             <label class="form-label" for="course_id">Course</label>
                             <select class="form-select" id="course_id" name="course_id">
                                 <option value="0">All Courses</option>
@@ -665,7 +701,7 @@ ob_end_flush();
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-12 col-md-3">
+                        <div class="col-12 col-md-2">
                             <label class="form-label" for="ojt_status">OJT Status</label>
                             <select class="form-select" id="ojt_status" name="ojt_status">
                                 <option value="all" <?php echo $filterOjtStatus === 'all' ? 'selected' : ''; ?>>All Statuses</option>
@@ -682,12 +718,12 @@ ob_end_flush();
                 </div>
                 <div class="card-body py-2">
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                        <small class="text-muted">Total internal rows: <?php echo count($rows); ?> | Linked with registered account: <?php echo $linkedCount; ?> | Ongoing: <?php echo (int)$statusCounts['ongoing']; ?> | Finished: <?php echo (int)$statusCounts['finished']; ?> | Not Started: <?php echo (int)$statusCounts['not_started']; ?></small>
+                        <small class="text-muted">Total internal rows: <?php echo count($rows); ?> | Linked with registered account: <?php echo $linkedCount; ?> | Ongoing: <?php echo (int)$statusCounts['ongoing']; ?> | Finished: <?php echo (int)$statusCounts['finished']; ?> | Not Started: <?php echo (int)$statusCounts['not_started']; ?><?php echo $filterSchoolYear !== '' ? ' | SY: ' . htmlspecialchars($filterSchoolYear, ENT_QUOTES, 'UTF-8') : ''; ?><?php echo $filterSemester !== '' ? ' | ' . htmlspecialchars($filterSemester, ENT_QUOTES, 'UTF-8') : ''; ?></small>
                     </div>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtInternalListTable" data-ojt-select-table data-print-title="Internal Student List" data-print-subtitle="<?php echo htmlspecialchars($mapFingerId > 0 ? 'Fingerprint mapping mode' : 'Filtered internal list', ENT_QUOTES, 'UTF-8'); ?>">
+                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtInternalListTable" data-ojt-select-table data-print-title="Internal Student List" data-print-subtitle="<?php echo htmlspecialchars($mapFingerId > 0 ? 'Fingerprint mapping mode' : trim(($filterSchoolYear !== '' ? $filterSchoolYear . ' / ' : '') . ($filterSemester !== '' ? $filterSemester : 'Filtered internal list')), ENT_QUOTES, 'UTF-8'); ?>">
                             <thead>
                                 <tr>
                                     <th class="app-ojt-select-column">
@@ -710,7 +746,7 @@ ob_end_flush();
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($rows as $row): ?>
-                                    <tr data-ojt-student-row-id="<?php echo (int)($row['student_row_id'] ?? 0); ?>" data-ojt-student-label="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
+                                    <tr data-ojt-student-row-id="<?php echo (int)($row['student_row_id'] ?? 0); ?>" data-ojt-student-label="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>" data-row-href="ojt-internal-view.php?id=<?php echo (int)($row['student_row_id'] ?? 0); ?>">
                                         <td class="app-ojt-select-column" data-print-exclude="1">
                                             <div class="form-check app-ojt-select-check">
                                                 <input class="form-check-input" type="checkbox" data-ojt-row-select aria-label="Select student <?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?>">
@@ -824,7 +860,7 @@ ob_end_flush();
         <div class="tel">Telefax No.: (045) 624-0215</div>
     </div>
     <div class="print-title" data-ojt-print-title>INTERNAL STUDENT LIST</div>
-    <div class="print-meta"><strong>FILTER:</strong> <span data-ojt-print-subtitle><?php echo htmlspecialchars($mapFingerId > 0 ? 'Fingerprint mapping mode' : 'Filtered internal list', ENT_QUOTES, 'UTF-8'); ?></span></div>
+    <div class="print-meta"><strong>FILTER:</strong> <span data-ojt-print-subtitle><?php echo htmlspecialchars($mapFingerId > 0 ? 'Fingerprint mapping mode' : trim(($filterSchoolYear !== '' ? $filterSchoolYear . ' / ' : '') . ($filterSemester !== '' ? $filterSemester : 'Filtered internal list')), ENT_QUOTES, 'UTF-8'); ?></span></div>
     <table>
         <thead>
             <tr></tr>
