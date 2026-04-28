@@ -3,6 +3,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/lib/company_profiles.php';
+require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -50,6 +51,13 @@ $externalProfileStats = [
     'pending_logs' => 0,
     'rejected_logs' => 0,
     'total_hours' => 0.0,
+];
+$openSession = [
+    'is_open' => false,
+    'clocked_in_now' => false,
+    'requires_correction' => false,
+    'elapsed_preview_seconds' => 0,
+    'cutoff_time' => null,
 ];
 
 $userStmt = $conn->prepare('SELECT id, name, username, email, profile_picture, created_at FROM users WHERE id = ? LIMIT 1');
@@ -258,6 +266,30 @@ if (!in_array($assignmentTrack, ['internal', 'external'], true)) {
     $assignmentTrack = 'internal';
 }
 $studentHasExternalAccess = ($assignmentTrack === 'external');
+if (!empty($student['id']) && $assignmentTrack === 'internal') {
+    $today = date('Y-m-d');
+    $openAttendanceStmt = $conn->prepare(
+        "SELECT a.id, a.student_id, a.attendance_date, a.status, a.remarks,
+                a.morning_time_in, a.morning_time_out, a.afternoon_time_in, a.afternoon_time_out,
+                sec.attendance_session, sec.schedule_time_in, sec.schedule_time_out, sec.late_after_time, sec.weekly_schedule_json
+         FROM attendances a
+         LEFT JOIN students s2 ON a.student_id = s2.id
+         LEFT JOIN sections sec ON s2.section_id = sec.id
+         WHERE a.student_id = ? AND a.attendance_date = ?
+         ORDER BY a.id DESC
+         LIMIT 1"
+    );
+    if ($openAttendanceStmt) {
+        $studentId = (int)$student['id'];
+        $openAttendanceStmt->bind_param('is', $studentId, $today);
+        $openAttendanceStmt->execute();
+        $openAttendance = $openAttendanceStmt->get_result()->fetch_assoc() ?: null;
+        $openAttendanceStmt->close();
+        if ($openAttendance) {
+            $openSession = attendance_workflow_mark_incomplete_if_needed($conn, $openAttendance);
+        }
+    }
+}
 $studentStatus = student_profile_value((string)($student['student_status'] ?? ''), 'Not yet available');
 $contactEmail = trim((string)($student['student_email'] ?? ($user['email'] ?? '')));
 $contactPhone = trim((string)($student['phone'] ?? ''));
@@ -293,6 +325,46 @@ $completionChecks = [
 $profileCompletion = (int)round((array_sum(array_map(static fn($value) => $value ? 1 : 0, $completionChecks)) / count($completionChecks)) * 100);
 $internalRenderedHours = (float)($profileStats['total_hours'] ?? 0);
 $externalRenderedHours = (float)($externalProfileStats['total_hours'] ?? 0);
+$internalTotalHours = max(0.0, (float)($student['internal_total_hours'] ?? 0));
+$externalTotalHours = max(0.0, (float)($student['external_total_hours'] ?? 0));
+if ($studentHasExternalAccess && $externalTotalHours <= 0) {
+    $externalTotalHours = 250.0;
+}
+$storedInternalRemaining = isset($student['internal_total_hours_remaining']) && $student['internal_total_hours_remaining'] !== null
+    ? max(0.0, (float)$student['internal_total_hours_remaining'])
+    : null;
+$storedExternalRemaining = isset($student['external_total_hours_remaining']) && $student['external_total_hours_remaining'] !== null
+    ? max(0.0, (float)$student['external_total_hours_remaining'])
+    : null;
+$internalRemainingHours = $storedInternalRemaining !== null
+    ? $storedInternalRemaining
+    : max(0.0, $internalTotalHours - $internalRenderedHours);
+$externalRemainingHours = $storedExternalRemaining !== null
+    ? $storedExternalRemaining
+    : max(0.0, $externalTotalHours - $externalRenderedHours);
+if ($internalRenderedHours > 0) {
+    $internalRemainingHours = max(0.0, $internalTotalHours - $internalRenderedHours);
+}
+if ($externalRenderedHours > 0) {
+    $externalRemainingHours = max(0.0, $externalTotalHours - $externalRenderedHours);
+}
+$activeRemainingHours = $assignmentTrack === 'external' ? $externalRemainingHours : $internalRemainingHours;
+$activeRemainingSeconds = (int)max(0, round($activeRemainingHours * 3600));
+$timerPreviewSeconds = $activeRemainingSeconds;
+if ($assignmentTrack === 'internal' && !empty($openSession['is_open'])) {
+    $timerPreviewSeconds = max(0, $activeRemainingSeconds - (int)($openSession['elapsed_preview_seconds'] ?? 0));
+}
+$timerHours = intdiv($timerPreviewSeconds, 3600);
+$timerMinutes = intdiv($timerPreviewSeconds % 3600, 60);
+$timerSeconds = $timerPreviewSeconds % 60;
+$timerDisplay = $timerHours . 'h:' . str_pad((string)$timerMinutes, 2, '0', STR_PAD_LEFT) . 'm:' . str_pad((string)$timerSeconds, 2, '0', STR_PAD_LEFT) . 's';
+$timerHeading = $assignmentTrack === 'external' ? 'Remaining External Hours' : 'Remaining Internal Hours';
+$timerNote = 'Hours remaining on record.';
+if ($assignmentTrack === 'internal' && !empty($openSession['requires_correction'])) {
+    $timerNote = 'Last captured time is held. That day stays void until the missing clock-out is reported and approved.';
+} elseif ($assignmentTrack === 'internal' && !empty($openSession['clocked_in_now'])) {
+    $timerNote = 'Live preview while you are still clocked in.';
+}
 
 $page_title = 'BioTern || My Profile';
 $page_styles = [
@@ -365,28 +437,25 @@ include 'includes/header.php';
                 </section>
 
                 <div class="student-profile-metric-grid">
-                    <!-- Timers for Internal/External Hours -->
                     <div class="student-profile-timer-row mb-3">
-                        <?php if ($assignmentTrack === 'internal'): ?>
-                            <div class="student-profile-timer-card">
-                                <span class="student-metric-label">Internal Hours Timer</span>
-                                <div class="student-profile-timer-value">
-                                    <?php echo number_format($internalRenderedHours, 2); ?> / <?php echo number_format((float)($student['internal_total_hours'] ?? 0), 0); ?> hrs
-                                </div>
+                        <div class="student-profile-timer-card student-profile-timer-card--primary">
+                            <span class="student-metric-label"><?php echo htmlspecialchars($timerHeading, ENT_QUOTES, 'UTF-8'); ?></span>
+                            <div class="student-profile-timer-value" id="studentProfileTimerValue"><?php echo htmlspecialchars($timerDisplay, ENT_QUOTES, 'UTF-8'); ?></div>
+                            <p class="student-profile-timer-note mb-0"><?php echo htmlspecialchars($timerNote, ENT_QUOTES, 'UTF-8'); ?></p>
+                        </div>
+                        <div class="student-profile-timer-card">
+                            <span class="student-metric-label">Internal Hours Logged</span>
+                            <div class="student-profile-timer-value">
+                                <?php echo number_format($internalRenderedHours, 2); ?> / <?php echo number_format($internalTotalHours, 0); ?> hrs
                             </div>
-                        <?php elseif ($assignmentTrack === 'external'): ?>
-                            <div class="student-profile-timer-card">
-                                <span class="student-metric-label">Internal Hours Timer</span>
-                                <div class="student-profile-timer-value">
-                                    <?php echo number_format($internalRenderedHours, 2); ?> / <?php echo number_format((float)($student['internal_total_hours'] ?? 0), 0); ?> hrs
-                                </div>
+                        </div>
+                        <?php if ($studentHasExternalAccess): ?>
+                        <div class="student-profile-timer-card">
+                            <span class="student-metric-label">External Hours Logged</span>
+                            <div class="student-profile-timer-value">
+                                <?php echo number_format($externalRenderedHours, 2); ?> / <?php echo number_format($externalTotalHours, 0); ?> hrs
                             </div>
-                            <div class="student-profile-timer-card">
-                                <span class="student-metric-label">External Hours Timer</span>
-                                <div class="student-profile-timer-value">
-                                    <?php echo number_format($externalRenderedHours, 2); ?> / <?php echo number_format((float)($student['external_total_hours'] ?? 0), 0); ?> hrs
-                                </div>
-                            </div>
+                        </div>
                         <?php endif; ?>
                     </div>
                     <article class="card student-metric-card">
@@ -405,17 +474,17 @@ include 'includes/header.php';
                     </article>
                     <article class="card student-metric-card">
                         <div class="card-body">
-                            <span class="student-metric-label">Internal Hours</span>
-                            <h3><?php echo number_format($internalRenderedHours, 1); ?></h3>
-                            <p>Approved and recorded internal attendance hours.</p>
+                            <span class="student-metric-label">Remaining Internal Hours</span>
+                            <h3><?php echo number_format($internalRemainingHours, 1); ?></h3>
+                            <p>Internal hours still needed before completion.</p>
                         </div>
                     </article>
                     <?php if ($studentHasExternalAccess): ?>
                     <article class="card student-metric-card">
                         <div class="card-body">
-                            <span class="student-metric-label">External Hours</span>
-                            <h3><?php echo number_format($externalRenderedHours, 1); ?></h3>
-                            <p>Hours from student-submitted external DTR entries.</p>
+                            <span class="student-metric-label">Remaining External Hours</span>
+                            <h3><?php echo number_format($externalRemainingHours, 1); ?></h3>
+                            <p>External hours still needed before completion.</p>
                         </div>
                     </article>
                     <?php endif; ?>
@@ -555,13 +624,13 @@ include 'includes/header.php';
                                 <strong><?php echo htmlspecialchars(student_profile_format_date((string)($internship['end_date'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></strong>
                             </div>
                             <div>
-                                <span>Internal Hours</span>
-                                <strong><?php echo number_format($internalRenderedHours, 2); ?> / <?php echo number_format((float)($student['internal_total_hours'] ?? 0), 0); ?></strong>
+                                <span>Remaining Internal Hours</span>
+                                <strong><?php echo number_format($internalRemainingHours, 2); ?> / <?php echo number_format($internalTotalHours, 0); ?></strong>
                             </div>
                             <?php if ($studentHasExternalAccess): ?>
                             <div>
-                                <span>External Hours</span>
-                                <strong><?php echo number_format($externalRenderedHours, 2); ?> / <?php echo number_format((float)($student['external_total_hours'] ?? 0), 0); ?></strong>
+                                <span>Remaining External Hours</span>
+                                <strong><?php echo number_format($externalRemainingHours, 2); ?> / <?php echo number_format($externalTotalHours, 0); ?></strong>
                             </div>
                             <?php endif; ?>
                         </div>
@@ -642,4 +711,38 @@ include 'includes/header.php';
 </div>
     </div>
 </main>
+<?php if ($assignmentTrack === 'internal'): ?>
+<script>
+(function () {
+    var timerElement = document.getElementById('studentProfileTimerValue');
+    if (!timerElement) {
+        return;
+    }
+
+    var remainingSeconds = <?php echo (int)$timerPreviewSeconds; ?>;
+    var isClockedIn = <?php echo !empty($openSession['clocked_in_now']) ? 'true' : 'false'; ?>;
+    var requiresCorrection = <?php echo !empty($openSession['requires_correction']) ? 'true' : 'false'; ?>;
+
+    function formatHms(totalSeconds) {
+        var safe = Math.max(0, Math.floor(totalSeconds));
+        var hours = Math.floor(safe / 3600);
+        var minutes = Math.floor((safe % 3600) / 60);
+        var seconds = safe % 60;
+        return hours + 'h:' + String(minutes).padStart(2, '0') + 'm:' + String(seconds).padStart(2, '0') + 's';
+    }
+
+    function tick() {
+        timerElement.textContent = formatHms(remainingSeconds);
+        if (isClockedIn && !requiresCorrection && remainingSeconds > 0) {
+            remainingSeconds--;
+        }
+    }
+
+    tick();
+    if (isClockedIn && !requiresCorrection) {
+        window.setInterval(tick, 1000);
+    }
+})();
+</script>
+<?php endif; ?>
 <?php include 'includes/footer.php'; ?>

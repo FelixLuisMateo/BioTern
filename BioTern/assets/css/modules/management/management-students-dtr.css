@@ -170,6 +170,7 @@
     font-weight: 700;
     line-height: 1.1;
     color: #12263f;
+    overflow-wrap: anywhere;
 }
 
 .card .app-students-dtr-table,
@@ -192,6 +193,24 @@
     vertical-align: middle;
     font-size: 0.83rem;
     color: #243447;
+}
+
+.app-students-dtr-table th:nth-child(2),
+.app-students-dtr-table td:nth-child(2),
+.dtr-table th:nth-child(2),
+.dtr-table td:nth-child(2) {
+    width: 160px;
+    min-width: 160px;
+    white-space: nowrap;
+}
+
+.app-students-dtr-table th:nth-child(7),
+.app-students-dtr-table td:nth-child(7),
+.dtr-table th:nth-child(7),
+.dtr-table td:nth-child(7) {
+    width: 108px;
+    min-width: 108px;
+    white-space: nowrap;
 }
 
 .app-students-dtr-table tbody tr:hover,

@@ -632,7 +632,7 @@ echo htmlspecialchars($student['email']); ?></a>
                                             </h6>
                                             <p class="fs-12 text-muted mb-0">
                                                 <?php if (!empty($open_session['requires_correction'])): ?>
-                                                    Frozen until manual clock-out is approved
+                                                    Last captured time is held. No hours are credited until the missing clock-out is reported and approved.
                                                 <?php elseif ($is_clocked_in): ?>
                                                     Live preview only until clock-out
                                                 <?php else: ?>
@@ -646,16 +646,16 @@ echo number_format($completion_percentage, 2); ?>%</h6>
                                             <p class="fs-12 text-muted mb-0">Completion</p>
                                         </div>
                                         <div class="stat-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
-                                            <h6 class="fs-15 fw-bolder" id="internalHoursValue"><?php
-echo intval($internal_remaining_display); ?>/<?php
+                                            <h6 class="fs-15 fw-bolder"><?php
+echo number_format($internal_hours_rendered, 0); ?>/<?php
 echo intval($internal_total_hours); ?></h6>
-                                            <p class="fs-12 text-muted mb-0">Internal Hours</p>
+                                            <p class="fs-12 text-muted mb-0">Internal Hours Logged</p>
                                         </div>
                                         <div class="stat-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
                                             <h6 class="fs-15 fw-bolder"><?php
-echo intval($external_remaining_display); ?>/<?php
+echo number_format($external_hours_rendered, 0); ?>/<?php
 echo intval($external_total_hours); ?></h6>
-                                            <p class="fs-12 text-muted mb-0">External Hours</p>
+                                            <p class="fs-12 text-muted mb-0">External Hours Logged</p>
                                         </div>
                                     </div>
                                     <?php
@@ -832,7 +832,7 @@ echo htmlspecialchars(trim((string)($student_latest_internship['company_address'
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
-                                                    <div class="small text-muted mb-1">Internal Hours (Remaining/Total)</div>
+                                                    <div class="small text-muted mb-1">Remaining Internal Hours (Remaining/Total)</div>
                                                     <div class="fw-semibold" id="internalHoursDetailValue"><?php
 echo intval($internal_remaining_display); ?> / <?php
 echo intval($internal_total_hours); ?></div>
@@ -840,7 +840,7 @@ echo intval($internal_total_hours); ?></div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
-                                                    <div class="small text-muted mb-1">External Hours (Remaining/Total)</div>
+                                                    <div class="small text-muted mb-1">Remaining External Hours (Remaining/Total)</div>
                                                     <div class="fw-semibold"><?php
 echo intval($external_remaining_display); ?> / <?php
 echo intval($external_total_hours); ?></div>
