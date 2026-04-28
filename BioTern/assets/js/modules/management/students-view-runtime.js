@@ -207,9 +207,91 @@
     });
   }
 
+  function initializeFollowToggle() {
+    var button = document.querySelector(".app-students-view-follow-toggle");
+    if (!button) return;
+
+    var studentId = String(button.getAttribute("data-student-id") || "");
+    if (!studentId) return;
+
+    var studentName = String(button.getAttribute("data-student-name") || "this student");
+    var icon = button.querySelector(".app-students-view-follow-icon");
+    var label = button.querySelector("span");
+    var storageKey = "biotern_followed_students";
+
+    function loadFollowed() {
+      try {
+        var raw = localStorage.getItem(storageKey);
+        var parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed.map(String) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveFollowed(values) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(values));
+      } catch (e) {}
+    }
+
+    function setState(isFollowing) {
+      button.setAttribute("aria-pressed", isFollowing ? "true" : "false");
+      button.classList.toggle("is-followed", isFollowing);
+      if (icon) {
+        icon.className = isFollowing
+          ? "feather-eye-off me-2 app-students-view-follow-icon"
+          : "feather-eye me-2 app-students-view-follow-icon";
+      }
+      if (label) {
+        label.textContent = isFollowing ? "Following" : "Follow";
+      }
+    }
+
+    var followed = loadFollowed();
+    var isFollowing = followed.indexOf(studentId) !== -1;
+    setState(isFollowing);
+
+    button.addEventListener("click", function (event) {
+      event.preventDefault();
+      followed = loadFollowed();
+      var index = followed.indexOf(studentId);
+      var nowFollowing = index === -1;
+
+      if (nowFollowing) {
+        followed.push(studentId);
+      } else {
+        followed.splice(index, 1);
+      }
+
+      saveFollowed(followed);
+      setState(nowFollowing);
+
+      if (window.Swal && typeof window.Swal.fire === "function") {
+        window.Swal.fire({
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+          timer: 2500,
+          timerProgressBar: true,
+          icon: nowFollowing ? "success" : "info",
+          title: nowFollowing
+            ? "Now following " + studentName
+            : "Unfollowed " + studentName,
+        });
+      }
+    });
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initializeTimer);
   } else {
     initializeTimer();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeFollowToggle);
+  } else {
+    initializeFollowToggle();
   }
 })();
