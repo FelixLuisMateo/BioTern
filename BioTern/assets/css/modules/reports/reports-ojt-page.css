@@ -6,7 +6,7 @@
 .reports-ojt-shell {
     max-width: 1640px;
     margin: 0 auto;
-    padding: 0 30px 30px;
+    padding: 0 24px 24px;
     display: grid;
     gap: 1rem;
 }
