@@ -300,6 +300,7 @@ html.app-skin-dark {
     min-width: 0;
     flex: 1 1 auto;
     margin-left: 12px;
+    overflow: hidden;
 }
 
 .user-dropdown-name {
@@ -308,6 +309,11 @@ html.app-skin-dark {
     font-weight: 800;
     color: var(--header-menu-text) !important;
     line-height: 1.15;
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .user-dropdown-meta-row {
