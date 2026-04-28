@@ -312,8 +312,9 @@
 
 @media (min-width: 992px) {
     .page-ojt-internal-list #ojtInternalActionModal .modal-dialog {
-        width: min(88vw, 560px);
+        width: min(92vw, 560px);
         max-width: 560px;
+        margin: 1.5rem auto;
     }
 }
 
