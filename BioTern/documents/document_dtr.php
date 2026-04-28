@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 
 function dtr_h($value): string
 {
@@ -134,6 +135,8 @@ if ($attStmt) {
 
 $studentName = trim((string)($studentMeta['first_name'] ?? '') . ' ' . (string)($studentMeta['middle_name'] ?? '') . ' ' . (string)($studentMeta['last_name'] ?? ''));
 $trackLabel = $track === 'external' ? 'External' : 'Internal';
+$sectionLabel = biotern_format_section_label((string)($studentMeta['section_label'] ?? ''), '');
+$sectionLabel = str_replace(' | ', ' - ', $sectionLabel);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -155,9 +158,30 @@ $trackLabel = $track === 'external' ? 'External' : 'Internal';
             padding: 8mm 10mm 10mm;
             box-sizing: border-box;
         }
+        .screen-actions {
+            max-width: 920px;
+            margin: 18px auto 0;
+            padding: 0 10mm;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            box-sizing: border-box;
+        }
+        .screen-actions a,
+        .screen-actions button {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #0f172a;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+        }
         .print-header {
             display: grid;
-            grid-template-columns: 84px 1fr;
+            grid-template-columns: 84px minmax(0, 1fr) 84px;
             align-items: center;
             gap: 12px;
             border-bottom: 2px solid #2f5fb3;
@@ -171,6 +195,10 @@ $trackLabel = $track === 'external' ? 'External' : 'Internal';
         .print-header-copy {
             text-align: center;
             line-height: 1.3;
+        }
+        .print-header-spacer {
+            width: 72px;
+            height: 72px;
         }
         .print-school {
             margin: 0;
@@ -227,6 +255,18 @@ $trackLabel = $track === 'external' ? 'External' : 'Internal';
             text-transform: uppercase;
             font-size: 12px;
         }
+        th:nth-child(1),
+        td:nth-child(1) {
+            width: 140px;
+            min-width: 140px;
+            white-space: nowrap;
+        }
+        th:nth-child(6),
+        td:nth-child(6) {
+            width: 90px;
+            min-width: 90px;
+            white-space: nowrap;
+        }
         tbody td:last-child,
         tbody td:nth-last-child(2) {
             white-space: nowrap;
@@ -237,6 +277,9 @@ $trackLabel = $track === 'external' ? 'External' : 'Internal';
             padding: 18px 10px;
         }
         @media print {
+            .screen-actions {
+                display: none;
+            }
             .paper {
                 max-width: none;
                 padding: 0;
@@ -245,6 +288,10 @@ $trackLabel = $track === 'external' ? 'External' : 'Internal';
     </style>
 </head>
 <body onload="window.print()">
+    <div class="screen-actions">
+        <a href="javascript:history.back()">Back</a>
+        <button type="button" onclick="window.print()">Print</button>
+    </div>
     <div class="paper">
         <div class="print-header">
             <img src="../assets/images/ccstlogo.png" alt="CCST Logo" onerror="this.style.visibility='hidden'">
@@ -253,6 +300,7 @@ $trackLabel = $track === 'external' ? 'External' : 'Internal';
                 <p class="print-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</p>
                 <p class="print-meta">Telefax No.: (045) 624-0215</p>
             </div>
+            <div class="print-header-spacer" aria-hidden="true"></div>
         </div>
 
         <div class="print-title"><?php echo dtr_h($trackLabel); ?> Daily Time Record</div>
@@ -261,7 +309,7 @@ $trackLabel = $track === 'external' ? 'External' : 'Internal';
             <div class="meta-row"><span class="meta-label">Student No.</span><span><?php echo dtr_h((string)($studentMeta['student_id'] ?? 'N/A')); ?></span></div>
             <div class="meta-row"><span class="meta-label">Name</span><span><?php echo dtr_h($studentName !== '' ? $studentName : 'N/A'); ?></span></div>
             <div class="meta-row"><span class="meta-label">Course</span><span><?php echo dtr_h((string)($studentMeta['course_name'] ?? 'N/A')); ?></span></div>
-            <div class="meta-row"><span class="meta-label">Section</span><span><?php echo dtr_h((string)($studentMeta['section_label'] ?? 'N/A')); ?></span></div>
+            <div class="meta-row"><span class="meta-label">Section</span><span><?php echo dtr_h($sectionLabel !== '' ? $sectionLabel : 'N/A'); ?></span></div>
             <div class="meta-row"><span class="meta-label">School Year</span><span><?php echo dtr_h((string)($studentMeta['school_year'] ?? 'N/A')); ?></span></div>
             <div class="meta-row"><span class="meta-label">Semester</span><span><?php echo dtr_h((string)($studentMeta['semester'] ?? 'N/A')); ?></span></div>
             <div class="meta-row"><span class="meta-label">Start Date</span><span><?php echo dtr_h($startDate !== '' ? $startDate : 'N/A'); ?></span></div>

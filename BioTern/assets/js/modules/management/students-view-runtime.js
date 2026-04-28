@@ -12,7 +12,6 @@
     if (!timerElement) return;
 
     var completionElement = document.getElementById("completionValue");
-    var internalHoursElement = document.getElementById("internalHoursValue");
     var internalHoursDetailElement = document.getElementById("internalHoursDetailValue");
 
     var cfg = document.getElementById("students-view-runtime-config");
@@ -57,25 +56,12 @@
 
     function updateInternalHoursFromSeconds() {
       var remainingWholeHours = Math.max(0, Math.floor(remainingSeconds / 3600));
-      if (activeTrack === "external") {
-        var externalHoursElement = document.querySelector(".stat-card:nth-child(4) h6");
-        if (externalHoursElement && Number.isFinite(externalTotalHours) && externalTotalHours > 0) {
-          externalHoursElement.textContent = remainingWholeHours + "/" + externalTotalHours;
-        }
-        if (internalHoursElement && Number.isFinite(internalTotalHours) && internalTotalHours > 0) {
-          internalHoursElement.textContent =
-            toInt(cfg && cfg.dataset.internalRemainingDisplay, 0) + "/" + internalTotalHours;
-        }
-        if (internalHoursDetailElement && Number.isFinite(internalTotalHours) && internalTotalHours > 0) {
-          internalHoursDetailElement.textContent =
-            toInt(cfg && cfg.dataset.internalRemainingDisplay, 0) + " / " + internalTotalHours;
-        }
-      } else {
-        if (!internalHoursElement || !Number.isFinite(internalTotalHours) || internalTotalHours <= 0) return;
-        internalHoursElement.textContent = remainingWholeHours + "/" + internalTotalHours;
-        if (internalHoursDetailElement) {
-          internalHoursDetailElement.textContent = remainingWholeHours + " / " + internalTotalHours;
-        }
+      if (activeTrack === "internal") {
+        if (!internalHoursDetailElement || !Number.isFinite(internalTotalHours) || internalTotalHours <= 0) return;
+        internalHoursDetailElement.textContent = remainingWholeHours + " / " + internalTotalHours;
+      } else if (internalHoursDetailElement && Number.isFinite(internalTotalHours) && internalTotalHours > 0) {
+        internalHoursDetailElement.textContent =
+          toInt(cfg && cfg.dataset.internalRemainingDisplay, 0) + " / " + internalTotalHours;
       }
     }
 
