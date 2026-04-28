@@ -157,8 +157,8 @@
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-dialog {
-    width: min(92vw, 700px);
-    max-width: 700px;
+    width: min(92vw, 820px) !important;
+    max-width: 820px !important;
     margin: 1.5rem auto;
 }
 
@@ -312,8 +312,8 @@
 
 @media (min-width: 992px) {
     .page-ojt-internal-list #ojtInternalActionModal .modal-dialog {
-        width: min(92vw, 700px);
-        max-width: 700px;
+        width: min(92vw, 820px) !important;
+        max-width: 820px !important;
         margin: 1.5rem auto;
     }
 }
