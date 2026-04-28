@@ -157,8 +157,8 @@
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-dialog {
-    width: min(92vw, 560px);
-    max-width: 560px;
+    width: min(92vw, 620px);
+    max-width: 620px;
     margin: 1.5rem auto;
 }
 
@@ -230,7 +230,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
-    max-height: 150px;
+    max-height: 190px;
     overflow: auto;
     padding-right: 0.15rem;
 }
@@ -312,8 +312,8 @@
 
 @media (min-width: 992px) {
     .page-ojt-internal-list #ojtInternalActionModal .modal-dialog {
-        width: min(92vw, 560px);
-        max-width: 560px;
+        width: min(92vw, 620px);
+        max-width: 620px;
         margin: 1.5rem auto;
     }
 }
