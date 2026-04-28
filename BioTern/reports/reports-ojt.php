@@ -61,6 +61,7 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
 <div class="nxl-content">
+<div class="reports-ojt-shell">
 <div class="page-header page-header-with-middle">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title report-page-title">
@@ -149,6 +150,7 @@ $badge_class = match(strtolower($row['status'] ?? 'pending')) {
 <?php endif; ?>
 </tbody>
 </table>
+</div>
 </div>
 </div>
 </div>

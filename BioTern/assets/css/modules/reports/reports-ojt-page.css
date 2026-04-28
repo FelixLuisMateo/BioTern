@@ -3,6 +3,22 @@
     padding-right: 0 !important;
 }
 
+.reports-ojt-shell {
+    max-width: 1640px;
+    margin: 0 auto;
+    padding: 0 30px 30px;
+    display: grid;
+    gap: 1rem;
+}
+
+body.reports-page .reports-ojt-shell > .page-header,
+body.reports-page .reports-ojt-shell > .report-hero,
+body.reports-page .reports-ojt-shell > .report-summary-grid,
+body.reports-page .reports-ojt-shell > .report-filter-wrap,
+body.reports-page .reports-ojt-shell > .report-table-card {
+    width: 100%;
+}
+
 .report-summary-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
