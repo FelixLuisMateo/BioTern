@@ -1,0 +1,126 @@
+/*
+ * Class: module.pages.editor.endorsement
+ * Used by:
+ * - pages/edit_endorsement.php
+ */
+
+/* Used by pages/edit_endorsement.php: page shell */
+body,
+.app-editor-page { margin:0; background:#e8ebf0; font-family:Arial, sans-serif; }
+
+/* Used by pages/edit_endorsement.php: sticky controls/header bar */
+.topbar,
+.app-editor-topbar { position:sticky; top:0; z-index:10; background:#fff; border-bottom:1px solid #d8dee8; padding:10px 14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .btn { border:1px solid #1f2937; background:#fff; color:#111827; padding:8px 12px; cursor:pointer; border-radius:6px; font-size:13px; }
+        .btn-primary { background:#2563eb; border-color:#2563eb; color:#fff; }
+        .btn-success { background:#16a34a; border-color:#16a34a; color:#fff; }
+        .msg,
+        .app-editor-status { margin-left:auto; font-size:12px; color:#374151; }
+
+/* Used by pages/edit_endorsement.php: centered editable paper */
+        .page-wrap,
+        .app-editor-page-wrap { padding:18px; display:flex; justify-content:center; }
+        .paper,
+        .app-editor-paper { width:8.5in; min-height:11in; background:#fff; box-shadow:0 8px 24px rgba(0,0,0,.18); padding:0.5in; box-sizing:border-box; }
+        #editor,
+        .app-editor-canvas { min-height:calc(11in - 1in); outline:none; font-family:"Times New Roman", Times, serif; font-size:12pt; }
+        #editor:focus,
+        .app-editor-canvas:focus { box-shadow: inset 0 0 0 2px #93c5fd; }
+
+/* Used by pages/edit_endorsement.php: inline toolbar controls */
+        .toolbar,
+        .app-editor-toolbar { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+        .toolbar .btn,
+        .app-editor-toolbar .btn { padding:6px 10px; }
+        .toolbar label,
+        .app-editor-toolbar label { font-size:12px; color:#374151; }
+        .toolbar input[type="number"],
+        .toolbar input[type="color"],
+        .app-editor-toolbar input[type="number"],
+        .app-editor-toolbar input[type="color"] {
+            border:1px solid #d1d5db;
+            border-radius:6px;
+            padding:4px 6px;
+            background:#fff;
+            font-size:12px;
+        }
+        .toolbar input[type="number"],
+        .app-editor-toolbar input[type="number"] { width:72px; }
+        html.app-skin-dark body,
+        html.app-skin-dark .app-editor-page { background:#0b1220; color:#e5e7eb; }
+        html.app-skin-dark .topbar,
+        html.app-skin-dark .app-editor-topbar { background:#111827; border-bottom-color:#334155; }
+        html.app-skin-dark .btn { background:#0f172a; color:#e5e7eb; border-color:#334155; }
+        html.app-skin-dark .btn-primary { background:#1d4ed8; border-color:#1d4ed8; }
+        html.app-skin-dark .btn-success { background:#15803d; border-color:#15803d; }
+        html.app-skin-dark .msg,
+        html.app-skin-dark .app-editor-status,
+        html.app-skin-dark .toolbar label,
+        html.app-skin-dark .app-editor-toolbar label { color:#cbd5e1; }
+        html.app-skin-dark .toolbar input[type="number"],
+        html.app-skin-dark .toolbar input[type="color"],
+        html.app-skin-dark .app-editor-toolbar input[type="number"],
+        html.app-skin-dark .app-editor-toolbar input[type="color"] {
+            background:#0f172a;
+            color:#e5e7eb;
+            border-color:#334155;
+        }
+        html.app-skin-dark .paper,
+        html.app-skin-dark .app-editor-paper { background:#0f172a; color:#e5e7eb; box-shadow:0 8px 24px rgba(0,0,0,.45); }
+        html.app-skin-dark #editor:focus,
+        html.app-skin-dark .app-editor-canvas:focus { box-shadow: inset 0 0 0 2px #1d4ed8; }
+
+/* Used by pages/edit_endorsement.php default_template: endorsement document header */
+        .endorsement-doc-header,
+        .app-endorsement-doc-header {
+            position: relative;
+            min-height: 72px;
+            text-align: center;
+            border-bottom: 1px solid #8ab0e6;
+            padding: 8px 0 6px;
+            margin-bottom: 10px;
+        }
+
+        .endorsement-doc-crest,
+        .app-endorsement-doc-crest {
+            position: absolute;
+            left: 6px;
+            top: 2px;
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+        }
+
+        .endorsement-doc-title,
+        .app-endorsement-doc-title {
+            font-family: Calibri, Arial, sans-serif;
+            color: #1b4f9c;
+            font-size: 20px;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .endorsement-doc-meta,
+        .app-endorsement-doc-meta {
+            font-family: Calibri, Arial, sans-serif;
+            color: #1b4f9c;
+            font-size: 14px;
+        }
+
+        .endorsement-doc-content,
+        .app-endorsement-doc-content {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.45;
+        }
+
+        .endorsement-doc-heading,
+        .app-endorsement-doc-heading {
+            text-align: center;
+            margin: 8px 0 12px;
+        }
+
+        .endorsement-doc-signoff,
+        .app-endorsement-doc-signoff {
+            margin-top: 40px;
+        }

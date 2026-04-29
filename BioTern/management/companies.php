@@ -1237,8 +1237,7 @@ include 'includes/header.php';
                 </div>
             </form>
 
-            <div class="companies-shell">
-                <div class="companies-layout">
+            <div class="companies-layout">
                         <aside class="companies-list-panel">
                             <div class="companies-list-panel-head">
                                 <h6 class="mb-1">All Companies</h6>
@@ -1482,7 +1481,6 @@ include 'includes/header.php';
                             <?php endif; ?>
                         </section>
                     </div>
-                </div>
             </div>
         </div>
     </div>

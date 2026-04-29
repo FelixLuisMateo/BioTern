@@ -42,10 +42,12 @@
     ) {
       window.jQuery("#usersListTable").DataTable({
         pageLength: 10,
+        lengthChange: false,
         lengthMenu: [
           [10, 25, 50, 100],
           [10, 25, 50, 100],
         ],
+        dom: "rtip",
         order: [[3, "desc"]],
         columnDefs: [{ orderable: false, targets: [4] }],
       });

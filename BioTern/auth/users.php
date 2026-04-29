@@ -335,37 +335,6 @@ include __DIR__ . '/../includes/header.php';
         <div class="alert alert-<?php echo e($flash_type); ?> py-2"><?php echo e($flash_message); ?></div>
     <?php endif; ?>
 
-    <div class="app-stats-grid app-users-stats-dashboard mb-2">
-        <article class="app-stat-card app-users-stat-card">
-            <div class="app-stat-card-header">
-                <span class="app-stat-label">Total Users</span>
-                <span class="app-stat-icon"><i class="feather-users"></i></span>
-            </div>
-            <strong class="app-stat-value"><?php echo $stats['total']; ?></strong>
-        </article>
-        <article class="app-stat-card app-users-stat-card">
-            <div class="app-stat-card-header">
-                <span class="app-stat-label">Active</span>
-                <span class="app-stat-icon"><i class="feather-user-check"></i></span>
-            </div>
-            <strong class="app-stat-value"><?php echo $stats['active']; ?></strong>
-        </article>
-        <article class="app-stat-card app-users-stat-card">
-            <div class="app-stat-card-header">
-                <span class="app-stat-label">Inactive</span>
-                <span class="app-stat-icon"><i class="feather-user-x"></i></span>
-            </div>
-            <strong class="app-stat-value"><?php echo $stats['inactive']; ?></strong>
-        </article>
-        <article class="app-stat-card app-users-stat-card">
-            <div class="app-stat-card-header">
-                <span class="app-stat-label">Admins</span>
-                <span class="app-stat-icon"><i class="feather-shield"></i></span>
-            </div>
-            <strong class="app-stat-value"><?php echo $stats['admins']; ?></strong>
-        </article>
-    </div>
-
     <section class="app-users-filter-section">
         <div class="filter-panel filter-card app-users-filter-card">
             <div class="filter-panel-head-actions app-users-filter-actions justify-content-between">

@@ -1,6 +1,16 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
-/** @var mysqli $conn */
+$host = defined('DB_HOST') ? DB_HOST : 'localhost';
+$db_user = defined('DB_USER') ? DB_USER : 'root';
+$db_password = defined('DB_PASS') ? DB_PASS : ''; 
+$db_name = defined('DB_NAME') ? DB_NAME : 'biotern_db';
+
+try {
+    $conn = new mysqli($host, $db_user, $db_password, $db_name);
+    if ($conn->connect_error) die('Connection failed: ' . $conn->connect_error);
+} catch (Exception $e) {
+    die('Database error: ' . $e->getMessage());
+}
 
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $student = ['first_name' => '', 'middle_name' => '', 'last_name' => ''];
@@ -31,9 +41,7 @@ $use_saved_template = isset($_GET['use_saved_template']) && $_GET['use_saved_tem
 $students = [];
 if ($students_raw !== '') {
     $students = preg_split('/\r\n|\r|\n/', $students_raw);
-    $students = array_values(array_filter(array_map('trim', $students), function ($v) {
-        return $v !== '';
-    }));
+    $students = array_values(array_filter(array_map('trim', $students), function($v){ return $v !== ''; }));
 }
 if (empty($students) && $full_name !== '') {
     $students[] = $full_name;
@@ -78,10 +86,9 @@ function infer_title_from_name(string $name): string
         str_starts_with($n, "ma'am") ||
         str_starts_with($n, 'madam')
     ) return 'ms';
-
     $first = preg_split('/\s+/', preg_replace('/[^a-z\s]/', ' ', $n))[0] ?? '';
-    $male = ['jomer', 'jomar', 'jose', 'juan', 'mark', 'michael', 'john', 'james', 'daniel', 'paul', 'peter', 'kevin', 'robert', 'edward', 'ross', 'ramirez', 'sanchez', 'felix', 'ivan'];
-    $female = ['anna', 'ana', 'maria', 'marie', 'jane', 'joy', 'kim', 'angel', 'diana', 'michelle', 'grace', 'sarah', 'liza', 'rose', 'patricia', 'christine', 'karen', 'claire'];
+    $male = ['jomer','jomar','jose','juan','mark','michael','john','james','daniel','paul','peter','kevin','robert','edward','ross','ramirez','sanchez','felix','ivan'];
+    $female = ['anna','ana','maria','marie','jane','joy','kim','angel','diana','michelle','grace','sarah','liza','rose','patricia','christine','karen','claire'];
     if (in_array($first, $male, true)) return 'mr';
     if (in_array($first, $female, true)) return 'ms';
     return 'none';
@@ -90,7 +97,7 @@ function infer_title_from_name(string $name): string
 if ($recipient_title === 'auto') {
     $recipient_title = infer_title_from_name($recipient);
 }
-$recipient_base = preg_replace('/^(mr\\.?|ms\\.?|mrs\\.?|sir|maam|ma\\x27am|madam)\\s+/i', '', $recipient);
+$recipient_base = preg_replace('/^(mr\\.?|ms\\.?|mrs\\.?|sir|maam|ma\\\'am|madam)\\s+/i', '', $recipient);
 if (!is_string($recipient_base) || $recipient_base === '') {
     $recipient_base = $recipient;
 }
@@ -113,83 +120,173 @@ if ($recipient !== '') {
     if ($recipient_title === 'ms') $recipient_print = 'Ms. ' . $recipient_base;
     if ($recipient_title === 'none') $recipient_print = 'Mr./Ms. ' . $recipient_base;
 }
-
-$script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$asset_prefix = (strpos($script_name, '/pages/') !== false) ? '../' : '';
-$page_title = 'BioTern || Endorsement Letter';
-$base_href = $asset_prefix;
-$page_body_class = 'app-generate-page';
-$page_styles = [
-    'assets/css/modules/documents/generate-shell-clean.css',
-    'assets/css/modules/documents/generate-letter-shared.css',
-    'assets/css/modules/documents/generate-endorsement-letter-page.css',
-];
-$page_scripts = [
-    'assets/js/modules/documents/generate-endorsement-letter-runtime.js',
-];
-
-include __DIR__ . '/../includes/header.php';
 ?>
-<main class="nxl-container">
-    <div class="nxl-content">
-<div class="main-content" data-use-saved-template="<?php echo $use_saved_template ? '1' : '0'; ?>">
-    <div class="container app-endorsement-letter-container">
-        <img class="crest app-endorsement-letter-crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
-        <div class="header app-endorsement-letter-header">
-            <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
-            <div class="meta app-endorsement-letter-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
-            <div class="tel app-endorsement-letter-tel">Telefax No.: (045) 624-0215</div>
-        </div>
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>BioTern || Endorsement Letter</title>
+    <link rel="shortcut icon" type="image/x-icon" href="/BioTern/assets/images/favicon.ico?v=20260310">
+    <style>
+        @page { size: Letter portrait; margin: 0.5in; }
+        body { font-family: "Times New Roman", Times, serif; color:#111; font-size:12pt; margin:0; background:#eceff3; }
+        .container {
+            width:100%;
+            max-width:7.5in;
+            margin:18px auto;
+            padding:0.4in;
+            box-sizing:border-box;
+            position:relative;
+            background:#fff;
+            box-shadow:0 8px 28px rgba(0, 0, 0, 0.14);
+        }
+        .header { position:relative; min-height:56px; text-align:center; border-bottom:2px solid #1c5ab1; padding:8px 0 6px; margin-bottom:10px; }
+        .crest { position:absolute; left:30px; top:30px; width:70px; height:70px; object-fit:contain; }
+        .header h2 { font-family:'Times New Roman', Times, serif; color:#1b4f9c; font-size:13pt; margin:0; font-weight:600; }
+        .header .meta { font-family:'Times New Roman', Times, serif; color:#1b4f9c; font-size:10.5pt; line-height:1.2; font-weight:600; }
+        .header .tel { font-family:'Times New Roman', Times, serif; color:#1b4f9c; font-size:13pt; font-weight:600; margin-bottom: -21px; }
+        .content { font-size:12pt; line-height:1.45; }
+        .content h3 { text-align:center; margin:8px 0 12px; font-size:13pt; }
+        .signature { margin-top:28px; }
+        .ross-signatory { position: relative; margin-top:3px; padding-top:10px; }
+        .ross-signature {
+            position: absolute;
+            top: -16px;
+            left: 6px;
+            width: 230px;
+            max-width: none;
+            height: auto;
+            z-index: 2;
+            pointer-events: none;
+        }
+        .ross-signatory-text { position: relative; z-index: 1; }
+        .actions { margin-top:40px; padding-top:18px; border-top:2px dashed #cbd5e1; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .tip-box { flex:1 1 100%; font-size:17px; line-height:1.6; border:1px solid #dbe4f0; background:#f8fafc; padding:12px 14px; border-radius:12px; color:#334155; }
+        .action-btn { min-width:104px; min-height:36px; font-size:14px; font-weight:600; padding:7px 14px; cursor:pointer; border-radius:12px; box-shadow:0 8px 18px rgba(15, 23, 42, 0.08); }
+        @media print {
+            body { background:#fff; }
+            .no-print { display:none !important; }
+            .container { margin:0; padding:10mm; background:#fff; box-shadow:none; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <img class="crest" src="../assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
+    <div class="header">
+        <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+        <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
+        <div class="tel">Telefax No.: (045) 624-0215</div>
+    </div>
 
-        <div class="content app-endorsement-letter-content" id="endorsement_doc_content">
-            <h3>ENDORSEMENT LETTER</h3>
-            <p><strong id="ed_recipient"><?php echo htmlspecialchars($recipient_print ?: '__________________________'); ?></strong><br>
-                <span id="ed_position"><?php echo htmlspecialchars($position ?: '__________________________'); ?></span><br>
-                <span id="ed_company"><?php echo htmlspecialchars($company ?: '__________________________'); ?></span><br>
-                <span id="ed_company_address"><?php echo htmlspecialchars($company_address ?: '__________________________'); ?></span></p>
+    <div class="content" id="endorsement_doc_content">
+        <h3>ENDORSEMENT LETTER</h3>
+        <p><strong id="ed_recipient"><?php echo htmlspecialchars($recipient_print ?: '__________________________'); ?></strong><br>
+        <span id="ed_position"><?php echo htmlspecialchars($position ?: '__________________________'); ?></span><br>
+        <span id="ed_company"><?php echo htmlspecialchars($company ?: '__________________________'); ?></span><br>
+        <span id="ed_company_address"><?php echo htmlspecialchars($company_address ?: '__________________________'); ?></span></p>
 
-            <p><?php echo htmlspecialchars($salutation); ?></p>
-            <p>Greetings from Clark College of Science and Technology!</p>
+        <p><?php echo htmlspecialchars($salutation); ?></p>
+        <p>Greetings from Clark College of Science and Technology!</p>
 
-            <p>We are pleased to introduce our Associate in Computer Technology program, designed to promote student success by developing competencies in core Information Technology disciplines. Our curriculum emphasizes practical experience through internships and on-the-job training, fostering a strong foundation in current industry practices.</p>
+        <p>We are pleased to introduce our Associate in Computer Technology program, designed to promote student success by developing competencies in core Information Technology disciplines. Our curriculum emphasizes practical experience through internships and on-the-job training, fostering a strong foundation in current industry practices.</p>
 
-            <p>In this regard, we are seeking your esteemed company's support in accommodating the following students:</p>
-            <ul id="ed_students">
-                <?php foreach ($students as $s): ?>
-                    <li><?php echo htmlspecialchars($s); ?></li>
-                <?php endforeach; ?>
-            </ul>
+        <p>In this regard, we are seeking your esteemed company's support in accommodating the following students:</p>
+        <ul id="ed_students">
+            <?php foreach ($students as $s): ?>
+                <li><?php echo htmlspecialchars($s); ?></li>
+            <?php endforeach; ?>
+        </ul>
 
-            <p>These students are required to complete 250 training hours. We believe that your organization can provide them with invaluable knowledge and skills, helping them to maximize their potential for future careers in IT.</p>
-            <p>Our teacher-in-charge will coordinate with you to monitor the students' progress and performance.</p>
-            <p>We look forward to a productive partnership with your organization. Thank you for your consideration and support.</p>
+        <p>These students are required to complete 250 training hours. We believe that your organization can provide them with invaluable knowledge and skills, helping them to maximize their potential for future careers in IT.</p>
+        <p>Our teacher-in-charge will coordinate with you to monitor the students' progress and performance.</p>
+        <p>We look forward to a productive partnership with your organization. Thank you for your consideration and support.</p>
 
-            <p>Sincerely,</p>
-            <div class="signature app-endorsement-letter-signature">
-                <p>MR. JOMAR G. SANGIL<br>
-                    <strong>ICT DEPARTMENT HEAD</strong><br>
-                    <strong>Clark College of Science and Technology</strong></p>
-                <div class="ross-signatory app-endorsement-letter-ross-signatory">
-                    <img class="ross-signature app-endorsement-letter-ross-signature" src="pages/Ross-Signature.png" alt="Ross signature" data-hide-onerror="1">
-                    <p class="ross-signatory-text app-endorsement-letter-ross-signatory-text">MR. ROSS CARVEL C. RAMIREZ<br>
-                        <strong>HEAD OF ACADEMIC AFFAIRS</strong><br>
-                        <strong>Clark College of Science and Technology</strong></p>
-                </div>
+        <p>Sincerely,</p>
+        <div class="signature">
+            <p>MR. JOMAR G. SANGIL<br>
+            <strong>ICT DEPARTMENT HEAD</strong><br>
+            <strong>Clark College of Science and Technology</strong></p>
+            <div class="ross-signatory">
+                <img class="ross-signature" src="Ross-Signature.png" alt="Ross signature" onerror="this.style.display='none'">
+                <p class="ross-signatory-text">MR. ROSS CARVEL C. RAMIREZ<br>
+                <strong>HEAD OF ACADEMIC AFFAIRS</strong><br>
+                <strong>Clark College of Science and Technology</strong></p>
             </div>
         </div>
+    </div>
 
-        <div class="actions app-endorsement-letter-actions no-print app-endorsement-letter-no-print">
-            <div class="tip-box app-endorsement-letter-tip-box">Tip: Use A4 paper. In your print settings, set the margins to Top: 0, Bottom: 0 Left: 0.5, Right: 0.5, and uncheck "Headers and footers" or "    </div> <!-- .nxl-content -->
-</main>
-Include headers and footers".</div>
-            <button id="btn_print" type="button" class="action-btn app-endorsement-letter-action-btn">Print</button>
-            <button id="btn_close" type="button" class="action-btn app-endorsement-letter-action-btn">Close</button>
-        </div>
+    <div class="actions no-print">
+        <div class="tip-box">Tip: Use A4 paper. In your print settings, set the margins to Top: 0, Bottom: 0 Left: 0.5, Right: 0.5, and uncheck "Headers and footers" or "Include headers and footers".</div>
+        <button id="btn_print" type="button" class="action-btn">Print</button>
+        <button id="btn_close" type="button" class="action-btn">Close</button>
     </div>
 </div>
-<?php include __DIR__ . '/../includes/footer.php'; ?>
+
+<script>
+(function(){
+    document.getElementById('btn_print').addEventListener('click', function(){ window.print(); });
+    document.getElementById('btn_close').addEventListener('click', function(){
+        if (window.opener && !window.opener.closed) { window.close(); return; }
+        if (window.history.length > 1) { window.history.back(); return; }
+        window.location.href = '../documents/document_endorsement.php';
+    });
+})();
+
+(function(){
+    function setText(id, value) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = value || '';
+    }
+
+    function applyRuntimeValues() {
+        setText('ed_recipient', <?php echo json_encode($recipient_print ?: '__________________________'); ?>);
+        setText('ed_position', <?php echo json_encode($position ?: '__________________________'); ?>);
+        setText('ed_company', <?php echo json_encode($company ?: '__________________________'); ?>);
+        setText('ed_company_address', <?php echo json_encode($company_address ?: '__________________________'); ?>);
+        var salutation = document.getElementById('pv_salutation') || document.querySelector('#endorsement_doc_content p');
+        if (salutation && (salutation.id === 'pv_salutation' || /^Dear\b/i.test((salutation.textContent || '').trim()))) {
+            salutation.textContent = <?php echo json_encode($salutation); ?>;
+        }
+
+        var ul = document.getElementById('ed_students');
+        if (ul) {
+            ul.innerHTML = '';
+            var students = <?php echo json_encode(array_values($students)); ?>;
+            if (!Array.isArray(students) || !students.length) {
+                students = ['__________________________'];
+            }
+            students.forEach(function(s){
+                var li = document.createElement('li');
+                li.textContent = s;
+                ul.appendChild(li);
+            });
+        }
+    }
+
+    applyRuntimeValues();
+    window.__applyEndorsementRuntimeValues = applyRuntimeValues;
+})();
+
+(function(){
+    if (!<?php echo $use_saved_template ? 'true' : 'false'; ?>) return;
+    try {
+        var saved = localStorage.getItem('biotern_endorsement_template_html_v1');
+        if (!saved) return;
+        var temp = document.createElement('div');
+        temp.innerHTML = saved;
+        var content = temp.querySelector('#endorsement_doc_content') || temp.querySelector('.content') || temp.querySelector('.doc') || temp;
+        var out = document.getElementById('endorsement_doc_content');
+        if (out && content) out.innerHTML = content.innerHTML;
+        if (typeof window.__applyEndorsementRuntimeValues === 'function') {
+            window.__applyEndorsementRuntimeValues();
+        }
+    } catch (e) {}
+})();
+</script>
+</body>
+</html>
 <?php $conn->close(); ?>
-
-
 
 
