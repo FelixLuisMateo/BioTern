@@ -368,19 +368,10 @@ include __DIR__ . '/../includes/header.php';
 
     <section class="app-users-filter-section">
         <div class="filter-panel filter-card app-users-filter-card">
-            <div class="filter-panel-head app-users-filter-head">
-                <div>
-                    <div class="filter-panel-label app-users-filter-label">
-                        <i class="feather-users"></i>
-                        <span>Filter Users</span>
-                    </div>
-                    <p class="filter-panel-sub app-users-filter-sub">Search accounts by name, username, email, role, and active status.</p>
-                </div>
-                <div class="filter-panel-head-actions app-users-filter-actions">
-                    <?php $active_user_filter_count = ($search !== '' ? 1 : 0) + ($role_filter !== 'all' ? 1 : 0) + ($status_filter !== 'all' ? 1 : 0); ?>
-                    <span class="app-users-filter-status"><?php echo $active_user_filter_count; ?> active filter<?php echo $active_user_filter_count === 1 ? '' : 's'; ?></span>
-                    <a href="users.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
-                </div>
+            <div class="filter-panel-head-actions app-users-filter-actions justify-content-between">
+                <?php $active_user_filter_count = ($search !== '' ? 1 : 0) + ($role_filter !== 'all' ? 1 : 0) + ($status_filter !== 'all' ? 1 : 0); ?>
+                <span class="app-users-filter-status"><?php echo $active_user_filter_count; ?> active filter<?php echo $active_user_filter_count === 1 ? '' : 's'; ?></span>
+                <a href="users.php" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
             </div>
             <form method="get" class="filter-form row g-2 align-items-end app-users-filter-form" id="usersFilterForm">
                 <div class="col-xl-4 col-lg-5 col-md-6">
@@ -404,9 +395,6 @@ include __DIR__ . '/../includes/header.php';
                         <option value="active" <?php echo $status_filter === 'active' ? 'selected' : ''; ?>>Active</option>
                         <option value="inactive" <?php echo $status_filter === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
                     </select>
-                </div>
-                <div class="col-xl-2 col-lg-1 col-md-6 d-flex">
-                    <button type="submit" class="btn btn-primary w-100">Apply</button>
                 </div>
             </form>
         </div>
@@ -569,6 +557,49 @@ include __DIR__ . '/../includes/header.php';
 
 </div> <!-- .nxl-content -->
 </main>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var filterForm = document.getElementById('usersFilterForm');
+    if (!filterForm) {
+        return;
+    }
+
+    var searchInput = document.getElementById('usersFilterSearch');
+    var roleSelect = document.getElementById('usersFilterRole');
+    var statusSelect = document.getElementById('usersFilterStatus');
+    var debounceTimer = null;
+
+    function submitFilterForm() {
+        if (typeof filterForm.requestSubmit === 'function') {
+            filterForm.requestSubmit();
+        } else {
+            filterForm.submit();
+        }
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            if (debounceTimer) {
+                window.clearTimeout(debounceTimer);
+            }
+            debounceTimer = window.setTimeout(submitFilterForm, 300);
+        });
+
+        searchInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                submitFilterForm();
+            }
+        });
+    }
+
+    [roleSelect, statusSelect].forEach(function (element) {
+        if (element) {
+            element.addEventListener('change', submitFilterForm);
+        }
+    });
+});
+</script>
 <?php if ($users_toast_message !== ''): ?>
 <script>
 (function () {
