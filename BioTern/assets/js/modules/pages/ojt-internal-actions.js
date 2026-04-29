@@ -9,25 +9,14 @@
         if (!dialog) {
             return;
         }
-
-        var isDesktopWide = window.matchMedia('(min-width: 992px)').matches;
-        var isShellDesktop = window.matchMedia('(min-width: 1025px)').matches;
-        var isMobile = window.matchMedia('(max-width: 575.98px)').matches;
-        var dialogWidth = isMobile ? 'calc(100vw - 1.5rem)' : (isDesktopWide ? 'min(88vw, 720px)' : 'min(92vw, 640px)');
-        var shellOffset = 0;
-
-        if (isShellDesktop) {
-            shellOffset = document.documentElement.classList.contains('minimenu') ? 50 : 140;
-        }
-
-        dialog.style.setProperty('position', 'fixed', 'important');
-        dialog.style.setProperty('top', '50%', 'important');
-        dialog.style.setProperty('left', 'calc(50% + ' + shellOffset + 'px)', 'important');
-        dialog.style.setProperty('right', 'auto', 'important');
-        dialog.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
-        dialog.style.setProperty('margin', '0', 'important');
-        dialog.style.setProperty('width', dialogWidth, 'important');
-        dialog.style.setProperty('max-width', dialogWidth, 'important');
+        dialog.style.removeProperty('position');
+        dialog.style.removeProperty('top');
+        dialog.style.removeProperty('left');
+        dialog.style.removeProperty('right');
+        dialog.style.removeProperty('transform');
+        dialog.style.removeProperty('margin');
+        dialog.style.removeProperty('width');
+        dialog.style.removeProperty('max-width');
     }
 
     function collectSelectedStudentIds(table) {

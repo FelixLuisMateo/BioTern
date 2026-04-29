@@ -835,7 +835,7 @@ ob_end_flush();
         </div>
     </div>
 </main>
-<div class="modal fade" id="ojtInternalActionModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade biotern-popup-modal" id="ojtInternalActionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <form method="post">
             <div class="modal-content">

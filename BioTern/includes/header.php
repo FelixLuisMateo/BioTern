@@ -570,6 +570,7 @@ if ($header_db instanceof mysqli) {
         <?php endforeach; ?>
     <?php endif; ?>
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/page-header-consistency.css'), ENT_QUOTES, 'UTF-8'); ?>" />
+    <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/popup-modal-scheme.css'), ENT_QUOTES, 'UTF-8'); ?>" />
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/mobile-page-header.css'), ENT_QUOTES, 'UTF-8'); ?>" />
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/mobile-dashboard.css'), ENT_QUOTES, 'UTF-8'); ?>" />
     <link rel="stylesheet" type="text/css" href="<?php echo htmlspecialchars(header_asset_versioned_href('assets/css/state/page-header-actions-scheme.css'), ENT_QUOTES, 'UTF-8'); ?>" />
