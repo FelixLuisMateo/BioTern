@@ -1,6 +1,35 @@
 (function () {
     'use strict';
 
+    function forceCenterDialog(modal) {
+        if (!modal) {
+            return;
+        }
+        var dialog = modal.querySelector('.modal-dialog');
+        if (!dialog) {
+            return;
+        }
+
+        var isDesktopWide = window.matchMedia('(min-width: 992px)').matches;
+        var isShellDesktop = window.matchMedia('(min-width: 1025px)').matches;
+        var isMobile = window.matchMedia('(max-width: 575.98px)').matches;
+        var dialogWidth = isMobile ? 'calc(100vw - 1.5rem)' : (isDesktopWide ? 'min(88vw, 720px)' : 'min(92vw, 640px)');
+        var shellOffset = 0;
+
+        if (isShellDesktop) {
+            shellOffset = document.documentElement.classList.contains('minimenu') ? 50 : 140;
+        }
+
+        dialog.style.setProperty('position', 'fixed', 'important');
+        dialog.style.setProperty('top', '50%', 'important');
+        dialog.style.setProperty('left', 'calc(50% + ' + shellOffset + 'px)', 'important');
+        dialog.style.setProperty('right', 'auto', 'important');
+        dialog.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
+        dialog.style.setProperty('margin', '0', 'important');
+        dialog.style.setProperty('width', dialogWidth, 'important');
+        dialog.style.setProperty('max-width', dialogWidth, 'important');
+    }
+
     function collectSelectedStudentIds(table) {
         return Array.prototype.slice.call(table.querySelectorAll('tbody tr')).map(function (row) {
             var checkbox = row.querySelector('[data-ojt-row-select]');
@@ -40,6 +69,8 @@
         var dateInput = modal.querySelector('input[name="start_date"]');
 
         modal.addEventListener('show.bs.modal', function (event) {
+            forceCenterDialog(modal);
+
             var trigger = event.relatedTarget;
             var clickedRow = trigger ? trigger.closest('tr') : null;
             var clickedId = clickedRow ? parseInt(clickedRow.getAttribute('data-ojt-student-row-id') || '0', 10) : 0;
@@ -84,6 +115,16 @@
                         }) + '</span>' +
                     '</span>';
                 }).join('');
+            }
+        });
+
+        modal.addEventListener('shown.bs.modal', function () {
+            forceCenterDialog(modal);
+        });
+
+        window.addEventListener('resize', function () {
+            if (modal.classList.contains('show')) {
+                forceCenterDialog(modal);
             }
         });
 
