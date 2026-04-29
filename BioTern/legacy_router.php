@@ -137,11 +137,7 @@ $map = [
   'student-moa.php' => 'pages/student-moa.php',
   'student-dau-moa.php' => 'pages/student-dau-moa.php',
 
-  'reports-ojt.php' => 'reports/reports-ojt.php',
-  'reports-project.php' => 'reports/reports-project.php',
-  'reports-timesheets.php' => 'reports/reports-timesheets.php',
-  'reports-attendance-operations.php' => 'reports/reports-attendance-operations.php',
-  'reports-attendance-exceptions.php' => 'reports/reports-attendance-exceptions.php',
+  // Removed mappings for obsolete report pages
   'reports-login-logs.php' => 'reports/reports-login-logs.php',
   'reports-chat-logs.php' => 'reports/reports-chat-logs.php',
   'reports-chat-reports.php' => 'reports/reports-chat-reports.php',
@@ -361,7 +357,6 @@ if ($is_logged_in) {
     'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'bridge-setup-manual.php', 'biometric_machine_sync.php',
     'ojt-internal-list.php', 'ojt-external-list.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
-    'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-attendance-exceptions.php',
     'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
   ];
   $academic_files = [

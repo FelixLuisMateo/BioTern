@@ -199,7 +199,7 @@ include 'includes/header.php';
             </div>
             <ul class="breadcrumb">
                 <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                <li class="breadcrumb-item"><a href="reports-ojt.php">Reports</a></li>
+                <li class="breadcrumb-item"><a href="index.php">Reports</a></li>
                 <li class="breadcrumb-item">Manual DTR Input</li>
             </ul>
         </div>
