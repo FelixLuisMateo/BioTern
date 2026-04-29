@@ -289,10 +289,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
         }
 
         $studentStmt = $db->prepare("
-            SELECT id, course_id, first_name, last_name, supervisor_name, coordinator_name,
+            SELECT s.id, s.course_id,
+                   COALESCE(i.department_id, s.department_id) AS department_id,
+                   COALESCE(i.supervisor_id, s.supervisor_id) AS supervisor_id,
+                   COALESCE(i.coordinator_id, s.coordinator_id) AS coordinator_id,
+                   first_name, last_name, supervisor_name, coordinator_name,
                    internal_total_hours, external_total_hours
-            FROM students
-            WHERE id = ?
+            FROM students s
+            LEFT JOIN internships i ON i.id = (
+                SELECT i2.id
+                FROM internships i2
+                WHERE i2.student_id = s.id
+                ORDER BY (i2.status = 'ongoing') DESC, i2.id DESC
+                LIMIT 1
+            )
+            WHERE s.id = ?
             LIMIT 1
         ");
         $studentRow = null;
@@ -306,6 +317,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
         if (!$studentRow) {
             $_SESSION['students_flash'] = ['type' => 'danger', 'message' => 'Student record not found.'];
             biotern_students_redirect_self();
+        }
+
+        if ($departmentId <= 0) {
+            $departmentId = (int)($studentRow['department_id'] ?? 0);
+        }
+        if ($supervisorProfileId <= 0) {
+            $supervisorProfileId = (int)($studentRow['supervisor_id'] ?? 0);
         }
 
         $supervisorProfile = null;
@@ -323,10 +341,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
         $courseId = (int)($studentRow['course_id'] ?? 0);
         $coordinatorInfo = $coordinatorCourseMap[$courseId] ?? ['user_id' => 0, 'profile_id' => 0, 'name' => trim((string)($studentRow['coordinator_name'] ?? ''))];
         $supervisorName = trim((string)($supervisorProfile['supervisor_name'] ?? ''));
-        $supervisorUserId = (int)($supervisorProfile['user_id'] ?? 0);
         $coordinatorName = trim((string)($coordinatorInfo['name'] ?? ''));
-        $coordinatorUserId = (int)($coordinatorInfo['user_id'] ?? 0);
         $coordinatorProfileId = (int)($coordinatorInfo['profile_id'] ?? 0);
+        $requiredHours = $assignmentTrack === 'external'
+            ? (int)($studentRow['external_total_hours'] ?? 0)
+            : (int)($studentRow['internal_total_hours'] ?? 0);
+        if ($requiredHours < 0) {
+            $requiredHours = 0;
+        }
 
         $studentSets = [];
         $studentTypes = '';
@@ -399,6 +421,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                 $internshipRow = $internshipLookup->get_result()->fetch_assoc() ?: null;
                 $internshipLookup->close();
                 $internshipId = (int)($internshipRow['id'] ?? 0);
+            }
+
+            if ($internshipId > 0) {
+                $internshipSets = [];
+                $internshipTypes = '';
                 $internshipValues = [];
 
                 if (isset($internshipColumns['type'])) {
@@ -419,12 +446,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                 if (isset($internshipColumns['supervisor_id'])) {
                     $internshipSets[] = 'supervisor_id = NULLIF(?, 0)';
                     $internshipTypes .= 'i';
-                    $internshipValues[] = $supervisorUserId;
+                    $internshipValues[] = $supervisorProfileId;
                 }
                 if (isset($internshipColumns['coordinator_id'])) {
                     $internshipSets[] = 'coordinator_id = NULLIF(?, 0)';
                     $internshipTypes .= 'i';
-                    $internshipValues[] = $coordinatorUserId;
+                    $internshipValues[] = $coordinatorProfileId;
                 }
                 if (isset($internshipColumns['start_date'])) {
                     $internshipSets[] = 'start_date = ?';
@@ -440,19 +467,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                     $internshipSets[] = 'updated_at = NOW()';
                 }
 
-                $internshipTypes .= 'i';
-                $internshipValues[] = $internshipId;
-                $internshipSql = 'UPDATE internships SET ' . implode(', ', $internshipSets) . ' WHERE id = ?';
-                $internshipUpdate = $db->prepare($internshipSql);
-                if (!$internshipUpdate) {
-                    throw new RuntimeException('Could not prepare the internship update.');
-                }
-                $internshipUpdate->bind_param($internshipTypes, ...$internshipValues);
-                if (!$internshipUpdate->execute()) {
+                if ($internshipSets !== []) {
+                    $internshipTypes .= 'i';
+                    $internshipValues[] = $internshipId;
+                    $internshipSql = 'UPDATE internships SET ' . implode(', ', $internshipSets) . ' WHERE id = ?';
+                    $internshipUpdate = $db->prepare($internshipSql);
+                    if (!$internshipUpdate) {
+                        throw new RuntimeException('Could not prepare the internship update.');
+                    }
+                    $internshipUpdate->bind_param($internshipTypes, ...$internshipValues);
+                    if (!$internshipUpdate->execute()) {
+                        $internshipUpdate->close();
+                        throw new RuntimeException('Could not update the internship assignment.');
+                    }
                     $internshipUpdate->close();
-                    throw new RuntimeException('Could not update the internship assignment.');
                 }
-                $internshipUpdate->close();
             } else {
                 $insertColumns = ['student_id'];
                 $insertPlaceholders = ['?'];
@@ -475,13 +504,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                     $insertColumns[] = 'coordinator_id';
                     $insertPlaceholders[] = 'NULLIF(?, 0)';
                     $insertTypes .= 'i';
-                    $insertValues[] = $coordinatorUserId;
+                    $insertValues[] = $coordinatorProfileId;
                 }
                 if (isset($internshipColumns['supervisor_id'])) {
                     $insertColumns[] = 'supervisor_id';
                     $insertPlaceholders[] = 'NULLIF(?, 0)';
                     $insertTypes .= 'i';
-                    $insertValues[] = $supervisorUserId;
+                    $insertValues[] = $supervisorProfileId;
                 }
                 if (isset($internshipColumns['type'])) {
                     $insertColumns[] = 'type';
@@ -640,9 +669,9 @@ $students_query = "
         s.last_name,
         s.email,
         s.phone,
-        s.department_id,
-        s.supervisor_id AS student_supervisor_ref_id,
-        s.coordinator_id AS student_coordinator_ref_id,
+        COALESCE(i.department_id, s.department_id) AS department_id,
+        COALESCE(i.supervisor_id, s.supervisor_id) AS student_supervisor_ref_id,
+        COALESCE(i.coordinator_id, s.coordinator_id) AS student_coordinator_ref_id,
         s.status,
         COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'internal') AS assignment_track,
         " . ($has_school_year_column ? "COALESCE(NULLIF(TRIM(s.school_year), ''), '-') AS school_year," : "'-' AS school_year,") . "
@@ -1213,7 +1242,10 @@ include 'includes/header.php';
                                                                         data-student-track="<?php echo htmlspecialchars($track_key, ENT_QUOTES, 'UTF-8'); ?>"
                                                                         data-student-department-id="<?php echo (int)($student['department_id'] ?? 0); ?>"
                                                                         data-student-supervisor-id="<?php echo (int)($student['student_supervisor_ref_id'] ?? 0); ?>"
+                                                                        data-student-supervisor-name="<?php echo htmlspecialchars((string)($student['supervisor_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                        data-student-coordinator-name="<?php echo htmlspecialchars((string)($student['coordinator_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                         data-student-email="<?php echo htmlspecialchars((string)($student['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                        data-student-department-name="<?php echo htmlspecialchars((string)($student['department_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                     >
                                                                         <i class="feather feather-more-horizontal"></i>
                                                                     </button>
@@ -1312,7 +1344,10 @@ include 'includes/header.php';
                                                                 data-student-track="<?php echo htmlspecialchars($track_key, ENT_QUOTES, 'UTF-8'); ?>"
                                                                 data-student-department-id="<?php echo (int)($student['department_id'] ?? 0); ?>"
                                                                 data-student-supervisor-id="<?php echo (int)($student['student_supervisor_ref_id'] ?? 0); ?>"
+                                                                data-student-supervisor-name="<?php echo htmlspecialchars((string)($student['supervisor_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                data-student-coordinator-name="<?php echo htmlspecialchars((string)($student['coordinator_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                                 data-student-email="<?php echo htmlspecialchars((string)($student['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                                                data-student-department-name="<?php echo htmlspecialchars((string)($student['department_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                             >More</button>
                                                         <?php endif; ?>
                                                     </div>
@@ -1346,6 +1381,9 @@ include 'includes/header.php';
                 <form method="post" class="d-grid gap-2 mb-3" id="studentsActionAssignForm">
                     <input type="hidden" name="student_action" value="assign_track">
                     <input type="hidden" name="student_id" value="">
+                    <div class="small text-muted border rounded p-2 mb-1" data-student-action-current>
+                        Current assignment details will show here.
+                    </div>
                     <select name="assignment_track" class="form-select" required>
                         <option value="internal">Internal</option>
                         <option value="external">External</option>
@@ -1365,6 +1403,7 @@ include 'includes/header.php';
                     <input type="date" name="start_date" class="form-control" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
                     <button type="submit" class="btn btn-primary">Save Assignment</button>
                     <small class="text-muted">Coordinator follows the student's course automatically.</small>
+                    <small class="text-muted" data-student-action-selected>Assigned department, supervisor, and coordinator will appear here.</small>
                 </form>
                 <div class="list-group">
                     <a class="list-group-item list-group-item-action" data-action-edit href="#">

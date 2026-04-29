@@ -215,6 +215,7 @@ $page_styles = [
 $page_scripts = [
     'assets/js/modules/pages/ojt-list-select.js',
     'assets/js/modules/pages/ojt-list-print.js',
+    'assets/js/modules/pages/ojt-external-actions.js',
     'assets/js/modules/pages/ojt-row-link.js',
 ];
 $base_href = '';
@@ -339,19 +340,20 @@ ob_end_flush();
                                     </th>
                                     <th>Student No</th>
                                     <th>Name</th>
-                                    <th>Course / Section</th>
-                                    <th>Account</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                            <th>Course / Section</th>
+                            <th>Account</th>
+                            <th>Status</th>
+                            <th class="text-end" data-print-exclude="1">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                             <?php if (empty($rows)): ?>
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-4" data-print-exclude="1">No external students found.</td>
+                                    <td colspan="7" class="text-center text-muted py-4" data-print-exclude="1">No external students found.</td>
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($rows as $row): ?>
-                                    <tr data-row-href="ojt-external-view.php?id=<?php echo (int)($row['student_row_id'] ?? 0); ?>">
+                                    <tr data-ojt-external-row-id="<?php echo (int)($row['student_row_id'] ?? 0); ?>" data-ojt-external-row-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-label="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-course="<?php echo htmlspecialchars((string)($row['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-section="<?php echo htmlspecialchars(biotern_format_section_code((string)($row['section_name'] ?? 'N/A')), ENT_QUOTES, 'UTF-8'); ?>" data-row-href="ojt-external-view.php?id=<?php echo (int)($row['student_row_id'] ?? 0); ?>">
                                         <td class="app-ojt-select-column" data-print-exclude="1">
                                             <div class="form-check app-ojt-select-check">
                                                 <input class="form-check-input" type="checkbox" data-ojt-row-select aria-label="Select student <?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?>">
@@ -374,6 +376,23 @@ ob_end_flush();
                                         <td>
                                             <span class="badge bg-soft-info text-info"><?php echo htmlspecialchars(ucfirst((string)($row['ojt_status'] ?? 'External')), ENT_QUOTES, 'UTF-8'); ?></span>
                                         </td>
+                                        <td class="text-end" data-print-exclude="1">
+                                            <?php if ((int)($row['student_row_id'] ?? 0) > 0): ?>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-light"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#ojtExternalActionModal"
+                                                    data-ojt-external-action-trigger
+                                                    data-ojt-row-href="ojt-external-view.php?id=<?php echo (int)($row['student_row_id'] ?? 0); ?>"
+                                                    data-ojt-student-label="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
+                                                >
+                                                    Actions
+                                                </button>
+                                            <?php else: ?>
+                                                <span class="text-muted small">No linked record</span>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -385,6 +404,36 @@ ob_end_flush();
         </div>
     </div>
 </main>
+<div class="modal fade" id="ojtExternalActionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1">External Student Actions</h5>
+                    <div class="text-muted small" data-ojt-external-action-summary>Choose an action for this student.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="small text-muted border rounded p-2 mb-3" data-ojt-external-action-current>Student details will show here.</div>
+                <div class="list-group">
+                    <a class="list-group-item list-group-item-action" href="#" data-ojt-external-action-view>
+                        <i class="feather feather-eye me-3"></i><span>View Student</span>
+                    </a>
+                    <button type="button" class="list-group-item list-group-item-action" data-ojt-print-full="ojtExternalListTable">
+                        <i class="feather feather-printer me-3"></i><span>Print List</span>
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action" data-ojt-print-selected="ojtExternalListTable">
+                        <i class="feather feather-check-square me-3"></i><span>Print Selected</span>
+                    </button>
+                    <a class="list-group-item list-group-item-action" href="fingerprint_mapping.php">
+                        <i class="feather feather-hash me-3"></i><span>Back To Fingerprints</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <section class="student-list-print-sheet app-students-print-sheet app-ojt-selected-print-sheet" data-ojt-print-sheet="ojtExternalListTable" aria-hidden="true">
     <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
     <div class="header">

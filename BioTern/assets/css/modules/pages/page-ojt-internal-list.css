@@ -192,13 +192,12 @@
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-header,
-.page-ojt-internal-list #ojtInternalActionModal .modal-footer,
 .page-ojt-internal-list #ojtInternalActionModal .modal-body {
-    border-color: rgba(148, 163, 184, 0.16);
+    border-color: var(--biotern-border, rgba(148, 163, 184, 0.18));
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-header {
-    padding: 1.15rem 1.25rem 1rem;
+    padding: 0.9rem 1rem 0.75rem;
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-body {
@@ -211,7 +210,7 @@
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .modal-title {
-    font-size: 1.08rem;
+    font-size: 1rem;
     font-weight: 800;
     letter-spacing: 0.01em;
     color: var(--bs-heading-color, var(--bs-body-color, #111827));
@@ -229,12 +228,13 @@
     color: var(--biotern-primary-soft-text, var(--biotern-primary-hover, #334155));
     font-size: 0.78rem;
     line-height: 1.35;
+    color: #9fb0c6;
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .ojt-internal-selection-box {
     padding: 0.85rem 0.9rem;
-    border-radius: 16px;
-    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 14px;
+    border: 1px solid var(--biotern-border, rgba(148, 163, 184, 0.18));
     background: rgba(255, 255, 255, 0.03);
 }
 
@@ -263,7 +263,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
-    max-height: 150px;
+    max-height: 190px;
     overflow: auto;
     padding-right: 0.15rem;
 }
@@ -275,7 +275,7 @@
     padding: 0.5rem 0.65rem;
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(148, 163, 184, 0.14);
+    border: 1px solid var(--biotern-border, rgba(148, 163, 184, 0.14));
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .ojt-internal-selection-index {
@@ -321,9 +321,9 @@
 
 .page-ojt-internal-list #ojtInternalActionModal .btn {
     border-radius: 12px;
-    min-height: 42px;
-    padding-left: 1.1rem;
-    padding-right: 1.1rem;
+    min-height: 40px;
+    padding-left: 1rem;
+    padding-right: 1rem;
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .btn-primary {

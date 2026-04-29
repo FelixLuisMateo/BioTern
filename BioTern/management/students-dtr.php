@@ -157,21 +157,19 @@ include 'includes/header.php';
         </ul>
     </div>
     <div class="page-header-right ms-auto">
-        <div class="page-header-right-items">
-            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                <a href="students-internal-dtr.php?id=<?php echo intval($student_id); ?>&month=<?php echo h($prev_month_input); ?>" class="btn btn-light-brand">
-                    <i class="feather-corner-up-left me-2"></i>
-                    <span>Last Month</span>
-                </a>
-                <a href="students-view.php?id=<?php echo intval($student_id); ?>" class="btn btn-outline-secondary">
-                    <i class="feather-arrow-left me-2"></i>
-                    <span>Back to Profile</span>
-                </a>
-                <a href="document_dtr.php?student_id=<?php echo intval($student_id); ?>&start_date=<?php echo h($start_date_input); ?>&end_date=<?php echo h($end_date_input); ?>" target="_blank" rel="noopener" class="btn btn-primary">
-                    <i class="feather-printer me-2"></i>
-                    <span>Print Internal DTR</span>
-                </a>
-            </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="students-internal-dtr.php?id=<?php echo intval($student_id); ?>&month=<?php echo h($prev_month_input); ?>" class="btn btn-light-brand">
+                <i class="feather-corner-up-left me-2"></i>
+                <span>Last Month</span>
+            </a>
+            <a href="students-view.php?id=<?php echo intval($student_id); ?>" class="btn btn-outline-secondary">
+                <i class="feather-arrow-left me-2"></i>
+                <span>Back to Profile</span>
+            </a>
+            <a href="document_dtr.php?track=internal&student_id=<?php echo intval($student_id); ?>&start_date=<?php echo h($start_date_input); ?>&end_date=<?php echo h($end_date_input); ?>" target="_blank" rel="noopener" class="btn btn-primary">
+                <i class="feather-printer me-2"></i>
+                <span>Print Internal DTR</span>
+            </a>
         </div>
     </div>
 </div>

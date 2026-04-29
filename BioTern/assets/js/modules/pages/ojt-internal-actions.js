@@ -54,6 +54,19 @@
         });
     }
 
+    function formatLocalDate(date) {
+        var year = date.getFullYear();
+        var month = String(date.getMonth() + 1).padStart(2, '0');
+        var day = String(date.getDate()).padStart(2, '0');
+        return year + '-' + month + '-' + day;
+    }
+
+    function addMonths(date, months) {
+        var next = new Date(date.getTime());
+        next.setMonth(next.getMonth() + months);
+        return next;
+    }
+
     function initModal() {
         var table = document.getElementById('ojtInternalListTable');
         var modal = document.getElementById('ojtInternalActionModal');
@@ -67,6 +80,7 @@
         var idsInput = modal.querySelector('input[name="student_ids"]');
         var singleIdInput = modal.querySelector('input[name="student_id"]');
         var dateInput = modal.querySelector('input[name="start_date"]');
+        var endDateInput = modal.querySelector('input[name="end_date"]');
 
         modal.addEventListener('show.bs.modal', function (event) {
             forceCenterDialog(modal);
@@ -87,6 +101,23 @@
             }
             if (dateInput && !dateInput.value) {
                 dateInput.value = new Date().toISOString().slice(0, 10);
+            }
+            if (dateInput && endDateInput) {
+                var startDateValue = dateInput.value || new Date().toISOString().slice(0, 10);
+                var startDate = new Date(startDateValue + 'T00:00:00');
+                var defaultEndDate = formatLocalDate(addMonths(startDate, 1));
+                endDateInput.min = startDateValue;
+                if (!endDateInput.value || endDateInput.value < startDateValue) {
+                    endDateInput.value = defaultEndDate;
+                }
+                dateInput.addEventListener('change', function () {
+                    var currentStart = dateInput.value || new Date().toISOString().slice(0, 10);
+                    var currentStartDate = new Date(currentStart + 'T00:00:00');
+                    endDateInput.min = currentStart;
+                    if (!endDateInput.value || endDateInput.value < currentStart) {
+                        endDateInput.value = formatLocalDate(addMonths(currentStartDate, 1));
+                    }
+                }, { once: true });
             }
             if (summaryNode) {
                 if (ids.length > 1) {
@@ -134,6 +165,10 @@
             }
             if (singleIdInput) {
                 singleIdInput.value = '';
+            }
+            if (endDateInput) {
+                endDateInput.value = '';
+                endDateInput.min = '';
             }
             if (selectionCountNode) {
                 selectionCountNode.textContent = '0 selected';

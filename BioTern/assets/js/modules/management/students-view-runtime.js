@@ -12,11 +12,13 @@
     if (!timerElement) return;
 
     var completionElement = document.getElementById("completionValue");
-    var internalHoursElement = document.getElementById("internalHoursValue");
     var internalHoursDetailElement = document.getElementById("internalHoursDetailValue");
 
     var cfg = document.getElementById("students-view-runtime-config");
     var internalTotalHours = toInt(cfg && cfg.dataset.internalTotalHours, 0);
+    var externalTotalHours = toInt(cfg && cfg.dataset.externalTotalHours, 0);
+    var activeTotalHours = toInt(cfg && cfg.dataset.activeTotalHours, internalTotalHours);
+    var activeTrack = String((cfg && cfg.dataset.activeTrack) || "internal").toLowerCase();
     var studentId = toInt(cfg && cfg.dataset.studentId, 0);
     var remainingSeconds = toInt(cfg && cfg.dataset.remainingSeconds, 0);
     var remainingSecondsWithoutOpen = toInt(
@@ -27,7 +29,7 @@
     var openClockInRaw = (cfg && cfg.dataset.openClockInRaw) || "";
     var sessionCutoffRaw = (cfg && cfg.dataset.sessionCutoffRaw) || "";
 
-    var storageKey = "student_timer_state_" + String(studentId);
+    var storageKey = "student_timer_state_" + String(studentId) + "_" + activeTrack;
     var nowRef = new Date();
     var todayKey = [
       nowRef.getFullYear(),
@@ -44,20 +46,22 @@
     }
 
     function updateCompletionFromSeconds() {
-      if (!completionElement || !Number.isFinite(internalTotalHours) || internalTotalHours <= 0) return;
+      if (!completionElement || !Number.isFinite(activeTotalHours) || activeTotalHours <= 0) return;
       var remainingHoursPrecise = Math.max(0, remainingSeconds / 3600);
-      var completed = Math.max(0, internalTotalHours - remainingHoursPrecise);
-      var pct = (completed / internalTotalHours) * 100;
+      var completed = Math.max(0, activeTotalHours - remainingHoursPrecise);
+      var pct = (completed / activeTotalHours) * 100;
       if (pct > 100) pct = 100;
       completionElement.textContent = pct.toFixed(2) + "%";
     }
 
     function updateInternalHoursFromSeconds() {
-      if (!internalHoursElement || !Number.isFinite(internalTotalHours) || internalTotalHours <= 0) return;
       var remainingWholeHours = Math.max(0, Math.floor(remainingSeconds / 3600));
-      internalHoursElement.textContent = remainingWholeHours + "/" + internalTotalHours;
-      if (internalHoursDetailElement) {
+      if (activeTrack === "internal") {
+        if (!internalHoursDetailElement || !Number.isFinite(internalTotalHours) || internalTotalHours <= 0) return;
         internalHoursDetailElement.textContent = remainingWholeHours + " / " + internalTotalHours;
+      } else if (internalHoursDetailElement && Number.isFinite(internalTotalHours) && internalTotalHours > 0) {
+        internalHoursDetailElement.textContent =
+          toInt(cfg && cfg.dataset.internalRemainingDisplay, 0) + " / " + internalTotalHours;
       }
     }
 
@@ -163,7 +167,15 @@
       var sameSession =
         isClockedIn && saved.sessionDate === todayKey && saved.clockInRaw === openClockInRaw;
       if (sameSession || !isClockedIn) {
-        remainingSeconds = Math.min(remainingSeconds, saved.seconds);
+        if (
+          saved.seconds <= 0 &&
+          remainingSecondsWithoutOpen > 0 &&
+          (!sameSession || !isClockedIn)
+        ) {
+          remainingSeconds = remainingSecondsWithoutOpen;
+        } else {
+          remainingSeconds = Math.min(remainingSeconds, saved.seconds);
+        }
       }
     }
 
@@ -195,9 +207,91 @@
     });
   }
 
+  function initializeFollowToggle() {
+    var button = document.querySelector(".app-students-view-follow-toggle");
+    if (!button) return;
+
+    var studentId = String(button.getAttribute("data-student-id") || "");
+    if (!studentId) return;
+
+    var studentName = String(button.getAttribute("data-student-name") || "this student");
+    var icon = button.querySelector(".app-students-view-follow-icon");
+    var label = button.querySelector("span");
+    var storageKey = "biotern_followed_students";
+
+    function loadFollowed() {
+      try {
+        var raw = localStorage.getItem(storageKey);
+        var parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed.map(String) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveFollowed(values) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(values));
+      } catch (e) {}
+    }
+
+    function setState(isFollowing) {
+      button.setAttribute("aria-pressed", isFollowing ? "true" : "false");
+      button.classList.toggle("is-followed", isFollowing);
+      if (icon) {
+        icon.className = isFollowing
+          ? "feather-eye-off me-2 app-students-view-follow-icon"
+          : "feather-eye me-2 app-students-view-follow-icon";
+      }
+      if (label) {
+        label.textContent = isFollowing ? "Following" : "Follow";
+      }
+    }
+
+    var followed = loadFollowed();
+    var isFollowing = followed.indexOf(studentId) !== -1;
+    setState(isFollowing);
+
+    button.addEventListener("click", function (event) {
+      event.preventDefault();
+      followed = loadFollowed();
+      var index = followed.indexOf(studentId);
+      var nowFollowing = index === -1;
+
+      if (nowFollowing) {
+        followed.push(studentId);
+      } else {
+        followed.splice(index, 1);
+      }
+
+      saveFollowed(followed);
+      setState(nowFollowing);
+
+      if (window.Swal && typeof window.Swal.fire === "function") {
+        window.Swal.fire({
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+          timer: 2500,
+          timerProgressBar: true,
+          icon: nowFollowing ? "success" : "info",
+          title: nowFollowing
+            ? "Now following " + studentName
+            : "Unfollowed " + studentName,
+        });
+      }
+    });
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initializeTimer);
   } else {
     initializeTimer();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeFollowToggle);
+  } else {
+    initializeFollowToggle();
   }
 })();

@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
 require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/company_profiles.php';
+require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
@@ -145,8 +146,37 @@ function student_internship_start_date(mysqli $conn, int $studentId, string $typ
     return $value !== '' ? $value : null;
 }
 
-$student['internal_start_date'] = student_internship_start_date($conn, $student_id, 'internal');
-$student['external_start_date'] = student_internship_start_date($conn, $student_id, 'external');
+$student['internal_start_date'] = null;
+$student['external_start_date'] = null;
+$internalAttendanceStartStmt = $conn->prepare("SELECT MIN(attendance_date) AS start_date FROM attendances WHERE student_id = ?");
+if ($internalAttendanceStartStmt) {
+    $internalAttendanceStartStmt->bind_param('i', $student_id);
+    $internalAttendanceStartStmt->execute();
+    $internalAttendanceStartRow = $internalAttendanceStartStmt->get_result()->fetch_assoc() ?: null;
+    $internalAttendanceStartStmt->close();
+    $internalAttendanceStartValue = trim((string)($internalAttendanceStartRow['start_date'] ?? ''));
+    if ($internalAttendanceStartValue !== '') {
+        $student['internal_start_date'] = $internalAttendanceStartValue;
+    }
+}
+external_attendance_ensure_schema($conn);
+$externalAttendanceStartStmt = $conn->prepare("SELECT MIN(attendance_date) AS start_date FROM external_attendance WHERE student_id = ?");
+if ($externalAttendanceStartStmt) {
+    $externalAttendanceStartStmt->bind_param('i', $student_id);
+    $externalAttendanceStartStmt->execute();
+    $externalAttendanceStartRow = $externalAttendanceStartStmt->get_result()->fetch_assoc() ?: null;
+    $externalAttendanceStartStmt->close();
+    $externalAttendanceStartValue = trim((string)($externalAttendanceStartRow['start_date'] ?? ''));
+    if ($externalAttendanceStartValue !== '') {
+        $student['external_start_date'] = $externalAttendanceStartValue;
+    }
+}
+if (empty($student['internal_start_date'])) {
+    $student['internal_start_date'] = student_internship_start_date($conn, $student_id, 'internal');
+}
+if (empty($student['external_start_date'])) {
+    $student['external_start_date'] = student_internship_start_date($conn, $student_id, 'external');
+}
 
 $latestInternshipStmt = $conn->prepare("
     SELECT company_name, company_address, position, status, start_date, end_date
@@ -256,8 +286,15 @@ $stmt_clock->execute();
 $clock_result = $stmt_clock->get_result();
 $attendance_record = $clock_result->fetch_assoc();
 
-$open_session = $attendance_record ? attendance_workflow_mark_incomplete_if_needed($conn, $attendance_record) : ['clocked_in_now' => false, 'is_open' => false, 'elapsed_preview_seconds' => 0, 'cutoff_time' => null];
-$is_clocked_in = !empty($open_session['clocked_in_now']);
+$assignment_track = strtolower((string)($student['assignment_track'] ?? 'internal'));
+if (!in_array($assignment_track, ['internal', 'external'], true)) {
+    $assignment_track = 'internal';
+}
+$open_session = ['clocked_in_now' => false, 'is_open' => false, 'elapsed_preview_seconds' => 0, 'cutoff_time' => null];
+if ($assignment_track === 'internal') {
+    $open_session = $attendance_record ? attendance_workflow_mark_incomplete_if_needed($conn, $attendance_record) : $open_session;
+}
+$is_clocked_in = ($assignment_track === 'internal') && !empty($open_session['clocked_in_now']);
 
 // Keep student status aligned with actual clock state (clocked-in => active, else inactive).
 $live_clock_status = $is_clocked_in ? 1 : 0;
@@ -276,8 +313,7 @@ if ($attendance_record && !empty($open_session['in_time'])) {
     $open_clock_in_time = (string)$open_session['in_time'];
 }
 
-// Calculate hours remaining and completion percentage based on real attendance totals
-// so timer stays consistent and does not jump back to preset values.
+// Calculate hours per track so internal/external totals stay isolated after track changes.
 $sum_stmt = $conn->prepare("
     SELECT COALESCE(SUM(total_hours), 0) AS rendered
     FROM attendances
@@ -288,17 +324,31 @@ $sum_stmt->execute();
 $sum_row = $sum_stmt->get_result()->fetch_assoc();
 $sum_stmt->close();
 
-$hours_rendered = isset($sum_row['rendered']) ? (float)$sum_row['rendered'] : 0.0;
-if ($hours_rendered <= 0 && isset($student['rendered_hours'])) {
-    $hours_rendered = (float)$student['rendered_hours'];
+external_attendance_ensure_schema($conn);
+$external_sum_stmt = $conn->prepare("
+    SELECT COALESCE(SUM(total_hours), 0) AS rendered
+    FROM external_attendance
+    WHERE student_id = ? AND status <> 'rejected'
+");
+$external_hours_rendered = 0.0;
+if ($external_sum_stmt) {
+    $external_sum_stmt->bind_param("i", $student_id);
+    $external_sum_stmt->execute();
+    $external_sum_row = $external_sum_stmt->get_result()->fetch_assoc();
+    $external_hours_rendered = isset($external_sum_row['rendered']) ? (float)$external_sum_row['rendered'] : 0.0;
+    $external_sum_stmt->close();
+}
+
+$internal_hours_rendered = isset($sum_row['rendered']) ? (float)$sum_row['rendered'] : 0.0;
+if ($internal_hours_rendered <= 0 && isset($student['rendered_hours']) && strtolower(trim((string)($student['assignment_track'] ?? 'internal'))) !== 'external') {
+    $internal_hours_rendered = (float)$student['rendered_hours'];
 }
 
 $open_session_seconds = ($attendance_record && !empty($open_session['is_open']))
     ? (int)($open_session['elapsed_preview_seconds'] ?? 0)
     : 0;
-$live_rendered_hours = $hours_rendered;
 
-$internal_total_hours = isset($student['internal_total_hours']) ? intval($student['internal_total_hours']) : 600;
+$internal_total_hours = isset($student['internal_total_hours']) ? intval($student['internal_total_hours']) : 140;
 if ($internal_total_hours < 0) {
     $internal_total_hours = 0;
 }
@@ -306,12 +356,14 @@ $external_total_hours = isset($student['external_total_hours']) ? intval($studen
 if ($external_total_hours < 0) {
     $external_total_hours = 0;
 }
+if ($external_total_hours <= 0) {
+    $external_total_hours = 250;
+}
 if ($internal_total_hours <= 0) {
     // Prevent division by zero and keep dashboard usable when hours are not configured yet.
-    $internal_total_hours = 600;
+    $internal_total_hours = 140;
 }
 
-$assignment_track = strtolower((string)($student['assignment_track'] ?? 'internal'));
 $stored_internal_remaining = isset($student['internal_total_hours_remaining']) && $student['internal_total_hours_remaining'] !== null
     ? (int)$student['internal_total_hours_remaining']
     : null;
@@ -319,21 +371,57 @@ $stored_external_remaining = isset($student['external_total_hours_remaining']) &
     ? (int)$student['external_total_hours_remaining']
     : null;
 
-$internal_remaining_hours_live = max(0, $internal_total_hours - $live_rendered_hours);
-$external_remaining_hours_live = max(0, $external_total_hours - $live_rendered_hours);
-$hours_remaining = ($assignment_track === 'external') ? $external_remaining_hours_live : $internal_remaining_hours_live;
+$internal_remaining_hours_live = max(0, $internal_total_hours - $internal_hours_rendered);
+$external_remaining_hours_live = max(0, $external_total_hours - $external_hours_rendered);
+$internal_remaining_hours_effective = $stored_internal_remaining !== null
+    ? max(0, $stored_internal_remaining)
+    : $internal_remaining_hours_live;
+$external_remaining_hours_effective = $stored_external_remaining !== null
+    ? max(0, $stored_external_remaining)
+    : $external_remaining_hours_live;
+if ($internal_hours_rendered > 0) {
+    $internal_remaining_hours_effective = $internal_remaining_hours_live;
+}
+if ($external_hours_rendered > 0) {
+    $external_remaining_hours_effective = $external_remaining_hours_live;
+}
+if ($internal_hours_rendered <= 0 && $stored_internal_remaining !== null && $stored_internal_remaining <= 0) {
+    $internal_remaining_hours_effective = $internal_total_hours;
+}
+if ($external_hours_rendered <= 0 && $stored_external_remaining !== null && $stored_external_remaining <= 0) {
+    $external_remaining_hours_effective = $external_total_hours;
+}
+if ($internal_hours_rendered > 0 && $internal_remaining_hours_effective <= 0 && $internal_remaining_hours_live > 0) {
+    $internal_remaining_hours_effective = $internal_remaining_hours_live;
+}
+if ($external_hours_rendered > 0 && $external_remaining_hours_effective <= 0 && $external_remaining_hours_live > 0) {
+    $external_remaining_hours_effective = $external_remaining_hours_live;
+}
+if ($assignment_track === 'internal' && $internal_remaining_hours_effective >= $internal_total_hours && $internal_hours_rendered > 0) {
+    $internal_remaining_hours_effective = $internal_remaining_hours_live;
+}
+if ($assignment_track === 'external' && $external_remaining_hours_effective >= $external_total_hours && $external_hours_rendered > 0) {
+    $external_remaining_hours_effective = $external_remaining_hours_live;
+}
+$hours_remaining = ($assignment_track === 'external') ? $external_remaining_hours_effective : $internal_remaining_hours_effective;
 $hours_remaining_without_open = ($assignment_track === 'external')
-    ? max(0, $external_total_hours - $hours_rendered)
-    : max(0, $internal_total_hours - $hours_rendered);
+    ? $external_remaining_hours_effective
+    : $internal_remaining_hours_effective;
+$hours_rendered = ($assignment_track === 'external') ? $external_hours_rendered : $internal_hours_rendered;
 
 $remaining_seconds = (int)max(0, round($hours_remaining_without_open * 3600));
 $remaining_seconds_without_open = (int)max(0, round($hours_remaining_without_open * 3600));
-$preview_remaining_seconds = (int)max(0, $remaining_seconds_without_open - $open_session_seconds);
-$internal_remaining_display = max(0, (int)floor($internal_remaining_hours_live));
-$external_remaining_display = max(0, (int)floor($external_remaining_hours_live));
+$preview_remaining_seconds = $assignment_track === 'internal'
+    ? (int)max(0, $remaining_seconds_without_open - $open_session_seconds)
+    : $remaining_seconds_without_open;
+$internal_remaining_display = max(0, (int)floor($internal_remaining_hours_effective));
+$external_remaining_display = max(0, (int)floor($external_remaining_hours_effective));
 $internal_completed_hours = max(0, $internal_total_hours - $internal_remaining_display);
-$completion_percentage = $internal_total_hours > 0
-    ? ($internal_completed_hours / $internal_total_hours) * 100
+$external_completed_hours = max(0, $external_total_hours - $external_remaining_display);
+$active_completed_hours = ($assignment_track === 'external') ? $external_completed_hours : $internal_completed_hours;
+$active_total_hours = ($assignment_track === 'external') ? $external_total_hours : $internal_total_hours;
+$completion_percentage = $active_total_hours > 0
+    ? ($active_completed_hours / $active_total_hours) * 100
     : 0;
 if ($completion_percentage > 100) {
     $completion_percentage = 100;
@@ -474,20 +562,21 @@ include 'includes/header.php';
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
-                    <div class="page-header-right-items">
-                        <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                            <a href="javascript:void(0);" class="btn btn-icon btn-light-brand successAlertMessage">
-                                <i class="feather-star"></i>
-                            </a>
-                            <a href="javascript:void(0);" class="btn btn-icon btn-light-brand">
-                                <i class="feather-eye me-2"></i>
-                                <span>Follow</span>
-                            </a>
-                            <a href="students.php" class="btn btn-outline-secondary">
-                                <i class="feather-arrow-left me-2"></i>
-                                <span>Back to List</span>
-                            </a>
-                        </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="javascript:void(0);" class="btn btn-icon btn-light-brand successAlertMessage">
+                            <i class="feather-star"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="btn btn-icon btn-light-brand app-students-view-follow-toggle"
+                           data-student-id="<?php echo (int)$student['id']; ?>"
+                           data-student-name="<?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name'], ENT_QUOTES); ?>"
+                           aria-pressed="false">
+                            <i class="feather-eye me-2 app-students-view-follow-icon"></i>
+                            <span>Follow</span>
+                        </a>
+                        <a href="students.php" class="btn btn-outline-secondary">
+                            <i class="feather-arrow-left me-2"></i>
+                            <span>Back to List</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -546,7 +635,7 @@ echo htmlspecialchars($student['email']); ?></a>
                                             </h6>
                                             <p class="fs-12 text-muted mb-0">
                                                 <?php if (!empty($open_session['requires_correction'])): ?>
-                                                    Frozen until manual clock-out is approved
+                                                    Last captured time is held. No hours are credited until the missing clock-out is reported and approved.
                                                 <?php elseif ($is_clocked_in): ?>
                                                     Live preview only until clock-out
                                                 <?php else: ?>
@@ -560,16 +649,16 @@ echo number_format($completion_percentage, 2); ?>%</h6>
                                             <p class="fs-12 text-muted mb-0">Completion</p>
                                         </div>
                                         <div class="stat-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
-                                            <h6 class="fs-15 fw-bolder" id="internalHoursValue"><?php
-echo intval($internal_remaining_display); ?>/<?php
+                                            <h6 class="fs-15 fw-bolder"><?php
+echo number_format($internal_hours_rendered, 0); ?>/<?php
 echo intval($internal_total_hours); ?></h6>
-                                            <p class="fs-12 text-muted mb-0">Internal Hours</p>
+                                            <p class="fs-12 text-muted mb-0">Internal Hours Logged</p>
                                         </div>
                                         <div class="stat-card py-3 px-4 rounded-1 border border-dashed border-gray-5">
                                             <h6 class="fs-15 fw-bolder"><?php
-echo intval($external_remaining_display); ?>/<?php
+echo number_format($external_hours_rendered, 0); ?>/<?php
 echo intval($external_total_hours); ?></h6>
-                                            <p class="fs-12 text-muted mb-0">External Hours</p>
+                                            <p class="fs-12 text-muted mb-0">External Hours Logged</p>
                                         </div>
                                     </div>
                                     <?php
@@ -746,7 +835,7 @@ echo htmlspecialchars(trim((string)($student_latest_internship['company_address'
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
-                                                    <div class="small text-muted mb-1">Internal Hours (Remaining/Total)</div>
+                                                    <div class="small text-muted mb-1">Remaining Internal Hours (Remaining/Total)</div>
                                                     <div class="fw-semibold" id="internalHoursDetailValue"><?php
 echo intval($internal_remaining_display); ?> / <?php
 echo intval($internal_total_hours); ?></div>
@@ -754,7 +843,7 @@ echo intval($internal_total_hours); ?></div>
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
-                                                    <div class="small text-muted mb-1">External Hours (Remaining/Total)</div>
+                                                    <div class="small text-muted mb-1">Remaining External Hours (Remaining/Total)</div>
                                                     <div class="fw-semibold"><?php
 echo intval($external_remaining_display); ?> / <?php
 echo intval($external_total_hours); ?></div>
@@ -860,8 +949,12 @@ echo formatDate($student['biometric_registered_at']); ?></div>
                                     <div class="recent-activity app-students-view-recent-activity">
                                         <div class="mb-4 pb-2 d-flex justify-content-between">
                                             <h5 class="fw-bold">Recent Attendance Records:</h5>
-                                            <a href="students-internal-dtr.php?id=<?php
+                                            <div class="d-flex gap-2">
+                                                <a href="students-internal-dtr.php?id=<?php
 echo intval($student['id']); ?>" class="btn btn-sm btn-light-brand">Open Internal DTR</a>
+                                                <a href="students-external-dtr.php?id=<?php
+echo intval($student['id']); ?>" class="btn btn-sm btn-outline-secondary">Open External DTR</a>
+                                            </div>
                                         </div>
                                         <ul class="list-unstyled activity-feed">
                                             <?php
@@ -1006,7 +1099,11 @@ echo $is_evaluation_unlocked ? 'Waiting for supervisor submission' : 'Waiting fo
 
             <div id="students-view-runtime-config"
          data-internal-total-hours="<?php echo (int)$internal_total_hours; ?>"
+         data-external-total-hours="<?php echo (int)$external_total_hours; ?>"
+         data-active-track="<?php echo htmlspecialchars($assignment_track, ENT_QUOTES, 'UTF-8'); ?>"
+         data-active-total-hours="<?php echo (int)$active_total_hours; ?>"
          data-student-id="<?php echo (int)$student['id']; ?>"
+         data-internal-remaining-display="<?php echo (int)$internal_remaining_display; ?>"
          data-remaining-seconds="<?php echo (int)$preview_remaining_seconds; ?>"
          data-remaining-seconds-without-open="<?php echo (int)$remaining_seconds_without_open; ?>"
          data-is-clocked-in="<?php echo $is_clocked_in ? '1' : '0'; ?>"

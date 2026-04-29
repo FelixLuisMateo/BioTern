@@ -178,7 +178,11 @@
         list.forEach(function (id) {
             var el = document.getElementById(id);
             if (el) {
-                el.textContent = value;
+                var nextValue = value;
+                if ((!value || !String(value).trim()) && el.classList && el.classList.contains('moa-fill-line')) {
+                    nextValue = '\u00A0';
+                }
+                el.textContent = nextValue;
             }
         });
     }
@@ -306,18 +310,18 @@
     }
 
     function updatePreview() {
-        setTextSafe('pv_partner_company_name', partnerName && partnerName.value ? partnerName.value : '__________________________');
-        setTextSafe('pv_partner_name', partnerRep && partnerRep.value ? partnerRep.value : '__________________________');
-        setTextSafe('pv_partner_address', partnerAddress && partnerAddress.value ? partnerAddress.value : '__________________________');
-        setTextSafe('pv_company_receipt', companyReceipt && companyReceipt.value ? companyReceipt.value : '__________________________');
+        setTextSafe('pv_partner_company_name', partnerName && partnerName.value ? partnerName.value : '');
+        setTextSafe('pv_partner_name', partnerRep && partnerRep.value ? partnerRep.value : '');
+        setTextSafe('pv_partner_address', partnerAddress && partnerAddress.value ? partnerAddress.value : '');
+        setTextSafe('pv_company_receipt', companyReceipt && companyReceipt.value ? companyReceipt.value : '');
         setTextSafe('pv_total_hours', totalHours && totalHours.value ? totalHours.value : '250');
-        setTextSafe('pv_partner_rep', partnerRep && partnerRep.value ? partnerRep.value : '__________________________');
+        setTextSafe('pv_partner_rep', partnerRep && partnerRep.value ? partnerRep.value : '');
         setTextSafe('pv_partner_position', partnerPosition && partnerPosition.value ? partnerPosition.value : (isDau ? 'Barangay Dau PYAP President' : '______________, '));
-        setTextSafe('pv_school_rep', schoolRep && schoolRep.value ? schoolRep.value : '__________________');
-        setTextSafe('pv_signed_at', signedAt && signedAt.value ? signedAt.value : '__________________');
-        setTextSafe('pv_signed_day', signedDay && signedDay.value ? withOrdinalSuffix(signedDay.value) : '_____');
-        setTextSafe('pv_signed_month', signedMonth && signedMonth.value ? signedMonth.value : '__________________');
-        setTextSafe('pv_signed_year', signedYear && signedYear.value ? signedYear.value : '20__');
+        setTextSafe('pv_school_rep', schoolRep && schoolRep.value ? schoolRep.value : '');
+        setTextSafe('pv_signed_at', signedAt && signedAt.value ? signedAt.value : '');
+        setTextSafe('pv_signed_day', signedDay && signedDay.value ? withOrdinalSuffix(signedDay.value) : '');
+        setTextSafe('pv_signed_month', signedMonth && signedMonth.value ? signedMonth.value : '');
+        setTextSafe('pv_signed_year', signedYear && signedYear.value ? signedYear.value : '');
         setTextSafe(['pv_presence_partner_rep', 'company_receipt'], presencePartnerRep && presencePartnerRep.value ? presencePartnerRep.value : '______________________________');
         setTextSafe(['pv_presence_school_admin', 'presence_school_admin'], presenceSchoolAdmin && presenceSchoolAdmin.value ? presenceSchoolAdmin.value : '______________________');
         setTextSafe(['pv_presence_school_admin_position', 'presence_school_admin_position'], presenceSchoolAdminPosition && presenceSchoolAdminPosition.value ? presenceSchoolAdminPosition.value : '______________________');

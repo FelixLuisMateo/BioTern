@@ -125,15 +125,15 @@
     }
 
     function initTable(table) {
-        var selectedPrintBtn = document.querySelector('[data-ojt-print-selected="' + table.id + '"]');
-        var fullPrintBtn = document.querySelector('[data-ojt-print-full="' + table.id + '"]');
         var printSheet = document.querySelector('[data-ojt-print-sheet="' + table.id + '"]');
+        var selectedPrintBtns = Array.prototype.slice.call(document.querySelectorAll('[data-ojt-print-selected="' + table.id + '"]'));
+        var fullPrintBtns = Array.prototype.slice.call(document.querySelectorAll('[data-ojt-print-full="' + table.id + '"]'));
 
-        if (!selectedPrintBtn && !fullPrintBtn) {
+        if (selectedPrintBtns.length === 0 && fullPrintBtns.length === 0) {
             return;
         }
 
-        if (selectedPrintBtn) {
+        selectedPrintBtns.forEach(function (selectedPrintBtn) {
             selectedPrintBtn.addEventListener('click', function (event) {
                 event.preventDefault();
 
@@ -152,9 +152,9 @@
                 fillPrintSheet(table, printSheet, printRows);
                 printSheetNow(printSheet, true);
             });
-        }
+        });
 
-        if (fullPrintBtn) {
+        fullPrintBtns.forEach(function (fullPrintBtn) {
             fullPrintBtn.addEventListener('click', function (event) {
                 event.preventDefault();
 
@@ -168,7 +168,7 @@
                 fillPrintSheet(table, printSheet, printRows);
                 printSheetNow(printSheet, false);
             });
-        }
+        });
     }
 
     function init() {

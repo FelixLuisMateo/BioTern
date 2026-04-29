@@ -99,13 +99,17 @@ function ojt_internal_list_matches_search(array $row, string $search): bool {
     return strpos($haystack, $needle) !== false;
 }
 
-function ojt_internal_apply_start(mysqli $conn, int $targetStudentId, string $startDate, bool $internshipsTableExists, bool $internshipsHasTypeColumn, bool $internshipsHasStartDateColumn, bool $internshipsHasStatusColumn, bool $internshipsHasRequiredHoursColumn, bool $internshipsHasStudentIdColumn, bool $hasAssignmentTrack): array {
+function ojt_internal_apply_start(mysqli $conn, int $targetStudentId, string $startDate, string $endDate, bool $internshipsTableExists, bool $internshipsHasTypeColumn, bool $internshipsHasStartDateColumn, bool $internshipsHasEndDateColumn, bool $internshipsHasStatusColumn, bool $internshipsHasRequiredHoursColumn, bool $internshipsHasStudentIdColumn, bool $hasAssignmentTrack): array {
     if (!$internshipsTableExists || !$internshipsHasStudentIdColumn) {
         return ['ok' => false, 'message' => 'Internship table is not ready for internal start dates.'];
     }
 
-    if ($targetStudentId <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
-        return ['ok' => false, 'message' => 'A valid internal start date is required.'];
+    if ($targetStudentId <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+        return ['ok' => false, 'message' => 'Valid internal start and end dates are required.'];
+    }
+
+    if (strtotime($endDate) !== false && strtotime($startDate) !== false && strtotime($endDate) < strtotime($startDate)) {
+        return ['ok' => false, 'message' => 'End date must be on or after the start date.'];
     }
 
     $studentLookup = $conn->prepare("
@@ -161,6 +165,11 @@ function ojt_internal_apply_start(mysqli $conn, int $targetStudentId, string $st
             $types .= 's';
             $values[] = $startDate;
         }
+        if ($internshipsHasEndDateColumn) {
+            $updates[] = 'end_date = ?';
+            $types .= 's';
+            $values[] = $endDate;
+        }
         if ($internshipsHasRequiredHoursColumn) {
             $updates[] = 'required_hours = ?';
             $types .= 'i';
@@ -196,6 +205,11 @@ function ojt_internal_apply_start(mysqli $conn, int $targetStudentId, string $st
         if ($internshipsHasStartDateColumn) {
             $insertCols[] = 'start_date';
             $insertVals[] = $startDate;
+            $insertTypes .= 's';
+        }
+        if ($internshipsHasEndDateColumn) {
+            $insertCols[] = 'end_date';
+            $insertVals[] = $endDate;
             $insertTypes .= 's';
         }
         if ($internshipsHasRequiredHoursColumn) {
@@ -295,6 +309,7 @@ if (!in_array($filterOjtStatus, ['all', 'ongoing', 'finished', 'not_started'], t
 $internshipsTableExists = ojt_internal_table_exists($conn, 'internships');
 $internshipsHasTypeColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'type');
 $internshipsHasStartDateColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'start_date');
+$internshipsHasEndDateColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'end_date');
 $internshipsHasStatusColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'status');
 $internshipsHasRequiredHoursColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'required_hours');
 $internshipsHasStudentIdColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'student_id');
@@ -321,6 +336,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['internal_action'] 
     }
     $redirectTarget = 'ojt-internal-list.php' . ($redirectQuery !== [] ? ('?' . http_build_query($redirectQuery)) : '');
     $startDate = trim((string)($_POST['start_date'] ?? ''));
+    $endDate = trim((string)($_POST['end_date'] ?? ''));
     $rawStudentIds = trim((string)($_POST['student_ids'] ?? ''));
     $targetStudentIds = [];
     foreach (preg_split('/[,\s]+/', $rawStudentIds, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $candidateId) {
@@ -350,9 +366,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['internal_action'] 
             $conn,
             (int)$targetStudentId,
             $startDate,
+            $endDate,
             $internshipsTableExists,
             $internshipsHasTypeColumn,
             $internshipsHasStartDateColumn,
+            $internshipsHasEndDateColumn,
             $internshipsHasStatusColumn,
             $internshipsHasRequiredHoursColumn,
             $internshipsHasStudentIdColumn,
@@ -842,6 +860,10 @@ ob_end_flush();
                     <div class="mb-3">
                         <label class="form-label" for="ojtInternalStartDate">Start Date</label>
                         <input type="date" class="form-control" id="ojtInternalStartDate" name="start_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label" for="ojtInternalEndDate">End Date</label>
+                        <input type="date" class="form-control" id="ojtInternalEndDate" name="end_date" value="<?php echo htmlspecialchars(date('Y-m-d', strtotime('+1 month')), ENT_QUOTES, 'UTF-8'); ?>" required>
                     </div>
                 </div>
                 <div class="modal-footer">

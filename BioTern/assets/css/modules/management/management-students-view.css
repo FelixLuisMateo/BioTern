@@ -333,6 +333,16 @@
     color: var(--biotern-text) !important;
 }
 
+.app-students-view-follow-toggle.is-followed {
+    background: var(--biotern-surface) !important;
+    border-color: #2f5df0 !important;
+    color: #dbe7ff !important;
+}
+
+.app-students-view-follow-toggle.is-followed i {
+    color: #9fc0ff;
+}
+
 html.app-skin-dark .app-students-view-profile-card,
 html.app-skin-dark .app-students-view-detail-card {
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);

@@ -729,10 +729,14 @@ if (!function_exists('biotern_login_session_validate')) {
             }
         }
 
-        $stmt = $db->prepare("SELECT id, revoked_at, expires_at
-            FROM user_login_sessions
-            WHERE user_id = ? AND token_hash = ?
-            LIMIT 1");
+        try {
+            $stmt = $db->prepare("SELECT id, revoked_at, expires_at
+                FROM user_login_sessions
+                WHERE user_id = ? AND token_hash = ?
+                LIMIT 1");
+        } catch (Throwable $e) {
+            return true;
+        }
         if (!$stmt) {
             return true;
         }

@@ -165,8 +165,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $attendance_id > 0) {
 
 $attendance_open_info = $attendance ? attendance_workflow_open_session_info($conn, $attendance) : ['requires_correction' => false];
 
-$conn->close();
-
 $page_title = 'BioTern || Edit Attendance';
 $page_styles = [
     'assets/css/modules/documents/edit-attendance-page.css',
@@ -191,16 +189,7 @@ include 'includes/header.php';
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
-                    <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="editAttendanceActionsMenu">
-                        <i class="feather-grid me-1"></i>
-                        <span>Actions</span>
-                    </button>
-                    <div class="page-header-actions" id="editAttendanceActionsMenu">
-                        <div class="dashboard-actions-panel">
-                            <div class="dashboard-actions-meta">
-                                <span class="text-muted fs-12">Quick Actions</span>
-                            </div>
-                            <div class="dashboard-actions-grid page-header-right-items-wrapper">
+                    <div class="d-flex align-items-center gap-2">
                             <a href="attendance.php" class="btn btn-light-brand">
                                 <i class="feather-arrow-left me-1"></i>
                                 <span>Back to Attendance</span>
@@ -215,8 +204,6 @@ include 'includes/header.php';
                                 <i class="feather-printer me-1"></i>
                                 <span>Print</span>
                             </button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
