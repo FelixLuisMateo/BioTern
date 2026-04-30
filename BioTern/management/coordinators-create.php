@@ -271,14 +271,28 @@ include 'includes/header.php';
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Courses to Supervise *</label>
-                    <select name="course_ids[]" class="form-select" multiple size="6" <?php echo !empty($courses) ? 'required' : ''; ?>>
+                    <div class="border rounded-3 p-3" style="max-height: 220px; overflow: auto;">
                         <?php foreach ($courses as $course): ?>
-                            <option value="<?php echo (int)$course['id']; ?>" <?php echo in_array((int)$course['id'], $selectedCourseIds, true) ? 'selected' : ''; ?>>
-                                <?php echo h($course['name']); ?>
-                            </option>
+                            <?php $courseId = (int)$course['id']; ?>
+                            <div class="form-check mb-2">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    name="course_ids[]"
+                                    id="create_course_<?php echo $courseId; ?>"
+                                    value="<?php echo $courseId; ?>"
+                                    <?php echo in_array($courseId, $selectedCourseIds, true) ? 'checked' : ''; ?>
+                                >
+                                <label class="form-check-label" for="create_course_<?php echo $courseId; ?>">
+                                    <?php echo h($course['name']); ?>
+                                </label>
+                            </div>
                         <?php endforeach; ?>
-                    </select>
-                    <small class="text-muted d-block mt-1">Hold Ctrl or Cmd to choose multiple courses.</small>
+                        <?php if (empty($courses)): ?>
+                            <div class="text-muted small">No courses available right now.</div>
+                        <?php endif; ?>
+                    </div>
+                    <small class="text-muted d-block mt-1">Choose one or more courses this coordinator can supervise.</small>
                 </div>
                 <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control" value="<?php echo post_value('office_location'); ?>"></div>
                 <div class="col-md-4"><label class="form-label">Profile Picture</label><input type="file" name="profile_picture" class="form-control create-form-file-input" accept="image/*"></div>
