@@ -365,18 +365,19 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
     ];
 }
 
-// Ensure bridge profile variables are initialized before use in $quickBridgeOptions
+
+// Robustly initialize bridge profile variables to avoid undefined variable warnings
 $bridgeProfile = $bridgeProfile ?? [];
-$bridgePollSeconds = isset($bridgePollSeconds) ? $bridgePollSeconds : 30;
-$bridgeCloudBaseUrl = isset($bridgeCloudBaseUrl) ? $bridgeCloudBaseUrl : '';
-$bridgeIngestPath = isset($bridgeIngestPath) ? $bridgeIngestPath : '/api/f20h_ingest.php';
-$bridgeIngestApiToken = isset($bridgeIngestApiToken) ? $bridgeIngestApiToken : '';
-$bridgeOutputPath = isset($bridgeOutputPath) ? $bridgeOutputPath : '';
-$bridgeIpAddress = isset($bridgeIpAddress) ? $bridgeIpAddress : '';
-$bridgeGateway = isset($bridgeGateway) ? $bridgeGateway : '';
-$bridgeMask = isset($bridgeMask) ? $bridgeMask : '';
-$bridgePort = isset($bridgePort) ? $bridgePort : 5001;
-$bridgeDeviceNumber = isset($bridgeDeviceNumber) ? $bridgeDeviceNumber : 1;
+$bridgePollSeconds = $bridgePollSeconds ?? ($bridgeProfile['poll_seconds'] ?? 30);
+$bridgeCloudBaseUrl = $bridgeCloudBaseUrl ?? ($bridgeProfile['cloud_base_url'] ?? '');
+$bridgeIngestPath = $bridgeIngestPath ?? ($bridgeProfile['ingest_path'] ?? '/api/f20h_ingest.php');
+$bridgeIngestApiToken = $bridgeIngestApiToken ?? ($bridgeProfile['ingest_api_token'] ?? '');
+$bridgeOutputPath = $bridgeOutputPath ?? ($bridgeProfile['output_path'] ?? '');
+$bridgeIpAddress = $bridgeIpAddress ?? ($bridgeProfile['ip_address'] ?? '');
+$bridgeGateway = $bridgeGateway ?? ($bridgeProfile['gateway'] ?? '');
+$bridgeMask = $bridgeMask ?? ($bridgeProfile['mask'] ?? '');
+$bridgePort = $bridgePort ?? ($bridgeProfile['port'] ?? 5001);
+$bridgeDeviceNumber = $bridgeDeviceNumber ?? ($bridgeProfile['device_number'] ?? 1);
 
 $quickBridgeOptions = [
     'laptop_router_1' => [
