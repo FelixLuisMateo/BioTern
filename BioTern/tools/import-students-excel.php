@@ -195,6 +195,24 @@ function students_excel_columns(mysqli $mysqli, string $table): array
     return $columns;
 }
 
+if (!function_exists('biotern_db_add_column_if_missing')) {
+    function biotern_db_add_column_if_missing(mysqli $mysqli, string $table, string $column, string $columnDefinition): bool
+    {
+        $safeTable = str_replace('`', '``', $table);
+        $safeColumn = $mysqli->real_escape_string($column);
+        $res = $mysqli->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+        $exists = $res instanceof mysqli_result && $res->num_rows > 0;
+        if ($res instanceof mysqli_result) {
+            $res->close();
+        }
+        if ($exists) {
+            return true;
+        }
+
+        return (bool)$mysqli->query("ALTER TABLE `{$safeTable}` ADD COLUMN {$columnDefinition}");
+    }
+}
+
 function students_excel_internship_status(string $raw): string
 {
     $status = strtolower(trim($raw));

@@ -311,7 +311,7 @@ ob_end_flush();
 </style>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header">
+        <div class="page-header" data-phc-skip="1">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Import OJT Internal</h5>

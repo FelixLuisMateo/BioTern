@@ -65,6 +65,110 @@ function export_ojt_bind(mysqli_stmt $stmt, string $types, array &$values): void
     call_user_func_array([$stmt, 'bind_param'], $bind);
 }
 
+function export_ojt_xml_text(string $value): string
+{
+    $clean = preg_replace('/[^\P{C}\t\r\n]/u', '', $value);
+    return htmlspecialchars($clean !== null ? $clean : $value, ENT_XML1 | ENT_COMPAT | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function export_ojt_column_name(int $index): string
+{
+    $name = '';
+    $index++;
+    while ($index > 0) {
+        $remainder = ($index - 1) % 26;
+        $name = chr(65 + $remainder) . $name;
+        $index = intdiv($index - 1, 26);
+    }
+    return $name;
+}
+
+function export_ojt_xlsx_row(int $rowNumber, array $values, int $style = 0): string
+{
+    $cells = '';
+    foreach ($values as $index => $value) {
+        $cellRef = export_ojt_column_name($index) . $rowNumber;
+        $styleAttr = $style > 0 ? ' s="' . $style . '"' : '';
+        $cells .= '<c r="' . $cellRef . '" t="inlineStr"' . $styleAttr . '><is><t>' . export_ojt_xml_text((string)$value) . '</t></is></c>';
+    }
+    return '<row r="' . $rowNumber . '">' . $cells . '</row>';
+}
+
+function export_ojt_xlsx_sheet_xml(array $headers, array $rows): string
+{
+    $lastRow = max(1, count($rows) + 1);
+    $dimension = 'A1:K' . $lastRow;
+    $sheetRows = export_ojt_xlsx_row(1, $headers, 1);
+    foreach ($rows as $index => $row) {
+        $sheetRows .= export_ojt_xlsx_row($index + 2, $row);
+    }
+
+    return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        . '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        . '<dimension ref="' . $dimension . '"/>'
+        . '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'
+        . '<sheetFormatPr defaultRowHeight="16.5"/>'
+        . '<cols>'
+        . '<col min="1" max="1" width="18" customWidth="1"/>'
+        . '<col min="2" max="2" width="16" customWidth="1"/>'
+        . '<col min="3" max="3" width="34" customWidth="1"/>'
+        . '<col min="4" max="4" width="18" customWidth="1"/>'
+        . '<col min="5" max="5" width="14" customWidth="1"/>'
+        . '<col min="6" max="6" width="48" customWidth="1"/>'
+        . '<col min="7" max="7" width="72" customWidth="1"/>'
+        . '<col min="8" max="8" width="34" customWidth="1"/>'
+        . '<col min="9" max="9" width="28" customWidth="1"/>'
+        . '<col min="10" max="10" width="38" customWidth="1"/>'
+        . '<col min="11" max="11" width="16" customWidth="1"/>'
+        . '</cols>'
+        . '<sheetData>' . $sheetRows . '</sheetData>'
+        . '<autoFilter ref="' . $dimension . '"/>'
+        . '</worksheet>';
+}
+
+function export_ojt_send_template_xlsx(string $type, array $headers, array $rows, string $filename): void
+{
+    if (!class_exists('ZipArchive')) {
+        http_response_code(500);
+        echo 'Unable to create Excel export: ZipArchive is not available on this PHP setup.';
+        exit;
+    }
+
+    $templateName = $type === 'internal' ? 'Internal Students Template.xlsx' : 'External Students Template.xlsx';
+    $templatePath = dirname(__DIR__) . '/assets/' . $templateName;
+    if (!is_file($templatePath)) {
+        http_response_code(500);
+        echo 'Excel template not found.';
+        exit;
+    }
+
+    $tmpPath = tempnam(sys_get_temp_dir(), 'biotern-ojt-export-');
+    if ($tmpPath === false || !copy($templatePath, $tmpPath)) {
+        http_response_code(500);
+        echo 'Unable to prepare Excel export.';
+        exit;
+    }
+
+    $zip = new ZipArchive();
+    if ($zip->open($tmpPath) !== true) {
+        @unlink($tmpPath);
+        http_response_code(500);
+        echo 'Unable to open Excel template.';
+        exit;
+    }
+
+    $zip->addFromString('xl/worksheets/sheet1.xml', export_ojt_xlsx_sheet_xml($headers, $rows));
+    $zip->close();
+
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Content-Length: ' . (string)filesize($tmpPath));
+    header('Cache-Control: no-store, no-cache, must-revalidate');
+    readfile($tmpPath);
+    @unlink($tmpPath);
+    exit;
+}
+
 $type = strtolower(trim((string)($_GET['type'] ?? 'external')));
 if (!in_array($type, ['internal', 'external'], true)) {
     $type = 'external';
@@ -271,34 +375,18 @@ if ($schoolYear !== '') {
     $filenameParts[] = preg_replace('/[^0-9A-Za-z-]+/', '-', $schoolYear);
 }
 $filenameParts[] = date('Ymd-His');
-$filename = implode('-', $filenameParts) . '.csv';
-
-header('Content-Type: text/csv; charset=UTF-8');
-header('Content-Disposition: attachment; filename="' . $filename . '"');
-header('Cache-Control: no-store, no-cache, must-revalidate');
-
-$out = fopen('php://output', 'wb');
-fwrite($out, "\xEF\xBB\xBF");
-fputcsv($out, [
-    'student_no',
-    'school_year',
-    'student_name',
-    'contact_no',
-    'section',
-    'company_name',
-    'company_address',
-    'supervisor_name',
-    'supervisor_position',
-    'company_representative',
-    'status',
-]);
+$filename = implode('-', $filenameParts) . '.xlsx';
+$headers = $type === 'internal'
+    ? ['student_no', 'school_year', 'STUDENT NAME', 'CONTACT NO.', 'SECTION', 'COMPANY', 'ADDRESS', 'SUPERVISOR NAME', 'POSITION', 'COMPANY REPRESENTATIVE', 'STATUS']
+    : ['student_no', 'school_year', 'student_name', 'contact_no', 'section', 'company_name', 'company_address', 'supervisor_name', 'supervisor_position', 'company_representative', 'status'];
+$exportRows = [];
 
 while ($row = $res->fetch_assoc()) {
     $registeredName = trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? ''));
     $schoolYearOut = trim((string)($row['master_school_year'] ?? '')) !== ''
         ? (string)$row['master_school_year']
         : (trim((string)($row['student_school_year'] ?? '')) !== '' ? (string)$row['student_school_year'] : (string)($row['internship_school_year'] ?? ''));
-    fputcsv($out, [
+    $exportRows[] = [
         (string)($row['student_no'] ?? ''),
         $schoolYearOut,
         trim((string)($row['master_student_name'] ?? '')) !== '' ? (string)$row['master_student_name'] : $registeredName,
@@ -310,9 +398,8 @@ while ($row = $res->fetch_assoc()) {
         trim((string)($row['master_supervisor_position'] ?? '')) !== '' ? (string)$row['master_supervisor_position'] : (string)($row['internship_position'] ?? ''),
         (string)($row['master_company_representative'] ?? ''),
         trim((string)($row['master_status'] ?? '')) !== '' ? (string)$row['master_status'] : (trim((string)($row['internship_status'] ?? '')) !== '' ? (string)$row['internship_status'] : (string)($row['student_status'] ?? '')),
-    ]);
+    ];
 }
 
-fclose($out);
 $stmt->close();
-exit;
+export_ojt_send_template_xlsx($type, $headers, $exportRows, $filename);
