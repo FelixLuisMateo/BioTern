@@ -192,7 +192,7 @@ include 'includes/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-12">
+                <div class="col-md-4">
                     <label class="form-label">Courses to Supervise *</label>
                     <div class="border rounded-3 p-3" style="max-height: 180px; overflow: auto;">
                         <?php
