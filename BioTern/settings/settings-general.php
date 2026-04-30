@@ -11,7 +11,7 @@ $current_role = strtolower(trim((string)(
     ''
 )));
 
-if (!in_array($current_role, ['admin', 'coordinator'], true)) {
+if ($current_role !== 'admin') {
     header('Location: ../homepage.php');
     exit;
 }

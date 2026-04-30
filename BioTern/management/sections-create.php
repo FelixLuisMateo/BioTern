@@ -1,8 +1,11 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 /** @var mysqli $conn */
+
+require_roles_page(['admin']);
 
 section_schedule_ensure_columns($conn);
 

@@ -101,9 +101,9 @@ if ($nav_is_student && isset($conn) && $conn instanceof mysqli) {
 }
 
 $nav_can_internship = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
-$nav_can_academic = ($nav_is_admin || $nav_is_coordinator);
+$nav_can_academic = $nav_is_admin;
 $nav_can_workspace = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor || $nav_is_student);
-$nav_can_system = ($nav_is_admin || $nav_is_coordinator);
+$nav_can_system = $nav_is_admin;
 $nav_can_user_accounts = $nav_is_admin;
 
 $nav_current_file = '';

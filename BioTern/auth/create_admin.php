@@ -18,6 +18,11 @@ $current_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
 $is_admin_session = ($current_user_id > 0 && $current_role === 'admin');
 $is_post_request = ($_SERVER['REQUEST_METHOD'] === 'POST');
 
+if ($current_user_id > 0 && !$is_admin_session) {
+    header('Location: ../homepage.php');
+    exit;
+}
+
 if (!function_exists('esc')) {
     function esc($s)
     {
