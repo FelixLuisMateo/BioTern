@@ -1,3 +1,21 @@
+// --- Bridge Profile Deletion Helper ---
+function machine_delete_bridge_profile(mysqli $conn, string $profileName): void {
+    if (strtolower($profileName) === 'default') {
+        throw new RuntimeException('The default profile cannot be deleted.');
+    }
+    machine_ensure_bridge_profile_table($conn);
+    $stmt = $conn->prepare('DELETE FROM biometric_bridge_profile WHERE profile_name = ?');
+    if (!$stmt) {
+        throw new RuntimeException('Failed to prepare profile delete query. DB error: ' . (string)$conn->error);
+    }
+    $stmt->bind_param('s', $profileName);
+    if (!$stmt->execute()) {
+        $error = (string)$stmt->error;
+        $stmt->close();
+        throw new RuntimeException('Failed to delete bridge profile. DB error: ' . $error);
+    }
+    $stmt->close();
+}
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/tools/biometric_machine_runtime.php';
@@ -347,7 +365,86 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
     ];
 }
 
-function machine_bridge_cache_max_age_seconds(int $pollSeconds): int
+// Ensure bridge profile variables are initialized before use in $quickBridgeOptions
+$bridgeProfile = $bridgeProfile ?? [];
+$bridgePollSeconds = isset($bridgePollSeconds) ? $bridgePollSeconds : 30;
+$bridgeCloudBaseUrl = isset($bridgeCloudBaseUrl) ? $bridgeCloudBaseUrl : '';
+$bridgeIngestPath = isset($bridgeIngestPath) ? $bridgeIngestPath : '/api/f20h_ingest.php';
+$bridgeIngestApiToken = isset($bridgeIngestApiToken) ? $bridgeIngestApiToken : '';
+$bridgeOutputPath = isset($bridgeOutputPath) ? $bridgeOutputPath : '';
+$bridgeIpAddress = isset($bridgeIpAddress) ? $bridgeIpAddress : '';
+$bridgeGateway = isset($bridgeGateway) ? $bridgeGateway : '';
+$bridgeMask = isset($bridgeMask) ? $bridgeMask : '';
+$bridgePort = isset($bridgePort) ? $bridgePort : 5001;
+$bridgeDeviceNumber = isset($bridgeDeviceNumber) ? $bridgeDeviceNumber : 1;
+
+$quickBridgeOptions = [
+    'laptop_router_1' => [
+        'label' => 'Laptop Bridge - Router 1',
+        'ip' => '192.168.100.201',
+        'gateway' => '192.168.100.1',
+        'mask' => '255.255.255.0',
+        'port' => '5001',
+        'device_number' => '1',
+        'poll_seconds' => (string)$bridgePollSeconds,
+        'cloud_base_url' => $bridgeCloudBaseUrl,
+        'ingest_path' => $bridgeIngestPath,
+        'ingest_api_token' => $bridgeIngestApiToken,
+        'output_path' => $bridgeOutputPath,
+    ],
+    'laptop_router_2' => [
+        'label' => 'Laptop Bridge - Router 2',
+        'ip' => '192.168.110.201',
+        'gateway' => '192.168.110.1',
+        'mask' => '255.255.255.0',
+        'port' => '5001',
+        'device_number' => '1',
+        'poll_seconds' => (string)$bridgePollSeconds,
+        'cloud_base_url' => $bridgeCloudBaseUrl,
+        'ingest_path' => $bridgeIngestPath,
+        'ingest_api_token' => $bridgeIngestApiToken,
+        'output_path' => $bridgeOutputPath,
+    ],
+    'computer_router_2' => [
+        'label' => 'Computer Bridge - WiFi Router 2',
+        'ip' => '192.168.110.201',
+        'gateway' => '192.168.110.1',
+        'mask' => '255.255.255.0',
+        'port' => '5001',
+        'device_number' => '1',
+        'poll_seconds' => (string)$bridgePollSeconds,
+        'cloud_base_url' => $bridgeCloudBaseUrl,
+        'ingest_path' => $bridgeIngestPath,
+        'ingest_api_token' => $bridgeIngestApiToken,
+        'output_path' => $bridgeOutputPath,
+    ],
+    'pocket_router_wifi' => [
+        'label' => 'Pocket Router WiFi',
+        'ip' => '192.168.1.201',
+        'gateway' => '192.168.1.254',
+        'mask' => '255.255.255.0',
+        'port' => '5001',
+        'device_number' => '1',
+        'poll_seconds' => (string)$bridgePollSeconds,
+        'cloud_base_url' => $bridgeCloudBaseUrl,
+        'ingest_path' => $bridgeIngestPath,
+        'ingest_api_token' => $bridgeIngestApiToken,
+        'output_path' => $bridgeOutputPath,
+    ],
+    'laptop_custom' => [
+        'label' => 'Laptop Bridge - Custom',
+        'ip' => $bridgeIpAddress,
+        'gateway' => $bridgeGateway,
+        'mask' => $bridgeMask,
+        'port' => (string)$bridgePort,
+        'device_number' => (string)$bridgeDeviceNumber,
+        'poll_seconds' => (string)$bridgePollSeconds,
+        'cloud_base_url' => $bridgeCloudBaseUrl,
+        'ingest_path' => $bridgeIngestPath,
+        'ingest_api_token' => $bridgeIngestApiToken,
+        'output_path' => $bridgeOutputPath,
+    ],
+];
 {
     return max(90, $pollSeconds * 4);
 }
@@ -1197,6 +1294,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = trim((string)($_POST['machine_action'] ?? ''));
 
     try {
+        if ($action === 'delete_bridge_profile') {
+            $profileName = trim((string)($_POST['profile_name'] ?? ''));
+            if ($profileName === '' || strtolower($profileName) === 'default') {
+                throw new RuntimeException('Cannot delete the default or empty profile.');
+            }
+            machine_delete_bridge_profile($conn, $profileName);
+            $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Bridge profile deleted: ' . $profileName];
+            machine_redirect_after_post([]);
+        }
         $adminOnlyActions = [
             'save_user_json',
             'save_config',
@@ -2921,6 +3027,13 @@ include __DIR__ . '/../includes/header.php';
                                         <button type="submit" class="btn btn-outline-primary btn-sm" formaction="" formmethod="post" name="machine_action" value="quick_fill_bridge_router_2">Fill Shared Bridge (Router 2)</button>
                                         <button type="submit" class="btn btn-outline-info btn-sm" formaction="" formmethod="post" name="machine_action" value="test_bridge_profile">Test Shared Bridge</button>
                                         <small class="text-muted align-self-center">Laptop worker fetches this profile from /bridge_profile.php using the bridge token.</small>
+                                            <?php if ($isAdmin && strtolower((string)($bridgeProfile['profile_name'] ?? 'default')) !== 'default'): ?>
+                                                <form method="post" class="d-inline ms-2" onsubmit="return confirm('Delete this bridge profile? This cannot be undone.');">
+                                                    <input type="hidden" name="machine_action" value="delete_bridge_profile">
+                                                    <input type="hidden" name="profile_name" value="<?php echo machine_h((string)($bridgeProfile['profile_name'] ?? '')); ?>">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete Profile</button>
+                                                </form>
+                                            <?php endif; ?>
                                     </div>
                                 </form>
                             <?php endif; ?>
