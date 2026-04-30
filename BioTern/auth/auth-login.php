@@ -6,6 +6,11 @@ require_once dirname(__DIR__) . '/lib/mailer.php';
 require_once dirname(__DIR__) . '/lib/student-registration-verification.php';
 biotern_boot_session($conn);
 
+if (!headers_sent()) {
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+}
+
 $logoutRequested = isset($_GET['logout']) && (string)$_GET['logout'] === '1';
 
 $dbHost = defined('DB_HOST') ? DB_HOST : '127.0.0.1';

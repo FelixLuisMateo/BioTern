@@ -4,6 +4,11 @@ require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/includes/two-factor-auth.php';
 biotern_boot_session($conn);
 
+if (!headers_sent()) {
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+}
+
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $project_root = '/';
 $project_pos = stripos($script_name, '/BioTern/BioTern/');
