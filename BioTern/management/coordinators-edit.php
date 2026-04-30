@@ -41,14 +41,6 @@ if ($id <= 0) {
     die('Invalid coordinator id.');
 }
 
-$users = [];
-$users_res = $conn->query("SELECT id, name, email FROM users ORDER BY name ASC");
-if ($users_res) {
-    while ($row = $users_res->fetch_assoc()) {
-        $users[] = $row;
-    }
-}
-
 $departments = [];
 $dept_res = $conn->query("SELECT id, name FROM departments ORDER BY name ASC");
 if ($dept_res) {
@@ -77,6 +69,16 @@ if (!$coordinator) {
     die('Coordinator not found.');
 }
 
+$linkedUser = null;
+$linkedUserStmt = $conn->prepare('SELECT id, name, username, email FROM users WHERE id = ? LIMIT 1');
+if ($linkedUserStmt) {
+    $linkedUserId = (int)($coordinator['user_id'] ?? 0);
+    $linkedUserStmt->bind_param('i', $linkedUserId);
+    $linkedUserStmt->execute();
+    $linkedUser = $linkedUserStmt->get_result()->fetch_assoc() ?: null;
+    $linkedUserStmt->close();
+}
+
 $assignedCourseIds = function_exists('coordinator_course_ids')
     ? coordinator_course_ids($conn, (int)($coordinator['user_id'] ?? 0))
     : [];
@@ -94,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $user_id = (int)($_POST['user_id'] ?? 0);
+    $user_id = (int)($coordinator['user_id'] ?? 0);
     $first_name = trim((string)($_POST['first_name'] ?? ''));
     $last_name = trim((string)($_POST['last_name'] ?? ''));
     $middle_name = trim((string)($_POST['middle_name'] ?? ''));
@@ -175,12 +177,10 @@ include 'includes/header.php';
             <form method="post" class="row g-3">
                 <input type="hidden" name="id" value="<?php echo (int)$id; ?>">
                 <div class="col-md-4">
-                    <label class="form-label">User *</label>
-                    <select name="user_id" class="form-select" required>
-                        <?php foreach ($users as $u): ?>
-                            <option value="<?php echo (int)$u['id']; ?>" <?php echo ((int)($_POST['user_id'] ?? $coordinator['user_id']) === (int)$u['id']) ? 'selected' : ''; ?>><?php echo h(($u['name'] ?? '') . ' (' . ($u['email'] ?? '') . ')'); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <label class="form-label">Username</label>
+                    <input type="hidden" name="user_id" value="<?php echo (int)($coordinator['user_id'] ?? 0); ?>">
+                    <input type="text" class="form-control" value="<?php echo h((string)($linkedUser['username'] ?? 'Linked user missing')); ?>" readonly>
+                    <small class="text-muted">Username is unique and cannot be changed here.</small>
                 </div>
                 <div class="col-md-4"><label class="form-label">First Name *</label><input type="text" name="first_name" class="form-control" value="<?php echo edit_post_value('first_name', $coordinator['first_name']); ?>" required></div>
                 <div class="col-md-4"><label class="form-label">Last Name *</label><input type="text" name="last_name" class="form-control" value="<?php echo edit_post_value('last_name', $coordinator['last_name']); ?>" required></div>
