@@ -1,3 +1,22 @@
+<!-- Simple Add New Bridge Profile UI -->
+<div class="col-xl-6 mt-3">
+    <div class="card stretch stretch-full">
+        <div class="card-header"><h6 class="card-title mb-0">Add New Bridge Profile</h6></div>
+        <div class="card-body">
+            <form method="post" class="row g-2">
+                <input type="hidden" name="machine_action" value="add_bridge_profile">
+                <div class="col-sm-8">
+                    <label class="form-label">Profile Name</label>
+                    <input type="text" name="profile_name" class="form-control" placeholder="Enter new profile name" required>
+                </div>
+                <div class="col-sm-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-success w-100">Add Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php
 // --- Bridge Profile Deletion Helper ---
 function machine_delete_bridge_profile(mysqli $conn, string $profileName): void {
     if (strtolower($profileName) === 'default') {
@@ -16,7 +35,6 @@ function machine_delete_bridge_profile(mysqli $conn, string $profileName): void 
     }
     $stmt->close();
 }
-<?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/tools/biometric_machine_runtime.php';
 require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
@@ -2516,10 +2534,7 @@ include __DIR__ . '/../includes/header.php';
                             <i class="feather-link me-2"></i>
                             <span>Fingerprint Mapping</span>
                         </a>
-                        <a href="attendance.php" class="btn btn-outline-secondary">
-                            <i class="feather-clock me-2"></i>
-                            <span>Attendance DTR</span>
-                        </a>
+
                     </div>
                 </div>
             </div>
@@ -2735,7 +2750,7 @@ include __DIR__ . '/../includes/header.php';
                                 <input type="hidden" name="machine_action" value="list_users">
                                 <button type="submit" class="btn btn-outline-secondary w-100" title="<?php echo $cloudRuntime ? 'Loads latest user list from bridge cache' : 'Reads directly from machine'; ?>"><?php echo $cloudRuntime ? 'Read All Users (Bridge Cache)' : 'Read All Users'; ?></button>
                             </form>
-                            <a href="attendance.php" class="btn btn-outline-secondary w-100">Open Attendance DTR</a>
+
                         </div>
                     </div>
                 </div>
@@ -3025,14 +3040,15 @@ include __DIR__ . '/../includes/header.php';
                                         <button type="submit" class="btn btn-outline-primary btn-sm" formaction="" formmethod="post" name="machine_action" value="quick_fill_bridge_router_1">Fill Shared Bridge (Router 1)</button>
                                         <button type="submit" class="btn btn-outline-primary btn-sm" formaction="" formmethod="post" name="machine_action" value="quick_fill_bridge_router_2">Fill Shared Bridge (Router 2)</button>
                                         <button type="submit" class="btn btn-outline-info btn-sm" formaction="" formmethod="post" name="machine_action" value="test_bridge_profile">Test Shared Bridge</button>
+                                        <button type="submit" class="btn btn-outline-success btn-sm" formaction="" formmethod="post" name="machine_action" value="add_bridge_profile">Add New Profile</button>
+                                        <?php if ($isAdmin && strtolower((string)($bridgeProfile['profile_name'] ?? 'default')) !== 'default'): ?>
+                                            <form method="post" class="d-inline ms-2" onsubmit="return confirm('Delete this bridge profile? This cannot be undone.');">
+                                                <input type="hidden" name="machine_action" value="delete_bridge_profile">
+                                                <input type="hidden" name="profile_name" value="<?php echo machine_h((string)($bridgeProfile['profile_name'] ?? '')); ?>">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">Delete Profile</button>
+                                            </form>
+                                        <?php endif; ?>
                                         <small class="text-muted align-self-center">Laptop worker fetches this profile from /bridge_profile.php using the bridge token.</small>
-                                            <?php if ($isAdmin && strtolower((string)($bridgeProfile['profile_name'] ?? 'default')) !== 'default'): ?>
-                                                <form method="post" class="d-inline ms-2" onsubmit="return confirm('Delete this bridge profile? This cannot be undone.');">
-                                                    <input type="hidden" name="machine_action" value="delete_bridge_profile">
-                                                    <input type="hidden" name="profile_name" value="<?php echo machine_h((string)($bridgeProfile['profile_name'] ?? '')); ?>">
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm">Delete Profile</button>
-                                                </form>
-                                            <?php endif; ?>
                                     </div>
                                 </form>
                             <?php endif; ?>
