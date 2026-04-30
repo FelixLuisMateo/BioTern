@@ -347,73 +347,7 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
     ];
 }
 
-        $quickBridgeOptions = [
-            'laptop_router_1' => [
-                'label' => 'Laptop Bridge - Router 1',
-                'ip' => '192.168.100.201',
-                'gateway' => '192.168.100.1',
-                'mask' => '255.255.255.0',
-                'port' => '5001',
-                'device_number' => '1',
-                'poll_seconds' => (string)$bridgePollSeconds,
-                'cloud_base_url' => $bridgeCloudBaseUrl,
-                'ingest_path' => $bridgeIngestPath,
-                'ingest_api_token' => $bridgeIngestApiToken,
-                'output_path' => $bridgeOutputPath,
-            ],
-            'laptop_router_2' => [
-                'label' => 'Laptop Bridge - Router 2',
-                'ip' => '192.168.110.201',
-                'gateway' => '192.168.110.1',
-                'mask' => '255.255.255.0',
-                'port' => '5001',
-                'device_number' => '1',
-                'poll_seconds' => (string)$bridgePollSeconds,
-                'cloud_base_url' => $bridgeCloudBaseUrl,
-                'ingest_path' => $bridgeIngestPath,
-                'ingest_api_token' => $bridgeIngestApiToken,
-                'output_path' => $bridgeOutputPath,
-            ],
-            'computer_router_2' => [
-                'label' => 'Computer Bridge - WiFi Router 2',
-                'ip' => '192.168.110.201',
-                'gateway' => '192.168.110.1',
-                'mask' => '255.255.255.0',
-                'port' => '5001',
-                'device_number' => '1',
-                'poll_seconds' => (string)$bridgePollSeconds,
-                'cloud_base_url' => $bridgeCloudBaseUrl,
-                'ingest_path' => $bridgeIngestPath,
-                'ingest_api_token' => $bridgeIngestApiToken,
-                'output_path' => $bridgeOutputPath,
-            ],
-            'pocket_router_wifi' => [
-                'label' => 'Pocket Router WiFi',
-                'ip' => '192.168.1.201',
-                'gateway' => '192.168.1.254',
-                'mask' => '255.255.255.0',
-                'port' => '5001',
-                'device_number' => '1',
-                'poll_seconds' => (string)$bridgePollSeconds,
-                'cloud_base_url' => $bridgeCloudBaseUrl,
-                'ingest_path' => $bridgeIngestPath,
-                'ingest_api_token' => $bridgeIngestApiToken,
-                'output_path' => $bridgeOutputPath,
-            ],
-            'laptop_custom' => [
-                'label' => 'Laptop Bridge - Custom',
-                'ip' => $bridgeIpAddress,
-                'gateway' => $bridgeGateway,
-                'mask' => $bridgeMask,
-                'port' => (string)$bridgePort,
-                'device_number' => (string)$bridgeDeviceNumber,
-                'poll_seconds' => (string)$bridgePollSeconds,
-                'cloud_base_url' => $bridgeCloudBaseUrl,
-                'ingest_path' => $bridgeIngestPath,
-                'ingest_api_token' => $bridgeIngestApiToken,
-                'output_path' => $bridgeOutputPath,
-            ],
-        ];
+function machine_bridge_cache_max_age_seconds(int $pollSeconds): int
 {
     return max(90, $pollSeconds * 4);
 }
