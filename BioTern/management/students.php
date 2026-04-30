@@ -4,6 +4,7 @@ require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 if (!isset($conn) || !($conn instanceof mysqli) || $conn->connect_errno) {
     http_response_code(500);
@@ -32,6 +33,15 @@ $current_role = strtolower(trim((string) (
     ''
 )));
 $is_student_user = ($current_role === 'student');
+$coordinator_allowed_course_ids = $current_role === 'coordinator'
+    ? coordinator_course_ids($db, $current_user_id)
+    : [];
+$coordinator_course_scope_sql = '';
+if ($current_role === 'coordinator') {
+    $coordinator_course_scope_sql = empty($coordinator_allowed_course_ids)
+        ? '1 = 0'
+        : 's.course_id IN (' . implode(',', array_map('intval', $coordinator_allowed_course_ids)) . ')';
+}
 
 function biotern_students_has_column(mysqli $conn, string $table, string $column): bool
 {
@@ -122,11 +132,18 @@ $stats_query = "
         SUM(CASE WHEN {$biometric_ready_condition} THEN 1 ELSE 0 END) as biometric_registered
     FROM students s
 ";
+$stats_where = [];
 if ($has_application_status) {
     $stats_query .= "
     LEFT JOIN users u ON u.id = s.user_id
-    WHERE COALESCE(u.application_status, 'approved') = 'approved'
     ";
+    $stats_where[] = "COALESCE(u.application_status, 'approved') = 'approved'";
+}
+if ($coordinator_course_scope_sql !== '') {
+    $stats_where[] = $coordinator_course_scope_sql;
+}
+if (!empty($stats_where)) {
+    $stats_query .= ' WHERE ' . implode(' AND ', $stats_where);
 }
 $stats = [
     'total_students' => 0,
@@ -179,10 +196,19 @@ if ($col_check && $col_check->num_rows) {
 }
 
 $courses_query = "SELECT id, name FROM courses";
+$course_conditions = [];
 if ($has_is_active) {
-    $courses_query .= " WHERE is_active = 1";
+    $course_conditions[] = 'is_active = 1';
 } elseif ($has_status_col) {
-    $courses_query .= " WHERE status = 1";
+    $course_conditions[] = 'status = 1';
+}
+if ($current_role === 'coordinator') {
+    $course_conditions[] = empty($coordinator_allowed_course_ids)
+        ? '1 = 0'
+        : 'id IN (' . implode(',', array_map('intval', $coordinator_allowed_course_ids)) . ')';
+}
+if (!empty($course_conditions)) {
+    $courses_query .= ' WHERE ' . implode(' AND ', $course_conditions);
 }
 $courses_query .= " ORDER BY name ASC";
 
@@ -605,6 +631,9 @@ if ($filter_date !== '') {
 }
 if ($filter_course > 0) {
     $where[] = "s.course_id = " . intval($filter_course);
+}
+if ($coordinator_course_scope_sql !== '') {
+    $where[] = $coordinator_course_scope_sql;
 }
 if ($filter_department > 0) {
     $where[] = "i.department_id = " . intval($filter_department);

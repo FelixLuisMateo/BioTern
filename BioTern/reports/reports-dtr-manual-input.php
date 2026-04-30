@@ -6,6 +6,17 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_roles_page(['admin', 'coordinator', 'supervisor']);
+$currentRole = get_current_user_role();
+$currentUserId = get_current_user_id_or_zero();
+$coordinatorAllowedCourseIds = $currentRole === 'coordinator'
+    ? coordinator_course_ids($conn, $currentUserId)
+    : [];
+$coordinatorStudentScopeSql = '';
+if ($currentRole === 'coordinator') {
+    $coordinatorStudentScopeSql = empty($coordinatorAllowedCourseIds)
+        ? '1 = 0'
+        : 'course_id IN (' . implode(',', array_map('intval', $coordinatorAllowedCourseIds)) . ')';
+}
 
 function dtr_h($value): string
 {
@@ -40,7 +51,12 @@ $flash = $_SESSION['manual_dtr_flash'] ?? null;
 unset($_SESSION['manual_dtr_flash']);
 
 $students = [];
-$studentRes = $conn->query("SELECT id, student_id, first_name, last_name FROM students ORDER BY last_name ASC, first_name ASC LIMIT 1000");
+$studentSql = 'SELECT id, student_id, first_name, last_name FROM students';
+if ($coordinatorStudentScopeSql !== '') {
+    $studentSql .= ' WHERE ' . $coordinatorStudentScopeSql;
+}
+$studentSql .= ' ORDER BY last_name ASC, first_name ASC LIMIT 1000';
+$studentRes = $conn->query($studentSql);
 if ($studentRes instanceof mysqli_result) {
     while ($s = $studentRes->fetch_assoc()) {
         $students[] = $s;
@@ -54,6 +70,31 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     if ($action === 'delete') {
         $attendanceId = (int)($_POST['attendance_id'] ?? 0);
         if ($attendanceId > 0) {
+            if ($coordinatorStudentScopeSql !== '') {
+                $scopeStmt = $conn->prepare("
+                    SELECT a.id
+                    FROM attendances a
+                    INNER JOIN students scope_s ON scope_s.id = a.student_id
+                    WHERE a.id = ?
+                      AND a.source = 'manual'
+                      AND " . str_replace('course_id', 'scope_s.course_id', $coordinatorStudentScopeSql) . "
+                    LIMIT 1
+                ");
+                if (!$scopeStmt) {
+                    $_SESSION['manual_dtr_flash'] = ['type' => 'danger', 'message' => 'Unable to verify coordinator course access.'];
+                    header('Location: reports-dtr-manual-input.php');
+                    exit;
+                }
+                $scopeStmt->bind_param('i', $attendanceId);
+                $scopeStmt->execute();
+                $allowedAttendance = (bool)$scopeStmt->get_result()->fetch_assoc();
+                $scopeStmt->close();
+                if (!$allowedAttendance) {
+                    $_SESSION['manual_dtr_flash'] = ['type' => 'danger', 'message' => 'You can only delete manual DTR records for students in your assigned courses.'];
+                    header('Location: reports-dtr-manual-input.php');
+                    exit;
+                }
+            }
             $stmt = $conn->prepare("DELETE FROM attendances WHERE id = ? AND source = 'manual'");
             if ($stmt) {
                 $stmt->bind_param('i', $attendanceId);
@@ -81,6 +122,23 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $_SESSION['manual_dtr_flash'] = ['type' => 'danger', 'message' => 'Student and attendance date are required.'];
         header('Location: reports-dtr-manual-input.php');
         exit;
+    }
+    if ($coordinatorStudentScopeSql !== '') {
+        $scopeStmt = $conn->prepare("SELECT id FROM students WHERE id = ? AND {$coordinatorStudentScopeSql} LIMIT 1");
+        if (!$scopeStmt) {
+            $_SESSION['manual_dtr_flash'] = ['type' => 'danger', 'message' => 'Unable to verify coordinator course access.'];
+            header('Location: reports-dtr-manual-input.php');
+            exit;
+        }
+        $scopeStmt->bind_param('i', $studentId);
+        $scopeStmt->execute();
+        $allowedStudent = (bool)$scopeStmt->get_result()->fetch_assoc();
+        $scopeStmt->close();
+        if (!$allowedStudent) {
+            $_SESSION['manual_dtr_flash'] = ['type' => 'danger', 'message' => 'You can only add manual DTR records for students in your assigned courses.'];
+            header('Location: reports-dtr-manual-input.php');
+            exit;
+        }
     }
 
     if (!in_array($status, ['pending', 'approved', 'rejected'], true)) {
@@ -152,6 +210,9 @@ if ($filterDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $filterDate) === 1
 }
 if ($filterStudent > 0) {
     $where[] = 'a.student_id = ' . $filterStudent;
+}
+if ($coordinatorStudentScopeSql !== '') {
+    $where[] = 'EXISTS (SELECT 1 FROM students scope_s WHERE scope_s.id = a.student_id AND ' . str_replace('course_id', 'scope_s.course_id', $coordinatorStudentScopeSql) . ')';
 }
 
 $rows = [];
