@@ -194,7 +194,6 @@ $nav_active_student = biotern_nav_any_active($nav_current_file, [
     'student-documents.php',
 ]);
 $nav_active_reports = biotern_nav_any_active($nav_current_file, [
-    'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-attendance-exceptions.php',
     'reports-dtr-manual-input.php',
     'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php',
 ]);
@@ -317,11 +316,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-ojt.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-project.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-timesheets.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-attendance-operations.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-attendance-operations.php">Attendance Operations</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-attendance-exceptions.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-attendance-exceptions.php">Attendance Exceptions</a></li>
+                        
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-dtr-manual-input.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-dtr-manual-input.php">Manual DTR Input</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-chat-logs.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-chat-logs.php">Chat Logs</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-chat-reports.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-chat-reports.php">Reported Chats</a></li>

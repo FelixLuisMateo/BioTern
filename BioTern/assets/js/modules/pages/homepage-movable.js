@@ -564,7 +564,7 @@
             goTo('applications-review.php');
         },
         goToReports: function () {
-            goTo('reports-timesheets.php');
+            goTo('reports-chat-logs.php');
         },
     };
 

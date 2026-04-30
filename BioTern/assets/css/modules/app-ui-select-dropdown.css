@@ -124,7 +124,7 @@ html.app-skin-dark .biotern-select-wrap {
     top: calc(100% + 6px);
     left: 0;
     right: 0;
-    z-index: 1300;
+    z-index: 900;
     display: none;
     max-height: 280px;
     overflow: auto;
@@ -140,7 +140,7 @@ html.app-skin-dark .biotern-select-wrap {
 .biotern-select-menu.biotern-select-menu-portal {
     display: grid;
     gap: 4px;
-    z-index: 5000;
+    z-index: 900;
 }
 
 .biotern-select-wrap.is-open .biotern-select-menu {

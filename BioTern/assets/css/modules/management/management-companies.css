@@ -5,7 +5,6 @@
  */
 
 body.companies-page .companies-stat-card,
-body.companies-page .companies-shell-card,
 body.companies-page .companies-list-panel,
 body.companies-page .companies-detail-panel,
 body.companies-page .companies-info-card,
@@ -17,7 +16,7 @@ body.companies-page .companies-modal .modal-content {
 }
 
 body.companies-page .companies-stat-card .card-body,
-body.companies-page .companies-shell-card .card-body {
+body.companies-page .companies-shell .card-body {
     padding: 1.25rem;
 }
 
@@ -76,25 +75,18 @@ body.companies-page .companies-page-alert {
     margin-bottom: 1rem;
 }
 
-body.companies-page .companies-filter-card {
+body.companies-page .companies-filter-bar {
+    margin-bottom: 1rem;
+    padding: 0.85rem 1rem;
     border: 1px solid var(--biotern-border, var(--bs-border-color));
     border-radius: 1rem;
-    background: var(--biotern-surface, var(--bs-body-bg));
+    background: color-mix(in srgb, var(--biotern-surface, var(--bs-body-bg)) 92%, transparent);
     box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
-    padding: 1rem 1.1rem;
-    margin-bottom: 1rem;
-}
-
-body.companies-page .companies-filter-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-body.companies-page .companies-filter-head p {
-    color: var(--bs-secondary-color, #6b7280);
+    backdrop-filter: blur(10px);
+    position: static;
+    top: auto;
+    z-index: auto;
+    backdrop-filter: none;
 }
 
 body.companies-page .companies-filter-actions {
@@ -102,6 +94,23 @@ body.companies-page .companies-filter-actions {
     align-items: center;
     gap: 0.6rem;
     flex-wrap: wrap;
+}
+
+body.companies-page .companies-filter-fields {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.6rem;
+}
+
+body.companies-page .companies-filter-field {
+    min-width: 0;
+}
+
+body.companies-page .companies-filter-field .form-select-sm {
+    min-height: calc(1.5em + 0.7rem + 2px);
+    padding-top: 0.32rem;
+    padding-bottom: 0.32rem;
+    border-radius: 0.8rem;
 }
 
 body.companies-page .companies-page-header-actions {
@@ -114,8 +123,12 @@ body.companies-page .companies-page-header-actions {
     min-width: 0;
 }
 
-body.companies-page .companies-shell-card {
+body.companies-page .companies-shell {
     overflow: hidden;
+}
+
+body.companies-page .companies-layout {
+    align-items: stretch;
 }
 
 body.companies-page .companies-page-header-toolbar {
@@ -151,7 +164,7 @@ body.companies-page .companies-toolbar-select {
 }
 
 body.companies-page .companies-shell-body {
-    padding: 1.25rem;
+    padding: 0;
 }
 
 body.companies-page .companies-layout {
@@ -363,16 +376,52 @@ body.companies-page .companies-meta-chip {
 }
 
 body.companies-page .companies-detail-panel {
-    padding: 1.2rem;
+    padding: 0;
     min-height: 100%;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
 }
 
 body.companies-page .companies-detail-head {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 0.85rem;
+    margin-bottom: 0.85rem;
+    padding: 1rem;
+    border: 1px solid var(--biotern-border, var(--bs-border-color));
+    border-radius: 1rem;
+    background: var(--biotern-surface, var(--bs-body-bg));
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.05);
+}
+
+body.companies-page .companies-detail-actions {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 170px));
+    justify-content: end;
+    align-content: flex-start;
+    gap: 0.38rem;
+    width: 100%;
+    max-width: 360px;
+}
+
+body.companies-page .companies-detail-actions .btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0.34rem 0.45rem;
+    font-size: 0.84rem;
+    line-height: 1.05;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+body.companies-page .companies-detail-primary {
+    flex: 1 1 auto;
+    min-width: 0;
+    align-items: flex-start;
 }
 
 body.companies-page .companies-detail-badges,
@@ -384,6 +433,20 @@ body.companies-page .companies-intern-chip-row {
 
 body.companies-page .companies-detail-title {
     font-size: clamp(1.35rem, 1.9vw, 1.75rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.08;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+body.companies-page .companies-detail-subtitle {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 body.companies-page .companies-info-card,
@@ -611,6 +674,20 @@ body.companies-page .companies-modal {
     overflow: hidden;
 }
 
+body.companies-page .modal.fade .modal-dialog,
+body.companies-page .modal.show .modal-dialog,
+body.companies-page .modal.fade .modal-content,
+body.companies-page .modal.show .modal-content,
+body.companies-page .modal.fade .modal-header,
+body.companies-page .modal.show .modal-header,
+body.companies-page .modal.fade .modal-body,
+body.companies-page .modal.show .modal-body,
+body.companies-page .modal.fade .modal-footer,
+body.companies-page .modal.show .modal-footer {
+    transition: none !important;
+    animation: none !important;
+}
+
 body.companies-page .companies-modal .modal-header,
 body.companies-page .companies-modal .modal-footer {
     border-color: var(--biotern-border, var(--bs-border-color));
@@ -641,7 +718,6 @@ body.companies-page .companies-profile-chip-row {
 }
 
 html.app-skin-dark body.companies-page .companies-stat-card,
-html.app-skin-dark body.companies-page .companies-shell-card,
 html.app-skin-dark body.companies-page .companies-list-panel,
 html.app-skin-dark body.companies-page .companies-detail-panel,
 html.app-skin-dark body.companies-page .companies-info-card,
@@ -661,39 +737,17 @@ html.app-skin-dark body.companies-page .companies-modal .modal-content {
 }
 
 @media (max-width: 1399.98px) {
-    body.companies-page .companies-page-header-actions {
-        flex-wrap: wrap;
-    }
-
-    body.companies-page .companies-page-header-toolbar {
-        width: 100%;
-        margin-right: 0;
-    }
-
-    body.companies-page .companies-toolbar {
-        flex-wrap: wrap;
-    }
-
-    body.companies-page .companies-page-header-toolbar .companies-toolbar-field:first-of-type,
-    body.companies-page .companies-page-header-toolbar .companies-toolbar-select {
-        width: auto;
+    body.companies-page .companies-filter-fields {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 991.98px) {
-    body.companies-page .companies-page-header-actions,
-    body.companies-page .companies-filter-head,
     body.companies-page .companies-detail-head,
     body.companies-page .companies-intern-item,
     body.companies-page .companies-profile-hero {
         display: grid;
         gap: 1rem;
-    }
-
-    body.companies-page .companies-page-header-toolbar,
-    body.companies-page .companies-toolbar {
-        width: 100%;
-        justify-content: stretch;
     }
 
     body.companies-page .companies-intern-meta {
@@ -704,19 +758,43 @@ html.app-skin-dark body.companies-page .companies-modal .modal-content {
     body.companies-page .companies-progress-copy {
         justify-content: flex-start;
     }
+
+    body.companies-page .companies-detail-subtitle {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+    }
+
+    body.companies-page .companies-detail-actions {
+        justify-content: start;
+        grid-template-columns: repeat(2, minmax(0, 170px));
+        max-width: 360px;
+    }
+
+    body.companies-page .companies-filter-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 767.98px) {
     body.companies-page .companies-filter-actions,
     body.companies-page .companies-detail-actions,
-    body.companies-page .companies-page-header-actions,
-    body.companies-page .companies-toolbar {
+    body.companies-page .companies-page-header-actions {
         width: 100%;
     }
 
     body.companies-page .companies-filter-actions .btn,
     body.companies-page .companies-detail-actions .btn {
         width: 100%;
+    }
+
+    body.companies-page .companies-detail-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-width: none;
+    }
+
+    body.companies-page .companies-filter-fields {
+        grid-template-columns: 1fr;
     }
 }
 

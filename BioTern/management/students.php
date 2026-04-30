@@ -1367,7 +1367,7 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php if (!$is_student_user): ?>
-<div class="modal fade" id="studentsActionModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade biotern-popup-modal" id="studentsActionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">

@@ -143,11 +143,6 @@ include 'includes/header.php';
 <?php include 'includes/footer.php'; ?>
 EOT;
 
-file_put_contents(__DIR__ . '/BioTern_unified/reports/reports-ojt.php', $ojt_report);
-file_put_contents(__DIR__ . '/BioTern_unified/reports/reports-project.php', $project_report);
-file_put_contents(__DIR__ . '/BioTern_unified/reports/reports-timesheets.php', $timesheets_report);
-
-echo "All three report files have been regenerated successfully!\n";
-echo "✓ reports-ojt.php\n";
-echo "✓ reports-project.php\n";
-echo "✓ reports-timesheets.php\n";
+// Disabled regeneration of OJT/Project/Timesheets reports to avoid recreating
+// pages that were intentionally removed.
+echo "Report regeneration disabled for removed report pages.\n";

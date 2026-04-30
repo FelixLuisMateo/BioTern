@@ -404,7 +404,7 @@ ob_end_flush();
         </div>
     </div>
 </main>
-<div class="modal fade" id="ojtExternalActionModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade biotern-popup-modal" id="ojtExternalActionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">

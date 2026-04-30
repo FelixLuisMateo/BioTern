@@ -41,9 +41,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'applications-review.php', 'attendance.php', 'external-attendance.php', 'attendance-corrections.php', 'print_attendance.php', 'external-biometric.php',
                     'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
-                    'reports-ojt.php', 'reports-project.php', 'reports-timesheets.php', 'reports-attendance-operations.php', 'reports-attendance-exceptions.php',
-                    'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php',
-                        'reports-dtr-manual-input.php',
+                    'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php', 'reports-dtr-manual-input.php',
                 ],
                 'sections' => [
                     [
@@ -77,15 +75,10 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     [
                         'title' => 'Reports',
                         'items' => [
-                            ['label' => 'OJT Report', 'href' => 'reports-ojt.php', 'icon' => 'feather-pie-chart'],
-                            ['label' => 'Project Report', 'href' => 'reports-project.php', 'icon' => 'feather-activity'],
-                            ['label' => 'Timesheets Report', 'href' => 'reports-timesheets.php', 'icon' => 'feather-clock'],
-                            ['label' => 'Attendance Operations', 'href' => 'reports-attendance-operations.php', 'icon' => 'feather-clipboard'],
-                            ['label' => 'Attendance Exceptions', 'href' => 'reports-attendance-exceptions.php', 'icon' => 'feather-sunrise'],
                             ['label' => 'Chat Logs', 'href' => 'reports-chat-logs.php', 'icon' => 'feather-message-circle'],
                             ['label' => 'Reported Chats', 'href' => 'reports-chat-reports.php', 'icon' => 'feather-flag'],
                             ['label' => 'Login Logs', 'href' => 'reports-login-logs.php', 'icon' => 'feather-log-in'],
-                                ['label' => 'Manual DTR Input', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit'],
+                            ['label' => 'Manual DTR Input', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit'],
                         ],
                     ],
                 ],

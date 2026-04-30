@@ -737,7 +737,7 @@ include 'includes/header.php';
                                 <i class="feather-calendar"></i>
                                 <span>Attendance Center</span>
                             </a>
-                            <a href="reports-timesheets.php" class="action-tile">
+                            <a href="reports-chat-logs.php" class="action-tile">
                                 <i class="feather-file-text"></i>
                                 <span>Reports</span>
                             </a>

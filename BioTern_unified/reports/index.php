@@ -1,6 +1,8 @@
 ﻿<?php
 require_once dirname(__DIR__) . '/config/db.php';
-header('Location: reports-ojt.php');
+// Reports index now redirects to an available reports page
+header('Location: reports-chat-logs.php');
+exit;
 exit;
 
 

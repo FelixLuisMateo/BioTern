@@ -1426,7 +1426,7 @@ echo $qa_biometric_registered; ?></span>
                                         </a>
                                     </div>
                                     <div class="col-6">
-                                        <a href="reports-timesheets.php" class="btn btn-dark btn-lg w-100 d-flex align-items-center justify-content-center">
+                                        <a href="reports-chat-logs.php" class="btn btn-dark btn-lg w-100 d-flex align-items-center justify-content-center">
                                             <i class="feather-file-text me-2"></i> Reports
                                         </a>
                                     </div>

@@ -801,61 +801,13 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
     margin: 1.5rem auto;
 }
 
-#studentsActionModal .modal-content {
-    border-radius: 18px;
-    overflow: hidden;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    box-shadow: 0 24px 64px rgba(2, 6, 23, 0.36);
-}
-
-#studentsActionModal .modal-header {
-    padding: 0.9rem 1rem 0.75rem;
-}
-
 #studentsActionModal .modal-body {
-    padding: 0.9rem 1rem 1rem;
     max-height: calc(100vh - 180px);
     overflow: auto;
 }
 
-#studentsActionModal .modal-footer {
-    padding: 0.8rem 1rem 0.9rem;
-}
-
-#studentsActionModal .modal-title {
-    font-size: 1rem;
-    font-weight: 800;
-}
-
-#studentsActionModal [data-student-action-summary],
-#studentsActionModal [data-student-action-current],
-#studentsActionModal [data-student-action-selected] {
-    font-size: 0.78rem;
-    line-height: 1.35;
-}
-
 #studentsActionModal #studentsActionAssignForm {
     gap: 0.55rem !important;
-}
-
-#studentsActionModal #studentsActionAssignForm .form-select,
-#studentsActionModal #studentsActionAssignForm .form-control {
-    min-height: 40px;
-    border-radius: 12px;
-}
-
-#studentsActionModal #studentsActionAssignForm .btn {
-    min-height: 40px;
-    border-radius: 12px;
-}
-
-#studentsActionModal .list-group {
-    border-radius: 14px;
-    overflow: hidden;
-}
-
-#studentsActionModal .list-group-item {
-    padding: 0.75rem 0.95rem;
 }
 
 html.app-skin-dark .app-students-inline-details {

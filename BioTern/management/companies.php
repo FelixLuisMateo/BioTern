@@ -1126,11 +1126,6 @@ include 'includes/header.php';
             <div class="page-header-right ms-auto companies-page-header-actions">
                 <form method="get" class="companies-toolbar companies-page-header-toolbar" action="companies.php">
                     <input type="hidden" name="company" value="<?php echo h($selectedCompanyKey); ?>">
-                    <input type="hidden" name="school_year" value="<?php echo h($filterSchoolYear); ?>">
-                    <input type="hidden" name="semester" value="<?php echo h($filterSemester); ?>">
-                    <input type="hidden" name="location" value="<?php echo h($filterLocation); ?>">
-                    <input type="hidden" name="course_id" value="<?php echo (int)$filterCourseId; ?>">
-                    <input type="hidden" name="section_id" value="<?php echo (int)$filterSectionId; ?>">
                     <label class="companies-toolbar-field">
                         <span class="visually-hidden">Search companies</span>
                         <input type="search" class="form-control" name="q" value="<?php echo h($search); ?>" placeholder="Search company, address, representative">
@@ -1143,7 +1138,6 @@ include 'includes/header.php';
                             <option value="name" <?php echo $sort === 'name' ? 'selected' : ''; ?>>Company Name</option>
                         </select>
                     </label>
-                    <button type="submit" class="btn btn-primary">Apply</button>
                 </form>
                 <a href="<?php echo h('companies.php?' . http_build_query([
                     'q' => $search,
@@ -1167,6 +1161,14 @@ include 'includes/header.php';
                     <i class="feather-refresh-cw me-2"></i>
                     <span>Refresh</span>
                 </a>
+                <a href="<?php echo h('companies.php?' . http_build_query([
+                    'q' => $search,
+                    'sort' => $sort,
+                    'company' => $selectedCompanyKey,
+                ])); ?>" class="btn btn-outline-secondary">
+                    <i class="feather-rotate-ccw me-2"></i>
+                    <span>Reset Filters</span>
+                </a>
             </div>
         </div>
 
@@ -1182,86 +1184,60 @@ include 'includes/header.php';
                 </div>
             <?php endif; ?>
 
-            <form method="get" action="companies.php" class="companies-filter-card">
+            <form method="get" action="companies.php" class="companies-filter-bar">
+                <input type="hidden" name="company" value="<?php echo h($selectedCompanyKey); ?>">
                 <input type="hidden" name="q" value="<?php echo h($search); ?>">
                 <input type="hidden" name="sort" value="<?php echo h($sort); ?>">
-                <input type="hidden" name="company" value="<?php echo h($selectedCompanyKey); ?>">
-                <div class="companies-filter-head">
-                    <div>
-                        <h6 class="mb-1">Student And Location Filters</h6>
-                        <p class="mb-0">Filter the company list and assigned students by school year, semester, location, course, and section. Print uses the same filtered results.</p>
-                    </div>
-                    <div class="companies-filter-actions">
-                        <button type="submit" class="btn btn-primary btn-sm">Apply Filters</button>
-                        <a href="<?php echo h('companies.php?' . http_build_query([
-                            'q' => $search,
-                            'sort' => $sort,
-                            'company' => $selectedCompanyKey,
-                        ])); ?>" class="btn btn-outline-secondary btn-sm">Clear Filters</a>
-                    </div>
-                </div>
-                <div class="row g-3">
-                    <div class="col-12 col-md-6 col-xl-3">
-                        <label class="form-label" for="companiesFilterSchoolYear">School Year</label>
-                        <select class="form-select" id="companiesFilterSchoolYear" name="school_year">
-                            <option value="">All school years</option>
+                <div class="companies-filter-fields">
+                    <label class="companies-filter-field">
+                        <span class="visually-hidden">School Year</span>
+                        <select class="form-select form-select-sm" id="companiesFilterSchoolYear" name="school_year">
+                            <option value="">School year</option>
                             <?php foreach ($schoolYearFilterOptions as $schoolYearOption): ?>
-                                <option value="<?php echo h($schoolYearOption); ?>" <?php echo $filterSchoolYear === $schoolYearOption ? 'selected' : ''; ?>>
-                                    <?php echo h($schoolYearOption); ?>
-                                </option>
+                                <option value="<?php echo h($schoolYearOption); ?>" <?php echo $filterSchoolYear === $schoolYearOption ? 'selected' : ''; ?>><?php echo h($schoolYearOption); ?></option>
                             <?php endforeach; ?>
                         </select>
-                    </div>
-                    <div class="col-12 col-md-6 col-xl-3">
-                        <label class="form-label" for="companiesFilterSemester">Semester</label>
-                        <select class="form-select" id="companiesFilterSemester" name="semester">
-                            <option value="">All semesters</option>
+                    </label>
+                    <label class="companies-filter-field">
+                        <span class="visually-hidden">Semester</span>
+                        <select class="form-select form-select-sm" id="companiesFilterSemester" name="semester">
+                            <option value="">Semester</option>
                             <?php foreach ($semesterFilterOptions as $semesterOption): ?>
-                                <option value="<?php echo h($semesterOption); ?>" <?php echo $filterSemester === $semesterOption ? 'selected' : ''; ?>>
-                                    <?php echo h($semesterOption); ?>
-                                </option>
+                                <option value="<?php echo h($semesterOption); ?>" <?php echo $filterSemester === $semesterOption ? 'selected' : ''; ?>><?php echo h($semesterOption); ?></option>
                             <?php endforeach; ?>
                         </select>
-                    </div>
-                    <div class="col-12 col-md-6 col-xl-3">
-                        <label class="form-label" for="companiesFilterLocation">Location</label>
-                        <select class="form-select" id="companiesFilterLocation" name="location">
-                            <option value="">All detected locations</option>
+                    </label>
+                    <label class="companies-filter-field">
+                        <span class="visually-hidden">Location</span>
+                        <select class="form-select form-select-sm" id="companiesFilterLocation" name="location">
+                            <option value="">Location</option>
                             <?php foreach ($locationFilterOptions as $locationOption): ?>
-                                <option value="<?php echo h($locationOption); ?>" <?php echo $filterLocation === $locationOption ? 'selected' : ''; ?>>
-                                    <?php echo h($locationOption); ?>
-                                </option>
+                                <option value="<?php echo h($locationOption); ?>" <?php echo $filterLocation === $locationOption ? 'selected' : ''; ?>><?php echo h($locationOption); ?></option>
                             <?php endforeach; ?>
                         </select>
-                    </div>
-                    <div class="col-12 col-md-6 col-xl-3">
-                        <label class="form-label" for="companiesFilterCourse">Course</label>
-                        <select class="form-select" id="companiesFilterCourse" name="course_id">
-                            <option value="0">All courses</option>
+                    </label>
+                    <label class="companies-filter-field">
+                        <span class="visually-hidden">Course</span>
+                        <select class="form-select form-select-sm" id="companiesFilterCourse" name="course_id">
+                            <option value="0">Course</option>
                             <?php foreach ($courseFilterOptions as $courseIdOption => $courseNameOption): ?>
-                                <option value="<?php echo (int)$courseIdOption; ?>" <?php echo $filterCourseId === (int)$courseIdOption ? 'selected' : ''; ?>>
-                                    <?php echo h($courseNameOption); ?>
-                                </option>
+                                <option value="<?php echo (int)$courseIdOption; ?>" <?php echo $filterCourseId === (int)$courseIdOption ? 'selected' : ''; ?>><?php echo h($courseNameOption); ?></option>
                             <?php endforeach; ?>
                         </select>
-                    </div>
-                    <div class="col-12 col-md-6 col-xl-3">
-                        <label class="form-label" for="companiesFilterSection">Section</label>
-                        <select class="form-select" id="companiesFilterSection" name="section_id">
-                            <option value="0">All sections</option>
+                    </label>
+                    <label class="companies-filter-field">
+                        <span class="visually-hidden">Section</span>
+                        <select class="form-select form-select-sm" id="companiesFilterSection" name="section_id">
+                            <option value="0">Section</option>
                             <?php foreach ($sectionFilterOptions as $sectionIdOption => $sectionLabelOption): ?>
-                                <option value="<?php echo (int)$sectionIdOption; ?>" <?php echo $filterSectionId === (int)$sectionIdOption ? 'selected' : ''; ?>>
-                                    <?php echo h($sectionLabelOption); ?>
-                                </option>
+                                <option value="<?php echo (int)$sectionIdOption; ?>" <?php echo $filterSectionId === (int)$sectionIdOption ? 'selected' : ''; ?>><?php echo h($sectionLabelOption); ?></option>
                             <?php endforeach; ?>
                         </select>
-                    </div>
+                    </label>
                 </div>
             </form>
 
-            <div class="card stretch stretch-full companies-shell-card">
-                <div class="card-body companies-shell-body">
-                    <div class="companies-layout">
+            <div class="companies-layout">
                         <aside class="companies-list-panel">
                             <div class="companies-list-panel-head">
                                 <h6 class="mb-1">All Companies</h6>
@@ -1345,12 +1321,6 @@ include 'includes/header.php';
                                             <?php endif; ?>
                                         </div>
                                         <div>
-                                            <div class="companies-detail-badges">
-                                                <span class="companies-detail-badge"><?php echo h(company_display_name($selectedCompany['company_name'] ?? '')); ?></span>
-                                                <?php if (!empty($selectedCompany['has_partner_record'])): ?>
-                                                    <span class="companies-detail-badge is-neutral">Profile Linked</span>
-                                                <?php endif; ?>
-                                            </div>
                                             <h4 class="companies-detail-title mb-1"><?php echo h(company_display_name($selectedCompany['company_name'] ?? '')); ?></h4>
                                             <p class="companies-detail-subtitle mb-0"><?php echo h(trim((string)($selectedCompany['company_address'] ?? '')) !== '' ? (string)$selectedCompany['company_address'] : 'No company address saved yet.'); ?></p>
                                         </div>
@@ -1511,7 +1481,6 @@ include 'includes/header.php';
                             <?php endif; ?>
                         </section>
                     </div>
-                </div>
             </div>
         </div>
     </div>
@@ -1939,6 +1908,10 @@ include 'includes/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    var headerFilterForm = document.querySelector('.companies-page-header-toolbar');
+    var headerSearchInput = headerFilterForm ? headerFilterForm.querySelector('input[name="q"]') : null;
+    var headerSortSelect = headerFilterForm ? headerFilterForm.querySelector('select[name="sort"]') : null;
+    var headerSearchTimer = null;
     var selectedInput = document.getElementById('linkStudentSelectedId');
     var searchInput = document.getElementById('linkStudentSearch');
     var schoolYearFilter = document.getElementById('linkStudentSchoolYearFilter');
@@ -1946,6 +1919,46 @@ document.addEventListener('DOMContentLoaded', function () {
     var courseFilter = document.getElementById('linkStudentCourseFilter');
     var sectionFilter = document.getElementById('linkStudentSectionFilter');
     var rows = Array.prototype.slice.call(document.querySelectorAll('[data-link-student-row]'));
+    var filterForm = document.querySelector('.companies-filter-bar');
+    var filterFields = filterForm ? Array.prototype.slice.call(filterForm.querySelectorAll('select')) : [];
+
+    function submitForm(form) {
+        if (!form) return;
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+        } else {
+            form.submit();
+        }
+    }
+
+    if (headerSearchInput) {
+        headerSearchInput.addEventListener('input', function () {
+            if (headerSearchTimer) {
+                window.clearTimeout(headerSearchTimer);
+            }
+            headerSearchTimer = window.setTimeout(function () {
+                submitForm(headerFilterForm);
+            }, 350);
+        });
+        headerSearchInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                submitForm(headerFilterForm);
+            }
+        });
+    }
+
+    if (headerSortSelect) {
+        headerSortSelect.addEventListener('change', function () {
+            submitForm(headerFilterForm);
+        });
+    }
+
+    filterFields.forEach(function (field) {
+        field.addEventListener('change', function () {
+            submitForm(filterForm);
+        });
+    });
 
     function applyStudentLinkFilters() {
         var search = (searchInput && searchInput.value ? searchInput.value : '').toLowerCase().trim();

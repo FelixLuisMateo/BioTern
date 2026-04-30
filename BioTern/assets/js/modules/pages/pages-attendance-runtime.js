@@ -175,13 +175,23 @@
             });
 
             var $attendanceFilterForm = $('#attendanceFilterForm');
-            ['#filter-status', '#filter-source', '#filter-reports'].forEach(function (selector) {
+            ['#filter-course', '#filter-department', '#filter-section', '#filter-school-year'].forEach(function (selector) {
                 if ($(selector).length) {
                     $(selector).select2({
                         width: '100%',
                         allowClear: false,
                         dropdownAutoWidth: false,
                         minimumResultsForSearch: Infinity,
+                        dropdownParent: $attendanceFilterForm
+                    });
+                }
+            });
+            ['#filter-supervisor', '#filter-coordinator'].forEach(function (selector) {
+                if ($(selector).length) {
+                    $(selector).select2({
+                        width: '100%',
+                        allowClear: false,
+                        dropdownAutoWidth: false,
                         dropdownParent: $attendanceFilterForm
                     });
                 }
@@ -197,11 +207,11 @@
                 form.submit();
             }
 
-            $('#attendanceFilterForm').on('change', 'input[name="date"], select[name="status"], select[name="source"], select[name="reports"]', function() {
+            $('#attendanceFilterForm').on('change', 'input[name="date"], select[name="school_year"], select[name="course_id"], select[name="department_id"], select[name="section_id"], select[name="supervisor"], select[name="coordinator"]', function() {
                 submitAttendanceFilters();
             });
 
-            $('#filter-status, #filter-source, #filter-reports').on('select2:select select2:clear', function() {
+            $('#filter-course, #filter-department, #filter-section, #filter-school-year, #filter-supervisor, #filter-coordinator').on('select2:select select2:clear', function() {
                 submitAttendanceFilters();
             });
 

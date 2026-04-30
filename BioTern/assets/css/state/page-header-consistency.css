@@ -117,6 +117,23 @@ body .page-header .page-header-actions-toggle {
     gap: 0.5rem !important;
   }
 
+  body .page-header .dropdown-menu,
+  body .page-header .page-header-right .dropdown-menu,
+  body .page-header .page-header-right-items-wrapper .dropdown-menu,
+  body .page-header .page-header-actions .dropdown-menu {
+    z-index: 1205 !important;
+    max-width: min(320px, calc(100vw - 1rem)) !important;
+    max-height: min(72vh, calc(100vh - 96px)) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  body .page-header .dropdown-menu[data-bs-popper],
+  body .page-header .page-header-right .dropdown-menu[data-bs-popper],
+  body .page-header .page-header-actions .dropdown-menu[data-bs-popper] {
+    margin-top: 0.5rem !important;
+  }
+
   body .page-header .page-header-primary-actions {
     display: flex !important;
     align-items: center !important;

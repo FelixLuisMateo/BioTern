@@ -1,6 +1,24 @@
 (function () {
     'use strict';
 
+    function forceCenterDialog(modal) {
+        if (!modal) {
+            return;
+        }
+        var dialog = modal.querySelector('.modal-dialog');
+        if (!dialog) {
+            return;
+        }
+        dialog.style.removeProperty('position');
+        dialog.style.removeProperty('top');
+        dialog.style.removeProperty('left');
+        dialog.style.removeProperty('right');
+        dialog.style.removeProperty('transform');
+        dialog.style.removeProperty('margin');
+        dialog.style.removeProperty('width');
+        dialog.style.removeProperty('max-width');
+    }
+
     function collectSelectedStudentIds(table) {
         return Array.prototype.slice.call(table.querySelectorAll('tbody tr')).map(function (row) {
             var checkbox = row.querySelector('[data-ojt-row-select]');
@@ -54,6 +72,8 @@
         var endDateInput = modal.querySelector('input[name="end_date"]');
 
         modal.addEventListener('show.bs.modal', function (event) {
+            forceCenterDialog(modal);
+
             var trigger = event.relatedTarget;
             var clickedRow = trigger ? trigger.closest('tr') : null;
             var clickedId = clickedRow ? parseInt(clickedRow.getAttribute('data-ojt-student-row-id') || '0', 10) : 0;
@@ -115,6 +135,16 @@
                         }) + '</span>' +
                     '</span>';
                 }).join('');
+            }
+        });
+
+        modal.addEventListener('shown.bs.modal', function () {
+            forceCenterDialog(modal);
+        });
+
+        window.addEventListener('resize', function () {
+            if (modal.classList.contains('show')) {
+                forceCenterDialog(modal);
             }
         });
 

@@ -105,9 +105,9 @@ if ($session_avatar !== '') {
                             <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="reports-ojt.php">OJT Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-project.php">Project Report</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="reports-timesheets.php">Timesheets Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-chat-logs.php">Chat Logs</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-chat-reports.php">Reported Chats</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="reports-login-logs.php">Login Logs</a></li>
                         </ul>
                     </li>
                     <li class="nxl-item nxl-hasmenu">

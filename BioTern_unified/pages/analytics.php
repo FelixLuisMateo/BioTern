@@ -678,7 +678,7 @@ echo date('M d, Y'); ?>
                         <div id="reportrange" class="reportrange-picker d-flex align-items-center btn btn-sm btn-light-brand">
                             <span class="reportrange-picker-field"></span>
                         </div>
-                        <a href="reports-timesheets.php" class="btn btn-sm btn-light-brand">
+                        <a href="reports-chat-logs.php" class="btn btn-sm btn-light-brand">
                             <i class="feather-file-text me-1"></i> Reports
                         </a>
                         <a href="attendance.php" class="btn btn-sm btn-primary">
