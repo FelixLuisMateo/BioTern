@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 /** @var mysqli $conn */
 
 $message = '';
@@ -29,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 
 $rows = [];
 $sql = "
-    SELECT c.*, u.name AS user_name, d.name AS department_name
+    SELECT c.*, u.name AS user_name, u.username AS user_username, d.name AS department_name
     FROM coordinators c
     LEFT JOIN users u ON c.user_id = u.id
     LEFT JOIN departments d ON c.department_id = d.id
@@ -43,7 +44,42 @@ if ($res) {
     }
 }
 
+$supervisedCoursesByUser = [];
+if ($rows && ensure_coordinator_courses_table($conn)) {
+    $coordinatorUserIds = [];
+    foreach ($rows as $row) {
+        $userId = (int)($row['user_id'] ?? 0);
+        if ($userId > 0) {
+            $coordinatorUserIds[$userId] = $userId;
+        }
+    }
+
+    if ($coordinatorUserIds) {
+        $ids = implode(',', array_map('intval', array_values($coordinatorUserIds)));
+        $courseSql = "
+            SELECT cc.coordinator_user_id, c.name AS course_name
+            FROM coordinator_courses cc
+            INNER JOIN courses c ON c.id = cc.course_id
+            WHERE cc.coordinator_user_id IN ({$ids})
+            ORDER BY c.name ASC
+        ";
+        $courseRes = $conn->query($courseSql);
+        if ($courseRes) {
+            while ($courseRow = $courseRes->fetch_assoc()) {
+                $userId = (int)($courseRow['coordinator_user_id'] ?? 0);
+                $courseName = trim((string)($courseRow['course_name'] ?? ''));
+                if ($userId > 0 && $courseName !== '') {
+                    $supervisedCoursesByUser[$userId][] = $courseName;
+                }
+            }
+        }
+    }
+}
+
 $page_title = 'Coordinators';
+$page_styles = [
+    'assets/css/modules/management/management-coordinators.css',
+];
 include 'includes/header.php';
 ?>
 <main class="nxl-container">
@@ -80,10 +116,11 @@ include 'includes/header.php';
                         <tr>
                             <th>ID</th>
                             <th>Name</th>
-                            <th>User</th>
+                            <th>Username</th>
                             <th>Email</th>
                             <th>Phone</th>
                             <th>Department</th>
+                            <th>Supervises</th>
                             <th>Office</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -91,7 +128,7 @@ include 'includes/header.php';
                     </thead>
                     <tbody>
                         <?php if (!$rows): ?>
-                            <tr><td colspan="9" class="text-center py-4 text-muted">No coordinators found.</td></tr>
+                            <tr><td colspan="10" class="text-center py-4 text-muted">No coordinators found.</td></tr>
                         <?php endif; ?>
                         <?php foreach ($rows as $r): ?>
                             <tr>
@@ -99,13 +136,29 @@ include 'includes/header.php';
                                 <td>
                                     <div class="app-academic-name-cell">
                                         <span class="app-academic-name"><?php echo h(trim(($r['first_name'] ?? '') . ' ' . ($r['middle_name'] ?? '') . ' ' . ($r['last_name'] ?? ''))); ?></span>
-                                        <span class="app-academic-meta"><?php echo h($r['email'] ?? '-'); ?></span>
                                     </div>
                                 </td>
-                                <td><span class="app-academic-created"><?php echo h($r['user_name'] ?? '-'); ?></span></td>
+                                <td><span class="app-academic-created"><?php echo h($r['user_username'] ?? '-'); ?></span></td>
                                 <td><span class="app-academic-created"><?php echo h($r['email'] ?? '-'); ?></span></td>
                                 <td><span class="app-academic-created"><?php echo h($r['phone'] ?? '-'); ?></span></td>
                                 <td><span class="app-academic-head"><?php echo h($r['department_name'] ?? '-'); ?></span></td>
+                                <td>
+                                    <?php
+                                    $assignedCourses = $supervisedCoursesByUser[(int)($r['user_id'] ?? 0)] ?? [];
+                                    ?>
+                                    <?php if ($assignedCourses): ?>
+                                        <div class="app-coordinator-supervise-list" title="<?php echo h(implode(', ', $assignedCourses)); ?>">
+                                            <?php foreach (array_slice($assignedCourses, 0, 2) as $courseName): ?>
+                                                <span class="app-coordinator-supervise-pill"><?php echo h($courseName); ?></span>
+                                            <?php endforeach; ?>
+                                            <?php if (count($assignedCourses) > 2): ?>
+                                                <span class="app-coordinator-supervise-more">+<?php echo count($assignedCourses) - 2; ?> more</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="app-academic-created">No course assigned</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><span class="app-academic-created"><?php echo h($r['office_location'] ?? '-'); ?></span></td>
                                 <td>
                                     <?php if ((int)($r['is_active'] ?? 0) === 1): ?>
