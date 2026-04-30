@@ -85,13 +85,14 @@ include 'includes/header.php';
                             <th>Phone</th>
                             <th>Department</th>
                             <th>Specialization</th>
+                            <th>Office</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!$rows): ?>
-                            <tr><td colspan="9" class="text-center py-4 text-muted">No supervisors found.</td></tr>
+                            <tr><td colspan="10" class="text-center py-4 text-muted">No supervisors found.</td></tr>
                         <?php endif; ?>
                         <?php foreach ($rows as $r): ?>
                             <tr>
@@ -107,6 +108,7 @@ include 'includes/header.php';
                                 <td><span class="app-academic-created"><?php echo h($r['phone'] ?? '-'); ?></span></td>
                                 <td><span class="app-academic-head"><?php echo h($r['department_name'] ?? '-'); ?></span></td>
                                 <td><span class="app-academic-created"><?php echo h($r['specialization'] ?? '-'); ?></span></td>
+                                <td><span class="app-academic-created"><?php echo h($r['office_location'] ?? ($r['office'] ?? '-')); ?></span></td>
                                 <td>
                                     <?php if ((int)($r['is_active'] ?? 0) === 1): ?>
                                         <span class="app-academic-status-pill is-active">Active</span>

@@ -41,6 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $department_id_raw = trim((string)($_POST['department_id'] ?? ''));
     $department_id = $department_id_raw !== '' ? (int)$department_id_raw : null;
     $specialization = trim((string)($_POST['specialization'] ?? ''));
+    $office_location = trim((string)($_POST['office_location'] ?? ''));
     $bio = trim((string)($_POST['bio'] ?? ''));
     $profile_picture = '';
     $is_active = isset($_POST['is_active']) ? 1 : 0;
@@ -84,14 +85,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
             $insertSql = '';
-            if ($hasSupervisorColumn('specialization')) {
+            if ($hasSupervisorColumn('specialization') && $hasSupervisorColumn('office_location')) {
+                $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, office_location, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, ?)';
+            } elseif ($hasSupervisorColumn('specialization') && $hasSupervisorColumn('office')) {
+                $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, office, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, ?)';
+            } elseif ($hasSupervisorColumn('specialization')) {
                 $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?)';
             } elseif ($hasSupervisorColumn('office')) {
                 $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, office, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?)';
-                $profileFieldValue = $specialization;
+                $profileFieldValue = $office_location;
             } elseif ($hasSupervisorColumn('office_location')) {
                 $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, office_location, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?)';
-                $profileFieldValue = $specialization;
+                $profileFieldValue = $office_location;
             } else {
                 $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?)';
             }
@@ -119,7 +124,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$stmt) {
                     throw new RuntimeException('Failed to prepare supervisor insert statement.');
                 }
-                if ($hasSupervisorColumn('specialization') || $hasSupervisorColumn('office') || $hasSupervisorColumn('office_location')) {
+                if ($hasSupervisorColumn('specialization') && ($hasSupervisorColumn('office') || $hasSupervisorColumn('office_location'))) {
+                    $stmt->bind_param('isssssissssi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $deptForInsert, $specialization, $office_location, $bio, $profile_picture, $is_active);
+                } elseif ($hasSupervisorColumn('specialization') || $hasSupervisorColumn('office') || $hasSupervisorColumn('office_location')) {
                     $stmt->bind_param('isssssisssi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $deptForInsert, $profileFieldValue, $bio, $profile_picture, $is_active);
                 } else {
                     $stmt->bind_param('isssssissi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $deptForInsert, $bio, $profile_picture, $is_active);
@@ -191,6 +198,7 @@ include 'includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-4"><label class="form-label">Specialization</label><input type="text" name="specialization" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_create" checked><label class="form-check-label" for="is_active_create">Active</label></div>
                 <div class="col-12 create-form-actions app-form-actions">

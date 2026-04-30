@@ -5,6 +5,18 @@ require_once dirname(__DIR__) . '/config/db.php';
 $message = '';
 $message_type = 'info';
 
+$supervisorColumns = [];
+$supervisorColumnResult = $conn->query("SHOW COLUMNS FROM supervisors");
+if ($supervisorColumnResult) {
+    while ($column = $supervisorColumnResult->fetch_assoc()) {
+        $supervisorColumns[] = strtolower((string)$column['Field']);
+    }
+}
+
+$hasSupervisorColumn = function (string $columnName) use ($supervisorColumns): bool {
+    return in_array(strtolower($columnName), $supervisorColumns, true);
+};
+
 function h($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -64,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $department_id_raw = trim((string)($_POST['department_id'] ?? ''));
     $department_id = $department_id_raw !== '' ? (int)$department_id_raw : null;
     $specialization = trim((string)($_POST['specialization'] ?? ''));
+    $office_location = trim((string)($_POST['office_location'] ?? ''));
     $bio = trim((string)($_POST['bio'] ?? ''));
     $is_active = isset($_POST['is_active']) ? 1 : 0;
 
@@ -71,9 +84,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Please complete required fields.';
         $message_type = 'danger';
     } else {
-        $up = $conn->prepare('UPDATE supervisors SET user_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?, phone = ?, department_id = ?, specialization = ?, bio = ?, is_active = ? WHERE id = ?');
+        if ($hasSupervisorColumn('office_location')) {
+            $up = $conn->prepare('UPDATE supervisors SET user_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?, phone = ?, department_id = ?, specialization = ?, office_location = ?, bio = ?, is_active = ? WHERE id = ?');
+        } elseif ($hasSupervisorColumn('office')) {
+            $up = $conn->prepare('UPDATE supervisors SET user_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?, phone = ?, department_id = ?, specialization = ?, office = ?, bio = ?, is_active = ? WHERE id = ?');
+        } else {
+            $up = $conn->prepare('UPDATE supervisors SET user_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?, phone = ?, department_id = ?, specialization = ?, bio = ?, is_active = ? WHERE id = ?');
+        }
         if ($up) {
-            $up->bind_param('isssssissii', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $specialization, $bio, $is_active, $id);
+            if ($hasSupervisorColumn('office_location') || $hasSupervisorColumn('office')) {
+                $up->bind_param('isssssisssii', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $specialization, $office_location, $bio, $is_active, $id);
+            } else {
+                $up->bind_param('isssssissii', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $specialization, $bio, $is_active, $id);
+            }
             if ($up->execute()) {
                 header('Location: supervisors.php');
                 exit;
@@ -131,6 +154,7 @@ include 'includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-4"><label class="form-label">Specialization</label><input type="text" name="specialization" class="form-control" value="<?php echo h($supervisor['specialization']); ?>"></div>
+                <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control" value="<?php echo h($supervisor['office_location'] ?? ($supervisor['office'] ?? '')); ?>"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"><?php echo h($supervisor['bio']); ?></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_edit" <?php echo ((int)$supervisor['is_active'] === 1) ? 'checked' : ''; ?>><label class="form-check-label" for="is_active_edit">Active</label></div>
                 <div class="col-12 d-flex gap-2">
