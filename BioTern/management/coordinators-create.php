@@ -269,9 +269,9 @@ include 'includes/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-12">
                     <label class="form-label">Courses to Supervise *</label>
-                    <div class="border rounded-3 p-3" style="max-height: 220px; overflow: auto;">
+                    <div class="border rounded-3 p-3" style="max-height: 180px; overflow: auto;">
                         <?php foreach ($courses as $course): ?>
                             <?php $courseId = (int)$course['id']; ?>
                             <div class="form-check mb-2">

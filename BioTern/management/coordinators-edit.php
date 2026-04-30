@@ -192,9 +192,9 @@ include 'includes/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-12">
                     <label class="form-label">Courses to Supervise *</label>
-                    <div class="border rounded-3 p-3" style="max-height: 220px; overflow: auto;">
+                    <div class="border rounded-3 p-3" style="max-height: 180px; overflow: auto;">
                         <?php
                         $selectedCourses = !empty($_POST['course_ids']) ? edit_post_course_ids() : $assignedCourseIds;
                         foreach ($courses as $course):
