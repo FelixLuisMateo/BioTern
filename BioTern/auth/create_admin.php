@@ -54,11 +54,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $is_active = 1;
                     $mysqli->begin_transaction();
                     try {
-                        $ins = $mysqli->prepare('INSERT INTO users (name, username, email, password, role, is_active) VALUES (?, ?, ?, ?, ?, ?)');
+                        $ins = $mysqli->prepare('INSERT INTO users (name, username, email, password, role, is_active, profile_picture) VALUES (?, ?, ?, ?, ?, ?, ?)');
                         if (!$ins) {
                             throw new Exception('Insert statement preparation failed.');
                         }
-                        $ins->bind_param('sssssi', $name, $username, $email, $hashed, $role, $is_active);
+                        $profilePicture = '';
+                        $ins->bind_param('sssssis', $name, $username, $email, $hashed, $role, $is_active, $profilePicture);
                         if (!$ins->execute()) {
                             $err = $ins->error;
                             $ins->close();

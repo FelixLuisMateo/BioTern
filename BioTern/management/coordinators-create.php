@@ -174,12 +174,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user_id = 0;
 
             try {
-                $userStmt = $conn->prepare('INSERT INTO users (name, username, email, password, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())');
+                $userStmt = $conn->prepare('INSERT INTO users (name, username, email, password, role, is_active, profile_picture, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())');
                 if (!$userStmt) {
                     throw new RuntimeException('Failed to prepare user insert statement.');
                 }
                 $role = 'coordinator';
-                $userStmt->bind_param('sssssi', $displayName, $username, $email, $passwordHash, $role, $is_active);
+                $userProfilePicture = '';
+                $userStmt->bind_param('sssssis', $displayName, $username, $email, $passwordHash, $role, $is_active, $userProfilePicture);
                 if (!$userStmt->execute()) {
                     $err = $userStmt->error;
                     $userStmt->close();
