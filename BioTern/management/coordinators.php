@@ -11,6 +11,32 @@ function h($value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+function coordinator_course_label(string $courseName, string $courseCode = ''): string
+{
+    $courseCode = strtoupper(trim($courseCode));
+    if ($courseCode !== '') {
+        return $courseCode;
+    }
+
+    $courseName = trim($courseName);
+    if ($courseName === '') {
+        return '-';
+    }
+
+    $words = preg_split('/\s+/', $courseName);
+    $skipWords = ['in', 'of', 'and', 'the', 'for'];
+    $label = '';
+    foreach ($words as $word) {
+        $clean = preg_replace('/[^a-z0-9]/i', '', $word);
+        if ($clean === '' || in_array(strtolower($clean), $skipWords, true)) {
+            continue;
+        }
+        $label .= strtoupper($clean[0]);
+    }
+
+    return $label !== '' ? $label : strtoupper(substr($courseName, 0, 3));
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
     $id = (int)($_POST['id'] ?? 0);
     if ($id > 0) {
@@ -57,7 +83,7 @@ if ($rows && ensure_coordinator_courses_table($conn)) {
     if ($coordinatorUserIds) {
         $ids = implode(',', array_map('intval', array_values($coordinatorUserIds)));
         $courseSql = "
-            SELECT cc.coordinator_user_id, c.name AS course_name
+            SELECT cc.coordinator_user_id, c.name AS course_name, COALESCE(c.code, '') AS course_code
             FROM coordinator_courses cc
             INNER JOIN courses c ON c.id = cc.course_id
             WHERE cc.coordinator_user_id IN ({$ids})
@@ -68,8 +94,12 @@ if ($rows && ensure_coordinator_courses_table($conn)) {
             while ($courseRow = $courseRes->fetch_assoc()) {
                 $userId = (int)($courseRow['coordinator_user_id'] ?? 0);
                 $courseName = trim((string)($courseRow['course_name'] ?? ''));
+                $courseCode = trim((string)($courseRow['course_code'] ?? ''));
                 if ($userId > 0 && $courseName !== '') {
-                    $supervisedCoursesByUser[$userId][] = $courseName;
+                    $supervisedCoursesByUser[$userId][] = [
+                        'name' => $courseName,
+                        'label' => coordinator_course_label($courseName, $courseCode),
+                    ];
                 }
             }
         }
@@ -147,12 +177,13 @@ include 'includes/header.php';
                                     $assignedCourses = $supervisedCoursesByUser[(int)($r['user_id'] ?? 0)] ?? [];
                                     ?>
                                     <?php if ($assignedCourses): ?>
-                                        <div class="app-coordinator-supervise-list" title="<?php echo h(implode(', ', $assignedCourses)); ?>">
-                                            <?php foreach (array_slice($assignedCourses, 0, 2) as $courseName): ?>
-                                                <span class="app-coordinator-supervise-pill"><?php echo h($courseName); ?></span>
+                                        <?php $assignedCourseNames = array_column($assignedCourses, 'name'); ?>
+                                        <div class="app-coordinator-supervise-list" title="<?php echo h(implode(', ', $assignedCourseNames)); ?>">
+                                            <?php foreach (array_slice($assignedCourses, 0, 3) as $course): ?>
+                                                <span class="app-coordinator-supervise-pill" title="<?php echo h($course['name']); ?>"><?php echo h($course['label']); ?></span>
                                             <?php endforeach; ?>
-                                            <?php if (count($assignedCourses) > 2): ?>
-                                                <span class="app-coordinator-supervise-more">+<?php echo count($assignedCourses) - 2; ?> more</span>
+                                            <?php if (count($assignedCourses) > 3): ?>
+                                                <span class="app-coordinator-supervise-more">+<?php echo count($assignedCourses) - 3; ?> more</span>
                                             <?php endif; ?>
                                         </div>
                                     <?php else: ?>
