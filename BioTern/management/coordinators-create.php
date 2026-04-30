@@ -61,6 +61,8 @@ function post_selected_courses(): array
     return array_values($selected);
 }
 
+$selectedCourseIds = post_selected_courses();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
@@ -76,8 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $profile_picture = '';
     $profile_picture_fs = '';
     $is_active = isset($_POST['is_active']) ? 1 : 0;
-    $selectedCourseIds = post_selected_courses();
-
     if ($username === '' || $password === '' || $first_name === '' || $last_name === '' || $email === '') {
         $message = 'Please complete required fields.';
         $message_type = 'danger';
