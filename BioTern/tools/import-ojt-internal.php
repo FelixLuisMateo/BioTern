@@ -2,6 +2,7 @@
 ob_start();
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once __DIR__ . '/excel-workbook-reader.php';
 $vendorAutoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (is_file($vendorAutoload)) {
@@ -14,6 +15,10 @@ if (!in_array($role, ['admin', 'coordinator'], true)) {
     header('Location: homepage.php');
     exit;
 }
+$currentUserId = (int)($_SESSION['user_id'] ?? 0);
+$coordinatorAllowedCourseIds = $role === 'coordinator'
+    ? coordinator_course_ids($conn, $currentUserId)
+    : [];
 
 if (!isset($conn) || !($conn instanceof mysqli)) {
     $conn = new mysqli(
@@ -205,6 +210,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_import']) && 
             $userId = (ctype_digit($userIdRaw) && (int)$userIdRaw > 0) ? (int)$userIdRaw : null;
             $courseId = (ctype_digit($courseIdRaw) && (int)$courseIdRaw > 0) ? (int)$courseIdRaw : null;
             $sectionId = (ctype_digit($sectionIdRaw) && (int)$sectionIdRaw > 0) ? (int)$sectionIdRaw : null;
+            if ($role === 'coordinator' && ($courseId === null || !in_array($courseId, $coordinatorAllowedCourseIds, true))) {
+                $invalidSkipped++;
+                continue;
+            }
             $lastName = trim((string)($row[$resolved['last_name']] ?? ''));
             $firstName = trim((string)($row[$resolved['first_name']] ?? ''));
             $middleName = $resolved['middle_name'] !== null ? trim((string)($row[$resolved['middle_name']] ?? '')) : '';

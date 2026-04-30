@@ -17,6 +17,16 @@ $current_user_id = intval($_SESSION['user_id'] ?? 0);
 $current_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
 $current_user_email = trim((string)($_SESSION['email'] ?? 'admin@biotern.local'));
 $current_user_role = trim((string)($_SESSION['role'] ?? ''));
+$current_user_role_key = strtolower($current_user_role);
+$coordinator_allowed_course_ids = $current_user_role_key === 'coordinator' && function_exists('coordinator_course_ids')
+    ? coordinator_course_ids($conn, $current_user_id)
+    : [];
+$coordinator_course_scope_sql = '';
+if ($current_user_role_key === 'coordinator') {
+    $coordinator_course_scope_sql = empty($coordinator_allowed_course_ids)
+        ? '1 = 0'
+        : 's.course_id IN (' . implode(',', array_map('intval', $coordinator_allowed_course_ids)) . ')';
+}
 $current_profile_rel = ltrim(str_replace('\\', '/', trim((string)($_SESSION['profile_picture'] ?? ''))), '/');
 $current_profile_img = 'assets/images/avatar/' . (($current_user_id > 0 ? ($current_user_id % 5) : 0) + 1) . '.png';
 if ($current_profile_rel !== '' && file_exists(dirname(__DIR__) . '/' . $current_profile_rel)) {
@@ -289,6 +299,7 @@ LEFT JOIN (
     GROUP BY student_id
 ) att ON att.student_id = s.id
 WHERE COALESCE(u_student.application_status, 'approved') = 'approved'
+    " . ($coordinator_course_scope_sql !== '' ? "AND {$coordinator_course_scope_sql}" : '') . "
 ORDER BY s.first_name, s.last_name
 ";
 
