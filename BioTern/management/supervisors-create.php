@@ -43,7 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $specialization = trim((string)($_POST['specialization'] ?? ''));
     $bio = trim((string)($_POST['bio'] ?? ''));
     $profile_picture = '';
-    $profile_picture_fs = '';
     $is_active = isset($_POST['is_active']) ? 1 : 0;
 
     if ($username === '' || $password === '' || $first_name === '' || $last_name === '' || $email === '') {
@@ -53,47 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Password must be at least 8 characters.';
         $message_type = 'danger';
     } else {
-        if (isset($_FILES['profile_picture']) && is_array($_FILES['profile_picture']) && (int)$_FILES['profile_picture']['error'] !== UPLOAD_ERR_NO_FILE) {
-            $file = $_FILES['profile_picture'];
-            if ((int)$file['error'] !== UPLOAD_ERR_OK) {
-                $message = 'Profile picture upload failed.';
-                $message_type = 'danger';
-            } else {
-                $tmp = (string)$file['tmp_name'];
-                $orig = (string)$file['name'];
-                $size = (int)$file['size'];
-                $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
-                $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-
-                if (!in_array($ext, $allowed, true)) {
-                    $message = 'Invalid image type. Allowed: jpg, jpeg, png, gif, webp.';
-                    $message_type = 'danger';
-                } elseif ($size > 5 * 1024 * 1024) {
-                    $message = 'Image size must be 5MB or less.';
-                    $message_type = 'danger';
-                } elseif (@getimagesize($tmp) === false) {
-                    $message = 'Uploaded file is not a valid image.';
-                    $message_type = 'danger';
-                } else {
-                    $uploadDirFs = dirname(__DIR__) . '/uploads/profile_pictures';
-                    if (!is_dir($uploadDirFs) && !@mkdir($uploadDirFs, 0775, true)) {
-                        $message = 'Failed to create upload directory.';
-                        $message_type = 'danger';
-                    } else {
-                        $filename = 'supervisor_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-                        $destFs = $uploadDirFs . '/' . $filename;
-                        if (!@move_uploaded_file($tmp, $destFs)) {
-                            $message = 'Failed to save uploaded profile picture.';
-                            $message_type = 'danger';
-                        } else {
-                            $profile_picture_fs = $destFs;
-                            $profile_picture = 'uploads/profile_pictures/' . $filename;
-                        }
-                    }
-                }
-            }
-        }
-
         if ($message !== '' && $message_type === 'danger') {
             // keep message and do not insert
         } else {
@@ -119,9 +77,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($message !== '' && ($message_type === 'danger' || $message_type === 'warning')) {
-            if ($profile_picture_fs !== '' && is_file($profile_picture_fs)) {
-                @unlink($profile_picture_fs);
-            }
         } else {
             $deptForInsert = $department_id ?? 0;
             $profileFieldValue = $specialization;
@@ -181,9 +136,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Failed to create supervisor: ' . $errorText);
             } catch (Throwable $e) {
                 $conn->rollback();
-                if ($profile_picture_fs !== '' && is_file($profile_picture_fs)) {
-                    @unlink($profile_picture_fs);
-                }
                 if ((int)$e->getCode() === 1062 || stripos($e->getMessage(), 'Duplicate') !== false) {
                     $message = 'Duplicate supervisor record detected (username/email already used).';
                     $message_type = 'warning';
@@ -218,7 +170,7 @@ include 'includes/header.php';
         <div class="card-header"><h5 class="card-title mb-0">Supervisor Form</h5></div>
         <div class="card-body">
             <?php if ($message !== ''): ?><div class="alert alert-<?php echo h($message_type); ?>"><?php echo h($message); ?></div><?php endif; ?>
-            <form method="post" enctype="multipart/form-data" class="row g-3">
+            <form method="post" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Username *</label>
                     <input type="text" name="username" class="form-control" autocomplete="off" autocapitalize="off" spellcheck="false" required>
@@ -239,7 +191,6 @@ include 'includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-4"><label class="form-label">Specialization</label><input type="text" name="specialization" class="form-control"></div>
-                <div class="col-md-4"><label class="form-label">Profile Picture</label><input type="file" name="profile_picture" class="form-control create-form-file-input" accept="image/*"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_create" checked><label class="form-check-label" for="is_active_create">Active</label></div>
                 <div class="col-12 create-form-actions app-form-actions">

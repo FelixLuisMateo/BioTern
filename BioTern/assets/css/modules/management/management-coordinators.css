@@ -100,14 +100,14 @@ html.app-skin-dark .app-coordinator-course-item .form-check-input {
     align-items: center;
     flex-wrap: wrap;
     gap: 0.28rem;
-    max-width: 320px;
+    max-width: 420px;
 }
 
 .app-coordinator-supervise-pill,
 .app-coordinator-supervise-more {
     display: inline-flex;
     align-items: center;
-    max-width: 148px;
+    max-width: 100%;
     min-height: 24px;
     padding: 0.2rem 0.48rem;
     border: 1px solid rgba(99, 102, 241, 0.24);
@@ -117,9 +117,9 @@ html.app-skin-dark .app-coordinator-course-item .form-check-input {
     font-size: 0.72rem;
     font-weight: 700;
     line-height: 1.1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
 }
 
 .app-coordinator-supervise-more {

@@ -102,7 +102,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $department_id = $department_id_raw !== '' ? (int)$department_id_raw : null;
     $office_location = trim((string)($_POST['office_location'] ?? ''));
     $bio = trim((string)($_POST['bio'] ?? ''));
-    $profile_picture = trim((string)($_POST['profile_picture'] ?? ''));
     $is_active = isset($_POST['is_active']) ? 1 : 0;
     $selectedCourseIds = edit_post_course_ids();
 
@@ -115,12 +114,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $conn->begin_transaction();
         try {
-            $up = $conn->prepare('UPDATE coordinators SET user_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?, phone = ?, department_id = ?, office_location = ?, bio = ?, profile_picture = ?, is_active = ? WHERE id = ?');
+            $up = $conn->prepare('UPDATE coordinators SET user_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?, phone = ?, department_id = ?, office_location = ?, bio = ?, is_active = ? WHERE id = ?');
             if (!$up) {
                 throw new RuntimeException('Failed to prepare coordinator update statement.');
             }
 
-            $up->bind_param('isssssisssii', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $office_location, $bio, $profile_picture, $is_active, $id);
+            $up->bind_param('isssssissii', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $office_location, $bio, $is_active, $id);
             if (!$up->execute()) {
                 $errorText = $up->error;
                 $up->close();
@@ -226,7 +225,6 @@ include 'includes/header.php';
                     <small class="app-coordinator-course-help d-block">Choose one or more courses this coordinator can supervise.</small>
                 </div>
                 <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control" value="<?php echo edit_post_value('office_location', $coordinator['office_location']); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Profile Picture (path)</label><input type="text" name="profile_picture" class="form-control" value="<?php echo edit_post_value('profile_picture', $coordinator['profile_picture']); ?>"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"><?php echo edit_post_value('bio', $coordinator['bio']); ?></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_edit" <?php echo isset($_POST['is_active']) ? 'checked' : (((int)$coordinator['is_active'] === 1) ? 'checked' : ''); ?>><label class="form-check-label" for="is_active_edit">Active</label></div>
                 <div class="col-12 d-flex gap-2">
