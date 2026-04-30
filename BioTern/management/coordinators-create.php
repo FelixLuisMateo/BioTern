@@ -3,6 +3,8 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 /** @var mysqli $conn */
 
+require_roles_page(['admin']);
+
 $message = '';
 $message_type = 'info';
 
@@ -76,7 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $office_location = trim((string)($_POST['office_location'] ?? ''));
     $bio = trim((string)($_POST['bio'] ?? ''));
     $profile_picture = '';
-    $profile_picture_fs = '';
     $is_active = isset($_POST['is_active']) ? 1 : 0;
     if ($username === '' || $password === '' || $first_name === '' || $last_name === '' || $email === '') {
         $message = 'Please complete required fields.';
@@ -88,47 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Please select at least one course this coordinator can supervise.';
         $message_type = 'danger';
     } else {
-        if (isset($_FILES['profile_picture']) && is_array($_FILES['profile_picture']) && (int)$_FILES['profile_picture']['error'] !== UPLOAD_ERR_NO_FILE) {
-            $file = $_FILES['profile_picture'];
-            if ((int)$file['error'] !== UPLOAD_ERR_OK) {
-                $message = 'Profile picture upload failed.';
-                $message_type = 'danger';
-            } else {
-                $tmp = (string)$file['tmp_name'];
-                $orig = (string)$file['name'];
-                $size = (int)$file['size'];
-                $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
-                $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-
-                if (!in_array($ext, $allowed, true)) {
-                    $message = 'Invalid image type. Allowed: jpg, jpeg, png, gif, webp.';
-                    $message_type = 'danger';
-                } elseif ($size > 5 * 1024 * 1024) {
-                    $message = 'Image size must be 5MB or less.';
-                    $message_type = 'danger';
-                } elseif (@getimagesize($tmp) === false) {
-                    $message = 'Uploaded file is not a valid image.';
-                    $message_type = 'danger';
-                } else {
-                    $uploadDirFs = dirname(__DIR__) . '/uploads/profile_pictures';
-                    $uploadReady = is_dir($uploadDirFs) || @mkdir($uploadDirFs, 0775, true);
-                    if ($uploadReady) {
-                        $filename = 'coordinator_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-                        $destFs = $uploadDirFs . '/' . $filename;
-                        if (@move_uploaded_file($tmp, $destFs)) {
-                            $profile_picture_fs = $destFs;
-                            $profile_picture = 'uploads/profile_pictures/' . $filename;
-                        }
-                    }
-                    if ($profile_picture === '') {
-                        // Keep coordinator creation working even if the picture cannot be stored.
-                        $message = '';
-                        $message_type = 'info';
-                    }
-                }
-            }
-        }
-
         if ($message !== '' && $message_type === 'danger') {
             // keep message and do not insert
         } else {
@@ -153,9 +113,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($message !== '' && ($message_type === 'danger' || $message_type === 'warning')) {
-            if ($profile_picture_fs !== '' && is_file($profile_picture_fs)) {
-                @unlink($profile_picture_fs);
-            }
         } else {
             $deptForInsert = $department_id ?? 0;
             $displayName = trim($first_name . ' ' . $last_name);
@@ -213,9 +170,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Failed to create coordinator: ' . $errorText);
             } catch (Throwable $e) {
                 $conn->rollback();
-                if ($profile_picture_fs !== '' && is_file($profile_picture_fs)) {
-                    @unlink($profile_picture_fs);
-                }
                 if ((int)$e->getCode() === 1062 || stripos($e->getMessage(), 'Duplicate') !== false) {
                     $message = 'Duplicate coordinator record detected (username/email already used).';
                     $message_type = 'warning';
@@ -253,7 +207,7 @@ include 'includes/header.php';
         <div class="card-header"><h5 class="card-title mb-0">Coordinator Form</h5></div>
         <div class="card-body">
             <?php if ($message !== ''): ?><div class="alert alert-<?php echo h($message_type); ?>"><?php echo h($message); ?></div><?php endif; ?>
-            <form method="post" enctype="multipart/form-data" class="row g-3">
+            <form method="post" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Username *</label>
                     <input type="text" name="username" class="form-control" autocomplete="off" autocapitalize="off" spellcheck="false" required value="<?php echo post_value('username'); ?>">
@@ -301,7 +255,6 @@ include 'includes/header.php';
                     <small class="app-coordinator-course-help d-block">Choose one or more courses this coordinator can supervise.</small>
                 </div>
                 <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control" value="<?php echo post_value('office_location'); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Profile Picture</label><input type="file" name="profile_picture" class="form-control create-form-file-input" accept="image/*"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"><?php echo post_value('bio'); ?></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_create" checked><label class="form-check-label" for="is_active_create">Active</label></div>
                 <div class="col-12 create-form-actions app-form-actions">

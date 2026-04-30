@@ -1,6 +1,9 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 /** @var mysqli $conn */
+
+require_roles_page(['admin']);
 
 $message = '';
 $message_type = 'info';
@@ -41,9 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $department_id_raw = trim((string)($_POST['department_id'] ?? ''));
     $department_id = $department_id_raw !== '' ? (int)$department_id_raw : null;
     $specialization = trim((string)($_POST['specialization'] ?? ''));
+    $office_location = trim((string)($_POST['office_location'] ?? ''));
     $bio = trim((string)($_POST['bio'] ?? ''));
     $profile_picture = '';
-    $profile_picture_fs = '';
     $is_active = isset($_POST['is_active']) ? 1 : 0;
 
     if ($username === '' || $password === '' || $first_name === '' || $last_name === '' || $email === '') {
@@ -53,47 +56,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Password must be at least 8 characters.';
         $message_type = 'danger';
     } else {
-        if (isset($_FILES['profile_picture']) && is_array($_FILES['profile_picture']) && (int)$_FILES['profile_picture']['error'] !== UPLOAD_ERR_NO_FILE) {
-            $file = $_FILES['profile_picture'];
-            if ((int)$file['error'] !== UPLOAD_ERR_OK) {
-                $message = 'Profile picture upload failed.';
-                $message_type = 'danger';
-            } else {
-                $tmp = (string)$file['tmp_name'];
-                $orig = (string)$file['name'];
-                $size = (int)$file['size'];
-                $ext = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
-                $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-
-                if (!in_array($ext, $allowed, true)) {
-                    $message = 'Invalid image type. Allowed: jpg, jpeg, png, gif, webp.';
-                    $message_type = 'danger';
-                } elseif ($size > 5 * 1024 * 1024) {
-                    $message = 'Image size must be 5MB or less.';
-                    $message_type = 'danger';
-                } elseif (@getimagesize($tmp) === false) {
-                    $message = 'Uploaded file is not a valid image.';
-                    $message_type = 'danger';
-                } else {
-                    $uploadDirFs = dirname(__DIR__) . '/uploads/profile_pictures';
-                    if (!is_dir($uploadDirFs) && !@mkdir($uploadDirFs, 0775, true)) {
-                        $message = 'Failed to create upload directory.';
-                        $message_type = 'danger';
-                    } else {
-                        $filename = 'supervisor_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-                        $destFs = $uploadDirFs . '/' . $filename;
-                        if (!@move_uploaded_file($tmp, $destFs)) {
-                            $message = 'Failed to save uploaded profile picture.';
-                            $message_type = 'danger';
-                        } else {
-                            $profile_picture_fs = $destFs;
-                            $profile_picture = 'uploads/profile_pictures/' . $filename;
-                        }
-                    }
-                }
-            }
-        }
-
         if ($message !== '' && $message_type === 'danger') {
             // keep message and do not insert
         } else {
@@ -119,9 +81,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($message !== '' && ($message_type === 'danger' || $message_type === 'warning')) {
-            if ($profile_picture_fs !== '' && is_file($profile_picture_fs)) {
-                @unlink($profile_picture_fs);
-            }
         } else {
             $deptForInsert = $department_id ?? 0;
             $profileFieldValue = $specialization;
@@ -129,14 +88,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
             $insertSql = '';
-            if ($hasSupervisorColumn('specialization')) {
+            if ($hasSupervisorColumn('specialization') && $hasSupervisorColumn('office_location')) {
+                $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, office_location, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, ?)';
+            } elseif ($hasSupervisorColumn('specialization') && $hasSupervisorColumn('office')) {
+                $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, office, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, ?)';
+            } elseif ($hasSupervisorColumn('specialization')) {
                 $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, specialization, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?)';
             } elseif ($hasSupervisorColumn('office')) {
                 $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, office, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?)';
-                $profileFieldValue = $specialization;
+                $profileFieldValue = $office_location;
             } elseif ($hasSupervisorColumn('office_location')) {
                 $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, office_location, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?)';
-                $profileFieldValue = $specialization;
+                $profileFieldValue = $office_location;
             } else {
                 $insertSql = 'INSERT INTO supervisors (user_id, first_name, last_name, middle_name, email, phone, department_id, bio, profile_picture, is_active) VALUES (?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?)';
             }
@@ -164,7 +127,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$stmt) {
                     throw new RuntimeException('Failed to prepare supervisor insert statement.');
                 }
-                if ($hasSupervisorColumn('specialization') || $hasSupervisorColumn('office') || $hasSupervisorColumn('office_location')) {
+                if ($hasSupervisorColumn('specialization') && ($hasSupervisorColumn('office') || $hasSupervisorColumn('office_location'))) {
+                    $stmt->bind_param('isssssissssi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $deptForInsert, $specialization, $office_location, $bio, $profile_picture, $is_active);
+                } elseif ($hasSupervisorColumn('specialization') || $hasSupervisorColumn('office') || $hasSupervisorColumn('office_location')) {
                     $stmt->bind_param('isssssisssi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $deptForInsert, $profileFieldValue, $bio, $profile_picture, $is_active);
                 } else {
                     $stmt->bind_param('isssssissi', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $deptForInsert, $bio, $profile_picture, $is_active);
@@ -181,9 +146,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Failed to create supervisor: ' . $errorText);
             } catch (Throwable $e) {
                 $conn->rollback();
-                if ($profile_picture_fs !== '' && is_file($profile_picture_fs)) {
-                    @unlink($profile_picture_fs);
-                }
                 if ((int)$e->getCode() === 1062 || stripos($e->getMessage(), 'Duplicate') !== false) {
                     $message = 'Duplicate supervisor record detected (username/email already used).';
                     $message_type = 'warning';
@@ -218,7 +180,7 @@ include 'includes/header.php';
         <div class="card-header"><h5 class="card-title mb-0">Supervisor Form</h5></div>
         <div class="card-body">
             <?php if ($message !== ''): ?><div class="alert alert-<?php echo h($message_type); ?>"><?php echo h($message); ?></div><?php endif; ?>
-            <form method="post" enctype="multipart/form-data" class="row g-3">
+            <form method="post" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Username *</label>
                     <input type="text" name="username" class="form-control" autocomplete="off" autocapitalize="off" spellcheck="false" required>
@@ -239,7 +201,7 @@ include 'includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-4"><label class="form-label">Specialization</label><input type="text" name="specialization" class="form-control"></div>
-                <div class="col-md-4"><label class="form-label">Profile Picture</label><input type="file" name="profile_picture" class="form-control create-form-file-input" accept="image/*"></div>
+                <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_create" checked><label class="form-check-label" for="is_active_create">Active</label></div>
                 <div class="col-12 create-form-actions app-form-actions">

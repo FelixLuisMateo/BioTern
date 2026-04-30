@@ -1,10 +1,13 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 /** @var mysqli $conn */
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+require_roles_page(['admin']);
 
 function e($value): string
 {

@@ -11,7 +11,7 @@ $current_role = strtolower(trim((string) (
     ''
 )));
 
-if (!isset($_SESSION['user_id']) || !in_array($current_role, ['admin', 'coordinator'], true)) {
+if (!isset($_SESSION['user_id']) || $current_role !== 'admin') {
     header('Location: ../homepage.php');
     exit;
 }

@@ -101,9 +101,9 @@ if ($nav_is_student && isset($conn) && $conn instanceof mysqli) {
 }
 
 $nav_can_internship = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor);
-$nav_can_academic = ($nav_is_admin || $nav_is_coordinator);
+$nav_can_academic = $nav_is_admin;
 $nav_can_workspace = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor || $nav_is_student);
-$nav_can_system = ($nav_is_admin || $nav_is_coordinator);
+$nav_can_system = $nav_is_admin;
 $nav_can_user_accounts = $nav_is_admin;
 
 $nav_current_file = '';
@@ -173,6 +173,7 @@ $nav_active_students = biotern_nav_any_active($nav_current_file, [
 $nav_active_ojt = biotern_nav_any_active($nav_current_file, [
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
     'ojt-internal-list.php', 'ojt-external-list.php', 'companies.php',
+    'import-ojt-internal.php', 'import-ojt-external.php',
 ]);
 $nav_active_machine = biotern_nav_any_active($nav_current_file, [
     'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
@@ -284,7 +285,9 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('ojt-create.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('companies.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="companies.php">Companies</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('ojt-internal-list.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt-internal-list.php">Internal List</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('import-ojt-internal.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-ojt-internal.php">Import OJT Internal</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('ojt-external-list.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt-external-list.php">External List</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('import-ojt-external.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-ojt-external.php">Import OJT External</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu<?php echo $nav_active_machine ? ' active nxl-trigger' : ''; ?>">
