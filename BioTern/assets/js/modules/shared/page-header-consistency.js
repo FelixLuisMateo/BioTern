@@ -418,6 +418,9 @@
     if (!isElement(header) || header.dataset.phcReady === "1") {
       return;
     }
+    if (header.dataset.phcSkip === "1") {
+      return;
+    }
     header.dataset.phcReady = "1";
 
     var right = header.querySelector(".page-header-right");

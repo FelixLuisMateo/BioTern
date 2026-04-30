@@ -2399,7 +2399,7 @@ include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header">
+        <div class="page-header" data-phc-skip="1">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">F20H Machine Manager</h5>
