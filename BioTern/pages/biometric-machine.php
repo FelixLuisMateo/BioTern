@@ -445,10 +445,8 @@ $quickBridgeOptions = [
         'ingest_api_token' => $bridgeIngestApiToken,
         'output_path' => $bridgeOutputPath,
     ],
+
 ];
-{
-    return max(90, $pollSeconds * 4);
-}
 
 function machine_require_bridge_online_for_user_reads(mysqli $conn, int $pollSeconds): array
 {
