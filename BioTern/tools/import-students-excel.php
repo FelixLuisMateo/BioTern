@@ -51,6 +51,20 @@ function students_excel_lookup_key(string $value): string
     return (string)$value;
 }
 
+function students_excel_row_value(array $row, array $keys, string $default = ''): string
+{
+    foreach ($keys as $key) {
+        if (array_key_exists($key, $row)) {
+            $value = trim((string)$row[$key]);
+            if ($value !== '') {
+                return $value;
+            }
+        }
+    }
+
+    return $default;
+}
+
 function students_excel_infer_school_year(string $fileName): string
 {
     if (preg_match('/\b(\d{2})\s*-\s*(\d{2})\b/', $fileName, $matches)) {
@@ -418,7 +432,7 @@ function students_excel_sync_masterlist_to_internships(mysqli $mysqli, string $s
     }
 
     $students = [];
-    $studentSql = "SELECT s.id, s.first_name, s.middle_name, s.last_name, s.assignment_track, s.internal_total_hours, s.external_total_hours,
+    $studentSql = "SELECT s.id, s.student_id, s.first_name, s.middle_name, s.last_name, s.assignment_track, s.internal_total_hours, s.external_total_hours,
             COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '') AS section_name
         FROM students s
         LEFT JOIN sections sec ON sec.id = s.section_id";
@@ -435,12 +449,16 @@ function students_excel_sync_masterlist_to_internships(mysqli $mysqli, string $s
 
     $studentMap = [];
     foreach ($students as $student) {
+        $studentNoKey = students_excel_lookup_key((string)($student['student_id'] ?? ''));
+        if ($studentNoKey !== '') {
+            $studentMap[$studentNoKey][] = $student;
+        }
         foreach (students_excel_student_lookup_keys($student) as $key) {
             $studentMap[$key][] = $student;
         }
     }
 
-    $masterSql = "SELECT school_year, semester, student_lookup_key, section, company_name, supervisor_name, supervisor_position, status
+    $masterSql = "SELECT school_year, semester, student_no, student_lookup_key, section, company_name, supervisor_name, supervisor_position, status
         FROM ojt_masterlist
         WHERE school_year = ?";
     $types = 's';
@@ -461,7 +479,10 @@ function students_excel_sync_masterlist_to_internships(mysqli $mysqli, string $s
     $stmt->execute();
     $res = $stmt->get_result();
     while ($row = $res->fetch_assoc()) {
-        $lookupKey = trim((string)($row['student_lookup_key'] ?? ''));
+        $lookupKey = students_excel_lookup_key((string)($row['student_no'] ?? ''));
+        if ($lookupKey === '') {
+            $lookupKey = trim((string)($row['student_lookup_key'] ?? ''));
+        }
         if ($lookupKey === '' || empty($studentMap[$lookupKey])) {
             continue;
         }
@@ -888,6 +909,29 @@ function students_excel_has_headers(array $rows, array $requiredHeaders): bool
     return true;
 }
 
+function students_excel_has_header_groups(array $rows, array $requiredHeaderGroups): bool
+{
+    if (empty($rows)) {
+        return false;
+    }
+
+    $headers = array_keys($rows[0]);
+    foreach ($requiredHeaderGroups as $headerGroup) {
+        $found = false;
+        foreach ($headerGroup as $header) {
+            if (in_array($header, $headers, true)) {
+                $found = true;
+                break;
+            }
+        }
+        if (!$found) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 function students_excel_ensure_masterlist_tables(mysqli $mysqli, string &$errorMessage): bool
 {
     $errorMessage = '';
@@ -915,6 +959,7 @@ function students_excel_ensure_masterlist_tables(mysqli $mysqli, string &$errorM
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         school_year VARCHAR(20) NOT NULL,
         semester VARCHAR(30) NOT NULL DEFAULT '',
+        student_no VARCHAR(100) DEFAULT NULL,
         source_workbook VARCHAR(255) DEFAULT NULL,
         source_sheet VARCHAR(255) DEFAULT NULL,
         source_row_number INT NOT NULL DEFAULT 0,
@@ -942,6 +987,7 @@ function students_excel_ensure_masterlist_tables(mysqli $mysqli, string &$errorM
     }
 
     biotern_db_add_column_if_missing($mysqli, 'ojt_masterlist', 'semester', "semester VARCHAR(30) NOT NULL DEFAULT '' AFTER school_year");
+    biotern_db_add_column_if_missing($mysqli, 'ojt_masterlist', 'student_no', "student_no VARCHAR(100) DEFAULT NULL AFTER semester");
 
     $legacyIndexColumns = students_excel_index_columns($mysqli, 'ojt_masterlist', 'uniq_masterlist_student');
     if ($legacyIndexColumns !== []) {
@@ -966,11 +1012,11 @@ function students_excel_ensure_masterlist_tables(mysqli $mysqli, string &$errorM
 function students_excel_upsert_partner_company(mysqli $mysqli, array $row, string &$errorMessage): int
 {
     $errorMessage = '';
-    $companyName = trim((string)($row['company'] ?? ''));
-    $companyAddress = trim((string)($row['address'] ?? ''));
-    $supervisorName = trim((string)($row['supervisor_name'] ?? ''));
-    $supervisorPosition = trim((string)($row['position'] ?? ''));
-    $companyRepresentative = trim((string)($row['company_representative'] ?? ''));
+    $companyName = students_excel_row_value($row, ['company_name', 'company']);
+    $companyAddress = students_excel_row_value($row, ['company_address', 'address']);
+    $supervisorName = students_excel_row_value($row, ['supervisor_name']);
+    $supervisorPosition = students_excel_row_value($row, ['supervisor_position', 'position']);
+    $companyRepresentative = students_excel_row_value($row, ['company_representative']);
     $lookupKey = students_excel_lookup_key($companyName . '|' . $companyAddress);
 
     if ($companyName === '') {
@@ -1040,15 +1086,20 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
     $deleteStmt->close();
 
     foreach ($rows as $index => $row) {
+        $studentNo = students_excel_row_value($row, ['student_no', 'student_id', 'student_number']);
+        $rowSchoolYear = students_excel_normalize_school_year(students_excel_row_value($row, ['school_year', 'sy'], $schoolYear));
+        if ($rowSchoolYear === '') {
+            $rowSchoolYear = $schoolYear;
+        }
         $studentName = trim((string)($row['student_name'] ?? ''));
-        $contactNo = trim((string)($row['contact_no'] ?? ''));
-        $section = trim((string)($row['section'] ?? ''));
-        $status = trim((string)($row['status'] ?? ''));
-        $companyName = trim((string)($row['company'] ?? ''));
-        $companyAddress = trim((string)($row['address'] ?? ''));
-        $supervisorName = trim((string)($row['supervisor_name'] ?? ''));
-        $supervisorPosition = trim((string)($row['position'] ?? ''));
-        $companyRepresentative = trim((string)($row['company_representative'] ?? ''));
+        $contactNo = students_excel_row_value($row, ['contact_no', 'contact_number']);
+        $section = students_excel_row_value($row, ['section']);
+        $status = students_excel_row_value($row, ['status']);
+        $companyName = students_excel_row_value($row, ['company_name', 'company']);
+        $companyAddress = students_excel_row_value($row, ['company_address', 'address']);
+        $supervisorName = students_excel_row_value($row, ['supervisor_name']);
+        $supervisorPosition = students_excel_row_value($row, ['supervisor_position', 'position']);
+        $companyRepresentative = students_excel_row_value($row, ['company_representative']);
         $rowSemester = students_excel_masterlist_semester_value($row, $semester);
 
         if ($studentName === '' && $companyName === '' && $section === '') {
@@ -1060,7 +1111,7 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
             continue;
         }
 
-        $studentLookupKey = students_excel_lookup_key($studentName);
+        $studentLookupKey = $studentNo !== '' ? students_excel_lookup_key($studentNo) : students_excel_lookup_key($studentName);
         if ($studentLookupKey === '') {
             $errors[] = 'Masterlist row ' . ($index + 2) . ': student name could not be normalized.';
             continue;
@@ -1076,12 +1127,13 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
         }
 
         $stmt = $mysqli->prepare("INSERT INTO ojt_masterlist (
-                school_year, semester, source_workbook, source_sheet, source_row_number, student_lookup_key, student_name,
+                school_year, semester, student_no, source_workbook, source_sheet, source_row_number, student_lookup_key, student_name,
                 contact_no, section, company_id, company_name, company_address, supervisor_name, supervisor_position,
                 company_representative, status, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, NOW(), NOW())
             ON DUPLICATE KEY UPDATE
                 semester = VALUES(semester),
+                student_no = COALESCE(NULLIF(VALUES(student_no), ''), ojt_masterlist.student_no),
                 source_workbook = VALUES(source_workbook),
                 source_sheet = VALUES(source_sheet),
                 source_row_number = VALUES(source_row_number),
@@ -1103,9 +1155,10 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
 
         $rowNumber = $index + 2;
         $stmt->bind_param(
-            'ssssissssissssss',
-            $schoolYear,
+            'sssssissssissssss',
+            $rowSchoolYear,
             $rowSemester,
+            $studentNo,
             $sourceWorkbook,
             $sheetName,
             $rowNumber,
@@ -1449,10 +1502,20 @@ function students_excel_import_workbook(mysqli $mysqli, string $path, string $so
     $documentsRows = $sheets['documents'] ?? [];
     $masterlistSheetKey = '';
     $masterlistRows = [];
-    $masterlistRequiredHeaders = ['student_name', 'contact_no', 'section', 'company', 'address', 'supervisor_name', 'position', 'company_representative', 'status'];
+    $masterlistRequiredHeaders = [
+        ['student_name'],
+        ['contact_no', 'contact_number'],
+        ['section'],
+        ['company_name', 'company'],
+        ['company_address', 'address'],
+        ['supervisor_name'],
+        ['supervisor_position', 'position'],
+        ['company_representative'],
+        ['status'],
+    ];
 
     foreach ($sheets as $sheetKey => $rows) {
-        if (students_excel_has_headers($rows, $masterlistRequiredHeaders)) {
+        if (students_excel_has_header_groups($rows, $masterlistRequiredHeaders)) {
             $masterlistSheetKey = (string)$sheetKey;
             $masterlistRows = $rows;
             break;
@@ -1467,7 +1530,10 @@ function students_excel_import_workbook(mysqli $mysqli, string $path, string $so
             'internships_created' => 0,
             'internships_synced' => 0,
         ];
-        $schoolYear = students_excel_infer_school_year($sourceWorkbook);
+        $schoolYear = students_excel_normalize_school_year(students_excel_row_value($masterlistRows[0] ?? [], ['school_year', 'sy']));
+        if ($schoolYear === '') {
+            $schoolYear = students_excel_infer_school_year($sourceWorkbook);
+        }
         $semester = students_excel_normalize_semester($semesterOverride);
         if ($semester === '') {
             $semester = students_excel_infer_semester($sourceWorkbook);

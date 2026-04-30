@@ -3,6 +3,7 @@ ob_start();
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/lib/ojt_masterlist_import.php';
 require_once __DIR__ . '/excel-workbook-reader.php';
 $vendorAutoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (is_file($vendorAutoload)) {
@@ -96,6 +97,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
         if ($rows === []) {
             throw new RuntimeException($workbookReadError !== '' ? $workbookReadError : 'Unable to read uploaded workbook.');
         }
+        if (biotern_ojt_masterlist_header_present($rows)) {
+            $masterlistErrors = [];
+            $imported = biotern_ojt_masterlist_import_rows($conn, $rows, $originalName, 'internal', $masterlistErrors);
+            $flashType = $imported > 0 ? 'success' : 'warning';
+            $flashMessage = 'Internal masterlist import finished. Rows saved: ' . $imported . '.';
+            $flashDetail = $masterlistErrors !== [] ? implode(' ', array_slice($masterlistErrors, 0, 5)) : 'Teacher-provided details will merge with registered student accounts by student_no.';
+            unset($_SESSION['ojt_internal_preview']);
+            throw new RuntimeException('__BIOTERN_MASTERLIST_IMPORTED__');
+        }
         $normalizedHeader = array_keys($rows[0]);
         $resolved = [];
         foreach ($headerCandidates as $target => $candidates) {
@@ -142,9 +152,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
             'resolved' => $resolved
         ];
     } catch (Throwable $e) {
-        $flashType = 'danger';
-        $flashMessage = $e->getMessage();
-        $flashDetail = '';
+        if ($e->getMessage() !== '__BIOTERN_MASTERLIST_IMPORTED__') {
+            $flashType = 'danger';
+            $flashMessage = $e->getMessage();
+            $flashDetail = '';
+        }
     }
 }
 

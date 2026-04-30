@@ -113,6 +113,7 @@ $map = [
   'import-students-excel.php' => 'tools/import-students-excel.php',
   'import-ojt-internal.php' => 'tools/import-ojt-internal.php',
   'import-ojt-external.php' => 'tools/import-ojt-external.php',
+  'export-ojt-list.php' => 'tools/export-ojt-list.php',
   'download-internal-template.php' => 'tools/download-internal-template.php',
   'download-external-template.php' => 'tools/download-external-template.php',
   'print_attendance.php' => 'pages/print_attendance.php',
@@ -374,7 +375,7 @@ if ($is_logged_in) {
   ];
   $system_files = [
     'auth-register.php', 'users.php', 'create_admin.php',
-    'import-sql.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php',
+    'import-sql.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php', 'export-ojt-list.php',
   ];
   $settings_files = [
     'settings-general.php', 'settings-email.php',
