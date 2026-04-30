@@ -228,7 +228,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $page_title = 'Create Coordinator';
-$page_styles = ['assets/css/modules/management/management-create-shared.css'];
+$page_styles = [
+    'assets/css/modules/management/management-create-shared.css',
+    'assets/css/modules/management/management-coordinators.css',
+];
 include 'includes/header.php';
 ?>
 <main class="nxl-container">
@@ -271,12 +274,11 @@ include 'includes/header.php';
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Courses to Supervise *</label>
-                    <div class="border rounded-3 p-3" style="max-height: 160px; overflow: auto;">
-                        <div class="row row-cols-1 row-cols-xl-2 g-1">
+                    <div class="app-coordinator-course-picker">
+                        <div class="app-coordinator-course-grid">
                         <?php foreach ($courses as $course): ?>
                             <?php $courseId = (int)$course['id']; ?>
-                            <div class="col">
-                                <div class="form-check mb-0">
+                            <div class="app-coordinator-course-item form-check">
                                 <input
                                     class="form-check-input"
                                     type="checkbox"
@@ -285,10 +287,9 @@ include 'includes/header.php';
                                     value="<?php echo $courseId; ?>"
                                     <?php echo in_array($courseId, $selectedCourseIds, true) ? 'checked' : ''; ?>
                                 >
-                                <label class="form-check-label" for="create_course_<?php echo $courseId; ?>">
+                                <label class="form-check-label" for="create_course_<?php echo $courseId; ?>" title="<?php echo h($course['name']); ?>">
                                     <?php echo h($course['name']); ?>
                                 </label>
-                            </div>
                             </div>
                         <?php endforeach; ?>
                         <?php if (empty($courses)): ?>
@@ -296,7 +297,7 @@ include 'includes/header.php';
                         <?php endif; ?>
                         </div>
                     </div>
-                    <small class="text-muted d-block mt-1">Choose one or more courses this coordinator can supervise.</small>
+                    <small class="app-coordinator-course-help d-block">Choose one or more courses this coordinator can supervise.</small>
                 </div>
                 <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control" value="<?php echo post_value('office_location'); ?>"></div>
                 <div class="col-md-4"><label class="form-label">Profile Picture</label><input type="file" name="profile_picture" class="form-control create-form-file-input" accept="image/*"></div>
