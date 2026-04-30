@@ -41,6 +41,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'applications-review.php', 'attendance.php', 'external-attendance.php', 'attendance-corrections.php', 'print_attendance.php', 'external-biometric.php',
                     'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
+                    'import-ojt-internal.php', 'import-ojt-external.php',
                     'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php', 'reports-dtr-manual-input.php',
                 ],
                 'sections' => [
@@ -61,6 +62,8 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'items' => [
                             ['label' => 'OJT List', 'href' => 'ojt.php', 'icon' => 'feather-archive'],
                             ['label' => 'OJT Create', 'href' => 'ojt-create.php', 'icon' => 'feather-plus-circle'],
+                            ['label' => 'Import OJT Internal', 'href' => 'import-ojt-internal.php', 'icon' => 'feather-upload'],
+                            ['label' => 'Import OJT External', 'href' => 'import-ojt-external.php', 'icon' => 'feather-upload-cloud'],
                         ],
                     ],
                     [
