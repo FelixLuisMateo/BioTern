@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 /** @var mysqli $conn */
 
 $message = '';
@@ -8,6 +9,29 @@ $message_type = 'info';
 function h($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+function edit_post_value(string $key, string $fallback = ''): string
+{
+    return htmlspecialchars((string)($_POST[$key] ?? $fallback), ENT_QUOTES, 'UTF-8');
+}
+
+function edit_post_course_ids(): array
+{
+    $raw = $_POST['course_ids'] ?? [];
+    if (!is_array($raw)) {
+        $raw = [$raw];
+    }
+
+    $selected = [];
+    foreach ($raw as $courseId) {
+        $courseId = (int)$courseId;
+        if ($courseId > 0) {
+            $selected[$courseId] = $courseId;
+        }
+    }
+
+    return array_values($selected);
 }
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : (int)($_POST['id'] ?? 0);
@@ -31,6 +55,14 @@ if ($dept_res) {
     }
 }
 
+$courses = [];
+$course_res = $conn->query("SELECT id, name FROM courses ORDER BY name ASC");
+if ($course_res) {
+    while ($row = $course_res->fetch_assoc()) {
+        $courses[] = $row;
+    }
+}
+
 $stmt = $conn->prepare('SELECT * FROM coordinators WHERE id = ? AND deleted_at IS NULL LIMIT 1');
 $coordinator = null;
 if ($stmt) {
@@ -43,7 +75,12 @@ if (!$coordinator) {
     die('Coordinator not found.');
 }
 
+$assignedCourseIds = function_exists('coordinator_course_ids')
+    ? coordinator_course_ids($conn, (int)($coordinator['user_id'] ?? 0))
+    : [];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $originalUserId = (int)($coordinator['user_id'] ?? 0);
     if (($_POST['action'] ?? '') === 'delete') {
         $del = $conn->prepare('UPDATE coordinators SET deleted_at = NOW() WHERE id = ?');
         if ($del) {
@@ -67,21 +104,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $bio = trim((string)($_POST['bio'] ?? ''));
     $profile_picture = trim((string)($_POST['profile_picture'] ?? ''));
     $is_active = isset($_POST['is_active']) ? 1 : 0;
+    $selectedCourseIds = edit_post_course_ids();
 
     if ($user_id <= 0 || $first_name === '' || $last_name === '' || $email === '') {
         $message = 'Please complete required fields.';
         $message_type = 'danger';
+    } elseif (!empty($courses) && empty($selectedCourseIds)) {
+        $message = 'Please select at least one course this coordinator can supervise.';
+        $message_type = 'danger';
     } else {
-        $up = $conn->prepare('UPDATE coordinators SET user_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?, phone = ?, department_id = ?, office_location = ?, bio = ?, profile_picture = ?, is_active = ? WHERE id = ?');
-        if ($up) {
-            $up->bind_param('isssssisssii', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $office_location, $bio, $profile_picture, $is_active, $id);
-            if ($up->execute()) {
-                header('Location: coordinators.php');
-                exit;
+        $conn->begin_transaction();
+        try {
+            $up = $conn->prepare('UPDATE coordinators SET user_id = ?, first_name = ?, last_name = ?, middle_name = ?, email = ?, phone = ?, department_id = ?, office_location = ?, bio = ?, profile_picture = ?, is_active = ? WHERE id = ?');
+            if (!$up) {
+                throw new RuntimeException('Failed to prepare coordinator update statement.');
             }
-            $message = 'Failed to update coordinator: ' . $up->error;
-            $message_type = 'danger';
+
+            $up->bind_param('isssssisssii', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $office_location, $bio, $profile_picture, $is_active, $id);
+            if (!$up->execute()) {
+                $errorText = $up->error;
+                $up->close();
+                throw new RuntimeException('Failed to update coordinator: ' . $errorText);
+            }
             $up->close();
+
+            if ($originalUserId > 0 && $originalUserId !== $user_id && !sync_coordinator_courses($conn, $originalUserId, [])) {
+                throw new RuntimeException('Failed to clear the previous coordinator course assignments.');
+            }
+
+            if (!empty($courses) && !sync_coordinator_courses($conn, $user_id, $selectedCourseIds)) {
+                throw new RuntimeException('Failed to save coordinator course assignments.');
+            }
+
+            $conn->commit();
+            header('Location: coordinators.php');
+            exit;
+        } catch (Throwable $e) {
+            $conn->rollback();
+            $message = $e->getMessage();
+            $message_type = 'danger';
         }
     }
 }
@@ -113,28 +174,43 @@ include 'includes/header.php';
                     <label class="form-label">User *</label>
                     <select name="user_id" class="form-select" required>
                         <?php foreach ($users as $u): ?>
-                            <option value="<?php echo (int)$u['id']; ?>" <?php echo ((int)$coordinator['user_id'] === (int)$u['id']) ? 'selected' : ''; ?>><?php echo h(($u['name'] ?? '') . ' (' . ($u['email'] ?? '') . ')'); ?></option>
+                            <option value="<?php echo (int)$u['id']; ?>" <?php echo ((int)($_POST['user_id'] ?? $coordinator['user_id']) === (int)$u['id']) ? 'selected' : ''; ?>><?php echo h(($u['name'] ?? '') . ' (' . ($u['email'] ?? '') . ')'); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4"><label class="form-label">First Name *</label><input type="text" name="first_name" class="form-control" value="<?php echo h($coordinator['first_name']); ?>" required></div>
-                <div class="col-md-4"><label class="form-label">Last Name *</label><input type="text" name="last_name" class="form-control" value="<?php echo h($coordinator['last_name']); ?>" required></div>
-                <div class="col-md-4"><label class="form-label">Middle Name</label><input type="text" name="middle_name" class="form-control" value="<?php echo h($coordinator['middle_name']); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" value="<?php echo h($coordinator['email']); ?>" required></div>
-                <div class="col-md-4"><label class="form-label">Phone</label><input type="text" name="phone" class="form-control" value="<?php echo h($coordinator['phone']); ?>"></div>
+                <div class="col-md-4"><label class="form-label">First Name *</label><input type="text" name="first_name" class="form-control" value="<?php echo edit_post_value('first_name', $coordinator['first_name']); ?>" required></div>
+                <div class="col-md-4"><label class="form-label">Last Name *</label><input type="text" name="last_name" class="form-control" value="<?php echo edit_post_value('last_name', $coordinator['last_name']); ?>" required></div>
+                <div class="col-md-4"><label class="form-label">Middle Name</label><input type="text" name="middle_name" class="form-control" value="<?php echo edit_post_value('middle_name', $coordinator['middle_name']); ?>"></div>
+                <div class="col-md-4"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" value="<?php echo edit_post_value('email', $coordinator['email']); ?>" required></div>
+                <div class="col-md-4"><label class="form-label">Phone</label><input type="text" name="phone" class="form-control" value="<?php echo edit_post_value('phone', $coordinator['phone']); ?>"></div>
                 <div class="col-md-4">
                     <label class="form-label">Department</label>
                     <select name="department_id" class="form-select">
-                        <option value="">None</option>
+                        <option value="" <?php echo empty($_POST['department_id']) && empty($coordinator['department_id']) ? 'selected' : ''; ?>>None</option>
                         <?php foreach ($departments as $d): ?>
-                            <option value="<?php echo (int)$d['id']; ?>" <?php echo ((int)$coordinator['department_id'] === (int)$d['id']) ? 'selected' : ''; ?>><?php echo h($d['name']); ?></option>
+                            <option value="<?php echo (int)$d['id']; ?>" <?php echo ((string)($_POST['department_id'] ?? $coordinator['department_id']) === (string)$d['id']) ? 'selected' : ''; ?>><?php echo h($d['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control" value="<?php echo h($coordinator['office_location']); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Profile Picture (path)</label><input type="text" name="profile_picture" class="form-control" value="<?php echo h($coordinator['profile_picture']); ?>"></div>
-                <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"><?php echo h($coordinator['bio']); ?></textarea></div>
-                <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_edit" <?php echo ((int)$coordinator['is_active'] === 1) ? 'checked' : ''; ?>><label class="form-check-label" for="is_active_edit">Active</label></div>
+                <div class="col-md-4">
+                    <label class="form-label">Courses to Supervise *</label>
+                    <select name="course_ids[]" class="form-select" multiple size="6" <?php echo !empty($courses) ? 'required' : ''; ?>>
+                        <?php
+                        $selectedCourses = !empty($_POST['course_ids']) ? edit_post_course_ids() : $assignedCourseIds;
+                        foreach ($courses as $course):
+                            $courseId = (int)$course['id'];
+                        ?>
+                            <option value="<?php echo $courseId; ?>" <?php echo in_array($courseId, $selectedCourses, true) ? 'selected' : ''; ?>>
+                                <?php echo h($course['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="text-muted d-block mt-1">Hold Ctrl or Cmd to choose multiple courses.</small>
+                </div>
+                <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control" value="<?php echo edit_post_value('office_location', $coordinator['office_location']); ?>"></div>
+                <div class="col-md-4"><label class="form-label">Profile Picture (path)</label><input type="text" name="profile_picture" class="form-control" value="<?php echo edit_post_value('profile_picture', $coordinator['profile_picture']); ?>"></div>
+                <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"><?php echo edit_post_value('bio', $coordinator['bio']); ?></textarea></div>
+                <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_edit" <?php echo isset($_POST['is_active']) ? 'checked' : (((int)$coordinator['is_active'] === 1) ? 'checked' : ''); ?>><label class="form-check-label" for="is_active_edit">Active</label></div>
                 <div class="col-12 d-flex gap-2">
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                     <a href="coordinators.php" class="btn btn-outline-secondary">Back to List</a>

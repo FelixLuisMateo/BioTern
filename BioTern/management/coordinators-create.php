@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 /** @var mysqli $conn */
 
 $message = '';
@@ -30,6 +31,36 @@ if ($dept_res) {
     }
 }
 
+$courses = [];
+$course_res = $conn->query("SELECT id, name FROM courses ORDER BY name ASC");
+if ($course_res) {
+    while ($row = $course_res->fetch_assoc()) {
+        $courses[] = $row;
+    }
+}
+
+function post_value(string $key, string $default = ''): string
+{
+    return htmlspecialchars((string)($_POST[$key] ?? $default), ENT_QUOTES, 'UTF-8');
+}
+
+function post_selected_courses(): array
+{
+    $raw = $_POST['course_ids'] ?? [];
+    if (!is_array($raw)) {
+        $raw = [$raw];
+    }
+
+    $selected = [];
+    foreach ($raw as $courseId) {
+        $courseId = (int)$courseId;
+        if ($courseId > 0) {
+            $selected[$courseId] = $courseId;
+        }
+    }
+    return array_values($selected);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
@@ -45,12 +76,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $profile_picture = '';
     $profile_picture_fs = '';
     $is_active = isset($_POST['is_active']) ? 1 : 0;
+    $selectedCourseIds = post_selected_courses();
 
     if ($username === '' || $password === '' || $first_name === '' || $last_name === '' || $email === '') {
         $message = 'Please complete required fields.';
         $message_type = 'danger';
     } elseif (strlen($password) < 8) {
         $message = 'Password must be at least 8 characters.';
+        $message_type = 'danger';
+    } elseif (!empty($courses) && empty($selectedCourseIds)) {
+        $message = 'Please select at least one course this coordinator can supervise.';
         $message_type = 'danger';
     } else {
         if (isset($_FILES['profile_picture']) && is_array($_FILES['profile_picture']) && (int)$_FILES['profile_picture']['error'] !== UPLOAD_ERR_NO_FILE) {
@@ -165,6 +200,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 if ($stmt->execute()) {
                     $stmt->close();
+                    if (!empty($courses) && !sync_coordinator_courses($conn, $user_id, $selectedCourseIds)) {
+                        throw new RuntimeException('Failed to save coordinator course assignments.');
+                    }
                     $conn->commit();
                     header('Location: coordinators.php');
                     exit;
@@ -214,26 +252,37 @@ include 'includes/header.php';
             <form method="post" enctype="multipart/form-data" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Username *</label>
-                    <input type="text" name="username" class="form-control" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+                    <input type="text" name="username" class="form-control" autocomplete="off" autocapitalize="off" spellcheck="false" required value="<?php echo post_value('username'); ?>">
                 </div>
-                <div class="col-md-4"><label class="form-label">First Name *</label><input type="text" name="first_name" class="form-control" required></div>
-                <div class="col-md-4"><label class="form-label">Last Name *</label><input type="text" name="last_name" class="form-control" required></div>
-                <div class="col-md-4"><label class="form-label">Middle Name</label><input type="text" name="middle_name" class="form-control"></div>
-                <div class="col-md-4"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" required></div>
+                <div class="col-md-4"><label class="form-label">First Name *</label><input type="text" name="first_name" class="form-control" required value="<?php echo post_value('first_name'); ?>"></div>
+                <div class="col-md-4"><label class="form-label">Last Name *</label><input type="text" name="last_name" class="form-control" required value="<?php echo post_value('last_name'); ?>"></div>
+                <div class="col-md-4"><label class="form-label">Middle Name</label><input type="text" name="middle_name" class="form-control" value="<?php echo post_value('middle_name'); ?>"></div>
+                <div class="col-md-4"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" required value="<?php echo post_value('email'); ?>"></div>
                 <div class="col-md-4"><label class="form-label">Password *</label><input type="password" name="password" class="form-control" minlength="8" autocomplete="new-password" required></div>
-                <div class="col-md-4"><label class="form-label">Phone</label><input type="text" name="phone" class="form-control"></div>
+                <div class="col-md-4"><label class="form-label">Phone</label><input type="text" name="phone" class="form-control" value="<?php echo post_value('phone'); ?>"></div>
                 <div class="col-md-4">
                     <label class="form-label">Department</label>
                     <select name="department_id" class="form-select">
-                        <option value="">None</option>
+                        <option value="" <?php echo empty($_POST['department_id']) ? 'selected' : ''; ?>>None</option>
                         <?php foreach ($departments as $d): ?>
-                            <option value="<?php echo (int)$d['id']; ?>"><?php echo h($d['name']); ?></option>
+                            <option value="<?php echo (int)$d['id']; ?>" <?php echo ((string)($_POST['department_id'] ?? '') === (string)$d['id']) ? 'selected' : ''; ?>><?php echo h($d['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control"></div>
+                <div class="col-md-4">
+                    <label class="form-label">Courses to Supervise *</label>
+                    <select name="course_ids[]" class="form-select" multiple size="6" <?php echo !empty($courses) ? 'required' : ''; ?>>
+                        <?php foreach ($courses as $course): ?>
+                            <option value="<?php echo (int)$course['id']; ?>" <?php echo in_array((int)$course['id'], $selectedCourseIds, true) ? 'selected' : ''; ?>>
+                                <?php echo h($course['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="text-muted d-block mt-1">Hold Ctrl or Cmd to choose multiple courses.</small>
+                </div>
+                <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control" value="<?php echo post_value('office_location'); ?>"></div>
                 <div class="col-md-4"><label class="form-label">Profile Picture</label><input type="file" name="profile_picture" class="form-control create-form-file-input" accept="image/*"></div>
-                <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"></textarea></div>
+                <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"><?php echo post_value('bio'); ?></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_create" checked><label class="form-check-label" for="is_active_create">Active</label></div>
                 <div class="col-12 create-form-actions app-form-actions">
                     <button type="submit" class="btn btn-primary">Save Coordinator</button>

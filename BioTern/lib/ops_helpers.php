@@ -188,5 +188,120 @@ function create_notification(mysqli $conn, int $user_id, string $title, string $
     }
 }
 
+function coordinator_courses_table_exists(?mysqli $conn): bool
+{
+    return table_exists($conn, 'coordinator_courses');
+}
+
+function ensure_coordinator_courses_table(?mysqli $conn): bool
+{
+    if (!($conn instanceof mysqli) || $conn->connect_errno) {
+        return false;
+    }
+
+    static $initialized = false;
+    if ($initialized) {
+        return true;
+    }
+
+    $created = $conn->query("CREATE TABLE IF NOT EXISTS coordinator_courses (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        coordinator_user_id INT NOT NULL,
+        course_id INT NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_coordinator_courses_pair (coordinator_user_id, course_id),
+        INDEX idx_coordinator_courses_user (coordinator_user_id),
+        INDEX idx_coordinator_courses_course (course_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    if (!$created) {
+        return false;
+    }
+
+    $initialized = true;
+    return true;
+}
+
+function coordinator_course_ids(?mysqli $conn, int $coordinatorUserId): array
+{
+    if (!($conn instanceof mysqli) || $conn->connect_errno || $coordinatorUserId <= 0) {
+        return [];
+    }
+
+    if (!ensure_coordinator_courses_table($conn)) {
+        return [];
+    }
+
+    $ids = [];
+    $stmt = $conn->prepare('SELECT course_id FROM coordinator_courses WHERE coordinator_user_id = ? ORDER BY course_id ASC');
+    if (!$stmt) {
+        return [];
+    }
+
+    $stmt->bind_param('i', $coordinatorUserId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result instanceof mysqli_result) {
+        while ($row = $result->fetch_assoc()) {
+            $courseId = (int)($row['course_id'] ?? 0);
+            if ($courseId > 0) {
+                $ids[] = $courseId;
+            }
+        }
+    }
+    $stmt->close();
+
+    return array_values(array_unique($ids));
+}
+
+function sync_coordinator_courses(?mysqli $conn, int $coordinatorUserId, array $courseIds): bool
+{
+    if (!($conn instanceof mysqli) || $conn->connect_errno || $coordinatorUserId <= 0) {
+        return false;
+    }
+
+    if (!ensure_coordinator_courses_table($conn)) {
+        return false;
+    }
+
+    $normalized = [];
+    foreach ($courseIds as $courseId) {
+        $courseId = (int)$courseId;
+        if ($courseId > 0) {
+            $normalized[$courseId] = $courseId;
+        }
+    }
+
+    $deleteStmt = $conn->prepare('DELETE FROM coordinator_courses WHERE coordinator_user_id = ?');
+    if (!$deleteStmt) {
+        return false;
+    }
+
+    $deleteStmt->bind_param('i', $coordinatorUserId);
+    $deleteStmt->execute();
+    $deleteStmt->close();
+
+    if (empty($normalized)) {
+        return true;
+    }
+
+    $insertStmt = $conn->prepare('INSERT INTO coordinator_courses (coordinator_user_id, course_id, created_at) VALUES (?, ?, NOW())');
+    if (!$insertStmt) {
+        return false;
+    }
+
+    foreach ($normalized as $courseId) {
+        $insertStmt->bind_param('ii', $coordinatorUserId, $courseId);
+        if (!$insertStmt->execute()) {
+            $insertStmt->close();
+            return false;
+        }
+    }
+
+    $insertStmt->close();
+    return true;
+}
+
 
 
