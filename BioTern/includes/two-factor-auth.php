@@ -29,6 +29,18 @@ if (!function_exists('biotern_two_factor_pending_key')) {
     }
 }
 
+if (!function_exists('biotern_two_factor_normalize_remember_flag')) {
+    function biotern_two_factor_normalize_remember_flag($value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        $normalized = strtolower(trim((string)$value));
+        return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+    }
+}
+
 if (!function_exists('biotern_two_factor_pending_ttl_seconds')) {
     function biotern_two_factor_pending_ttl_seconds(): int
     {
@@ -89,7 +101,7 @@ if (!function_exists('biotern_two_factor_cookie_options')) {
 }
 
 if (!function_exists('biotern_two_factor_set_pending_cookie')) {
-    function biotern_two_factor_set_pending_cookie(int $userId, int $createdAt, string $identifier, string $next): void
+    function biotern_two_factor_set_pending_cookie(int $userId, int $createdAt, string $identifier, string $next, bool $remember = false): void
     {
         $userId = (int)$userId;
         $createdAt = (int)$createdAt;
@@ -103,7 +115,8 @@ if (!function_exists('biotern_two_factor_set_pending_cookie')) {
             $next = '';
         }
 
-        $payload = $userId . '|' . $createdAt . '|' . base64_encode($next) . '|' . base64_encode($identifier);
+        $rememberFlag = $remember ? '1' : '0';
+        $payload = $userId . '|' . $createdAt . '|' . base64_encode($next) . '|' . base64_encode($identifier) . '|' . $rememberFlag;
         $signature = hash_hmac('sha256', $payload, biotern_two_factor_cookie_key());
         $token = base64_encode($payload . '|' . $signature);
 
@@ -400,7 +413,7 @@ if (!function_exists('biotern_two_factor_code_hash')) {
 }
 
 if (!function_exists('biotern_two_factor_prepare_pending_login')) {
-    function biotern_two_factor_prepare_pending_login(int $userId, string $identifier = '', string $next = ''): void
+    function biotern_two_factor_prepare_pending_login(int $userId, string $identifier = '', string $next = '', bool $remember = false): void
     {
         $userId = (int)$userId;
         if ($userId <= 0) {
@@ -420,11 +433,12 @@ if (!function_exists('biotern_two_factor_prepare_pending_login')) {
                 'user_id' => $userId,
                 'identifier' => $identifier,
                 'next' => $next,
+                'remember_me' => $remember,
                 'created_at' => $createdAt,
             ];
         }
 
-        biotern_two_factor_set_pending_cookie($userId, $createdAt, $identifier, $next);
+        biotern_two_factor_set_pending_cookie($userId, $createdAt, $identifier, $next, $remember);
     }
 }
 
@@ -442,7 +456,7 @@ if (!function_exists('biotern_two_factor_parse_pending_cookie')) {
         }
 
         $parts = explode('|', $decoded);
-        if (count($parts) !== 5) {
+        if (count($parts) !== 5 && count($parts) !== 6) {
             return null;
         }
 
@@ -450,13 +464,17 @@ if (!function_exists('biotern_two_factor_parse_pending_cookie')) {
         $createdAt = (int)($parts[1] ?? 0);
         $nextRaw = base64_decode((string)($parts[2] ?? ''), true);
         $identifierRaw = base64_decode((string)($parts[3] ?? ''), true);
-        $signature = (string)($parts[4] ?? '');
+        $rememberRaw = count($parts) === 6 ? (string)($parts[4] ?? '') : '0';
+        $signature = (string)($parts[count($parts) === 6 ? 5 : 4] ?? '');
 
         if ($userId <= 0 || $createdAt <= 0 || $signature === '') {
             return null;
         }
 
         $payload = (string)($parts[0] ?? '') . '|' . (string)($parts[1] ?? '') . '|' . (string)($parts[2] ?? '') . '|' . (string)($parts[3] ?? '');
+        if (count($parts) === 6) {
+            $payload .= '|' . (string)($parts[4] ?? '');
+        }
         $expected = hash_hmac('sha256', $payload, biotern_two_factor_cookie_key());
         if (!hash_equals($expected, $signature)) {
             return null;
@@ -476,6 +494,7 @@ if (!function_exists('biotern_two_factor_parse_pending_cookie')) {
             'user_id' => $userId,
             'identifier' => substr(trim(is_string($identifierRaw) ? $identifierRaw : ''), 0, 191),
             'next' => $next,
+            'remember_me' => biotern_two_factor_normalize_remember_flag($rememberRaw),
             'created_at' => $createdAt,
         ];
     }
@@ -503,6 +522,7 @@ if (!function_exists('biotern_two_factor_normalize_pending_payload')) {
             'user_id' => (int)($payload['user_id'] ?? 0),
             'identifier' => substr(trim((string)($payload['identifier'] ?? '')), 0, 191),
             'next' => $next,
+            'remember_me' => !empty($payload['remember_me']) && biotern_two_factor_normalize_remember_flag($payload['remember_me']),
             'created_at' => (int)($payload['created_at'] ?? 0),
         ];
     }
@@ -525,7 +545,8 @@ if (!function_exists('biotern_two_factor_get_pending_login')) {
                     (int)$sessionPayload['user_id'],
                     (int)$sessionPayload['created_at'],
                     (string)$sessionPayload['identifier'],
-                    (string)$sessionPayload['next']
+                    (string)$sessionPayload['next'],
+                    !empty($sessionPayload['remember_me'])
                 );
                 return $sessionPayload;
             }

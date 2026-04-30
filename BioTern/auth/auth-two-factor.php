@@ -197,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $maskedEmail = (string)($issueResult['masked_email'] ?? biotern_two_factor_mask_email($targetEmail));
                 $twoFactorNotice = 'A new verification code was sent to ' . $maskedEmail . '.';
-                biotern_two_factor_prepare_pending_login($pendingUserId, $identifier, $pendingNext);
+                biotern_two_factor_prepare_pending_login($pendingUserId, $identifier, $pendingNext, !empty($pending['remember_me']));
                 biotern_two_factor_page_log_attempt($conn, $pendingUserId, $identifier, (string)($pendingUser['role'] ?? ''), 'failed', 'two_factor_code_resent');
             }
         }
@@ -236,8 +236,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role'] = (string)$freshUser['role'];
             $_SESSION['profile_picture'] = (string)($freshUser['profile_picture'] ?? '');
             $_SESSION['logged_in'] = true;
-            biotern_set_auth_cookie((int)$freshUser['id']);
-            biotern_login_session_start($conn, (int)$freshUser['id']);
+            $rememberMe = !empty($pending['remember_me']);
+            biotern_set_auth_cookie((int)$freshUser['id'], $rememberMe);
+            biotern_login_session_start($conn, (int)$freshUser['id'], $rememberMe);
             biotern_two_factor_clear_pending_login();
 
             biotern_two_factor_page_log_attempt($conn, (int)$freshUser['id'], $identifier, (string)($freshUser['role'] ?? ''), 'success', 'login_success_2fa');

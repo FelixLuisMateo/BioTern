@@ -52,6 +52,7 @@ $next = isset($_GET['next']) ? basename((string)$_GET['next']) : '';
 if ($next !== '' && !preg_match('/^[A-Za-z0-9_-]+\.php$/', $next)) {
     $next = '';
 }
+$rememberMe = !empty($_POST['remember_me']);
 
 if (isset($_GET['verified']) && (string)$_GET['verified'] === '1') {
     $login_notice = 'Your email is verified. You can log in now.';
@@ -444,7 +445,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 }
                                 log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'two_factor_send_failed', $client_ip, $client_user_agent);
                             } else {
-                                biotern_two_factor_prepare_pending_login((int)$user['id'], $identifier, $next);
+                                biotern_two_factor_prepare_pending_login((int)$user['id'], $identifier, $next, $rememberMe);
                                 $_SESSION['two_factor_notice'] = 'A verification code was sent to ' . (string)($issueResult['masked_email'] ?? biotern_two_factor_mask_email($targetEmail)) . '.';
                                 log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'failed', 'two_factor_required', $client_ip, $client_user_agent);
                                 header('Location: ' . $route_prefix . 'auth/auth-two-factor.php');
@@ -460,8 +461,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['role'] = (string)$user['role'];
                         $_SESSION['profile_picture'] = (string)($user['profile_picture'] ?? '');
                         $_SESSION['logged_in'] = true;
-                        biotern_set_auth_cookie((int)$user['id']);
-                        biotern_login_session_start($mysqli, (int)$user['id']);
+                        biotern_set_auth_cookie((int)$user['id'], $rememberMe);
+                        biotern_login_session_start($mysqli, (int)$user['id'], $rememberMe);
                         biotern_two_factor_clear_pending_login();
 
                         log_login_attempt($mysqli, (int)$user['id'], $identifier, (string)($user['role'] ?? ''), 'success', 'login_success', $client_ip, $client_user_agent);

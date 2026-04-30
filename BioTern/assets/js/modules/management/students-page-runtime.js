@@ -252,12 +252,58 @@
     var trackSelect = form.querySelector('select[name="assignment_track"]');
     var departmentSelect = form.querySelector('select[name="department_id"]');
     var supervisorSelect = form.querySelector('select[name="supervisor_id"]');
+    var startDateInput = form.querySelector('input[name="start_date"]');
     var summary = modal.querySelector("[data-student-action-summary]");
     var currentInfo = modal.querySelector("[data-student-action-current]");
     var selectedInfo = modal.querySelector("[data-student-action-selected]");
     var editLink = modal.querySelector("[data-action-edit]");
     var printLink = modal.querySelector("[data-action-print]");
     var remindLink = modal.querySelector("[data-action-remind]");
+
+    function draftKey(studentId) {
+      return "biotern_students_action_draft_" + String(studentId || "");
+    }
+
+    function readDraft(studentId) {
+      if (!studentId) return null;
+      try {
+        var raw = window.localStorage.getItem(draftKey(studentId));
+        if (!raw) return null;
+        var parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return null;
+        return parsed;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function writeDraft() {
+      var studentId = studentIdInput ? String(studentIdInput.value || "") : "";
+      if (!studentId) return;
+
+      var payload = {
+        assignment_track: trackSelect ? String(trackSelect.value || "") : "",
+        department_id: departmentSelect ? String(departmentSelect.value || "") : "",
+        supervisor_id: supervisorSelect ? String(supervisorSelect.value || "") : "",
+        start_date: startDateInput ? String(startDateInput.value || "") : "",
+        saved_at: Date.now(),
+      };
+
+      try {
+        window.localStorage.setItem(draftKey(studentId), JSON.stringify(payload));
+      } catch (e) {}
+    }
+
+    function restoreDraft(studentId) {
+      var draft = readDraft(studentId);
+      if (!draft) return false;
+
+      if (trackSelect && draft.assignment_track) trackSelect.value = String(draft.assignment_track);
+      if (departmentSelect && draft.department_id) departmentSelect.value = String(draft.department_id);
+      if (supervisorSelect && draft.supervisor_id) supervisorSelect.value = String(draft.supervisor_id);
+      if (startDateInput && draft.start_date) startDateInput.value = String(draft.start_date);
+      return true;
+    }
 
     function optionText(select, value) {
       if (!select) return "";
@@ -268,6 +314,29 @@
         }
       }
       return "";
+    }
+
+    function updateActionCopy(studentName, studentTrack, supervisorName, coordinatorName, departmentName, summaryText) {
+      if (summary) summary.textContent = summaryText || ("Assign track and actions for " + studentName + ".");
+      if (currentInfo) {
+        currentInfo.textContent =
+          "Current track: " +
+          studentTrack.charAt(0).toUpperCase() +
+          studentTrack.slice(1) +
+          " | Supervisor: " +
+          (supervisorName || "Not assigned") +
+          " | Coordinator: " +
+          (coordinatorName || "Not assigned");
+      }
+      if (selectedInfo) {
+        selectedInfo.textContent =
+          "Department: " +
+          (optionText(departmentSelect, departmentSelect && departmentSelect.value) || departmentName || "Not assigned") +
+          " | Supervisor: " +
+          (optionText(supervisorSelect, supervisorSelect && supervisorSelect.value) || supervisorName || "Not assigned") +
+          " | Coordinator: " +
+          (coordinatorName || "Not assigned");
+      }
     }
 
     document.querySelectorAll("[data-student-action-trigger]").forEach(function (trigger) {
@@ -302,26 +371,6 @@
             }
           }
         }
-        if (summary) summary.textContent = "Assign track and actions for " + studentName + ".";
-        if (currentInfo) {
-          currentInfo.textContent =
-            "Current track: " +
-            studentTrack.charAt(0).toUpperCase() +
-            studentTrack.slice(1) +
-            " | Supervisor: " +
-            (supervisorName || "Not assigned") +
-            " | Coordinator: " +
-            (coordinatorName || "Not assigned");
-        }
-        if (selectedInfo) {
-          selectedInfo.textContent =
-            "Department: " +
-            (optionText(departmentSelect, departmentSelect && departmentSelect.value) || departmentName || "Not assigned") +
-            " | Supervisor: " +
-            (optionText(supervisorSelect, supervisorSelect && supervisorSelect.value) || supervisorName || "Not assigned") +
-            " | Coordinator: " +
-            (coordinatorName || "Not assigned");
-        }
         if (editLink) editLink.href = "students-edit.php?id=" + encodeURIComponent(studentId);
         if (printLink) printLink.href = "students-view.php?id=" + encodeURIComponent(studentId);
         if (remindLink) {
@@ -331,8 +380,71 @@
             "?subject=" +
             encodeURIComponent("Reminder from BioTern");
         }
+
+        if (restoreDraft(studentId)) {
+          updateActionCopy(
+            studentName,
+            trackSelect ? String(trackSelect.value || studentTrack) : studentTrack,
+            supervisorName,
+            coordinatorName,
+            departmentName,
+            "Restored your last saved draft for " + studentName + "."
+          );
+        } else {
+          updateActionCopy(studentName, studentTrack, supervisorName, coordinatorName, departmentName);
+        }
+
+        if (typeof window.BioTernSelectDropdown !== "undefined" &&
+            window.BioTernSelectDropdown &&
+            typeof window.BioTernSelectDropdown.refresh === "function") {
+          window.BioTernSelectDropdown.refresh();
+        }
       });
     });
+
+    ["change", "input"].forEach(function (evtName) {
+      [trackSelect, departmentSelect, supervisorSelect, startDateInput].forEach(function (field) {
+        if (!field) return;
+        field.addEventListener(evtName, writeDraft);
+      });
+    });
+
+    if (window.bootstrap && window.bootstrap.Modal && typeof modal.addEventListener === "function") {
+      modal.addEventListener("shown.bs.modal", function () {
+        var studentId = studentIdInput ? String(studentIdInput.value || "") : "";
+        if (!studentId) return;
+        if (restoreDraft(studentId)) {
+          var studentName = "";
+          var studentTrack = trackSelect ? String(trackSelect.value || "internal") : "internal";
+          var supervisorName = "";
+          var coordinatorName = "";
+          var departmentName = "";
+          var trigger = document.querySelector('[data-student-action-trigger][data-student-id="' + studentId.replace(/"/g, '\\"') + '"]');
+          if (trigger) {
+            studentName = trigger.getAttribute("data-student-name") || "";
+            studentTrack = trigger.getAttribute("data-student-track") || studentTrack;
+            supervisorName = trigger.getAttribute("data-student-supervisor-name") || "";
+            coordinatorName = trigger.getAttribute("data-student-coordinator-name") || "";
+            departmentName = trigger.getAttribute("data-student-department-name") || "";
+          }
+          if (typeof window.BioTernSelectDropdown !== "undefined" &&
+              window.BioTernSelectDropdown &&
+              typeof window.BioTernSelectDropdown.refresh === "function") {
+            window.BioTernSelectDropdown.refresh();
+          }
+          if (studentName) {
+            updateActionCopy(
+              studentName,
+              studentTrack,
+              supervisorName,
+              coordinatorName,
+              departmentName,
+              "Restored your last saved draft for " + studentName + "."
+            );
+          }
+        }
+      });
+    }
   }
 
   function initExportActions() {

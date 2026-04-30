@@ -33,10 +33,17 @@ if (!function_exists('biotern_is_vercel_runtime')) {
     }
 }
 
-if (!function_exists('biotern_auth_session_ttl_seconds')) {
-    function biotern_auth_session_ttl_seconds()
+if (!function_exists('biotern_auth_session_remember_ttl_seconds')) {
+    function biotern_auth_session_remember_ttl_seconds(): int
     {
-        return 60 * 60 * 12;
+        return 60 * 60 * 24 * 30;
+    }
+}
+
+if (!function_exists('biotern_auth_session_ttl_seconds')) {
+    function biotern_auth_session_ttl_seconds(bool $remember = false): int
+    {
+        return $remember ? biotern_auth_session_remember_ttl_seconds() : (60 * 60 * 12);
     }
 }
 
@@ -87,7 +94,7 @@ if (!function_exists('biotern_auth_cookie_options')) {
 }
 
 if (!function_exists('biotern_set_auth_cookie')) {
-    function biotern_set_auth_cookie($userId)
+    function biotern_set_auth_cookie($userId, bool $remember = false)
     {
         $userId = (int)$userId;
         if ($userId <= 0) {
@@ -95,7 +102,7 @@ if (!function_exists('biotern_set_auth_cookie')) {
         }
 
         $issuedAt = time();
-        $expiresAt = $issuedAt + biotern_auth_session_ttl_seconds();
+        $expiresAt = $issuedAt + biotern_auth_session_ttl_seconds($remember);
         $payload = $userId . '|' . $issuedAt . '|' . $expiresAt;
         $signature = hash_hmac('sha256', $payload, biotern_auth_cookie_key());
         $token = base64_encode($payload . '|' . $signature);
@@ -330,7 +337,7 @@ if (!function_exists('biotern_auth_session_client_ip')) {
 }
 
 if (!function_exists('biotern_login_session_start')) {
-    function biotern_login_session_start($conn, int $userId): bool
+    function biotern_login_session_start($conn, int $userId, bool $remember = false): bool
     {
         $db = biotern_auth_session_db($conn);
         $userId = (int)$userId;
@@ -348,7 +355,7 @@ if (!function_exists('biotern_login_session_start')) {
             return false;
         }
 
-        $expiresAt = time() + biotern_auth_session_ttl_seconds();
+        $expiresAt = time() + biotern_auth_session_ttl_seconds($remember);
         $sessionId = substr((string)session_id(), 0, 128);
         $ipAddress = biotern_auth_session_client_ip();
         $userAgent = substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
