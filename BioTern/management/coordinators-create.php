@@ -111,19 +111,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $message_type = 'danger';
                 } else {
                     $uploadDirFs = dirname(__DIR__) . '/uploads/profile_pictures';
-                    if (!is_dir($uploadDirFs) && !@mkdir($uploadDirFs, 0775, true)) {
-                        $message = 'Failed to create upload directory.';
-                        $message_type = 'danger';
-                    } else {
+                    $uploadReady = is_dir($uploadDirFs) || @mkdir($uploadDirFs, 0775, true);
+                    if ($uploadReady) {
                         $filename = 'coordinator_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
                         $destFs = $uploadDirFs . '/' . $filename;
-                        if (!@move_uploaded_file($tmp, $destFs)) {
-                            $message = 'Failed to save uploaded profile picture.';
-                            $message_type = 'danger';
-                        } else {
+                        if (@move_uploaded_file($tmp, $destFs)) {
                             $profile_picture_fs = $destFs;
                             $profile_picture = 'uploads/profile_pictures/' . $filename;
                         }
+                    }
+                    if ($profile_picture === '') {
+                        // Keep coordinator creation working even if the picture cannot be stored.
+                        $message = '';
+                        $message_type = 'info';
                     }
                 }
             }
