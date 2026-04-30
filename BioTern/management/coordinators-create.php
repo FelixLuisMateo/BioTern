@@ -271,10 +271,12 @@ include 'includes/header.php';
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Courses to Supervise *</label>
-                    <div class="border rounded-3 p-3" style="max-height: 180px; overflow: auto;">
+                    <div class="border rounded-3 p-3" style="max-height: 160px; overflow: auto;">
+                        <div class="row row-cols-1 row-cols-xl-2 g-1">
                         <?php foreach ($courses as $course): ?>
                             <?php $courseId = (int)$course['id']; ?>
-                            <div class="form-check mb-2">
+                            <div class="col">
+                                <div class="form-check mb-0">
                                 <input
                                     class="form-check-input"
                                     type="checkbox"
@@ -287,10 +289,12 @@ include 'includes/header.php';
                                     <?php echo h($course['name']); ?>
                                 </label>
                             </div>
+                            </div>
                         <?php endforeach; ?>
                         <?php if (empty($courses)): ?>
                             <div class="text-muted small">No courses available right now.</div>
                         <?php endif; ?>
+                        </div>
                     </div>
                     <small class="text-muted d-block mt-1">Choose one or more courses this coordinator can supervise.</small>
                 </div>
