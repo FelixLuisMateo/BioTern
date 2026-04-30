@@ -97,10 +97,19 @@ function export_ojt_xlsx_row(int $rowNumber, array $values, int $style = 0): str
 function export_ojt_xlsx_sheet_xml(array $headers, array $rows): string
 {
     $lastRow = max(1, count($rows) + 1);
-    $dimension = 'A1:K' . $lastRow;
+    $lastColumn = export_ojt_column_name(max(0, count($headers) - 1));
+    $dimension = 'A1:' . $lastColumn . $lastRow;
     $sheetRows = export_ojt_xlsx_row(1, $headers, 1);
     foreach ($rows as $index => $row) {
         $sheetRows .= export_ojt_xlsx_row($index + 2, $row);
+    }
+
+    $widths = [18, 22, 22, 22, 34, 14, 14, 18, 28, 38, 16];
+    $cols = '';
+    foreach ($headers as $index => $_header) {
+        $columnNumber = $index + 1;
+        $width = $widths[$index] ?? 18;
+        $cols .= '<col min="' . $columnNumber . '" max="' . $columnNumber . '" width="' . $width . '" customWidth="1"/>';
     }
 
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -108,19 +117,7 @@ function export_ojt_xlsx_sheet_xml(array $headers, array $rows): string
         . '<dimension ref="' . $dimension . '"/>'
         . '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'
         . '<sheetFormatPr defaultRowHeight="16.5"/>'
-        . '<cols>'
-        . '<col min="1" max="1" width="18" customWidth="1"/>'
-        . '<col min="2" max="2" width="16" customWidth="1"/>'
-        . '<col min="3" max="3" width="34" customWidth="1"/>'
-        . '<col min="4" max="4" width="18" customWidth="1"/>'
-        . '<col min="5" max="5" width="14" customWidth="1"/>'
-        . '<col min="6" max="6" width="48" customWidth="1"/>'
-        . '<col min="7" max="7" width="72" customWidth="1"/>'
-        . '<col min="8" max="8" width="34" customWidth="1"/>'
-        . '<col min="9" max="9" width="28" customWidth="1"/>'
-        . '<col min="10" max="10" width="38" customWidth="1"/>'
-        . '<col min="11" max="11" width="16" customWidth="1"/>'
-        . '</cols>'
+        . '<cols>' . $cols . '</cols>'
         . '<sheetData>' . $sheetRows . '</sheetData>'
         . '<autoFilter ref="' . $dimension . '"/>'
         . '</worksheet>';
@@ -348,6 +345,9 @@ $sql = "
         COALESCE(s.middle_name, '') AS middle_name,
         COALESCE(s.last_name, '') AS last_name,
         COALESCE(s.phone, '') AS phone,
+        COALESCE(s.email, '') AS email,
+        COALESCE(s.course_id, 0) AS course_id,
+        COALESCE(s.section_id, 0) AS section_id,
         COALESCE(s.status, '') AS student_status,
         COALESCE(NULLIF(sec.code, ''), sec.name, '') AS registered_section,
         {$masterSelect},
@@ -377,11 +377,25 @@ if ($schoolYear !== '') {
 $filenameParts[] = date('Ymd-His');
 $filename = implode('-', $filenameParts) . '.xlsx';
 $headers = $type === 'internal'
-    ? ['student_no', 'school_year', 'STUDENT NAME', 'CONTACT NO.', 'SECTION', 'COMPANY', 'ADDRESS', 'SUPERVISOR NAME', 'POSITION', 'COMPANY REPRESENTATIVE', 'STATUS']
+    ? ['student_no', 'last_name', 'first_name', 'middle_name', 'email', 'course_id', 'section_id', 'password']
     : ['student_no', 'school_year', 'student_name', 'contact_no', 'section', 'company_name', 'company_address', 'supervisor_name', 'supervisor_position', 'company_representative', 'status'];
 $exportRows = [];
 
 while ($row = $res->fetch_assoc()) {
+    if ($type === 'internal') {
+        $exportRows[] = [
+            (string)($row['student_no'] ?? ''),
+            (string)($row['last_name'] ?? ''),
+            (string)($row['first_name'] ?? ''),
+            (string)($row['middle_name'] ?? ''),
+            (string)($row['email'] ?? ''),
+            (string)((int)($row['course_id'] ?? 0) > 0 ? (int)$row['course_id'] : ''),
+            (string)((int)($row['section_id'] ?? 0) > 0 ? (int)$row['section_id'] : ''),
+            '',
+        ];
+        continue;
+    }
+
     $registeredName = trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? ''));
     $schoolYearOut = trim((string)($row['master_school_year'] ?? '')) !== ''
         ? (string)$row['master_school_year']

@@ -34,16 +34,13 @@ $sheet->setTitle('Internal Students');
 
 $headers = [
     'student_no',
-    'school_year',
-    'STUDENT NAME',
-    'CONTACT NO.',
-    'SECTION',
-    'COMPANY',
-    'ADDRESS',
-    'SUPERVISOR NAME',
-    'POSITION',
-    'COMPANY REPRESENTATIVE',
-    'STATUS',
+    'last_name',
+    'first_name',
+    'middle_name',
+    'email',
+    'course_id',
+    'section_id',
+    'password',
 ];
 
 $sheet->fromArray($headers, null, 'A1', true);

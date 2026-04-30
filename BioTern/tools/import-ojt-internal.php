@@ -344,7 +344,7 @@ ob_end_flush();
                             </div>
                         </div>
                         <div class="col-12 col-md-8">
-                            <p class="text-muted mb-0">Template columns: student_no, user_id, last_name, first_name, middle_name, course_id, section_id, email, password, status, created_at, update_at. Keep <strong>user_id</strong> blank for new imports.</p>
+                            <p class="text-muted mb-0">Template columns: student_no, last_name, first_name, middle_name, email, course_id, section_id, password. Fill <strong>password</strong> only when the student does not already have an account.</p>
                         </div>
                     </div>
 
