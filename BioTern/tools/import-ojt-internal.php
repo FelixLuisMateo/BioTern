@@ -83,6 +83,229 @@ $headerCandidates = [
     'updated_at' => ['updated_at', 'update_at', 'updated'],
 ];
 
+function ojt_internal_column_exists(mysqli $conn, string $table, string $column): bool
+{
+    $safeTable = str_replace('`', '``', $table);
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    $exists = $res instanceof mysqli_result && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+    return $exists;
+}
+
+function ojt_internal_add_column_if_missing(mysqli $conn, string $table, string $column, string $definition): void
+{
+    if (!ojt_internal_column_exists($conn, $table, $column)) {
+        $safeTable = str_replace('`', '``', $table);
+        $conn->query("ALTER TABLE `{$safeTable}` ADD COLUMN {$definition}");
+    }
+}
+
+function ojt_internal_ensure_account_schema(mysqli $conn): void
+{
+    ojt_internal_add_column_if_missing($conn, 'users', 'application_status', "application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
+    ojt_internal_add_column_if_missing($conn, 'users', 'application_submitted_at', 'application_submitted_at DATETIME NULL');
+    ojt_internal_add_column_if_missing($conn, 'users', 'approved_by', 'approved_by INT NULL');
+    ojt_internal_add_column_if_missing($conn, 'users', 'approved_at', 'approved_at DATETIME NULL');
+    ojt_internal_add_column_if_missing($conn, 'users', 'email_verified_at', 'email_verified_at DATETIME NULL');
+    ojt_internal_add_column_if_missing($conn, 'students', 'semester', 'semester VARCHAR(30) DEFAULT NULL');
+    ojt_internal_add_column_if_missing($conn, 'students', 'assignment_track', "assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'");
+    ojt_internal_add_column_if_missing($conn, 'students', 'application_status', "application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending'");
+}
+
+function ojt_internal_password_hash(string $password): string
+{
+    $password = trim($password);
+    if ($password === '') {
+        return '';
+    }
+    $info = password_get_info($password);
+    if (!empty($info['algo'])) {
+        return $password;
+    }
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+    return $hash !== false ? $hash : $password;
+}
+
+function ojt_internal_school_year(): string
+{
+    $year = (int)date('Y');
+    $month = (int)date('n');
+    if ($month >= 8) {
+        return $year . '-' . ($year + 1);
+    }
+    return ($year - 1) . '-' . $year;
+}
+
+function ojt_internal_find_student(mysqli $conn, string $studentNo, string $email): ?array
+{
+    if ($studentNo !== '') {
+        $stmt = $conn->prepare('SELECT id, user_id FROM students WHERE student_id = ? LIMIT 1');
+        if ($stmt) {
+            $stmt->bind_param('s', $studentNo);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if (is_array($row)) {
+                return $row;
+            }
+        }
+    }
+    if ($email !== '') {
+        $stmt = $conn->prepare('SELECT id, user_id FROM students WHERE email = ? LIMIT 1');
+        if ($stmt) {
+            $stmt->bind_param('s', $email);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if (is_array($row)) {
+                return $row;
+            }
+        }
+    }
+    return null;
+}
+
+function ojt_internal_find_student_user(mysqli $conn, int $preferredUserId, string $email, string $studentNo): int
+{
+    if ($preferredUserId > 0) {
+        $stmt = $conn->prepare("SELECT id FROM users WHERE id = ? AND role = 'student' LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param('i', $preferredUserId);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if ($row) {
+                return (int)$row['id'];
+            }
+        }
+    }
+
+    $stmt = $conn->prepare("SELECT id FROM users WHERE role = 'student' AND (email = ? OR username = ?) ORDER BY id ASC LIMIT 1");
+    if (!$stmt) {
+        return 0;
+    }
+    $stmt->bind_param('ss', $email, $studentNo);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return (int)($row['id'] ?? 0);
+}
+
+function ojt_internal_create_or_sync_account(mysqli $conn, array $row, int $currentUserId, string &$message): int
+{
+    $message = '';
+    $studentNo = trim((string)($row['student_no'] ?? ''));
+    $lastName = trim((string)($row['last_name'] ?? ''));
+    $firstName = trim((string)($row['first_name'] ?? ''));
+    $middleName = trim((string)($row['middle_name'] ?? ''));
+    $email = trim((string)($row['email'] ?? ''));
+    $password = trim((string)($row['password'] ?? ''));
+    $courseId = (int)($row['course_id'] ?? 0);
+    $sectionId = (int)($row['section_id'] ?? 0);
+    $preferredUserId = (int)($row['user_id'] ?? 0);
+    $status = trim((string)($row['status'] ?? 'active'));
+    $studentStatus = strtolower($status) === 'inactive' || $status === '0' ? '0' : '1';
+
+    if ($studentNo === '' || $lastName === '' || $firstName === '') {
+        $message = 'missing required student fields';
+        return 0;
+    }
+
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $message = 'missing valid account email';
+        return 0;
+    }
+
+    $student = ojt_internal_find_student($conn, $studentNo, $email);
+    if ($student && (int)($student['user_id'] ?? 0) > 0) {
+        $preferredUserId = (int)$student['user_id'];
+    }
+
+    $userId = ojt_internal_find_student_user($conn, $preferredUserId, $email, $studentNo);
+    $passwordHash = ojt_internal_password_hash($password);
+    $fullName = trim($firstName . ' ' . ($middleName !== '' ? $middleName . ' ' : '') . $lastName);
+    $profilePicture = '';
+
+    if ($userId <= 0) {
+        if ($passwordHash === '') {
+            $message = 'password blank; account not created';
+            return 0;
+        }
+        $stmt = $conn->prepare("INSERT INTO users (name, username, email, password, role, is_active, application_status, application_submitted_at, approved_by, approved_at, profile_picture, created_at, updated_at) VALUES (?, ?, ?, ?, 'student', 1, 'approved', NOW(), NULLIF(?, 0), NOW(), ?, NOW(), NOW())");
+        if (!$stmt) {
+            $message = 'unable to prepare user account';
+            return 0;
+        }
+        $stmt->bind_param('ssssis', $fullName, $studentNo, $email, $passwordHash, $currentUserId, $profilePicture);
+        if (!$stmt->execute()) {
+            $message = 'unable to create user account: ' . $stmt->error;
+            $stmt->close();
+            return 0;
+        }
+        $userId = (int)$conn->insert_id;
+        $stmt->close();
+    } else {
+        if ($passwordHash !== '') {
+            $stmt = $conn->prepare("UPDATE users SET name = ?, username = ?, email_verified_at = CASE WHEN email <> ? THEN NULL ELSE email_verified_at END, email = ?, password = ?, role = 'student', is_active = 1, application_status = 'approved', approved_by = COALESCE(approved_by, NULLIF(?, 0)), approved_at = COALESCE(approved_at, NOW()), updated_at = NOW() WHERE id = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param('sssssii', $fullName, $studentNo, $email, $email, $passwordHash, $currentUserId, $userId);
+                $stmt->execute();
+                $stmt->close();
+            }
+        } else {
+            $stmt = $conn->prepare("UPDATE users SET name = ?, username = ?, email_verified_at = CASE WHEN email <> ? THEN NULL ELSE email_verified_at END, email = ?, role = 'student', is_active = 1, application_status = 'approved', approved_by = COALESCE(approved_by, NULLIF(?, 0)), approved_at = COALESCE(approved_at, NOW()), updated_at = NOW() WHERE id = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param('ssssii', $fullName, $studentNo, $email, $email, $currentUserId, $userId);
+                $stmt->execute();
+                $stmt->close();
+            }
+        }
+    }
+
+    if ($userId <= 0) {
+        $message = 'unable to resolve user account';
+        return 0;
+    }
+
+    if ($student) {
+        $studentPk = (int)($student['id'] ?? 0);
+        $stmt = $conn->prepare("UPDATE students SET user_id = ?, course_id = CASE WHEN ? > 0 THEN ? ELSE course_id END, student_id = ?, first_name = ?, last_name = ?, middle_name = NULLIF(?, ''), username = ?, password = COALESCE(NULLIF(?, ''), password), email = ?, section_id = CASE WHEN ? > 0 THEN ? ELSE section_id END, status = ?, school_year = COALESCE(NULLIF(school_year, ''), ?), assignment_track = 'internal', application_status = 'approved', updated_at = NOW() WHERE id = ? LIMIT 1");
+        if ($stmt) {
+            $schoolYear = ojt_internal_school_year();
+            $studentPasswordHash = $passwordHash !== '' ? $passwordHash : '';
+            $stmt->bind_param('iiisssssssiissi', $userId, $courseId, $courseId, $studentNo, $firstName, $lastName, $middleName, $studentNo, $studentPasswordHash, $email, $sectionId, $sectionId, $studentStatus, $schoolYear, $studentPk);
+            $stmt->execute();
+            $stmt->close();
+        }
+    } else {
+        $schoolYear = ojt_internal_school_year();
+        $empty = '';
+        $departmentId = '0';
+        $zero = 0;
+        $studentPasswordHash = $passwordHash !== '' ? $passwordHash : ojt_internal_password_hash(bin2hex(random_bytes(4)));
+        $stmt = $conn->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, bio, department_id, section_id, supervisor_name, coordinator_name, supervisor_id, coordinator_id, phone, date_of_birth, gender, address, internal_total_hours, internal_total_hours_remaining, external_total_hours, external_total_hours_remaining, emergency_contact, profile_picture, status, school_year, assignment_track, application_status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, ?, ?, NULL, ?, ?, ?, 'internal', 'approved', NOW(), NOW())");
+        if ($stmt) {
+            $stmt->bind_param('iisssssssssiiiiisss', $userId, $courseId, $studentNo, $firstName, $lastName, $middleName, $studentNo, $studentPasswordHash, $email, $empty, $departmentId, $sectionId, $zero, $zero, $zero, $zero, $profilePicture, $studentStatus, $schoolYear);
+            if (!$stmt->execute()) {
+                $message = 'account created but student profile was not created: ' . $stmt->error;
+            }
+            $stmt->close();
+        }
+    }
+
+    $stmt = $conn->prepare("UPDATE ojt_internal SET user_id = ?, updated_at = NOW() WHERE student_no = ? LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param('is', $userId, $studentNo);
+        $stmt->execute();
+        $stmt->close();
+    }
+
+    return $userId;
+}
+
 
 // Step 1: Preview (file upload)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
@@ -210,6 +433,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_import']) && 
         }
         $seenStudentNos = [];
         $invalidSkipped = 0;
+        $accountsCreatedOrSynced = 0;
+        $accountSkipped = 0;
+        $accountWarnings = [];
+        ojt_internal_ensure_account_schema($conn);
         foreach ($rows as $row) {
             $studentNo = trim((string)($row[$resolved['student_no']] ?? ''));
             if ($studentNo === '') {
@@ -264,6 +491,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_import']) && 
                 $updated++;
             }
             $processed++;
+
+            $accountRow = [
+                'student_no' => $studentNo,
+                'user_id' => $userId !== null ? $userId : 0,
+                'last_name' => $lastName,
+                'first_name' => $firstName,
+                'middle_name' => $middleName,
+                'course_id' => $courseId !== null ? $courseId : 0,
+                'section_id' => $sectionId !== null ? $sectionId : 0,
+                'email' => $email,
+                'password' => $password,
+                'status' => $status,
+            ];
+            $accountMessage = '';
+            $syncedUserId = ojt_internal_create_or_sync_account($conn, $accountRow, $currentUserId, $accountMessage);
+            if ($syncedUserId > 0) {
+                $accountsCreatedOrSynced++;
+            } else {
+                $accountSkipped++;
+                if ($accountMessage !== '' && count($accountWarnings) < 5) {
+                    $accountWarnings[] = $studentNo . ': ' . $accountMessage;
+                }
+            }
         }
         $stmt->close();
         // Auto-link imported internal data to students table via student number.
@@ -280,7 +530,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_import']) && 
         } else {
             $flashMessage = 'Import completed successfully.';
         }
-        $flashDetail = 'Processed: ' . $processed . ' | New: ' . $inserted . ' | Replaced: ' . $updated . ' | Duplicate Student No detected: ' . count($duplicateList) . ' | Invalid rows skipped: ' . $invalidSkipped;
+        $flashDetail = 'Processed: ' . $processed . ' | New: ' . $inserted . ' | Replaced: ' . $updated . ' | Accounts created/linked: ' . $accountsCreatedOrSynced . ' | Account rows skipped: ' . $accountSkipped . ' | Duplicate Student No detected: ' . count($duplicateList) . ' | Invalid rows skipped: ' . $invalidSkipped;
+        if ($accountWarnings !== []) {
+            $flashDetail .= ' | Account notes: ' . implode('; ', $accountWarnings);
+        }
         unset($_SESSION['ojt_internal_preview']);
     } catch (Throwable $e) {
         $flashType = 'danger';
@@ -344,7 +597,7 @@ ob_end_flush();
                             </div>
                         </div>
                         <div class="col-12 col-md-8">
-                            <p class="text-muted mb-0">Template columns: student_no, last_name, first_name, middle_name, email, course_id, section_id, password. Fill <strong>password</strong> only when the student does not already have an account.</p>
+                            <p class="text-muted mb-0">Template columns: student_no, last_name, first_name, middle_name, email, course_id, section_id, password. Rows with a valid email and teacher-provided password create an approved student account; the student still verifies the email on first login.</p>
                         </div>
                     </div>
 
