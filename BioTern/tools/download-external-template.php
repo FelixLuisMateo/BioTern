@@ -42,6 +42,7 @@ $headers = [
     'supervisor_name',
     'supervisor_position',
     'company_representative',
+    'company_representative_position',
     'status',
 ];
 

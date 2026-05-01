@@ -184,6 +184,7 @@ if ($hasMasterlist && !export_ojt_column_exists($conn, 'ojt_masterlist', 'studen
 }
 $hasMasterlist = $hasMasterlist && export_ojt_column_exists($conn, 'ojt_masterlist', 'student_no');
 $hasInternships = export_ojt_table_exists($conn, 'internships');
+$hasCompanyProfiles = export_ojt_table_exists($conn, 'ojt_partner_companies');
 
 $masterJoin = '';
 $masterSelect = "
@@ -196,9 +197,13 @@ $masterSelect = "
     '' AS master_supervisor_name,
     '' AS master_supervisor_position,
     '' AS master_company_representative,
+    '' AS master_company_representative_position,
     '' AS master_status
 ";
 if ($hasMasterlist) {
+    $masterRepresentativePositionExpr = export_ojt_column_exists($conn, 'ojt_masterlist', 'company_representative_position')
+        ? "COALESCE(ml.company_representative_position, '')"
+        : "''";
     $masterSelect = "
         COALESCE(ml.school_year, '') AS master_school_year,
         COALESCE(ml.student_name, '') AS master_student_name,
@@ -209,6 +214,7 @@ if ($hasMasterlist) {
         COALESCE(ml.supervisor_name, '') AS master_supervisor_name,
         COALESCE(ml.supervisor_position, '') AS master_supervisor_position,
         COALESCE(ml.company_representative, '') AS master_company_representative,
+        {$masterRepresentativePositionExpr} AS master_company_representative_position,
         COALESCE(ml.status, '') AS master_status
     ";
     $masterJoin = "
@@ -246,7 +252,10 @@ if ($hasInternships) {
         {$internPositionExpr} AS internship_position,
         {$internStatusExpr} AS internship_status
     ";
-    $typeClause = export_ojt_column_exists($conn, 'internships', 'type') ? "WHERE LOWER(COALESCE(i2.type, '{$type}')) = '{$type}'" : '';
+    $latestWhere = ['deleted_at IS NULL'];
+    if (export_ojt_column_exists($conn, 'internships', 'type')) {
+        $latestWhere[] = "LOWER(COALESCE(type, '{$type}')) = '{$type}'";
+    }
     $internJoin = "
         LEFT JOIN (
             SELECT i2.*
@@ -254,10 +263,45 @@ if ($hasInternships) {
             INNER JOIN (
                 SELECT student_id, MAX(id) AS latest_id
                 FROM internships
+                WHERE " . implode(' AND ', $latestWhere) . "
                 GROUP BY student_id
             ) latest_i ON latest_i.latest_id = i2.id
-            {$typeClause}
+            WHERE i2.deleted_at IS NULL
         ) i ON i.student_id = s.id
+    ";
+}
+
+$profileJoin = '';
+$profileSelect = "
+    '' AS profile_company_name,
+    '' AS profile_company_address,
+    '' AS profile_supervisor_name,
+    '' AS profile_supervisor_position,
+    '' AS profile_company_representative,
+    '' AS profile_company_representative_position
+";
+if ($hasCompanyProfiles) {
+    if ($hasMasterlist && $hasInternships) {
+        $profileCompanySource = "COALESCE(NULLIF(ml.company_name, ''), NULLIF(i.company_name, ''), '')";
+    } elseif ($hasMasterlist) {
+        $profileCompanySource = "COALESCE(NULLIF(ml.company_name, ''), '')";
+    } elseif ($hasInternships) {
+        $profileCompanySource = "COALESCE(NULLIF(i.company_name, ''), '')";
+    } else {
+        $profileCompanySource = "''";
+    }
+    $profileSelect = "
+        COALESCE(pc.company_name, '') AS profile_company_name,
+        COALESCE(pc.company_address, '') AS profile_company_address,
+        COALESCE(pc.supervisor_name, '') AS profile_supervisor_name,
+        COALESCE(pc.supervisor_position, '') AS profile_supervisor_position,
+        COALESCE(pc.company_representative, '') AS profile_company_representative,
+        COALESCE(pc.company_representative_position, '') AS profile_company_representative_position
+    ";
+    $profileJoin = "
+        LEFT JOIN ojt_partner_companies pc
+          ON TRIM(COALESCE(pc.company_name, '')) COLLATE utf8mb4_unicode_ci =
+             TRIM({$profileCompanySource}) COLLATE utf8mb4_unicode_ci
     ";
 }
 
@@ -351,11 +395,13 @@ $sql = "
         COALESCE(s.status, '') AS student_status,
         COALESCE(NULLIF(sec.code, ''), sec.name, '') AS registered_section,
         {$masterSelect},
-        {$internSelect}
+        {$internSelect},
+        {$profileSelect}
     FROM students s
     LEFT JOIN sections sec ON sec.id = s.section_id
     {$masterJoin}
     {$internJoin}
+    {$profileJoin}
     WHERE " . implode(' AND ', $where) . "
     ORDER BY s.last_name ASC, s.first_name ASC, s.student_id ASC
 ";
@@ -378,7 +424,7 @@ $filenameParts[] = date('Ymd-His');
 $filename = implode('-', $filenameParts) . '.xlsx';
 $headers = $type === 'internal'
     ? ['student_no', 'last_name', 'first_name', 'middle_name', 'email', 'course_id', 'section_id', 'password']
-    : ['student_no', 'school_year', 'student_name', 'contact_no', 'section', 'company_name', 'company_address', 'supervisor_name', 'supervisor_position', 'company_representative', 'status'];
+    : ['student_no', 'school_year', 'student_name', 'contact_no', 'section', 'company_name', 'company_address', 'supervisor_name', 'supervisor_position', 'company_representative', 'company_representative_position', 'status'];
 $exportRows = [];
 
 while ($row = $res->fetch_assoc()) {
@@ -400,17 +446,36 @@ while ($row = $res->fetch_assoc()) {
     $schoolYearOut = trim((string)($row['master_school_year'] ?? '')) !== ''
         ? (string)$row['master_school_year']
         : (trim((string)($row['student_school_year'] ?? '')) !== '' ? (string)$row['student_school_year'] : (string)($row['internship_school_year'] ?? ''));
+    $companyNameOut = trim((string)($row['profile_company_name'] ?? '')) !== ''
+        ? (string)$row['profile_company_name']
+        : (trim((string)($row['master_company_name'] ?? '')) !== '' ? (string)$row['master_company_name'] : (string)($row['internship_company_name'] ?? ''));
+    $companyAddressOut = trim((string)($row['profile_company_address'] ?? '')) !== ''
+        ? (string)$row['profile_company_address']
+        : (trim((string)($row['master_company_address'] ?? '')) !== '' ? (string)$row['master_company_address'] : (string)($row['internship_company_address'] ?? ''));
+    $supervisorNameOut = trim((string)($row['profile_supervisor_name'] ?? '')) !== ''
+        ? (string)$row['profile_supervisor_name']
+        : (trim((string)($row['master_supervisor_name'] ?? '')) !== '' ? (string)$row['master_supervisor_name'] : (string)($row['internship_supervisor_name'] ?? ''));
+    $supervisorPositionOut = trim((string)($row['profile_supervisor_position'] ?? '')) !== ''
+        ? (string)$row['profile_supervisor_position']
+        : (trim((string)($row['master_supervisor_position'] ?? '')) !== '' ? (string)$row['master_supervisor_position'] : (string)($row['internship_position'] ?? ''));
+    $representativeOut = trim((string)($row['profile_company_representative'] ?? '')) !== ''
+        ? (string)$row['profile_company_representative']
+        : (string)($row['master_company_representative'] ?? '');
+    $representativePositionOut = trim((string)($row['profile_company_representative_position'] ?? '')) !== ''
+        ? (string)$row['profile_company_representative_position']
+        : (string)($row['master_company_representative_position'] ?? '');
     $exportRows[] = [
         (string)($row['student_no'] ?? ''),
         $schoolYearOut,
         trim((string)($row['master_student_name'] ?? '')) !== '' ? (string)$row['master_student_name'] : $registeredName,
         trim((string)($row['master_contact_no'] ?? '')) !== '' ? (string)$row['master_contact_no'] : (string)($row['phone'] ?? ''),
         trim((string)($row['master_section'] ?? '')) !== '' ? (string)$row['master_section'] : biotern_format_section_code((string)($row['registered_section'] ?? '')),
-        trim((string)($row['master_company_name'] ?? '')) !== '' ? (string)$row['master_company_name'] : (string)($row['internship_company_name'] ?? ''),
-        trim((string)($row['master_company_address'] ?? '')) !== '' ? (string)$row['master_company_address'] : (string)($row['internship_company_address'] ?? ''),
-        trim((string)($row['master_supervisor_name'] ?? '')) !== '' ? (string)$row['master_supervisor_name'] : (string)($row['internship_supervisor_name'] ?? ''),
-        trim((string)($row['master_supervisor_position'] ?? '')) !== '' ? (string)$row['master_supervisor_position'] : (string)($row['internship_position'] ?? ''),
-        (string)($row['master_company_representative'] ?? ''),
+        $companyNameOut,
+        $companyAddressOut,
+        $supervisorNameOut,
+        $supervisorPositionOut,
+        $representativeOut,
+        $representativePositionOut,
         trim((string)($row['master_status'] ?? '')) !== '' ? (string)$row['master_status'] : (trim((string)($row['internship_status'] ?? '')) !== '' ? (string)$row['internship_status'] : (string)($row['student_status'] ?? '')),
     ];
 }

@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/company_profiles.php';
+
 function biotern_ojt_masterlist_header_present(array $rows): bool
 {
     if ($rows === []) {
@@ -105,6 +107,7 @@ function biotern_ojt_masterlist_ensure(mysqli $conn): void
         supervisor_name VARCHAR(255) DEFAULT NULL,
         supervisor_position VARCHAR(255) DEFAULT NULL,
         company_representative VARCHAR(255) DEFAULT NULL,
+        company_representative_position VARCHAR(255) DEFAULT NULL,
         status VARCHAR(100) DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -120,6 +123,15 @@ function biotern_ojt_masterlist_ensure(mysqli $conn): void
     if (!$hasStudentNo) {
         $conn->query("ALTER TABLE ojt_masterlist ADD COLUMN student_no VARCHAR(100) DEFAULT NULL AFTER semester");
     }
+
+    $res = $conn->query("SHOW COLUMNS FROM ojt_masterlist LIKE 'company_representative_position'");
+    $hasRepresentativePosition = $res instanceof mysqli_result && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+    if (!$hasRepresentativePosition) {
+        $conn->query("ALTER TABLE ojt_masterlist ADD COLUMN company_representative_position VARCHAR(255) DEFAULT NULL AFTER company_representative");
+    }
 }
 
 function biotern_ojt_masterlist_import_rows(mysqli $conn, array $rows, string $sourceWorkbook, string $defaultType, array &$errors = []): int
@@ -130,8 +142,8 @@ function biotern_ojt_masterlist_import_rows(mysqli $conn, array $rows, string $s
     $stmt = $conn->prepare("INSERT INTO ojt_masterlist (
             school_year, semester, student_no, source_workbook, source_sheet, source_row_number,
             student_lookup_key, student_name, contact_no, section, company_name, company_address,
-            supervisor_name, supervisor_position, company_representative, status, created_at, updated_at
-        ) VALUES (?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            supervisor_name, supervisor_position, company_representative, company_representative_position, status, created_at, updated_at
+        ) VALUES (?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ON DUPLICATE KEY UPDATE
             student_no = COALESCE(NULLIF(VALUES(student_no), ''), ojt_masterlist.student_no),
             source_workbook = VALUES(source_workbook),
@@ -144,6 +156,7 @@ function biotern_ojt_masterlist_import_rows(mysqli $conn, array $rows, string $s
             supervisor_name = VALUES(supervisor_name),
             supervisor_position = VALUES(supervisor_position),
             company_representative = VALUES(company_representative),
+            company_representative_position = VALUES(company_representative_position),
             status = VALUES(status),
             updated_at = NOW()");
     if (!$stmt) {
@@ -163,6 +176,7 @@ function biotern_ojt_masterlist_import_rows(mysqli $conn, array $rows, string $s
         $supervisorName = biotern_ojt_masterlist_row_value($row, ['supervisor_name']);
         $supervisorPosition = biotern_ojt_masterlist_row_value($row, ['supervisor_position', 'position']);
         $companyRepresentative = biotern_ojt_masterlist_row_value($row, ['company_representative']);
+        $companyRepresentativePosition = biotern_ojt_masterlist_row_value($row, ['company_representative_position', 'representative_position']);
         $status = biotern_ojt_masterlist_row_value($row, ['status'], $defaultType === 'internal' ? 'internal' : 'external');
         $lookupKey = $studentNo !== '' ? biotern_ojt_masterlist_lookup_key($studentNo) : biotern_ojt_masterlist_lookup_key($studentName);
         if ($lookupKey === '' || $studentName === '') {
@@ -172,7 +186,7 @@ function biotern_ojt_masterlist_import_rows(mysqli $conn, array $rows, string $s
         $sheetName = $defaultType . '_students';
         $rowNumber = $index + 2;
         $stmt->bind_param(
-            'sssssissssssssss',
+            'sssssisssssssssss',
             $schoolYear,
             $semester,
             $studentNo,
@@ -188,10 +202,50 @@ function biotern_ojt_masterlist_import_rows(mysqli $conn, array $rows, string $s
             $supervisorName,
             $supervisorPosition,
             $companyRepresentative,
+            $companyRepresentativePosition,
             $status
         );
         if ($stmt->execute()) {
             $imported++;
+            if ($companyName !== '' && function_exists('biotern_company_profiles_ensure_table') && biotern_company_profiles_ensure_table($conn)) {
+                $companyLookupKey = function_exists('biotern_company_profile_lookup_key')
+                    ? biotern_company_profile_lookup_key($companyName, $companyAddress)
+                    : preg_replace('/[^a-z0-9]+/', '', strtolower($companyName));
+                $companyStmt = $conn->prepare("
+                    INSERT INTO ojt_partner_companies (
+                        company_lookup_key,
+                        company_name,
+                        company_address,
+                        supervisor_name,
+                        supervisor_position,
+                        company_representative,
+                        company_representative_position,
+                        created_at,
+                        updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    ON DUPLICATE KEY UPDATE
+                        company_address = COALESCE(NULLIF(VALUES(company_address), ''), ojt_partner_companies.company_address),
+                        supervisor_name = COALESCE(NULLIF(VALUES(supervisor_name), ''), ojt_partner_companies.supervisor_name),
+                        supervisor_position = COALESCE(NULLIF(VALUES(supervisor_position), ''), ojt_partner_companies.supervisor_position),
+                        company_representative = COALESCE(NULLIF(VALUES(company_representative), ''), ojt_partner_companies.company_representative),
+                        company_representative_position = COALESCE(NULLIF(VALUES(company_representative_position), ''), ojt_partner_companies.company_representative_position),
+                        updated_at = NOW()
+                ");
+                if ($companyStmt) {
+                    $companyStmt->bind_param(
+                        'sssssss',
+                        $companyLookupKey,
+                        $companyName,
+                        $companyAddress,
+                        $supervisorName,
+                        $supervisorPosition,
+                        $companyRepresentative,
+                        $companyRepresentativePosition
+                    );
+                    $companyStmt->execute();
+                    $companyStmt->close();
+                }
+            }
             $trackStmt = $conn->prepare("UPDATE students SET assignment_track = ?, updated_at = NOW() WHERE TRIM(COALESCE(student_id, '')) COLLATE utf8mb4_unicode_ci = TRIM(?) COLLATE utf8mb4_unicode_ci");
             if ($trackStmt) {
                 $trackStmt->bind_param('ss', $defaultType, $studentNo);

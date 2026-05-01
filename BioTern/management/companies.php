@@ -792,9 +792,11 @@ if ($internshipsTableReady) {
                 SELECT student_id, MAX(id) AS latest_id
                 FROM internships
                 WHERE deleted_at IS NULL
+                  AND LOWER(COALESCE(type, 'external')) = 'external'
                 GROUP BY student_id
             ) i_latest ON i_latest.latest_id = i_full.id
             WHERE i_full.deleted_at IS NULL
+              AND LOWER(COALESCE(i_full.type, 'external')) = 'external'
         ) i ON i.student_id = s.id
         LEFT JOIN users u ON s.user_id = u.id
         LEFT JOIN sections sec ON s.section_id = sec.id
@@ -822,33 +824,28 @@ if ($internshipsTableReady) {
                 $track = strtolower(trim((string)($row['assignment_track'] ?? 'internal')));
             }
             if (!in_array($track, ['internal', 'external'], true)) {
-                $track = 'internal';
+                $track = 'external';
             }
-            $requiredHours = $track === 'external'
-                ? (int)($row['external_total_hours'] ?? 0)
-                : (int)($row['internal_total_hours'] ?? 0);
+            $track = 'external';
+            $row['resolved_track'] = $track;
+
+            $requiredHours = (int)($row['required_hours'] ?? 0);
             if ($requiredHours <= 0) {
-                $requiredHours = (int)($row['required_hours'] ?? 0);
+                $requiredHours = (int)($row['external_total_hours'] ?? 0);
             }
             if ($requiredHours <= 0) {
-                $requiredHours = $track === 'external' ? 250 : 140;
+                $requiredHours = 250;
             }
 
-            $remainingHoursRaw = $track === 'external'
-                ? ($row['external_total_hours_remaining'] ?? null)
-                : ($row['internal_total_hours_remaining'] ?? null);
+            $remainingHoursRaw = $row['external_total_hours_remaining'] ?? null;
             $remainingHours = $remainingHoursRaw !== null && $remainingHoursRaw !== ''
                 ? max(0, (int)$remainingHoursRaw)
                 : null;
-            if ($track === 'external' && (int)($row['rendered_hours'] ?? 0) <= 0 && $remainingHours !== null && $remainingHours <= 0) {
-                $remainingHours = $requiredHours;
+            $renderedHours = (int)($row['rendered_hours'] ?? 0);
+            if ($renderedHours <= 0 && $remainingHours !== null) {
+                $renderedHours = max(0, $requiredHours - $remainingHours);
             }
-            $renderedHours = $remainingHours !== null
-                ? max(0, $requiredHours - $remainingHours)
-                : 0;
-            if ($renderedHours <= 0 && (int)($row['rendered_hours'] ?? 0) > 0 && strtolower(trim((string)($row['internship_type'] ?? $track))) === $track) {
-                $renderedHours = (int)($row['rendered_hours'] ?? 0);
-            }
+            $renderedHours = min($requiredHours, max(0, $renderedHours));
 
             $row['required_hours'] = $requiredHours;
             $row['rendered_hours'] = $renderedHours;
@@ -944,9 +941,11 @@ if ($internshipsTableReady) {
                 SELECT student_id, MAX(id) AS latest_id
                 FROM internships
                 WHERE deleted_at IS NULL
+                  AND LOWER(COALESCE(type, 'external')) = 'external'
                 GROUP BY student_id
             ) latest ON latest.latest_id = i_full.id
             WHERE i_full.deleted_at IS NULL
+              AND LOWER(COALESCE(i_full.type, 'external')) = 'external'
         ) i ON i.student_id = s.id
         WHERE s.deleted_at IS NULL
         ORDER BY
@@ -1102,6 +1101,116 @@ if ($selectedCompany !== null) {
     $companyInterns = array_values($selectedCompany['filtered_interns'] ?? []);
 }
 
+if ($printTarget !== '') {
+    if ($printTarget === 'students' && $selectedCompany === null) {
+        http_response_code(404);
+        echo 'No company selected for printing.';
+        exit;
+    }
+    ?>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title><?php echo h($printTarget === 'students' ? 'Company Student List' : 'Company Lists'); ?></title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #111827; margin: 24px; }
+        .print-head { text-align: center; margin-bottom: 18px; }
+        .print-head img { width: 72px; height: 72px; object-fit: contain; }
+        .print-head h2 { margin: 6px 0 2px; font-size: 16px; letter-spacing: 0; }
+        .print-head div { font-size: 12px; color: #374151; }
+        .print-title { margin: 16px 0 8px; text-align: center; font-weight: 700; font-size: 15px; }
+        .print-meta { margin-bottom: 8px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
+        th, td { border: 1px solid #1f2937; padding: 6px 7px; vertical-align: top; word-break: break-word; }
+        th { background: #f3f4f6; font-weight: 700; }
+        .col-index { width: 36px; text-align: center; }
+        small { display: block; color: #4b5563; margin-top: 2px; }
+        @media print { body { margin: 12mm; } }
+    </style>
+</head>
+<body>
+    <div class="print-head">
+        <img src="assets/images/ccstlogo.png" alt="CCST">
+        <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+        <div>SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
+        <div>Telefax No.: (045) 624-0215</div>
+    </div>
+    <?php if ($printTarget === 'companies'): ?>
+        <div class="print-title">COMPANY LISTS</div>
+        <div class="print-meta"><strong>FILTER:</strong> <?php echo h(($filterSchoolYear !== '' ? $filterSchoolYear : 'All School Years') . ' / ' . ($filterSemester !== '' ? $filterSemester : 'All Semesters') . ' / ' . ($filterLocation !== '' ? $filterLocation : 'All Locations')); ?></div>
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-index">#</th>
+                    <th>COMPANY NAME</th>
+                    <th>ADDRESS</th>
+                    <th>SUPERVISOR</th>
+                    <th>REPRESENTATIVE</th>
+                    <th>STUDENTS</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($companies as $index => $company): ?>
+                    <tr>
+                        <td class="col-index"><?php echo (int)$index + 1; ?></td>
+                        <td><?php echo h(company_display_name((string)($company['company_name'] ?? ''))); ?></td>
+                        <td><?php echo h(trim((string)($company['company_address'] ?? '')) !== '' ? (string)$company['company_address'] : 'Not provided'); ?></td>
+                        <td>
+                            <?php echo h(trim((string)($company['supervisor_name'] ?? '')) !== '' ? (string)$company['supervisor_name'] : 'Not provided'); ?>
+                            <?php if (trim((string)($company['supervisor_position'] ?? '')) !== ''): ?><small><?php echo h((string)$company['supervisor_position']); ?></small><?php endif; ?>
+                        </td>
+                        <td>
+                            <?php echo h(trim((string)($company['company_representative'] ?? '')) !== '' ? (string)$company['company_representative'] : 'Not provided'); ?>
+                            <?php if (trim((string)($company['company_representative_position'] ?? '')) !== ''): ?><small><?php echo h((string)$company['company_representative_position']); ?></small><?php endif; ?>
+                        </td>
+                        <td><?php echo (int)($company['intern_count'] ?? 0); ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php else: ?>
+        <div class="print-title">COMPANY STUDENT LIST</div>
+        <div class="print-meta"><strong>COMPANY:</strong> <?php echo h(company_display_name((string)($selectedCompany['company_name'] ?? ''))); ?></div>
+        <div class="print-meta"><strong>SUPERVISOR:</strong> <?php echo h(trim((string)($selectedCompany['supervisor_name'] ?? '')) !== '' ? (string)$selectedCompany['supervisor_name'] : 'Not provided'); ?></div>
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-index">#</th>
+                    <th>STUDENT NO.</th>
+                    <th>LAST NAME</th>
+                    <th>FIRST NAME</th>
+                    <th>MIDDLE NAME</th>
+                    <th>COURSE / SECTION</th>
+                    <th>STATUS</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if ($companyInterns === []): ?>
+                    <tr><td class="col-index">1</td><td colspan="6">No students matched the current filter for this company.</td></tr>
+                <?php else: ?>
+                    <?php foreach ($companyInterns as $index => $intern): ?>
+                        <tr>
+                            <td class="col-index"><?php echo (int)$index + 1; ?></td>
+                            <td><?php echo h((string)($intern['student_id'] ?? '')); ?></td>
+                            <td><?php echo h((string)($intern['last_name'] ?? '')); ?></td>
+                            <td><?php echo h((string)($intern['first_name'] ?? '')); ?></td>
+                            <td><?php echo h((string)($intern['middle_name'] ?? '')); ?></td>
+                            <td><?php echo h(trim((string)($intern['course_name'] ?? '-') . ' / ' . (string)($intern['section_label'] ?? '-'))); ?></td>
+                            <td><?php echo h(ucfirst((string)($intern['internship_status'] ?? 'Unknown'))); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+    <script>window.addEventListener('load', function () { window.print(); });</script>
+</body>
+</html>
+    <?php
+    exit;
+}
+
 $page_title = 'Companies';
 $page_body_class = 'companies-page' . ($printTarget !== '' ? (' companies-print-' . $printTarget) : '');
 $page_styles = [
@@ -1149,7 +1258,7 @@ include 'includes/header.php';
                     'course_id' => $filterCourseId > 0 ? $filterCourseId : null,
                     'section_id' => $filterSectionId > 0 ? $filterSectionId : null,
                     'print' => 'companies',
-                ])); ?>" class="btn btn-outline-secondary">
+                ])); ?>" class="btn btn-outline-secondary" target="_blank" rel="noopener">
                     <i class="feather-printer me-2"></i>
                     <span>Print Companies</span>
                 </a>
@@ -1339,7 +1448,7 @@ include 'includes/header.php';
                                             'course_id' => $filterCourseId > 0 ? $filterCourseId : null,
                                             'section_id' => $filterSectionId > 0 ? $filterSectionId : null,
                                             'print' => 'students',
-                                        ])); ?>" class="btn btn-outline-secondary">
+                                        ])); ?>" class="btn btn-outline-secondary" target="_blank" rel="noopener">
                                             <i class="feather-printer me-2"></i>
                                             <span>Print Students</span>
                                         </a>
@@ -1359,7 +1468,7 @@ include 'includes/header.php';
                                             <i class="feather-map-pin me-2"></i>
                                             <span>DAU MOA</span>
                                         </a>
-                                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewCompanyProfileModal">
+                                        <button type="button" class="btn btn-outline-primary companies-action-wide" data-bs-toggle="modal" data-bs-target="#viewCompanyProfileModal">
                                             <i class="feather-eye me-2"></i>
                                             <span>Open Profile</span>
                                         </button>
@@ -1434,7 +1543,7 @@ include 'includes/header.php';
                                                                         <span class="companies-dot">|</span>
                                                                         <?php echo h((string)($intern['section_label'] ?? '-')); ?>
                                                                         <span class="companies-dot">|</span>
-                                                                        <?php echo h(company_track_label((string)($intern['assignment_track'] ?? 'internal'))); ?>
+                                                                        <?php echo h(company_track_label((string)($intern['resolved_track'] ?? $intern['internship_type'] ?? 'external'))); ?>
                                                                     </p>
                                                                 </div>
                                                             </div>
