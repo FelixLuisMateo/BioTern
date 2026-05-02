@@ -32,6 +32,11 @@
 .app-storage-list-card .card-body,
 .app-storage-details-card .card-body {
     padding: 1.35rem;
+    min-width: 0;
+}
+
+.app-storage-details-card .card-body {
+    overflow: hidden;
 }
 
 .app-storage-sidebar-card {
@@ -47,6 +52,9 @@
     color: #fff;
     margin: 0;
     font-weight: 700;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .app-storage-sidebar-head p,
@@ -429,6 +437,14 @@
 .app-storage-action-button {
     padding: 0.75rem 0.95rem;
     text-decoration: none;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.app-storage-action-button span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .app-storage-action-button:hover,
@@ -447,11 +463,22 @@
 .app-storage-details {
     display: grid;
     gap: 1.15rem;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .app-storage-details-meta {
     color: var(--storage-muted);
     font-size: 0.9rem;
+    min-width: 0;
+}
+
+.app-storage-details-meta span,
+.app-storage-history-item strong,
+.app-storage-history-item small {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .app-storage-detail-block {
@@ -459,6 +486,9 @@
     border-radius: 18px;
     border: 1px solid var(--storage-border);
     background: rgba(15, 23, 42, 0.48);
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .app-storage-detail-block h4 {
@@ -769,10 +799,29 @@
     display: grid;
     grid-template-columns: 1fr auto;
     gap: 0.75rem;
+    min-width: 0;
+}
+
+.app-storage-rename-row .form-control {
+    min-width: 0;
+}
+
+.app-storage-rename-row .app-storage-action-button {
+    padding-inline: 0.85rem;
 }
 
 .app-storage-resource-tag {
     cursor: pointer;
+}
+
+@media (max-width: 1399.98px) {
+    .app-storage-rename-row {
+        grid-template-columns: 1fr;
+    }
+
+    .app-storage-rename-row .app-storage-action-button {
+        width: 100%;
+    }
 }
 
 

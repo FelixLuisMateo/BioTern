@@ -86,6 +86,10 @@
         if (category === 'requirements' && !isStudent) return 'Reports';
         return ({ requirements: 'Requirements', generated: 'Generated Docs', internship: 'Internship', images: 'Images', reports: 'Reports', other: 'Other' }[category] || 'Other');
     };
+    const categoryValueForSave = (category) => {
+        if (category === 'requirements' && !isStudent) return 'reports';
+        return category || defaultUploadCategory;
+    };
     const scopeLabel = (scope) => scope === 'shared' ? 'Shared' : 'Personal';
     const audienceLabel = (audience) => ({ all: 'All Users', student: 'Students', supervisor: 'Supervisors', user: 'Specific User' }[audience] || 'All Users');
     const activityLabel = (type) => ({ upload: 'Uploaded', update: 'Updated', replace: 'Replaced file', delete: 'Moved to trash', restore: 'Restored', toggle_star: 'Updated star', bulk_delete: 'Bulk delete', bulk_restore: 'Bulk restore' }[type] || 'Updated');
@@ -385,7 +389,7 @@
         if (event.target.closest('[data-open-upload]')) return openUploadPanel();
         if (event.target.closest('[data-close-upload]')) return closeUploadPanel();
         if (event.target.closest('[data-edit-file]')) { const file = getSelectedFile(); if (file && file.can_edit) openUploadPanel(file); return; }
-        if (event.target.closest('[data-rename-save]')) { const file = getSelectedFile(); const renameInput = app.querySelector('[data-rename-input]'); if (file && file.can_edit && renameInput) { const nextTitle = String(renameInput.value || '').trim(); if (nextTitle !== '') { try { await postJson({ action: 'update', id: Number(file.id), title: nextTitle, category: file.category, scope: file.scope, shared_audience: file.shared_audience || 'all', shared_target_user_id: file.shared_target_user_id || '', notes: file.notes || '' }); await fetchFiles(); } catch (error) { window.alert(error instanceof Error ? error.message : 'Unable to rename this file.'); } } } return; }
+        if (event.target.closest('[data-rename-save]')) { const file = getSelectedFile(); const renameInput = app.querySelector('[data-rename-input]'); if (file && file.can_edit && renameInput) { const nextTitle = String(renameInput.value || '').trim(); if (nextTitle !== '') { try { const data = await postJson({ action: 'update', id: Number(file.id), title: nextTitle, category: categoryValueForSave(file.category), scope: file.scope, shared_audience: file.shared_audience || 'all', shared_target_user_id: file.shared_target_user_id || '', notes: file.notes || '' }); if (data.file && data.file.id) state.selectedId = Number(data.file.id); await fetchFiles(); } catch (error) { window.alert(error instanceof Error ? error.message : 'Unable to rename this file.'); } } } return; }
         if (event.target.closest('[data-toggle-star]')) return toggleStar();
         if (event.target.closest('[data-delete-file]')) return deleteFile();
         if (event.target.closest('[data-restore-file]')) return restoreFile();
