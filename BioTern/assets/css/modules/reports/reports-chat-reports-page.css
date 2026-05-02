@@ -159,6 +159,15 @@ body.reports-chat-reports-page .page-header-statement {
     color: var(--report-text);
 }
 
+.chatreports-punishment-line {
+    color: var(--chatreports-soft-text);
+    font-weight: 800;
+}
+
+.chatreports-action-form input[type="number"]::placeholder {
+    color: var(--chatreports-muted-readable);
+}
+
 body.reports-chat-reports-page .chatreports-table-card .table {
     table-layout: fixed;
 }
