@@ -16,6 +16,69 @@ body.reports-chat-reports-page .page-header-statement {
     color: var(--chatreports-muted-readable) !important;
 }
 
+body.reports-chat-reports-page .chatreports-filter-wrap {
+    margin-bottom: 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--report-border);
+    border-radius: 14px;
+    background: var(--report-surface);
+}
+
+body.reports-chat-reports-page .chatreports-table-card {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+body.reports-chat-reports-page .chatreports-table-card .table {
+    display: block;
+    margin: 0;
+}
+
+body.reports-chat-reports-page .chatreports-table-card thead {
+    display: none;
+}
+
+body.reports-chat-reports-page .chatreports-table-card tbody {
+    display: grid;
+    gap: 0.9rem;
+    padding: 1rem;
+}
+
+body.reports-chat-reports-page .chatreports-table-card tbody tr {
+    display: grid;
+    grid-template-columns: 58px minmax(220px, 0.85fr) minmax(320px, 1.25fr) minmax(170px, 0.55fr) minmax(260px, 0.75fr);
+    gap: 0.9rem;
+    align-items: stretch;
+    border: 1px solid var(--report-border);
+    border-radius: 16px;
+    background: color-mix(in srgb, var(--report-surface-soft) 62%, var(--report-surface) 38%);
+    overflow: hidden;
+}
+
+body.reports-chat-reports-page .chatreports-table-card tbody tr:hover {
+    border-color: color-mix(in srgb, var(--report-primary) 36%, var(--report-border) 64%);
+}
+
+body.reports-chat-reports-page .chatreports-table-card tbody td {
+    display: block;
+    padding: 1rem 0;
+    border: 0 !important;
+    background: transparent !important;
+}
+
+body.reports-chat-reports-page .chatreports-table-card tbody td:first-child {
+    padding-left: 1rem;
+}
+
+body.reports-chat-reports-page .chatreports-table-card tbody td:last-child {
+    padding-right: 1rem;
+}
+
+body.reports-chat-reports-page .chatreports-table-card tbody tr td[colspan] {
+    grid-column: 1 / -1;
+    padding: 2rem 1rem;
+}
+
 .chatreports-kpi-value {
     font-size: 1.4rem;
     font-weight: 700;
@@ -24,7 +87,7 @@ body.reports-chat-reports-page .page-header-statement {
 }
 
 .chatreports-message {
-    max-width: 520px;
+    max-width: none;
     padding: 0.85rem 0.95rem;
     border: 1px solid var(--report-border);
     border-radius: 14px;
@@ -42,13 +105,14 @@ body.reports-chat-reports-page .page-header-statement {
 }
 
 .chatreports-report-cell {
-    min-width: 300px;
+    min-width: 0;
 }
 
 .chatreports-pair {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: start;
+    gap: 0.65rem;
     color: var(--report-text);
 }
 
@@ -58,7 +122,7 @@ body.reports-chat-reports-page .page-header-statement {
 
 .chatreports-pair strong {
     display: block;
-    max-width: 160px;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -80,9 +144,9 @@ body.reports-chat-reports-page .page-header-statement {
 }
 
 .chatreports-meta {
-    display: flex;
+    display: grid;
     flex-wrap: wrap;
-    gap: 0.4rem 0.75rem;
+    gap: 0.3rem;
     margin-top: 0.7rem;
     color: var(--chatreports-muted-readable);
     font-size: 0.76rem;
@@ -133,7 +197,7 @@ body.reports-chat-reports-page .page-header-statement {
 }
 
 .chatreports-action-form {
-    min-width: 240px;
+    min-width: 0;
     display: grid;
     gap: 0.55rem;
     padding: 0.85rem;
@@ -196,46 +260,26 @@ body.reports-chat-reports-page .page-header-statement {
     color: var(--chatreports-muted-readable);
 }
 
-body.reports-chat-reports-page .chatreports-table-card .table {
-    table-layout: fixed;
-}
-
-body.reports-chat-reports-page .chatreports-table-card th:nth-child(1),
-body.reports-chat-reports-page .chatreports-table-card td:nth-child(1) {
-    width: 70px;
-}
-
-body.reports-chat-reports-page .chatreports-table-card th:nth-child(2),
-body.reports-chat-reports-page .chatreports-table-card td:nth-child(2) {
-    width: 30%;
-}
-
-body.reports-chat-reports-page .chatreports-table-card th:nth-child(3),
-body.reports-chat-reports-page .chatreports-table-card td:nth-child(3) {
-    width: 34%;
-}
-
-body.reports-chat-reports-page .chatreports-table-card th:nth-child(4),
-body.reports-chat-reports-page .chatreports-table-card td:nth-child(4) {
-    width: 170px;
-}
-
-body.reports-chat-reports-page .chatreports-table-card th:nth-child(5),
-body.reports-chat-reports-page .chatreports-table-card td:nth-child(5) {
-    width: 285px;
-}
-
 @media (max-width: 991px) {
     .chatreports-summary-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    body.reports-chat-reports-page .chatreports-table-card .table {
-        table-layout: auto;
+    body.reports-chat-reports-page .chatreports-table-card tbody tr {
+        grid-template-columns: 1fr;
+        padding: 0;
+        gap: 0;
     }
 
-    .chatreports-action-form {
-        min-width: 220px;
+    body.reports-chat-reports-page .chatreports-table-card tbody td,
+    body.reports-chat-reports-page .chatreports-table-card tbody td:first-child,
+    body.reports-chat-reports-page .chatreports-table-card tbody td:last-child {
+        padding: 0.85rem 1rem;
+        border-bottom: 1px solid var(--report-border) !important;
+    }
+
+    body.reports-chat-reports-page .chatreports-table-card tbody td:last-child {
+        border-bottom: 0 !important;
     }
 }
 
