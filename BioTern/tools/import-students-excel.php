@@ -1849,7 +1849,11 @@ function students_excel_masterlist_review(mysqli $mysqli, string $schoolYear, st
 
 function students_excel_delete_masterlist(mysqli $mysqli, string $schoolYear, string $semester, array &$summary, string &$errorMessage): bool
 {
-    $summary = ['masterlist_rows_deleted' => 0];
+    $summary = [
+        'masterlist_rows_deleted' => 0,
+        'synced_internships_deleted' => 0,
+        'orphan_company_profiles_deleted' => 0,
+    ];
     $errorMessage = '';
     if ($schoolYear === '') {
         $errorMessage = 'Choose a school year to delete.';
@@ -1860,6 +1864,35 @@ function students_excel_delete_masterlist(mysqli $mysqli, string $schoolYear, st
     if (!students_excel_ensure_masterlist_tables($mysqli, $tableError)) {
         $errorMessage = $tableError;
         return false;
+    }
+
+    $affectedCompanyKeys = [];
+    $affectedStudentNos = [];
+    $affectedStmtSql = "SELECT student_no, company_name, company_address FROM ojt_masterlist WHERE school_year = ?";
+    $affectedTypes = 's';
+    $affectedParams = [$schoolYear];
+    if ($semester !== '') {
+        $affectedStmtSql .= ' AND semester = ?';
+        $affectedTypes .= 's';
+        $affectedParams[] = $semester;
+    }
+    $affectedStmt = $mysqli->prepare($affectedStmtSql);
+    if ($affectedStmt) {
+        students_excel_bind_dynamic($affectedStmt, $affectedTypes, $affectedParams);
+        $affectedStmt->execute();
+        $affectedResult = $affectedStmt->get_result();
+        while ($row = $affectedResult->fetch_assoc()) {
+            $studentNo = trim((string)($row['student_no'] ?? ''));
+            if ($studentNo !== '') {
+                $affectedStudentNos[students_excel_lookup_key($studentNo)] = $studentNo;
+            }
+            $companyName = trim((string)($row['company_name'] ?? ''));
+            if ($companyName !== '') {
+                $companyAddress = trim((string)($row['company_address'] ?? ''));
+                $affectedCompanyKeys[students_excel_lookup_key($companyName . '|' . $companyAddress)] = true;
+            }
+        }
+        $affectedStmt->close();
     }
 
     $sql = 'DELETE FROM ojt_masterlist WHERE school_year = ?';
@@ -1885,6 +1918,105 @@ function students_excel_delete_masterlist(mysqli $mysqli, string $schoolYear, st
         $errorMessage = 'Failed to delete masterlist rows: ' . $stmt->error;
     }
     $stmt->close();
+
+    if (!$ok) {
+        return false;
+    }
+
+    if (students_excel_table_exists($mysqli, 'internships') && students_excel_table_exists($mysqli, 'students')) {
+        $internCols = students_excel_columns($mysqli, 'internships');
+        $whereParts = [];
+        $deleteTypes = '';
+        $deleteParams = [];
+
+        if (in_array('school_year', $internCols, true)) {
+            $whereParts[] = "TRIM(COALESCE(i.school_year, '')) = ?";
+            $deleteTypes .= 's';
+            $deleteParams[] = $schoolYear;
+        }
+        if ($semester !== '' && in_array('semester', $internCols, true)) {
+            $whereParts[] = "TRIM(COALESCE(i.semester, '')) = ?";
+            $deleteTypes .= 's';
+            $deleteParams[] = $semester;
+        }
+        if (in_array('type', $internCols, true)) {
+            $whereParts[] = "LOWER(COALESCE(i.type, 'external')) = 'external'";
+        }
+        if (in_array('company_name', $internCols, true)) {
+            $whereParts[] = "TRIM(COALESCE(i.company_name, '')) <> ''";
+        }
+        if (in_array('deleted_at', $internCols, true)) {
+            $whereParts[] = 'i.deleted_at IS NULL';
+        }
+
+        if ($affectedStudentNos !== []) {
+            $studentPlaceholders = implode(',', array_fill(0, count($affectedStudentNos), '?'));
+            $whereParts[] = "TRIM(COALESCE(s.student_id, '')) IN ({$studentPlaceholders})";
+            foreach (array_values($affectedStudentNos) as $studentNo) {
+                $deleteTypes .= 's';
+                $deleteParams[] = $studentNo;
+            }
+        }
+
+        if ($whereParts !== [] && in_array('school_year', $internCols, true)) {
+            $deleteSql = 'DELETE i FROM internships i INNER JOIN students s ON s.id = i.student_id WHERE ' . implode(' AND ', $whereParts);
+            $deleteStmt = $mysqli->prepare($deleteSql);
+            if ($deleteStmt) {
+                students_excel_bind_dynamic($deleteStmt, $deleteTypes, $deleteParams);
+                if ($deleteStmt->execute()) {
+                    $summary['synced_internships_deleted'] = (int)$deleteStmt->affected_rows;
+                }
+                $deleteStmt->close();
+            }
+        }
+    }
+
+    if (students_excel_table_exists($mysqli, 'ojt_partner_companies')) {
+        $hasInternshipsForProfiles = students_excel_table_exists($mysqli, 'internships');
+        $internshipProfileJoin = '';
+        $internshipProfileWhere = '1 = 1';
+        if ($hasInternshipsForProfiles) {
+            $internColsForProfiles = students_excel_columns($mysqli, 'internships');
+            $internshipProfileJoin = "
+            LEFT JOIN internships i
+                ON TRIM(LOWER(COALESCE(i.company_name, ''))) = TRIM(LOWER(COALESCE(pc.company_name, '')))
+                " . (in_array('deleted_at', $internColsForProfiles, true) ? "AND i.deleted_at IS NULL" : "");
+            $internshipProfileWhere = 'i.id IS NULL';
+        }
+
+        $deleteProfileSql = "
+            DELETE pc FROM ojt_partner_companies pc
+            LEFT JOIN ojt_masterlist ml
+                ON ml.company_id = pc.id
+                OR TRIM(LOWER(COALESCE(ml.company_name, ''))) = TRIM(LOWER(COALESCE(pc.company_name, '')))
+            {$internshipProfileJoin}
+            WHERE ml.id IS NULL
+              AND {$internshipProfileWhere}
+        ";
+
+        if ($affectedCompanyKeys !== []) {
+            $profilePlaceholders = implode(',', array_fill(0, count($affectedCompanyKeys), '?'));
+            $deleteProfileSql .= " AND pc.company_lookup_key IN ({$profilePlaceholders})";
+            $profileTypes = str_repeat('s', count($affectedCompanyKeys));
+            $profileParams = array_keys($affectedCompanyKeys);
+            $profileStmt = $mysqli->prepare($deleteProfileSql);
+            if ($profileStmt) {
+                students_excel_bind_dynamic($profileStmt, $profileTypes, $profileParams);
+                if ($profileStmt->execute()) {
+                    $summary['orphan_company_profiles_deleted'] = (int)$profileStmt->affected_rows;
+                }
+                $profileStmt->close();
+            }
+        } else {
+            $profileStmt = $mysqli->prepare($deleteProfileSql);
+            if ($profileStmt && $profileStmt->execute()) {
+                $summary['orphan_company_profiles_deleted'] = (int)$profileStmt->affected_rows;
+            }
+            if ($profileStmt) {
+                $profileStmt->close();
+            }
+        }
+    }
 
     return $ok;
 }
