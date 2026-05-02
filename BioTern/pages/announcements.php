@@ -39,6 +39,7 @@ function announcements_store_upload(array $file, ?string &$error, ?string &$medi
 {
     $error = null;
     $mediaType = null;
+    $GLOBALS['announcement_pending_media'] = null;
     if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         return '';
     }
@@ -102,21 +103,21 @@ function announcements_store_upload(array $file, ?string &$error, ?string &$medi
         return '';
     }
 
-    $appRoot = dirname(__DIR__);
-    $uploadDir = $appRoot . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'announcements';
-    if (!announcements_ensure_runtime_dir($uploadDir)) {
-        $error = 'Unable to create announcement upload folder.';
+    $blob = is_file($tmp) ? file_get_contents($tmp) : false;
+    if ($blob === false || $blob === '') {
+        $error = 'Unable to read announcement media.';
         return '';
     }
 
-    $name = 'announcement_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
-    $target = $uploadDir . DIRECTORY_SEPARATOR . $name;
-    if (!@move_uploaded_file($tmp, $target)) {
-        $error = 'Unable to save announcement media.';
-        return '';
-    }
+    $safeOriginalName = trim((string)($file['name'] ?? 'announcement.' . $extension));
+    $GLOBALS['announcement_pending_media'] = [
+        'blob' => $blob,
+        'mime' => $mime,
+        'name' => $safeOriginalName !== '' ? substr($safeOriginalName, 0, 255) : ('announcement.' . $extension),
+        'size' => strlen($blob),
+    ];
 
-    return 'uploads/announcements/' . $name;
+    return '__announcement_media_pending__';
 }
 
 function announcements_target_user_ids(mysqli $conn, string $targetRole, int $authorId): array
@@ -215,20 +216,58 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         } elseif (strtotime($endsAt) < strtotime($startsAt)) {
             $error = 'End date cannot be earlier than start date.';
         } else {
+            $mediaForInsert = $mediaPath === '__announcement_media_pending__' ? '' : $mediaPath;
             $stmt = $conn->prepare(
                 "INSERT INTO announcements (title, body, media_path, media_type, popup_size, accent_color, button_label, show_title, display_mode, target_role, starts_at, ends_at, is_active, created_by, created_at, updated_at)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())"
             );
             if ($stmt) {
-                $stmt->bind_param('sssssssissssi', $title, $body, $mediaPath, $mediaType, $popupSize, $accentColor, $buttonLabel, $showTitle, $displayMode, $target, $startsAt, $endsAt, $userId);
+                $stmt->bind_param('sssssssissssi', $title, $body, $mediaForInsert, $mediaType, $popupSize, $accentColor, $buttonLabel, $showTitle, $displayMode, $target, $startsAt, $endsAt, $userId);
                 if ($stmt->execute()) {
-                    $sentCount = 0;
-                    if (in_array($displayMode, ['notification', 'both'], true)) {
-                        $sentCount = announcements_send_notifications($conn, announcements_target_user_ids($conn, $target, $userId), $title, $body);
+                    $announcementId = (int)$stmt->insert_id;
+                    $pendingMedia = is_array($GLOBALS['announcement_pending_media'] ?? null) ? $GLOBALS['announcement_pending_media'] : null;
+                    if ($announcementId > 0 && $pendingMedia !== null) {
+                        $mediaUrl = 'announcement-media.php?id=' . $announcementId;
+                        $mediaMime = (string)($pendingMedia['mime'] ?? '');
+                        $mediaName = (string)($pendingMedia['name'] ?? '');
+                        $mediaSize = (int)($pendingMedia['size'] ?? 0);
+                        $mediaBlob = (string)($pendingMedia['blob'] ?? '');
+                        $mediaStmt = $conn->prepare('UPDATE announcements SET media_path = ?, media_mime = ?, media_name = ?, media_size = ?, media_blob = ? WHERE id = ? LIMIT 1');
+                        if ($mediaStmt) {
+                            $mediaStmt->bind_param('sssisi', $mediaUrl, $mediaMime, $mediaName, $mediaSize, $mediaBlob, $announcementId);
+                            if (!$mediaStmt->execute()) {
+                                $mediaError = $mediaStmt->error;
+                                $cleanupStmt = $conn->prepare('DELETE FROM announcements WHERE id = ? LIMIT 1');
+                                if ($cleanupStmt) {
+                                    $cleanupStmt->bind_param('i', $announcementId);
+                                    $cleanupStmt->execute();
+                                    $cleanupStmt->close();
+                                }
+                                $error = 'Unable to save announcement media in the database. ' . $mediaError;
+                            }
+                            $mediaStmt->close();
+                            if ($error === '') {
+                                $mediaPath = $mediaUrl;
+                            }
+                        } else {
+                            $cleanupStmt = $conn->prepare('DELETE FROM announcements WHERE id = ? LIMIT 1');
+                            if ($cleanupStmt) {
+                                $cleanupStmt->bind_param('i', $announcementId);
+                                $cleanupStmt->execute();
+                                $cleanupStmt->close();
+                            }
+                            $error = 'Unable to prepare announcement media save.';
+                        }
                     }
-                    $message = 'Announcement posted successfully.';
-                    if ($sentCount > 0) {
-                        $message .= ' Notifications sent: ' . $sentCount . '.';
+                    if ($error === '') {
+                        $sentCount = 0;
+                        if (in_array($displayMode, ['notification', 'both'], true)) {
+                            $sentCount = announcements_send_notifications($conn, announcements_target_user_ids($conn, $target, $userId), $title, $body);
+                        }
+                        $message = 'Announcement posted successfully.';
+                        if ($sentCount > 0) {
+                            $message .= ' Notifications sent: ' . $sentCount . '.';
+                        }
                     }
                 } else {
                     $error = 'Unable to save announcement right now.';

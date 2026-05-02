@@ -193,6 +193,7 @@ $map = [
   'register_submit.php' => 'api/register_submit.php',
   'notifications-actions.php' => 'api/notifications-actions.php',
   'announcements-actions.php' => 'api/announcements-actions.php',
+  'announcement-media.php' => 'api/announcement-media.php',
 
   'create_admin.php' => 'auth/create_admin.php',
   'users.php' => 'auth/users.php',

@@ -1355,8 +1355,8 @@ include dirname(__DIR__) . '/includes/header.php';
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                             <div>
                                 <span class="transfer-badge">Table-Based Fallback</span>
-                                <h5 class="mt-3 mb-2">Students Excel / Word Import / Export</h5>
-                                <p class="text-muted mb-0">Use this if you only need to update student records or if a full SQL import is not the right tool for the job.</p>
+                                <h5 class="mt-3 mb-2">Student Accounts and OJT Workbook Tools</h5>
+                                <p class="text-muted mb-0">Use CSV/XLSX here for user-account imports. Use the OJT buttons for Internal, External, or mock-up monitoring workbooks.</p>
                             </div>
                         </div>
 
@@ -1366,6 +1366,11 @@ include dirname(__DIR__) . '/includes/header.php';
                             <a href="?download=students_csv" class="btn btn-outline-primary">Export Students CSV</a>
                             <a href="?download=students_xls" class="btn btn-outline-primary">Export Students Excel (.xls)</a>
                             <a href="?download=students_word" class="btn btn-outline-primary">Export Students Word (.doc)</a>
+                            <a href="download-internal-template.php" class="btn btn-outline-info">Download Internal OJT Template</a>
+                            <a href="download-external-template.php" class="btn btn-outline-info">Download External OJT Template</a>
+                            <a href="import-ojt-internal.php" class="btn btn-outline-success">Import OJT Internal</a>
+                            <a href="import-ojt-external.php" class="btn btn-outline-success">Import OJT External</a>
+                            <a href="import-students-excel.php" class="btn btn-outline-success">Import OJT Mock Up / Masterlist</a>
                         </div>
 
                         <form method="post" enctype="multipart/form-data">
@@ -1375,7 +1380,7 @@ include dirname(__DIR__) . '/includes/header.php';
                             <div class="mb-3">
                                 <label for="students_file" class="form-label fw-semibold">Upload students CSV or XLSX file</label>
                                 <input class="form-control" type="file" id="students_file" name="students_file" accept=".csv,.txt,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-                                <div class="form-text">Required columns: <code>name</code>, <code>email</code>. Optional columns: <code>username</code>, <code>password</code>, <code>role</code>, <code>is_active</code>, <code>profile_picture</code>.</div>
+                                <div class="form-text">For account imports only. Required columns: <code>name</code>, <code>email</code>. Use the OJT import buttons above for Internal/External templates and the OJT mock-up workbook.</div>
                             </div>
 
                             <div class="d-flex flex-wrap gap-2">
