@@ -463,54 +463,65 @@ include 'includes/header.php';
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Reporter</th>
-                            <th>Reported User</th>
-                            <th>Message</th>
-                            <th>Reason</th>
-                            <th>Status</th>
-                            <th>Review</th>
-                            <th>Message Time</th>
-                            <th>Reported At</th>
-                            <th>Action</th>
+                            <th>Report</th>
+                            <th>Message & Reason</th>
+                            <th>Status / Review</th>
+                            <th>Moderation</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($rows)): ?>
                             <tr>
-                                <td colspan="10" class="text-center text-muted py-4">No reported chats found for this range.</td>
+                                <td colspan="5" class="text-center text-muted py-4">No reported chats found for this range.</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($rows as $item): ?>
+                                <?php
+                                $status = (string)$item['report_status'];
+                                $preview = chatreports_preview((string)$item['message_text'], 220);
+                                if (!$item['message_exists']) {
+                                    $preview = '[Message unavailable]';
+                                } elseif (!empty($item['media_path']) && trim((string)$item['message_text']) === '') {
+                                    $preview = '[Media message]';
+                                }
+                                ?>
                                 <tr>
-                                    <td><?php echo (int)$item['id']; ?></td>
-                                    <td><?php echo chatreports_esc($item['reporter_name']); ?></td>
-                                    <td><?php echo chatreports_esc($item['reported_name']); ?></td>
-                                    <td class="chatreports-message">
-                                        <?php
-                                        $preview = chatreports_preview((string)$item['message_text']);
-                                        if (!$item['message_exists']) {
-                                            $preview = '[Message unavailable]';
-                                        } elseif (!empty($item['media_path']) && trim((string)$item['message_text']) === '') {
-                                            $preview = '[Media message]';
-                                        }
-                                        echo chatreports_esc($preview);
-                                        ?>
+                                    <td class="chatreports-id">#<?php echo (int)$item['id']; ?></td>
+                                    <td class="chatreports-report-cell">
+                                        <div class="chatreports-pair">
+                                            <div>
+                                                <span class="chatreports-label">Reporter</span>
+                                                <strong><?php echo chatreports_esc($item['reporter_name']); ?></strong>
+                                            </div>
+                                            <i class="feather-arrow-right"></i>
+                                            <div>
+                                                <span class="chatreports-label">Reported User</span>
+                                                <strong><?php echo chatreports_esc($item['reported_name']); ?></strong>
+                                            </div>
+                                        </div>
+                                        <div class="chatreports-meta">
+                                            <span>Reported: <?php echo chatreports_esc((string)$item['created_at']); ?></span>
+                                            <span>Message: <?php echo chatreports_esc((string)($item['message_created_at'] ?: '-')); ?></span>
+                                        </div>
                                     </td>
-                                    <td><?php echo chatreports_esc((string)$item['reason']); ?></td>
                                     <td>
-                                        <?php $status = (string)$item['report_status']; ?>
+                                        <div class="chatreports-message"><?php echo chatreports_esc($preview); ?></div>
+                                        <div class="chatreports-reason">
+                                            <span class="chatreports-label">Reason</span>
+                                            <?php echo chatreports_esc((string)$item['reason']); ?>
+                                        </div>
+                                    </td>
+                                    <td>
                                         <span class="chatreports-status-badge chatreports-status-<?php echo chatreports_esc($status); ?>"><?php echo chatreports_esc(chatreports_status_label($status)); ?></span>
+                                        <div class="chatreports-review">
+                                            <?php if ((string)$item['reviewed_at'] !== ''): ?>
+                                                <strong><?php echo chatreports_esc((string)$item['reviewer_name']); ?></strong>
+                                                <span><?php echo chatreports_esc((string)$item['reviewed_at']); ?></span>
+                                            <?php else: ?>
+                                                <span>Not reviewed yet</span>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
-                                    <td>
-                                        <?php if ((string)$item['reviewed_at'] !== ''): ?>
-                                            <div><?php echo chatreports_esc((string)$item['reviewer_name']); ?></div>
-                                            <small class="text-muted"><?php echo chatreports_esc((string)$item['reviewed_at']); ?></small>
-                                        <?php else: ?>
-                                            <span class="text-muted">Not reviewed</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td><?php echo chatreports_esc((string)($item['message_created_at'] ?: '-')); ?></td>
-                                    <td><?php echo chatreports_esc((string)$item['created_at']); ?></td>
                                     <td>
                                         <form method="post" class="chatreports-action-form">
                                             <input type="hidden" name="action" value="update-report-status">
