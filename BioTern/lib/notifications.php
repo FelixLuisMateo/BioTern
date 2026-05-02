@@ -30,7 +30,18 @@ if (!function_exists('biotern_notifications_ensure_table')) {
             INDEX idx_notifications_created (created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
 
-        return (bool)$conn->query($sql);
+        $ok = (bool)$conn->query($sql);
+        if ($ok) {
+            $columns = biotern_notification_columns($conn);
+            if (!isset($columns['type'])) {
+                $conn->query("ALTER TABLE notifications ADD COLUMN type VARCHAR(50) NULL DEFAULT 'system' AFTER message");
+            }
+            if (!isset($columns['action_url'])) {
+                $conn->query("ALTER TABLE notifications ADD COLUMN action_url VARCHAR(255) NULL AFTER type");
+            }
+        }
+
+        return $ok;
     }
 }
 

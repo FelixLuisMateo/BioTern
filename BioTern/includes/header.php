@@ -941,6 +941,53 @@ if ($header_db instanceof mysqli) {
                     var endpoint = modalEl.getAttribute('data-announcement-actions-url') || 'api/announcements-actions.php';
                     var dismissButton = modalEl.querySelector('[data-announcement-dismiss-all]');
                     var pending = false;
+                    var storageKey = 'biotern:dismissed-announcements:<?php echo (int)$header_user_id_session; ?>';
+
+                    function readDismissedIds() {
+                        try {
+                            var raw = window.localStorage ? window.localStorage.getItem(storageKey) : '';
+                            var parsed = raw ? JSON.parse(raw) : [];
+                            return Array.isArray(parsed) ? parsed.map(function (id) { return parseInt(id, 10); }).filter(function (id) { return id > 0; }) : [];
+                        } catch (error) {
+                            return [];
+                        }
+                    }
+
+                    function rememberDismissedIds(ids) {
+                        try {
+                            if (!window.localStorage) {
+                                return;
+                            }
+                            var merged = readDismissedIds();
+                            ids.forEach(function (id) {
+                                if (merged.indexOf(id) === -1) {
+                                    merged.push(id);
+                                }
+                            });
+                            window.localStorage.setItem(storageKey, JSON.stringify(merged.slice(-100)));
+                        } catch (error) {
+                            // Browser storage is a fallback only; the server record remains the source of truth.
+                        }
+                    }
+
+                    function activeAnnouncementIds() {
+                        return Array.prototype.slice.call(modalEl.querySelectorAll('[data-announcement-id]'))
+                            .map(function (item) { return parseInt(item.getAttribute('data-announcement-id') || '0', 10); })
+                            .filter(function (id) { return id > 0; });
+                    }
+
+                    function removeLocallyDismissedArticles() {
+                        var dismissed = readDismissedIds();
+                        if (!dismissed.length) {
+                            return;
+                        }
+                        Array.prototype.slice.call(modalEl.querySelectorAll('[data-announcement-id]')).forEach(function (item) {
+                            var id = parseInt(item.getAttribute('data-announcement-id') || '0', 10);
+                            if (dismissed.indexOf(id) !== -1) {
+                                item.remove();
+                            }
+                        });
+                    }
 
                     function dismissOne(id) {
                         var params = new URLSearchParams();
@@ -954,7 +1001,22 @@ if ($header_db instanceof mysqli) {
                                 'X-Requested-With': 'XMLHttpRequest'
                             },
                             body: params.toString()
+                        }).then(function (response) {
+                            if (!response.ok) {
+                                throw new Error('Announcement dismiss failed: ' + response.status);
+                            }
+                            return response.json().catch(function () { return { ok: true }; });
+                        }).then(function (payload) {
+                            if (!payload || payload.ok === false) {
+                                throw new Error('Announcement dismiss was not accepted.');
+                            }
+                            return payload;
                         });
+                    }
+
+                    removeLocallyDismissedArticles();
+                    if (!activeAnnouncementIds().length) {
+                        return;
                     }
 
                     if (dismissButton) {
@@ -964,11 +1026,10 @@ if ($header_db instanceof mysqli) {
                             }
                             pending = true;
                             dismissButton.disabled = true;
-                            var ids = Array.prototype.slice.call(modalEl.querySelectorAll('[data-announcement-id]'))
-                                .map(function (item) { return parseInt(item.getAttribute('data-announcement-id') || '0', 10); })
-                                .filter(function (id) { return id > 0; });
+                            var ids = activeAnnouncementIds();
+                            rememberDismissedIds(ids);
 
-                            Promise.all(ids.map(dismissOne)).finally(function () {
+                            Promise.allSettled(ids.map(dismissOne)).finally(function () {
                                 modal.hide();
                                 pending = false;
                                 dismissButton.disabled = false;
