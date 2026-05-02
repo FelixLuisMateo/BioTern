@@ -506,20 +506,21 @@ include __DIR__ . '/../includes/header.php';
                                     <p>Parent consent and waiver preview with the same document workspace style.</p>
                                 </div>
                                 <div class="builder-editor-actions">
+                                    <button class="btn btn-light" type="button" id="parentConsentEditTemplate" aria-pressed="false">Edit Template</button>
                                     <button class="btn btn-primary" type="submit">Update Preview</button>
                                     <button class="btn btn-light" type="reset" id="parentConsentReset">Reset</button>
                                     <button class="btn btn-success" type="button" data-parent-consent-print>Print Consent</button>
                                 </div>
                             </div>
 
-                            <div class="builder-toolbar is-disabled" aria-hidden="true">
-                                <button class="btn btn-light" type="button" disabled><strong>B</strong></button>
-                                <button class="btn btn-light" type="button" disabled><em>I</em></button>
-                                <button class="btn btn-light" type="button" disabled><u>U</u></button>
-                                <button class="btn btn-light" type="button" disabled>Left</button>
-                                <button class="btn btn-light" type="button" disabled>Center</button>
-                                <button class="btn btn-light" type="button" disabled>Right</button>
-                                <button class="btn btn-light" type="button" disabled>Justify</button>
+                            <div class="builder-toolbar is-disabled" id="parentConsentToolbar" aria-hidden="true">
+                                <button class="btn btn-light" type="button" data-parent-consent-command="bold"><strong>B</strong></button>
+                                <button class="btn btn-light" type="button" data-parent-consent-command="italic"><em>I</em></button>
+                                <button class="btn btn-light" type="button" data-parent-consent-command="underline"><u>U</u></button>
+                                <button class="btn btn-light" type="button" data-parent-consent-command="justifyLeft">Left</button>
+                                <button class="btn btn-light" type="button" data-parent-consent-command="justifyCenter">Center</button>
+                                <button class="btn btn-light" type="button" data-parent-consent-command="justifyRight">Right</button>
+                                <button class="btn btn-light" type="button" data-parent-consent-command="justifyFull">Justify</button>
                                 <span class="builder-status-text">Template locked. Use fields on the left to update the copy.</span>
                             </div>
 
@@ -618,6 +619,9 @@ document.addEventListener('DOMContentLoaded', function () {
     var parentSignature = document.getElementById('pcParentSignature');
     var dateSignature = document.getElementById('pcDateSignature');
     var companyClause = document.getElementById('pcCompanyClause');
+    var editor = document.getElementById('editor');
+    var editButton = document.getElementById('parentConsentEditTemplate');
+    var toolbar = document.getElementById('parentConsentToolbar');
     var endpoint = new URL('document_parent_consent.php', window.location.href).href;
 
     function syncPreview() {
@@ -816,6 +820,41 @@ document.addEventListener('DOMContentLoaded', function () {
         button.addEventListener('click', function () {
             syncPreview();
             window.print();
+        });
+    });
+
+    function setEditMode(enabled) {
+        if (!editor) {
+            return;
+        }
+        editor.setAttribute('contenteditable', enabled ? 'true' : 'false');
+        editor.setAttribute('spellcheck', enabled ? 'true' : 'false');
+        editor.classList.toggle('is-locked', !enabled);
+        if (toolbar) {
+            toolbar.classList.toggle('is-disabled', !enabled);
+            toolbar.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+        }
+        if (editButton) {
+            editButton.classList.toggle('builder-edit-active', enabled);
+            editButton.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+            editButton.textContent = enabled ? 'Lock Template' : 'Edit Template';
+        }
+    }
+
+    if (editButton) {
+        editButton.addEventListener('click', function () {
+            var isEditing = editButton.getAttribute('aria-pressed') === 'true';
+            setEditMode(!isEditing);
+        });
+    }
+
+    document.querySelectorAll('[data-parent-consent-command]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            if (!editor || editor.getAttribute('contenteditable') !== 'true') {
+                return;
+            }
+            editor.focus();
+            document.execCommand(button.getAttribute('data-parent-consent-command'), false, null);
         });
     });
 
