@@ -204,7 +204,7 @@ $nav_active_academic = biotern_nav_any_active($nav_current_file, [
     'sections.php', 'sections-create.php', 'sections-edit.php',
 ]);
 $nav_active_apps = biotern_nav_any_active($nav_current_file, [
-    'apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
+    'apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php', 'announcements.php',
 ]);
 $nav_active_users = biotern_nav_any_active($nav_current_file, [
     'auth-register.php', 'users.php', 'create_admin.php',
@@ -416,6 +416,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item<?php echo biotern_nav_is_active('apps-chat.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="apps-chat.php">Chat</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('announcements.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="announcements.php">Announcements</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('apps-email.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="apps-email.php">Email</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('apps-notes.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="apps-notes.php">Notes</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('apps-storage.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="apps-storage.php">Storage</a></li>
