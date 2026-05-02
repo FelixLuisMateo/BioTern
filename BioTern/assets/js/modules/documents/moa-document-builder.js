@@ -548,7 +548,34 @@
     function printCurrent() {
         ensureA4TemplateStructure();
         updatePreview();
-        window.print();
+        if (!editor) {
+            window.print();
+            return;
+        }
+
+        var printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            window.print();
+            return;
+        }
+
+        var styles = '';
+        Array.prototype.slice.call(document.querySelectorAll('link[rel="stylesheet"], style')).forEach(function (node) {
+            styles += node.outerHTML + '\n';
+        });
+
+        printWindow.document.open();
+        printWindow.document.write(
+            '<!doctype html><html><head><meta charset="utf-8">' +
+            '<title>' + (isDau ? 'DAU Memorandum of Agreement' : 'Memorandum of Agreement') + '</title>' +
+            '<base href="' + document.baseURI.replace(/"/g, '&quot;') + '">' +
+            styles +
+            '<style>body{background:#fff;margin:0;padding:0;}.no-print,.page-header,.nxl-navigation,.nxl-header{display:none!important;}.doc-preview{display:block!important;margin:0!important;padding:0!important;background:#fff!important;}.a4-pages-stack{margin:0 auto!important;}</style>' +
+            '</head><body><div class="doc-preview"><div class="a4-pages-stack">' + editor.innerHTML + '</div></div>' +
+            '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});<\/script>' +
+            '</body></html>'
+        );
+        printWindow.document.close();
     }
 
     function initPrintButtons() {

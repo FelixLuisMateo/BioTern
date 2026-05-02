@@ -252,6 +252,14 @@
     bindCloseButton(cfg.closeButtonId || "btn_close_moa", cfg.fallbackHref || "", {
       delayMs: typeof cfg.closeDelayMs === "number" ? cfg.closeDelayMs : 80,
     });
+
+    if (window.location.search && /(?:\?|&)print=1(?:&|$)/.test(window.location.search)) {
+      window.addEventListener("load", function () {
+        window.setTimeout(function () {
+          window.print();
+        }, 250);
+      });
+    }
   }
 
   function revealOnLoad(selector, className) {

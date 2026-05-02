@@ -37,6 +37,7 @@ if (!in_array($greeting_pref, ['sir', 'maam', 'either'], true)) {
     $greeting_pref = 'either';
 }
 $use_saved_template = isset($_GET['use_saved_template']) && $_GET['use_saved_template'] === '1';
+$auto_print = isset($_GET['print']) && $_GET['print'] === '1';
 
 $students = [];
 if ($students_raw !== '') {
@@ -172,7 +173,7 @@ if ($recipient !== '') {
 </head>
 <body>
 <div class="container">
-    <img class="crest" src="../assets/images/auth/auth-cover-login-bg.png" alt="crest" onerror="this.style.display='none'">
+    <img class="crest" src="../assets/images/ccstlogo.png" alt="crest" onerror="this.style.display='none'">
     <div class="header">
         <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
         <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
@@ -232,6 +233,12 @@ if ($recipient !== '') {
         window.location.href = '../documents/document_endorsement.php';
     });
 })();
+
+<?php if ($auto_print): ?>
+window.addEventListener('load', function(){
+    window.setTimeout(function(){ window.print(); }, 250);
+});
+<?php endif; ?>
 
 (function(){
     function setText(id, value) {

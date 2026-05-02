@@ -3,6 +3,7 @@ ob_start();
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/lib/ojt_masterlist_import.php';
 require_once __DIR__ . '/excel-workbook-reader.php';
 $vendorAutoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (is_file($vendorAutoload)) {
@@ -92,6 +93,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $rows = ojt_import_load_workbook_rows($tmp, $originalName, $workbookReadError);
         if ($rows === []) {
             throw new RuntimeException($workbookReadError !== '' ? $workbookReadError : 'Unable to read uploaded workbook.');
+        }
+
+        if (biotern_ojt_masterlist_header_present($rows)) {
+            $masterlistErrors = [];
+            $imported = biotern_ojt_masterlist_import_rows($conn, $rows, $originalName, 'external', $masterlistErrors);
+            $flashType = $imported > 0 ? 'success' : 'warning';
+            $flashMessage = 'External masterlist import finished. Rows saved: ' . $imported . '.';
+            $flashDetail = $masterlistErrors !== [] ? implode(' ', array_slice($masterlistErrors, 0, 5)) : 'Teacher-provided details will merge with registered student accounts by student_no.';
+            throw new RuntimeException('__BIOTERN_MASTERLIST_IMPORTED__');
         }
 
         $normalizedHeader = array_keys($rows[0]);
@@ -245,9 +255,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } catch (Throwable $e) {
-        $flashType = 'danger';
-        $flashMessage = $e->getMessage();
-        $flashDetail = '';
+        if ($e->getMessage() !== '__BIOTERN_MASTERLIST_IMPORTED__') {
+            $flashType = 'danger';
+            $flashMessage = $e->getMessage();
+            $flashDetail = '';
+        }
     }
 }
 
@@ -273,7 +285,7 @@ ob_end_flush();
 </style>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header">
+        <div class="page-header" data-phc-skip="1">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Import OJT External</h5>

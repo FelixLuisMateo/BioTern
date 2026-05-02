@@ -4,6 +4,8 @@ require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/company_profiles.php';
+require_once dirname(__DIR__) . '/lib/ojt_masterlist_import.php';
+require_once dirname(__DIR__) . '/tools/excel-workbook-reader.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
 $role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
@@ -99,6 +101,11 @@ function company_normalize_text(string $value): string
     $value = strtolower(trim($value));
     $value = preg_replace('/\s+/', ' ', $value);
     return (string)$value;
+}
+
+function company_student_lookup_key(string $value): string
+{
+    return (string)preg_replace('/[^a-z0-9]+/', '', strtolower(trim($value)));
 }
 
 function company_extract_location_label(?string $address): string
@@ -674,6 +681,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'import_external_template') {
+    $returnSearch = trim((string)($_POST['return_q'] ?? ''));
+    $returnSort = strtolower(trim((string)($_POST['return_sort'] ?? 'updated')));
+    $returnSchoolYear = trim((string)($_POST['return_school_year'] ?? ''));
+    $returnSemester = trim((string)($_POST['return_semester'] ?? ''));
+    $returnLocation = trim((string)($_POST['return_location'] ?? ''));
+    $returnCourseId = (int)($_POST['return_course_id'] ?? 0);
+    $returnSectionId = (int)($_POST['return_section_id'] ?? 0);
+
+    if (!in_array($role, ['admin', 'coordinator'], true)) {
+        $_SESSION['companies_flash'] = [
+            'type' => 'danger',
+            'message' => 'Only admins and coordinators can import the external students template.',
+        ];
+    } elseif (!isset($_FILES['external_template_file']) || !is_array($_FILES['external_template_file'])) {
+        $_SESSION['companies_flash'] = [
+            'type' => 'danger',
+            'message' => 'Choose an External Students Template workbook first.',
+        ];
+    } else {
+        $uploadError = (int)($_FILES['external_template_file']['error'] ?? UPLOAD_ERR_NO_FILE);
+        $tmpName = (string)($_FILES['external_template_file']['tmp_name'] ?? '');
+        $originalName = trim((string)($_FILES['external_template_file']['name'] ?? 'External Students Template.xlsx'));
+        if ($uploadError !== UPLOAD_ERR_OK || $tmpName === '' || !(is_uploaded_file($tmpName) || is_file($tmpName))) {
+            $_SESSION['companies_flash'] = [
+                'type' => 'danger',
+                'message' => 'External template upload failed. Please choose the .xlsx file again.',
+            ];
+        } else {
+            $workbookError = '';
+            $rows = ojt_import_load_workbook_rows($tmpName, $originalName, $workbookError);
+            if ($rows === []) {
+                $_SESSION['companies_flash'] = [
+                    'type' => 'danger',
+                    'message' => $workbookError !== '' ? $workbookError : 'Unable to read the External Students Template workbook.',
+                ];
+            } elseif (!biotern_ojt_masterlist_header_present($rows)) {
+                $_SESSION['companies_flash'] = [
+                    'type' => 'danger',
+                    'message' => 'Upload the External Students Template format with student_no, school_year, student_name, section, company_name, supervisor_name, and status columns.',
+                ];
+            } else {
+                $importErrors = [];
+                $imported = biotern_ojt_masterlist_import_rows($conn, $rows, $originalName, 'external', $importErrors);
+                $_SESSION['companies_flash'] = [
+                    'type' => $imported > 0 ? 'success' : 'warning',
+                    'message' => 'External Students Template import finished. Rows saved: ' . $imported . ($importErrors !== [] ? ' Some rows need review: ' . implode(' ', array_slice($importErrors, 0, 3)) : ''),
+                ];
+            }
+        }
+    }
+
+    $redirectParams = [
+        'sort' => in_array($returnSort, ['updated', 'name', 'interns'], true) ? $returnSort : 'updated',
+    ];
+    if ($returnSearch !== '') {
+        $redirectParams['q'] = $returnSearch;
+    }
+    if ($returnSchoolYear !== '') {
+        $redirectParams['school_year'] = $returnSchoolYear;
+    }
+    if ($returnSemester !== '') {
+        $redirectParams['semester'] = $returnSemester;
+    }
+    if ($returnLocation !== '') {
+        $redirectParams['location'] = $returnLocation;
+    }
+    if ($returnCourseId > 0) {
+        $redirectParams['course_id'] = $returnCourseId;
+    }
+    if ($returnSectionId > 0) {
+        $redirectParams['section_id'] = $returnSectionId;
+    }
+
+    header('Location: companies.php?' . http_build_query($redirectParams));
+    exit;
+}
+
 $search = trim((string)($_GET['q'] ?? ''));
 $sort = strtolower(trim((string)($_GET['sort'] ?? 'updated')));
 $selectedCompanyParam = trim((string)($_GET['company'] ?? ''));
@@ -690,6 +775,16 @@ if (!in_array($sort, $allowedSorts, true)) {
 if (!in_array($printTarget, ['', 'companies', 'students'], true)) {
     $printTarget = '';
 }
+
+$externalTemplateQuery = array_filter([
+    'type' => 'external',
+    'school_year' => $filterSchoolYear,
+    'semester' => $filterSemester,
+    'course_id' => $filterCourseId > 0 ? (string)$filterCourseId : '',
+    'section_id' => $filterSectionId > 0 ? (string)$filterSectionId : '',
+    'search' => $search,
+], static fn($value): bool => $value !== '' && $value !== null);
+$externalTemplateExportUrl = 'export-ojt-list.php?' . http_build_query($externalTemplateQuery);
 
 $companyMap = [];
 
@@ -743,6 +838,7 @@ if ($companyTableReady) {
 }
 
 $companyInternshipsByKey = [];
+$companyInternshipSeenByKey = [];
 $courseFilterOptions = [];
 $sectionFilterOptions = [];
 $schoolYearFilterOptions = [];
@@ -822,33 +918,28 @@ if ($internshipsTableReady) {
                 $track = strtolower(trim((string)($row['assignment_track'] ?? 'internal')));
             }
             if (!in_array($track, ['internal', 'external'], true)) {
-                $track = 'internal';
+                $track = 'external';
             }
-            $requiredHours = $track === 'external'
-                ? (int)($row['external_total_hours'] ?? 0)
-                : (int)($row['internal_total_hours'] ?? 0);
+            $track = 'external';
+            $row['resolved_track'] = $track;
+
+            $requiredHours = (int)($row['required_hours'] ?? 0);
             if ($requiredHours <= 0) {
-                $requiredHours = (int)($row['required_hours'] ?? 0);
+                $requiredHours = (int)($row['external_total_hours'] ?? 0);
             }
             if ($requiredHours <= 0) {
-                $requiredHours = $track === 'external' ? 250 : 140;
+                $requiredHours = 250;
             }
 
-            $remainingHoursRaw = $track === 'external'
-                ? ($row['external_total_hours_remaining'] ?? null)
-                : ($row['internal_total_hours_remaining'] ?? null);
+            $remainingHoursRaw = $row['external_total_hours_remaining'] ?? null;
             $remainingHours = $remainingHoursRaw !== null && $remainingHoursRaw !== ''
                 ? max(0, (int)$remainingHoursRaw)
                 : null;
-            if ($track === 'external' && (int)($row['rendered_hours'] ?? 0) <= 0 && $remainingHours !== null && $remainingHours <= 0) {
-                $remainingHours = $requiredHours;
+            $renderedHours = (int)($row['rendered_hours'] ?? 0);
+            if ($renderedHours <= 0 && $remainingHours !== null) {
+                $renderedHours = max(0, $requiredHours - $remainingHours);
             }
-            $renderedHours = $remainingHours !== null
-                ? max(0, $requiredHours - $remainingHours)
-                : 0;
-            if ($renderedHours <= 0 && (int)($row['rendered_hours'] ?? 0) > 0 && strtolower(trim((string)($row['internship_type'] ?? $track))) === $track) {
-                $renderedHours = (int)($row['rendered_hours'] ?? 0);
-            }
+            $renderedHours = min($requiredHours, max(0, $renderedHours));
 
             $row['required_hours'] = $requiredHours;
             $row['rendered_hours'] = $renderedHours;
@@ -889,6 +980,13 @@ if ($internshipsTableReady) {
                     $companyInternshipsByKey[$companyKey] = [];
                 }
                 $companyInternshipsByKey[$companyKey][] = $row;
+                if (!isset($companyInternshipSeenByKey[$companyKey])) {
+                    $companyInternshipSeenByKey[$companyKey] = [];
+                }
+                $studentNoSeen = company_student_lookup_key((string)($row['student_id'] ?? ''));
+                if ($studentNoSeen !== '') {
+                    $companyInternshipSeenByKey[$companyKey][$studentNoSeen] = true;
+                }
 
                 $locationLabel = company_extract_location_label((string)($companyMap[$companyKey]['company_address'] ?? $row['company_address'] ?? ''));
                 if ($locationLabel !== '') {
@@ -944,9 +1042,11 @@ if ($internshipsTableReady) {
                 SELECT student_id, MAX(id) AS latest_id
                 FROM internships
                 WHERE deleted_at IS NULL
+                  AND LOWER(COALESCE(type, 'external')) = 'external'
                 GROUP BY student_id
             ) latest ON latest.latest_id = i_full.id
             WHERE i_full.deleted_at IS NULL
+              AND LOWER(COALESCE(i_full.type, 'external')) = 'external'
         ) i ON i.student_id = s.id
         WHERE s.deleted_at IS NULL
         ORDER BY
@@ -959,6 +1059,203 @@ if ($internshipsTableReady) {
         while ($row = $studentLinkResult->fetch_assoc()) {
             $row['section_label'] = biotern_format_section_label((string)($row['section_code'] ?? ''), (string)($row['section_name'] ?? ''));
             $studentLinkOptions[] = $row;
+        }
+    }
+
+    $studentFilterSql = "
+        SELECT
+            s.school_year,
+            s.semester,
+            s.course_id,
+            s.section_id,
+            c.name AS course_name,
+            sec.code AS section_code,
+            sec.name AS section_name
+        FROM students s
+        LEFT JOIN courses c ON s.course_id = c.id
+        LEFT JOIN sections sec ON s.section_id = sec.id
+        WHERE s.deleted_at IS NULL
+    ";
+    $studentFilterResult = $conn->query($studentFilterSql);
+    if ($studentFilterResult) {
+        while ($row = $studentFilterResult->fetch_assoc()) {
+            $schoolYear = trim((string)($row['school_year'] ?? ''));
+            if ($schoolYear !== '') {
+                $schoolYearFilterOptions[$schoolYear] = $schoolYear;
+            }
+            $semester = trim((string)($row['semester'] ?? ''));
+            if ($semester !== '') {
+                $semesterFilterOptions[$semester] = $semester;
+            }
+            $courseId = (int)($row['course_id'] ?? 0);
+            $courseName = trim((string)($row['course_name'] ?? ''));
+            if ($courseId > 0 && $courseName !== '') {
+                $courseFilterOptions[$courseId] = $courseName;
+            }
+            $sectionId = (int)($row['section_id'] ?? 0);
+            $sectionLabel = biotern_format_section_label((string)($row['section_code'] ?? ''), (string)($row['section_name'] ?? ''));
+            if ($sectionId > 0 && $sectionLabel !== '') {
+                $sectionFilterOptions[$sectionId] = $sectionLabel;
+            }
+        }
+    }
+}
+
+if (companies_table_exists($conn, 'ojt_masterlist')) {
+    $masterlistSql = "
+        SELECT
+            ml.id AS masterlist_id,
+            ml.school_year,
+            ml.semester,
+            ml.student_no,
+            ml.student_name,
+            ml.contact_no,
+            ml.section,
+            ml.company_name,
+            ml.company_address,
+            ml.supervisor_name,
+            ml.supervisor_position,
+            ml.company_representative,
+            ml.status,
+            ml.updated_at,
+            s.id AS student_record_id,
+            s.user_id,
+            s.student_id,
+            s.first_name,
+            s.middle_name,
+            s.last_name,
+            s.email,
+            s.course_id,
+            s.section_id,
+            COALESCE(NULLIF(s.assignment_track, ''), 'external') AS assignment_track,
+            COALESCE(s.external_total_hours, 250) AS external_total_hours,
+            s.external_total_hours_remaining AS external_total_hours_remaining,
+            COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
+            COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '') AS section_code,
+            COALESCE(sec.name, '') AS section_name,
+            COALESCE(c.name, '') AS course_name
+        FROM ojt_masterlist ml
+        LEFT JOIN students s
+            ON TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci = TRIM(COALESCE(ml.student_no, '')) COLLATE utf8mb4_unicode_ci
+        LEFT JOIN users u ON s.user_id = u.id
+        LEFT JOIN sections sec ON s.section_id = sec.id
+        LEFT JOIN courses c ON s.course_id = c.id
+        WHERE TRIM(COALESCE(ml.company_name, '')) <> ''
+        ORDER BY ml.section ASC, ml.student_name ASC, ml.id ASC
+    ";
+    $masterlistResult = $conn->query($masterlistSql);
+    if ($masterlistResult) {
+        while ($row = $masterlistResult->fetch_assoc()) {
+            $companyKey = biotern_company_profile_normalized_name((string)($row['company_name'] ?? ''));
+            if ($companyKey === '') {
+                continue;
+            }
+
+            $studentSeenKey = company_student_lookup_key((string)($row['student_no'] ?? ''));
+            if ($studentSeenKey !== '' && isset($companyInternshipSeenByKey[$companyKey][$studentSeenKey])) {
+                continue;
+            }
+
+            $companyName = trim((string)($row['company_name'] ?? ''));
+            if (!isset($companyMap[$companyKey])) {
+                $companyMap[$companyKey] = [
+                    'key' => $companyKey,
+                    'partner_company_id' => 0,
+                    'company_lookup_key' => '',
+                    'company_name' => $companyName,
+                    'company_address' => trim((string)($row['company_address'] ?? '')),
+                    'supervisor_name' => trim((string)($row['supervisor_name'] ?? '')),
+                    'supervisor_position' => trim((string)($row['supervisor_position'] ?? '')),
+                    'company_representative' => trim((string)($row['company_representative'] ?? '')),
+                    'company_representative_position' => '',
+                    'company_profile_picture' => '',
+                    'company_profile_picture_src' => '',
+                    'created_at' => '',
+                    'updated_at' => trim((string)($row['updated_at'] ?? '')),
+                    'intern_count' => 0,
+                    'ongoing_count' => 0,
+                    'latest_activity' => trim((string)($row['updated_at'] ?? '')),
+                    'has_partner_record' => false,
+                ];
+            }
+            foreach (['company_address', 'supervisor_name', 'supervisor_position', 'company_representative'] as $fieldName) {
+                if (trim((string)($companyMap[$companyKey][$fieldName] ?? '')) === '' && trim((string)($row[$fieldName] ?? '')) !== '') {
+                    $companyMap[$companyKey][$fieldName] = trim((string)$row[$fieldName]);
+                }
+            }
+
+            $sectionLabel = biotern_format_section_label((string)($row['section_code'] ?? ''), (string)($row['section_name'] ?? ''));
+            if ($sectionLabel === '') {
+                $sectionLabel = trim((string)($row['section'] ?? ''));
+            }
+            if ($sectionLabel === '') {
+                $sectionLabel = '-';
+            }
+
+            $displayName = trim(implode(' ', array_filter([
+                (string)($row['first_name'] ?? ''),
+                (string)($row['middle_name'] ?? ''),
+                (string)($row['last_name'] ?? ''),
+            ])));
+            if ($displayName === '') {
+                $displayName = trim((string)($row['student_name'] ?? ''));
+            }
+
+            $requiredHours = (int)($row['external_total_hours'] ?? 250);
+            if ($requiredHours <= 0) {
+                $requiredHours = 250;
+            }
+            $remainingHoursRaw = $row['external_total_hours_remaining'] ?? null;
+            $renderedHours = $remainingHoursRaw !== null && $remainingHoursRaw !== ''
+                ? max(0, $requiredHours - max(0, (int)$remainingHoursRaw))
+                : 0;
+
+            $row['student_id'] = trim((string)($row['student_id'] ?? '')) !== '' ? (string)$row['student_id'] : (string)($row['student_no'] ?? '');
+            $row['display_name'] = $displayName !== '' ? $displayName : 'Unnamed Student';
+            $row['section_label'] = $sectionLabel;
+            $row['profile_url'] = resolve_profile_image_url((string)($row['profile_picture'] ?? ''), (int)($row['user_id'] ?? 0));
+            $row['resolved_track'] = 'external';
+            $row['required_hours'] = $requiredHours;
+            $row['rendered_hours'] = min($requiredHours, max(0, $renderedHours));
+            $row['progress_pct'] = company_progress_pct((int)$row['rendered_hours'], $requiredHours);
+            $row['internship_id'] = 0;
+            $row['internship_status'] = trim((string)($row['status'] ?? '')) !== '' ? strtolower(trim((string)$row['status'])) : 'ongoing';
+            $row['internship_type'] = 'external';
+            $row['position'] = trim((string)($row['supervisor_position'] ?? ''));
+            $row['start_date'] = '';
+            $row['end_date'] = '';
+            $row['latest_activity'] = trim((string)($row['updated_at'] ?? ''));
+            $row['source_type'] = 'masterlist';
+
+            if (!isset($companyInternshipsByKey[$companyKey])) {
+                $companyInternshipsByKey[$companyKey] = [];
+            }
+            $companyInternshipsByKey[$companyKey][] = $row;
+            if ($studentSeenKey !== '') {
+                $companyInternshipSeenByKey[$companyKey][$studentSeenKey] = true;
+            }
+
+            $courseId = (int)($row['course_id'] ?? 0);
+            $courseName = trim((string)($row['course_name'] ?? ''));
+            if ($courseId > 0 && $courseName !== '') {
+                $courseFilterOptions[$courseId] = $courseName;
+            }
+            $sectionId = (int)($row['section_id'] ?? 0);
+            if ($sectionId > 0 && $sectionLabel !== '') {
+                $sectionFilterOptions[$sectionId] = $sectionLabel;
+            }
+            $schoolYear = trim((string)($row['school_year'] ?? ''));
+            if ($schoolYear !== '') {
+                $schoolYearFilterOptions[$schoolYear] = $schoolYear;
+            }
+            $semester = trim((string)($row['semester'] ?? ''));
+            if ($semester !== '') {
+                $semesterFilterOptions[$semester] = $semester;
+            }
+            $locationLabel = company_extract_location_label((string)($companyMap[$companyKey]['company_address'] ?? ''));
+            if ($locationLabel !== '') {
+                $locationFilterOptions[$locationLabel] = $locationLabel;
+            }
         }
     }
 }
@@ -1102,6 +1399,122 @@ if ($selectedCompany !== null) {
     $companyInterns = array_values($selectedCompany['filtered_interns'] ?? []);
 }
 
+if ($printTarget !== '') {
+    if ($printTarget === 'students' && $selectedCompany === null) {
+        http_response_code(404);
+        echo 'No company selected for printing.';
+        exit;
+    }
+    ?>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title><?php echo h($printTarget === 'students' ? 'Company Student List' : 'Company Lists'); ?></title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #111827; margin: 24px; }
+        .print-head { display: grid; grid-template-columns: 92px 1fr 92px; align-items: center; border-bottom: 1.5px solid #2f6fca; padding: 6px 0 10px; margin-bottom: 18px; color: #0b4aa2; }
+        .print-head img { width: 74px; height: 74px; object-fit: contain; justify-self: center; }
+        .print-head-copy { text-align: center; }
+        .print-head h2 { margin: 0 0 4px; font-size: 18px; letter-spacing: 0; font-weight: 700; color: #0b4aa2; }
+        .print-head div { font-size: 12px; color: #0b4aa2; line-height: 1.35; }
+        .print-head .print-tel { font-size: 15px; margin-top: 3px; }
+        .print-head-spacer { width: 92px; height: 1px; }
+        .print-title { margin: 16px 0 8px; text-align: center; font-weight: 700; font-size: 15px; }
+        .print-meta { margin-bottom: 8px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
+        th, td { border: 1px solid #1f2937; padding: 6px 7px; vertical-align: top; word-break: break-word; }
+        th { background: #f3f4f6; font-weight: 700; }
+        .col-index { width: 36px; text-align: center; }
+        small { display: block; color: #4b5563; margin-top: 2px; }
+        @media print { body { margin: 12mm; } }
+    </style>
+</head>
+<body>
+    <div class="print-head">
+        <img src="assets/images/ccstlogo.png" alt="CCST">
+        <div class="print-head-copy">
+            <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+            <div>SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
+            <div class="print-tel">Telefax No.: (045) 624-0215</div>
+        </div>
+        <div class="print-head-spacer" aria-hidden="true"></div>
+    </div>
+    <?php if ($printTarget === 'companies'): ?>
+        <div class="print-title">COMPANY LISTS</div>
+        <div class="print-meta"><strong>FILTER:</strong> <?php echo h(($filterSchoolYear !== '' ? $filterSchoolYear : 'All School Years') . ' / ' . ($filterSemester !== '' ? $filterSemester : 'All Semesters') . ' / ' . ($filterLocation !== '' ? $filterLocation : 'All Locations')); ?></div>
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-index">#</th>
+                    <th>COMPANY NAME</th>
+                    <th>ADDRESS</th>
+                    <th>SUPERVISOR</th>
+                    <th>REPRESENTATIVE</th>
+                    <th>STUDENTS</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($companies as $index => $company): ?>
+                    <tr>
+                        <td class="col-index"><?php echo (int)$index + 1; ?></td>
+                        <td><?php echo h(company_display_name((string)($company['company_name'] ?? ''))); ?></td>
+                        <td><?php echo h(trim((string)($company['company_address'] ?? '')) !== '' ? (string)$company['company_address'] : 'Not provided'); ?></td>
+                        <td>
+                            <?php echo h(trim((string)($company['supervisor_name'] ?? '')) !== '' ? (string)$company['supervisor_name'] : 'Not provided'); ?>
+                            <?php if (trim((string)($company['supervisor_position'] ?? '')) !== ''): ?><small><?php echo h((string)$company['supervisor_position']); ?></small><?php endif; ?>
+                        </td>
+                        <td>
+                            <?php echo h(trim((string)($company['company_representative'] ?? '')) !== '' ? (string)$company['company_representative'] : 'Not provided'); ?>
+                            <?php if (trim((string)($company['company_representative_position'] ?? '')) !== ''): ?><small><?php echo h((string)$company['company_representative_position']); ?></small><?php endif; ?>
+                        </td>
+                        <td><?php echo (int)($company['intern_count'] ?? 0); ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php else: ?>
+        <div class="print-title">COMPANY STUDENT LIST</div>
+        <div class="print-meta"><strong>COMPANY:</strong> <?php echo h(company_display_name((string)($selectedCompany['company_name'] ?? ''))); ?></div>
+        <div class="print-meta"><strong>SUPERVISOR:</strong> <?php echo h(trim((string)($selectedCompany['supervisor_name'] ?? '')) !== '' ? (string)$selectedCompany['supervisor_name'] : 'Not provided'); ?></div>
+        <table>
+            <thead>
+                <tr>
+                    <th class="col-index">#</th>
+                    <th>STUDENT NO.</th>
+                    <th>LAST NAME</th>
+                    <th>FIRST NAME</th>
+                    <th>MIDDLE NAME</th>
+                    <th>COURSE / SECTION</th>
+                    <th>STATUS</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if ($companyInterns === []): ?>
+                    <tr><td class="col-index">1</td><td colspan="6">No students matched the current filter for this company.</td></tr>
+                <?php else: ?>
+                    <?php foreach ($companyInterns as $index => $intern): ?>
+                        <tr>
+                            <td class="col-index"><?php echo (int)$index + 1; ?></td>
+                            <td><?php echo h((string)($intern['student_id'] ?? '')); ?></td>
+                            <td><?php echo h((string)($intern['last_name'] ?? '')); ?></td>
+                            <td><?php echo h((string)($intern['first_name'] ?? '')); ?></td>
+                            <td><?php echo h((string)($intern['middle_name'] ?? '')); ?></td>
+                            <td><?php echo h(trim((string)($intern['course_name'] ?? '-') . ' / ' . (string)($intern['section_label'] ?? '-'))); ?></td>
+                            <td><?php echo h(ucfirst((string)($intern['internship_status'] ?? 'Unknown'))); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+    <script>window.addEventListener('load', function () { window.print(); });</script>
+</body>
+</html>
+    <?php
+    exit;
+}
+
 $page_title = 'Companies';
 $page_body_class = 'companies-page' . ($printTarget !== '' ? (' companies-print-' . $printTarget) : '');
 $page_styles = [
@@ -1149,10 +1562,20 @@ include 'includes/header.php';
                     'course_id' => $filterCourseId > 0 ? $filterCourseId : null,
                     'section_id' => $filterSectionId > 0 ? $filterSectionId : null,
                     'print' => 'companies',
-                ])); ?>" class="btn btn-outline-secondary">
+                ])); ?>" class="btn btn-outline-secondary" target="_blank" rel="noopener">
                     <i class="feather-printer me-2"></i>
                     <span>Print Companies</span>
                 </a>
+                <a href="<?php echo h($externalTemplateExportUrl); ?>" class="btn btn-outline-primary">
+                    <i class="feather-download me-2"></i>
+                    <span>Export External Template</span>
+                </a>
+                <?php if (in_array($role, ['admin', 'coordinator'], true)): ?>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importExternalTemplateModal">
+                        <i class="feather-upload-cloud me-2"></i>
+                        <span>Import External Template</span>
+                    </button>
+                <?php endif; ?>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCompanyModal">
                     <i class="feather-plus me-2"></i>
                     <span>Add Company</span>
@@ -1259,6 +1682,7 @@ include 'includes/header.php';
                                             'sort' => $sort,
                                             'company' => $company['key'],
                                             'school_year' => $filterSchoolYear,
+                                            'semester' => $filterSemester,
                                             'location' => $filterLocation,
                                             'course_id' => $filterCourseId > 0 ? $filterCourseId : null,
                                             'section_id' => $filterSectionId > 0 ? $filterSectionId : null,
@@ -1335,11 +1759,12 @@ include 'includes/header.php';
                                             'sort' => $sort,
                                             'company' => $selectedCompanyKey,
                                             'school_year' => $filterSchoolYear,
+                                            'semester' => $filterSemester,
                                             'location' => $filterLocation,
                                             'course_id' => $filterCourseId > 0 ? $filterCourseId : null,
                                             'section_id' => $filterSectionId > 0 ? $filterSectionId : null,
                                             'print' => 'students',
-                                        ])); ?>" class="btn btn-outline-secondary">
+                                        ])); ?>" class="btn btn-outline-secondary" target="_blank" rel="noopener">
                                             <i class="feather-printer me-2"></i>
                                             <span>Print Students</span>
                                         </a>
@@ -1359,7 +1784,7 @@ include 'includes/header.php';
                                             <i class="feather-map-pin me-2"></i>
                                             <span>DAU MOA</span>
                                         </a>
-                                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#viewCompanyProfileModal">
+                                        <button type="button" class="btn btn-outline-primary companies-action-wide" data-bs-toggle="modal" data-bs-target="#viewCompanyProfileModal">
                                             <i class="feather-eye me-2"></i>
                                             <span>Open Profile</span>
                                         </button>
@@ -1434,7 +1859,7 @@ include 'includes/header.php';
                                                                         <span class="companies-dot">|</span>
                                                                         <?php echo h((string)($intern['section_label'] ?? '-')); ?>
                                                                         <span class="companies-dot">|</span>
-                                                                        <?php echo h(company_track_label((string)($intern['assignment_track'] ?? 'internal'))); ?>
+                                                                        <?php echo h(company_track_label((string)($intern['resolved_track'] ?? $intern['internship_type'] ?? 'external'))); ?>
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -1485,6 +1910,53 @@ include 'includes/header.php';
         </div>
     </div>
 </main>
+
+<?php if (in_array($role, ['admin', 'coordinator'], true)): ?>
+<div class="modal fade" id="importExternalTemplateModal" tabindex="-1" aria-labelledby="importExternalTemplateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content companies-modal">
+            <form method="post" action="companies.php" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="import_external_template">
+                <input type="hidden" name="return_q" value="<?php echo h($search); ?>">
+                <input type="hidden" name="return_sort" value="<?php echo h($sort); ?>">
+                <input type="hidden" name="return_school_year" value="<?php echo h($filterSchoolYear); ?>">
+                <input type="hidden" name="return_semester" value="<?php echo h($filterSemester); ?>">
+                <input type="hidden" name="return_location" value="<?php echo h($filterLocation); ?>">
+                <input type="hidden" name="return_course_id" value="<?php echo (int)$filterCourseId; ?>">
+                <input type="hidden" name="return_section_id" value="<?php echo (int)$filterSectionId; ?>">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title" id="importExternalTemplateModalLabel">Import External Students Template</h5>
+                        <p class="companies-modal-copy mb-0">Upload the External Students Template workbook to refresh company assignments and company profile details.</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="external_template_file">External Students Template.xlsx</label>
+                        <input
+                            type="file"
+                            class="form-control"
+                            id="external_template_file"
+                            name="external_template_file"
+                            accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                            required
+                        >
+                    </div>
+                    <div class="small text-muted">
+                        Duplicate student numbers are merged into the imported masterlist; non-duplicate rows are added and become visible in this company list.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="download-external-template.php" class="btn btn-outline-secondary">Download Blank Template</a>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Import Template</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <div class="modal fade" id="addCompanyModal" tabindex="-1" aria-labelledby="addCompanyModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">

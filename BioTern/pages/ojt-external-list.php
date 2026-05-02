@@ -205,6 +205,16 @@ foreach ($rows as $row) {
     }
 }
 
+$exportQuery = array_filter([
+    'type' => 'external',
+    'school_year' => $filterSchoolYear,
+    'semester' => $filterSemester,
+    'course_id' => $filterCourseId > 0 ? (string)$filterCourseId : '',
+    'section_id' => $filterSectionId > 0 ? (string)$filterSectionId : '',
+    'search' => $search,
+], static fn($value): bool => $value !== '' && $value !== null);
+$exportUrl = 'export-ojt-list.php?' . http_build_query($exportQuery);
+
 $page_title = 'External Student List';
 $page_body_class = 'page-fingerprint-mapping page-ojt-external-list';
 $page_styles = [
@@ -248,6 +258,10 @@ ob_end_flush();
                             <a href="import-ojt-external.php" class="action-tile action-tile-primary" data-action-priority="1">
                                 <i class="feather-download"></i>
                                 <span>Import OJT External</span>
+                            </a>
+                            <a href="<?php echo htmlspecialchars($exportUrl, ENT_QUOTES, 'UTF-8'); ?>" class="action-tile">
+                                <i class="feather-upload-cloud"></i>
+                                <span>Export External List</span>
                             </a>
                             <a href="ojt-internal-list.php" class="action-tile">
                                 <i class="feather-list"></i>

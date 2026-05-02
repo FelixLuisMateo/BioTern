@@ -563,16 +563,6 @@ include 'includes/header.php';
                 </div>
                 <div class="page-header-right ms-auto">
                     <div class="d-flex align-items-center gap-2">
-                        <a href="javascript:void(0);" class="btn btn-icon btn-light-brand successAlertMessage">
-                            <i class="feather-star"></i>
-                        </a>
-                        <a href="javascript:void(0);" class="btn btn-icon btn-light-brand app-students-view-follow-toggle"
-                           data-student-id="<?php echo (int)$student['id']; ?>"
-                           data-student-name="<?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name'], ENT_QUOTES); ?>"
-                           aria-pressed="false">
-                            <i class="feather-eye me-2 app-students-view-follow-icon"></i>
-                            <span>Follow</span>
-                        </a>
                         <a href="students.php" class="btn btn-outline-secondary">
                             <i class="feather-arrow-left me-2"></i>
                             <span>Back to List</span>

@@ -106,6 +106,11 @@
     box-shadow: none !important;
 }
 
+.page-biometric-machine .page-header .page-header-actions-toggle.app-page-header-auto-toggle,
+.page-biometric-machine .page-header .dashboard-actions-panel.app-page-actions-panel {
+    display: none !important;
+}
+
 .page-biometric-machine .nxl-content {
     padding: 0 0 5rem;
 }
