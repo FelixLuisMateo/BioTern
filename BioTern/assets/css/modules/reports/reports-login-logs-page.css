@@ -70,11 +70,11 @@ body.login-logs-page .logs-table-card {
 }
 
 body.login-logs-page .logs-table-card tbody td {
-    color: color-mix(in srgb, var(--report-text) 88%, #dbe6ff 12%);
+    color: #dbe7ff !important;
 }
 
 body.login-logs-page .logs-table-card .text-muted {
-    color: color-mix(in srgb, var(--report-text) 66%, #9fb2de 34%) !important;
+    color: #b8c7ea !important;
 }
 
 .logs-identifier {
@@ -94,7 +94,8 @@ body.login-logs-page .logs-table-card .text-muted {
     line-height: 1.45;
     display: inline-block;
     vertical-align: middle;
-    color: var(--report-text);
+    color: #dbe7ff !important;
+    font-weight: 500;
 }
 
 .logs-pill {
