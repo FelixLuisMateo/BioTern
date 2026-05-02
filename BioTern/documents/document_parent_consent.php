@@ -51,6 +51,48 @@ if ($studentId > 0) {
     }
 }
 
+if (isset($_GET['action'])) {
+    header('Content-Type: application/json');
+    $action = (string)$_GET['action'];
+
+    if ($action === 'search_students') {
+        $term = trim((string)($_GET['q'] ?? ''));
+        $safeTerm = '%' . $term . '%';
+        $gateWhere = documents_students_search_gate_sql($conn, 's');
+        $sql = "SELECT s.id, s.first_name, s.middle_name, s.last_name, s.student_id
+            FROM students s
+            WHERE (
+                CONCAT(s.first_name, ' ', s.middle_name, ' ', s.last_name) LIKE ?
+                OR s.student_id LIKE ?
+            )
+              AND {$gateWhere}
+            ORDER BY s.first_name, s.last_name
+            LIMIT 30";
+        $stmt = $conn->prepare($sql);
+        $results = [];
+        if ($stmt) {
+            $stmt->bind_param('ss', $safeTerm, $safeTerm);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            while ($row = $res->fetch_assoc()) {
+                $name = trim((string)($row['first_name'] ?? '') . ' ' . (!empty($row['middle_name']) ? (string)$row['middle_name'] . ' ' : '') . (string)($row['last_name'] ?? ''));
+                $studentNo = trim((string)($row['student_id'] ?? ''));
+                $results[] = [
+                    'id' => (int)($row['id'] ?? 0),
+                    'name' => $name,
+                    'text' => trim($name . ($studentNo !== '' ? ' - ' . $studentNo : '')),
+                ];
+            }
+            $stmt->close();
+        }
+        echo json_encode(['results' => $results]);
+        exit;
+    }
+
+    echo json_encode(new stdClass());
+    exit;
+}
+
 $studentName = parent_consent_q('student_name');
 if ($studentName === '' && $student) {
     $studentName = trim((string)(($student['first_name'] ?? '') . ' ' . (!empty($student['middle_name']) ? ($student['middle_name'] . ' ') : '') . ($student['last_name'] ?? '')));
@@ -61,7 +103,7 @@ $companyName = parent_consent_q('company_name');
 $printDate = parent_consent_q('date', date('F j, Y'));
 
 $studentLine = $studentName !== '' ? $studentName : 'my son/daughter';
-$parentLine = $parentName !== '' ? $parentName : '______________________________';
+$parentLine = $parentName !== '' ? $parentName : '';
 $companyClause = $companyName !== '' ? ' (' . $companyName . ')' : '';
 
 $page_title = 'Parent Consent';
@@ -193,6 +235,20 @@ include __DIR__ . '/../includes/header.php';
                     font-weight: 700;
                 }
 
+                .parent-consent-builder-page #editor .parent-consent-sign-name {
+                    display: block;
+                    min-height: 12px;
+                    margin-bottom: 2px;
+                    font-size: 10px;
+                    font-weight: 700;
+                    text-align: center;
+                }
+
+                .parent-consent-builder-page #editor .parent-consent-sign-label {
+                    display: block;
+                    text-align: left;
+                }
+
                 .parent-consent-builder-page #editor .parent-consent-sign-date {
                     text-align: center;
                 }
@@ -202,6 +258,54 @@ include __DIR__ . '/../includes/header.php';
                     margin: 12px 0 0;
                     color: var(--doc-builder-muted);
                     font-size: 0.82rem;
+                }
+
+                .parent-consent-search {
+                    position: relative;
+                }
+
+                .parent-consent-search-panel {
+                    display: none;
+                    position: absolute;
+                    z-index: 30;
+                    top: calc(100% + 6px);
+                    left: 0;
+                    right: 0;
+                    max-height: 260px;
+                    overflow: auto;
+                    padding: 8px;
+                    border: 1px solid var(--doc-builder-border);
+                    border-radius: 12px;
+                    background: var(--doc-builder-card-bg);
+                    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.22);
+                }
+
+                .parent-consent-search-panel.is-open {
+                    display: block;
+                }
+
+                .parent-consent-search-message {
+                    padding: 8px 10px;
+                    color: var(--doc-builder-muted);
+                    font-size: 12px;
+                }
+
+                .parent-consent-search-option {
+                    display: block;
+                    width: 100%;
+                    border: 0;
+                    border-radius: 9px;
+                    background: transparent;
+                    color: var(--doc-builder-text);
+                    padding: 9px 10px;
+                    text-align: left;
+                    font-weight: 700;
+                }
+
+                .parent-consent-search-option:hover,
+                .parent-consent-search-option:focus {
+                    background: var(--doc-builder-control-hover);
+                    outline: none;
                 }
 
                 @media print {
@@ -214,9 +318,7 @@ include __DIR__ . '/../includes/header.php';
 
             <div class="main-content">
                 <form class="application-builder-grid" method="get" id="parentConsentForm">
-                    <?php if ($studentId > 0): ?>
-                        <input type="hidden" name="id" value="<?php echo (int)$studentId; ?>">
-                    <?php endif; ?>
+                    <input type="hidden" name="id" id="parentConsentStudentId" value="<?php echo $studentId > 0 ? (int)$studentId : ''; ?>">
 
                     <section class="application-builder-sidebar">
                         <div class="builder-card">
@@ -227,7 +329,15 @@ include __DIR__ . '/../includes/header.php';
 
                             <div class="builder-field">
                                 <label for="student_name" class="form-label">Student Name</label>
-                                <input id="student_name" class="form-control" type="text" name="student_name" value="<?php echo parent_consent_h($studentName); ?>" placeholder="Student full name" data-preview-target="pcStudent" <?php echo $isStudentViewOnly ? 'readonly' : ''; ?>>
+                                <div class="parent-consent-search" data-parent-consent-student-search>
+                                    <input id="student_name" class="form-control" type="text" name="student_name" value="<?php echo parent_consent_h($studentName); ?>" placeholder="Search student name or ID" data-preview-target="pcStudent" autocomplete="off" <?php echo $isStudentViewOnly ? 'readonly' : ''; ?>>
+                                    <?php if (!$isStudentViewOnly): ?>
+                                        <div class="parent-consent-search-panel">
+                                            <div class="parent-consent-search-message">Type at least 1 character.</div>
+                                            <div class="parent-consent-search-results"></div>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
                             </div>
 
                             <div class="builder-field">
@@ -336,11 +446,17 @@ include __DIR__ . '/../includes/header.php';
                                                     </p>
 
                                                     <div class="parent-consent-sign-student">
-                                                        <div class="parent-consent-sign-line">Signature over Printed Name of Student</div>
+                                                        <div class="parent-consent-sign-line">
+                                                            <span class="parent-consent-sign-name" id="pcStudentSignature"><?php echo parent_consent_h($studentName); ?></span>
+                                                            <span class="parent-consent-sign-label">Signature over Printed Name of Student</span>
+                                                        </div>
                                                     </div>
 
                                                     <div class="parent-consent-sign-grid">
-                                                        <div class="parent-consent-sign-line">Signature over Printed Name of Parent/Guardian</div>
+                                                        <div class="parent-consent-sign-line">
+                                                            <span class="parent-consent-sign-name" id="pcParentSignature"><?php echo parent_consent_h($parentLine); ?></span>
+                                                            <span class="parent-consent-sign-label">Signature over Printed Name of Parent/Guardian</span>
+                                                        </div>
                                                         <div class="parent-consent-sign-date">Date</div>
                                                     </div>
                                                 </section>
@@ -359,13 +475,25 @@ include __DIR__ . '/../includes/header.php';
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var studentInput = document.getElementById('student_name');
+    var studentIdInput = document.getElementById('parentConsentStudentId');
+    var parentInput = document.getElementById('parent_name');
     var companyInput = document.getElementById('company_name');
     var studentPreview = document.getElementById('pcStudent');
+    var studentSignature = document.getElementById('pcStudentSignature');
+    var parentSignature = document.getElementById('pcParentSignature');
     var companyClause = document.getElementById('pcCompanyClause');
+    var endpoint = new URL('document_parent_consent.php', window.location.href).href;
 
     function syncPreview() {
         if (studentPreview && studentInput) {
-            studentPreview.textContent = studentInput.value.trim() || 'my son/daughter';
+            var studentName = studentInput.value.trim();
+            studentPreview.textContent = studentName || 'my son/daughter';
+            if (studentSignature) {
+                studentSignature.textContent = studentName;
+            }
+        }
+        if (parentSignature && parentInput) {
+            parentSignature.textContent = parentInput.value.trim();
         }
         if (companyClause && companyInput) {
             var company = companyInput.value.trim();
@@ -373,11 +501,122 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    [studentInput, companyInput].forEach(function (input) {
+    [studentInput, parentInput, companyInput].forEach(function (input) {
         if (input) {
             input.addEventListener('input', syncPreview);
         }
     });
+
+    function initStudentSearch() {
+        var root = document.querySelector('[data-parent-consent-student-search]');
+        if (!root || !studentInput || studentInput.readOnly) {
+            return;
+        }
+
+        var panel = root.querySelector('.parent-consent-search-panel');
+        var message = root.querySelector('.parent-consent-search-message');
+        var results = root.querySelector('.parent-consent-search-results');
+        var timer = null;
+        var token = 0;
+
+        function openPanel() {
+            if (panel) {
+                panel.classList.add('is-open');
+            }
+        }
+
+        function closePanel() {
+            if (panel) {
+                panel.classList.remove('is-open');
+            }
+        }
+
+        function setMessage(text) {
+            if (message) {
+                message.textContent = text;
+            }
+        }
+
+        function render(items) {
+            if (!results) {
+                return;
+            }
+            results.innerHTML = '';
+            if (!items.length) {
+                setMessage('No students found.');
+                return;
+            }
+            setMessage('Select a student.');
+            items.forEach(function (item) {
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'parent-consent-search-option';
+                button.textContent = item.text || item.name || ('Student #' + item.id);
+                button.addEventListener('click', function () {
+                    studentInput.value = item.name || String(item.text || '').replace(/\s*-\s*.*$/, '').trim();
+                    if (studentIdInput) {
+                        studentIdInput.value = item.id || '';
+                    }
+                    closePanel();
+                    syncPreview();
+                });
+                results.appendChild(button);
+            });
+        }
+
+        function search(term) {
+            var value = String(term || '').trim();
+            if (value.length < 1) {
+                if (results) {
+                    results.innerHTML = '';
+                }
+                setMessage('Type at least 1 character.');
+                return;
+            }
+            token += 1;
+            var currentToken = token;
+            setMessage('Searching...');
+            fetch(endpoint + '?action=search_students&q=' + encodeURIComponent(value), { credentials: 'same-origin' })
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
+                    if (currentToken !== token) {
+                        return;
+                    }
+                    render(Array.isArray(data.results) ? data.results : []);
+                })
+                .catch(function () {
+                    if (currentToken !== token) {
+                        return;
+                    }
+                    if (results) {
+                        results.innerHTML = '';
+                    }
+                    setMessage('Search failed. Try again.');
+                });
+        }
+
+        studentInput.addEventListener('focus', function () {
+            openPanel();
+            search(studentInput.value);
+        });
+        studentInput.addEventListener('input', function () {
+            if (studentIdInput) {
+                studentIdInput.value = '';
+            }
+            openPanel();
+            if (timer) {
+                clearTimeout(timer);
+            }
+            timer = setTimeout(function () {
+                search(studentInput.value);
+            }, 220);
+        });
+        document.addEventListener('click', function (event) {
+            if (!root.contains(event.target)) {
+                closePanel();
+            }
+        });
+    }
 
     document.querySelectorAll('[data-parent-consent-print]').forEach(function (button) {
         button.addEventListener('click', function () {
@@ -393,6 +632,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    initStudentSearch();
     syncPreview();
 });
 </script>
