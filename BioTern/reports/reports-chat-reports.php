@@ -555,7 +555,7 @@ include 'includes/header.php';
         </div>
     </div>
 
-    <form method="get" class="chatreports-filter-wrap row g-2 align-items-end">
+    <form method="get" class="chatreports-filter-wrap row g-2 align-items-end chatreports-auto-filter">
         <div class="col-sm-4 col-md-3">
             <label class="form-label mb-1">From</label>
             <input type="date" name="from" class="form-control" value="<?php echo chatreports_esc($from); ?>">
@@ -577,7 +577,6 @@ include 'includes/header.php';
             <input type="number" name="limit" class="form-control" min="50" max="1000" step="50" value="<?php echo (int)$limit; ?>">
         </div>
         <div class="col-sm-12 col-md-2 d-flex gap-2">
-            <button type="submit" class="btn btn-primary">Apply</button>
             <a href="reports-chat-reports.php" class="btn btn-outline-secondary">Reset</a>
         </div>
     </form>
@@ -675,17 +674,22 @@ include 'includes/header.php';
                                             <input type="hidden" name="to" value="<?php echo chatreports_esc($to); ?>">
                                             <input type="hidden" name="limit" value="<?php echo (int)$limit; ?>">
                                             <input type="hidden" name="status_filter" value="<?php echo chatreports_esc($statusFilter); ?>">
-                                            <select name="new_status" class="form-select form-select-sm">
+                                            <label class="chatreports-action-label">Review Status</label>
+                                            <select name="new_status" class="form-select form-select-sm chatreports-status-select">
                                                 <?php foreach (chatreports_allowed_statuses() as $statusOpt): ?>
                                                     <option value="<?php echo chatreports_esc($statusOpt); ?>"<?php echo $status === $statusOpt ? ' selected' : ''; ?>><?php echo chatreports_esc(chatreports_status_label($statusOpt)); ?></option>
                                                 <?php endforeach; ?>
                                             </select>
-                                            <select name="punishment_action" class="form-select form-select-sm">
-                                                <?php foreach (chatreports_allowed_punishments() as $punishmentOpt): ?>
-                                                    <option value="<?php echo chatreports_esc($punishmentOpt); ?>"<?php echo (string)$item['resolution_action'] === $punishmentOpt ? ' selected' : ''; ?>><?php echo chatreports_esc(chatreports_punishment_label($punishmentOpt)); ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                            <input type="number" name="punishment_days" class="form-control form-control-sm" min="0" max="365" step="1" placeholder="Days, blank = 7">
+                                            <div class="chatreports-punishment-fields">
+                                                <label class="chatreports-action-label">Punishment</label>
+                                                <select name="punishment_action" class="form-select form-select-sm">
+                                                    <?php foreach (chatreports_allowed_punishments() as $punishmentOpt): ?>
+                                                        <option value="<?php echo chatreports_esc($punishmentOpt); ?>"<?php echo (string)$item['resolution_action'] === $punishmentOpt ? ' selected' : ''; ?>><?php echo chatreports_esc(chatreports_punishment_label($punishmentOpt)); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <input type="number" name="punishment_days" class="form-control form-control-sm" min="0" max="365" step="1" placeholder="Duration in days, blank = 7">
+                                                <small class="chatreports-punishment-help">Only required when the report is valid and marked resolved.</small>
+                                            </div>
                                             <textarea name="moderator_note" class="form-control form-control-sm" maxlength="255" placeholder="Moderator note (optional)"><?php echo chatreports_esc((string)$item['moderator_note']); ?></textarea>
                                             <button type="submit" class="btn btn-sm btn-primary">Save</button>
                                         </form>
@@ -705,4 +709,48 @@ include 'includes/header.php';
 include 'includes/footer.php';
 $conn->close();
 ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.chatreports-auto-filter').forEach(function (form) {
+        var timer = null;
+        form.querySelectorAll('select, input[type="date"], input[type="number"]').forEach(function (field) {
+            field.addEventListener('change', function () {
+                form.requestSubmit();
+            });
+            field.addEventListener('input', function () {
+                if (field.type !== 'number') {
+                    return;
+                }
+                window.clearTimeout(timer);
+                timer = window.setTimeout(function () {
+                    form.requestSubmit();
+                }, 550);
+            });
+        });
+    });
 
+    function syncPunishmentFields(form) {
+        var status = form.querySelector('.chatreports-status-select');
+        var fields = form.querySelector('.chatreports-punishment-fields');
+        if (!status || !fields) {
+            return;
+        }
+
+        var isResolved = status.value === 'resolved';
+        fields.classList.toggle('is-hidden', !isResolved);
+        fields.querySelectorAll('select, input').forEach(function (field) {
+            field.disabled = !isResolved;
+        });
+    }
+
+    document.querySelectorAll('.chatreports-action-form').forEach(function (form) {
+        syncPunishmentFields(form);
+        var status = form.querySelector('.chatreports-status-select');
+        if (status) {
+            status.addEventListener('change', function () {
+                syncPunishmentFields(form);
+            });
+        }
+    });
+});
+</script>
