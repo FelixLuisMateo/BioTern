@@ -117,6 +117,18 @@ if (!function_exists('biotern_admin_activity_infer_action')) {
             if (strpos($rawAction, 'delete') !== false || strpos($rawAction, 'remove') !== false) {
                 return 'delete';
             }
+            if (strpos($rawAction, 'approve') !== false || strpos($rawAction, 'accept') !== false) {
+                return 'approve';
+            }
+            if (strpos($rawAction, 'reject') !== false || strpos($rawAction, 'deny') !== false) {
+                return 'reject';
+            }
+            if (strpos($rawAction, 'archive') !== false) {
+                return 'archive';
+            }
+            if (strpos($rawAction, 'restore') !== false || strpos($rawAction, 'reactivate') !== false) {
+                return 'restore';
+            }
             if (strpos($rawAction, 'import') !== false || strpos($rawAction, 'upload') !== false) {
                 return 'import';
             }
@@ -132,8 +144,20 @@ if (!function_exists('biotern_admin_activity_infer_action')) {
             return preg_replace('/[^a-z0-9_ -]/', '', $rawAction) ?: 'action';
         }
 
-        if (strpos($page, 'export') !== false) {
+        if (strpos($page, 'export') !== false || strpos($page, 'download') !== false || isset($request['export']) || isset($request['download'])) {
             return 'export';
+        }
+        if (isset($request['delete']) || isset($request['remove']) || isset($request['delete_id']) || isset($request['archive'])) {
+            return isset($request['archive']) ? 'archive' : 'delete';
+        }
+        if (isset($request['approve'])) {
+            return 'approve';
+        }
+        if (isset($request['reject'])) {
+            return 'reject';
+        }
+        if ($method !== 'POST') {
+            return 'view';
         }
         if (strpos($page, 'import') !== false) {
             return 'import';
@@ -148,7 +172,7 @@ if (!function_exists('biotern_admin_activity_infer_action')) {
             return 'delete';
         }
 
-        return $method === 'POST' ? 'update' : 'view';
+        return 'update';
     }
 }
 
@@ -163,6 +187,11 @@ if (!function_exists('biotern_admin_activity_action_label')) {
             'delete' => 'Deleted',
             'import' => 'Imported',
             'export' => 'Exported',
+            'view' => 'Viewed',
+            'approve' => 'Approved',
+            'reject' => 'Rejected',
+            'archive' => 'Archived',
+            'restore' => 'Restored',
         ];
 
         return $labels[$action] ?? ucwords(str_replace(['_', '-'], ' ', $action));
@@ -269,12 +298,48 @@ if (!function_exists('biotern_admin_activity_auto_log')) {
         }
 
         $request = $method === 'POST' ? $_POST : $_GET;
+        $loggableViewPrefixes = [
+            'students',
+            'applications-review',
+            'attendance',
+            'external-attendance',
+            'fingerprint_mapping',
+            'biometric-machine',
+            'ojt',
+            'courses',
+            'departments',
+            'sections',
+            'companies',
+            'coordinators',
+            'supervisors',
+            'users',
+            'create_admin',
+            'settings-',
+            'auth-register',
+            'theme-customizer',
+        ];
+
+        $isAdminWorkPage = false;
+        foreach ($loggableViewPrefixes as $prefix) {
+            if (strpos($page, $prefix) === 0) {
+                $isAdminWorkPage = true;
+                break;
+            }
+        }
+
         $shouldLog = $method === 'POST'
             || strpos($page, 'export') !== false
+            || strpos($page, 'download') !== false
             || isset($request['delete'])
             || isset($request['delete_id'])
             || isset($request['remove'])
-            || isset($request['action']);
+            || isset($request['archive'])
+            || isset($request['approve'])
+            || isset($request['reject'])
+            || isset($request['export'])
+            || isset($request['download'])
+            || isset($request['action'])
+            || ($method === 'GET' && $isAdminWorkPage);
 
         if (!$shouldLog) {
             return;

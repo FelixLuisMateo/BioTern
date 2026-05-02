@@ -45,16 +45,16 @@ function adminLogsDisplayIp($rawIp): string
 function adminLogsBadgeClass(string $action): string
 {
     $action = strtolower(trim($action));
-    if (in_array($action, ['create', 'add', 'import'], true)) {
+    if (in_array($action, ['create', 'add', 'import', 'approve', 'restore'], true)) {
         return 'success';
     }
-    if (in_array($action, ['edit', 'update'], true)) {
+    if (in_array($action, ['edit', 'update', 'view'], true)) {
         return 'primary';
     }
-    if ($action === 'delete') {
+    if (in_array($action, ['delete', 'reject'], true)) {
         return 'danger';
     }
-    if ($action === 'export') {
+    if (in_array($action, ['export', 'archive'], true)) {
         return 'warning';
     }
 
@@ -84,7 +84,7 @@ function adminLogsDetailsSummary(?string $json): string
 }
 
 $action = strtolower(trim((string)($_GET['action'] ?? 'all')));
-$allowedActions = ['all', 'create', 'edit', 'update', 'delete', 'import', 'export'];
+$allowedActions = ['all', 'view', 'create', 'edit', 'update', 'delete', 'import', 'export', 'approve', 'reject', 'archive', 'restore'];
 if (!in_array($action, $allowedActions, true)) {
     $action = 'all';
 }
@@ -228,11 +228,16 @@ include 'includes/header.php';
                 <label class="form-label mb-1">Action</label>
                 <select class="form-select" name="action">
                     <option value="all" <?php echo $action === 'all' ? 'selected' : ''; ?>>All Actions</option>
+                    <option value="view" <?php echo $action === 'view' ? 'selected' : ''; ?>>View</option>
                     <option value="create" <?php echo $action === 'create' ? 'selected' : ''; ?>>Create</option>
                     <option value="edit" <?php echo $action === 'edit' ? 'selected' : ''; ?>>Edit / Update</option>
                     <option value="delete" <?php echo $action === 'delete' ? 'selected' : ''; ?>>Delete</option>
                     <option value="import" <?php echo $action === 'import' ? 'selected' : ''; ?>>Import</option>
                     <option value="export" <?php echo $action === 'export' ? 'selected' : ''; ?>>Export</option>
+                    <option value="approve" <?php echo $action === 'approve' ? 'selected' : ''; ?>>Approve</option>
+                    <option value="reject" <?php echo $action === 'reject' ? 'selected' : ''; ?>>Reject</option>
+                    <option value="archive" <?php echo $action === 'archive' ? 'selected' : ''; ?>>Archive</option>
+                    <option value="restore" <?php echo $action === 'restore' ? 'selected' : ''; ?>>Restore</option>
                 </select>
             </div>
             <div class="col-sm-6 col-md-3">
