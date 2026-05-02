@@ -82,22 +82,50 @@ if (ojt_create_table_exists($conn, 'school_years')) {
 rsort($schoolYearOptions);
 $schoolYearOptions = array_values(array_unique($schoolYearOptions));
 
+$internshipJoinSql = '';
+$studentCompanySelect = "'' AS current_company_name";
+if (ojt_create_table_exists($conn, 'internships')) {
+    $internshipCols = ojt_create_get_columns($conn, 'internships');
+    $internshipDeletedWhere = in_array('deleted_at', $internshipCols, true) ? 'WHERE deleted_at IS NULL' : '';
+    $internshipDeletedOuterWhere = in_array('deleted_at', $internshipCols, true) ? 'WHERE i_full.deleted_at IS NULL' : '';
+    $internshipJoinSql = "
+    LEFT JOIN (
+        SELECT i_full.student_id, i_full.company_name
+        FROM internships i_full
+        INNER JOIN (
+            SELECT student_id, MAX(id) AS latest_id
+            FROM internships
+            {$internshipDeletedWhere}
+            GROUP BY student_id
+        ) latest ON latest.latest_id = i_full.id
+        {$internshipDeletedOuterWhere}
+    ) i ON i.student_id = s.id";
+    $studentCompanySelect = "COALESCE(i.company_name, '') AS current_company_name";
+}
+
 $studentQuery = "
     SELECT
         s.id,
         s.student_id,
         s.first_name,
+        s.middle_name,
         s.last_name,
+        s.course_id,
+        s.section_id,
+        COALESCE(NULLIF(TRIM(s.school_year), ''), '') AS school_year,
+        COALESCE(NULLIF(TRIM(s.semester), ''), '') AS semester,
         s.assignment_track,
         COALESCE(NULLIF(s.internal_total_hours, 0), 140) AS internal_total_hours,
         COALESCE(NULLIF(s.external_total_hours, 0), 250) AS external_total_hours,
         COALESCE(NULLIF(c.name, ''), '-') AS course_name,
         COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '-') AS section_name,
-        COALESCE(u.application_status, 'approved') AS application_status
+        COALESCE(u.application_status, 'approved') AS application_status,
+        {$studentCompanySelect}
     FROM students s
     LEFT JOIN users u ON u.id = s.user_id
     LEFT JOIN courses c ON c.id = s.course_id
     LEFT JOIN sections sec ON sec.id = s.section_id
+    {$internshipJoinSql}
     WHERE COALESCE(u.application_status, 'approved') = 'approved'
       AND COALESCE(s.status, 1) = 1
     ORDER BY s.last_name ASC, s.first_name ASC
@@ -513,7 +541,13 @@ include 'includes/header.php';
 
                         <div class="mb-3">
                             <label class="form-label">Student *</label>
-                            <select name="student_id" id="studentSelect" class="form-select" required>
+                            <div class="ojt-create-student-picker">
+                                <input type="hidden" name="student_id" id="studentSelect" required>
+                                <button type="button" class="form-select text-start ojt-create-student-trigger" id="studentPickerTrigger" data-bs-toggle="modal" data-bs-target="#studentPickerModal">
+                                    <span id="selectedStudentLabel">Select student</span>
+                                </button>
+                            </div>
+                            <select id="studentDefaultsSelect" class="d-none" aria-hidden="true" tabindex="-1">
                                 <option value="">Select student</option>
                                 <?php foreach ($studentOptions as $student): ?>
                                     <?php
@@ -531,6 +565,7 @@ include 'includes/header.php';
                                         data-track="<?php echo htmlspecialchars($track, ENT_QUOTES, 'UTF-8'); ?>"
                                         data-internal-hours="<?php echo $internalDefault; ?>"
                                         data-external-hours="<?php echo $externalDefault; ?>"
+                                        data-label="<?php echo htmlspecialchars($schoolId . ' | ' . $fullName . ' | ' . $course . ' - ' . $section, ENT_QUOTES, 'UTF-8'); ?>"
                                     >
                                         <?php echo htmlspecialchars($schoolId . ' | ' . $fullName . ' | ' . $course . ' - ' . $section, ENT_QUOTES, 'UTF-8'); ?>
                                     </option>
@@ -699,6 +734,99 @@ include 'includes/header.php';
 </div>
 </div> <!-- .nxl-content -->
 </main>
+<div class="modal fade" id="studentPickerModal" tabindex="-1" aria-labelledby="studentPickerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content ojt-create-student-modal">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title mb-1" id="studentPickerModalLabel">Select Student</h5>
+                    <p class="text-muted mb-0 small">Choose the student to assign. Filters use each student's current profile information.</p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label small" for="studentPickerSearch">Search</label>
+                        <input type="search" class="form-control" id="studentPickerSearch" placeholder="Student no, name">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small" for="studentPickerYear">School Year</label>
+                        <select class="form-select" id="studentPickerYear">
+                            <option value="">All school years</option>
+                            <?php foreach (array_values(array_unique(array_filter(array_map(static fn(array $row): string => trim((string)($row['school_year'] ?? '')), $studentOptions)))) as $yearOption): ?>
+                                <option value="<?php echo htmlspecialchars($yearOption, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($yearOption, ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small" for="studentPickerSemester">Semester</label>
+                        <select class="form-select" id="studentPickerSemester">
+                            <option value="">All semesters</option>
+                            <?php foreach (array_values(array_unique(array_filter(array_map(static fn(array $row): string => trim((string)($row['semester'] ?? '')), $studentOptions)))) as $semesterOption): ?>
+                                <option value="<?php echo htmlspecialchars($semesterOption, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($semesterOption, ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small" for="studentPickerCourse">Course</label>
+                        <select class="form-select" id="studentPickerCourse">
+                            <option value="">All courses</option>
+                            <?php $coursePickerOptions = []; foreach ($studentOptions as $student) { $cid = (int)($student['course_id'] ?? 0); $cname = trim((string)($student['course_name'] ?? '')); if ($cid > 0 && $cname !== '') { $coursePickerOptions[$cid] = $cname; }} asort($coursePickerOptions, SORT_NATURAL | SORT_FLAG_CASE); foreach ($coursePickerOptions as $cid => $cname): ?>
+                                <option value="<?php echo (int)$cid; ?>"><?php echo htmlspecialchars($cname, ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small" for="studentPickerSection">Section</label>
+                        <select class="form-select" id="studentPickerSection">
+                            <option value="">All sections</option>
+                            <?php $sectionPickerOptions = []; foreach ($studentOptions as $student) { $sid = (int)($student['section_id'] ?? 0); $sname = biotern_format_section_code((string)($student['section_name'] ?? '')); if ($sid > 0 && $sname !== '') { $sectionPickerOptions[$sid] = $sname; }} asort($sectionPickerOptions, SORT_NATURAL | SORT_FLAG_CASE); foreach ($sectionPickerOptions as $sid => $sname): ?>
+                                <option value="<?php echo (int)$sid; ?>"><?php echo htmlspecialchars($sname, ENT_QUOTES, 'UTF-8'); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-responsive ojt-create-student-table-wrap">
+                    <table class="table table-hover align-middle mb-0" id="studentPickerTable">
+                        <thead><tr><th></th><th>Student No.</th><th>Name</th><th>Course / Section</th><th>Track</th><th>School Year</th><th>Semester</th><th>Current Company</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($studentOptions as $student): ?>
+                            <?php
+                            $studentPk = (int)($student['id'] ?? 0);
+                            $schoolId = trim((string)($student['student_id'] ?? ''));
+                            $displayName = trim((string)($student['last_name'] ?? '') . ', ' . (string)($student['first_name'] ?? '') . ' ' . (string)($student['middle_name'] ?? ''));
+                            $course = trim((string)($student['course_name'] ?? '-'));
+                            $section = biotern_format_section_code((string)($student['section_name'] ?? '-'));
+                            $track = ucfirst(strtolower(trim((string)($student['assignment_track'] ?? 'internal'))));
+                            $schoolYear = trim((string)($student['school_year'] ?? ''));
+                            $semester = trim((string)($student['semester'] ?? ''));
+                            $company = trim((string)($student['current_company_name'] ?? ''));
+                            $label = $schoolId . ' | ' . $displayName . ' | ' . $course . ' - ' . $section;
+                            ?>
+                            <tr data-student-picker-row data-student-id="<?php echo $studentPk; ?>" data-label="<?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>" data-search="<?php echo htmlspecialchars(strtolower($schoolId . ' ' . $displayName . ' ' . $course . ' ' . $section), ENT_QUOTES, 'UTF-8'); ?>" data-school-year="<?php echo htmlspecialchars($schoolYear, ENT_QUOTES, 'UTF-8'); ?>" data-semester="<?php echo htmlspecialchars($semester, ENT_QUOTES, 'UTF-8'); ?>" data-course-id="<?php echo (int)($student['course_id'] ?? 0); ?>" data-section-id="<?php echo (int)($student['section_id'] ?? 0); ?>">
+                                <td><input class="form-check-input" type="radio" name="student_picker_choice" value="<?php echo $studentPk; ?>"></td>
+                                <td><?php echo htmlspecialchars($schoolId !== '' ? $schoolId : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo htmlspecialchars($displayName !== '' ? $displayName : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo htmlspecialchars($course . ' / ' . $section, ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo htmlspecialchars($track, ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo htmlspecialchars($schoolYear !== '' ? $schoolYear : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo htmlspecialchars($semester !== '' ? $semester : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo htmlspecialchars($company !== '' ? $company : 'No company yet', ENT_QUOTES, 'UTF-8'); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="alert alert-warning mt-3 mb-0 d-none" id="studentPickerEmpty">No students match the current filters.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="studentPickerApply" data-bs-dismiss="modal">Select Student</button>
+            </div>
+        </div>
+    </div>
+</div>
 <?php
 include 'includes/footer.php';
 $conn->close();

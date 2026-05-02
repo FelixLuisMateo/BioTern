@@ -1507,6 +1507,167 @@ function students_excel_import_documents(mysqli $mysqli, array $rows, array &$su
     }
 }
 
+function students_excel_preview_workbook(mysqli $mysqli, string $path, string $sourceWorkbook, string $semesterOverride, array &$preview, array &$errors, string &$message): bool
+{
+    $preview = [
+        'type' => '',
+        'school_year' => '',
+        'semester' => '',
+        'totals' => [],
+        'rows' => [],
+    ];
+    $loadError = '';
+    $sheets = students_excel_load_workbook($path, $sourceWorkbook, $loadError);
+    if ($loadError !== '') {
+        $message = $loadError;
+        return false;
+    }
+
+    $studentsRows = $sheets['students'] ?? ($sheets['student_database'] ?? []);
+    $documentsRows = $sheets['documents'] ?? [];
+    $masterlistRequiredHeaders = [
+        ['student_name'],
+        ['contact_no', 'contact_number'],
+        ['section'],
+        ['company_name', 'company'],
+        ['company_address', 'address'],
+        ['supervisor_name'],
+        ['supervisor_position', 'position'],
+        ['company_representative'],
+        ['status'],
+    ];
+    $masterlistRows = [];
+    foreach ($sheets as $rows) {
+        if (students_excel_has_header_groups($rows, $masterlistRequiredHeaders)) {
+            $masterlistRows = $rows;
+            break;
+        }
+    }
+
+    if ($masterlistRows !== []) {
+        $schoolYear = students_excel_normalize_school_year(students_excel_row_value($masterlistRows[0] ?? [], ['school_year', 'sy']));
+        if ($schoolYear === '') {
+            $schoolYear = students_excel_infer_school_year($sourceWorkbook);
+        }
+        $semester = students_excel_normalize_semester($semesterOverride);
+        if ($semester === '') {
+            $semester = students_excel_infer_semester($sourceWorkbook);
+        }
+        if ($semester === '') {
+            $semester = students_excel_masterlist_semester_value($masterlistRows[0] ?? []);
+        }
+        if ($semester === '') {
+            $semester = 'Unspecified';
+        }
+
+        $preview['type'] = 'masterlist';
+        $preview['school_year'] = $schoolYear;
+        $preview['semester'] = $semester;
+        $seen = [];
+        $totals = ['rows' => 0, 'new_rows' => 0, 'database_duplicates' => 0, 'file_duplicates' => 0, 'missing_required' => 0];
+        foreach ($masterlistRows as $index => $row) {
+            $studentNo = students_excel_row_value($row, ['student_no', 'student_id', 'student_number']);
+            $studentName = trim((string)($row['student_name'] ?? ''));
+            $rowSemester = students_excel_masterlist_semester_value($row, $semester);
+            $rowSchoolYear = students_excel_normalize_school_year(students_excel_row_value($row, ['school_year', 'sy'], $schoolYear));
+            if ($rowSchoolYear === '') {
+                $rowSchoolYear = $schoolYear;
+            }
+            if ($studentName === '' && trim((string)students_excel_row_value($row, ['company_name', 'company'])) === '') {
+                continue;
+            }
+            $totals['rows']++;
+            $issue = 'Ready';
+            if ($studentName === '' || ($studentNo === '' && $studentName === '')) {
+                $totals['missing_required']++;
+                $issue = 'Missing required student info';
+            } else {
+                $fileKey = strtolower($rowSchoolYear . '|' . $rowSemester . '|' . ($studentNo !== '' ? $studentNo : $studentName));
+                if (isset($seen[$fileKey])) {
+                    $totals['file_duplicates']++;
+                    $issue = 'Duplicate inside workbook';
+                } else {
+                    $seen[$fileKey] = true;
+                    $dbDuplicate = false;
+                    if ($studentNo !== '') {
+                        $stmt = $mysqli->prepare("SELECT id FROM ojt_masterlist WHERE school_year = ? AND semester = ? AND TRIM(COALESCE(student_no, '')) = ? LIMIT 1");
+                        if ($stmt) {
+                            $stmt->bind_param('sss', $rowSchoolYear, $rowSemester, $studentNo);
+                            $stmt->execute();
+                            $dbDuplicate = is_array($stmt->get_result()->fetch_assoc());
+                            $stmt->close();
+                        }
+                    }
+                    if ($dbDuplicate) {
+                        $totals['database_duplicates']++;
+                        $issue = 'Already imported';
+                    } else {
+                        $totals['new_rows']++;
+                    }
+                }
+            }
+            if (count($preview['rows']) < 80) {
+                $preview['rows'][] = [
+                    'row' => $index + 2,
+                    'student_no' => $studentNo,
+                    'student_name' => $studentName,
+                    'section' => students_excel_row_value($row, ['section']),
+                    'company' => students_excel_row_value($row, ['company_name', 'company']),
+                    'issue' => $issue,
+                ];
+            }
+        }
+        $preview['totals'] = $totals;
+        $message = 'Review the masterlist before confirming import.';
+        return true;
+    }
+
+    if ($studentsRows === []) {
+        $message = 'Workbook must contain either a masterlist sheet or a Students/student_database sheet.';
+        return false;
+    }
+
+    $preview['type'] = 'students';
+    $seen = [];
+    $totals = ['rows' => 0, 'new_students' => 0, 'updates' => 0, 'file_duplicates' => 0, 'documents' => count($documentsRows)];
+    foreach ($studentsRows as $index => $row) {
+        $studentCode = trim((string)($row['student_id'] ?? ''));
+        $email = trim((string)($row['email'] ?? ''));
+        if ($studentCode === '' && $email === '') {
+            continue;
+        }
+        $totals['rows']++;
+        $issue = 'New student';
+        $fileKey = strtolower($studentCode !== '' ? $studentCode : $email);
+        if (isset($seen[$fileKey])) {
+            $totals['file_duplicates']++;
+            $issue = 'Duplicate inside workbook';
+        } else {
+            $seen[$fileKey] = true;
+            $existing = students_excel_find_student($mysqli, $studentCode, $email, 0);
+            if ($existing) {
+                $totals['updates']++;
+                $issue = 'Existing student will be updated';
+            } else {
+                $totals['new_students']++;
+            }
+        }
+        if (count($preview['rows']) < 80) {
+            $preview['rows'][] = [
+                'row' => $index + 2,
+                'student_no' => $studentCode,
+                'student_name' => trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '')),
+                'section' => (string)($row['section_id'] ?? ''),
+                'company' => '',
+                'issue' => $issue,
+            ];
+        }
+    }
+    $preview['totals'] = $totals;
+    $message = 'Review the student workbook before confirming import.';
+    return true;
+}
+
 function students_excel_import_workbook(mysqli $mysqli, string $path, string $sourceWorkbook, string $semesterOverride, array &$summary, array &$errors, string &$message): bool
 {
     $loadError = '';
@@ -2025,6 +2186,8 @@ $statusType = '';
 $statusMessage = '';
 $statusDetails = [];
 $csrfToken = students_excel_csrf_token();
+$pendingImport = is_array($_SESSION['students_excel_pending_import'] ?? null) ? $_SESSION['students_excel_pending_import'] : null;
+$pendingPreview = is_array($_SESSION['students_excel_pending_preview'] ?? null) ? $_SESSION['students_excel_pending_preview'] : null;
 $selectedReviewYear = students_excel_normalize_school_year((string)($_GET['review_year'] ?? ''));
 $selectedReviewSemester = students_excel_normalize_semester((string)($_GET['review_semester'] ?? ''));
 $selectedReviewSection = trim((string)($_GET['review_section'] ?? ''));
@@ -2033,7 +2196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedCsrf = (string)($_POST['csrf_token'] ?? '');
     $postedAction = (string)($_POST['action'] ?? '');
     $csrfIsValid = hash_equals($csrfToken, $postedCsrf);
-    if (!$csrfIsValid && $postedAction !== 'delete_masterlist') {
+    if (!$csrfIsValid && !in_array($postedAction, ['delete_masterlist', 'preview_import', 'confirm_import'], true)) {
         $statusType = 'danger';
         $statusMessage = 'Invalid security token. Refresh the page and try again.';
     } elseif ($postedAction === 'delete_masterlist') {
@@ -2051,6 +2214,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $selectedReviewYear = $ok ? $deleteSchoolYear : $selectedReviewYear;
         $selectedReviewSemester = $ok ? $deleteSemester : $selectedReviewSemester;
+    } elseif ($postedAction === 'confirm_import') {
+        $pendingImport = is_array($_SESSION['students_excel_pending_import'] ?? null) ? $_SESSION['students_excel_pending_import'] : null;
+        $pendingPath = (string)($pendingImport['path'] ?? '');
+        if ($pendingPath === '' || !is_file($pendingPath)) {
+            $statusType = 'danger';
+            $statusMessage = 'No reviewed workbook is waiting to import. Upload and review the workbook again.';
+        } else {
+            $summary = [];
+            $errors = [];
+            $message = '';
+            $originalName = (string)($pendingImport['name'] ?? 'uploaded-workbook.xlsx');
+            $overrideSemester = (string)($pendingImport['semester'] ?? '');
+            $ok = students_excel_import_workbook($conn, $pendingPath, $originalName, $overrideSemester, $summary, $errors, $message);
+            @unlink($pendingPath);
+            unset($_SESSION['students_excel_pending_import'], $_SESSION['students_excel_pending_preview']);
+            $pendingImport = null;
+            $pendingPreview = null;
+            $statusType = $ok ? 'success' : 'danger';
+            $statusMessage = $message !== '' ? $message : ($ok ? 'Excel import completed.' : 'Excel import failed.');
+            foreach ($summary as $label => $value) {
+                $statusDetails[] = ucwords(str_replace('_', ' ', (string)$label)) . ': ' . (int)$value;
+            }
+            foreach (array_slice($errors, 0, 8) as $line) {
+                $statusDetails[] = $line;
+            }
+        }
     } elseif (!isset($_FILES['excel_file']) || !is_array($_FILES['excel_file'])) {
         $statusType = 'danger';
         $statusMessage = 'Choose an Excel workbook first.';
@@ -2075,25 +2264,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($overrideSchoolYear !== '') {
                     $originalName = $overrideSchoolYear;
                 }
-                $ok = students_excel_import_workbook($conn, $tmpName, $originalName, $overrideSemester, $summary, $errors, $message);
-                $statusType = $ok ? 'success' : 'danger';
-                $statusMessage = $message !== '' ? $message : ($ok ? 'Excel import completed.' : 'Excel import failed.');
-                if ($overrideSchoolYear !== '') {
-                    $selectedReviewYear = $overrideSchoolYear;
-                } elseif (preg_match('/school year (\d{4}-\d{4})/i', $statusMessage, $matches)) {
-                    $selectedReviewYear = $matches[1];
+                $previewDir = dirname(__DIR__) . '/uploads/import-previews';
+                if (!is_dir($previewDir)) {
+                    @mkdir($previewDir, 0775, true);
                 }
-                if ($overrideSemester !== '') {
-                    $selectedReviewSemester = $overrideSemester;
-                }
-                foreach ($summary as $label => $value) {
-                    $statusDetails[] = ucwords(str_replace('_', ' ', (string)$label)) . ': ' . (int)$value;
-                }
-                foreach (array_slice($errors, 0, 8) as $line) {
-                    $statusDetails[] = $line;
-                }
-                if (count($errors) > 8) {
-                    $statusDetails[] = 'Additional row issues not shown: ' . (count($errors) - 8);
+                $previewPath = $previewDir . '/pending_' . $userId . '_' . bin2hex(random_bytes(8)) . '.xlsx';
+                $stored = is_uploaded_file($tmpName) ? move_uploaded_file($tmpName, $previewPath) : copy($tmpName, $previewPath);
+                if (!$stored) {
+                    $statusType = 'danger';
+                    $statusMessage = 'Unable to store the uploaded workbook for review.';
+                } else {
+                    $preview = [];
+                    $ok = students_excel_preview_workbook($conn, $previewPath, $originalName, $overrideSemester, $preview, $errors, $message);
+                    if (!$ok) {
+                        @unlink($previewPath);
+                        $statusType = 'danger';
+                        $statusMessage = $message !== '' ? $message : 'Unable to preview workbook.';
+                    } else {
+                        $previousPendingPath = (string)($pendingImport['path'] ?? '');
+                        if ($previousPendingPath !== '' && $previousPendingPath !== $previewPath && is_file($previousPendingPath)) {
+                            @unlink($previousPendingPath);
+                        }
+                        $_SESSION['students_excel_pending_import'] = [
+                            'path' => $previewPath,
+                            'name' => $originalName,
+                            'semester' => $overrideSemester,
+                        ];
+                        $_SESSION['students_excel_pending_preview'] = $preview;
+                        $pendingImport = $_SESSION['students_excel_pending_import'];
+                        $pendingPreview = $preview;
+                        $statusType = 'success';
+                        $statusMessage = $message;
+                        foreach (($preview['totals'] ?? []) as $label => $value) {
+                            $statusDetails[] = ucwords(str_replace('_', ' ', (string)$label)) . ': ' . (int)$value;
+                        }
+                    }
                 }
             }
         }
@@ -2144,12 +2349,12 @@ include dirname(__DIR__) . '/includes/header.php';
     <div class="page-header">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title">
-                <h5 class="m-b-10">Excel Import</h5>
+                <h5 class="m-b-10">Student's Masterlist Import/Export</h5>
             </div>
             <ul class="breadcrumb">
                 <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                 <li class="breadcrumb-item"><a href="import-sql.php">Data Transfer</a></li>
-                <li class="breadcrumb-item">Excel Import</li>
+                <li class="breadcrumb-item">Student's Masterlist Import/Export</li>
             </ul>
         </div>
         <div class="page-header-right ms-auto excel-import-page-header-actions">
@@ -2173,7 +2378,53 @@ include dirname(__DIR__) . '/includes/header.php';
         <div class="card excel-import-hero mb-4"><div class="card-body p-4 p-md-5"><span class="excel-import-badge">Separate Excel Workflow</span><h2 class="mt-3 mb-2 text-white">Import either a student workbook or the teacher OJT masterlist</h2><p class="mb-0 text-white-50">This page now supports the existing Students/Documents workbook and the teacher masterlist format so you can centralize OJT data on localhost without replacing the whole SQL database.</p><div class="excel-import-hero-actions"><a href="import-sql.php" class="btn btn-light-brand">Back to Data Transfer</a><a href="students-edit.php" class="btn btn-light">Review Students</a></div></div></div>
         <div class="row g-4">
             <div class="col-lg-8">
-                <div class="card excel-import-card"><div class="card-body p-4 p-md-5"><div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3"><div><span class="excel-import-badge">Import Workbook</span><h4 class="mt-3 mb-2">Teacher masterlist or Students/Documents workbook</h4><p class="text-muted mb-0">Upload the teacher masterlist with columns like <code>STUDENT NAME</code>, <code>COMPANY</code>, <code>SUPERVISOR NAME</code>, and <code>STATUS</code>, or use the older <code>Students</code> plus optional <code>Documents</code> workbook.</p></div><a href="import-sql.php" class="btn btn-light">Back to SQL Tools</a></div><form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>"><div class="mb-3"><label for="excel_file" class="form-label fw-semibold">Upload Excel workbook</label><input class="form-control" type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"><div class="form-text">The teacher file can be a single-sheet workbook. The older import still accepts <code>Students</code> and optional <code>Documents</code>.</div></div><div class="mb-3"><label for="school_year_override" class="form-label fw-semibold">School year override</label><input class="form-control" type="text" id="school_year_override" name="school_year_override" placeholder="e.g. 2025-2026 or 25-26"><div class="form-text">Leave blank to infer from the filename. Use this if the file name does not clearly include the school year.</div></div><div class="mb-3"><label for="semester_override" class="form-label fw-semibold">Semester override</label><select class="form-select" id="semester_override" name="semester_override"><option value="">Infer from file or sheet</option><option value="1st Semester">1st Semester</option><option value="2nd Semester">2nd Semester</option><option value="Summer">Summer</option></select><div class="form-text">Use this when the uploaded masterlist belongs to a specific semester. Imports now refresh by school year and semester together.</div></div><div class="d-flex flex-wrap gap-2"><button type="submit" class="btn btn-primary">Import Excel Database</button><a href="students-edit.php" class="btn btn-outline-primary">Review Students</a></div></form></div></div>
+                <div class="card excel-import-card"><div class="card-body p-4 p-md-5"><div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3"><div><span class="excel-import-badge">Import Workbook</span><h4 class="mt-3 mb-2">Teacher masterlist or Students/Documents workbook</h4><p class="text-muted mb-0">Upload the teacher masterlist with columns like <code>STUDENT NAME</code>, <code>COMPANY</code>, <code>SUPERVISOR NAME</code>, and <code>STATUS</code>, or use the older <code>Students</code> plus optional <code>Documents</code> workbook.</p></div><a href="import-sql.php" class="btn btn-light">Back to SQL Tools</a></div><form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="action" value="preview_import"><div class="mb-3"><label for="excel_file" class="form-label fw-semibold">Upload Excel workbook</label><input class="form-control" type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"><div class="form-text">The teacher file can be a single-sheet workbook. The older import still accepts <code>Students</code> and optional <code>Documents</code>.</div></div><div class="mb-3"><label for="school_year_override" class="form-label fw-semibold">School year override</label><input class="form-control" type="text" id="school_year_override" name="school_year_override" placeholder="e.g. 2025-2026 or 25-26"><div class="form-text">Leave blank to infer from the filename. Use this if the file name does not clearly include the school year.</div></div><div class="mb-3"><label for="semester_override" class="form-label fw-semibold">Semester override</label><select class="form-select" id="semester_override" name="semester_override"><option value="">Infer from file or sheet</option><option value="1st Semester">1st Semester</option><option value="2nd Semester">2nd Semester</option><option value="Summer">Summer</option></select><div class="form-text">Use this when the uploaded masterlist belongs to a specific semester. Imports now refresh by school year and semester together.</div></div><div class="d-flex flex-wrap gap-2 excel-import-form-actions"><button type="submit" class="btn btn-primary">Review Workbook</button><a href="students-edit.php" class="btn btn-outline-primary">Review Students</a></div></form></div></div>
+                <?php if (is_array($pendingPreview) && !empty($pendingPreview['type'])): ?>
+                <div class="card excel-import-card mt-4">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+                            <div>
+                                <span class="excel-import-badge">Review Before Import</span>
+                                <h4 class="mt-3 mb-2"><?php echo ((string)$pendingPreview['type'] === 'masterlist') ? 'Masterlist preview' : 'Students workbook preview'; ?></h4>
+                                <p class="text-muted mb-0">Duplicates and skipped rows are shown here first. Nothing is saved to the database until you confirm.</p>
+                            </div>
+                            <form method="post">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                                <input type="hidden" name="action" value="confirm_import">
+                                <button type="submit" class="btn btn-success">Confirm Import to Database</button>
+                            </form>
+                        </div>
+                        <?php if ((string)($pendingPreview['school_year'] ?? '') !== '' || (string)($pendingPreview['semester'] ?? '') !== ''): ?>
+                        <div class="small text-muted mb-3">
+                            <?php if ((string)($pendingPreview['school_year'] ?? '') !== ''): ?><span class="me-3">School year: <strong><?php echo htmlspecialchars((string)$pendingPreview['school_year'], ENT_QUOTES, 'UTF-8'); ?></strong></span><?php endif; ?>
+                            <?php if ((string)($pendingPreview['semester'] ?? '') !== ''): ?><span>Semester: <strong><?php echo htmlspecialchars((string)$pendingPreview['semester'], ENT_QUOTES, 'UTF-8'); ?></strong></span><?php endif; ?>
+                        </div>
+                        <?php endif; ?>
+                        <div class="row g-3 mb-4">
+                            <?php foreach (($pendingPreview['totals'] ?? []) as $label => $value): ?>
+                            <div class="col-sm-6 col-xl-4"><div class="excel-import-stat"><div class="text-muted small"><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', (string)$label)), ENT_QUOTES, 'UTF-8'); ?></div><div class="excel-import-stat-value"><?php echo (int)$value; ?></div></div></div>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle excel-import-table excel-import-preview-table">
+                                <thead><tr><th>Row</th><th>Student No.</th><th>Student</th><th>Section</th><th>Company</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    <?php foreach (($pendingPreview['rows'] ?? []) as $previewRow): ?>
+                                    <tr>
+                                        <td><?php echo (int)($previewRow['row'] ?? 0); ?></td>
+                                        <td><?php echo htmlspecialchars((string)($previewRow['student_no'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td><?php echo htmlspecialchars((string)($previewRow['student_name'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td><?php echo htmlspecialchars((string)($previewRow['section'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td><?php echo htmlspecialchars((string)($previewRow['company'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td><?php echo htmlspecialchars((string)($previewRow['issue'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
             <div class="col-lg-4">
                 <div class="card excel-import-card mb-4"><div class="card-body"><span class="excel-import-badge">Workbook Rules</span><div class="excel-import-step mt-3"><h6>Teacher masterlist supported</h6><p class="text-muted mb-0">Single-sheet masterlists are imported into centralized tables <code>ojt_masterlist</code> and <code>ojt_partner_companies</code>. They do not create rows in <code>students</code>, but now automatically create/sync <code>internships</code> records when a matching student account already exists.</p></div><div class="excel-import-step mt-3"><h6>Older student workbook still works</h6><p class="text-muted mb-0">For direct account/student imports, use <code>Students</code> and optional <code>Documents</code> with the original columns. Student imports now also attempt to sync a matching masterlist row into <code>internships</code>.</p></div></div></div>
