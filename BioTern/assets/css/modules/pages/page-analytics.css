@@ -75,6 +75,10 @@
     gap: 14px;
 }
 
+.analytics-hero-glance {
+    align-content: center;
+}
+
 .analytics-glance-card,
 .analytics-metric-card,
 .analytics-card {
@@ -91,12 +95,14 @@
     box-shadow: none;
 }
 
-.analytics-glance-card strong,
 .analytics-metric-card strong,
 .analytics-inline-stat,
-.analytics-list-copy strong,
-.analytics-hero-copy h1 {
+.analytics-list-copy strong {
     color: #10213f;
+}
+
+.analytics-hero-copy h1 {
+    color: #f8fafc;
 }
 
 .analytics-glance-card strong,

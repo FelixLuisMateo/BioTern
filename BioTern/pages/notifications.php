@@ -3,6 +3,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 require_once dirname(__DIR__) . '/lib/notifications.php';
+require_once dirname(__DIR__) . '/lib/student_absence_notifications.php';
 
 function notifications_h($value): string
 {
@@ -15,8 +16,36 @@ if ($userId <= 0) {
     exit;
 }
 
+$currentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? $_SESSION['account_role'] ?? '')));
+$isAdmin = $currentRole === 'admin';
+$absenceSettingsMessage = '';
+$absenceSettingsError = '';
+
 biotern_notifications_ensure_table($conn);
 $columns = biotern_notification_columns($conn);
+$absenceNotifyDays = biotern_absence_notify_threshold($conn);
+
+if ($isAdmin && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && strtolower(trim((string)($_POST['absence_settings_action'] ?? ''))) === 'save_absence_settings') {
+    $postedThreshold = trim((string)($_POST['student_absence_notify_days'] ?? '3'));
+    if (!ctype_digit($postedThreshold) || (int)$postedThreshold < 1 || (int)$postedThreshold > 30) {
+        $absenceSettingsError = 'Absence notification days must be between 1 and 30.';
+    } elseif (biotern_absence_store_setting(
+        $conn,
+        'student_absence_notify_days',
+        (string)(int)$postedThreshold,
+        'Scheduled absence streak length before admins are notified.'
+    )) {
+        $absenceNotifyDays = (int)$postedThreshold;
+        $absenceSettingsMessage = 'Absence notification setting saved.';
+    } else {
+        $absenceSettingsError = 'Unable to save absence notification setting right now.';
+    }
+}
+
+if ($isAdmin) {
+    biotern_absence_notify_admins($conn, $absenceNotifyDays);
+}
+
 $allowedStatuses = ['all', 'unread'];
 $allowedCategories = ['all', 'chat', 'assignment', 'attendance', 'account', 'system'];
 $allowedRanges = ['all', 'today', '7d', '30d', 'custom'];
@@ -97,7 +126,7 @@ $notificationsUrl = static function (array $overrides = []) use ($baseFilterPara
     return 'notifications.php' . ($query !== '' ? ('?' . $query) : '');
 };
 
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && trim((string)($_POST['absence_settings_action'] ?? '')) === '') {
     $action = strtolower(trim((string)($_POST['notifications_action'] ?? '')));
     $notificationId = (int)($_POST['notification_id'] ?? 0);
 
@@ -259,6 +288,30 @@ include dirname(__DIR__) . '/includes/header.php';
                                         </form>
                                     </div>
                                 </div>
+
+                                <?php if ($isAdmin): ?>
+                                    <?php if ($absenceSettingsMessage !== ''): ?>
+                                        <div class="alert alert-success settings-alert" role="alert"><?php echo notifications_h($absenceSettingsMessage); ?></div>
+                                    <?php endif; ?>
+                                    <?php if ($absenceSettingsError !== ''): ?>
+                                        <div class="alert alert-danger settings-alert" role="alert"><?php echo notifications_h($absenceSettingsError); ?></div>
+                                    <?php endif; ?>
+                                    <form method="post" class="notifications-filters-card">
+                                        <input type="hidden" name="absence_settings_action" value="save_absence_settings">
+                                        <div class="row g-3 align-items-end">
+                                            <div class="col-lg-5">
+                                                <label class="form-label" for="student_absence_notify_days">Notify admins after scheduled absences</label>
+                                                <input type="number" class="form-control" id="student_absence_notify_days" name="student_absence_notify_days" min="1" max="30" step="1" value="<?php echo (int)$absenceNotifyDays; ?>">
+                                            </div>
+                                            <div class="col-lg-5">
+                                                <small class="form-text d-block">Only section schedule days count. Sundays are skipped, and Saturdays count only when that section has a configured Saturday schedule.</small>
+                                            </div>
+                                            <div class="col-lg-2">
+                                                <button type="submit" class="btn btn-primary w-100">Save Setting</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                <?php endif; ?>
 
                                 <form method="get" class="notifications-filters-card">
                                     <div class="row g-3">

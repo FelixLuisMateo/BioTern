@@ -13,6 +13,12 @@
         headerCheckbox.checked = rowCheckboxes.length > 0 && checkedCount === rowCheckboxes.length;
         headerCheckbox.indeterminate = checkedCount > 0 && checkedCount < rowCheckboxes.length;
         table.classList.toggle('has-ojt-row-selection', checkedCount > 0);
+        table.dispatchEvent(new CustomEvent('ojt-selection-change', {
+            bubbles: true,
+            detail: {
+                selectedCount: checkedCount
+            }
+        }));
     }
 
     function initTable(table) {
