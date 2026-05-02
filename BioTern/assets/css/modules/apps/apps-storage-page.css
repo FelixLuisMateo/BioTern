@@ -285,6 +285,14 @@
     border-color: var(--storage-border);
     background: rgba(12, 20, 37, 0.72);
     color: var(--storage-text);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.app-storage-field .form-select option,
+.app-storage-category-select option,
+.app-storage-sort-field .form-select option {
+    text-transform: none;
 }
 
 .app-storage-sort-field .form-select:focus,
@@ -537,8 +545,21 @@
 }
 
 .app-storage-field {
+    position: relative;
     display: grid;
     gap: 0.45rem;
+}
+
+.app-storage-field .form-select,
+.app-storage-field .form-control,
+.app-storage-field textarea {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+}
+
+.app-storage-field .form-select {
+    cursor: pointer;
 }
 
 .app-storage-field span {

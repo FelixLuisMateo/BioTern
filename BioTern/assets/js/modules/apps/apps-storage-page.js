@@ -406,6 +406,11 @@
     if (els.searchInput) els.searchInput.addEventListener('input', async (event) => { state.search = String(event.target.value || ''); await render(); });
     if (els.sortSelect) els.sortSelect.addEventListener('change', async (event) => { state.sort = String(event.target.value || 'recent'); await render(); });
     if (els.categorySelect) els.categorySelect.addEventListener('change', async (event) => { state.category = String(event.target.value || 'all'); await render(); });
+    if (els.uploadCategory && typeof els.uploadCategory.showPicker === 'function') {
+        els.uploadCategory.addEventListener('click', () => {
+            try { els.uploadCategory.showPicker(); } catch (_error) { /* Native click still handles unsupported picker states. */ }
+        });
+    }
     if (els.uploadScope) els.uploadScope.addEventListener('change', syncAudienceField);
     if (els.uploadAudience) els.uploadAudience.addEventListener('change', syncAudienceField);
     if (els.uploadForm) els.uploadForm.addEventListener('submit', handleUpload);
