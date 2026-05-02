@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/lib/document_access.php';
+require_once dirname(__DIR__) . '/lib/company_profiles.php';
 
 biotern_boot_session(isset($conn) ? $conn : null);
 
@@ -59,7 +60,7 @@ if (isset($_GET['action'])) {
         $term = trim((string)($_GET['q'] ?? ''));
         $safeTerm = '%' . $term . '%';
         $gateWhere = documents_students_search_gate_sql($conn, 's');
-        $sql = "SELECT s.id, s.first_name, s.middle_name, s.last_name, s.student_id
+        $sql = "SELECT s.id, s.first_name, s.middle_name, s.last_name, s.student_id, s.emergency_contact
             FROM students s
             WHERE (
                 CONCAT(s.first_name, ' ', s.middle_name, ' ', s.last_name) LIKE ?
@@ -77,13 +78,37 @@ if (isset($_GET['action'])) {
             while ($row = $res->fetch_assoc()) {
                 $name = trim((string)($row['first_name'] ?? '') . ' ' . (!empty($row['middle_name']) ? (string)$row['middle_name'] . ' ' : '') . (string)($row['last_name'] ?? ''));
                 $studentNo = trim((string)($row['student_id'] ?? ''));
+                $parentContact = trim((string)($row['emergency_contact'] ?? ''));
+                $parentName = trim((string)preg_replace('/\s*\([^)]*\)\s*$/', '', $parentContact));
                 $results[] = [
                     'id' => (int)($row['id'] ?? 0),
                     'name' => $name,
+                    'parent_name' => $parentName,
                     'text' => trim($name . ($studentNo !== '' ? ' - ' . $studentNo : '')),
                 ];
             }
             $stmt->close();
+        }
+        echo json_encode(['results' => $results]);
+        exit;
+    }
+
+    if ($action === 'search_companies') {
+        $term = trim((string)($_GET['q'] ?? ''));
+        $results = [];
+        foreach (biotern_company_profiles_search($conn, $term, 25) as $company) {
+            $labelParts = [trim((string)($company['company_name'] ?? ''))];
+            if (trim((string)($company['company_address'] ?? '')) !== '') {
+                $labelParts[] = trim((string)($company['company_address'] ?? ''));
+            }
+            $results[] = [
+                'id' => (string)($company['key'] ?? $company['company_lookup_key'] ?? $company['company_name'] ?? ''),
+                'name' => trim((string)($company['company_name'] ?? '')),
+                'address' => trim((string)($company['company_address'] ?? '')),
+                'text' => implode(' - ', array_filter($labelParts, static function ($value): bool {
+                    return trim((string)$value) !== '';
+                })),
+            ];
         }
         echo json_encode(['results' => $results]);
         exit;
@@ -99,6 +124,10 @@ if ($studentName === '' && $student) {
 }
 
 $parentName = parent_consent_q('parent_name');
+if ($parentName === '' && $student) {
+    $parentContact = trim((string)($student['emergency_contact'] ?? ''));
+    $parentName = trim((string)preg_replace('/\s*\([^)]*\)\s*$/', '', $parentContact));
+}
 $companyName = parent_consent_q('company_name');
 $printDate = parent_consent_q('date', date('F j, Y'));
 
@@ -264,6 +293,37 @@ include __DIR__ . '/../includes/header.php';
                     position: relative;
                 }
 
+                .parent-consent-search-control {
+                    position: relative;
+                }
+
+                .parent-consent-search-control .form-control {
+                    padding-right: 42px;
+                }
+
+                .parent-consent-search-toggle {
+                    position: absolute;
+                    right: 7px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    width: 30px;
+                    height: 30px;
+                    border: 0;
+                    border-radius: 9px;
+                    background: var(--doc-builder-control-bg);
+                    color: var(--doc-builder-muted);
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .parent-consent-search-toggle:hover,
+                .parent-consent-search-toggle:focus {
+                    background: var(--doc-builder-control-hover);
+                    color: var(--doc-builder-text);
+                    outline: none;
+                }
+
                 .parent-consent-search-panel {
                     display: none;
                     position: absolute;
@@ -330,7 +390,12 @@ include __DIR__ . '/../includes/header.php';
                             <div class="builder-field">
                                 <label for="student_name" class="form-label">Student Name</label>
                                 <div class="parent-consent-search" data-parent-consent-student-search>
-                                    <input id="student_name" class="form-control" type="text" name="student_name" value="<?php echo parent_consent_h($studentName); ?>" placeholder="Search student name or ID" data-preview-target="pcStudent" autocomplete="off" <?php echo $isStudentViewOnly ? 'readonly' : ''; ?>>
+                                    <div class="parent-consent-search-control">
+                                        <input id="student_name" class="form-control" type="text" name="student_name" value="<?php echo parent_consent_h($studentName); ?>" placeholder="Search student name or ID" data-preview-target="pcStudent" autocomplete="off" <?php echo $isStudentViewOnly ? 'readonly' : ''; ?>>
+                                        <?php if (!$isStudentViewOnly): ?>
+                                            <button class="parent-consent-search-toggle" type="button" aria-label="Open student search"><i class="feather-chevron-down"></i></button>
+                                        <?php endif; ?>
+                                    </div>
                                     <?php if (!$isStudentViewOnly): ?>
                                         <div class="parent-consent-search-panel">
                                             <div class="parent-consent-search-message">Type at least 1 character.</div>
@@ -347,7 +412,17 @@ include __DIR__ . '/../includes/header.php';
 
                             <div class="builder-field">
                                 <label for="company_name" class="form-label">Company / Training Site</label>
-                                <input id="company_name" class="form-control" type="text" name="company_name" value="<?php echo parent_consent_h($companyName); ?>" placeholder="Optional host company" data-preview-target="pcCompany">
+                                <div class="parent-consent-search" data-parent-consent-company-search>
+                                    <input id="company_name" type="hidden" name="company_name" value="<?php echo parent_consent_h($companyName); ?>">
+                                    <div class="parent-consent-search-control">
+                                        <input id="company_search" class="form-control" type="text" value="<?php echo parent_consent_h($companyName); ?>" placeholder="Search company or training site" data-preview-target="pcCompany" autocomplete="off">
+                                        <button class="parent-consent-search-toggle" type="button" aria-label="Open company search"><i class="feather-chevron-down"></i></button>
+                                    </div>
+                                    <div class="parent-consent-search-panel">
+                                        <div class="parent-consent-search-message">Type at least 1 character.</div>
+                                        <div class="parent-consent-search-results"></div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="builder-field">
@@ -478,6 +553,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var studentIdInput = document.getElementById('parentConsentStudentId');
     var parentInput = document.getElementById('parent_name');
     var companyInput = document.getElementById('company_name');
+    var companySearchInput = document.getElementById('company_search');
     var studentPreview = document.getElementById('pcStudent');
     var studentSignature = document.getElementById('pcStudentSignature');
     var parentSignature = document.getElementById('pcParentSignature');
@@ -507,15 +583,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    function initStudentSearch() {
-        var root = document.querySelector('[data-parent-consent-student-search]');
-        if (!root || !studentInput || studentInput.readOnly) {
+    function initDropdownSearch(config) {
+        var root = document.querySelector(config.rootSelector);
+        var input = config.input;
+        if (!root || !input || input.readOnly) {
             return;
         }
 
         var panel = root.querySelector('.parent-consent-search-panel');
         var message = root.querySelector('.parent-consent-search-message');
         var results = root.querySelector('.parent-consent-search-results');
+        var toggle = root.querySelector('.parent-consent-search-toggle');
         var timer = null;
         var token = 0;
 
@@ -543,20 +621,17 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             results.innerHTML = '';
             if (!items.length) {
-                setMessage('No students found.');
+                setMessage(config.emptyText || 'No results found.');
                 return;
             }
-            setMessage('Select a student.');
+            setMessage(config.pickText || 'Select an item.');
             items.forEach(function (item) {
                 var button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'parent-consent-search-option';
-                button.textContent = item.text || item.name || ('Student #' + item.id);
+                button.textContent = item.text || item.name || ('Item #' + item.id);
                 button.addEventListener('click', function () {
-                    studentInput.value = item.name || String(item.text || '').replace(/\s*-\s*.*$/, '').trim();
-                    if (studentIdInput) {
-                        studentIdInput.value = item.id || '';
-                    }
+                    config.onPick(item);
                     closePanel();
                     syncPreview();
                 });
@@ -576,7 +651,7 @@ document.addEventListener('DOMContentLoaded', function () {
             token += 1;
             var currentToken = token;
             setMessage('Searching...');
-            fetch(endpoint + '?action=search_students&q=' + encodeURIComponent(value), { credentials: 'same-origin' })
+            fetch(endpoint + '?action=' + encodeURIComponent(config.action) + '&q=' + encodeURIComponent(value), { credentials: 'same-origin' })
                 .then(function (response) { return response.json(); })
                 .then(function (data) {
                     if (currentToken !== token) {
@@ -595,25 +670,81 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
         }
 
-        studentInput.addEventListener('focus', function () {
+        input.addEventListener('focus', function () {
             openPanel();
-            search(studentInput.value);
+            search(input.value);
         });
-        studentInput.addEventListener('input', function () {
-            if (studentIdInput) {
-                studentIdInput.value = '';
+        input.addEventListener('input', function () {
+            if (typeof config.onType === 'function') {
+                config.onType(input.value);
             }
             openPanel();
             if (timer) {
                 clearTimeout(timer);
             }
             timer = setTimeout(function () {
-                search(studentInput.value);
+                search(input.value);
             }, 220);
         });
+        if (toggle) {
+            toggle.addEventListener('click', function () {
+                openPanel();
+                input.focus();
+                search(input.value);
+            });
+        }
         document.addEventListener('click', function (event) {
             if (!root.contains(event.target)) {
                 closePanel();
+            }
+        });
+    }
+
+    function initStudentSearch() {
+        initDropdownSearch({
+            rootSelector: '[data-parent-consent-student-search]',
+            input: studentInput,
+            action: 'search_students',
+            emptyText: 'No students found.',
+            pickText: 'Select a student.',
+            onType: function () {
+                if (studentIdInput) {
+                    studentIdInput.value = '';
+                }
+            },
+            onPick: function (item) {
+                studentInput.value = item.name || String(item.text || '').replace(/\s*-\s*.*$/, '').trim();
+                if (parentInput && item.parent_name && !parentInput.value.trim()) {
+                    parentInput.value = item.parent_name;
+                }
+                if (studentIdInput) {
+                    studentIdInput.value = item.id || '';
+                }
+            }
+        });
+    }
+
+    function initCompanySearch() {
+        initDropdownSearch({
+            rootSelector: '[data-parent-consent-company-search]',
+            input: companySearchInput,
+            action: 'search_companies',
+            emptyText: 'No companies found.',
+            pickText: 'Select a company.',
+            onType: function (value) {
+                if (companyInput) {
+                    companyInput.value = String(value || '').trim();
+                }
+                syncPreview();
+            },
+            onPick: function (item) {
+                var companyName = item.name || String(item.text || '').replace(/\s*-\s*.*$/, '').trim();
+                if (companySearchInput) {
+                    companySearchInput.value = item.text || companyName;
+                }
+                if (companyInput) {
+                    companyInput.value = companyName;
+                }
             }
         });
     }
@@ -633,6 +764,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     initStudentSearch();
+    initCompanySearch();
     syncPreview();
 });
 </script>
