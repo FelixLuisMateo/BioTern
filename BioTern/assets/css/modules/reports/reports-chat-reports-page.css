@@ -5,6 +5,17 @@
     margin-bottom: 1rem;
 }
 
+body.reports-chat-reports-page {
+    --chatreports-soft-text: color-mix(in srgb, var(--report-text) 76%, #8ea0c8 24%);
+    --chatreports-muted-readable: color-mix(in srgb, var(--report-text) 62%, #8ea0c8 38%);
+}
+
+body.reports-chat-reports-page .chatreports-table-card thead th,
+body.reports-chat-reports-page .chatreports-kpi-label,
+body.reports-chat-reports-page .page-header-statement {
+    color: var(--chatreports-muted-readable) !important;
+}
+
 .chatreports-kpi-value {
     font-size: 1.4rem;
     font-weight: 700;
@@ -18,7 +29,7 @@
     border: 1px solid var(--report-border);
     border-radius: 14px;
     background: color-mix(in srgb, var(--report-surface-soft) 82%, transparent);
-    color: var(--report-text);
+    color: var(--chatreports-soft-text);
     font-weight: 650;
     line-height: 1.45;
     white-space: normal;
@@ -54,14 +65,14 @@
 }
 
 .chatreports-pair i {
-    color: var(--report-muted);
+    color: var(--chatreports-muted-readable);
     flex: 0 0 auto;
 }
 
 .chatreports-label {
     display: block;
     margin-bottom: 0.18rem;
-    color: var(--report-muted);
+    color: var(--chatreports-muted-readable);
     font-size: 0.68rem;
     font-weight: 800;
     letter-spacing: 0.04em;
@@ -73,14 +84,14 @@
     flex-wrap: wrap;
     gap: 0.4rem 0.75rem;
     margin-top: 0.7rem;
-    color: var(--report-muted);
+    color: var(--chatreports-muted-readable);
     font-size: 0.76rem;
 }
 
 .chatreports-reason {
     margin-top: 0.65rem;
     max-width: 520px;
-    color: var(--report-muted);
+    color: var(--chatreports-soft-text);
     line-height: 1.35;
     word-break: break-word;
 }
@@ -140,7 +151,7 @@
     margin-top: 0.55rem;
     display: grid;
     gap: 0.15rem;
-    color: var(--report-muted);
+    color: var(--chatreports-muted-readable);
     font-size: 0.78rem;
 }
 

@@ -4,7 +4,7 @@ body.reports-page {
     --report-surface-soft: color-mix(in srgb, var(--biotern-surface-muted, #f8fafc) 88%, var(--report-surface) 12%);
     --report-border: color-mix(in srgb, var(--biotern-border, #e2e8f0) 90%, transparent);
     --report-text: var(--bs-body-color, #0f172a);
-    --report-muted: color-mix(in srgb, var(--bs-body-color, #0f172a) 62%, transparent);
+    --report-muted: color-mix(in srgb, var(--bs-body-color, #0f172a) 72%, #64748b 28%);
     --report-hero-bg: var(--report-surface);
     --report-hover: color-mix(in srgb, var(--report-surface-soft) 90%, var(--biotern-primary) 10%);
     --report-primary: var(--biotern-primary, var(--bs-primary));
@@ -21,7 +21,7 @@ html.app-skin-dark body.reports-page {
     --report-surface-soft: color-mix(in srgb, var(--biotern-surface, #0f172a) 90%, #1e293b 10%);
     --report-border: color-mix(in srgb, var(--biotern-border, #334155) 82%, transparent);
     --report-text: var(--bs-body-color, #dbe7ff);
-    --report-muted: color-mix(in srgb, var(--bs-body-color, #dbe7ff) 72%, transparent);
+    --report-muted: color-mix(in srgb, var(--bs-body-color, #dbe7ff) 80%, #8ea0c8 20%);
     --report-hero-bg: color-mix(in srgb, var(--biotern-surface, #0f172a) 92%, #1e293b 8%);
     --report-hover: color-mix(in srgb, var(--report-surface-soft) 86%, var(--biotern-primary) 14%);
 }
@@ -202,6 +202,9 @@ body.reports-page .report-kpi-label,
 body.reports-page .logs-kpi-label,
 body.reports-page .chatreports-kpi-label,
 body.reports-page .chatlogs-kpi-label,
+body.reports-page .report-filter-wrap .form-label,
+body.reports-page .logs-filter-wrap .form-label,
+body.reports-page .chatreports-filter-wrap .form-label,
 body.reports-page .chatlogs-filter .form-label,
 body.reports-page .attendance-exceptions-kpi-label,
 body.reports-page .attendance-exceptions-toolbar .form-label,
