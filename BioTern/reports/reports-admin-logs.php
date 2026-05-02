@@ -84,7 +84,7 @@ function adminLogsDetailsSummary(?string $json): string
 }
 
 $action = strtolower(trim((string)($_GET['action'] ?? 'all')));
-$allowedActions = ['all', 'view', 'create', 'edit', 'update', 'delete', 'import', 'export', 'approve', 'reject', 'archive', 'restore'];
+$allowedActions = ['all', 'create', 'edit', 'update', 'delete', 'import', 'export'];
 if (!in_array($action, $allowedActions, true)) {
     $action = 'all';
 }
@@ -228,16 +228,11 @@ include 'includes/header.php';
                 <label class="form-label mb-1">Action</label>
                 <select class="form-select" name="action">
                     <option value="all" <?php echo $action === 'all' ? 'selected' : ''; ?>>All Actions</option>
-                    <option value="view" <?php echo $action === 'view' ? 'selected' : ''; ?>>View</option>
                     <option value="create" <?php echo $action === 'create' ? 'selected' : ''; ?>>Create</option>
                     <option value="edit" <?php echo $action === 'edit' ? 'selected' : ''; ?>>Edit / Update</option>
                     <option value="delete" <?php echo $action === 'delete' ? 'selected' : ''; ?>>Delete</option>
                     <option value="import" <?php echo $action === 'import' ? 'selected' : ''; ?>>Import</option>
                     <option value="export" <?php echo $action === 'export' ? 'selected' : ''; ?>>Export</option>
-                    <option value="approve" <?php echo $action === 'approve' ? 'selected' : ''; ?>>Approve</option>
-                    <option value="reject" <?php echo $action === 'reject' ? 'selected' : ''; ?>>Reject</option>
-                    <option value="archive" <?php echo $action === 'archive' ? 'selected' : ''; ?>>Archive</option>
-                    <option value="restore" <?php echo $action === 'restore' ? 'selected' : ''; ?>>Restore</option>
                 </select>
             </div>
             <div class="col-sm-6 col-md-3">
