@@ -76,12 +76,13 @@ $dateTo = trim((string)($_GET['to'] ?? date('Y-m-d')));
 $search = trim((string)($_GET['search'] ?? ''));
 $export = strtolower(trim((string)($_GET['export'] ?? '')));
 $isExportCsv = ($export === 'csv');
-$limit = (int)($_GET['limit'] ?? 300);
+$limit = (int)($_GET['limit'] ?? 25);
 if ($limit <= 0) {
-    $limit = 300;
+    $limit = 25;
 }
-if ($limit > 1000) {
-    $limit = 1000;
+$allowedLimits = [25, 50, 100, 200];
+if (!in_array($limit, $allowedLimits, true)) {
+    $limit = 25;
 }
 
 $page = (int)($_GET['page'] ?? 1);
@@ -347,7 +348,10 @@ include 'includes/header.php';
     <div class="logs-hero d-flex flex-wrap align-items-center justify-content-between gap-3">
         <span class="logs-pill bg-soft-primary text-primary">
             <i class="feather feather-message-circle"></i>
-            Last <?php echo (int)$limit; ?> messages
+            <?php echo number_format($totalRecords); ?> messages found
+        </span>
+        <span class="logs-pill bg-soft-info text-info">
+            Page <?php echo (int)$page; ?> of <?php echo (int)$totalPages; ?>
         </span>
     </div>
 
@@ -385,8 +389,14 @@ include 'includes/header.php';
                         <input type="date" name="to" class="form-control" value="<?php echo chatlogs_esc($dateTo); ?>">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label mb-1">Limit</label>
-                        <input type="number" min="1" max="1000" name="limit" class="form-control" value="<?php echo (int)$limit; ?>">
+                        <label class="form-label mb-1">Per Page</label>
+                        <select name="limit" class="form-control">
+                            <?php foreach ($allowedLimits as $limitOption): ?>
+                                <option value="<?php echo (int)$limitOption; ?>" <?php echo $limit === $limitOption ? 'selected' : ''; ?>>
+                                    <?php echo (int)$limitOption; ?> messages
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label mb-1">Search</label>

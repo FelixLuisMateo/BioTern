@@ -4,7 +4,7 @@ body.reports-page {
     --report-surface-soft: color-mix(in srgb, var(--biotern-surface-muted, #f8fafc) 88%, var(--report-surface) 12%);
     --report-border: color-mix(in srgb, var(--biotern-border, #e2e8f0) 90%, transparent);
     --report-text: var(--bs-body-color, #0f172a);
-    --report-muted: color-mix(in srgb, var(--bs-body-color, #0f172a) 62%, transparent);
+    --report-muted: color-mix(in srgb, var(--bs-body-color, #0f172a) 82%, #475569 18%);
     --report-hero-bg: var(--report-surface);
     --report-hover: color-mix(in srgb, var(--report-surface-soft) 90%, var(--biotern-primary) 10%);
     --report-primary: var(--biotern-primary, var(--bs-primary));
@@ -21,7 +21,7 @@ html.app-skin-dark body.reports-page {
     --report-surface-soft: color-mix(in srgb, var(--biotern-surface, #0f172a) 90%, #1e293b 10%);
     --report-border: color-mix(in srgb, var(--biotern-border, #334155) 82%, transparent);
     --report-text: var(--bs-body-color, #dbe7ff);
-    --report-muted: color-mix(in srgb, var(--bs-body-color, #dbe7ff) 72%, transparent);
+    --report-muted: #b8c7ea;
     --report-hero-bg: color-mix(in srgb, var(--biotern-surface, #0f172a) 92%, #1e293b 8%);
     --report-hover: color-mix(in srgb, var(--report-surface-soft) 86%, var(--biotern-primary) 14%);
 }
@@ -166,6 +166,18 @@ body.reports-page .attendance-exceptions-card {
     color: var(--report-text);
 }
 
+body.reports-page table,
+body.reports-page tbody,
+body.reports-page tbody td,
+body.reports-page .table > :not(caption) > * > *,
+body.reports-page .report-table-card,
+body.reports-page .logs-table-card,
+body.reports-page .chatreports-table-card,
+body.reports-page .chatlogs-table-card,
+body.reports-page .attendance-exceptions-card {
+    color: var(--report-text) !important;
+}
+
 body.reports-page .card {
     border-radius: 12px;
 }
@@ -196,12 +208,25 @@ body.reports-page .attendance-exceptions-card thead th {
     background: var(--report-surface-soft) !important;
     border-color: var(--report-border) !important;
     color: var(--report-muted) !important;
+    opacity: 1 !important;
+}
+
+body.reports-page .report-table-card tbody td,
+body.reports-page .logs-table-card tbody td,
+body.reports-page .chatreports-table-card tbody td,
+body.reports-page .chatlogs-table-card tbody td,
+body.reports-page .attendance-exceptions-card tbody td,
+body.reports-page .card .table tbody td {
+    color: #dbe7ff !important;
 }
 
 body.reports-page .report-kpi-label,
 body.reports-page .logs-kpi-label,
 body.reports-page .chatreports-kpi-label,
 body.reports-page .chatlogs-kpi-label,
+body.reports-page .report-filter-wrap .form-label,
+body.reports-page .logs-filter-wrap .form-label,
+body.reports-page .chatreports-filter-wrap .form-label,
 body.reports-page .chatlogs-filter .form-label,
 body.reports-page .attendance-exceptions-kpi-label,
 body.reports-page .attendance-exceptions-toolbar .form-label,
@@ -214,7 +239,15 @@ body.reports-page .chatlogs-convo-participants .sep {
 
 body.reports-page .text-muted,
 body.reports-page small.text-muted {
-    color: var(--report-muted) !important;
+    color: #b8c7ea !important;
+    opacity: 1 !important;
+}
+
+body.reports-page label,
+body.reports-page .form-label,
+body.reports-page .breadcrumb .breadcrumb-item,
+body.reports-page .breadcrumb .breadcrumb-item a {
+    opacity: 1 !important;
 }
 
 body.reports-page .chatlogs-filter .form-control,

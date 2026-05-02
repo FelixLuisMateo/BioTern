@@ -60,6 +60,29 @@ function chatreports_status_label(string $status): string
     };
 }
 
+function chatreports_allowed_punishments(): array
+{
+    return ['none', 'warning', 'mute_chat', 'restrict_chat', 'suspend_chat', 'delete_message'];
+}
+
+function chatreports_normalize_punishment(string $action): string
+{
+    $action = strtolower(trim($action));
+    return in_array($action, chatreports_allowed_punishments(), true) ? $action : 'none';
+}
+
+function chatreports_punishment_label(string $action): string
+{
+    return match ($action) {
+        'warning' => 'Warn User',
+        'mute_chat' => 'Mute Chat',
+        'restrict_chat' => 'Restrict Chat',
+        'suspend_chat' => 'Suspend Chat',
+        'delete_message' => 'Delete Message',
+        default => 'No Punishment',
+    };
+}
+
 function chatreports_redirect_with_filters(string $from, string $to, int $limit, string $status): void
 {
     $query = http_build_query([
@@ -84,6 +107,30 @@ function chatreports_has_table(mysqli $conn, string $tableName): bool
     return false;
 }
 
+function chatreports_ensure_penalties_table(mysqli $conn): void
+{
+    $conn->query(
+        "CREATE TABLE IF NOT EXISTS chat_user_penalties (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            report_id BIGINT UNSIGNED NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            action VARCHAR(40) NOT NULL DEFAULT 'warning',
+            reason VARCHAR(255) NULL DEFAULT NULL,
+            moderator_note VARCHAR(255) NULL DEFAULT NULL,
+            starts_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            ends_at TIMESTAMP NULL DEFAULT NULL,
+            created_by_user_id BIGINT UNSIGNED NULL,
+            is_active TINYINT(1) NOT NULL DEFAULT 1,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_chat_penalty_report (report_id),
+            INDEX idx_chat_penalty_user_active (user_id, is_active),
+            INDEX idx_chat_penalty_action (action),
+            INDEX idx_chat_penalty_ends (ends_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+    );
+}
+
 $conn->query(
     "CREATE TABLE IF NOT EXISTS message_reports (
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -92,6 +139,8 @@ $conn->query(
         reported_user_id BIGINT UNSIGNED NOT NULL,
         reason VARCHAR(255) NOT NULL DEFAULT 'Inappropriate message',
         status VARCHAR(20) NOT NULL DEFAULT 'open',
+        resolution_action VARCHAR(40) NOT NULL DEFAULT 'none',
+        punishment_until TIMESTAMP NULL DEFAULT NULL,
         moderator_note VARCHAR(255) NULL DEFAULT NULL,
         reviewed_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL,
         reviewed_at TIMESTAMP NULL DEFAULT NULL,
@@ -104,6 +153,7 @@ $conn->query(
         INDEX idx_report_created (created_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
 );
+chatreports_ensure_penalties_table($conn);
 
 $reportColumns = [];
 $reportColRes = $conn->query('SHOW COLUMNS FROM message_reports');
@@ -120,8 +170,14 @@ if ($reportColRes instanceof mysqli_result) {
 if (!isset($reportColumns['status'])) {
     $conn->query("ALTER TABLE message_reports ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'open' AFTER reason");
 }
+if (!isset($reportColumns['resolution_action'])) {
+    $conn->query("ALTER TABLE message_reports ADD COLUMN resolution_action VARCHAR(40) NOT NULL DEFAULT 'none' AFTER status");
+}
+if (!isset($reportColumns['punishment_until'])) {
+    $conn->query("ALTER TABLE message_reports ADD COLUMN punishment_until TIMESTAMP NULL DEFAULT NULL AFTER resolution_action");
+}
 if (!isset($reportColumns['moderator_note'])) {
-    $conn->query("ALTER TABLE message_reports ADD COLUMN moderator_note VARCHAR(255) NULL DEFAULT NULL AFTER status");
+    $conn->query("ALTER TABLE message_reports ADD COLUMN moderator_note VARCHAR(255) NULL DEFAULT NULL AFTER punishment_until");
 }
 if (!isset($reportColumns['reviewed_by_user_id'])) {
     $conn->query("ALTER TABLE message_reports ADD COLUMN reviewed_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL AFTER moderator_note");
@@ -184,6 +240,8 @@ if (isset($_SESSION['chatreports_flash']) && is_array($_SESSION['chatreports_fla
 if ((string)($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (string)($_POST['action'] ?? '') === 'update-report-status') {
     $reportId = (int)($_POST['report_id'] ?? 0);
     $newStatus = chatreports_normalize_status((string)($_POST['new_status'] ?? 'open'));
+    $punishmentAction = chatreports_normalize_punishment((string)($_POST['punishment_action'] ?? 'none'));
+    $punishmentDays = max(0, min(365, (int)($_POST['punishment_days'] ?? 0)));
     $moderatorNote = trim((string)($_POST['moderator_note'] ?? ''));
     if (function_exists('mb_substr')) {
         $moderatorNote = mb_substr($moderatorNote, 0, 255, 'UTF-8');
@@ -214,23 +272,53 @@ if ((string)($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (string)($_POST['ac
         chatreports_redirect_with_filters($redirectFrom, $redirectTo, $redirectLimit, $redirectStatus);
     }
 
+    $reportTarget = null;
+    $targetStmt = $conn->prepare('SELECT id, message_id, reported_user_id, reason FROM message_reports WHERE id = ? LIMIT 1');
+    if ($targetStmt) {
+        $targetStmt->bind_param('i', $reportId);
+        $targetStmt->execute();
+        $reportTarget = $targetStmt->get_result()->fetch_assoc();
+        $targetStmt->close();
+    }
+    if (!$reportTarget) {
+        $_SESSION['chatreports_flash'] = ['error' => 'Report not found.'];
+        chatreports_redirect_with_filters($redirectFrom, $redirectTo, $redirectLimit, $redirectStatus);
+    }
+
+    if ($newStatus !== 'resolved') {
+        $punishmentAction = 'none';
+        $punishmentDays = 0;
+    }
+    if ($newStatus === 'resolved' && $punishmentAction === 'none') {
+        $_SESSION['chatreports_flash'] = ['error' => 'Choose a punishment before marking a report as resolved.'];
+        chatreports_redirect_with_filters($redirectFrom, $redirectTo, $redirectLimit, $redirectStatus);
+    }
+
+    $punishmentUntilSql = 'NULL';
+    if (in_array($punishmentAction, ['mute_chat', 'restrict_chat', 'suspend_chat'], true)) {
+        if ($punishmentDays <= 0) {
+            $punishmentDays = 7;
+        }
+        $punishmentUntilSql = 'DATE_ADD(NOW(), INTERVAL ' . $punishmentDays . ' DAY)';
+    }
+
     if ($newStatus === 'open') {
         $updateSql = 'UPDATE message_reports
-            SET status = ?, moderator_note = ?, reviewed_by_user_id = NULL, reviewed_at = NULL, updated_at = NOW()
+            SET status = ?, resolution_action = ?, punishment_until = NULL, moderator_note = ?, reviewed_by_user_id = NULL, reviewed_at = NULL, updated_at = NOW()
             WHERE id = ?
             LIMIT 1';
         $updateStmt = $conn->prepare($updateSql);
         if ($updateStmt) {
-            $updateStmt->bind_param('ssi', $newStatus, $moderatorNote, $reportId);
+            $updateStmt->bind_param('sssi', $newStatus, $punishmentAction, $moderatorNote, $reportId);
         }
     } else {
         $updateSql = 'UPDATE message_reports
-            SET status = ?, moderator_note = ?, reviewed_by_user_id = ?, reviewed_at = NOW(), updated_at = NOW()
+            SET status = ?, resolution_action = ?, punishment_until = ' . $punishmentUntilSql . ', moderator_note = ?, reviewed_by_user_id = ?, reviewed_at = NOW(), updated_at = NOW()
             WHERE id = ?
             LIMIT 1';
         $updateStmt = $conn->prepare($updateSql);
         if ($updateStmt) {
-            $updateStmt->bind_param('ssii', $newStatus, $moderatorNote, $currentUserId, $reportId);
+            $updateStmt->bind_param('sssii', $newStatus, $punishmentAction, $moderatorNote, $currentUserId, $reportId);
         }
     }
 
@@ -240,7 +328,51 @@ if ((string)($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (string)($_POST['ac
         $ok = $updateStmt->execute();
         $updateStmt->close();
         if ($ok) {
-            $_SESSION['chatreports_flash'] = ['success' => 'Report status updated to ' . chatreports_status_label($newStatus) . '.'];
+            $punishmentApplied = '';
+            if ($newStatus === 'resolved' && $punishmentAction !== 'none') {
+                $reportedUserId = (int)($reportTarget['reported_user_id'] ?? 0);
+                $messageId = (int)($reportTarget['message_id'] ?? 0);
+                $reason = trim((string)($reportTarget['reason'] ?? 'Reported chat'));
+
+                if ($punishmentAction === 'delete_message' && $messageId > 0 && $messagesReady) {
+                    if ($messageDeletedCol !== '') {
+                        $deleteStmt = $conn->prepare('UPDATE messages SET ' . $messageDeletedCol . ' = NOW() WHERE ' . $messageIdCol . ' = ? LIMIT 1');
+                        if ($deleteStmt) {
+                            $deleteStmt->bind_param('i', $messageId);
+                            $deleteStmt->execute();
+                            $deleteStmt->close();
+                        }
+                    } else {
+                        $unsentMarker = '__btchat_unsent__';
+                        $deleteStmt = $conn->prepare('UPDATE messages SET message = ? WHERE ' . $messageIdCol . ' = ? LIMIT 1');
+                        if ($deleteStmt) {
+                            $deleteStmt->bind_param('si', $unsentMarker, $messageId);
+                            $deleteStmt->execute();
+                            $deleteStmt->close();
+                        }
+                    }
+                }
+
+                $penaltyStmt = $conn->prepare('INSERT INTO chat_user_penalties
+                    (report_id, user_id, action, reason, moderator_note, starts_at, ends_at, created_by_user_id, is_active, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, NOW(), ' . $punishmentUntilSql . ', ?, 1, NOW(), NOW())
+                    ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), action = VALUES(action), reason = VALUES(reason), moderator_note = VALUES(moderator_note), starts_at = NOW(), ends_at = VALUES(ends_at), created_by_user_id = VALUES(created_by_user_id), is_active = 1, updated_at = NOW()');
+                if ($penaltyStmt) {
+                    $penaltyStmt->bind_param('iisssi', $reportId, $reportedUserId, $punishmentAction, $reason, $moderatorNote, $currentUserId);
+                    $penaltyStmt->execute();
+                    $penaltyStmt->close();
+                    $punishmentApplied = ' Punishment: ' . chatreports_punishment_label($punishmentAction) . '.';
+                }
+            } elseif (in_array($newStatus, ['open', 'dismissed'], true)) {
+                $clearPenaltyStmt = $conn->prepare('UPDATE chat_user_penalties SET is_active = 0, updated_at = NOW() WHERE report_id = ?');
+                if ($clearPenaltyStmt) {
+                    $clearPenaltyStmt->bind_param('i', $reportId);
+                    $clearPenaltyStmt->execute();
+                    $clearPenaltyStmt->close();
+                }
+            }
+
+            $_SESSION['chatreports_flash'] = ['success' => 'Report status updated to ' . chatreports_status_label($newStatus) . '.' . $punishmentApplied];
         } else {
             $_SESSION['chatreports_flash'] = ['error' => 'Failed to update report status.'];
         }
@@ -317,6 +449,8 @@ if ($schemaError === '') {
             mr.reported_user_id,
             mr.reason,
             COALESCE(NULLIF(mr.status, \'\'), \'open\') AS report_status,
+            COALESCE(NULLIF(mr.resolution_action, \'\'), \'none\') AS resolution_action,
+            mr.punishment_until,
             mr.moderator_note,
             mr.reviewed_at,
             mr.created_at,
@@ -352,6 +486,8 @@ if ($schemaError === '') {
                 'reported_name' => (string)($row['reported_name'] ?? '-'),
                 'reason' => (string)($row['reason'] ?? ''),
                 'report_status' => chatreports_normalize_status((string)($row['report_status'] ?? 'open')),
+                'resolution_action' => chatreports_normalize_punishment((string)($row['resolution_action'] ?? 'none')),
+                'punishment_until' => (string)($row['punishment_until'] ?? ''),
                 'moderator_note' => (string)($row['moderator_note'] ?? ''),
                 'reviewed_at' => (string)($row['reviewed_at'] ?? ''),
                 'reviewer_name' => (string)($row['reviewer_name'] ?? '-'),
@@ -390,6 +526,7 @@ include 'includes/header.php';
         <?php ob_start(); ?>
             <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
             <a href="reports-chat-logs.php" class="btn btn-outline-primary"><i class="feather-message-circle me-1"></i>Chat Logs</a>
+            <a href="reports-chat-penalties.php" class="btn btn-outline-primary"><i class="feather-slash me-1"></i>Chat Penalties</a>
             <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
         <?php
         biotern_render_page_header_actions([
@@ -418,7 +555,7 @@ include 'includes/header.php';
         </div>
     </div>
 
-    <form method="get" class="chatreports-filter-wrap row g-2 align-items-end">
+    <form method="get" class="chatreports-filter-wrap row g-2 align-items-end chatreports-auto-filter">
         <div class="col-sm-4 col-md-3">
             <label class="form-label mb-1">From</label>
             <input type="date" name="from" class="form-control" value="<?php echo chatreports_esc($from); ?>">
@@ -440,7 +577,6 @@ include 'includes/header.php';
             <input type="number" name="limit" class="form-control" min="50" max="1000" step="50" value="<?php echo (int)$limit; ?>">
         </div>
         <div class="col-sm-12 col-md-2 d-flex gap-2">
-            <button type="submit" class="btn btn-primary">Apply</button>
             <a href="reports-chat-reports.php" class="btn btn-outline-secondary">Reset</a>
         </div>
     </form>
@@ -520,6 +656,14 @@ include 'includes/header.php';
                                             <?php else: ?>
                                                 <span>Not reviewed yet</span>
                                             <?php endif; ?>
+                                            <?php if ((string)$item['resolution_action'] !== 'none'): ?>
+                                                <span class="chatreports-punishment-line">
+                                                    <?php echo chatreports_esc(chatreports_punishment_label((string)$item['resolution_action'])); ?>
+                                                    <?php if ((string)$item['punishment_until'] !== ''): ?>
+                                                        until <?php echo chatreports_esc((string)$item['punishment_until']); ?>
+                                                    <?php endif; ?>
+                                                </span>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                     <td>
@@ -530,11 +674,22 @@ include 'includes/header.php';
                                             <input type="hidden" name="to" value="<?php echo chatreports_esc($to); ?>">
                                             <input type="hidden" name="limit" value="<?php echo (int)$limit; ?>">
                                             <input type="hidden" name="status_filter" value="<?php echo chatreports_esc($statusFilter); ?>">
-                                            <select name="new_status" class="form-select form-select-sm">
+                                            <label class="chatreports-action-label">Review Status</label>
+                                            <select name="new_status" class="form-select form-select-sm chatreports-status-select">
                                                 <?php foreach (chatreports_allowed_statuses() as $statusOpt): ?>
                                                     <option value="<?php echo chatreports_esc($statusOpt); ?>"<?php echo $status === $statusOpt ? ' selected' : ''; ?>><?php echo chatreports_esc(chatreports_status_label($statusOpt)); ?></option>
                                                 <?php endforeach; ?>
                                             </select>
+                                            <div class="chatreports-punishment-fields">
+                                                <label class="chatreports-action-label">Punishment</label>
+                                                <select name="punishment_action" class="form-select form-select-sm">
+                                                    <?php foreach (chatreports_allowed_punishments() as $punishmentOpt): ?>
+                                                        <option value="<?php echo chatreports_esc($punishmentOpt); ?>"<?php echo (string)$item['resolution_action'] === $punishmentOpt ? ' selected' : ''; ?>><?php echo chatreports_esc(chatreports_punishment_label($punishmentOpt)); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <input type="number" name="punishment_days" class="form-control form-control-sm" min="0" max="365" step="1" placeholder="Duration in days, blank = 7">
+                                                <small class="chatreports-punishment-help">Only required when the report is valid and marked resolved.</small>
+                                            </div>
                                             <textarea name="moderator_note" class="form-control form-control-sm" maxlength="255" placeholder="Moderator note (optional)"><?php echo chatreports_esc((string)$item['moderator_note']); ?></textarea>
                                             <button type="submit" class="btn btn-sm btn-primary">Save</button>
                                         </form>
@@ -554,4 +709,48 @@ include 'includes/header.php';
 include 'includes/footer.php';
 $conn->close();
 ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.chatreports-auto-filter').forEach(function (form) {
+        var timer = null;
+        form.querySelectorAll('select, input[type="date"], input[type="number"]').forEach(function (field) {
+            field.addEventListener('change', function () {
+                form.requestSubmit();
+            });
+            field.addEventListener('input', function () {
+                if (field.type !== 'number') {
+                    return;
+                }
+                window.clearTimeout(timer);
+                timer = window.setTimeout(function () {
+                    form.requestSubmit();
+                }, 550);
+            });
+        });
+    });
 
+    function syncPunishmentFields(form) {
+        var status = form.querySelector('.chatreports-status-select');
+        var fields = form.querySelector('.chatreports-punishment-fields');
+        if (!status || !fields) {
+            return;
+        }
+
+        var isResolved = status.value === 'resolved';
+        fields.classList.toggle('is-hidden', !isResolved);
+        fields.querySelectorAll('select, input').forEach(function (field) {
+            field.disabled = !isResolved;
+        });
+    }
+
+    document.querySelectorAll('.chatreports-action-form').forEach(function (form) {
+        syncPunishmentFields(form);
+        var status = form.querySelector('.chatreports-status-select');
+        if (status) {
+            status.addEventListener('change', function () {
+                syncPunishmentFields(form);
+            });
+        }
+    });
+});
+</script>

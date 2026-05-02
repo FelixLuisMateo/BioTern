@@ -31,6 +31,21 @@ function report_login_logs_has_column(mysqli $conn, string $column): bool
     return $result && $result->num_rows > 0;
 }
 
+function report_login_logs_has_table(mysqli $conn, string $table): bool
+{
+    $safeTable = $conn->real_escape_string($table);
+    $result = $conn->query("SHOW TABLES LIKE '{$safeTable}'");
+    return $result && $result->num_rows > 0;
+}
+
+function report_login_logs_table_has_column(mysqli $conn, string $table, string $column): bool
+{
+    $safeTable = $conn->real_escape_string($table);
+    $safeColumn = $conn->real_escape_string($column);
+    $result = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    return $result && $result->num_rows > 0;
+}
+
 $requiredLoginLogColumns = [
     'user_id' => "INT NULL",
     'identifier' => "VARCHAR(191) NULL",
@@ -104,24 +119,160 @@ function formatDisplayIpAddress($rawIp)
     return $ip;
 }
 
+function formatDisplayUserAddress($rawAddress, $rawIp = '')
+{
+    $address = trim((string)$rawAddress);
+    if ($address !== '') {
+        return $address;
+    }
+
+    $ip = trim((string)$rawIp);
+    if ($ip === '' || $ip === '::1' || $ip === '127.0.0.1' || strcasecmp($ip, '0:0:0:0:0:0:0:1') === 0) {
+        return 'Local device';
+    }
+
+    return '-';
+}
+
+function loginLogsLookupStudentAddress(mysqli $conn, int $userId, string $identifier): string
+{
+    $identifier = trim($identifier);
+
+    if ($userId <= 0 && $identifier !== '') {
+        $stmt = $conn->prepare('SELECT id FROM users WHERE username = ? OR email = ? ORDER BY id DESC LIMIT 1');
+        if ($stmt) {
+            $stmt->bind_param('ss', $identifier, $identifier);
+            $stmt->execute();
+            $userRow = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            $userId = (int)($userRow['id'] ?? 0);
+        }
+    }
+
+    if (report_login_logs_has_table($conn, 'students') && report_login_logs_table_has_column($conn, 'students', 'address')) {
+        $where = [];
+        $types = '';
+        $params = [];
+
+        if ($userId > 0 && report_login_logs_table_has_column($conn, 'students', 'user_id')) {
+            $where[] = 'user_id = ?';
+            $types .= 'i';
+            $params[] = $userId;
+        }
+        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'students', 'email')) {
+            $where[] = 'email = ?';
+            $types .= 's';
+            $params[] = $identifier;
+        }
+        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'students', 'student_id')) {
+            $where[] = 'student_id = ?';
+            $types .= 's';
+            $params[] = $identifier;
+        }
+        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'students', 'username')) {
+            $where[] = 'username = ?';
+            $types .= 's';
+            $params[] = $identifier;
+        }
+
+        if ($where) {
+            $orderSql = report_login_logs_table_has_column($conn, 'students', 'id') ? ' ORDER BY id DESC' : '';
+            $sql = 'SELECT address FROM students WHERE (' . implode(' OR ', $where) . ') AND NULLIF(TRIM(address), "") IS NOT NULL' . $orderSql . ' LIMIT 1';
+            $stmt = $conn->prepare($sql);
+            if ($stmt) {
+                $stmt->bind_param($types, ...$params);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                $address = trim((string)($row['address'] ?? ''));
+                if ($address !== '') {
+                    return $address;
+                }
+            }
+        }
+    }
+
+    if (report_login_logs_has_table($conn, 'student_applications') && report_login_logs_table_has_column($conn, 'student_applications', 'address')) {
+        $where = [];
+        $types = '';
+        $params = [];
+
+        if ($userId > 0 && report_login_logs_table_has_column($conn, 'student_applications', 'user_id')) {
+            $where[] = 'user_id = ?';
+            $types .= 'i';
+            $params[] = $userId;
+        }
+        if ($userId > 0 && report_login_logs_table_has_column($conn, 'student_applications', 'created_student_user_id')) {
+            $where[] = 'created_student_user_id = ?';
+            $types .= 'i';
+            $params[] = $userId;
+        }
+        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'student_applications', 'email')) {
+            $where[] = 'email = ?';
+            $types .= 's';
+            $params[] = $identifier;
+        }
+        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'student_applications', 'username')) {
+            $where[] = 'username = ?';
+            $types .= 's';
+            $params[] = $identifier;
+        }
+        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'student_applications', 'student_id')) {
+            $where[] = 'student_id = ?';
+            $types .= 's';
+            $params[] = $identifier;
+        }
+
+        if ($where) {
+            $orderSql = '';
+            if (report_login_logs_table_has_column($conn, 'student_applications', 'submitted_at')) {
+                $orderSql = ' ORDER BY submitted_at DESC';
+            } elseif (report_login_logs_table_has_column($conn, 'student_applications', 'id')) {
+                $orderSql = ' ORDER BY id DESC';
+            }
+            $sql = 'SELECT address FROM student_applications WHERE (' . implode(' OR ', $where) . ') AND NULLIF(TRIM(address), "") IS NOT NULL' . $orderSql . ' LIMIT 1';
+            $stmt = $conn->prepare($sql);
+            if ($stmt) {
+                $stmt->bind_param($types, ...$params);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                $address = trim((string)($row['address'] ?? ''));
+                if ($address !== '') {
+                    return $address;
+                }
+            }
+        }
+    }
+
+    return '';
+}
+
 $sql = "
-    SELECT l.id, l.identifier, l.role, l.status, l.reason, l.ip_address, l.created_at,
+    SELECT l.id, l.user_id, l.identifier, l.role, l.status, l.reason, l.ip_address, l.created_at,
            u.username, u.email
     FROM login_logs l
     LEFT JOIN users u ON u.id = l.user_id
 ";
 if ($status !== 'all') {
-    $sql .= " WHERE l.status = '" . $conn->real_escape_string($status) . "'";
+    $sql .= " WHERE LOWER(TRIM(l.status)) = '" . $conn->real_escape_string($status) . "'";
 }
 $sql .= " ORDER BY l.created_at DESC, l.id DESC LIMIT 500";
-$rows = $conn->query($sql);
+$resultRows = $conn->query($sql);
+$rows = [];
+if ($resultRows instanceof mysqli_result) {
+    while ($row = $resultRows->fetch_assoc()) {
+        $row['user_address'] = loginLogsLookupStudentAddress($conn, (int)($row['user_id'] ?? 0), (string)($row['identifier'] ?? ''));
+        $rows[] = $row;
+    }
+}
 
 $summary = [
     'all' => 0,
     'success' => 0,
     'failed' => 0,
 ];
-$summaryResult = $conn->query("SELECT status, COUNT(*) AS total FROM login_logs GROUP BY status");
+$summaryResult = $conn->query("SELECT LOWER(TRIM(status)) AS status, COUNT(*) AS total FROM login_logs GROUP BY LOWER(TRIM(status))");
 if ($summaryResult) {
     while ($sumRow = $summaryResult->fetch_assoc()) {
         $key = strtolower(trim((string)($sumRow['status'] ?? '')));
@@ -133,7 +284,7 @@ if ($summaryResult) {
     }
 }
 
-$page_body_class = trim(($page_body_class ?? '') . ' reports-page');
+$page_body_class = trim(($page_body_class ?? '') . ' reports-page login-logs-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-login-logs-page.css', 'assets/css/modules/reports/reports-shell.css']);
 $page_title = 'BioTern || Login Logs';
 include 'includes/header.php';
@@ -190,7 +341,7 @@ include 'includes/header.php';
             </div>
 
             <div class="logs-filter-wrap">
-                <form method="get" class="row g-2 align-items-end">
+                <form method="get" class="row g-2 align-items-end login-logs-auto-filter">
                     <div class="col-sm-6 col-md-4 col-lg-3">
                         <label class="form-label mb-1">Status Filter</label>
                         <select class="form-select" name="status">
@@ -198,11 +349,6 @@ include 'includes/header.php';
                             <option value="success" <?php echo $status === 'success' ? 'selected' : ''; ?>>Success</option>
                             <option value="failed" <?php echo $status === 'failed' ? 'selected' : ''; ?>>Failed</option>
                         </select>
-                    </div>
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="feather feather-filter me-1"></i>Apply
-                        </button>
                     </div>
                     <div class="col-auto">
                         <a href="reports-login-logs.php" class="btn btn-outline-secondary">Reset</a>
@@ -222,11 +368,12 @@ include 'includes/header.php';
                                     <th class="text-nowrap">Status</th>
                                     <th>Reason</th>
                                     <th class="text-nowrap">IP Address</th>
+                                    <th>Address</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if ($rows && $rows->num_rows > 0): ?>
-                                    <?php while ($row = $rows->fetch_assoc()): ?>
+                                <?php if (!empty($rows)): ?>
+                                    <?php foreach ($rows as $row): ?>
                                         <?php $badge = strtolower((string)$row['status']) === 'success' ? 'success' : 'danger'; ?>
                                         <tr>
                                             <td class="text-nowrap"><?php echo htmlspecialchars(formatDisplayDateTime($row['created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -239,10 +386,11 @@ include 'includes/header.php';
                                             <td class="text-nowrap"><span class="logs-pill bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?> text-capitalize"><?php echo htmlspecialchars((string)($row['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
                                             <td><?php echo htmlspecialchars((string)($row['reason'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td class="text-nowrap"><?php echo htmlspecialchars(formatDisplayIpAddress($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><span class="logs-address" title="<?php echo htmlspecialchars(formatDisplayUserAddress($row['user_address'] ?? '', $row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(formatDisplayUserAddress($row['user_address'] ?? '', $row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
                                         </tr>
-                                    <?php endwhile; ?>
+                                    <?php endforeach; ?>
                                 <?php else: ?>
-                                    <tr><td colspan="7" class="text-center text-muted py-5">No login logs yet.</td></tr>
+                                    <tr><td colspan="8" class="text-center text-muted py-5">No login logs yet.</td></tr>
                                 <?php endif; ?>
                             </tbody>
                     </table>
@@ -252,4 +400,17 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.querySelector('.login-logs-auto-filter');
+    if (!form) {
+        return;
+    }
 
+    form.querySelectorAll('select').forEach(function (select) {
+        select.addEventListener('change', function () {
+            form.requestSubmit();
+        });
+    });
+});
+</script>

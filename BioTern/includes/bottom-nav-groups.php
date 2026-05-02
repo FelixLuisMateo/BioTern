@@ -106,8 +106,6 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'courses.php', 'courses-create.php', 'courses-edit.php',
                     'departments.php', 'departments-create.php', 'departments-edit.php',
                     'sections.php', 'sections-create.php', 'sections-edit.php',
-                    'coordinators.php', 'coordinators-create.php', 'coordinators-edit.php',
-                    'supervisors.php', 'supervisors-create.php', 'supervisors-edit.php',
                 ],
                 'sections' => [
                     [
@@ -116,8 +114,6 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Courses', 'href' => 'courses.php', 'icon' => 'feather-book-open'],
                             ['label' => 'Departments', 'href' => 'departments.php', 'icon' => 'feather-briefcase'],
                             ['label' => 'Sections', 'href' => 'sections.php', 'icon' => 'feather-layers'],
-                            ['label' => 'Coordinators', 'href' => 'coordinators.php', 'icon' => 'feather-user-check'],
-                            ['label' => 'Supervisors', 'href' => 'supervisors.php', 'icon' => 'feather-user'],
                         ],
                     ],
                 ],
@@ -165,10 +161,12 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'icon' => 'feather-settings',
                 'routes' => [
                     'auth-register.php', 'users.php', 'create_admin.php',
+                    'coordinators.php', 'coordinators-create.php', 'coordinators-edit.php',
+                    'supervisors.php', 'supervisors-create.php', 'supervisors-edit.php',
                     'settings-general.php', 'settings-email.php', 'settings-ojt.php', 'settings-students.php',
                     'settings-support.php',
                     'theme-customizer.php', 'import-students-excel.php', 'import-sql.php',
-                    'reports-admin-logs.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
+                    'reports-admin-logs.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-chat-penalties.php',
                     'reports-import-errors.php', 'reports-dtr-manual-input.php',
                 ],
                 'sections' => [
@@ -178,6 +176,8 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Users', 'href' => 'users.php', 'icon' => 'feather-users'],
                             ['label' => 'User Registration', 'href' => 'auth-register.php', 'icon' => 'feather-user-plus'],
                             ['label' => 'Create Admin', 'href' => 'create_admin.php', 'icon' => 'feather-shield'],
+                            ['label' => 'Coordinators', 'href' => 'coordinators.php', 'icon' => 'feather-user-check'],
+                            ['label' => 'Supervisors', 'href' => 'supervisors.php', 'icon' => 'feather-user'],
                         ],
                     ],
                     [
@@ -199,6 +199,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Login Logs', 'href' => 'reports-login-logs.php', 'icon' => 'feather-log-in'],
                             ['label' => 'Chat Logs', 'href' => 'reports-chat-logs.php', 'icon' => 'feather-message-circle'],
                             ['label' => 'Reported Chats', 'href' => 'reports-chat-reports.php', 'icon' => 'feather-flag'],
+                            ['label' => 'Chat Penalties', 'href' => 'reports-chat-penalties.php', 'icon' => 'feather-slash'],
                         ],
                     ],
                     [

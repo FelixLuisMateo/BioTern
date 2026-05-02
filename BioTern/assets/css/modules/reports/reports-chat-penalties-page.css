@@ -1,0 +1,23 @@
+body.chat-penalties-page .logs-kpi-label,
+body.chat-penalties-page .logs-filter-wrap .form-label,
+body.chat-penalties-page .logs-table-card thead th {
+    color: var(--report-muted) !important;
+    opacity: 1 !important;
+}
+
+body.chat-penalties-page .logs-table-card tbody td {
+    color: var(--report-text);
+}
+
+body.chat-penalties-page .logs-table-card tbody tr td[colspan] {
+    color: var(--report-text) !important;
+    font-weight: 800;
+}
+
+body.chat-penalties-page .logs-filter-wrap {
+    margin-bottom: 1rem;
+}
+
+body.chat-penalties-page .logs-table-card {
+    min-height: 260px;
+}

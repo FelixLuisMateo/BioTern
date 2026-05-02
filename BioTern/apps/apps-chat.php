@@ -836,6 +836,8 @@ function chat_ensure_message_reports_table(mysqli $conn): void
             reported_user_id BIGINT UNSIGNED NOT NULL,
             reason VARCHAR(255) NOT NULL DEFAULT 'Inappropriate message',
             status VARCHAR(20) NOT NULL DEFAULT 'open',
+            resolution_action VARCHAR(40) NOT NULL DEFAULT 'none',
+            punishment_until TIMESTAMP NULL DEFAULT NULL,
             moderator_note VARCHAR(255) NULL DEFAULT NULL,
             reviewed_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL,
             reviewed_at TIMESTAMP NULL DEFAULT NULL,
@@ -864,8 +866,14 @@ function chat_ensure_message_reports_table(mysqli $conn): void
     if (!isset($reportCols['status'])) {
         $conn->query("ALTER TABLE message_reports ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'open' AFTER reason");
     }
+    if (!isset($reportCols['resolution_action'])) {
+        $conn->query("ALTER TABLE message_reports ADD COLUMN resolution_action VARCHAR(40) NOT NULL DEFAULT 'none' AFTER status");
+    }
+    if (!isset($reportCols['punishment_until'])) {
+        $conn->query("ALTER TABLE message_reports ADD COLUMN punishment_until TIMESTAMP NULL DEFAULT NULL AFTER resolution_action");
+    }
     if (!isset($reportCols['moderator_note'])) {
-        $conn->query("ALTER TABLE message_reports ADD COLUMN moderator_note VARCHAR(255) NULL DEFAULT NULL AFTER status");
+        $conn->query("ALTER TABLE message_reports ADD COLUMN moderator_note VARCHAR(255) NULL DEFAULT NULL AFTER punishment_until");
     }
     if (!isset($reportCols['reviewed_by_user_id'])) {
         $conn->query("ALTER TABLE message_reports ADD COLUMN reviewed_by_user_id BIGINT UNSIGNED NULL DEFAULT NULL AFTER moderator_note");
@@ -875,6 +883,72 @@ function chat_ensure_message_reports_table(mysqli $conn): void
     }
 }
 
+function chat_ensure_user_penalties_table(mysqli $conn): void
+{
+    $conn->query(
+        "CREATE TABLE IF NOT EXISTS chat_user_penalties (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            report_id BIGINT UNSIGNED NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            action VARCHAR(40) NOT NULL DEFAULT 'warning',
+            reason VARCHAR(255) NULL DEFAULT NULL,
+            moderator_note VARCHAR(255) NULL DEFAULT NULL,
+            starts_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            ends_at TIMESTAMP NULL DEFAULT NULL,
+            created_by_user_id BIGINT UNSIGNED NULL,
+            is_active TINYINT(1) NOT NULL DEFAULT 1,
+            created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_chat_penalty_report (report_id),
+            INDEX idx_chat_penalty_user_active (user_id, is_active),
+            INDEX idx_chat_penalty_action (action),
+            INDEX idx_chat_penalty_ends (ends_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+    );
+}
+
+function chat_active_penalty(mysqli $conn, int $userId): ?array
+{
+    chat_ensure_user_penalties_table($conn);
+    $stmt = $conn->prepare("SELECT action, reason, moderator_note, ends_at
+        FROM chat_user_penalties
+        WHERE user_id = ?
+          AND is_active = 1
+          AND action IN ('mute_chat', 'restrict_chat', 'suspend_chat')
+          AND (ends_at IS NULL OR ends_at > NOW())
+        ORDER BY CASE action WHEN 'suspend_chat' THEN 1 WHEN 'mute_chat' THEN 2 WHEN 'restrict_chat' THEN 3 ELSE 4 END, id DESC
+        LIMIT 1");
+    if (!$stmt) {
+        return null;
+    }
+
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    return $row ?: null;
+}
+
+function chat_penalty_error_message(array $penalty, string $recipientRole = ''): string
+{
+    $action = strtolower(trim((string)($penalty['action'] ?? '')));
+    $until = trim((string)($penalty['ends_at'] ?? ''));
+    $suffix = $until !== '' ? ' until ' . $until : '';
+
+    if ($action === 'restrict_chat' && chat_normalize_role($recipientRole) === 'student') {
+        return 'Your chat is restricted' . $suffix . '. You can message staff, but not students.';
+    }
+    if ($action === 'mute_chat') {
+        return 'You are muted from sending chat messages' . $suffix . '.';
+    }
+    if ($action === 'suspend_chat') {
+        return 'Your chat access is suspended' . $suffix . '.';
+    }
+
+    return '';
+}
+
 function chat_message_meta(mysqli $conn): array
 {
     chat_ensure_messages_table($conn);
@@ -882,6 +956,7 @@ function chat_message_meta(mysqli $conn): array
     chat_ensure_message_reactions_table($conn);
     chat_ensure_message_pins_table($conn);
     chat_ensure_message_reports_table($conn);
+    chat_ensure_user_penalties_table($conn);
 
     $columns = [];
     $res = $conn->query('SHOW COLUMNS FROM messages');
@@ -1318,7 +1393,7 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'report-me
                         $reportReason = substr($reportReason, 0, 255);
                     }
 
-                    $reportStmt = $conn->prepare("INSERT INTO message_reports (message_id, reporter_user_id, reported_user_id, reason, status, moderator_note, reviewed_by_user_id, reviewed_at, created_at, updated_at) VALUES (?, ?, ?, ?, 'open', NULL, NULL, NULL, NOW(), NOW()) ON DUPLICATE KEY UPDATE reason = VALUES(reason), status = 'open', moderator_note = NULL, reviewed_by_user_id = NULL, reviewed_at = NULL, updated_at = NOW()");
+                    $reportStmt = $conn->prepare("INSERT INTO message_reports (message_id, reporter_user_id, reported_user_id, reason, status, resolution_action, punishment_until, moderator_note, reviewed_by_user_id, reviewed_at, created_at, updated_at) VALUES (?, ?, ?, ?, 'open', 'none', NULL, NULL, NULL, NULL, NOW(), NOW()) ON DUPLICATE KEY UPDATE reason = VALUES(reason), status = 'open', resolution_action = 'none', punishment_until = NULL, moderator_note = NULL, reviewed_by_user_id = NULL, reviewed_at = NULL, updated_at = NOW()");
                     if (!$reportStmt) {
                         $errorMessage = 'Failed to submit report.';
                     } else {
@@ -1404,11 +1479,21 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
             $recipientStmt->close();
         }
 
+        $activeChatPenalty = chat_active_penalty($conn, $currentUserId);
+        $recipientRole = $recipient ? chat_normalize_role((string)($recipient['role'] ?? '')) : '';
+
         if (!$recipient) {
             $errorMessage = 'The selected recipient was not found.';
-        } elseif ($isStudentChatUser) {
-            $recipientRole = chat_normalize_role((string)($recipient['role'] ?? ''));
+        }
 
+        if ($errorMessage === '' && $activeChatPenalty) {
+            $penaltyError = chat_penalty_error_message($activeChatPenalty, $recipientRole);
+            if ($penaltyError !== '') {
+                $errorMessage = $penaltyError;
+            }
+        }
+
+        if ($errorMessage === '' && $isStudentChatUser) {
             if (!$studentScope) {
                 $errorMessage = $studentScopeMissingMessage;
             } elseif (!chat_student_can_contact_user($conn, $studentScope, $selectedUserId)) {
