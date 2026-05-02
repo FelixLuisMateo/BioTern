@@ -124,6 +124,11 @@ $documentCards = [
         'view_url' => $dauMoaRow ? 'student-dau-moa.php' : '',
     ],
     [
+        'title' => 'Parent Consent and Waiver',
+        'status' => 'Available to view and print anytime.',
+        'view_url' => 'document_parent_consent.php',
+    ],
+    [
         'title' => 'Resume',
         'status' => 'Available from your linked BioTern profile.',
         'view_url' => student_documents_build_url('pages/generate_resume.php', ['id' => $studentId]),
