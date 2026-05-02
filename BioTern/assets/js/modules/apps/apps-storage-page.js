@@ -218,7 +218,6 @@
         if (!file || file.is_deleted) return '';
         if (file.file_type === 'image') return `<div class="app-storage-detail-block"><h4>Preview</h4><div class="app-storage-preview-frame"><img src="${escapeHtml(file.view_url)}" alt="${escapeHtml(file.title)}"></div></div>`;
         if (file.file_type === 'pdf') return `<div class="app-storage-detail-block"><h4>Preview</h4><div class="app-storage-preview-frame is-pdf"><iframe src="${escapeHtml(file.view_url)}" title="${escapeHtml(file.title)}"></iframe></div></div>`;
-        if (file.file_type === 'document' || file.file_type === 'spreadsheet') return `<div class="app-storage-detail-block"><h4>Preview</h4><p>Preview is not available for this file type yet. Use download or open instead.</p></div>`;
         return '';
     }
 
