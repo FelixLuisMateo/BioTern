@@ -1,5 +1,8 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/includes/auth-session.php';
+
+biotern_boot_session(isset($conn) ? $conn : null);
 
 $page_title = 'BioTern || Storage';
 $page_styles = [

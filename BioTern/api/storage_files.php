@@ -1,11 +1,10 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/includes/auth-session.php';
 
 date_default_timezone_set('Asia/Manila');
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+biotern_boot_session(isset($conn) ? $conn : null);
 
 $userId = (int)($_SESSION['user_id'] ?? 0);
 $userName = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
@@ -25,12 +24,7 @@ if (!($conn instanceof mysqli) || $conn->connect_errno) {
     exit;
 }
 
-$scriptName = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$unifiedPos = stripos($scriptName, '/BioTern_unified/');
-$baseHref = ($unifiedPos !== false)
-    ? substr($scriptName, 0, $unifiedPos) . '/BioTern_unified/'
-    : '/BioTern_unified/';
-$endpointBase = $baseHref . 'storage_files.php';
+$endpointBase = 'storage_files.php';
 
 $conn->set_charset('utf8mb4');
 $conn->query("SET time_zone = '+08:00'");
@@ -82,6 +76,19 @@ $conn->query("CREATE TABLE IF NOT EXISTS storage_activity_logs (
     PRIMARY KEY (id),
     KEY idx_storage_activity_logs_user (user_id, created_at),
     KEY idx_storage_activity_logs_file (storage_file_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+$conn->query("CREATE TABLE IF NOT EXISTS storage_file_blobs (
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    storage_file_id INT UNSIGNED DEFAULT NULL,
+    storage_version_id INT UNSIGNED DEFAULT NULL,
+    mime_type VARCHAR(191) NOT NULL DEFAULT 'application/octet-stream',
+    file_size BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    blob_data LONGBLOB NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_storage_blob_file (storage_file_id, storage_version_id),
+    KEY idx_storage_blob_file (storage_file_id),
+    KEY idx_storage_blob_version (storage_version_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
 function storage_ensure_column(mysqli $conn, string $table, string $column, string $definition): void
@@ -207,6 +214,29 @@ function storage_private_root(): string
         @mkdir($path, 0777, true);
     }
     return $path;
+}
+
+function storage_should_use_database_storage(): bool
+{
+    $driver = strtolower(trim((string)getenv('BIOTERN_STORAGE_DRIVER')));
+    if (in_array($driver, ['file', 'files', 'filesystem', 'disk', 'local'], true)) {
+        return false;
+    }
+
+    return true;
+}
+
+function storage_is_database_path(string $path): bool
+{
+    return str_starts_with($path, 'db:file:') || str_starts_with($path, 'db:version:') || $path === 'db:pending';
+}
+
+function storage_unlink_local(?string $path): void
+{
+    $path = (string)$path;
+    if ($path !== '' && !storage_is_database_path($path) && is_file($path)) {
+        @unlink($path);
+    }
 }
 
 function storage_random_name(string $extension = ''): string
@@ -361,6 +391,25 @@ function storage_store_uploaded_file(array $fileInfo, int $userId, string $scope
 
     $mimeType = (string)($fileInfo['type'] ?? 'application/octet-stream');
     $fileType = storage_detect_file_type($extension, $mimeType);
+    $storedName = storage_random_name($extension);
+
+    if (storage_should_use_database_storage()) {
+        $blob = file_get_contents($tmpName);
+        if (!is_string($blob) || $blob === '') {
+            throw new RuntimeException('Unable to read the uploaded file');
+        }
+
+        return [
+            'original_name' => $originalName,
+            'stored_name' => $storedName,
+            'mime_type' => $mimeType,
+            'file_extension' => $extension,
+            'file_type' => $fileType,
+            'file_size' => $size,
+            'storage_path' => 'db:pending',
+            'blob_data' => $blob,
+        ];
+    }
 
     $baseDir = storage_private_root();
     $subDir = $scope === 'shared' ? 'shared' : ('user_' . $userId);
@@ -369,10 +418,23 @@ function storage_store_uploaded_file(array $fileInfo, int $userId, string $scope
         @mkdir($targetDir, 0777, true);
     }
 
-    $storedName = storage_random_name($extension);
     $targetPath = $targetDir . '/' . $storedName;
     if (!@move_uploaded_file($tmpName, $targetPath)) {
-        throw new RuntimeException('Unable to save the uploaded file');
+        $blob = file_get_contents($tmpName);
+        if (!is_string($blob) || $blob === '') {
+            throw new RuntimeException('Unable to save the uploaded file');
+        }
+
+        return [
+            'original_name' => $originalName,
+            'stored_name' => $storedName,
+            'mime_type' => $mimeType,
+            'file_extension' => $extension,
+            'file_type' => $fileType,
+            'file_size' => $size,
+            'storage_path' => 'db:pending',
+            'blob_data' => $blob,
+        ];
     }
 
     return [
@@ -384,6 +446,150 @@ function storage_store_uploaded_file(array $fileInfo, int $userId, string $scope
         'file_size' => $size,
         'storage_path' => $targetPath,
     ];
+}
+
+function storage_save_file_blob(mysqli $conn, int $fileId, string $blob, string $mimeType, int $fileSize): void
+{
+    if ($fileId <= 0 || $blob === '') {
+        throw new RuntimeException('Unable to save file content');
+    }
+
+    $delete = $conn->prepare('DELETE FROM storage_file_blobs WHERE storage_file_id = ? AND storage_version_id IS NULL');
+    if ($delete) {
+        $delete->bind_param('i', $fileId);
+        $delete->execute();
+        $delete->close();
+    }
+
+    $stmt = $conn->prepare('INSERT INTO storage_file_blobs (storage_file_id, storage_version_id, mime_type, file_size, blob_data) VALUES (?, NULL, ?, ?, ?)');
+    if (!$stmt) {
+        throw new RuntimeException('Unable to save file content');
+    }
+    $empty = '';
+    $stmt->bind_param('isib', $fileId, $mimeType, $fileSize, $empty);
+    $stmt->send_long_data(3, $blob);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        throw new RuntimeException('Unable to save file content');
+    }
+    $stmt->close();
+}
+
+function storage_save_version_blob(mysqli $conn, int $fileId, int $versionId, string $blob, string $mimeType, int $fileSize): void
+{
+    if ($fileId <= 0 || $versionId <= 0 || $blob === '') {
+        return;
+    }
+
+    $stmt = $conn->prepare('INSERT INTO storage_file_blobs (storage_file_id, storage_version_id, mime_type, file_size, blob_data) VALUES (?, ?, ?, ?, ?)');
+    if (!$stmt) {
+        return;
+    }
+    $empty = '';
+    $stmt->bind_param('iisib', $fileId, $versionId, $mimeType, $fileSize, $empty);
+    $stmt->send_long_data(4, $blob);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function storage_copy_file_blob_to_version(mysqli $conn, int $fileId, int $versionId): void
+{
+    $stmt = $conn->prepare('SELECT blob_data, mime_type, file_size FROM storage_file_blobs WHERE storage_file_id = ? AND storage_version_id IS NULL LIMIT 1');
+    if (!$stmt) {
+        return;
+    }
+    $stmt->bind_param('i', $fileId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$row || !is_string($row['blob_data'] ?? null)) {
+        return;
+    }
+
+    storage_save_version_blob(
+        $conn,
+        $fileId,
+        $versionId,
+        (string)$row['blob_data'],
+        (string)($row['mime_type'] ?? 'application/octet-stream'),
+        (int)($row['file_size'] ?? 0)
+    );
+}
+
+function storage_get_blob(mysqli $conn, int $fileId, ?int $versionId = null): ?array
+{
+    if ($versionId !== null && $versionId > 0) {
+        $stmt = $conn->prepare('SELECT blob_data, mime_type, file_size FROM storage_file_blobs WHERE storage_version_id = ? LIMIT 1');
+        if ($stmt) {
+            $stmt->bind_param('i', $versionId);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            if ($row && is_string($row['blob_data'] ?? null)) {
+                return $row;
+            }
+        }
+        return null;
+    }
+
+    $stmt = $conn->prepare('SELECT blob_data, mime_type, file_size FROM storage_file_blobs WHERE storage_file_id = ? AND storage_version_id IS NULL LIMIT 1');
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('i', $fileId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    return ($row && is_string($row['blob_data'] ?? null)) ? $row : null;
+}
+
+function storage_mark_file_as_database_backed(mysqli $conn, int $fileId): void
+{
+    $path = 'db:file:' . $fileId;
+    $stmt = $conn->prepare('UPDATE storage_files SET storage_path = ? WHERE id = ? LIMIT 1');
+    if ($stmt) {
+        $stmt->bind_param('si', $path, $fileId);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+
+function storage_mark_version_as_database_backed(mysqli $conn, int $versionId): void
+{
+    $path = 'db:version:' . $versionId;
+    $stmt = $conn->prepare('UPDATE storage_file_versions SET storage_path = ? WHERE id = ? LIMIT 1');
+    if ($stmt) {
+        $stmt->bind_param('si', $path, $versionId);
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+
+function storage_stream_file_payload(mysqli $conn, string $path, int $fileId, ?int $versionId, string $mimeType, string $name, string $disposition): void
+{
+    if ($path !== '' && !storage_is_database_path($path) && is_file($path)) {
+        header('Content-Type: ' . $mimeType);
+        header('Content-Length: ' . (string)filesize($path));
+        header('Content-Disposition: ' . $disposition . '; filename="' . $name . '"');
+        header('X-Content-Type-Options: nosniff');
+        readfile($path);
+        exit;
+    }
+
+    $blob = storage_get_blob($conn, $fileId, $versionId);
+    if (!$blob) {
+        http_response_code(404);
+        exit('File is missing');
+    }
+
+    $payload = (string)$blob['blob_data'];
+    header('Content-Type: ' . ($mimeType !== '' ? $mimeType : (string)($blob['mime_type'] ?? 'application/octet-stream')));
+    header('Content-Length: ' . (string)strlen($payload));
+    header('Content-Disposition: ' . $disposition . '; filename="' . $name . '"');
+    header('X-Content-Type-Options: nosniff');
+    echo $payload;
+    exit;
 }
 
 function storage_log_activity(mysqli $conn, int $userId, string $actionType, ?int $fileId, ?string $title, ?string $details = null): void
@@ -448,17 +654,8 @@ if ($method === 'GET' && $action === 'download_version') {
         exit('Version not found');
     }
     $path = (string)($version['storage_path'] ?? '');
-    if ($path === '' || !is_file($path)) {
-        http_response_code(404);
-        exit('Version file is missing');
-    }
     $name = str_replace('"', '', (string)($version['original_name'] ?? 'download'));
-    header('Content-Type: ' . (string)($version['mime_type'] ?? 'application/octet-stream'));
-    header('Content-Length: ' . (string)filesize($path));
-    header('Content-Disposition: attachment; filename="' . $name . '"');
-    header('X-Content-Type-Options: nosniff');
-    readfile($path);
-    exit;
+    storage_stream_file_payload($conn, $path, (int)($version['storage_file_id'] ?? 0), $versionId, (string)($version['mime_type'] ?? 'application/octet-stream'), $name, 'attachment');
 }
 
 if ($method === 'GET' && in_array($action, ['download', 'view'], true)) {
@@ -469,23 +666,10 @@ if ($method === 'GET' && in_array($action, ['download', 'view'], true)) {
         exit('File not found');
     }
 
-    $path = (string)($file['storage_path'] ?? '');
-    if ($path === '' || !is_file($path)) {
-        http_response_code(404);
-        exit('File is missing');
-    }
-
     $disposition = $action === 'view' ? 'inline' : 'attachment';
     $mimeType = (string)($file['mime_type'] ?? 'application/octet-stream');
     $name = str_replace('"', '', (string)($file['original_name'] ?? 'download'));
-    $size = (string)filesize($path);
-
-    header('Content-Type: ' . $mimeType);
-    header('Content-Length: ' . $size);
-    header('Content-Disposition: ' . $disposition . '; filename="' . $name . '"');
-    header('X-Content-Type-Options: nosniff');
-    readfile($path);
-    exit;
+    storage_stream_file_payload($conn, (string)($file['storage_path'] ?? ''), (int)$file['id'], null, $mimeType, $name, $disposition);
 }
 
 if ($method === 'GET' && $action === 'history') {
@@ -622,7 +806,7 @@ if ($action === 'upload') {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)'
     );
     if (!$stmt) {
-        @unlink($storedFile['storage_path']);
+        storage_unlink_local($storedFile['storage_path']);
         storage_json(500, ['success' => false, 'message' => 'Unable to save file record']);
     }
 
@@ -647,12 +831,26 @@ if ($action === 'upload') {
 
     if (!$stmt->execute()) {
         $stmt->close();
-        @unlink($storedFile['storage_path']);
+        storage_unlink_local($storedFile['storage_path']);
         storage_json(500, ['success' => false, 'message' => 'Unable to save file record']);
     }
 
     $fileId = (int)$stmt->insert_id;
     $stmt->close();
+    if (!empty($storedFile['blob_data']) && is_string($storedFile['blob_data'])) {
+        try {
+            storage_save_file_blob($conn, $fileId, $storedFile['blob_data'], $storedFile['mime_type'], (int)$storedFile['file_size']);
+            storage_mark_file_as_database_backed($conn, $fileId);
+        } catch (Throwable $e) {
+            $cleanup = $conn->prepare('DELETE FROM storage_files WHERE id = ? LIMIT 1');
+            if ($cleanup) {
+                $cleanup->bind_param('i', $fileId);
+                $cleanup->execute();
+                $cleanup->close();
+            }
+            storage_json(500, ['success' => false, 'message' => 'Unable to save uploaded file content']);
+        }
+    }
     $uploadDetails = 'Uploaded to ' . $scope . ' storage';
     if ($scope === 'shared') {
         if ($sharedAudience === 'user' && $sharedTargetUserId) {
@@ -717,7 +915,12 @@ if ($action === 'update') {
                 $file['storage_path']
             );
             $versionStmt->execute();
+            $versionId = (int)$versionStmt->insert_id;
             $versionStmt->close();
+            if ($versionId > 0 && storage_is_database_path((string)($file['storage_path'] ?? ''))) {
+                storage_copy_file_blob_to_version($conn, $fileId, $versionId);
+                storage_mark_version_as_database_backed($conn, $versionId);
+            }
         }
 
         $stmt = $conn->prepare(
@@ -726,7 +929,7 @@ if ($action === 'update') {
              WHERE id = ? LIMIT 1'
         );
         if (!$stmt) {
-            @unlink($replacement['storage_path']);
+            storage_unlink_local($replacement['storage_path']);
             storage_json(500, ['success' => false, 'message' => 'Unable to update this file']);
         }
 
@@ -750,10 +953,18 @@ if ($action === 'update') {
 
         if (!$stmt->execute()) {
             $stmt->close();
-            @unlink($replacement['storage_path']);
+            storage_unlink_local($replacement['storage_path']);
             storage_json(500, ['success' => false, 'message' => 'Unable to update this file']);
         }
         $stmt->close();
+        if (!empty($replacement['blob_data']) && is_string($replacement['blob_data'])) {
+            try {
+                storage_save_file_blob($conn, $fileId, $replacement['blob_data'], $replacement['mime_type'], (int)$replacement['file_size']);
+                storage_mark_file_as_database_backed($conn, $fileId);
+            } catch (Throwable $e) {
+                storage_json(500, ['success' => false, 'message' => 'Unable to save replacement file content']);
+            }
+        }
         $replaceDetails = 'Replaced uploaded file version';
         if ($scope === 'shared') {
             if ($sharedAudience === 'user' && $sharedTargetUserId) {
