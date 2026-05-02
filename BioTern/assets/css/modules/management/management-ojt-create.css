@@ -6,6 +6,69 @@
 
 .main-content,
 .app-ojt-create-main-content { min-width: 0; }
+.ojt-create-student-trigger {
+    display: flex;
+    align-items: center;
+    min-height: 42px;
+    color: #1f2937;
+    background-color: #fff;
+    cursor: pointer;
+}
+
+.ojt-create-student-trigger span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.ojt-create-student-modal .modal-body {
+    overflow: hidden;
+}
+
+.ojt-create-student-table-wrap {
+    max-height: 430px;
+    border: 1px solid #e5ebf2;
+    border-radius: 10px;
+    overflow: auto;
+}
+
+.ojt-create-student-table-wrap table {
+    min-width: 980px;
+}
+
+.ojt-create-student-table-wrap thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fff;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #0f172a;
+}
+
+.ojt-create-student-table-wrap tbody tr {
+    cursor: pointer;
+}
+
+.ojt-create-student-table-wrap tbody tr.is-selected {
+    background: #eef4ff;
+}
+
+html.app-skin-dark .ojt-create-student-trigger,
+html.app-skin-dark .ojt-create-student-table-wrap thead th {
+    background: #0f1720;
+    color: #edf4fb;
+}
+
+html.app-skin-dark .ojt-create-student-table-wrap {
+    border-color: #2a3a57;
+}
+
+html.app-skin-dark .ojt-create-student-table-wrap tbody tr.is-selected {
+    background: rgba(64, 111, 255, 0.18);
+}
         .app-ojt-create-info-label { font-weight: 600; }
         .app-ojt-create-info-row { --bs-gutter-y: 0; }
         .app-ojt-create-input-group .input-group-text {

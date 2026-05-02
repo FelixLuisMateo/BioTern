@@ -1,15 +1,28 @@
 (() => {
   const studentSelect = document.getElementById("studentSelect");
+  const studentDefaultsSelect = document.getElementById("studentDefaultsSelect");
+  const selectedStudentLabel = document.getElementById("selectedStudentLabel");
+  const pickerRows = Array.from(document.querySelectorAll("[data-student-picker-row]"));
+  const pickerSearch = document.getElementById("studentPickerSearch");
+  const pickerYear = document.getElementById("studentPickerYear");
+  const pickerSemester = document.getElementById("studentPickerSemester");
+  const pickerCourse = document.getElementById("studentPickerCourse");
+  const pickerSection = document.getElementById("studentPickerSection");
+  const pickerApply = document.getElementById("studentPickerApply");
+  const pickerEmpty = document.getElementById("studentPickerEmpty");
   const typeSelect = document.getElementById("typeSelect");
   const requiredHoursInput = document.getElementById("requiredHoursInput");
   const internalHoursInput = document.getElementById("internalHoursInput");
   const externalHoursInput = document.getElementById("externalHoursInput");
 
-  if (!studentSelect || !typeSelect || !requiredHoursInput || !internalHoursInput || !externalHoursInput) {
+  if (!studentSelect || !studentDefaultsSelect || !typeSelect || !requiredHoursInput || !internalHoursInput || !externalHoursInput) {
     return;
   }
 
-  const selectedStudentOption = () => studentSelect.options[studentSelect.selectedIndex] || null;
+  const selectedStudentOption = () => {
+    const value = studentSelect.value || "";
+    return Array.from(studentDefaultsSelect.options).find((option) => option.value === value) || null;
+  };
 
   const syncRequiredHours = () => {
     const type = (typeSelect.value || "internal").toLowerCase();
@@ -44,10 +57,67 @@
     syncRequiredHours();
   };
 
-  studentSelect.addEventListener("change", applyStudentDefaults);
+  const selectStudent = (studentId, label) => {
+    studentSelect.value = studentId || "";
+    if (selectedStudentLabel) {
+      selectedStudentLabel.textContent = label || "Select student";
+    }
+    pickerRows.forEach((row) => {
+      const active = row.getAttribute("data-student-id") === String(studentId || "");
+      row.classList.toggle("is-selected", active);
+      const radio = row.querySelector('input[type="radio"]');
+      if (radio) radio.checked = active;
+    });
+    applyStudentDefaults();
+  };
+
+  const filterPickerRows = () => {
+    const needle = (pickerSearch && pickerSearch.value ? pickerSearch.value : "").trim().toLowerCase();
+    const year = pickerYear ? pickerYear.value : "";
+    const semester = pickerSemester ? pickerSemester.value : "";
+    const course = pickerCourse ? pickerCourse.value : "";
+    const section = pickerSection ? pickerSection.value : "";
+    let visibleCount = 0;
+
+    pickerRows.forEach((row) => {
+      const matches =
+        (!needle || (row.getAttribute("data-search") || "").includes(needle)) &&
+        (!year || (row.getAttribute("data-school-year") || "") === year) &&
+        (!semester || (row.getAttribute("data-semester") || "") === semester) &&
+        (!course || (row.getAttribute("data-course-id") || "") === course) &&
+        (!section || (row.getAttribute("data-section-id") || "") === section);
+      row.classList.toggle("d-none", !matches);
+      if (matches) visibleCount += 1;
+    });
+
+    if (pickerEmpty) pickerEmpty.classList.toggle("d-none", visibleCount > 0);
+  };
+
+  pickerRows.forEach((row) => {
+    row.addEventListener("click", (event) => {
+      const radio = row.querySelector('input[type="radio"]');
+      if (radio && event.target !== radio) radio.checked = true;
+    });
+  });
+
+  [pickerSearch, pickerYear, pickerSemester, pickerCourse, pickerSection].forEach((input) => {
+    if (input) input.addEventListener("input", filterPickerRows);
+    if (input) input.addEventListener("change", filterPickerRows);
+  });
+
+  if (pickerApply) {
+    pickerApply.addEventListener("click", () => {
+      const checked = document.querySelector('input[name="student_picker_choice"]:checked');
+      if (!checked) return;
+      const row = checked.closest("[data-student-picker-row]");
+      selectStudent(checked.value, row ? row.getAttribute("data-label") : "");
+    });
+  }
+
   typeSelect.addEventListener("change", syncRequiredHours);
   internalHoursInput.addEventListener("input", syncRequiredHours);
   externalHoursInput.addEventListener("input", syncRequiredHours);
 
+  filterPickerRows();
   applyStudentDefaults();
 })();

@@ -59,6 +59,29 @@
     margin-top: 1rem;
 }
 
+.excel-import-hero-actions .btn,
+.excel-import-form-actions .btn {
+    min-height: 2.45rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.excel-import-hero-actions .btn-light,
+.excel-import-hero-actions .btn-light-brand {
+    background: #ffffff;
+    border-color: rgba(255, 255, 255, 0.72);
+    color: #195b42;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+}
+
+.excel-import-hero-actions .btn-light:hover,
+.excel-import-hero-actions .btn-light-brand:hover {
+    background: #f4fff8;
+    color: #12422f;
+}
+
 .transfer-kpis {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -383,6 +406,40 @@
 .excel-import-review-table-wrap .excel-import-table td:nth-child(4) {
     width: 12%;
     white-space: nowrap;
+}
+
+.excel-import-preview-table {
+    min-width: 820px;
+}
+
+.excel-import-preview-table th:nth-child(1),
+.excel-import-preview-table td:nth-child(1) {
+    width: 8%;
+}
+
+.excel-import-preview-table th:nth-child(2),
+.excel-import-preview-table td:nth-child(2) {
+    width: 15%;
+}
+
+.excel-import-preview-table th:nth-child(3),
+.excel-import-preview-table td:nth-child(3) {
+    width: 24%;
+}
+
+.excel-import-preview-table th:nth-child(4),
+.excel-import-preview-table td:nth-child(4) {
+    width: 13%;
+}
+
+.excel-import-preview-table th:nth-child(5),
+.excel-import-preview-table td:nth-child(5) {
+    width: 24%;
+}
+
+.excel-import-preview-table th:nth-child(6),
+.excel-import-preview-table td:nth-child(6) {
+    width: 16%;
 }
 
 .excel-import-student-toolbar {

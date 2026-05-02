@@ -644,17 +644,9 @@ ob_end_flush();
                             <span class="text-muted fs-12">Quick Actions</span>
                         </div>
                         <div class="dashboard-actions-grid page-header-right-items-wrapper">
-                            <a href="import-ojt-internal.php" class="action-tile action-tile-primary" data-action-priority="1">
-                                <i class="feather-download"></i>
-                                <span>Import OJT Internal</span>
-                            </a>
                             <a href="<?php echo htmlspecialchars($exportUrl, ENT_QUOTES, 'UTF-8'); ?>" class="action-tile">
                                 <i class="feather-upload-cloud"></i>
                                 <span>Export Internal List</span>
-                            </a>
-                            <a href="import-ojt-external.php" class="action-tile">
-                                <i class="feather-download-cloud"></i>
-                                <span>Import OJT External</span>
                             </a>
                             <button type="button" class="action-tile" data-ojt-print-full="ojtInternalListTable">
                                 <i class="feather-printer"></i>
