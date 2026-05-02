@@ -308,21 +308,24 @@ include __DIR__ . '/../includes/header.php';
                     right: 7px;
                     top: 50%;
                     transform: translateY(-50%);
-                    width: 30px;
-                    height: 30px;
+                    width: 34px;
+                    height: 34px;
                     border: 0;
                     border-radius: 9px;
-                    background: var(--doc-builder-control-bg);
-                    color: var(--doc-builder-muted);
+                    background: #5b7cfa;
+                    color: #ffffff;
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
+                    font-size: 16px;
+                    font-weight: 800;
+                    line-height: 1;
                 }
 
                 .parent-consent-search-toggle:hover,
                 .parent-consent-search-toggle:focus {
-                    background: var(--doc-builder-control-hover);
-                    color: var(--doc-builder-text);
+                    background: #6d8cff;
+                    color: #ffffff;
                     outline: none;
                 }
 
@@ -395,7 +398,7 @@ include __DIR__ . '/../includes/header.php';
                                     <div class="parent-consent-search-control">
                                         <input id="student_name" class="form-control" type="text" name="student_name" value="<?php echo parent_consent_h($studentName); ?>" placeholder="Search student name or ID" data-preview-target="pcStudent" autocomplete="off" <?php echo $isStudentViewOnly ? 'readonly' : ''; ?>>
                                         <?php if (!$isStudentViewOnly): ?>
-                                            <button class="parent-consent-search-toggle" type="button" aria-label="Open student search"><i class="feather-chevron-down"></i></button>
+                                            <button class="parent-consent-search-toggle" type="button" aria-label="Open student search">&#9662;</button>
                                         <?php endif; ?>
                                     </div>
                                     <?php if (!$isStudentViewOnly): ?>
@@ -405,6 +408,9 @@ include __DIR__ . '/../includes/header.php';
                                         </div>
                                     <?php endif; ?>
                                 </div>
+                                <?php if (!$isStudentViewOnly): ?>
+                                    <small class="text-muted">Search and select from student records.</small>
+                                <?php endif; ?>
                             </div>
 
                             <div class="builder-field">
@@ -418,13 +424,14 @@ include __DIR__ . '/../includes/header.php';
                                     <input id="company_name" type="hidden" name="company_name" value="<?php echo parent_consent_h($companyName); ?>">
                                     <div class="parent-consent-search-control">
                                         <input id="company_search" class="form-control" type="text" value="<?php echo parent_consent_h($companyName); ?>" placeholder="Search company or training site" data-preview-target="pcCompany" autocomplete="off">
-                                        <button class="parent-consent-search-toggle" type="button" aria-label="Open company search"><i class="feather-chevron-down"></i></button>
+                                        <button class="parent-consent-search-toggle" type="button" aria-label="Open company search">&#9662;</button>
                                     </div>
                                     <div class="parent-consent-search-panel">
                                         <div class="parent-consent-search-message">Type at least 1 character.</div>
                                         <div class="parent-consent-search-results"></div>
                                     </div>
                                 </div>
+                                <small class="text-muted">Search and select from company records.</small>
                             </div>
 
                             <div class="builder-field">
