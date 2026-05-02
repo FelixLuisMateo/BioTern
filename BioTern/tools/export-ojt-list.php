@@ -426,8 +426,13 @@ $headers = $type === 'internal'
     ? ['student_no', 'last_name', 'first_name', 'middle_name', 'email', 'course_id', 'section_id', 'password']
     : ['student_no', 'school_year', 'student_name', 'contact_no', 'section', 'company_name', 'company_address', 'supervisor_name', 'supervisor_position', 'company_representative', 'company_representative_position', 'status'];
 $exportRows = [];
+$exportedStudentNos = [];
 
 while ($row = $res->fetch_assoc()) {
+    $studentNoKey = preg_replace('/[^a-z0-9]+/', '', strtolower((string)($row['student_no'] ?? '')));
+    if ($studentNoKey !== '') {
+        $exportedStudentNos[$studentNoKey] = true;
+    }
     if ($type === 'internal') {
         $exportRows[] = [
             (string)($row['student_no'] ?? ''),
@@ -481,4 +486,81 @@ while ($row = $res->fetch_assoc()) {
 }
 
 $stmt->close();
+
+if ($type === 'external' && $hasMasterlist) {
+    $masterOnlyWhere = ["TRIM(COALESCE(ml.company_name, '')) <> ''"];
+    $masterOnlyTypes = '';
+    $masterOnlyParams = [];
+    if ($schoolYear !== '') {
+        $masterOnlyWhere[] = "TRIM(COALESCE(ml.school_year, '')) = ?";
+        $masterOnlyTypes .= 's';
+        $masterOnlyParams[] = $schoolYear;
+    }
+    if ($semester !== '') {
+        $masterOnlyWhere[] = "TRIM(COALESCE(ml.semester, '')) = ?";
+        $masterOnlyTypes .= 's';
+        $masterOnlyParams[] = $semester;
+    }
+    if ($status !== '' && $status !== 'all') {
+        $masterOnlyWhere[] = "LOWER(COALESCE(ml.status, '')) = ?";
+        $masterOnlyTypes .= 's';
+        $masterOnlyParams[] = $status;
+    }
+    if ($search !== '') {
+        $needle = '%' . $search . '%';
+        $masterOnlyWhere[] = "(ml.student_no LIKE ? OR ml.student_name LIKE ? OR ml.company_name LIKE ? OR ml.section LIKE ?)";
+        $masterOnlyTypes .= 'ssss';
+        array_push($masterOnlyParams, $needle, $needle, $needle, $needle);
+    }
+
+    $masterOnlySql = "
+        SELECT
+            ml.student_no,
+            ml.school_year,
+            ml.student_name,
+            ml.contact_no,
+            ml.section,
+            ml.company_name,
+            ml.company_address,
+            ml.supervisor_name,
+            ml.supervisor_position,
+            ml.company_representative,
+            " . (export_ojt_column_exists($conn, 'ojt_masterlist', 'company_representative_position') ? "COALESCE(ml.company_representative_position, '')" : "''") . " AS company_representative_position,
+            ml.status
+        FROM ojt_masterlist ml
+        WHERE " . implode(' AND ', $masterOnlyWhere) . "
+        ORDER BY ml.section ASC, ml.student_name ASC, ml.id ASC
+    ";
+    $masterOnlyStmt = $conn->prepare($masterOnlySql);
+    if ($masterOnlyStmt) {
+        export_ojt_bind($masterOnlyStmt, $masterOnlyTypes, $masterOnlyParams);
+        $masterOnlyStmt->execute();
+        $masterOnlyRes = $masterOnlyStmt->get_result();
+        while ($row = $masterOnlyRes->fetch_assoc()) {
+            $studentNoKey = preg_replace('/[^a-z0-9]+/', '', strtolower((string)($row['student_no'] ?? '')));
+            if ($studentNoKey !== '' && isset($exportedStudentNos[$studentNoKey])) {
+                continue;
+            }
+            if ($studentNoKey !== '') {
+                $exportedStudentNos[$studentNoKey] = true;
+            }
+            $exportRows[] = [
+                (string)($row['student_no'] ?? ''),
+                (string)($row['school_year'] ?? ''),
+                (string)($row['student_name'] ?? ''),
+                (string)($row['contact_no'] ?? ''),
+                (string)($row['section'] ?? ''),
+                (string)($row['company_name'] ?? ''),
+                (string)($row['company_address'] ?? ''),
+                (string)($row['supervisor_name'] ?? ''),
+                (string)($row['supervisor_position'] ?? ''),
+                (string)($row['company_representative'] ?? ''),
+                (string)($row['company_representative_position'] ?? ''),
+                (string)($row['status'] ?? ''),
+            ];
+        }
+        $masterOnlyStmt->close();
+    }
+}
+
 export_ojt_send_template_xlsx($type, $headers, $exportRows, $filename);
