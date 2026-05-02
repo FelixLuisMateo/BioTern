@@ -188,8 +188,8 @@ include __DIR__ . '/../includes/header.php';
                 .parent-consent-builder-page #editor .a4-page {
                     padding: 0.36in 0.55in 0.55in;
                     font-family: Arial, Helvetica, sans-serif !important;
-                    font-size: 12px;
-                    line-height: 1.34;
+                    font-size: 13px;
+                    line-height: 1.38;
                     color: #111827;
                 }
 
@@ -230,7 +230,7 @@ include __DIR__ . '/../includes/header.php';
 
                 .parent-consent-builder-page #editor .parent-consent-title {
                     text-align: center;
-                    font-size: 12px;
+                    font-size: 13px;
                     margin: 0 0 24px;
                     font-weight: 700;
                     text-transform: uppercase;
@@ -238,8 +238,8 @@ include __DIR__ . '/../includes/header.php';
 
                 .parent-consent-builder-page #editor .parent-consent-content p {
                     margin: 0 0 10px;
-                    font-size: 12px !important;
-                    line-height: 1.34 !important;
+                    font-size: 13px !important;
+                    line-height: 1.38 !important;
                     color: #111827 !important;
                 }
 
@@ -258,8 +258,8 @@ include __DIR__ . '/../includes/header.php';
 
                 .parent-consent-builder-page #editor .parent-consent-sign-line,
                 .parent-consent-builder-page #editor .parent-consent-sign-date {
-                    border-top: 1px solid #1f2937;
-                    padding-top: 6px;
+                    border-top: 0;
+                    padding-top: 4px;
                     font-size: 9px;
                     font-weight: 700;
                 }
@@ -270,8 +270,10 @@ include __DIR__ . '/../includes/header.php';
 
                 .parent-consent-builder-page #editor .parent-consent-sign-name {
                     display: block;
-                    min-height: 15px;
-                    margin: 0 0 6px;
+                    min-height: 18px;
+                    margin: 0;
+                    padding: 0 6px 4px;
+                    border-bottom: 1px solid #1f2937;
                     font-size: 12px;
                     font-weight: 700;
                     text-align: center;
@@ -548,7 +550,7 @@ include __DIR__ . '/../includes/header.php';
                                                         </div>
                                                         <div>
                                                             <span class="parent-consent-sign-name" id="pcDateSignature"><?php echo parent_consent_h($printDate); ?></span>
-                                                            <div class="parent-consent-sign-date">Date</div>
+                                                            <div class="parent-consent-sign-date"><strong>Date</strong></div>
                                                         </div>
                                                     </div>
                                                 </section>
