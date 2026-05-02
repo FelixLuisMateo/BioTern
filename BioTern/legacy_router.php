@@ -153,6 +153,7 @@ $map = [
   'reports-chat-logs.php' => 'reports/reports-chat-logs.php',
   'reports-chat-reports.php' => 'reports/reports-chat-reports.php',
   'reports-chat-penalties.php' => 'reports/reports-chat-penalties.php',
+  'reports-dtr-manual-input.php' => 'reports/reports-dtr-manual-input.php',
   'reports-admin-logs.php' => 'reports/reports-admin-logs.php',
 
   'settings-general.php' => 'settings/settings-general.php',
