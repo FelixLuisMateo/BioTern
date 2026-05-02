@@ -9,6 +9,10 @@ if (!function_exists('biotern_announcements_ensure_tables')) {
             body LONGTEXT NOT NULL,
             media_path VARCHAR(255) NULL,
             media_type VARCHAR(20) NOT NULL DEFAULT 'image',
+            media_mime VARCHAR(100) NULL,
+            media_name VARCHAR(255) NULL,
+            media_size BIGINT UNSIGNED NOT NULL DEFAULT 0,
+            media_blob LONGBLOB NULL,
             popup_size VARCHAR(20) NOT NULL DEFAULT 'medium',
             accent_color VARCHAR(20) NOT NULL DEFAULT '#3454d1',
             button_label VARCHAR(80) NOT NULL DEFAULT 'Got It',
@@ -37,6 +41,18 @@ if (!function_exists('biotern_announcements_ensure_tables')) {
         }
         if (!isset($columns['media_type'])) {
             $conn->query("ALTER TABLE announcements ADD COLUMN media_type VARCHAR(20) NOT NULL DEFAULT 'image' AFTER media_path");
+        }
+        if (!isset($columns['media_mime'])) {
+            $conn->query("ALTER TABLE announcements ADD COLUMN media_mime VARCHAR(100) NULL AFTER media_type");
+        }
+        if (!isset($columns['media_name'])) {
+            $conn->query("ALTER TABLE announcements ADD COLUMN media_name VARCHAR(255) NULL AFTER media_mime");
+        }
+        if (!isset($columns['media_size'])) {
+            $conn->query("ALTER TABLE announcements ADD COLUMN media_size BIGINT UNSIGNED NOT NULL DEFAULT 0 AFTER media_name");
+        }
+        if (!isset($columns['media_blob'])) {
+            $conn->query("ALTER TABLE announcements ADD COLUMN media_blob LONGBLOB NULL AFTER media_size");
         }
         if (!isset($columns['popup_size'])) {
             $conn->query("ALTER TABLE announcements ADD COLUMN popup_size VARCHAR(20) NOT NULL DEFAULT 'medium' AFTER media_type");

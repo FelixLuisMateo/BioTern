@@ -32,6 +32,21 @@ function students_excel_csrf_token(): string
     return $token;
 }
 
+function students_excel_preview_dir(): string
+{
+    $base = sys_get_temp_dir();
+    if ($base === '' || !is_dir($base) || !is_writable($base)) {
+        $base = dirname(__DIR__) . '/uploads';
+    }
+
+    $dir = rtrim($base, '/\\') . DIRECTORY_SEPARATOR . 'biotern-import-previews';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+
+    return $dir;
+}
+
 function students_excel_header(string $value): string
 {
     $value = strtolower(trim($value));
@@ -2264,11 +2279,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($overrideSchoolYear !== '') {
                     $originalName = $overrideSchoolYear;
                 }
-                $previewDir = dirname(__DIR__) . '/uploads/import-previews';
-                if (!is_dir($previewDir)) {
-                    @mkdir($previewDir, 0775, true);
-                }
-                $previewPath = $previewDir . '/pending_' . $userId . '_' . bin2hex(random_bytes(8)) . '.xlsx';
+                $previewDir = students_excel_preview_dir();
+                $previewPath = rtrim($previewDir, '/\\') . DIRECTORY_SEPARATOR . 'pending_' . $userId . '_' . bin2hex(random_bytes(8)) . '.xlsx';
                 $stored = is_uploaded_file($tmpName) ? move_uploaded_file($tmpName, $previewPath) : copy($tmpName, $previewPath);
                 if (!$stored) {
                     $statusType = 'danger';
