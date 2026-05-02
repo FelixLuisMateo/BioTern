@@ -42,6 +42,9 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
                     'import-ojt-internal.php', 'import-ojt-external.php',
+                    'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-hours-completion.php',
+                    'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
+                    'reports-unassigned-students.php', 'reports-import-errors.php', 'reports-document.php',
                     'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php', 'reports-admin-logs.php', 'reports-dtr-manual-input.php',
                 ],
                 'sections' => [
@@ -78,6 +81,18 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     [
                         'title' => 'Reports',
                         'items' => [
+                            ...($canSystem ? [
+                                ['label' => 'Student Status Report', 'href' => 'reports-student-status.php', 'icon' => 'feather-users'],
+                                ['label' => 'Attendance Report (DTR)', 'href' => 'reports-attendance-dtr.php', 'icon' => 'feather-clock'],
+                                ['label' => 'Hours Completion Report', 'href' => 'reports-hours-completion.php', 'icon' => 'feather-bar-chart-2'],
+                                ['label' => 'Section Report', 'href' => 'reports-section.php', 'icon' => 'feather-layers'],
+                                ['label' => 'Department Report', 'href' => 'reports-department.php', 'icon' => 'feather-briefcase'],
+                                ['label' => 'Company Report', 'href' => 'reports-company.php', 'icon' => 'feather-map-pin'],
+                                ['label' => 'Evaluation Report', 'href' => 'reports-evaluation.php', 'icon' => 'feather-star'],
+                                ['label' => 'Unassigned Students Report', 'href' => 'reports-unassigned-students.php', 'icon' => 'feather-user-x'],
+                                ['label' => 'Duplicate/Import Error Report', 'href' => 'reports-import-errors.php', 'icon' => 'feather-alert-triangle'],
+                                ['label' => 'Document Report', 'href' => 'reports-document.php', 'icon' => 'feather-file-text'],
+                            ] : []),
                             ['label' => 'Chat Logs', 'href' => 'reports-chat-logs.php', 'icon' => 'feather-message-circle'],
                             ['label' => 'Reported Chats', 'href' => 'reports-chat-reports.php', 'icon' => 'feather-flag'],
                             ['label' => 'Login Logs', 'href' => 'reports-login-logs.php', 'icon' => 'feather-log-in'],

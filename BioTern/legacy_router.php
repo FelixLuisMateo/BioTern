@@ -139,6 +139,16 @@ $map = [
   'student-dau-moa.php' => 'pages/student-dau-moa.php',
 
   // Removed mappings for obsolete report pages
+  'reports-student-status.php' => 'reports/reports-student-status.php',
+  'reports-attendance-dtr.php' => 'reports/reports-attendance-dtr.php',
+  'reports-hours-completion.php' => 'reports/reports-hours-completion.php',
+  'reports-section.php' => 'reports/reports-section.php',
+  'reports-department.php' => 'reports/reports-department.php',
+  'reports-company.php' => 'reports/reports-company.php',
+  'reports-evaluation.php' => 'reports/reports-evaluation.php',
+  'reports-unassigned-students.php' => 'reports/reports-unassigned-students.php',
+  'reports-import-errors.php' => 'reports/reports-import-errors.php',
+  'reports-document.php' => 'reports/reports-document.php',
   'reports-login-logs.php' => 'reports/reports-login-logs.php',
   'reports-chat-logs.php' => 'reports/reports-chat-logs.php',
   'reports-chat-reports.php' => 'reports/reports-chat-reports.php',

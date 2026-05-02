@@ -1,7 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
-// Reports index now redirects to an available reports page
-header('Location: reports-chat-logs.php');
+header('Location: reports-student-status.php');
 exit;
 
 
