@@ -31,6 +31,21 @@ function report_login_logs_has_column(mysqli $conn, string $column): bool
     return $result && $result->num_rows > 0;
 }
 
+function report_login_logs_has_table(mysqli $conn, string $table): bool
+{
+    $safeTable = $conn->real_escape_string($table);
+    $result = $conn->query("SHOW TABLES LIKE '{$safeTable}'");
+    return $result && $result->num_rows > 0;
+}
+
+function report_login_logs_table_has_column(mysqli $conn, string $table, string $column): bool
+{
+    $safeTable = $conn->real_escape_string($table);
+    $safeColumn = $conn->real_escape_string($column);
+    $result = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    return $result && $result->num_rows > 0;
+}
+
 $requiredLoginLogColumns = [
     'user_id' => "INT NULL",
     'identifier' => "VARCHAR(191) NULL",
@@ -104,11 +119,48 @@ function formatDisplayIpAddress($rawIp)
     return $ip;
 }
 
+function formatDisplayUserAddress($rawAddress, $rawIp = '')
+{
+    $address = trim((string)$rawAddress);
+    if ($address !== '') {
+        return $address;
+    }
+
+    $ip = trim((string)$rawIp);
+    if ($ip === '' || $ip === '::1' || $ip === '127.0.0.1' || strcasecmp($ip, '0:0:0:0:0:0:0:1') === 0) {
+        return 'Local device';
+    }
+
+    return '-';
+}
+
+$addressSelectParts = [];
+$addressJoins = [];
+if (report_login_logs_has_table($conn, 'students') && report_login_logs_table_has_column($conn, 'students', 'user_id') && report_login_logs_table_has_column($conn, 'students', 'address')) {
+    $addressSelectParts[] = "NULLIF(TRIM(s.address), '')";
+    $addressJoins[] = 'LEFT JOIN students s ON s.user_id = l.user_id';
+}
+if (report_login_logs_has_table($conn, 'coordinators') && report_login_logs_table_has_column($conn, 'coordinators', 'user_id') && report_login_logs_table_has_column($conn, 'coordinators', 'office_location')) {
+    $addressSelectParts[] = "NULLIF(TRIM(c.office_location), '')";
+    $addressJoins[] = 'LEFT JOIN coordinators c ON c.user_id = l.user_id';
+}
+if (report_login_logs_has_table($conn, 'supervisors') && report_login_logs_table_has_column($conn, 'supervisors', 'user_id')) {
+    if (report_login_logs_table_has_column($conn, 'supervisors', 'office_location')) {
+        $addressSelectParts[] = "NULLIF(TRIM(sp.office_location), '')";
+    } elseif (report_login_logs_table_has_column($conn, 'supervisors', 'office')) {
+        $addressSelectParts[] = "NULLIF(TRIM(sp.office), '')";
+    }
+    $addressJoins[] = 'LEFT JOIN supervisors sp ON sp.user_id = l.user_id';
+}
+$addressSelectSql = $addressSelectParts ? 'COALESCE(' . implode(', ', $addressSelectParts) . ', "") AS user_address' : '"" AS user_address';
+
 $sql = "
     SELECT l.id, l.identifier, l.role, l.status, l.reason, l.ip_address, l.created_at,
-           u.username, u.email
+           u.username, u.email,
+           {$addressSelectSql}
     FROM login_logs l
     LEFT JOIN users u ON u.id = l.user_id
+    " . implode("\n    ", $addressJoins) . "
 ";
 if ($status !== 'all') {
     $sql .= " WHERE l.status = '" . $conn->real_escape_string($status) . "'";
@@ -190,7 +242,7 @@ include 'includes/header.php';
             </div>
 
             <div class="logs-filter-wrap">
-                <form method="get" class="row g-2 align-items-end">
+                <form method="get" class="row g-2 align-items-end login-logs-auto-filter">
                     <div class="col-sm-6 col-md-4 col-lg-3">
                         <label class="form-label mb-1">Status Filter</label>
                         <select class="form-select" name="status">
@@ -198,11 +250,6 @@ include 'includes/header.php';
                             <option value="success" <?php echo $status === 'success' ? 'selected' : ''; ?>>Success</option>
                             <option value="failed" <?php echo $status === 'failed' ? 'selected' : ''; ?>>Failed</option>
                         </select>
-                    </div>
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="feather feather-filter me-1"></i>Apply
-                        </button>
                     </div>
                     <div class="col-auto">
                         <a href="reports-login-logs.php" class="btn btn-outline-secondary">Reset</a>
@@ -222,6 +269,7 @@ include 'includes/header.php';
                                     <th class="text-nowrap">Status</th>
                                     <th>Reason</th>
                                     <th class="text-nowrap">IP Address</th>
+                                    <th>Address</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -239,10 +287,11 @@ include 'includes/header.php';
                                             <td class="text-nowrap"><span class="logs-pill bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?> text-capitalize"><?php echo htmlspecialchars((string)($row['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
                                             <td><?php echo htmlspecialchars((string)($row['reason'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td class="text-nowrap"><?php echo htmlspecialchars(formatDisplayIpAddress($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><span class="logs-address" title="<?php echo htmlspecialchars(formatDisplayUserAddress($row['user_address'] ?? '', $row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(formatDisplayUserAddress($row['user_address'] ?? '', $row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
                                         </tr>
                                     <?php endwhile; ?>
                                 <?php else: ?>
-                                    <tr><td colspan="7" class="text-center text-muted py-5">No login logs yet.</td></tr>
+                                    <tr><td colspan="8" class="text-center text-muted py-5">No login logs yet.</td></tr>
                                 <?php endif; ?>
                             </tbody>
                     </table>
@@ -252,4 +301,17 @@ include 'includes/header.php';
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.querySelector('.login-logs-auto-filter');
+    if (!form) {
+        return;
+    }
 
+    form.querySelectorAll('select').forEach(function (select) {
+        select.addEventListener('change', function () {
+            form.requestSubmit();
+        });
+    });
+});
+</script>

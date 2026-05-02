@@ -38,6 +38,15 @@
     vertical-align: middle;
 }
 
+.logs-address {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
+}
+
 .logs-pill {
     border-radius: 999px;
     padding: 0.34rem 0.62rem;
