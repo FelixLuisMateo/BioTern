@@ -232,7 +232,7 @@ if ($summaryRes instanceof mysqli_result) {
 }
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page chat-penalties-page');
-$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-shell.css', 'assets/css/modules/reports/reports-login-logs-page.css']);
+$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-shell.css', 'assets/css/modules/reports/reports-login-logs-page.css', 'assets/css/modules/reports/reports-chat-penalties-page.css']);
 $page_title = 'BioTern || Chat Penalties';
 include 'includes/header.php';
 ?>
