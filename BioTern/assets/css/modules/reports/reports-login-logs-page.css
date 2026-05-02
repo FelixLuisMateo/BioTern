@@ -4,11 +4,26 @@
     margin-right: 0 !important;
 }
 
+body.login-logs-page .main-content {
+    padding-top: 0.75rem;
+}
+
+body.login-logs-page .logs-hero {
+    margin-bottom: 0.75rem;
+}
+
 .logs-summary-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.75rem;
     margin-bottom: 1rem;
+}
+
+body.login-logs-page .logs-kpi-label,
+body.login-logs-page .logs-filter-wrap .form-label,
+body.login-logs-page .logs-table-card thead th {
+    color: var(--report-muted) !important;
+    opacity: 1 !important;
 }
 
 .logs-kpi-value {
@@ -39,12 +54,14 @@
 }
 
 .logs-address {
-    max-width: 360px;
+    min-width: 220px;
+    max-width: 460px;
     white-space: normal;
     overflow-wrap: anywhere;
     line-height: 1.45;
     display: inline-block;
     vertical-align: middle;
+    color: var(--report-text);
 }
 
 .logs-pill {

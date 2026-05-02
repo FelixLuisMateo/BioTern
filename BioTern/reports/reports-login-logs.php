@@ -135,10 +135,37 @@ function formatDisplayUserAddress($rawAddress, $rawIp = '')
 }
 
 $addressSelectParts = [];
-$addressJoins = [];
 if (report_login_logs_has_table($conn, 'students') && report_login_logs_table_has_column($conn, 'students', 'user_id') && report_login_logs_table_has_column($conn, 'students', 'address')) {
-    $addressSelectParts[] = "NULLIF(TRIM(s.address), '')";
-    $addressJoins[] = 'LEFT JOIN students s ON s.user_id = l.user_id';
+    $studentMatch = ['s.user_id = l.user_id'];
+    if (report_login_logs_table_has_column($conn, 'students', 'email')) {
+        $studentMatch[] = 's.email = l.identifier';
+    }
+    if (report_login_logs_table_has_column($conn, 'students', 'student_id')) {
+        $studentMatch[] = 's.student_id = l.identifier';
+    }
+    $addressSelectParts[] = '(SELECT NULLIF(TRIM(s.address), "") FROM students s WHERE (' . implode(' OR ', $studentMatch) . ') AND NULLIF(TRIM(s.address), "") IS NOT NULL ORDER BY s.id DESC LIMIT 1)';
+}
+if (report_login_logs_has_table($conn, 'student_applications') && report_login_logs_table_has_column($conn, 'student_applications', 'address')) {
+    $applicationMatch = [];
+    if (report_login_logs_table_has_column($conn, 'student_applications', 'user_id')) {
+        $applicationMatch[] = 'sa.user_id = l.user_id';
+    }
+    if (report_login_logs_table_has_column($conn, 'student_applications', 'created_student_user_id')) {
+        $applicationMatch[] = 'sa.created_student_user_id = l.user_id';
+    }
+    if (report_login_logs_table_has_column($conn, 'student_applications', 'email')) {
+        $applicationMatch[] = 'sa.email = l.identifier';
+    }
+    if (report_login_logs_table_has_column($conn, 'student_applications', 'username')) {
+        $applicationMatch[] = 'sa.username = l.identifier';
+    }
+    if (report_login_logs_table_has_column($conn, 'student_applications', 'student_id')) {
+        $applicationMatch[] = 'sa.student_id = l.identifier';
+    }
+    if ($applicationMatch) {
+        $orderColumn = report_login_logs_table_has_column($conn, 'student_applications', 'submitted_at') ? 'sa.submitted_at' : 'sa.id';
+        $addressSelectParts[] = '(SELECT NULLIF(TRIM(sa.address), "") FROM student_applications sa WHERE (' . implode(' OR ', $applicationMatch) . ') AND NULLIF(TRIM(sa.address), "") IS NOT NULL ORDER BY ' . $orderColumn . ' DESC LIMIT 1)';
+    }
 }
 $addressSelectSql = $addressSelectParts ? 'COALESCE(' . implode(', ', $addressSelectParts) . ', "") AS user_address' : '"" AS user_address';
 
@@ -148,7 +175,6 @@ $sql = "
            {$addressSelectSql}
     FROM login_logs l
     LEFT JOIN users u ON u.id = l.user_id
-    " . implode("\n    ", $addressJoins) . "
 ";
 if ($status !== 'all') {
     $sql .= " WHERE l.status = '" . $conn->real_escape_string($status) . "'";
@@ -173,7 +199,7 @@ if ($summaryResult) {
     }
 }
 
-$page_body_class = trim(($page_body_class ?? '') . ' reports-page');
+$page_body_class = trim(($page_body_class ?? '') . ' reports-page login-logs-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-login-logs-page.css', 'assets/css/modules/reports/reports-shell.css']);
 $page_title = 'BioTern || Login Logs';
 include 'includes/header.php';
