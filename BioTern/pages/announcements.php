@@ -27,7 +27,7 @@ function announcements_store_upload(array $file, ?string &$error, ?string &$medi
         return '';
     }
     if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
-        $error = 'Unable to upload announcement photo.';
+        $error = 'Unable to upload announcement media.';
         return '';
     }
     if ((int)($file['size'] ?? 0) > 80 * 1024 * 1024) {
@@ -95,7 +95,7 @@ function announcements_store_upload(array $file, ?string &$error, ?string &$medi
     $name = 'announcement_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
     $target = $uploadDir . '/' . $name;
     if (!@move_uploaded_file($tmp, $target)) {
-        $error = 'Unable to save announcement photo.';
+        $error = 'Unable to save announcement media.';
         return '';
     }
 
