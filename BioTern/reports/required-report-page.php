@@ -22,6 +22,14 @@ function rr_table_exists(mysqli $conn, string $table): bool
     return $res instanceof mysqli_result && $res->num_rows > 0;
 }
 
+function rr_column_exists(mysqli $conn, string $table, string $column): bool
+{
+    $safeTable = $conn->real_escape_string($table);
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    return $res instanceof mysqli_result && $res->num_rows > 0;
+}
+
 function rr_rows(mysqli $conn, string $sql): array
 {
     $rows = [];
@@ -102,7 +110,7 @@ $reports = [
     'section' => [
         'title' => 'Section Report',
         'statement' => 'Students grouped by section and status.',
-        'columns' => ['Section ID', 'Total Students', 'Ongoing', 'Finished', 'Not Started'],
+        'columns' => ['Section', 'Total Students', 'Ongoing', 'Finished', 'Not Started'],
         'summary' => function (mysqli $conn): array {
             return [
                 ['label' => 'Students', 'value' => rr_count($conn, 'SELECT COUNT(*) AS total FROM students')],
@@ -111,7 +119,24 @@ $reports = [
             ];
         },
         'rows' => function (mysqli $conn): array {
-            return rr_rows($conn, "SELECT COALESCE(s.section_id, 0) AS section_id, COUNT(*) AS total_students, SUM(CASE WHEN i.status = 'ongoing' THEN 1 ELSE 0 END) AS ongoing, SUM(CASE WHEN i.status IN ('completed', 'finished') THEN 1 ELSE 0 END) AS finished, SUM(CASE WHEN i.id IS NULL THEN 1 ELSE 0 END) AS not_started FROM students s LEFT JOIN internships i ON i.id = (SELECT i2.id FROM internships i2 WHERE i2.student_id = s.id ORDER BY i2.id DESC LIMIT 1) GROUP BY s.section_id ORDER BY s.section_id LIMIT 500");
+            $hasSections = rr_table_exists($conn, 'sections');
+            $hasCode = $hasSections && rr_column_exists($conn, 'sections', 'code');
+            $hasName = $hasSections && rr_column_exists($conn, 'sections', 'name');
+            $sectionJoin = $hasSections ? 'LEFT JOIN sections sec ON sec.id = s.section_id' : '';
+            if ($hasCode && $hasName) {
+                $sectionSelect = "COALESCE(NULLIF(TRIM(sec.code), ''), NULLIF(TRIM(sec.name), ''), CONCAT('Section ', s.section_id), 'No Section')";
+                $sectionGroup = ', sec.code, sec.name';
+            } elseif ($hasName) {
+                $sectionSelect = "COALESCE(NULLIF(TRIM(sec.name), ''), CONCAT('Section ', s.section_id), 'No Section')";
+                $sectionGroup = ', sec.name';
+            } elseif ($hasCode) {
+                $sectionSelect = "COALESCE(NULLIF(TRIM(sec.code), ''), CONCAT('Section ', s.section_id), 'No Section')";
+                $sectionGroup = ', sec.code';
+            } else {
+                $sectionSelect = "COALESCE(CONCAT('Section ', s.section_id), 'No Section')";
+                $sectionGroup = '';
+            }
+            return rr_rows($conn, "SELECT {$sectionSelect} AS section_name, COUNT(*) AS total_students, SUM(CASE WHEN i.status = 'ongoing' THEN 1 ELSE 0 END) AS ongoing, SUM(CASE WHEN i.status IN ('completed', 'finished') THEN 1 ELSE 0 END) AS finished, SUM(CASE WHEN i.id IS NULL THEN 1 ELSE 0 END) AS not_started FROM students s {$sectionJoin} LEFT JOIN internships i ON i.id = (SELECT i2.id FROM internships i2 WHERE i2.student_id = s.id ORDER BY i2.id DESC LIMIT 1) GROUP BY s.section_id{$sectionGroup} ORDER BY section_name LIMIT 500");
         },
     ],
     'department' => [
@@ -162,7 +187,7 @@ $reports = [
     'unassigned-students' => [
         'title' => 'Unassigned Students Report',
         'statement' => 'Registered students not yet assigned to OJT.',
-        'columns' => ['Student No', 'Student', 'Course', 'Section ID'],
+        'columns' => ['Student No', 'Student', 'Course', 'Section'],
         'summary' => function (mysqli $conn): array {
             return [
                 ['label' => 'Unassigned', 'value' => rr_count($conn, 'SELECT COUNT(*) AS total FROM students s LEFT JOIN internships i ON i.student_id = s.id WHERE i.id IS NULL')],
@@ -171,7 +196,20 @@ $reports = [
             ];
         },
         'rows' => function (mysqli $conn): array {
-            return rr_rows($conn, "SELECT COALESCE(s.student_id, '') AS student_no, TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student, COALESCE(c.name, '-') AS course, COALESCE(s.section_id, 0) AS section_id FROM students s LEFT JOIN courses c ON c.id = s.course_id LEFT JOIN internships i ON i.student_id = s.id WHERE i.id IS NULL ORDER BY student LIMIT 500");
+            $hasSections = rr_table_exists($conn, 'sections');
+            $hasCode = $hasSections && rr_column_exists($conn, 'sections', 'code');
+            $hasName = $hasSections && rr_column_exists($conn, 'sections', 'name');
+            $sectionJoin = $hasSections ? 'LEFT JOIN sections sec ON sec.id = s.section_id' : '';
+            if ($hasCode && $hasName) {
+                $sectionSelect = "COALESCE(NULLIF(TRIM(sec.code), ''), NULLIF(TRIM(sec.name), ''), CONCAT('Section ', s.section_id), '-')";
+            } elseif ($hasName) {
+                $sectionSelect = "COALESCE(NULLIF(TRIM(sec.name), ''), CONCAT('Section ', s.section_id), '-')";
+            } elseif ($hasCode) {
+                $sectionSelect = "COALESCE(NULLIF(TRIM(sec.code), ''), CONCAT('Section ', s.section_id), '-')";
+            } else {
+                $sectionSelect = "COALESCE(CONCAT('Section ', s.section_id), '-')";
+            }
+            return rr_rows($conn, "SELECT COALESCE(s.student_id, '') AS student_no, TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student, COALESCE(c.name, '-') AS course, {$sectionSelect} AS section_name FROM students s LEFT JOIN courses c ON c.id = s.course_id {$sectionJoin} LEFT JOIN internships i ON i.student_id = s.id WHERE i.id IS NULL ORDER BY student LIMIT 500");
         },
     ],
     'import-errors' => [
