@@ -72,6 +72,10 @@ if (isset($_GET['action'])) {
                 'text' => implode(' - ', array_filter($labelParts, static function ($value): bool {
                     return trim((string)$value) !== '';
                 })),
+                'name' => trim((string)($company['company_name'] ?? '')),
+                'address' => trim((string)($company['company_address'] ?? '')),
+                'contact_name' => trim((string)($company['contact_name'] ?? $company['company_representative'] ?? $company['supervisor_name'] ?? '')),
+                'contact_position' => trim((string)($company['contact_position'] ?? $company['company_representative_position'] ?? $company['supervisor_position'] ?? '')),
             ];
         }
         echo json_encode(['results' => $results]);
@@ -201,26 +205,37 @@ include __DIR__ . '/../includes/header.php';
                         <div class="builder-card">
                             <div class="builder-card-head">
                                 <h6>Record Source</h6>
-                                <p><?php echo $documentsIsStudentViewOnly ? 'Your document is loaded from your linked student record.' : 'Load a student, pull saved application-letter data, and keep the preview updated live.'; ?></p>
+                                <p><?php echo $documentsIsStudentViewOnly ? 'Your document is loaded from your linked student record.' : 'Search student and company records, then the letter preview updates instantly.'; ?></p>
                             </div>
 
                             <div class="builder-field">
-                                <label for="student_select" class="form-label">Search Student</label>
+                                <label for="student_select" class="form-label">Student Name</label>
                                 <select id="student_select" class="student-select-full" data-placeholder="Search by name or student id" <?php echo $documentsIsStudentViewOnly ? 'disabled' : ''; ?>></select>
+                                <?php if (!$documentsIsStudentViewOnly): ?>
+                                    <small class="text-muted application-source-hint">Search and select from student records.</small>
+                                <?php endif; ?>
                             </div>
 
                             <div class="builder-field">
-                                <label for="company_select" class="form-label">Search Company</label>
+                                <label for="company_select" class="form-label">Company / Training Site</label>
                                 <select id="company_select" class="company-select-full" data-placeholder="Search company, address, or representative" <?php echo $documentsIsStudentViewOnly ? 'disabled' : ''; ?>></select>
+                                <?php if (!$documentsIsStudentViewOnly): ?>
+                                    <small class="text-muted application-source-hint">Pick a company to auto-fill recipient, position, company, and address.</small>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="application-autofill-panel">
+                                <div class="application-autofill-title">Company Details</div>
+                                <p>These fields update from the selected company record. You can still adjust them before printing.</p>
                             </div>
 
                             <div class="builder-field-grid">
                                 <div class="builder-field">
-                                    <label for="input_name" class="form-label">Recipient</label>
+                                    <label for="input_name" class="form-label">Recipient Name</label>
                                     <input id="input_name" class="form-control" type="text" placeholder="Mr./Ms. full name" autocomplete="off" <?php echo $documentsIsStudentViewOnly ? 'readonly' : ''; ?>>
                                 </div>
                                 <div class="builder-field">
-                                    <label for="input_position" class="form-label">Position</label>
+                                    <label for="input_position" class="form-label">Recipient Position</label>
                                     <input id="input_position" class="form-control" type="text" placeholder="Recipient position" autocomplete="off" <?php echo $documentsIsStudentViewOnly ? 'readonly' : ''; ?>>
                                 </div>
                             </div>

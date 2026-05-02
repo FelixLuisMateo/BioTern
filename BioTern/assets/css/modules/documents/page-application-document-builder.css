@@ -13,6 +13,35 @@
     margin-top: 16px;
 }
 
+.application-source-hint {
+    display: block;
+    margin-top: 6px;
+    line-height: 1.35;
+}
+
+.application-autofill-panel {
+    margin: 14px 0;
+    padding: 12px 13px;
+    border: 1px solid rgba(96, 165, 250, 0.28);
+    border-radius: 12px;
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--doc-builder-muted);
+    font-size: 0.79rem;
+    line-height: 1.4;
+}
+
+.application-autofill-panel p {
+    margin: 4px 0 0;
+}
+
+.application-autofill-title {
+    color: var(--doc-builder-text);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 .application-builder-sidebar .builder-field-grid > * {
     min-width: 0;
 }
@@ -107,6 +136,24 @@
     text-align: left;
     padding: 0.6rem 0.75rem;
     font-size: 0.84rem;
+}
+
+.app-student-search-option .app-search-option-title,
+.app-student-search-option .app-search-option-subtitle {
+    display: block;
+    min-width: 0;
+}
+
+.app-student-search-option .app-search-option-title {
+    font-weight: 700;
+    color: var(--doc-builder-text, #1f2937);
+}
+
+.app-student-search-option .app-search-option-subtitle {
+    margin-top: 3px;
+    color: var(--doc-builder-muted, #6b7280);
+    font-size: 0.76rem;
+    line-height: 1.25;
 }
 
 .app-student-search-option:hover,

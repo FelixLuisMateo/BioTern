@@ -265,6 +265,56 @@
         companySelectElement.value = target;
     }
 
+    function companyDisplayName(company) {
+        if (!company || typeof company !== 'object') {
+            return '';
+        }
+
+        return (company.company_name || company.name || '').toString().trim();
+    }
+
+    function companyDisplayAddress(company) {
+        if (!company || typeof company !== 'object') {
+            return '';
+        }
+
+        return (company.company_address || company.address || '').toString().trim();
+    }
+
+    function companyContactName(company) {
+        if (!company || typeof company !== 'object') {
+            return '';
+        }
+
+        return (company.contact_name || company.company_representative || company.supervisor_name || '').toString().trim();
+    }
+
+    function companyContactPosition(company) {
+        if (!company || typeof company !== 'object') {
+            return '';
+        }
+
+        return (company.contact_position || company.company_representative_position || company.supervisor_position || '').toString().trim();
+    }
+
+    function companySearchLabel(company, fallback) {
+        var name = companyDisplayName(company);
+        var contact = companyContactName(company);
+        var address = companyDisplayAddress(company);
+        var parts = [];
+
+        if (name) {
+            parts.push(name);
+        }
+        if (contact) {
+            parts.push(contact);
+        } else if (address) {
+            parts.push(address);
+        }
+
+        return parts.length ? parts.join(' - ') : (fallback || '').toString();
+    }
+
     function loadStudentState() {
         var raw = storageGet(STORAGE_STUDENT);
         if (!raw) {
@@ -294,18 +344,19 @@
         }
 
         selectedCompanyKey = String(company.key || company.company_lookup_key || company.company_name || '');
-        inputCompany.value = (company.company_name || '').toString();
-        inputCompanyAddress.value = (company.company_address || '').toString();
-        inputName.value = (company.contact_name || company.partner_representative || '').toString();
-        inputPosition.value = (company.contact_position || company.partner_position || '').toString();
+        inputCompany.value = companyDisplayName(company);
+        inputCompanyAddress.value = companyDisplayAddress(company);
+        inputName.value = companyContactName(company);
+        inputPosition.value = companyContactPosition(company);
 
         if (companySearchInput) {
-            companySearchInput.value = rowLabel || inputCompany.value || '';
+            companySearchInput.value = rowLabel || companySearchLabel(company, inputCompany.value) || '';
         }
 
-        setCompanySelectValue(company.key || inputCompany.value || '', rowLabel || inputCompany.value || '');
+        setCompanySelectValue(company.key || inputCompany.value || '', rowLabel || companySearchLabel(company, inputCompany.value) || '');
         updatePreviewFields();
         captureDraftBaseline();
+        setStatus(inputCompany.value ? 'Company details loaded into the letter.' : 'Company profile has no saved details yet.');
     }
 
     function updatePreviewFields() {
@@ -802,13 +853,21 @@
             }
         }
 
-        function selectCompanyByKey(companyKey, rowLabel) {
-            if (!companyKey) {
+        function selectCompany(item) {
+            if (!item || !item.id) {
                 return;
             }
+            var rowLabel = item.text || companySearchLabel(item, '');
             input.value = rowLabel || '';
             closePanel();
-            loadCompanyProfile(companyKey, rowLabel || '');
+            applyCompanyProfile({
+                key: item.id,
+                company_name: item.name || '',
+                company_address: item.address || '',
+                contact_name: item.contact_name || '',
+                contact_position: item.contact_position || ''
+            }, rowLabel || '');
+            loadCompanyProfile(item.id, rowLabel || '');
         }
 
         function renderResults(items) {
@@ -824,12 +883,20 @@
             setMessage('');
             currentItems.forEach(function (item, index) {
                 var row = document.createElement('button');
+                var title = item && item.name ? String(item.name) : (item && item.text ? String(item.text) : 'Company');
+                var subtitle = [
+                    item && item.contact_name ? String(item.contact_name) : '',
+                    item && item.contact_position ? String(item.contact_position) : '',
+                    item && item.address ? String(item.address) : ''
+                ].filter(Boolean).join(' - ');
                 row.type = 'button';
                 row.className = 'app-student-search-option';
                 row.setAttribute('data-index', String(index));
-                row.textContent = item && item.text ? String(item.text) : 'Company';
+                row.innerHTML = '<span class="app-search-option-title"></span><span class="app-search-option-subtitle"></span>';
+                row.querySelector('.app-search-option-title').textContent = title;
+                row.querySelector('.app-search-option-subtitle').textContent = subtitle || 'Select this company';
                 row.addEventListener('click', function () {
-                    selectCompanyByKey(item && item.id ? item.id : '', item && item.text ? item.text : '');
+                    selectCompany(item);
                 });
                 list.appendChild(row);
             });
@@ -907,7 +974,7 @@
 
             if (event.key === 'Enter' && activeIndex >= 0 && currentItems[activeIndex]) {
                 event.preventDefault();
-                selectCompanyByKey(currentItems[activeIndex].id || '', currentItems[activeIndex].text || '');
+                selectCompany(currentItems[activeIndex]);
             }
         });
 
@@ -996,13 +1063,27 @@
         }
 
         printWindow.document.open();
+        var printFallbackCss = [
+            'html,body{background:#fff!important;margin:0!important;padding:0!important;}',
+            '.no-print,.page-header,.nxl-navigation,.nxl-header{display:none!important;}',
+            '#editor,.builder-editor-surface{box-shadow:none!important;border:0!important;padding:0!important;margin:0 auto!important;max-width:none!important;background:#fff!important;}',
+            '#editor .a4-pages-stack,.a4-pages-stack{margin:0 auto!important;padding:0!important;}',
+            '#editor .a4-page,.a4-page{width:210mm!important;min-height:297mm!important;box-sizing:border-box!important;background:#fff!important;padding:0.22in 0.5in 0.24in!important;}',
+            '#editor .app-application-container,.app-application-container{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;}',
+            '#editor .app-application-header,.app-application-header{border-bottom:1px solid #c8ccd3!important;margin:0 0 8px!important;padding:0 0 0.08in!important;overflow:visible!important;}',
+            '#editor .app-application-header-inner,.app-application-header-inner{display:grid!important;grid-template-columns:0.92in minmax(0,1fr)!important;align-items:center!important;column-gap:0.12in!important;}',
+            '#editor .app-application-header-copy,.app-application-header-copy{text-align:center!important;padding-right:0.16in!important;}',
+            '#editor .crest,#editor .app-application-crest,.crest,.app-application-crest{position:static!important;width:0.92in!important;max-width:0.92in!important;height:0.92in!important;max-height:0.92in!important;display:block!important;object-fit:contain!important;margin:0!important;}',
+            '#editor img,img{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;}'
+        ].join('');
         printWindow.document.write(
             '<!doctype html><html><head><meta charset="utf-8">' +
             '<title>Application Letter</title>' +
             '<base href="' + document.baseURI.replace(/"/g, '&quot;') + '">' +
             collectPrintStyles() +
-            '<style>body{background:#fff;margin:0;padding:0;}.no-print,.page-header,.nxl-navigation,.nxl-header{display:none!important;}.builder-editor-surface{box-shadow:none!important;border:0!important;padding:0!important;margin:0 auto!important;max-width:none!important;}.a4-pages-stack{margin:0 auto!important;}</style>' +
-            '</head><body>' + editor.innerHTML +
+            '<style>' + printFallbackCss + '</style>' +
+            '</head><body class="application-builder-page application-document-builder-page">' +
+            '<div id="editor" class="builder-editor-surface">' + editor.innerHTML + '</div>' +
             '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});<\/script>' +
             '</body></html>'
         );
