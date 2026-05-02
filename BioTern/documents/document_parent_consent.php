@@ -244,14 +244,14 @@ include __DIR__ . '/../includes/header.php';
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-sign-student {
-                    width: 3.85in;
+                    width: 2.9in;
                     margin-top: 50px;
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-sign-grid {
                     margin-top: 42px;
                     display: grid;
-                    grid-template-columns: 5.15in 1.1in;
+                    grid-template-columns: 4.05in 0.86in;
                     gap: 0.42in;
                     align-items: end;
                 }
@@ -261,6 +261,10 @@ include __DIR__ . '/../includes/header.php';
                     border-top: 1px solid #1f2937;
                     padding-top: 6px;
                     font-size: 9px;
+                    font-weight: 700;
+                }
+
+                .parent-consent-builder-page #editor .parent-consent-emphasis {
                     font-weight: 700;
                 }
 
@@ -505,18 +509,18 @@ include __DIR__ . '/../includes/header.php';
                                                     <h2 class="parent-consent-title">Parent Consent and Waiver</h2>
 
                                                     <p>
-                                                        I hereby give my consent for <strong id="pcStudent"><?php echo parent_consent_h($studentLine); ?></strong> to participate in the On-the-Job Training (OJT)
-                                                        required by <strong>Clark College of Science and Technology (CCST)</strong> at the school and/or its partner or host company<span id="pcCompanyClause"><?php echo parent_consent_h($companyClause); ?></span>.
+                                                        I hereby give my consent for <strong id="pcStudent"><?php echo parent_consent_h($studentLine); ?></strong> to participate in the <strong>On-the-Job Training (OJT)</strong>
+                                                        required by <strong>Clark College of Science and Technology (CCST)</strong> at the school and/or its <strong>partner or host company<span id="pcCompanyClause"><?php echo parent_consent_h($companyClause); ?></span></strong>.
                                                     </p>
 
                                                     <p>
                                                         I understand that participation in OJT involves certain risks, including possible accidents, injuries, or health-related concerns. I voluntarily allow my
-                                                        <strong>son/daughter</strong> to undergo OJT and agree not to hold Clark College of Science and Technology, its administrators, faculty, advisers,
-                                                        and staff, as well as the host/partner company, liable for any accident or incident.
+                                                        <strong>son/daughter</strong> to undergo OJT and <strong>agree not to hold Clark College of Science and Technology, its administrators, faculty, advisers,
+                                                        and staff, as well as the host/partner company, liable for any accident or incident.</strong>
                                                     </p>
 
                                                     <p>
-                                                        I acknowledge that the school and the faculty adviser will provide proper guidance and supervision, but that they cannot guarantee absolute safety at
+                                                        I acknowledge that the school and the faculty adviser will provide proper guidance and supervision, but that they <strong>cannot guarantee absolute safety</strong> at
                                                         all times during the OJT period.
                                                     </p>
 
@@ -532,14 +536,14 @@ include __DIR__ . '/../includes/header.php';
                                                     <div class="parent-consent-sign-student">
                                                         <div class="parent-consent-sign-line">
                                                             <span class="parent-consent-sign-name" id="pcStudentSignature"><?php echo parent_consent_h($studentName); ?></span>
-                                                            <span class="parent-consent-sign-label">Signature over Printed Name of Student</span>
+                                                            <strong class="parent-consent-sign-label">Signature over Printed Name of Student</strong>
                                                         </div>
                                                     </div>
 
                                                     <div class="parent-consent-sign-grid">
                                                         <div class="parent-consent-sign-line">
                                                             <span class="parent-consent-sign-name" id="pcParentSignature"><?php echo parent_consent_h($parentLine); ?></span>
-                                                            <span class="parent-consent-sign-label">Signature over Printed Name of Parent/Guardian</span>
+                                                            <strong class="parent-consent-sign-label">Signature over Printed Name of Parent/Guardian</strong>
                                                         </div>
                                                         <div class="parent-consent-sign-date">Date</div>
                                                     </div>
