@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once __DIR__ . '/auth-session.php';
 require_once dirname(__DIR__) . '/lib/notifications.php';
+require_once dirname(__DIR__) . '/lib/announcements.php';
 require_once __DIR__ . '/avatar.php';
 require_once __DIR__ . '/page-header-actions.php';
 // Shared header include.  Sets up HTML <head> and page header/navigation.
@@ -198,6 +199,16 @@ if (!isset($base_href) || trim((string)$base_href) === '') {
 }
 $header_notification_actions_url = (string)$base_href . 'api/notifications-actions.php';
 $header_notification_feed_url = (string)$base_href . 'api/notifications-feed.php';
+$header_announcement_actions_url = (string)$base_href . 'api/announcements-actions.php';
+$header_pending_announcements = [];
+if (!$page_is_public && $header_user_id_session > 0 && isset($conn) && $conn instanceof mysqli) {
+    $header_pending_announcements = biotern_announcements_pending_for_user(
+        $conn,
+        $header_user_id_session,
+        (string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? ''),
+        3
+    );
+}
 
 $favicon_ico_path = dirname(__DIR__) . '/assets/images/favicon.ico';
 $favicon_png_path = dirname(__DIR__) . '/assets/images/favicon-rounded.png';
@@ -854,7 +865,130 @@ if ($header_db instanceof mysqli) {
         <!--! [End] Header !-->
         <!--! ================================================================ !-->
 
+        <?php if (!empty($header_pending_announcements)): ?>
+            <?php
+            $header_primary_announcement = is_array($header_pending_announcements[0] ?? null) ? $header_pending_announcements[0] : [];
+            $header_announcement_size = function_exists('biotern_announcements_normalize_size')
+                ? biotern_announcements_normalize_size((string)($header_primary_announcement['popup_size'] ?? 'medium'))
+                : 'medium';
+            $header_announcement_dialog_class = match ($header_announcement_size) {
+                'small' => '',
+                'wide' => ' modal-lg',
+                'full' => ' modal-xl',
+                default => '',
+            };
+            $header_announcement_accent = function_exists('biotern_announcements_normalize_color')
+                ? biotern_announcements_normalize_color((string)($header_primary_announcement['accent_color'] ?? '#3454d1'))
+                : '#3454d1';
+            $header_announcement_button_label = trim((string)($header_primary_announcement['button_label'] ?? 'Got It'));
+            if ($header_announcement_button_label === '') {
+                $header_announcement_button_label = 'Got It';
+            }
+            $header_announcement_show_title = (int)($header_primary_announcement['show_title'] ?? 1) === 1;
+            ?>
+            <div class="modal fade" id="bioternAnnouncementModal" tabindex="-1" aria-labelledby="bioternAnnouncementModalLabel" aria-hidden="true" data-announcement-actions-url="<?php echo htmlspecialchars($header_announcement_actions_url, ENT_QUOTES, 'UTF-8'); ?>">
+                <div class="modal-dialog modal-dialog-centered<?php echo htmlspecialchars($header_announcement_dialog_class, ENT_QUOTES, 'UTF-8'); ?>">
+                    <div class="modal-content" style="border-top: 4px solid <?php echo htmlspecialchars($header_announcement_accent, ENT_QUOTES, 'UTF-8'); ?>;">
+                        <div class="modal-header border-0 pb-2">
+                            <div>
+                                <?php if ($header_announcement_show_title): ?>
+                                    <span class="badge mb-2" style="background: <?php echo htmlspecialchars($header_announcement_accent, ENT_QUOTES, 'UTF-8'); ?>; color: #fff;">Announcement</span>
+                                    <h5 class="modal-title" id="bioternAnnouncementModalLabel"><?php echo htmlspecialchars((string)($header_pending_announcements[0]['title'] ?? 'Announcement'), ENT_QUOTES, 'UTF-8'); ?></h5>
+                                <?php else: ?>
+                                    <span class="visually-hidden" id="bioternAnnouncementModalLabel">Announcement</span>
+                                <?php endif; ?>
+                            </div>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body pt-0">
+                            <?php foreach ($header_pending_announcements as $index => $announcement): ?>
+                                <article class="<?php echo $index > 0 ? 'pt-3 mt-3 border-top' : ''; ?>" data-announcement-id="<?php echo (int)($announcement['id'] ?? 0); ?>">
+                                    <?php if ($index > 0 && (int)($announcement['show_title'] ?? 1) === 1): ?>
+                                        <h6 class="mb-2"><?php echo htmlspecialchars((string)($announcement['title'] ?? 'Announcement'), ENT_QUOTES, 'UTF-8'); ?></h6>
+                                    <?php endif; ?>
+                                    <?php if (trim((string)($announcement['media_path'] ?? '')) !== ''): ?>
+                                        <?php if (function_exists('biotern_announcements_normalize_media_type') && biotern_announcements_normalize_media_type((string)($announcement['media_type'] ?? 'image')) === 'video'): ?>
+                                            <video src="<?php echo htmlspecialchars((string)$announcement['media_path'], ENT_QUOTES, 'UTF-8'); ?>" controls playsinline preload="metadata" style="display:block;width:100%;max-height:<?php echo $header_announcement_size === 'full' ? '76vh' : '62vh'; ?>;object-fit:contain;border-radius:8px;background:#0f172a;"></video>
+                                        <?php else: ?>
+                                            <img src="<?php echo htmlspecialchars((string)$announcement['media_path'], ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars((string)($announcement['title'] ?? 'Announcement'), ENT_QUOTES, 'UTF-8'); ?>" style="display:block;width:100%;max-height:<?php echo $header_announcement_size === 'full' ? '76vh' : '62vh'; ?>;object-fit:contain;border-radius:8px;background:#f8fafc;">
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                    <?php if (trim((string)($announcement['body'] ?? '')) !== ''): ?>
+                                        <div class="text-muted mt-3" style="white-space: pre-wrap;"><?php echo htmlspecialchars((string)($announcement['body'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php endif; ?>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="modal-footer border-0">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Remind Me Later</button>
+                            <button type="button" class="btn btn-primary" style="background: <?php echo htmlspecialchars($header_announcement_accent, ENT_QUOTES, 'UTF-8'); ?>; border-color: <?php echo htmlspecialchars($header_announcement_accent, ENT_QUOTES, 'UTF-8'); ?>;" data-announcement-dismiss-all><?php echo htmlspecialchars($header_announcement_button_label, ENT_QUOTES, 'UTF-8'); ?></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <script>
+            <?php if (!empty($header_pending_announcements)): ?>
+            (function () {
+                function initAnnouncementPopup() {
+                    var modalEl = document.getElementById('bioternAnnouncementModal');
+                    if (!modalEl || !window.bootstrap || !window.bootstrap.Modal) {
+                        return;
+                    }
+
+                    var modal = new window.bootstrap.Modal(modalEl);
+                    var endpoint = modalEl.getAttribute('data-announcement-actions-url') || 'api/announcements-actions.php';
+                    var dismissButton = modalEl.querySelector('[data-announcement-dismiss-all]');
+                    var pending = false;
+
+                    function dismissOne(id) {
+                        var params = new URLSearchParams();
+                        params.append('action', 'dismiss');
+                        params.append('announcement_id', String(id));
+                        return fetch(endpoint, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: params.toString()
+                        });
+                    }
+
+                    if (dismissButton) {
+                        dismissButton.addEventListener('click', function () {
+                            if (pending) {
+                                return;
+                            }
+                            pending = true;
+                            dismissButton.disabled = true;
+                            var ids = Array.prototype.slice.call(modalEl.querySelectorAll('[data-announcement-id]'))
+                                .map(function (item) { return parseInt(item.getAttribute('data-announcement-id') || '0', 10); })
+                                .filter(function (id) { return id > 0; });
+
+                            Promise.all(ids.map(dismissOne)).finally(function () {
+                                modal.hide();
+                                pending = false;
+                                dismissButton.disabled = false;
+                            });
+                        });
+                    }
+
+                    window.setTimeout(function () {
+                        modal.show();
+                    }, 350);
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initAnnouncementPopup);
+                } else {
+                    initAnnouncementPopup();
+                }
+            })();
+            <?php endif; ?>
+
             (function () {
                 function initHeaderNotificationActions() {
                     var menu = document.querySelector('.nxl-notifications-menu[data-notification-actions-url]');

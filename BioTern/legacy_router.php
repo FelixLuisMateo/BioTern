@@ -162,6 +162,7 @@ $map = [
   'settings-support.php' => 'settings/settings-support.php',
   'account-settings.php' => 'settings/account-settings.php',
   'notifications.php' => 'pages/notifications.php',
+  'announcements.php' => 'pages/announcements.php',
   'profile-details.php' => 'pages/profile-details.php',
   'activity-feed.php' => 'pages/activity-feed.php',
   'theme-customizer.php' => 'pages/theme-customizer.php',
@@ -190,6 +191,7 @@ $map = [
   'register_fingerprint.php' => 'api/register_fingerprint.php',
   'register_submit.php' => 'api/register_submit.php',
   'notifications-actions.php' => 'api/notifications-actions.php',
+  'announcements-actions.php' => 'api/announcements-actions.php',
 
   'create_admin.php' => 'auth/create_admin.php',
   'users.php' => 'auth/users.php',
