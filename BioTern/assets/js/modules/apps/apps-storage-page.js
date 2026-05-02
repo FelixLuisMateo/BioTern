@@ -7,6 +7,9 @@
     const userRole = String(app.dataset.userRole || '').toLowerCase();
     const canManageShared = app.dataset.canManageShared === '1';
     const isStudent = userRole === 'student';
+    const defaultUploadCategory = ['requirements', 'generated', 'internship', 'images', 'reports', 'other'].includes(String(app.dataset.defaultUploadCategory || '').trim().toLowerCase())
+        ? String(app.dataset.defaultUploadCategory || '').trim().toLowerCase()
+        : (isStudent ? 'requirements' : 'reports');
     const startUploadCategory = String(app.dataset.startUploadCategory || '').trim().toLowerCase();
     const startUploadTitle = String(app.dataset.startUploadTitle || '').trim();
     const startUploadNotes = String(app.dataset.startUploadNotes || '').trim();
@@ -79,7 +82,10 @@
         return parsed.toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
     };
     const fileTypeIcon = (type) => ({ image: 'feather-image', pdf: 'feather-file-text', spreadsheet: 'feather-grid', document: 'feather-file', archive: 'feather-package' }[type] || 'feather-paperclip');
-    const categoryLabel = (category) => ({ requirements: 'Requirements', generated: 'Generated Docs', internship: 'Internship', images: 'Images', reports: 'Reports', other: 'Other' }[category] || 'Other');
+    const categoryLabel = (category) => {
+        if (category === 'requirements' && !isStudent) return 'Reports';
+        return ({ requirements: 'Requirements', generated: 'Generated Docs', internship: 'Internship', images: 'Images', reports: 'Reports', other: 'Other' }[category] || 'Other');
+    };
     const scopeLabel = (scope) => scope === 'shared' ? 'Shared' : 'Personal';
     const audienceLabel = (audience) => ({ all: 'All Users', student: 'Students', supervisor: 'Supervisors', user: 'Specific User' }[audience] || 'All Users');
     const activityLabel = (type) => ({ upload: 'Uploaded', update: 'Updated', replace: 'Replaced file', delete: 'Moved to trash', restore: 'Restored', toggle_star: 'Updated star', bulk_delete: 'Bulk delete', bulk_restore: 'Bulk restore' }[type] || 'Updated');
@@ -113,7 +119,7 @@
             }
             if (state.category !== 'all' && file.category !== state.category) return false;
             if (!search) return true;
-            return [file.title, file.original_name, file.category, file.scope, file.notes, file.uploader_name, file.shared_target_user_name].join(' ').toLowerCase().includes(search);
+            return [file.title, file.original_name, categoryLabel(file.category), file.scope, file.notes, file.uploader_name, file.shared_target_user_name].join(' ').toLowerCase().includes(search);
         });
         if (state.sort === 'name') files = files.sort((a, b) => a.title.localeCompare(b.title));
         else if (state.sort === 'size') files = files.sort((a, b) => Number(b.file_size || 0) - Number(a.file_size || 0));
@@ -302,6 +308,7 @@
             if (els.uploadKicker) els.uploadKicker.textContent = 'Upload file';
             if (els.uploadSubmit) els.uploadSubmit.textContent = 'Save File';
             if (els.uploadScope && !canManageShared) els.uploadScope.value = 'personal';
+            if (els.uploadCategory) els.uploadCategory.value = defaultUploadCategory;
             if (els.uploadAudience) els.uploadAudience.value = 'all';
             if (els.uploadTargetUser) els.uploadTargetUser.value = '';
             setUploadMessage('PDF, images, Office files, and ZIP uploads are supported.');
@@ -415,7 +422,7 @@
     if (startUploadCategory) {
         const presetCategory = ['requirements', 'generated', 'internship', 'images', 'reports', 'other'].includes(startUploadCategory)
             ? startUploadCategory
-            : 'requirements';
+            : defaultUploadCategory;
         state.category = presetCategory;
         openUploadPanel(null, {
             category: presetCategory,

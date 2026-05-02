@@ -19,6 +19,7 @@ $storage_user_id = (int)($_SESSION['user_id'] ?? 0);
 $storage_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
 $storage_user_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
 $storage_can_manage_shared = in_array($storage_user_role, ['admin', 'coordinator'], true);
+$storage_default_upload_category = $storage_user_role === 'student' ? 'requirements' : 'reports';
 $storage_share_targets = [];
 
 if ($storage_can_manage_shared && ($conn instanceof mysqli) && !$conn->connect_errno) {
@@ -51,6 +52,7 @@ include 'includes/header.php';
                 data-user-name="<?php echo htmlspecialchars($storage_user_name, ENT_QUOTES, 'UTF-8'); ?>"
                 data-user-role="<?php echo htmlspecialchars($storage_user_role, ENT_QUOTES, 'UTF-8'); ?>"
                 data-can-manage-shared="<?php echo $storage_can_manage_shared ? '1' : '0'; ?>"
+                data-default-upload-category="<?php echo htmlspecialchars($storage_default_upload_category, ENT_QUOTES, 'UTF-8'); ?>"
                 data-start-upload-category="<?php echo htmlspecialchars(trim((string)($_GET['upload_category'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
                 data-start-upload-title="<?php echo htmlspecialchars(trim((string)($_GET['upload_title'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
                 data-start-upload-notes="<?php echo htmlspecialchars(trim((string)($_GET['upload_notes'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
@@ -117,7 +119,9 @@ include 'includes/header.php';
                         <span class="app-storage-kicker">Category</span>
                         <select class="form-select app-storage-category-select" data-category-select>
                             <option value="all">All Categories</option>
+                            <?php if ($storage_user_role === 'student'): ?>
                             <option value="requirements">Requirements</option>
+                            <?php endif; ?>
                             <option value="generated">Generated Docs</option>
                             <option value="internship">Internship</option>
                             <option value="images">Images</option>
@@ -237,11 +241,13 @@ include 'includes/header.php';
                     <label class="app-storage-field">
                         <span>Category</span>
                         <select class="form-select" name="category" data-upload-category>
-                            <option value="requirements">Requirements</option>
+                            <?php if ($storage_user_role === 'student'): ?>
+                            <option value="requirements"<?php echo $storage_default_upload_category === 'requirements' ? ' selected' : ''; ?>>Requirements</option>
+                            <?php endif; ?>
                             <option value="generated">Generated Docs</option>
                             <option value="internship">Internship</option>
                             <option value="images">Images</option>
-                            <option value="reports">Reports</option>
+                            <option value="reports"<?php echo $storage_default_upload_category === 'reports' ? ' selected' : ''; ?>>Reports</option>
                             <option value="other">Other</option>
                         </select>
                     </label>
