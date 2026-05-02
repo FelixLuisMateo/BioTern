@@ -124,15 +124,11 @@ function storage_json(int $status, array $payload): void
 
 function storage_can_manage_shared(string $role): bool
 {
-    return in_array(strtolower(trim($role)), ['admin', 'coordinator'], true);
+    return false;
 }
 
 function storage_clean_scope(?string $value, bool $canManageShared): string
 {
-    $value = strtolower(trim((string)$value));
-    if ($value === 'shared' && $canManageShared) {
-        return 'shared';
-    }
     return 'personal';
 }
 
@@ -291,28 +287,11 @@ function storage_detect_file_type(string $extension, string $mimeType): string
 
 function storage_can_access(array $row, int $userId, string $role): bool
 {
-    if (($row['storage_scope'] ?? 'personal') === 'shared') {
-        $audience = storage_clean_audience((string)($row['shared_audience'] ?? 'all'));
-        $role = strtolower(trim($role));
-        if (storage_can_manage_shared($role)) {
-            return true;
-        }
-        if ($audience === 'all') {
-            return true;
-        }
-        if ($audience === 'user') {
-            return (int)($row['shared_target_user_id'] ?? 0) === $userId;
-        }
-        return $audience === $role;
-    }
     return (int)($row['owner_user_id'] ?? 0) === $userId;
 }
 
 function storage_can_delete(array $row, int $userId, string $role): bool
 {
-    if (($row['storage_scope'] ?? 'personal') === 'shared') {
-        return storage_can_manage_shared($role);
-    }
     return (int)($row['owner_user_id'] ?? 0) === $userId;
 }
 
@@ -353,7 +332,7 @@ function storage_map(array $row, int $userId, string $role, string $endpointBase
         'uploader_name' => (string)($row['uploader_name'] ?? ''),
         'title' => (string)($row['title'] ?? ''),
         'original_name' => (string)($row['original_name'] ?? ''),
-        'scope' => (string)($row['storage_scope'] ?? 'personal'),
+        'scope' => 'personal',
         'shared_audience' => storage_clean_audience((string)($row['shared_audience'] ?? 'all')),
         'shared_target_user_id' => !empty($row['shared_target_user_id']) ? (int)$row['shared_target_user_id'] : null,
         'shared_target_user_name' => (string)($row['shared_target_user_name'] ?? ''),
@@ -716,15 +695,14 @@ if ($method === 'GET') {
             (SELECT COUNT(*) FROM storage_file_versions v WHERE v.storage_file_id = sf.id) AS version_count
          FROM storage_files sf
          LEFT JOIN users tu ON tu.id = sf.shared_target_user_id
-         WHERE sf.owner_user_id = ? OR sf.storage_scope = ?
+         WHERE sf.owner_user_id = ?
          ORDER BY sf.deleted_at IS NULL DESC, sf.is_starred DESC, sf.updated_at DESC, sf.id DESC'
     );
     if (!$stmt) {
         storage_json(500, ['success' => false, 'message' => 'Unable to load storage files']);
     }
 
-    $shared = 'shared';
-    $stmt->bind_param('is', $userId, $shared);
+    $stmt->bind_param('i', $userId);
     $stmt->execute();
     $result = $stmt->get_result();
     $files = [];
@@ -790,15 +768,8 @@ if ($action === 'upload') {
     }
 
     $scope = storage_clean_scope((string)($_POST['scope'] ?? 'personal'), storage_can_manage_shared($userRole));
-    $sharedAudience = $scope === 'shared'
-        ? storage_clean_audience((string)($_POST['shared_audience'] ?? 'all'))
-        : 'all';
-    $sharedTargetUserId = ($scope === 'shared' && $sharedAudience === 'user')
-        ? storage_clean_target_user_id($conn, $_POST['shared_target_user_id'] ?? 0)
-        : null;
-    if ($scope === 'shared' && $sharedAudience === 'user' && $sharedTargetUserId === null) {
-        storage_json(422, ['success' => false, 'message' => 'Choose a valid user to share this file with']);
-    }
+    $sharedAudience = 'all';
+    $sharedTargetUserId = null;
     $category = storage_category_for_role(storage_clean_category((string)($_POST['category'] ?? 'other')), $userRole);
     $notes = storage_clean_notes((string)($_POST['notes'] ?? ''));
 
@@ -861,14 +832,6 @@ if ($action === 'upload') {
         }
     }
     $uploadDetails = 'Uploaded to ' . $scope . ' storage';
-    if ($scope === 'shared') {
-        if ($sharedAudience === 'user' && $sharedTargetUserId) {
-            $target = storage_find_user($conn, $sharedTargetUserId);
-            $uploadDetails .= ' for ' . (($target['name'] ?? '') !== '' ? $target['name'] : ('user #' . $sharedTargetUserId));
-        } else {
-            $uploadDetails .= ' for ' . $sharedAudience . ' audience';
-        }
-    }
     storage_log_activity($conn, $userId, 'upload', $fileId, $title, $uploadDetails);
     $file = storage_fetch_one($conn, $fileId);
     storage_json(200, ['success' => true, 'file' => $file ? storage_map($file, $userId, $userRole, $endpointBase) : null]);
@@ -882,15 +845,8 @@ if ($action === 'update') {
     }
 
     $scope = storage_clean_scope((string)($data['scope'] ?? $_POST['scope'] ?? $file['storage_scope']), storage_can_manage_shared($userRole));
-    $sharedAudience = $scope === 'shared'
-        ? storage_clean_audience((string)($data['shared_audience'] ?? $_POST['shared_audience'] ?? $file['shared_audience'] ?? 'all'))
-        : 'all';
-    $sharedTargetUserId = ($scope === 'shared' && $sharedAudience === 'user')
-        ? storage_clean_target_user_id($conn, $data['shared_target_user_id'] ?? $_POST['shared_target_user_id'] ?? $file['shared_target_user_id'] ?? 0)
-        : null;
-    if ($scope === 'shared' && $sharedAudience === 'user' && $sharedTargetUserId === null) {
-        storage_json(422, ['success' => false, 'message' => 'Choose a valid user to share this file with']);
-    }
+    $sharedAudience = 'all';
+    $sharedTargetUserId = null;
     $category = storage_category_for_role(storage_clean_category((string)($data['category'] ?? $_POST['category'] ?? $file['category'])), $userRole);
     $notes = storage_clean_notes((string)($data['notes'] ?? $_POST['notes'] ?? $file['notes']));
     $title = storage_clean_title((string)($data['title'] ?? $_POST['title'] ?? $file['title']), pathinfo((string)$file['original_name'], PATHINFO_FILENAME));
@@ -975,14 +931,6 @@ if ($action === 'update') {
             }
         }
         $replaceDetails = 'Replaced uploaded file version';
-        if ($scope === 'shared') {
-            if ($sharedAudience === 'user' && $sharedTargetUserId) {
-                $target = storage_find_user($conn, $sharedTargetUserId);
-                $replaceDetails .= ' for ' . (($target['name'] ?? '') !== '' ? $target['name'] : ('user #' . $sharedTargetUserId));
-            } else {
-                $replaceDetails .= ' for ' . $sharedAudience . ' audience';
-            }
-        }
         storage_log_activity($conn, $userId, 'replace', $fileId, $title, $replaceDetails);
     } else {
         $stmt = $conn->prepare(
@@ -998,14 +946,6 @@ if ($action === 'update') {
         }
         $stmt->close();
         $updateDetails = 'Updated file details';
-        if ($scope === 'shared') {
-            if ($sharedAudience === 'user' && $sharedTargetUserId) {
-                $target = storage_find_user($conn, $sharedTargetUserId);
-                $updateDetails .= ' for ' . (($target['name'] ?? '') !== '' ? $target['name'] : ('user #' . $sharedTargetUserId));
-            } else {
-                $updateDetails .= ' for ' . $sharedAudience . ' audience';
-            }
-        }
         storage_log_activity($conn, $userId, 'update', $fileId, $title, $updateDetails);
     }
 

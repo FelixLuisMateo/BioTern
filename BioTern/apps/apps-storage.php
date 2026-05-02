@@ -18,26 +18,9 @@ $storage_endpoint = 'storage_files.php';
 $storage_user_id = (int)($_SESSION['user_id'] ?? 0);
 $storage_user_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
 $storage_user_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
-$storage_can_manage_shared = in_array($storage_user_role, ['admin', 'coordinator'], true);
+$storage_can_manage_shared = false;
 $storage_default_upload_category = $storage_user_role === 'student' ? 'requirements' : 'reports';
 $storage_share_targets = [];
-
-if ($storage_can_manage_shared && ($conn instanceof mysqli) && !$conn->connect_errno) {
-    $storage_share_target_result = $conn->query(
-        "SELECT id, name, username, role
-         FROM users
-         WHERE is_active = 1
-           AND (role <> 'student' OR COALESCE(application_status, 'approved') = 'approved')
-         ORDER BY name ASC, username ASC"
-    );
-
-    if ($storage_share_target_result instanceof mysqli_result) {
-        while ($storage_share_target = $storage_share_target_result->fetch_assoc()) {
-            $storage_share_targets[] = $storage_share_target;
-        }
-        $storage_share_target_result->free();
-    }
-}
 
 include 'includes/header.php';
 ?>
@@ -101,10 +84,6 @@ include 'includes/header.php';
                             <span>My Files</span>
                             <strong data-count-my>0</strong>
                         </button>
-                        <button type="button" class="app-storage-filter-chip" data-scope-filter="shared">
-                            <span>Shared</span>
-                            <strong data-count-shared>0</strong>
-                        </button>
                         <button type="button" class="app-storage-filter-chip" data-scope-filter="starred">
                             <span>Starred</span>
                             <strong data-count-starred>0</strong>
@@ -133,12 +112,7 @@ include 'includes/header.php';
                     <div class="app-storage-helper-card">
                         <span class="app-storage-kicker">Access</span>
                         <p>
-                            Personal uploads stay under your account.
-                            <?php if ($storage_can_manage_shared): ?>
-                            You can also publish shared files for all users, students only, supervisors only, or one exact BioTern user.
-                            <?php else: ?>
-                            Shared files come from your BioTern coordinators and admins, and some may be targeted to your role or directly to you.
-                            <?php endif; ?>
+                            Storage is private to your account. Uploaded files stay in your personal BioTern file hub unless you download and send them yourself.
                         </p>
                         <div class="app-storage-resource-list">
                             <button type="button" class="app-storage-resource-tag" data-shortcut-category="generated">Forms</button>
@@ -252,48 +226,8 @@ include 'includes/header.php';
                         </select>
                     </label>
 
-                    <label class="app-storage-field">
-                        <span>Storage</span>
-                        <select class="form-select" name="scope" data-upload-scope>
-                            <option value="personal">My Files</option>
-                            <?php if ($storage_can_manage_shared): ?>
-                            <option value="shared">Shared Files</option>
-                            <?php endif; ?>
-                        </select>
-                    </label>
+                    <input type="hidden" name="scope" value="personal" data-upload-scope>
                 </div>
-
-                <?php if ($storage_can_manage_shared): ?>
-                <label class="app-storage-field" data-upload-audience-wrap hidden>
-                    <span>Shared Audience</span>
-                    <select class="form-select" name="shared_audience" data-upload-audience>
-                        <option value="all">All Users</option>
-                        <option value="student">Students</option>
-                        <option value="supervisor">Supervisors</option>
-                        <option value="user">Specific User</option>
-                    </select>
-                </label>
-
-                <label class="app-storage-field" data-upload-target-wrap hidden>
-                    <span>Target User</span>
-                    <select class="form-select" name="shared_target_user_id" data-upload-target-user>
-                        <option value="">Choose a user</option>
-                        <?php foreach ($storage_share_targets as $storage_share_target): ?>
-                        <option value="<?php echo (int)($storage_share_target['id'] ?? 0); ?>">
-                            <?php
-                            echo htmlspecialchars(
-                                trim((string)($storage_share_target['name'] ?? '')) !== ''
-                                    ? ((string)$storage_share_target['name'] . ' (' . ucfirst((string)($storage_share_target['role'] ?? 'user')) . ')')
-                                    : ((string)($storage_share_target['username'] ?? ('User #' . (int)($storage_share_target['id'] ?? 0))) . ' (' . ucfirst((string)($storage_share_target['role'] ?? 'user')) . ')'),
-                                ENT_QUOTES,
-                                'UTF-8'
-                            );
-                            ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <?php endif; ?>
 
                 <label class="app-storage-field">
                     <span>Notes</span>

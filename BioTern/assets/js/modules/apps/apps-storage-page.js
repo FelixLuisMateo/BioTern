@@ -5,7 +5,7 @@
 
     const endpoint = String(app.dataset.storageEndpoint || '').trim();
     const userRole = String(app.dataset.userRole || '').toLowerCase();
-    const canManageShared = app.dataset.canManageShared === '1';
+    const canManageShared = false;
     const isStudent = userRole === 'student';
     const defaultUploadCategory = ['requirements', 'generated', 'internship', 'images', 'reports', 'other'].includes(String(app.dataset.defaultUploadCategory || '').trim().toLowerCase())
         ? String(app.dataset.defaultUploadCategory || '').trim().toLowerCase()
@@ -90,7 +90,7 @@
         if (category === 'requirements' && !isStudent) return 'reports';
         return category || defaultUploadCategory;
     };
-    const scopeLabel = (scope) => scope === 'shared' ? 'Shared' : 'Personal';
+    const scopeLabel = () => 'Personal';
     const audienceLabel = (audience) => ({ all: 'All Users', student: 'Students', supervisor: 'Supervisors', user: 'Specific User' }[audience] || 'All Users');
     const activityLabel = (type) => ({ upload: 'Uploaded', update: 'Updated', replace: 'Replaced file', delete: 'Moved to trash', restore: 'Restored', toggle_star: 'Updated star', bulk_delete: 'Bulk delete', bulk_restore: 'Bulk restore' }[type] || 'Updated');
 
@@ -118,7 +118,6 @@
             } else {
                 if (file.is_deleted) return false;
                 if (state.scope === 'my' && !file.is_owner) return false;
-                if (state.scope === 'shared' && file.scope !== 'shared') return false;
                 if (state.scope === 'starred' && !file.is_starred) return false;
             }
             if (state.category !== 'all' && file.category !== state.category) return false;
@@ -155,7 +154,7 @@
     function renderCounts() {
         const all = state.files.filter((file) => !file.is_deleted).length;
         const my = state.files.filter((file) => !file.is_deleted && file.is_owner).length;
-        const shared = state.files.filter((file) => !file.is_deleted && file.scope === 'shared').length;
+        const shared = 0;
         const starred = state.files.filter((file) => !file.is_deleted && file.is_starred).length;
         const trash = state.files.filter((file) => file.is_deleted).length;
         if (els.countAll) els.countAll.textContent = String(all);
@@ -205,12 +204,9 @@
             const activeClass = Number(file.id) === Number(state.selectedId) ? ' is-active' : '';
             const checked = state.selectedIds.has(Number(file.id)) ? ' checked' : '';
             const canBulk = (state.scope === 'trash' ? file.can_restore : file.can_delete) && file.is_owner;
-            const scopeClass = file.scope === 'shared' ? ' is-warn' : ' is-success';
+            const scopeClass = ' is-success';
             const note = file.notes ? escapeHtml(file.notes) : 'No description added yet.';
             const badges = [`<span class="app-storage-badge${scopeClass}">${escapeHtml(scopeLabel(file.scope))}</span>`, `<span class="app-storage-badge">${escapeHtml(categoryLabel(file.category))}</span>`];
-            if (file.scope === 'shared') {
-                badges.push(`<span class="app-storage-badge">${escapeHtml(file.shared_audience === 'user' && file.shared_target_user_name ? `For ${file.shared_target_user_name}` : audienceLabel(file.shared_audience))}</span>`);
-            }
             if (file.is_starred) badges.push('<span class="app-storage-badge">Starred</span>');
             if (file.is_deleted) badges.push('<span class="app-storage-badge is-trash">Deleted</span>');
             if (Number(file.version_count || 0) > 0) badges.push(`<span class="app-storage-badge">${Number(file.version_count)} version${Number(file.version_count) === 1 ? '' : 's'}</span>`);
@@ -258,7 +254,7 @@
         const versions = Number(file.version_count || 0) > 0 ? await loadHistory(file.id) : [];
         els.detailsEmpty.hidden = true;
         els.detailsPanel.hidden = false;
-        els.detailsPanel.innerHTML = `<div class="app-storage-details-head"><div><span class="app-storage-kicker">Details</span><h3>${escapeHtml(file.title)}</h3></div><span class="app-storage-file-type-icon"><i class="${fileTypeIcon(file.file_type)}"></i></span></div><div class="app-storage-details-meta"><span>${escapeHtml(file.original_name)}</span><span>${escapeHtml(formatBytes(file.file_size))}</span><span>${escapeHtml(formatDateTime(file.updated_at))}</span></div><div class="app-storage-badge-row"><span class="app-storage-badge ${file.scope === 'shared' ? 'is-warn' : 'is-success'}">${escapeHtml(scopeLabel(file.scope))}</span><span class="app-storage-badge">${escapeHtml(categoryLabel(file.category))}</span>${file.scope === 'shared' ? `<span class="app-storage-badge">${escapeHtml(file.shared_audience === 'user' && file.shared_target_user_name ? `For ${file.shared_target_user_name}` : audienceLabel(file.shared_audience))}</span>` : ''}${file.is_starred ? '<span class="app-storage-badge">Starred</span>' : ''}${file.is_deleted ? '<span class="app-storage-badge is-trash">Deleted</span>' : ''}${Number(file.version_count || 0) > 0 ? `<span class="app-storage-badge">${Number(file.version_count)} versions</span>` : ''}</div>${renderPreview(file)}${canEdit ? `<div class="app-storage-detail-block"><h4>Quick Rename</h4><div class="app-storage-rename-row"><input type="text" class="form-control" value="${escapeHtml(file.title)}" data-rename-input><button type="button" class="app-storage-action-button" data-rename-save><i class="feather-check"></i><span>Save</span></button></div></div>` : ''}<div class="app-storage-detail-actions">${!file.is_deleted ? `<a class="app-storage-action-button" href="${escapeHtml(file.view_url)}" target="_blank" rel="noopener"><i class="feather-eye"></i><span>Open</span></a><a class="app-storage-action-button" href="${escapeHtml(file.download_url)}"><i class="feather-download"></i><span>Download</span></a>` : ''}${canStar ? `<button type="button" class="app-storage-action-button" data-toggle-star><i class="feather-star"></i><span>${file.is_starred ? 'Remove star' : 'Star file'}</span></button>` : ''}${canEdit ? `<button type="button" class="app-storage-action-button" data-edit-file><i class="feather-edit-3"></i><span>Edit</span></button>` : ''}${canRestore ? `<button type="button" class="app-storage-action-button" data-restore-file><i class="feather-rotate-ccw"></i><span>Restore</span></button>` : ''}${canDelete && !file.is_deleted ? `<button type="button" class="app-storage-action-button is-danger" data-delete-file><i class="feather-trash-2"></i><span>Delete</span></button>` : ''}</div><div class="app-storage-detail-block"><h4>About this file</h4><p>${note}</p></div><div class="app-storage-detail-block"><h4>Ownership</h4><p>Uploaded by ${escapeHtml(file.uploader_name || 'BioTern User')} on ${escapeHtml(formatDateTime(file.created_at))}.${file.scope === 'shared' && file.shared_audience === 'user' && file.shared_target_user_name ? ` Shared directly with ${escapeHtml(file.shared_target_user_name)}.` : ''}</p></div>${renderHistory(versions)}`;
+        els.detailsPanel.innerHTML = `<div class="app-storage-details-head"><div><span class="app-storage-kicker">Details</span><h3>${escapeHtml(file.title)}</h3></div><span class="app-storage-file-type-icon"><i class="${fileTypeIcon(file.file_type)}"></i></span></div><div class="app-storage-details-meta"><span>${escapeHtml(file.original_name)}</span><span>${escapeHtml(formatBytes(file.file_size))}</span><span>${escapeHtml(formatDateTime(file.updated_at))}</span></div><div class="app-storage-badge-row"><span class="app-storage-badge is-success">${escapeHtml(scopeLabel(file.scope))}</span><span class="app-storage-badge">${escapeHtml(categoryLabel(file.category))}</span>${file.is_starred ? '<span class="app-storage-badge">Starred</span>' : ''}${file.is_deleted ? '<span class="app-storage-badge is-trash">Deleted</span>' : ''}${Number(file.version_count || 0) > 0 ? `<span class="app-storage-badge">${Number(file.version_count)} versions</span>` : ''}</div>${renderPreview(file)}${canEdit ? `<div class="app-storage-detail-block"><h4>Quick Rename</h4><div class="app-storage-rename-row"><input type="text" class="form-control" value="${escapeHtml(file.title)}" data-rename-input><button type="button" class="app-storage-action-button" data-rename-save><i class="feather-check"></i><span>Save</span></button></div></div>` : ''}<div class="app-storage-detail-actions">${!file.is_deleted ? `<a class="app-storage-action-button" href="${escapeHtml(file.view_url)}" target="_blank" rel="noopener"><i class="feather-eye"></i><span>Open</span></a><a class="app-storage-action-button" href="${escapeHtml(file.download_url)}"><i class="feather-download"></i><span>Download</span></a>` : ''}${canStar ? `<button type="button" class="app-storage-action-button" data-toggle-star><i class="feather-star"></i><span>${file.is_starred ? 'Remove star' : 'Star file'}</span></button>` : ''}${canEdit ? `<button type="button" class="app-storage-action-button" data-edit-file><i class="feather-edit-3"></i><span>Edit</span></button>` : ''}${canRestore ? `<button type="button" class="app-storage-action-button" data-restore-file><i class="feather-rotate-ccw"></i><span>Restore</span></button>` : ''}${canDelete && !file.is_deleted ? `<button type="button" class="app-storage-action-button is-danger" data-delete-file><i class="feather-trash-2"></i><span>Delete</span></button>` : ''}</div><div class="app-storage-detail-block"><h4>About this file</h4><p>${note}</p></div><div class="app-storage-detail-block"><h4>Ownership</h4><p>Uploaded by ${escapeHtml(file.uploader_name || 'BioTern User')} on ${escapeHtml(formatDateTime(file.created_at))}.</p></div>${renderHistory(versions)}`;
     }
 
     async function render() {
@@ -359,9 +355,9 @@
         const formData = new FormData(els.uploadForm);
         const action = String(formData.get('action') || 'upload');
         if (action === 'upload' && (!els.uploadFile || !els.uploadFile.files || !els.uploadFile.files.length)) { setUploadMessage('Please choose a file first.', true); return; }
-        if (!canManageShared && formData.get('scope') === 'shared') formData.set('scope', 'personal');
-        if (formData.get('scope') !== 'shared') formData.set('shared_audience', 'all');
-        if (formData.get('shared_audience') !== 'user') formData.set('shared_target_user_id', '');
+        formData.set('scope', 'personal');
+        formData.set('shared_audience', 'all');
+        formData.set('shared_target_user_id', '');
         state.busy = true;
         setUploadMessage(action === 'upload' ? 'Uploading file...' : 'Saving changes...');
         try {
@@ -390,7 +386,7 @@
         if (event.target.closest('[data-open-upload]')) return openUploadPanel();
         if (event.target.closest('[data-close-upload]')) return closeUploadPanel();
         if (event.target.closest('[data-edit-file]')) { const file = getSelectedFile(); if (file && file.can_edit) openUploadPanel(file); return; }
-        if (event.target.closest('[data-rename-save]')) { const file = getSelectedFile(); const renameInput = app.querySelector('[data-rename-input]'); if (file && file.can_edit && renameInput) { const nextTitle = String(renameInput.value || '').trim(); if (nextTitle !== '') { try { const data = await postJson({ action: 'update', id: Number(file.id), title: nextTitle, category: categoryValueForSave(file.category), scope: file.scope, shared_audience: file.shared_audience || 'all', shared_target_user_id: file.shared_target_user_id || '', notes: file.notes || '' }); if (data.file && data.file.id) state.selectedId = Number(data.file.id); await fetchFiles(); } catch (error) { window.alert(error instanceof Error ? error.message : 'Unable to rename this file.'); } } } return; }
+        if (event.target.closest('[data-rename-save]')) { const file = getSelectedFile(); const renameInput = app.querySelector('[data-rename-input]'); if (file && file.can_edit && renameInput) { const nextTitle = String(renameInput.value || '').trim(); if (nextTitle !== '') { try { const data = await postJson({ action: 'update', id: Number(file.id), title: nextTitle, category: categoryValueForSave(file.category), scope: 'personal', shared_audience: 'all', shared_target_user_id: '', notes: file.notes || '' }); if (data.file && data.file.id) state.selectedId = Number(data.file.id); await fetchFiles(); } catch (error) { window.alert(error instanceof Error ? error.message : 'Unable to rename this file.'); } } } return; }
         if (event.target.closest('[data-toggle-star]')) return toggleStar();
         if (event.target.closest('[data-delete-file]')) return deleteFile();
         if (event.target.closest('[data-restore-file]')) return restoreFile();
