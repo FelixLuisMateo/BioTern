@@ -1074,6 +1074,7 @@
             '#editor .app-application-header-inner,.app-application-header-inner{display:grid!important;grid-template-columns:0.92in minmax(0,1fr)!important;align-items:center!important;column-gap:0.12in!important;}',
             '#editor .app-application-header-copy,.app-application-header-copy{text-align:center!important;padding-right:0.16in!important;}',
             '#editor .crest,#editor .app-application-crest,.crest,.app-application-crest{position:static!important;width:0.92in!important;max-width:0.92in!important;height:0.92in!important;max-height:0.92in!important;display:block!important;object-fit:contain!important;margin:0!important;}',
+            '#editor #ap_hours.app-fill-line,#ap_hours.app-fill-line{min-width:44px!important;text-align:center!important;}',
             '#editor img,img{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;}'
         ].join('');
         printWindow.document.write(

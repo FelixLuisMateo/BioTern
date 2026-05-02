@@ -197,6 +197,7 @@ include __DIR__ . '/../includes/header.php';
                     line-height: 1.2;
                 }
                 #ap_date.app-fill-line { min-width: 130px; }
+                #ap_hours.app-fill-line { min-width: 44px; text-align: center; }
                 #ap_student_address.app-fill-line { min-width: 220px; }
             </style>
             <div class="main-content">
