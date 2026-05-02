@@ -44,8 +44,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'import-ojt-internal.php', 'import-ojt-external.php',
                     'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-hours-completion.php',
                     'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
-                    'reports-unassigned-students.php', 'reports-import-errors.php', 'reports-document.php',
-                    'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php', 'reports-admin-logs.php', 'reports-dtr-manual-input.php',
+                    'reports-unassigned-students.php', 'reports-document.php',
                 ],
                 'sections' => [
                     [
@@ -90,14 +89,8 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                                 ['label' => 'Company Report', 'href' => 'reports-company.php', 'icon' => 'feather-map-pin'],
                                 ['label' => 'Evaluation Report', 'href' => 'reports-evaluation.php', 'icon' => 'feather-star'],
                                 ['label' => 'Unassigned Students Report', 'href' => 'reports-unassigned-students.php', 'icon' => 'feather-user-x'],
-                                ['label' => 'Duplicate/Import Error Report', 'href' => 'reports-import-errors.php', 'icon' => 'feather-alert-triangle'],
                                 ['label' => 'Document Report', 'href' => 'reports-document.php', 'icon' => 'feather-file-text'],
                             ] : []),
-                            ['label' => 'Chat Logs', 'href' => 'reports-chat-logs.php', 'icon' => 'feather-message-circle'],
-                            ['label' => 'Reported Chats', 'href' => 'reports-chat-reports.php', 'icon' => 'feather-flag'],
-                            ['label' => 'Login Logs', 'href' => 'reports-login-logs.php', 'icon' => 'feather-log-in'],
-                            ...($canSystem ? [['label' => 'Admin Logs', 'href' => 'reports-admin-logs.php', 'icon' => 'feather-shield']] : []),
-                            ['label' => 'Manual DTR Input', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit'],
                         ],
                     ],
                 ],
@@ -175,6 +168,8 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'settings-general.php', 'settings-email.php', 'settings-ojt.php', 'settings-students.php',
                     'settings-support.php',
                     'theme-customizer.php', 'import-students-excel.php', 'import-sql.php',
+                    'reports-admin-logs.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
+                    'reports-import-errors.php', 'reports-dtr-manual-input.php',
                 ],
                 'sections' => [
                     [
@@ -198,9 +193,20 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         ],
                     ],
                     [
+                        'title' => 'Logs & Audit',
+                        'items' => [
+                            ['label' => 'Admin Logs', 'href' => 'reports-admin-logs.php', 'icon' => 'feather-shield'],
+                            ['label' => 'Login Logs', 'href' => 'reports-login-logs.php', 'icon' => 'feather-log-in'],
+                            ['label' => 'Chat Logs', 'href' => 'reports-chat-logs.php', 'icon' => 'feather-message-circle'],
+                            ['label' => 'Reported Chats', 'href' => 'reports-chat-reports.php', 'icon' => 'feather-flag'],
+                        ],
+                    ],
+                    [
                         'title' => 'Tools',
                         'items' => [
                             ['label' => 'Excel Import', 'href' => 'import-students-excel.php', 'icon' => 'feather-upload'],
+                            ['label' => 'Import Error Report', 'href' => 'reports-import-errors.php', 'icon' => 'feather-alert-triangle'],
+                            ['label' => 'Manual DTR Input', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit'],
                             ['label' => 'Data Transfer', 'href' => 'import-sql.php', 'icon' => 'feather-database'],
                             ['label' => 'Appearance', 'href' => 'theme-customizer.php', 'icon' => 'feather-droplet'],
                         ],
