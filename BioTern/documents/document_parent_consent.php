@@ -244,15 +244,15 @@ include __DIR__ . '/../includes/header.php';
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-sign-student {
-                    width: 3.35in;
+                    width: 3.85in;
                     margin-top: 50px;
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-sign-grid {
                     margin-top: 42px;
                     display: grid;
-                    grid-template-columns: 1fr 1.1in;
-                    gap: 34px;
+                    grid-template-columns: 5.15in 1.1in;
+                    gap: 0.42in;
                     align-items: end;
                 }
 
