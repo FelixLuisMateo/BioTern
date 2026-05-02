@@ -19,6 +19,20 @@ function announcements_excerpt(string $value, int $limit = 110): string
     return substr($value, 0, max(0, $limit - 3)) . '...';
 }
 
+function announcements_ensure_runtime_dir(string $path): bool
+{
+    $path = rtrim(str_replace('\\', DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR);
+    if ($path === '') {
+        return false;
+    }
+
+    if (!is_dir($path) && !@mkdir($path, 0775, true) && !is_dir($path)) {
+        return false;
+    }
+
+    return is_writable($path);
+}
+
 function announcements_store_upload(array $file, ?string &$error, ?string &$mediaType): string
 {
     $error = null;
@@ -86,19 +100,15 @@ function announcements_store_upload(array $file, ?string &$error, ?string &$medi
         return '';
     }
 
-    $uploadDir = dirname(__DIR__) . '/uploads/announcements';
-    // Ensure parent directory exists first
-    $parentDir = dirname($uploadDir);
-    if (!is_dir($parentDir)) {
-        @mkdir($parentDir, 0755, true);
-    }
-    if (!is_dir($uploadDir) && !@mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+    $appRoot = dirname(__DIR__);
+    $uploadDir = $appRoot . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'announcements';
+    if (!announcements_ensure_runtime_dir($uploadDir)) {
         $error = 'Unable to create announcement upload folder.';
         return '';
     }
 
     $name = 'announcement_' . date('YmdHis') . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
-    $target = $uploadDir . '/' . $name;
+    $target = $uploadDir . DIRECTORY_SEPARATOR . $name;
     if (!@move_uploaded_file($tmp, $target)) {
         $error = 'Unable to save announcement media.';
         return '';
