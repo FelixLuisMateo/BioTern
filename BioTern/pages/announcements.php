@@ -87,6 +87,11 @@ function announcements_store_upload(array $file, ?string &$error, ?string &$medi
     }
 
     $uploadDir = dirname(__DIR__) . '/uploads/announcements';
+    // Ensure parent directory exists first
+    $parentDir = dirname($uploadDir);
+    if (!is_dir($parentDir)) {
+        @mkdir($parentDir, 0755, true);
+    }
     if (!is_dir($uploadDir) && !@mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
         $error = 'Unable to create announcement upload folder.';
         return '';

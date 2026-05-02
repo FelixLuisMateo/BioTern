@@ -2,7 +2,11 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 
+// Ensure session is properly initialized
 biotern_boot_session(isset($conn) ? $conn : null);
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    @session_start();
+}
 
 $userId = (int)($_SESSION['user_id'] ?? 0);
 if ($userId <= 0) {
@@ -872,6 +876,11 @@ if ($download !== '') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Ensure session is active for POST requests
+    if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+        @session_start();
+    }
+    
     $postedCsrf = (string)($_POST['csrf_token'] ?? '');
     if (!transfer_csrf_is_valid($postedCsrf)) {
         $statusType = 'danger';
