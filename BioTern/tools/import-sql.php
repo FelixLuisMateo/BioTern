@@ -135,6 +135,15 @@ if (!function_exists('transfer_sql_make_mysql_compatible')) {
     }
 }
 
+if (!function_exists('transfer_clean_download_output')) {
+    function transfer_clean_download_output(): void
+    {
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+    }
+}
+
 if (!function_exists('transfer_host_is_local_target')) {
     function transfer_host_is_local_target(string $host): bool
     {
@@ -616,8 +625,10 @@ if (!function_exists('transfer_send_database_sql')) {
     function transfer_send_database_sql(mysqli $mysqli, string $databaseName): void
     {
         $dump = transfer_sql_export($mysqli, $databaseName);
+        transfer_clean_download_output();
         header('Content-Type: application/sql; charset=UTF-8');
         header('Content-Disposition: attachment; filename="' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $databaseName) . '-full-export-' . date('Ymd-His') . '.sql"');
+        header('Content-Length: ' . strlen($dump));
         header('X-Content-Type-Options: nosniff');
         echo $dump;
         exit;
@@ -645,6 +656,7 @@ if (!function_exists('transfer_send_students_csv')) {
     function transfer_send_students_csv(mysqli $mysqli): void
     {
         $rows = transfer_students_rows($mysqli);
+        transfer_clean_download_output();
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="students-export-' . date('Ymd-His') . '.csv"');
         $out = fopen('php://output', 'w');
@@ -673,6 +685,7 @@ if (!function_exists('transfer_send_students_xls')) {
     function transfer_send_students_xls(mysqli $mysqli): void
     {
         $rows = transfer_students_rows($mysqli);
+        transfer_clean_download_output();
         header('Content-Type: application/vnd.ms-excel; charset=UTF-8');
         header('Content-Disposition: attachment; filename="students-export-' . date('Ymd-His') . '.xls"');
         echo '<table border="1">';
@@ -699,6 +712,7 @@ if (!function_exists('transfer_send_students_word')) {
     function transfer_send_students_word(mysqli $mysqli): void
     {
         $rows = transfer_students_rows($mysqli);
+        transfer_clean_download_output();
         header('Content-Type: application/msword; charset=UTF-8');
         header('Content-Disposition: attachment; filename="students-export-' . date('Ymd-His') . '.doc"');
         echo '<html><head><meta charset="utf-8"><title>BioTern || Students Export</title></head><body>';
@@ -726,6 +740,7 @@ if (!function_exists('transfer_send_students_word')) {
 if (!function_exists('transfer_send_students_template')) {
     function transfer_send_students_template(): void
     {
+        transfer_clean_download_output();
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="students-import-template.csv"');
         $out = fopen('php://output', 'w');

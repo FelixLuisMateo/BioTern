@@ -444,7 +444,12 @@
 
 .excel-import-preview-table th:nth-child(6),
 .excel-import-preview-table td:nth-child(6) {
-    width: 16%;
+    width: 12%;
+}
+
+.excel-import-preview-table th:nth-child(7),
+.excel-import-preview-table td:nth-child(7) {
+    width: 8%;
 }
 
 .excel-import-preview-card {
@@ -481,6 +486,44 @@
 .excel-import-preview-table td:nth-child(3),
 .excel-import-preview-table td:nth-child(5) {
     overflow-wrap: anywhere;
+}
+
+.excel-import-detail-toggle {
+    min-width: 4.25rem;
+}
+
+.excel-import-preview-detail-row > td {
+    padding: 0 0.9rem 1rem;
+    background: rgba(47, 133, 90, 0.05);
+}
+
+.excel-import-preview-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.8rem;
+    padding: 1rem;
+    border: 1px solid #d7e7dc;
+    border-radius: 0.85rem;
+    background: #f7fcf9;
+}
+
+.excel-import-preview-detail-grid span {
+    display: block;
+    color: #64748b;
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.excel-import-preview-detail-grid strong {
+    display: block;
+    margin-top: 0.25rem;
+    color: #1f2937;
+    overflow-wrap: anywhere;
+}
+
+.excel-import-detail-wide {
+    grid-column: 1 / -1;
 }
 
 .excel-import-student-toolbar {
@@ -649,6 +692,23 @@ html.app-skin-dark .excel-import-results-empty {
     color: #d4dbe5;
 }
 
+html.app-skin-dark .excel-import-preview-detail-row > td {
+    background: rgba(53, 180, 104, 0.08);
+}
+
+html.app-skin-dark .excel-import-preview-detail-grid {
+    background: #182230;
+    border-color: #314255;
+}
+
+html.app-skin-dark .excel-import-preview-detail-grid span {
+    color: #aab8c5;
+}
+
+html.app-skin-dark .excel-import-preview-detail-grid strong {
+    color: #eaf2fb;
+}
+
 @media (max-width: 1199.98px) {
     .excel-import-review-grid {
         grid-template-columns: 1fr;
@@ -713,14 +773,14 @@ html.app-skin-dark .excel-import-results-empty {
         border-spacing: 0 0.85rem;
     }
 
-    .excel-import-preview-table tr {
+    .excel-import-preview-table tr:not(.excel-import-preview-detail-row) {
         border: 1px solid #e6edf4;
         border-radius: 0.85rem;
         padding: 0.65rem 0.75rem;
         background: #fbfdff;
     }
 
-    .excel-import-preview-table td {
+    .excel-import-preview-table tr:not(.excel-import-preview-detail-row) td {
         border: 0;
         padding: 0.48rem 0;
         display: grid;
@@ -730,7 +790,7 @@ html.app-skin-dark .excel-import-results-empty {
         text-align: left;
     }
 
-    .excel-import-preview-table td::before {
+    .excel-import-preview-table tr:not(.excel-import-preview-detail-row) td::before {
         content: attr(data-label);
         color: #64748b;
         font-weight: 800;
@@ -738,12 +798,21 @@ html.app-skin-dark .excel-import-results-empty {
         text-transform: uppercase;
     }
 
-    html.app-skin-dark .excel-import-preview-table tr {
+    .excel-import-preview-detail-row td {
+        padding: 0;
+    }
+
+    .excel-import-preview-detail-grid {
+        grid-template-columns: 1fr;
+        margin: -0.25rem 0 0.85rem;
+    }
+
+    html.app-skin-dark .excel-import-preview-table tr:not(.excel-import-preview-detail-row) {
         background: #1b2632;
         border-color: #2a394b;
     }
 
-    html.app-skin-dark .excel-import-preview-table td::before {
+    html.app-skin-dark .excel-import-preview-table tr:not(.excel-import-preview-detail-row) td::before {
         color: #aab8c5;
     }
 

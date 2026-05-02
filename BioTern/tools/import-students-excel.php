@@ -1628,6 +1628,10 @@ function students_excel_preview_workbook(mysqli $mysqli, string $path, string $s
                     'student_name' => $studentName,
                     'section' => students_excel_row_value($row, ['section']),
                     'company' => students_excel_row_value($row, ['company_name', 'company']),
+                    'company_address' => students_excel_row_value($row, ['company_address', 'address']),
+                    'supervisor_name' => students_excel_row_value($row, ['supervisor_name']),
+                    'supervisor_position' => students_excel_row_value($row, ['supervisor_position', 'position']),
+                    'company_representative' => students_excel_row_value($row, ['company_representative']),
                     'issue' => $issue,
                 ];
             }
@@ -2394,7 +2398,6 @@ include dirname(__DIR__) . '/includes/header.php';
             </div>
             <div class="col-lg-4">
                 <div class="card excel-import-card mb-4"><div class="card-body"><span class="excel-import-badge">Workbook Rules</span><div class="excel-import-step mt-3"><h6>Teacher masterlist supported</h6><p class="text-muted mb-0">Single-sheet masterlists are imported into centralized tables <code>ojt_masterlist</code> and <code>ojt_partner_companies</code>. They do not create rows in <code>students</code>, but now automatically create/sync <code>internships</code> records when a matching student account already exists.</p></div><div class="excel-import-step mt-3"><h6>Older student workbook still works</h6><p class="text-muted mb-0">For direct account/student imports, use <code>Students</code> and optional <code>Documents</code> with the original columns. Student imports now also attempt to sync a matching masterlist row into <code>internships</code>.</p></div></div></div>
-                <div class="card excel-import-card"><div class="card-body"><span class="excel-import-badge">Localhost Review</span><h5 class="mt-3 mb-2">Open this on localhost</h5><p class="text-muted mb-2">Review this tool locally before pushing changes.</p><div class="small"><div><code>http://localhost/BioTern/BioTern/import-students-excel.php</code></div></div></div></div>
             </div>
         </div>
         <?php if (is_array($pendingPreview) && !empty($pendingPreview['type'])): ?>
@@ -2425,9 +2428,10 @@ include dirname(__DIR__) . '/includes/header.php';
                 </div>
                 <div class="excel-import-preview-table-wrap">
                     <table class="table table-sm align-middle excel-import-table excel-import-preview-table">
-                        <thead><tr><th>Row</th><th>Student No.</th><th>Student</th><th>Section</th><th>Company</th><th>Status</th></tr></thead>
+                        <thead><tr><th>Row</th><th>Student No.</th><th>Student</th><th>Section</th><th>Company</th><th>Status</th><th>Details</th></tr></thead>
                         <tbody>
-                            <?php foreach (($pendingPreview['rows'] ?? []) as $previewRow): ?>
+                            <?php foreach (($pendingPreview['rows'] ?? []) as $previewIndex => $previewRow): ?>
+                            <?php $detailId = 'excelPreviewDetails' . (int)$previewIndex; ?>
                             <tr>
                                 <td data-label="Row"><?php echo (int)($previewRow['row'] ?? 0); ?></td>
                                 <td data-label="Student No."><?php echo htmlspecialchars((string)($previewRow['student_no'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -2435,6 +2439,18 @@ include dirname(__DIR__) . '/includes/header.php';
                                 <td data-label="Section"><?php echo htmlspecialchars((string)($previewRow['section'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td data-label="Company"><?php echo htmlspecialchars((string)($previewRow['company'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td data-label="Status"><?php echo htmlspecialchars((string)($previewRow['issue'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td data-label="Details"><button type="button" class="btn btn-sm btn-outline-info excel-import-detail-toggle" data-preview-detail-toggle data-target="<?php echo htmlspecialchars($detailId, ENT_QUOTES, 'UTF-8'); ?>" aria-expanded="false">Show</button></td>
+                            </tr>
+                            <tr class="excel-import-preview-detail-row" id="<?php echo htmlspecialchars($detailId, ENT_QUOTES, 'UTF-8'); ?>" hidden>
+                                <td colspan="7">
+                                    <div class="excel-import-preview-detail-grid">
+                                        <div><span>Company</span><strong><?php echo htmlspecialchars((string)($previewRow['company'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                                        <div><span>Supervisor</span><strong><?php echo htmlspecialchars((string)($previewRow['supervisor_name'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                                        <div><span>Position</span><strong><?php echo htmlspecialchars((string)($previewRow['supervisor_position'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                                        <div><span>Representative</span><strong><?php echo htmlspecialchars((string)($previewRow['company_representative'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                                        <div class="excel-import-detail-wide"><span>Address</span><strong><?php echo htmlspecialchars((string)($previewRow['company_address'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                                    </div>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
