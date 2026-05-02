@@ -124,6 +124,17 @@ if (!function_exists('transfer_sql_normalize')) {
     }
 }
 
+if (!function_exists('transfer_sql_make_mysql_compatible')) {
+    function transfer_sql_make_mysql_compatible(string $sql): string
+    {
+        $sql = preg_replace('/\s+DEFAULT\s+CURRENT_DATE(?:\(\))?/i', '', $sql);
+        $sql = preg_replace('/\s+DEFAULT\s+CURRENT_TIME(?:\(\))?/i', '', $sql);
+        $sql = preg_replace('/,\s*CHECK\s*\([^)]*\)/i', '', $sql);
+        $sql = preg_replace('/\s+CHECK\s*\([^)]*\)/i', '', $sql);
+        return is_string($sql) ? $sql : '';
+    }
+}
+
 if (!function_exists('transfer_host_is_local_target')) {
     function transfer_host_is_local_target(string $host): bool
     {
@@ -539,11 +550,15 @@ if (!function_exists('transfer_sql_execute_merge')) {
 if (!function_exists('transfer_sql_export')) {
     function transfer_sql_export(mysqli $mysqli, string $databaseName): string
     {
-        $dump = "-- BioTern Unified SQL Export\n";
+        $safeDatabase = str_replace('`', '``', $databaseName);
+        $dump = "-- BioTern Full Database SQL Export\n";
         $dump .= '-- Generated: ' . date('Y-m-d H:i:s') . "\n";
         $dump .= '-- Database: `' . $databaseName . "`\n\n";
         $dump .= "SET SQL_MODE = \"NO_AUTO_VALUE_ON_ZERO\";\n";
+        $dump .= "SET time_zone = \"+00:00\";\n";
         $dump .= "SET FOREIGN_KEY_CHECKS = 0;\n\n";
+        $dump .= "CREATE DATABASE IF NOT EXISTS `{$safeDatabase}` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;\n";
+        $dump .= "USE `{$safeDatabase}`;\n\n";
 
         $tablesResult = $mysqli->query('SHOW TABLES');
         if (!$tablesResult) {
@@ -594,6 +609,18 @@ if (!function_exists('transfer_sql_export')) {
 
         $dump .= "SET FOREIGN_KEY_CHECKS = 1;\n";
         return $dump;
+    }
+}
+
+if (!function_exists('transfer_send_database_sql')) {
+    function transfer_send_database_sql(mysqli $mysqli, string $databaseName): void
+    {
+        $dump = transfer_sql_export($mysqli, $databaseName);
+        header('Content-Type: application/sql; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $databaseName) . '-full-export-' . date('Ymd-His') . '.sql"');
+        header('X-Content-Type-Options: nosniff');
+        echo $dump;
+        exit;
     }
 }
 
@@ -921,6 +948,9 @@ if ($download !== '') {
     if ($download === 'students_word') {
         transfer_send_students_word($conn);
     }
+    if ($download === 'database_sql') {
+        transfer_send_database_sql($conn, (string)DB_NAME);
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -1021,6 +1051,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($statusType === '') {
             $errorMessage = '';
             $mergeSummary = [];
+            $sqlContent = transfer_sql_make_mysql_compatible($sqlContent);
             $sqlInspection = transfer_sql_inspect($conn, $sqlContent, (string)DB_NAME);
             $sqlInspectionRisk = (string)($sqlInspection['risk_level'] ?? 'medium');
             $statusDetails[] = 'SQL tables mentioned: ' . (int)($sqlInspection['mentioned_table_count'] ?? 0);
@@ -1330,6 +1361,7 @@ include dirname(__DIR__) . '/includes/header.php';
                         </div>
 
                         <div class="mb-3 d-flex flex-wrap gap-2">
+                            <a href="?download=database_sql" class="btn btn-success">Export Full Database (.sql)</a>
                             <a href="?download=students_template" class="btn btn-outline-secondary">Download Import Template (.csv)</a>
                             <a href="?download=students_csv" class="btn btn-outline-primary">Export Students CSV</a>
                             <a href="?download=students_xls" class="btn btn-outline-primary">Export Students Excel (.xls)</a>
