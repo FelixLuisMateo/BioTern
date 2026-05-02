@@ -188,6 +188,15 @@ function storage_clean_category(?string $value): string
     return in_array($value, $allowed, true) ? $value : 'other';
 }
 
+function storage_category_for_role(string $category, string $role): string
+{
+    $role = strtolower(trim($role));
+    if ($category === 'requirements' && $role !== 'student') {
+        return 'reports';
+    }
+    return $category;
+}
+
 function storage_clean_title(?string $value, string $fallback = 'Untitled file'): string
 {
     $value = trim((string)$value);
@@ -790,7 +799,7 @@ if ($action === 'upload') {
     if ($scope === 'shared' && $sharedAudience === 'user' && $sharedTargetUserId === null) {
         storage_json(422, ['success' => false, 'message' => 'Choose a valid user to share this file with']);
     }
-    $category = storage_clean_category((string)($_POST['category'] ?? 'other'));
+    $category = storage_category_for_role(storage_clean_category((string)($_POST['category'] ?? 'other')), $userRole);
     $notes = storage_clean_notes((string)($_POST['notes'] ?? ''));
 
     try {
@@ -882,7 +891,7 @@ if ($action === 'update') {
     if ($scope === 'shared' && $sharedAudience === 'user' && $sharedTargetUserId === null) {
         storage_json(422, ['success' => false, 'message' => 'Choose a valid user to share this file with']);
     }
-    $category = storage_clean_category((string)($data['category'] ?? $_POST['category'] ?? $file['category']));
+    $category = storage_category_for_role(storage_clean_category((string)($data['category'] ?? $_POST['category'] ?? $file['category'])), $userRole);
     $notes = storage_clean_notes((string)($data['notes'] ?? $_POST['notes'] ?? $file['notes']));
     $title = storage_clean_title((string)($data['title'] ?? $_POST['title'] ?? $file['title']), pathinfo((string)$file['original_name'], PATHINFO_FILENAME));
 
