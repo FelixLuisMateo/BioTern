@@ -13,6 +13,7 @@ if (!function_exists('biotern_announcements_ensure_tables')) {
             accent_color VARCHAR(20) NOT NULL DEFAULT '#3454d1',
             button_label VARCHAR(80) NOT NULL DEFAULT 'Got It',
             show_title TINYINT(1) NOT NULL DEFAULT 1,
+            display_mode VARCHAR(20) NOT NULL DEFAULT 'popup',
             target_role VARCHAR(30) NOT NULL DEFAULT 'all',
             starts_at DATETIME NULL,
             ends_at DATETIME NULL,
@@ -49,6 +50,9 @@ if (!function_exists('biotern_announcements_ensure_tables')) {
         if (!isset($columns['show_title'])) {
             $conn->query("ALTER TABLE announcements ADD COLUMN show_title TINYINT(1) NOT NULL DEFAULT 1 AFTER button_label");
         }
+        if (!isset($columns['display_mode'])) {
+            $conn->query("ALTER TABLE announcements ADD COLUMN display_mode VARCHAR(20) NOT NULL DEFAULT 'popup' AFTER show_title");
+        }
 
         $conn->query("CREATE TABLE IF NOT EXISTS announcement_reads (
             id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -74,6 +78,25 @@ if (!function_exists('biotern_announcements_normalize_target')) {
         $target = strtolower(trim($target));
         $allowed = ['all', 'student', 'admin', 'coordinator', 'supervisor'];
         return in_array($target, $allowed, true) ? $target : 'all';
+    }
+}
+
+if (!function_exists('biotern_announcements_normalize_display_mode')) {
+    function biotern_announcements_normalize_display_mode(string $mode): string
+    {
+        $mode = strtolower(trim($mode));
+        return in_array($mode, ['popup', 'notification', 'both'], true) ? $mode : 'popup';
+    }
+}
+
+if (!function_exists('biotern_announcements_display_mode_label')) {
+    function biotern_announcements_display_mode_label(string $mode): string
+    {
+        return match (biotern_announcements_normalize_display_mode($mode)) {
+            'notification' => 'Notification Only',
+            'both' => 'Popup + Notification',
+            default => 'Popup Only',
+        };
     }
 }
 
@@ -146,6 +169,7 @@ if (!function_exists('biotern_announcements_pending_for_user')) {
             FROM announcements a
             LEFT JOIN announcement_reads ar ON ar.announcement_id = a.id AND ar.user_id = ?
             WHERE a.is_active = 1
+                AND COALESCE(a.display_mode, 'popup') IN ('popup', 'both')
                 AND ar.id IS NULL
                 AND (a.target_role = 'all' OR a.target_role = ?)
                 AND (a.starts_at IS NULL OR a.starts_at <= NOW())

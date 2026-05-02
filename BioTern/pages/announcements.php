@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/lib/announcements.php';
+require_once dirname(__DIR__) . '/lib/notifications.php';
 
 biotern_boot_session(isset($conn) ? $conn : null);
 
@@ -117,6 +118,48 @@ function announcements_store_upload(array $file, ?string &$error, ?string &$medi
     return 'uploads/announcements/' . $name;
 }
 
+function announcements_target_user_ids(mysqli $conn, string $targetRole, int $authorId): array
+{
+    $targetRole = biotern_announcements_normalize_target($targetRole);
+    $where = ['is_active = 1'];
+    if ($targetRole !== 'all') {
+        $where[] = "LOWER(role) = '" . $conn->real_escape_string($targetRole) . "'";
+    }
+
+    $ids = [];
+    $result = $conn->query('SELECT id FROM users WHERE ' . implode(' AND ', $where));
+    if ($result instanceof mysqli_result) {
+        while ($row = $result->fetch_assoc()) {
+            $id = (int)($row['id'] ?? 0);
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+        $result->close();
+    }
+
+    if (!in_array($authorId, $ids, true) && $authorId > 0 && $targetRole === 'all') {
+        $ids[] = $authorId;
+    }
+
+    return array_values(array_unique($ids));
+}
+
+function announcements_send_notifications(mysqli $conn, array $userIds, string $title, string $body): int
+{
+    $message = trim($body);
+    if ($message === '') {
+        $message = 'A new announcement has been posted.';
+    }
+    $sent = 0;
+    foreach ($userIds as $targetUserId) {
+        if (biotern_notify($conn, (int)$targetUserId, $title, $message, 'system', 'announcements.php')) {
+            $sent++;
+        }
+    }
+    return $sent;
+}
+
 $userId = (int)($_SESSION['user_id'] ?? 0);
 $role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 if ($userId <= 0) {
@@ -153,6 +196,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $buttonLabel = substr($buttonLabel, 0, 80);
         }
         $showTitle = isset($_POST['show_title']) ? 1 : 0;
+        $displayMode = biotern_announcements_normalize_display_mode((string)($_POST['display_mode'] ?? 'popup'));
         $target = biotern_announcements_normalize_target((string)($_POST['target_role'] ?? 'all'));
         $startsAt = biotern_announcements_datetime_or_null($_POST['starts_at'] ?? null);
         $endsAt = biotern_announcements_datetime_or_null($_POST['ends_at'] ?? null);
@@ -171,13 +215,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $error = 'End date cannot be earlier than start date.';
         } else {
             $stmt = $conn->prepare(
-                "INSERT INTO announcements (title, body, media_path, media_type, popup_size, accent_color, button_label, show_title, target_role, starts_at, ends_at, is_active, created_by, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())"
+                "INSERT INTO announcements (title, body, media_path, media_type, popup_size, accent_color, button_label, show_title, display_mode, target_role, starts_at, ends_at, is_active, created_by, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())"
             );
             if ($stmt) {
-                $stmt->bind_param('sssssssisssi', $title, $body, $mediaPath, $mediaType, $popupSize, $accentColor, $buttonLabel, $showTitle, $target, $startsAt, $endsAt, $userId);
+                $stmt->bind_param('sssssssissssi', $title, $body, $mediaPath, $mediaType, $popupSize, $accentColor, $buttonLabel, $showTitle, $displayMode, $target, $startsAt, $endsAt, $userId);
                 if ($stmt->execute()) {
+                    $sentCount = 0;
+                    if (in_array($displayMode, ['notification', 'both'], true)) {
+                        $sentCount = announcements_send_notifications($conn, announcements_target_user_ids($conn, $target, $userId), $title, $body);
+                    }
                     $message = 'Announcement posted successfully.';
+                    if ($sentCount > 0) {
+                        $message .= ' Notifications sent: ' . $sentCount . '.';
+                    }
                 } else {
                     $error = 'Unable to save announcement right now.';
                 }
@@ -254,9 +305,9 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <div class="settings-form-header">
                             <div>
                                 <h4>Post Announcement</h4>
-                                <p>Upload a poster/photo, set when it starts and ends, then choose who sees the popup.</p>
+                                <p>Upload a poster/photo, set when it starts and ends, then choose whether users see a popup, notification, or both.</p>
                             </div>
-                            <div class="settings-badge">Popup enabled</div>
+                            <div class="settings-badge">Popup + notification ready</div>
                         </div>
 
                         <div class="settings-grid">
@@ -274,6 +325,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                     <option value="supervisor">Supervisors</option>
                                     <option value="admin">Admins</option>
                                 </select>
+                            </div>
+                            <div class="settings-field-card">
+                                <label class="form-label" for="display_mode">Display As</label>
+                                <select class="form-select" id="display_mode" name="display_mode">
+                                    <option value="popup">Popup Only</option>
+                                    <option value="notification">Notification Only</option>
+                                    <option value="both" selected>Popup + Notification</option>
+                                </select>
+                                <small class="form-text">Use both for important announcements. Notification-only will not interrupt users.</small>
                             </div>
                             <div class="settings-field-card">
                                 <label class="form-label" for="announcement_media">Announcement Photo or Video</label>
@@ -348,6 +408,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                             <tr>
                                                 <th>Announcement</th>
                                                 <th>Audience</th>
+                                                <th>Display</th>
                                                 <th>Status</th>
                                                 <th>Created</th>
                                                 <th class="text-end">Action</th>
@@ -374,6 +435,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                         <div class="text-muted small"><?php echo announcements_h(announcements_excerpt((string)($item['body'] ?? ''))); ?></div>
                                                     </td>
                                                     <td><?php echo announcements_h(biotern_announcements_target_label((string)($item['target_role'] ?? 'all'))); ?></td>
+                                                    <td><?php echo announcements_h(biotern_announcements_display_mode_label((string)($item['display_mode'] ?? 'popup'))); ?></td>
                                                     <td>
                                                         <span class="badge <?php echo $active ? 'bg-soft-success text-success' : 'bg-soft-secondary text-secondary'; ?>">
                                                             <?php echo $active ? 'Active' : 'Hidden'; ?>
