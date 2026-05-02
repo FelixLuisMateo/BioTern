@@ -266,11 +266,13 @@ include __DIR__ . '/../includes/header.php';
 
                 .parent-consent-builder-page #editor .parent-consent-sign-name {
                     display: block;
-                    min-height: 12px;
-                    margin-bottom: 2px;
-                    font-size: 10px;
+                    min-height: 15px;
+                    margin-top: -18px;
+                    margin-bottom: 3px;
+                    font-size: 11px;
                     font-weight: 700;
                     text-align: center;
+                    line-height: 1.1;
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-sign-label {
