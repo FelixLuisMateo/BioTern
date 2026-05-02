@@ -165,6 +165,78 @@ body.required-report-page .main-content {
     vertical-align: middle;
 }
 
+.required-report-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+    border-top: 1px solid var(--report-border);
+    background: rgba(15, 23, 42, 0.32);
+}
+
+.required-report-page-summary {
+    color: var(--report-muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.required-report-page-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.55rem;
+}
+
+.required-report-page-controls .form-label {
+    color: var(--report-muted);
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+
+.required-report-page-controls .form-select {
+    min-width: 130px;
+    min-height: 38px;
+    color: var(--report-text);
+    background-color: var(--report-surface-soft);
+    border-color: rgba(148, 163, 184, 0.32);
+}
+
+.required-report-row-warning td {
+    background: rgba(245, 158, 11, 0.055) !important;
+}
+
+.required-report-row-danger td {
+    background: rgba(239, 68, 68, 0.065) !important;
+}
+
+.required-report-row-success td {
+    background: rgba(34, 197, 94, 0.045) !important;
+}
+
+.required-report-cell-warning,
+.required-report-cell-danger,
+.required-report-cell-success,
+.required-report-cell-info {
+    font-weight: 900;
+}
+
+.required-report-cell-warning {
+    color: #fbbf24 !important;
+}
+
+.required-report-cell-danger {
+    color: #f87171 !important;
+}
+
+.required-report-cell-success {
+    color: #34d399 !important;
+}
+
+.required-report-cell-info {
+    color: #93c5fd !important;
+}
+
 .required-report-row-link {
     color: #dbeafe;
     font-weight: 900;
@@ -191,9 +263,16 @@ body.required-report-page .main-content {
     .required-report-toolbar-actions {
         justify-content: space-between;
     }
+
+    .required-report-pagination,
+    .required-report-page-controls {
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
 }
 
 @media print {
+    .required-report-pagination,
     .required-report-server-filters,
     .required-report-toolbar,
     .page-header-right,
@@ -277,6 +356,19 @@ body.required-report-page .main-content {
 
     .required-report-table-card tbody td,
     .required-report-table-card thead th {
+        color: #111827 !important;
+    }
+
+    .required-report-row-warning td,
+    .required-report-row-danger td,
+    .required-report-row-success td {
+        background: #ffffff !important;
+    }
+
+    .required-report-cell-warning,
+    .required-report-cell-danger,
+    .required-report-cell-success,
+    .required-report-cell-info {
         color: #111827 !important;
     }
 

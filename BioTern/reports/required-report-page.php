@@ -361,6 +361,84 @@ function rr_cell_html(string $key, array $row): string
     return rr_esc($value);
 }
 
+function rr_report_row_state(string $reportKey, array $row): string
+{
+    if ($reportKey === 'unassigned-students') {
+        return 'warning';
+    }
+
+    if ($reportKey === 'import-errors') {
+        return 'danger';
+    }
+
+    $status = strtolower(rr_format_status_label($row['status'] ?? ''));
+    if (in_array($status, ['pending', 'not started', 'draft'], true)) {
+        return 'warning';
+    }
+    if ($status === 'rejected') {
+        return 'danger';
+    }
+    if (in_array($status, ['approved', 'finished'], true)) {
+        return 'success';
+    }
+
+    if ($reportKey === 'hours-completion') {
+        $progress = (float)str_replace('%', '', (string)($row['progress'] ?? 0));
+        if ($progress >= 100) {
+            return 'success';
+        }
+        if ($progress < 50) {
+            return 'danger';
+        }
+        return 'warning';
+    }
+
+    return '';
+}
+
+function rr_cell_state(string $key, array $row): string
+{
+    $normalizedKey = strtolower(trim($key));
+    if ($normalizedKey === 'status' || str_ends_with($normalizedKey, '_status')) {
+        $status = strtolower(rr_format_status_label($row[$key] ?? ''));
+        if (in_array($status, ['pending', 'not started', 'draft'], true)) {
+            return 'warning';
+        }
+        if ($status === 'rejected') {
+            return 'danger';
+        }
+        if (in_array($status, ['approved', 'finished'], true)) {
+            return 'success';
+        }
+        if ($status === 'ongoing') {
+            return 'info';
+        }
+    }
+
+    if ($normalizedKey === 'progress') {
+        $progress = (float)str_replace('%', '', (string)($row[$key] ?? 0));
+        if ($progress >= 100) {
+            return 'success';
+        }
+        if ($progress < 50) {
+            return 'danger';
+        }
+        return 'warning';
+    }
+
+    if (in_array($normalizedKey, ['duplicate_count', 'count'], true) && (int)($row[$key] ?? 0) > 1) {
+        return 'danger';
+    }
+
+    return '';
+}
+
+function rr_cell_classes(string $key, array $row): string
+{
+    $state = rr_cell_state($key, $row);
+    return $state !== '' ? ' class="required-report-cell-' . rr_esc($state) . '"' : '';
+}
+
 $requiredReportKey = isset($requiredReportKey) ? (string)$requiredReportKey : '';
 
 $reports = [
@@ -590,7 +668,7 @@ $reports = [
     'import-errors' => [
         'title' => 'Duplicate/Import Error Report',
         'statement' => 'Duplicate student numbers and import warning checks.',
-        'columns' => ['Issue', 'Student No', 'Count', 'Details'],
+        'columns' => ['Issue', 'Student No', 'Duplicate Count', 'Details'],
         'summary' => function (mysqli $conn): array {
             return [
                 ['label' => 'Duplicate IDs', 'value' => rr_count($conn, 'SELECT COUNT(*) AS total FROM (SELECT student_id FROM students GROUP BY student_id HAVING COUNT(*) > 1) d')],
@@ -760,6 +838,7 @@ include 'includes/header.php';
                         <?php if ($rows): ?>
                             <?php foreach ($rows as $row): ?>
                                 <tr
+                                    class="<?php echo rr_report_row_state($requiredReportKey, $row) !== '' ? 'required-report-row-' . rr_esc(rr_report_row_state($requiredReportKey, $row)) : ''; ?>"
                                     data-required-report-row
                                     data-search="<?php echo rr_esc(strtolower(rr_row_search_text($row))); ?>"
                                     <?php foreach ($filterKeys as $filterKey): ?>
@@ -768,7 +847,7 @@ include 'includes/header.php';
                                 >
                                     <?php foreach (array_keys($row) as $key): ?>
                                         <?php if (rr_is_hidden_key((string)$key)) { continue; } ?>
-                                        <td><?php echo rr_cell_html((string)$key, $row); ?></td>
+                                        <td<?php echo rr_cell_classes((string)$key, $row); ?>><?php echo rr_cell_html((string)$key, $row); ?></td>
                                     <?php endforeach; ?>
                                 </tr>
                             <?php endforeach; ?>
@@ -781,6 +860,17 @@ include 'includes/header.php';
                     </tbody>
                 </table>
             </div>
+            <?php if ($rows): ?>
+                <div class="required-report-pagination" data-required-report-pagination>
+                    <span class="required-report-page-summary" data-required-report-page-summary>Showing rows</span>
+                    <div class="required-report-page-controls">
+                        <label class="form-label mb-0" for="requiredReportPageJump">Go to page</label>
+                        <select class="form-select" id="requiredReportPageJump" data-required-report-page-jump></select>
+                        <button type="button" class="btn btn-outline-secondary" data-required-report-prev>Prev</button>
+                        <button type="button" class="btn btn-outline-secondary" data-required-report-next>Next</button>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
