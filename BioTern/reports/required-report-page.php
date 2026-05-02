@@ -83,6 +83,38 @@ function rr_add_course_section_labels(array $rows): array
     return $rows;
 }
 
+function rr_format_status_label($value): string
+{
+    $raw = trim((string)$value);
+    if ($raw === '') {
+        return '-';
+    }
+
+    $key = strtolower(str_replace(['_', '-'], ' ', $raw));
+    $labels = [
+        'not started' => 'Not Started',
+        'ongoing' => 'Ongoing',
+        'completed' => 'Finished',
+        'finished' => 'Finished',
+        'pending' => 'Pending',
+        'approved' => 'Approved',
+        'rejected' => 'Rejected',
+        'draft' => 'Draft',
+    ];
+
+    return $labels[$key] ?? ucwords($key);
+}
+
+function rr_display_value(string $key, $value): string
+{
+    $normalizedKey = strtolower(trim($key));
+    if ($normalizedKey === 'status' || str_ends_with($normalizedKey, '_status')) {
+        return rr_format_status_label($value);
+    }
+
+    return (string)$value;
+}
+
 $requiredReportKey = isset($requiredReportKey) ? (string)$requiredReportKey : '';
 
 $reports = [
@@ -337,7 +369,7 @@ include 'includes/header.php';
                             <?php foreach ($rows as $row): ?>
                                 <tr>
                                     <?php foreach (array_keys($row) as $key): ?>
-                                        <td><?php echo rr_esc($row[$key]); ?></td>
+                                        <td><?php echo rr_esc(rr_display_value((string)$key, $row[$key])); ?></td>
                                     <?php endforeach; ?>
                                 </tr>
                             <?php endforeach; ?>
