@@ -113,10 +113,10 @@ if ($adminId > 0) {
 }
 
 if ($search !== '') {
-    $where[] = '(admin_name LIKE ? OR admin_username LIKE ? OR admin_email LIKE ? OR target_type LIKE ? OR target_id LIKE ? OR page LIKE ?)';
+    $where[] = '(admin_name LIKE ? OR admin_username LIKE ? OR admin_email LIKE ? OR target_type LIKE ? OR target_id LIKE ? OR target_name LIKE ? OR activity_comment LIKE ? OR page LIKE ?)';
     $like = '%' . $search . '%';
-    $types .= 'ssssss';
-    array_push($params, $like, $like, $like, $like, $like, $like);
+    $types .= 'ssssssss';
+    array_push($params, $like, $like, $like, $like, $like, $like, $like, $like);
 }
 
 $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
@@ -260,7 +260,7 @@ include 'includes/header.php';
             </div>
             <div class="col-sm-8 col-md-4">
                 <label class="form-label mb-1">Search</label>
-                <input type="search" class="form-control" name="search" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Name, page, target...">
+                <input type="search" class="form-control" name="search" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Admin, activity, page, target...">
             </div>
             <div class="col-auto">
                 <button type="submit" class="btn btn-primary">
@@ -280,10 +280,10 @@ include 'includes/header.php';
                     <tr>
                         <th class="text-nowrap">Time</th>
                         <th>Admin</th>
+                        <th>Activity</th>
                         <th class="text-nowrap">Action</th>
                         <th>Target</th>
                         <th>Page</th>
-                        <th>Details</th>
                         <th class="text-nowrap">IP Address</th>
                     </tr>
                 </thead>
@@ -296,12 +296,21 @@ include 'includes/header.php';
                             $adminName = trim((string)($row['admin_name'] ?? ''));
                             $adminUsername = trim((string)($row['admin_username'] ?? ''));
                             $adminEmail = trim((string)($row['admin_email'] ?? ''));
+                            $activityComment = trim((string)($row['activity_comment'] ?? ''));
+                            if ($activityComment === '') {
+                                $activityComment = adminLogsDetailsSummary($row['details_json'] ?? '');
+                            }
+                            $targetName = trim((string)($row['target_name'] ?? ''));
+                            $targetId = trim((string)($row['target_id'] ?? ''));
                             ?>
                             <tr>
                                 <td class="text-nowrap"><?php echo htmlspecialchars(adminLogsFormatDateTime($row['created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td>
                                     <div class="fw-semibold"><?php echo htmlspecialchars($adminName !== '' ? $adminName : ($adminUsername !== '' ? $adminUsername : 'Admin'), ENT_QUOTES, 'UTF-8'); ?></div>
                                     <small class="text-muted"><?php echo htmlspecialchars($adminEmail !== '' ? $adminEmail : ($adminUsername !== '' ? $adminUsername : 'No username'), ENT_QUOTES, 'UTF-8'); ?></small>
+                                </td>
+                                <td>
+                                    <div class="logs-activity-comment"><?php echo htmlspecialchars($activityComment !== '' ? $activityComment : '-', ENT_QUOTES, 'UTF-8'); ?></div>
                                 </td>
                                 <td class="text-nowrap">
                                     <span class="logs-pill bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?>">
@@ -310,10 +319,9 @@ include 'includes/header.php';
                                 </td>
                                 <td>
                                     <div class="fw-semibold text-capitalize"><?php echo htmlspecialchars((string)($row['target_type'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></div>
-                                    <small class="text-muted"><?php echo htmlspecialchars((string)($row['target_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></small>
+                                    <small class="text-muted"><?php echo htmlspecialchars($targetName !== '' ? $targetName : ($targetId !== '' ? $targetId : '-'), ENT_QUOTES, 'UTF-8'); ?></small>
                                 </td>
                                 <td><span class="logs-identifier"><?php echo htmlspecialchars((string)($row['page'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></span></td>
-                                <td><?php echo htmlspecialchars(adminLogsDetailsSummary($row['details_json'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td class="text-nowrap"><?php echo htmlspecialchars(adminLogsDisplayIp($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                             </tr>
                         <?php endforeach; ?>

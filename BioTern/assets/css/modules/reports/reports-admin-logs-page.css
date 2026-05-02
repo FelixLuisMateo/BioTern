@@ -80,6 +80,14 @@ body.admin-logs-page .logs-table-card tbody td {
     vertical-align: middle;
 }
 
+body.admin-logs-page .logs-activity-comment {
+    max-width: 420px;
+    color: var(--report-text);
+    font-weight: 700;
+    line-height: 1.45;
+    white-space: normal;
+}
+
 body.admin-logs-page .logs-table-card tbody tr td[colspan] {
     height: 210px;
     color: var(--report-muted) !important;
