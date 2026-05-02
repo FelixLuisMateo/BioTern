@@ -85,6 +85,10 @@ if (isset($_GET['action'])) {
                 'text' => implode(' - ', array_filter($labelParts, static function ($value): bool {
                     return trim((string)$value) !== '';
                 })),
+                'name' => trim((string)($company['company_name'] ?? '')),
+                'address' => trim((string)($company['company_address'] ?? '')),
+                'contact_name' => trim((string)($company['contact_name'] ?? $company['company_representative'] ?? $company['supervisor_name'] ?? '')),
+                'contact_position' => trim((string)($company['contact_position'] ?? $company['company_representative_position'] ?? $company['supervisor_position'] ?? '')),
             ];
         }
         echo json_encode(['results' => $results]);
@@ -131,9 +135,216 @@ if (isset($_GET['action'])) {
     exit;
 }
 $page_title = 'Endorsement Letter';
-$base_href = '';
+$base_href = '../';
+$page_body_class = 'application-builder-page endorsement-builder-page';
+$page_styles = [
+    'assets/css/layout/page_shell.css',
+    'assets/css/modules/documents/document-builder-shared.css',
+    'assets/css/modules/documents/page-endorsement-document-builder.css',
+    'assets/css/modules/documents/template-print-isolation.css',
+];
+$page_scripts = [
+    'assets/js/modules/documents/endorsement-document-builder.js',
+];
 include __DIR__ . '/../includes/header.php';
 ?>
+<main class="nxl-container">
+    <div class="nxl-content">
+        <div class="page-header dashboard-page-header page-header-with-middle">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">Endorsement Letter</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                    <li class="breadcrumb-item"><a href="index.php">Documents</a></li>
+                    <li class="breadcrumb-item">Endorsement Builder</li>
+                </ul>
+            </div>
+            <div class="page-header-middle">
+                <p class="page-header-statement">Use one workspace to select students, pull company data, and generate a print-ready endorsement letter.</p>
+            </div>
+            <?php ob_start(); ?>
+                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                <a href="document_application.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>Application</a>
+            <?php
+            biotern_render_page_header_actions([
+                'menu_id' => 'documentEndorsementActionsMenu',
+                'items_html' => ob_get_clean(),
+            ]);
+            ?>
+        </div>
+
+        <div class="application-document-builder endorsement-page" data-prefill-student-id="<?php echo (int)$prefill_student_id; ?>" data-prefill-company="<?php echo htmlspecialchars((string)($_GET['company'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-prefill-recipient-title="<?php echo htmlspecialchars($prefill_recipient_title, ENT_QUOTES, 'UTF-8'); ?>">
+            <div class="main-content">
+                <div class="application-builder-grid">
+                    <section class="application-builder-sidebar">
+                        <div class="builder-card">
+                            <div class="builder-card-head">
+                                <h6>Record Source</h6>
+                                <p>Search student and company records, then the letter preview updates instantly.</p>
+                            </div>
+
+                            <div class="builder-field">
+                                <label for="student_select" class="form-label">Student Name</label>
+                                <select id="student_select" data-placeholder="Search by name or student id"></select>
+                                <small class="text-muted application-source-hint">Search and select from student records.</small>
+                            </div>
+
+                            <div class="builder-field">
+                                <label for="company_select" class="form-label">Company / Training Site</label>
+                                <select id="company_select" data-placeholder="Search company, address, or representative"></select>
+                                <small class="text-muted application-source-hint">Pick a company to auto-fill recipient, position, company, and address.</small>
+                            </div>
+
+                            <div class="application-autofill-panel">
+                                <div class="application-autofill-title">Company Details</div>
+                                <p>These fields update from the selected company record. You can still adjust them before printing.</p>
+                            </div>
+
+                            <div class="builder-field">
+                                <label for="input_recipient" class="form-label">Recipient Name</label>
+                                <input id="input_recipient" class="form-control" type="text" placeholder="Mr./Ms. full name" autocomplete="off">
+                            </div>
+
+                            <div class="builder-field">
+                                <label class="form-label d-block mb-2">Recipient Title</label>
+                                <div class="builder-inline-options">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="recipient_title" id="rt_auto" value="auto">
+                                        <label class="form-check-label" for="rt_auto">Auto</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="recipient_title" id="rt_mr" value="mr">
+                                        <label class="form-check-label" for="rt_mr">Mr.</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="recipient_title" id="rt_ms" value="ms">
+                                        <label class="form-check-label" for="rt_ms">Ms.</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="recipient_title" id="rt_none" value="none">
+                                        <label class="form-check-label" for="rt_none">Mr./Ms.</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="builder-field">
+                                <label for="input_position" class="form-label">Recipient Position</label>
+                                <input id="input_position" class="form-control" type="text" placeholder="Recipient position" autocomplete="off">
+                            </div>
+
+                            <div class="builder-field">
+                                <label for="input_company" class="form-label">Company</label>
+                                <input id="input_company" class="form-control" type="text" placeholder="Company name" autocomplete="off">
+                            </div>
+
+                            <div class="builder-field">
+                                <label for="input_company_address" class="form-label">Company Address</label>
+                                <textarea id="input_company_address" class="form-control" rows="3" placeholder="Company address" autocomplete="off"></textarea>
+                            </div>
+
+                            <div class="builder-field">
+                                <label for="input_students" class="form-label">Students to Endorse</label>
+                                <textarea id="input_students" class="form-control" rows="4" placeholder="Lastname, Firstname M."></textarea>
+                                <small class="text-muted application-source-hint">One student per line. Selecting students adds them here.</small>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="application-builder-canvas">
+                        <div class="builder-card builder-card-editor">
+                            <div class="builder-editor-head">
+                                <div>
+                                    <h6>Template Builder</h6>
+                                    <p>Endorsement letter preview, editor, and print layout in one place.</p>
+                                </div>
+                                <div class="builder-editor-actions">
+                                    <button id="btn_toggle_edit" class="btn btn-light" type="button" aria-pressed="false">Edit Template</button>
+                                    <button id="btn_save" class="btn btn-primary" type="button">Save Template</button>
+                                    <button id="btn_reset" class="btn btn-light" type="button">Reset</button>
+                                    <button id="btn_print" class="btn btn-success" type="button">Print Letter</button>
+                                </div>
+                            </div>
+
+                            <div class="builder-toolbar is-disabled" id="builder_toolbar" aria-label="Template formatting tools" aria-hidden="true">
+                                <button id="btn_bold" class="btn btn-light" type="button"><strong>B</strong></button>
+                                <button id="btn_italic" class="btn btn-light" type="button"><em>I</em></button>
+                                <button id="btn_underline" class="btn btn-light" type="button"><u>U</u></button>
+                                <button id="btn_left" class="btn btn-light" type="button">Left</button>
+                                <button id="btn_center" class="btn btn-light" type="button">Center</button>
+                                <button id="btn_right" class="btn btn-light" type="button">Right</button>
+                                <button id="btn_justify" class="btn btn-light" type="button">Justify</button>
+                                <button id="btn_indent" class="btn btn-light" type="button">Indent</button>
+                                <button id="btn_outdent" class="btn btn-light" type="button">Outdent</button>
+                            </div>
+
+                            <div class="builder-status-bar">
+                                <span id="msg" class="builder-status-text">Template locked. Use Edit Template to change layout.</span>
+                            </div>
+
+                            <div class="builder-paper-shell">
+                                <div class="builder-paper">
+                                    <div id="editor" class="builder-editor-surface is-locked" contenteditable="false" spellcheck="false"></div>
+                                </div>
+                            </div>
+
+                            <template id="endorsement_default_template">
+                                <div class="a4-pages-stack" data-a4-document="true">
+                                    <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.55in 0.75in 0.75in; background:#fff;">
+                                        <div class="endorsement-letter-template">
+                                            <div class="preview-header">
+                                                <img class="crest-preview crest-preview-position" src="assets/images/ccstlogo.png" alt="CCST logo" data-hide-onerror="1">
+                                                <div class="preview-header-copy">
+                                                    <p class="school-name">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</p>
+                                                    <div class="school-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
+                                                    <div class="school-tel">Telefax No.: (045) 624-0215</div>
+                                                </div>
+                                            </div>
+                                            <div class="preview-content" id="preview_content">
+                                                <h5>ENDORSEMENT LETTER</h5>
+                                                <p><strong id="pv_recipient" class="endorsement-fill-line">__________________________</strong><br>
+                                                <span id="pv_position" class="endorsement-fill-line">__________________________</span><br>
+                                                <span id="pv_company" class="endorsement-fill-line">__________________________</span><br>
+                                                <span id="pv_company_address" class="endorsement-fill-line">__________________________</span></p>
+
+                                                <p><span id="pv_salutation">Dear Ma'am,</span></p>
+                                                <p>Greetings from Clark College of Science and Technology!</p>
+                                                <p>We are pleased to introduce our Associate in Computer Technology program, designed to promote student success by developing competencies in core Information Technology disciplines. Our curriculum emphasizes practical experience through internships and on-the-job training, fostering a strong foundation in current industry practices.</p>
+                                                <p>In this regard, we are seeking your esteemed company's support in accommodating the following students:</p>
+                                                <ul id="pv_students">
+                                                    <li>__________________________</li>
+                                                </ul>
+                                                <p>These students are required to complete 250 training hours. We believe that your organization can provide them with invaluable knowledge and skills, helping them to maximize their potential for future careers in IT.</p>
+                                                <p>Our teacher-in-charge will coordinate with you to monitor the students' progress and performance.</p>
+                                                <p>We look forward to a productive partnership with your organization. Thank you for your consideration and support.</p>
+
+                                                <p>Sincerely,</p>
+                                                <div class="signature">
+                                                    <p><strong>MR. JOMAR G. SANGIL</strong><br>
+                                                    <strong>ICT DEPARTMENT HEAD</strong><br>
+                                                    <strong>Clark College of Science and Technology</strong></p>
+                                                    <div class="ross-signatory">
+                                                        <img class="ross-signature" src="pages/Ross-Signature.png" alt="Ross signature" data-hide-onerror="1">
+                                                        <p class="ross-signatory-text"><strong>MR. ROSS CARVEL C. RAMIREZ</strong><br>
+                                                        <strong>HEAD OF ACADEMIC AFFAIRS</strong><br>
+                                                        <strong>Clark College of Science and Technology</strong></p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<?php if (false): ?>
 <style>
         html, body { height: 100%; margin: 0; padding: 0; }
         body { display:flex; flex-direction:column; min-height:100vh; }
@@ -364,6 +575,22 @@ include __DIR__ . '/../includes/header.php';
             padding: 9px 10px;
             font-weight: 700;
         }
+        .endorsement-native-option-title,
+        .endorsement-native-option-subtitle {
+            display: block;
+            min-width: 0;
+        }
+        .endorsement-native-option-title {
+            color: #eef5ff;
+            font-weight: 800;
+        }
+        .endorsement-native-option-subtitle {
+            margin-top: 3px;
+            color: #b9c7dd;
+            font-size: 12px;
+            line-height: 1.3;
+            font-weight: 500;
+        }
         .endorsement-native-option:hover,
         .endorsement-native-option:focus {
             background: rgba(91, 124, 250, 0.2);
@@ -399,12 +626,6 @@ include __DIR__ . '/../includes/header.php';
         <div class="col-12">
             <h4>Endorsement Letter</h4>
             <p class="text-muted">Select student and prepare the endorsement letter.</p>
-            <div class="mb-3">
-                <a id="word_template_link_endorsement" href="/document-word-templates?template_type=endorsement" class="btn btn-outline-info word-tool-link">
-                    <span>Open Word Template Tool</span>
-                    <small class="text-muted">Upload actual .docx template</small>
-                </a>
-            </div>
         </div>
     </div>
 
@@ -444,10 +665,10 @@ include __DIR__ . '/../includes/header.php';
                     <input id="input_position" class="form-control form-control-sm" type="text" placeholder="e.g. Supervisor/Manager">
                 </div>
                 <div class="mt-2">
-                    <label for="company_select" class="form-label">Company Name</label>
+                    <label for="company_select" class="form-label">Company / Training Site</label>
                     <select id="company_select" style="width:100%" data-placeholder="Search company, address, or representative"></select>
                     <input id="input_company" type="hidden" value="">
-                    <small class="text-muted">Search and select company.</small>
+                    <small class="text-muted">Pick a company to auto-fill recipient, position, company, and address.</small>
                 </div>
                 <div class="mt-2">
                     <label class="form-label">Company Address</label>
@@ -729,16 +950,16 @@ window.addEventListener('load', function() {
     function applyCompanyProfile(company, rowLabel) {
         if (!company || typeof company !== 'object') return;
 
-        const companyName = String(company.company_name || '').trim();
+        const companyName = String(company.company_name || company.name || '').trim();
         selectedCompanyKey = String(company.key || company.company_lookup_key || companyName || '').trim();
         inputCompany.value = companyName;
-        inputCompanyAddress.value = String(company.company_address || '').trim();
+        inputCompanyAddress.value = String(company.company_address || company.address || '').trim();
 
-        if (company.contact_name || company.partner_representative) {
-            inputRecipient.value = String(company.contact_name || company.partner_representative || '').trim();
+        if (company.contact_name || company.company_representative || company.supervisor_name || company.partner_representative) {
+            inputRecipient.value = String(company.contact_name || company.company_representative || company.supervisor_name || company.partner_representative || '').trim();
         }
-        if (company.contact_position || company.partner_position) {
-            inputPosition.value = String(company.contact_position || company.partner_position || '').trim();
+        if (company.contact_position || company.company_representative_position || company.supervisor_position || company.partner_position) {
+            inputPosition.value = String(company.contact_position || company.company_representative_position || company.supervisor_position || company.partner_position || '').trim();
         }
 
         const companyInput = document.querySelector('.endorsement-company-search .endorsement-native-input');
@@ -748,6 +969,17 @@ window.addEventListener('load', function() {
 
         updatePreview();
         updateLinks();
+    }
+
+    function applyCompanySearchItem(item, rowLabel) {
+        if (!item || typeof item !== 'object') return;
+        applyCompanyProfile({
+            key: item.id || '',
+            company_name: item.name || '',
+            company_address: item.address || '',
+            contact_name: item.contact_name || '',
+            contact_position: item.contact_position || ''
+        }, rowLabel || item.text || item.name || '');
     }
 
     function loadCompanyProfile(companyIdentifier, rowLabel) {
@@ -807,9 +1039,17 @@ window.addEventListener('load', function() {
             setMessage('Select a company.');
             items.forEach(function(item) {
                 const btn = document.createElement('button');
+                const title = item.name || item.text || ('Company ' + item.id);
+                const subtitle = [
+                    item.contact_name || '',
+                    item.contact_position || '',
+                    item.address || ''
+                ].filter(Boolean).join(' - ');
                 btn.type = 'button';
                 btn.className = 'endorsement-native-option';
-                btn.textContent = item.text || ('Company ' + item.id);
+                btn.innerHTML = '<span class="endorsement-native-option-title"></span><span class="endorsement-native-option-subtitle"></span>';
+                btn.querySelector('.endorsement-native-option-title').textContent = title;
+                btn.querySelector('.endorsement-native-option-subtitle').textContent = subtitle || 'Select this company';
                 btn.addEventListener('click', function() {
                     const label = item.text || '';
                     const option = new Option(label, String(item.id), true, true);
@@ -817,6 +1057,7 @@ window.addEventListener('load', function() {
                     sel.appendChild(option);
                     input.value = label;
                     closePanel();
+                    applyCompanySearchItem(item, label);
                     loadCompanyProfile(String(item.id || ''), label);
                 });
                 results.appendChild(btn);
@@ -1176,6 +1417,7 @@ window.addEventListener('load', function() {
 })();
 });
 </script>
+<?php endif; ?>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 
 

@@ -313,6 +313,34 @@
         companySelectElement.value = target;
     }
 
+    function companyDisplayName(company) {
+        if (!company || typeof company !== 'object') {
+            return '';
+        }
+        return (company.company_name || company.name || '').toString().trim();
+    }
+
+    function companyDisplayAddress(company) {
+        if (!company || typeof company !== 'object') {
+            return '';
+        }
+        return (company.company_address || company.address || '').toString().trim();
+    }
+
+    function companyContactName(company) {
+        if (!company || typeof company !== 'object') {
+            return '';
+        }
+        return (company.contact_name || company.company_representative || company.supervisor_name || company.partner_representative || '').toString().trim();
+    }
+
+    function companyContactPosition(company) {
+        if (!company || typeof company !== 'object') {
+            return '';
+        }
+        return (company.contact_position || company.company_representative_position || company.supervisor_position || company.partner_position || '').toString().trim();
+    }
+
     function getCurrentStudentName() {
         if (!selectElement) {
             return '';
@@ -547,10 +575,10 @@
         }
 
         selectedCompanyKey = String(company.key || company.company_lookup_key || company.company_name || '');
-        inputCompany.value = (company.company_name || '').toString();
-        inputCompanyAddress.value = (company.company_address || '').toString();
-        inputRecipient.value = (company.contact_name || company.partner_representative || '').toString();
-        inputPosition.value = (company.contact_position || company.partner_position || '').toString();
+        inputCompany.value = companyDisplayName(company);
+        inputCompanyAddress.value = companyDisplayAddress(company);
+        inputRecipient.value = companyContactName(company);
+        inputPosition.value = companyContactPosition(company);
 
         if (companySearchInput) {
             companySearchInput.value = rowLabel || inputCompany.value || '';
@@ -978,13 +1006,21 @@
             }
         }
 
-        function selectCompanyById(companyKey, rowLabel) {
-            if (!companyKey) {
+        function selectCompany(item) {
+            if (!item || !item.id) {
                 return;
             }
+            var rowLabel = item.text || item.name || '';
             input.value = rowLabel || '';
             closePanel();
-            loadCompanyProfile(companyKey, rowLabel || '');
+            applyCompanyProfile({
+                key: item.id,
+                company_name: item.name || '',
+                company_address: item.address || '',
+                contact_name: item.contact_name || '',
+                contact_position: item.contact_position || ''
+            }, rowLabel || '');
+            loadCompanyProfile(item.id, rowLabel || '');
         }
 
         function renderResults(items) {
@@ -1000,11 +1036,19 @@
             setMessage('Select a company to load the company profile data.');
             currentItems.forEach(function (item) {
                 var button = document.createElement('button');
+                var title = item && item.name ? String(item.name) : (item && item.text ? String(item.text) : 'Company');
+                var subtitle = [
+                    item && item.contact_name ? String(item.contact_name) : '',
+                    item && item.contact_position ? String(item.contact_position) : '',
+                    item && item.address ? String(item.address) : ''
+                ].filter(Boolean).join(' - ');
                 button.type = 'button';
                 button.className = 'app-student-search-option';
-                button.textContent = item.text || ('Company ' + item.id);
+                button.innerHTML = '<span class="app-search-option-title"></span><span class="app-search-option-subtitle"></span>';
+                button.querySelector('.app-search-option-title').textContent = title;
+                button.querySelector('.app-search-option-subtitle').textContent = subtitle || 'Select this company';
                 button.addEventListener('click', function () {
-                    selectCompanyById(String(item.id || ''), item.text || '');
+                    selectCompany(item);
                 });
                 list.appendChild(button);
             });
@@ -1087,7 +1131,7 @@
             if (event.key === 'Enter' && activeIndex >= 0 && currentItems[activeIndex]) {
                 event.preventDefault();
                 var item = currentItems[activeIndex];
-                selectCompanyById(String(item.id || ''), item.text || '');
+                selectCompany(item);
             }
         });
 
