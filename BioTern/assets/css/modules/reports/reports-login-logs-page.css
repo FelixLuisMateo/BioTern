@@ -39,10 +39,10 @@
 }
 
 .logs-address {
-    max-width: 260px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    max-width: 360px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.45;
     display: inline-block;
     vertical-align: middle;
 }

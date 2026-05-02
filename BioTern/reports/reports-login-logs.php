@@ -140,18 +140,6 @@ if (report_login_logs_has_table($conn, 'students') && report_login_logs_table_ha
     $addressSelectParts[] = "NULLIF(TRIM(s.address), '')";
     $addressJoins[] = 'LEFT JOIN students s ON s.user_id = l.user_id';
 }
-if (report_login_logs_has_table($conn, 'coordinators') && report_login_logs_table_has_column($conn, 'coordinators', 'user_id') && report_login_logs_table_has_column($conn, 'coordinators', 'office_location')) {
-    $addressSelectParts[] = "NULLIF(TRIM(c.office_location), '')";
-    $addressJoins[] = 'LEFT JOIN coordinators c ON c.user_id = l.user_id';
-}
-if (report_login_logs_has_table($conn, 'supervisors') && report_login_logs_table_has_column($conn, 'supervisors', 'user_id')) {
-    if (report_login_logs_table_has_column($conn, 'supervisors', 'office_location')) {
-        $addressSelectParts[] = "NULLIF(TRIM(sp.office_location), '')";
-    } elseif (report_login_logs_table_has_column($conn, 'supervisors', 'office')) {
-        $addressSelectParts[] = "NULLIF(TRIM(sp.office), '')";
-    }
-    $addressJoins[] = 'LEFT JOIN supervisors sp ON sp.user_id = l.user_id';
-}
 $addressSelectSql = $addressSelectParts ? 'COALESCE(' . implode(', ', $addressSelectParts) . ', "") AS user_address' : '"" AS user_address';
 
 $sql = "
