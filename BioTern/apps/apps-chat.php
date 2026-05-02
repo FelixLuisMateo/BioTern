@@ -94,7 +94,7 @@ function chat_contact_group_meta(string $role, bool $isStudentView): array
             return ['key' => 'same-supervisor', 'label' => 'Same Supervisor', 'order' => 20];
         }
 
-        return ['key' => 'others', 'label' => 'Other Users', 'order' => 30];
+        return ['key' => '', 'label' => '', 'order' => 99];
     }
 
     if ($normalizedRole === 'supervisor') {
@@ -2026,7 +2026,11 @@ if ($selectedContact && $messageMeta['ready']) {
 
 $normalizedContacts = [];
 foreach ($contacts as $contact) {
-    $normalizedContacts[] = chat_normalize_contact($contact, $recentLoginUserIds, $isStudentChatUser);
+    $normalizedContact = chat_normalize_contact($contact, $recentLoginUserIds, $isStudentChatUser);
+    if ($isStudentChatUser && (string)($normalizedContact['group_key'] ?? '') === '') {
+        continue;
+    }
+    $normalizedContacts[] = $normalizedContact;
 }
 
 $normalizedSelectedContact = null;
