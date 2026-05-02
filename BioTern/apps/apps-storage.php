@@ -213,16 +213,17 @@ include 'includes/header.php';
 
                 <label class="app-storage-field">
                     <span>Category</span>
-                    <select class="form-select" name="category" data-upload-category>
+                    <input type="hidden" name="category" value="<?php echo htmlspecialchars($storage_default_upload_category, ENT_QUOTES, 'UTF-8'); ?>" data-upload-category>
+                    <div class="app-storage-upload-category-options" data-upload-category-options>
                         <?php if ($storage_user_role === 'student'): ?>
-                        <option value="requirements"<?php echo $storage_default_upload_category === 'requirements' ? ' selected' : ''; ?>>Requirements</option>
+                        <button type="button" class="app-storage-upload-category-choice<?php echo $storage_default_upload_category === 'requirements' ? ' is-active' : ''; ?>" data-upload-category-choice="requirements">Requirements</button>
                         <?php endif; ?>
-                        <option value="generated">Generated Docs</option>
-                        <option value="internship">Internship</option>
-                        <option value="images">Images</option>
-                        <option value="reports"<?php echo $storage_default_upload_category === 'reports' ? ' selected' : ''; ?>>Reports</option>
-                        <option value="other">Other</option>
-                    </select>
+                        <button type="button" class="app-storage-upload-category-choice" data-upload-category-choice="generated">Generated Docs</button>
+                        <button type="button" class="app-storage-upload-category-choice" data-upload-category-choice="internship">Internship</button>
+                        <button type="button" class="app-storage-upload-category-choice" data-upload-category-choice="images">Images</button>
+                        <button type="button" class="app-storage-upload-category-choice<?php echo $storage_default_upload_category === 'reports' ? ' is-active' : ''; ?>" data-upload-category-choice="reports">Reports</button>
+                        <button type="button" class="app-storage-upload-category-choice" data-upload-category-choice="other">Other</button>
+                    </div>
                 </label>
                 <input type="hidden" name="scope" value="personal" data-upload-scope>
 

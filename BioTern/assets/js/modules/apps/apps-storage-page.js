@@ -35,6 +35,7 @@
         uploadFile: app.querySelector('[data-upload-file]'),
         uploadTitle: app.querySelector('[data-upload-title-input]'),
         uploadCategory: app.querySelector('[data-upload-category]'),
+        uploadCategoryOptions: app.querySelector('[data-upload-category-options]'),
         uploadScope: app.querySelector('[data-upload-scope]'),
         uploadAudienceWrap: app.querySelector('[data-upload-audience-wrap]'),
         uploadAudience: app.querySelector('[data-upload-audience]'),
@@ -177,6 +178,14 @@
         els.activityList.innerHTML = compactActivity.map((item) => `<div class="app-storage-activity-item"><span class="app-storage-activity-dot"></span><div><strong>${escapeHtml(activityLabel(item.action_type))}</strong><p>${escapeHtml(item.title || item.details || 'Storage update')}</p><small>${escapeHtml(formatDateTime(item.created_at))}</small></div></div>`).join('');
     }
 
+    function syncUploadCategoryChoices() {
+        if (!els.uploadCategoryOptions || !els.uploadCategory) return;
+        const activeCategory = String(els.uploadCategory.value || defaultUploadCategory);
+        els.uploadCategoryOptions.querySelectorAll('[data-upload-category-choice]').forEach((button) => {
+            button.classList.toggle('is-active', button.dataset.uploadCategoryChoice === activeCategory);
+        });
+    }
+
     function renderBulkbar() {
         if (!els.bulkbar || !els.bulkCount || !els.bulkDelete || !els.bulkRestore || !els.bulkToggleAll) return;
         const eligible = getBulkEligibleFiles();
@@ -295,7 +304,7 @@
             if (els.uploadKicker) els.uploadKicker.textContent = 'Update details';
             if (els.uploadSubmit) els.uploadSubmit.textContent = 'Save Changes';
             if (els.uploadTitle) els.uploadTitle.value = file.title || '';
-            if (els.uploadCategory) els.uploadCategory.value = file.category || 'other';
+            if (els.uploadCategory) els.uploadCategory.value = categoryValueForSave(file.category || 'other');
             if (els.uploadScope) els.uploadScope.value = file.scope || 'personal';
             if (els.uploadAudience) els.uploadAudience.value = file.shared_audience || 'all';
             if (els.uploadTargetUser) els.uploadTargetUser.value = file.shared_target_user_id || '';
@@ -326,6 +335,7 @@
             }
         }
         syncAudienceField();
+        syncUploadCategoryChoices();
         updateDropzoneLabel();
     }
 
@@ -384,6 +394,12 @@
         if (selectButton) { state.selectedId = Number(selectButton.dataset.selectFile || 0); await render(); return; }
         if (event.target.closest('[data-open-upload]')) return openUploadPanel();
         if (event.target.closest('[data-close-upload]')) return closeUploadPanel();
+        const categoryChoice = event.target.closest('[data-upload-category-choice]');
+        if (categoryChoice && els.uploadCategory) {
+            els.uploadCategory.value = String(categoryChoice.dataset.uploadCategoryChoice || defaultUploadCategory);
+            syncUploadCategoryChoices();
+            return;
+        }
         if (event.target.closest('[data-edit-file]')) { const file = getSelectedFile(); if (file && file.can_edit) openUploadPanel(file); return; }
         if (event.target.closest('[data-rename-save]')) { const file = getSelectedFile(); const renameInput = app.querySelector('[data-rename-input]'); if (file && file.can_edit && renameInput) { const nextTitle = String(renameInput.value || '').trim(); if (nextTitle !== '') { try { const data = await postJson({ action: 'update', id: Number(file.id), title: nextTitle, category: categoryValueForSave(file.category), scope: 'personal', shared_audience: 'all', shared_target_user_id: '', notes: file.notes || '' }); if (data.file && data.file.id) state.selectedId = Number(data.file.id); await fetchFiles(); } catch (error) { window.alert(error instanceof Error ? error.message : 'Unable to rename this file.'); } } } return; }
         if (event.target.closest('[data-toggle-star]')) return toggleStar();
