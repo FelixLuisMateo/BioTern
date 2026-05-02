@@ -134,60 +134,145 @@ function formatDisplayUserAddress($rawAddress, $rawIp = '')
     return '-';
 }
 
-$addressSelectParts = [];
-if (report_login_logs_has_table($conn, 'students') && report_login_logs_table_has_column($conn, 'students', 'user_id') && report_login_logs_table_has_column($conn, 'students', 'address')) {
-    $studentMatch = ['s.user_id = l.user_id'];
-    if (report_login_logs_table_has_column($conn, 'students', 'email')) {
-        $studentMatch[] = 's.email = l.identifier';
+function loginLogsLookupStudentAddress(mysqli $conn, int $userId, string $identifier): string
+{
+    $identifier = trim($identifier);
+
+    if ($userId <= 0 && $identifier !== '') {
+        $stmt = $conn->prepare('SELECT id FROM users WHERE username = ? OR email = ? ORDER BY id DESC LIMIT 1');
+        if ($stmt) {
+            $stmt->bind_param('ss', $identifier, $identifier);
+            $stmt->execute();
+            $userRow = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            $userId = (int)($userRow['id'] ?? 0);
+        }
     }
-    if (report_login_logs_table_has_column($conn, 'students', 'student_id')) {
-        $studentMatch[] = 's.student_id = l.identifier';
+
+    if (report_login_logs_has_table($conn, 'students') && report_login_logs_table_has_column($conn, 'students', 'address')) {
+        $where = [];
+        $types = '';
+        $params = [];
+
+        if ($userId > 0 && report_login_logs_table_has_column($conn, 'students', 'user_id')) {
+            $where[] = 'user_id = ?';
+            $types .= 'i';
+            $params[] = $userId;
+        }
+        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'students', 'email')) {
+            $where[] = 'email = ?';
+            $types .= 's';
+            $params[] = $identifier;
+        }
+        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'students', 'student_id')) {
+            $where[] = 'student_id = ?';
+            $types .= 's';
+            $params[] = $identifier;
+        }
+        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'students', 'username')) {
+            $where[] = 'username = ?';
+            $types .= 's';
+            $params[] = $identifier;
+        }
+
+        if ($where) {
+            $orderSql = report_login_logs_table_has_column($conn, 'students', 'id') ? ' ORDER BY id DESC' : '';
+            $sql = 'SELECT address FROM students WHERE (' . implode(' OR ', $where) . ') AND NULLIF(TRIM(address), "") IS NOT NULL' . $orderSql . ' LIMIT 1';
+            $stmt = $conn->prepare($sql);
+            if ($stmt) {
+                $stmt->bind_param($types, ...$params);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                $address = trim((string)($row['address'] ?? ''));
+                if ($address !== '') {
+                    return $address;
+                }
+            }
+        }
     }
-    $addressSelectParts[] = '(SELECT NULLIF(TRIM(s.address), "") FROM students s WHERE (' . implode(' OR ', $studentMatch) . ') AND NULLIF(TRIM(s.address), "") IS NOT NULL ORDER BY s.id DESC LIMIT 1)';
+
+    if (report_login_logs_has_table($conn, 'student_applications') && report_login_logs_table_has_column($conn, 'student_applications', 'address')) {
+        $where = [];
+        $types = '';
+        $params = [];
+
+        if ($userId > 0 && report_login_logs_table_has_column($conn, 'student_applications', 'user_id')) {
+            $where[] = 'user_id = ?';
+            $types .= 'i';
+            $params[] = $userId;
+        }
+        if ($userId > 0 && report_login_logs_table_has_column($conn, 'student_applications', 'created_student_user_id')) {
+            $where[] = 'created_student_user_id = ?';
+            $types .= 'i';
+            $params[] = $userId;
+        }
+        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'student_applications', 'email')) {
+            $where[] = 'email = ?';
+            $types .= 's';
+            $params[] = $identifier;
+        }
+        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'student_applications', 'username')) {
+            $where[] = 'username = ?';
+            $types .= 's';
+            $params[] = $identifier;
+        }
+        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'student_applications', 'student_id')) {
+            $where[] = 'student_id = ?';
+            $types .= 's';
+            $params[] = $identifier;
+        }
+
+        if ($where) {
+            $orderSql = '';
+            if (report_login_logs_table_has_column($conn, 'student_applications', 'submitted_at')) {
+                $orderSql = ' ORDER BY submitted_at DESC';
+            } elseif (report_login_logs_table_has_column($conn, 'student_applications', 'id')) {
+                $orderSql = ' ORDER BY id DESC';
+            }
+            $sql = 'SELECT address FROM student_applications WHERE (' . implode(' OR ', $where) . ') AND NULLIF(TRIM(address), "") IS NOT NULL' . $orderSql . ' LIMIT 1';
+            $stmt = $conn->prepare($sql);
+            if ($stmt) {
+                $stmt->bind_param($types, ...$params);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                $address = trim((string)($row['address'] ?? ''));
+                if ($address !== '') {
+                    return $address;
+                }
+            }
+        }
+    }
+
+    return '';
 }
-if (report_login_logs_has_table($conn, 'student_applications') && report_login_logs_table_has_column($conn, 'student_applications', 'address')) {
-    $applicationMatch = [];
-    if (report_login_logs_table_has_column($conn, 'student_applications', 'user_id')) {
-        $applicationMatch[] = 'sa.user_id = l.user_id';
-    }
-    if (report_login_logs_table_has_column($conn, 'student_applications', 'created_student_user_id')) {
-        $applicationMatch[] = 'sa.created_student_user_id = l.user_id';
-    }
-    if (report_login_logs_table_has_column($conn, 'student_applications', 'email')) {
-        $applicationMatch[] = 'sa.email = l.identifier';
-    }
-    if (report_login_logs_table_has_column($conn, 'student_applications', 'username')) {
-        $applicationMatch[] = 'sa.username = l.identifier';
-    }
-    if (report_login_logs_table_has_column($conn, 'student_applications', 'student_id')) {
-        $applicationMatch[] = 'sa.student_id = l.identifier';
-    }
-    if ($applicationMatch) {
-        $orderColumn = report_login_logs_table_has_column($conn, 'student_applications', 'submitted_at') ? 'sa.submitted_at' : 'sa.id';
-        $addressSelectParts[] = '(SELECT NULLIF(TRIM(sa.address), "") FROM student_applications sa WHERE (' . implode(' OR ', $applicationMatch) . ') AND NULLIF(TRIM(sa.address), "") IS NOT NULL ORDER BY ' . $orderColumn . ' DESC LIMIT 1)';
-    }
-}
-$addressSelectSql = $addressSelectParts ? 'COALESCE(' . implode(', ', $addressSelectParts) . ', "") AS user_address' : '"" AS user_address';
 
 $sql = "
-    SELECT l.id, l.identifier, l.role, l.status, l.reason, l.ip_address, l.created_at,
-           u.username, u.email,
-           {$addressSelectSql}
+    SELECT l.id, l.user_id, l.identifier, l.role, l.status, l.reason, l.ip_address, l.created_at,
+           u.username, u.email
     FROM login_logs l
     LEFT JOIN users u ON u.id = l.user_id
 ";
 if ($status !== 'all') {
-    $sql .= " WHERE l.status = '" . $conn->real_escape_string($status) . "'";
+    $sql .= " WHERE LOWER(TRIM(l.status)) = '" . $conn->real_escape_string($status) . "'";
 }
 $sql .= " ORDER BY l.created_at DESC, l.id DESC LIMIT 500";
-$rows = $conn->query($sql);
+$resultRows = $conn->query($sql);
+$rows = [];
+if ($resultRows instanceof mysqli_result) {
+    while ($row = $resultRows->fetch_assoc()) {
+        $row['user_address'] = loginLogsLookupStudentAddress($conn, (int)($row['user_id'] ?? 0), (string)($row['identifier'] ?? ''));
+        $rows[] = $row;
+    }
+}
 
 $summary = [
     'all' => 0,
     'success' => 0,
     'failed' => 0,
 ];
-$summaryResult = $conn->query("SELECT status, COUNT(*) AS total FROM login_logs GROUP BY status");
+$summaryResult = $conn->query("SELECT LOWER(TRIM(status)) AS status, COUNT(*) AS total FROM login_logs GROUP BY LOWER(TRIM(status))");
 if ($summaryResult) {
     while ($sumRow = $summaryResult->fetch_assoc()) {
         $key = strtolower(trim((string)($sumRow['status'] ?? '')));
@@ -287,8 +372,8 @@ include 'includes/header.php';
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if ($rows && $rows->num_rows > 0): ?>
-                                    <?php while ($row = $rows->fetch_assoc()): ?>
+                                <?php if (!empty($rows)): ?>
+                                    <?php foreach ($rows as $row): ?>
                                         <?php $badge = strtolower((string)$row['status']) === 'success' ? 'success' : 'danger'; ?>
                                         <tr>
                                             <td class="text-nowrap"><?php echo htmlspecialchars(formatDisplayDateTime($row['created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -303,7 +388,7 @@ include 'includes/header.php';
                                             <td class="text-nowrap"><?php echo htmlspecialchars(formatDisplayIpAddress($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td><span class="logs-address" title="<?php echo htmlspecialchars(formatDisplayUserAddress($row['user_address'] ?? '', $row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(formatDisplayUserAddress($row['user_address'] ?? '', $row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
                                         </tr>
-                                    <?php endwhile; ?>
+                                    <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr><td colspan="8" class="text-center text-muted py-5">No login logs yet.</td></tr>
                                 <?php endif; ?>
