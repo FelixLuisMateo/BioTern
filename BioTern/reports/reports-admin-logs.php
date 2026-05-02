@@ -166,8 +166,8 @@ if ($adminRes instanceof mysqli_result) {
     }
 }
 
-$page_body_class = trim(($page_body_class ?? '') . ' reports-page');
-$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-login-logs-page.css', 'assets/css/modules/reports/reports-shell.css']);
+$page_body_class = trim(($page_body_class ?? '') . ' reports-page admin-logs-page');
+$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-login-logs-page.css', 'assets/css/modules/reports/reports-shell.css', 'assets/css/modules/reports/reports-admin-logs-page.css']);
 $page_title = 'BioTern || Admin Logs';
 include 'includes/header.php';
 ?>
