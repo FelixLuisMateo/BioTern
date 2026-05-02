@@ -31,7 +31,8 @@ function announcements_ensure_runtime_dir(string $path): bool
         return false;
     }
 
-    return is_writable($path);
+    @chmod($path, 0775);
+    return is_dir($path);
 }
 
 function announcements_store_upload(array $file, ?string &$error, ?string &$mediaType): string
