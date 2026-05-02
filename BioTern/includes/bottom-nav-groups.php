@@ -42,7 +42,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
                     'import-ojt-internal.php', 'import-ojt-external.php',
-                    'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php', 'reports-dtr-manual-input.php',
+                    'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php', 'reports-admin-logs.php', 'reports-dtr-manual-input.php',
                 ],
                 'sections' => [
                     [
@@ -81,6 +81,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Chat Logs', 'href' => 'reports-chat-logs.php', 'icon' => 'feather-message-circle'],
                             ['label' => 'Reported Chats', 'href' => 'reports-chat-reports.php', 'icon' => 'feather-flag'],
                             ['label' => 'Login Logs', 'href' => 'reports-login-logs.php', 'icon' => 'feather-log-in'],
+                            ...($canSystem ? [['label' => 'Admin Logs', 'href' => 'reports-admin-logs.php', 'icon' => 'feather-shield']] : []),
                             ['label' => 'Manual DTR Input', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit'],
                         ],
                     ],

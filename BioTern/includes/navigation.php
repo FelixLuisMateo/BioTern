@@ -197,6 +197,7 @@ $nav_active_student = biotern_nav_any_active($nav_current_file, [
 $nav_active_reports = biotern_nav_any_active($nav_current_file, [
     'reports-dtr-manual-input.php',
     'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-login-logs.php',
+    'reports-admin-logs.php',
 ]);
 $nav_active_academic = biotern_nav_any_active($nav_current_file, [
     'courses.php', 'courses-create.php', 'courses-edit.php',
@@ -324,6 +325,9 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-chat-logs.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-chat-logs.php">Chat Logs</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-chat-reports.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-chat-reports.php">Reported Chats</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-login-logs.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-login-logs.php">Login Logs</a></li>
+                        <?php if ($nav_is_admin): ?>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-admin-logs.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-admin-logs.php">Admin Logs</a></li>
+                        <?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>

@@ -818,5 +818,15 @@ if (!function_exists('biotern_boot_session')) {
                 $_SESSION = [];
             }
         }
+
+        if ((int)($_SESSION['user_id'] ?? 0) > 0 && strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? ''))) === 'admin') {
+            $adminActivityLogPath = __DIR__ . '/admin-activity-log.php';
+            if (is_file($adminActivityLogPath)) {
+                require_once $adminActivityLogPath;
+                if (function_exists('biotern_admin_activity_auto_log')) {
+                    biotern_admin_activity_auto_log($db);
+                }
+            }
+        }
     }
 }

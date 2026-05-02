@@ -142,6 +142,7 @@ $map = [
   'reports-login-logs.php' => 'reports/reports-login-logs.php',
   'reports-chat-logs.php' => 'reports/reports-chat-logs.php',
   'reports-chat-reports.php' => 'reports/reports-chat-reports.php',
+  'reports-admin-logs.php' => 'reports/reports-admin-logs.php',
 
   'settings-general.php' => 'settings/settings-general.php',
   'settings-email.php' => 'settings/settings-email.php',
