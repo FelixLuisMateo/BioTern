@@ -1,9 +1,8 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/includes/auth-session.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+biotern_boot_session(isset($conn) ? $conn : null);
 
 $userId = (int)($_SESSION['user_id'] ?? 0);
 if ($userId <= 0) {
@@ -26,6 +25,38 @@ if (!function_exists('transfer_csrf_token')) {
             $token = bin2hex(random_bytes(32));
             $_SESSION['transfer_sql_csrf'] = $token;
         }
+        return $token;
+    }
+}
+
+if (!function_exists('transfer_csrf_is_valid')) {
+    function transfer_csrf_is_valid(string $postedToken): bool
+    {
+        $postedToken = trim($postedToken);
+        if ($postedToken === '') {
+            return false;
+        }
+
+        $currentToken = (string)($_SESSION['transfer_sql_csrf'] ?? '');
+        if ($currentToken !== '' && hash_equals($currentToken, $postedToken)) {
+            return true;
+        }
+
+        $previousToken = (string)($_SESSION['transfer_sql_csrf_previous'] ?? '');
+        return $previousToken !== '' && hash_equals($previousToken, $postedToken);
+    }
+}
+
+if (!function_exists('transfer_csrf_rotate')) {
+    function transfer_csrf_rotate(): string
+    {
+        $currentToken = (string)($_SESSION['transfer_sql_csrf'] ?? '');
+        if ($currentToken !== '') {
+            $_SESSION['transfer_sql_csrf_previous'] = $currentToken;
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $_SESSION['transfer_sql_csrf'] = $token;
         return $token;
     }
 }
@@ -842,10 +873,11 @@ if ($download !== '') {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedCsrf = (string)($_POST['csrf_token'] ?? '');
-    if (!hash_equals($csrfToken, $postedCsrf)) {
+    if (!transfer_csrf_is_valid($postedCsrf)) {
         $statusType = 'danger';
         $statusMessage = 'Your session token is invalid or expired. Refresh the page and try again.';
     } elseif ($action === 'students_import') {
+        $csrfToken = transfer_csrf_rotate();
         if (!isset($_FILES['students_file']) || !is_array($_FILES['students_file'])) {
             $statusType = 'danger';
             $statusMessage = 'Choose a CSV or XLSX file to import.';
@@ -885,6 +917,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($action === 'sql_import') {
+        $csrfToken = transfer_csrf_rotate();
         if ($connectedIsLocalTarget && !$allowLocalImport) {
             $statusType = 'danger';
             $statusMessage = 'Import blocked: current target is local (' . $connectedHost . '). Enable the confirmation checkbox to run locally, or switch DB env vars to Railway before importing.';
