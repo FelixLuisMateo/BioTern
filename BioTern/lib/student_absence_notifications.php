@@ -14,6 +14,20 @@ if (!function_exists('biotern_absence_ensure_system_settings_table')) {
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        $columns = [];
+        if ($result = $conn->query('SHOW COLUMNS FROM system_settings')) {
+            while ($row = $result->fetch_assoc()) {
+                $columns[strtolower((string)($row['Field'] ?? ''))] = true;
+            }
+            $result->close();
+        }
+        if (!isset($columns['description'])) {
+            $conn->query('ALTER TABLE system_settings ADD COLUMN `description` VARCHAR(255) NULL AFTER `value`');
+        }
+        if (!isset($columns['category'])) {
+            $conn->query("ALTER TABLE system_settings ADD COLUMN `category` VARCHAR(100) NOT NULL DEFAULT 'general' AFTER `description`");
+        }
     }
 }
 
@@ -174,7 +188,9 @@ if (!function_exists('biotern_absence_student_streak')) {
         while ($cursorTs !== false && $cursorTs >= strtotime($startDate)) {
             $date = date('Y-m-d', $cursorTs);
             if (!biotern_absence_schedule_is_countable_day($schedule, $date)) {
-                if (!empty($absentDates)) {
+                $dayKey = section_schedule_day_key_from_date($date);
+                $isWeekendException = $dayKey === 'sunday' || $dayKey === 'saturday';
+                if (!empty($absentDates) && !$isWeekendException) {
                     break;
                 }
                 $cursorTs = strtotime('-1 day', $cursorTs);
@@ -228,12 +244,18 @@ if (!function_exists('biotern_absence_notify_admins')) {
                 FROM students s
                 INNER JOIN users u ON u.id = s.user_id
                 LEFT JOIN sections sec ON sec.id = s.section_id
-                LEFT JOIN internships i ON i.student_id = s.id AND i.status = 'ongoing' AND i.deleted_at IS NULL
                 WHERE s.deleted_at IS NULL
                     AND (u.is_active = 1 OR u.is_active IS NULL)
                     AND (s.status IN ('1', 'active') OR s.status IS NULL)
-                    AND (i.id IS NOT NULL OR s.application_status = 'approved')
-                GROUP BY s.id
+                    AND (
+                        s.application_status = 'approved'
+                        OR EXISTS (
+                            SELECT 1
+                            FROM internships i
+                            WHERE i.student_id = s.id AND i.status = 'ongoing' AND i.deleted_at IS NULL
+                            LIMIT 1
+                        )
+                    )
                 ORDER BY s.last_name ASC, s.first_name ASC";
         $result = $conn->query($sql);
         if ($result instanceof mysqli_result) {
