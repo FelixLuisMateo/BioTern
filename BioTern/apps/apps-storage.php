@@ -112,7 +112,7 @@ include 'includes/header.php';
                     <div class="app-storage-helper-card">
                         <span class="app-storage-kicker">Access</span>
                         <p>
-                            Storage is private to your account. Uploaded files stay in your personal BioTern file hub unless you download and send them yourself.
+                            This is your personal file hub. Files uploaded here are only visible to your account.
                         </p>
                         <div class="app-storage-resource-list">
                             <button type="button" class="app-storage-resource-tag" data-shortcut-category="generated">Forms</button>
@@ -186,7 +186,7 @@ include 'includes/header.php';
             <div class="app-storage-upload-head">
                 <div>
                     <span class="app-storage-kicker" data-upload-kicker>Upload file</span>
-                    <h3 data-upload-title>Add to Storage</h3>
+                    <h3 data-upload-title>Add Personal File</h3>
                 </div>
                 <button type="button" class="app-storage-icon-button" data-close-upload aria-label="Close upload panel">
                     <i class="feather-x"></i>
@@ -211,23 +211,20 @@ include 'includes/header.php';
                     <input type="text" class="form-control" name="title" maxlength="255" placeholder="Use a clearer document title" data-upload-title-input>
                 </label>
 
-                <div class="app-storage-grid-two">
-                    <label class="app-storage-field">
-                        <span>Category</span>
-                        <select class="form-select" name="category" data-upload-category>
-                            <?php if ($storage_user_role === 'student'): ?>
-                            <option value="requirements"<?php echo $storage_default_upload_category === 'requirements' ? ' selected' : ''; ?>>Requirements</option>
-                            <?php endif; ?>
-                            <option value="generated">Generated Docs</option>
-                            <option value="internship">Internship</option>
-                            <option value="images">Images</option>
-                            <option value="reports"<?php echo $storage_default_upload_category === 'reports' ? ' selected' : ''; ?>>Reports</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </label>
-
-                    <input type="hidden" name="scope" value="personal" data-upload-scope>
-                </div>
+                <label class="app-storage-field">
+                    <span>Category</span>
+                    <select class="form-select" name="category" data-upload-category>
+                        <?php if ($storage_user_role === 'student'): ?>
+                        <option value="requirements"<?php echo $storage_default_upload_category === 'requirements' ? ' selected' : ''; ?>>Requirements</option>
+                        <?php endif; ?>
+                        <option value="generated">Generated Docs</option>
+                        <option value="internship">Internship</option>
+                        <option value="images">Images</option>
+                        <option value="reports"<?php echo $storage_default_upload_category === 'reports' ? ' selected' : ''; ?>>Reports</option>
+                        <option value="other">Other</option>
+                    </select>
+                </label>
+                <input type="hidden" name="scope" value="personal" data-upload-scope>
 
                 <label class="app-storage-field">
                     <span>Notes</span>
