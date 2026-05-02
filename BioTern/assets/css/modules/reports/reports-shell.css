@@ -306,6 +306,11 @@ body.reports-page .card .table-hover > tbody > tr:hover > * {
 }
 
 @media (max-width: 991.98px) {
+    body.reports-page .nxl-content {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
     body.reports-page .page-header.page-header-with-middle .page-header-middle {
         max-width: 100% !important;
         flex-basis: 100%;
@@ -313,6 +318,130 @@ body.reports-page .card .table-hover > tbody > tr:hover > * {
 
     body.reports-page .page-header.page-header-with-middle .page-header-middle .page-header-statement {
         text-align: left;
+    }
+
+    body.reports-page .page-header.page-header-with-middle {
+        align-items: flex-start !important;
+        gap: 0.75rem;
+    }
+
+    body.reports-page .page-header-left {
+        min-width: 0;
+        flex-wrap: wrap;
+        row-gap: 0.35rem;
+    }
+
+    body.reports-page .breadcrumb {
+        flex-wrap: wrap;
+        row-gap: 0.25rem;
+    }
+
+    body.reports-page .report-filter-wrap,
+    body.reports-page .logs-filter-wrap,
+    body.reports-page .chatreports-filter-wrap,
+    body.reports-page .chatlogs-filter,
+    body.reports-page .attendance-exceptions-toolbar {
+        padding: 0.85rem !important;
+        border-radius: 12px !important;
+    }
+
+    body.reports-page .report-filter-wrap .btn,
+    body.reports-page .logs-filter-wrap .btn,
+    body.reports-page .chatreports-filter-wrap .btn,
+    body.reports-page .chatlogs-filter .btn,
+    body.reports-page .attendance-exceptions-toolbar .btn {
+        min-height: 42px;
+    }
+
+    body.reports-page .table-responsive {
+        border-radius: 12px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    body.reports-page .table {
+        min-width: 760px;
+    }
+
+    body.reports-page .chatreports-table-card .table,
+    body.reports-page .chatlogs-conversations .table {
+        min-width: 0;
+    }
+}
+
+@media (max-width: 575.98px) {
+    body.reports-page .nxl-content {
+        padding-left: 0.6rem;
+        padding-right: 0.6rem;
+    }
+
+    body.reports-page .main-content {
+        padding-top: 0.5rem;
+    }
+
+    body.reports-page .page-header.page-header-with-middle {
+        padding: 0.85rem 0.75rem !important;
+    }
+
+    body.reports-page .page-header-title h5 {
+        font-size: 0.95rem;
+        margin-bottom: 0 !important;
+    }
+
+    body.reports-page .page-header.page-header-with-middle .page-header-middle .page-header-statement {
+        font-size: 0.76rem;
+    }
+
+    body.reports-page .report-hero,
+    body.reports-page .logs-hero,
+    body.reports-page .chatreports-hero,
+    body.reports-page .attendance-exceptions-hero {
+        padding: 0.75rem !important;
+        gap: 0.5rem !important;
+    }
+
+    body.reports-page .report-kpi,
+    body.reports-page .logs-kpi,
+    body.reports-page .chatreports-kpi,
+    body.reports-page .chatlogs-kpi,
+    body.reports-page .attendance-exceptions-kpi {
+        min-height: auto !important;
+        padding: 0.75rem !important;
+    }
+
+    body.reports-page .report-filter-wrap .btn,
+    body.reports-page .logs-filter-wrap .btn,
+    body.reports-page .chatreports-filter-wrap .btn,
+    body.reports-page .chatlogs-filter .btn,
+    body.reports-page .attendance-exceptions-toolbar .btn,
+    body.reports-page .report-filter-wrap a.btn,
+    body.reports-page .logs-filter-wrap a.btn,
+    body.reports-page .chatreports-filter-wrap a.btn,
+    body.reports-page .chatlogs-filter a.btn,
+    body.reports-page .attendance-exceptions-toolbar a.btn {
+        width: 100%;
+    }
+
+    body.reports-page .logs-pagination,
+    body.reports-page .chatlogs-pagination {
+        align-items: stretch !important;
+    }
+
+    body.reports-page .logs-pagination > *,
+    body.reports-page .chatlogs-pagination > * {
+        width: 100%;
+    }
+
+    body.reports-page .pagination {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    body.reports-page .pagination .page-item {
+        flex: 1 1 0;
+    }
+
+    body.reports-page .pagination .page-link {
+        text-align: center;
     }
 }
 

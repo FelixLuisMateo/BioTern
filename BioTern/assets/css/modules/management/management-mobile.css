@@ -4,6 +4,11 @@
  */
 
 @media (max-width: 991px) {
+    body.management-page .nxl-content {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
     body.management-page .page-header {
         flex-wrap: wrap;
         gap: 0.75rem;
@@ -38,6 +43,19 @@
     body.management-page .filter-form .row {
         row-gap: 0.75rem;
     }
+
+    body.management-page .table-responsive {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    body.management-page .table {
+        min-width: 760px;
+    }
+
+    body.management-page .modal-dialog,
+    body.management-page .modal-content {
+        max-width: calc(100vw - 1.25rem);
+    }
 }
 
 @media (max-width: 767px) {
@@ -47,7 +65,7 @@
     }
 
     body.management-page .table-responsive {
-        border-radius: 0;
+        border-radius: 12px;
     }
 
     body.management-page .table > :not(caption) > * > * {
@@ -78,9 +96,29 @@
         width: 100% !important;
         min-width: 0;
     }
+
+    body.management-page .form-control,
+    body.management-page .form-select,
+    body.management-page .btn {
+        min-height: 42px;
+    }
 }
 
 @media (max-width: 575px) {
+    body.management-page .nxl-content {
+        padding-left: 0.6rem;
+        padding-right: 0.6rem;
+    }
+
+    body.management-page .page-header {
+        padding: 0.85rem 0.75rem !important;
+    }
+
+    body.management-page .page-header-title h5 {
+        font-size: 0.95rem;
+        margin-bottom: 0 !important;
+    }
+
     body.management-page .page-header-right .btn {
         width: 100%;
     }
@@ -89,5 +127,15 @@
     body.management-page .filter-form .btn-group,
     body.management-page .filter-form .input-group {
         width: 100%;
+    }
+
+    body.management-page .filter-form .row > [class*="col-"] {
+        width: 100%;
+    }
+
+    body.management-page .card-body,
+    body.management-page .card-header {
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
     }
 }
