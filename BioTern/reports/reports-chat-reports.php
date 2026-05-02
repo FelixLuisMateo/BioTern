@@ -526,6 +526,7 @@ include 'includes/header.php';
         <?php ob_start(); ?>
             <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
             <a href="reports-chat-logs.php" class="btn btn-outline-primary"><i class="feather-message-circle me-1"></i>Chat Logs</a>
+            <a href="reports-chat-penalties.php" class="btn btn-outline-primary"><i class="feather-slash me-1"></i>Chat Penalties</a>
             <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
         <?php
         biotern_render_page_header_actions([

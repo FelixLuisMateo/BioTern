@@ -218,7 +218,7 @@ $nav_active_settings = biotern_nav_any_active($nav_current_file, [
     'notifications.php', 'account-settings.php',
 ]);
 $nav_active_system_logs = biotern_nav_any_active($nav_current_file, [
-    'reports-admin-logs.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
+    'reports-admin-logs.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-chat-penalties.php',
 ]);
 $nav_active_student_settings = biotern_nav_any_active($nav_current_file, [
     'notifications.php', 'account-settings.php',
@@ -504,6 +504,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-login-logs.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-login-logs.php">Login Logs</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-chat-logs.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-chat-logs.php">Chat Logs</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-chat-reports.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-chat-reports.php">Reported Chats</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-chat-penalties.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-chat-penalties.php">Chat Penalties</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu<?php echo $nav_active_tools ? ' active nxl-trigger' : ''; ?>">

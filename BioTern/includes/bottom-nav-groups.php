@@ -166,7 +166,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'settings-general.php', 'settings-email.php', 'settings-ojt.php', 'settings-students.php',
                     'settings-support.php',
                     'theme-customizer.php', 'import-students-excel.php', 'import-sql.php',
-                    'reports-admin-logs.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
+                    'reports-admin-logs.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-chat-penalties.php',
                     'reports-import-errors.php', 'reports-dtr-manual-input.php',
                 ],
                 'sections' => [
@@ -199,6 +199,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Login Logs', 'href' => 'reports-login-logs.php', 'icon' => 'feather-log-in'],
                             ['label' => 'Chat Logs', 'href' => 'reports-chat-logs.php', 'icon' => 'feather-message-circle'],
                             ['label' => 'Reported Chats', 'href' => 'reports-chat-reports.php', 'icon' => 'feather-flag'],
+                            ['label' => 'Chat Penalties', 'href' => 'reports-chat-penalties.php', 'icon' => 'feather-slash'],
                         ],
                     ],
                     [
