@@ -223,7 +223,7 @@ include 'includes/header.php';
     </div>
 
     <div class="logs-filter-wrap">
-        <form method="get" class="row g-2 align-items-end">
+        <form method="get" class="row g-2 align-items-end admin-logs-auto-filter">
             <div class="col-sm-6 col-md-3">
                 <label class="form-label mb-1">Action</label>
                 <select class="form-select" name="action">
@@ -336,3 +336,29 @@ include 'includes/header.php';
 </div>
 </main>
 <?php include 'includes/footer.php'; ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var form = document.querySelector('.admin-logs-auto-filter');
+    if (!form) {
+        return;
+    }
+
+    var search = form.querySelector('input[name="search"]');
+    var timer = null;
+
+    form.querySelectorAll('select').forEach(function (select) {
+        select.addEventListener('change', function () {
+            form.requestSubmit();
+        });
+    });
+
+    if (search) {
+        search.addEventListener('input', function () {
+            window.clearTimeout(timer);
+            timer = window.setTimeout(function () {
+                form.requestSubmit();
+            }, 450);
+        });
+    }
+});
+</script>
