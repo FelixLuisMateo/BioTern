@@ -94,6 +94,12 @@ function biotern_two_factor_page_ensure_login_logs(mysqli $mysqli): bool
         'reason' => 'VARCHAR(100) NULL',
         'ip_address' => 'VARCHAR(45) NULL',
         'user_agent' => 'VARCHAR(255) NULL',
+        'device_latitude' => 'DECIMAL(10,7) NULL',
+        'device_longitude' => 'DECIMAL(10,7) NULL',
+        'device_accuracy' => 'DECIMAL(10,2) NULL',
+        'device_location_status' => 'VARCHAR(30) NULL',
+        'ip_location_label' => 'VARCHAR(255) NULL',
+        'ip_location_source' => 'VARCHAR(50) NULL',
         'created_at' => 'DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP',
     ];
 
@@ -111,13 +117,58 @@ function biotern_two_factor_page_ensure_login_logs(mysqli $mysqli): bool
     return true;
 }
 
+function biotern_two_factor_ip_location_label(string $ip): array
+{
+    $ip = trim($ip);
+    if ($ip === '' || filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+        return ['', ''];
+    }
+
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'timeout' => 1.5,
+            'ignore_errors' => true,
+            'header' => "Accept: application/json\r\n",
+        ],
+    ]);
+    $json = @file_get_contents('https://ipwho.is/' . rawurlencode($ip) . '?fields=success,city,region,country,latitude,longitude', false, $context);
+    if (!is_string($json) || $json === '') {
+        return ['', ''];
+    }
+
+    $data = json_decode($json, true);
+    if (!is_array($data) || empty($data['success'])) {
+        return ['', ''];
+    }
+
+    $parts = [];
+    foreach (['city', 'region', 'country'] as $key) {
+        $value = trim((string)($data[$key] ?? ''));
+        if ($value !== '' && !in_array($value, $parts, true)) {
+            $parts[] = $value;
+        }
+    }
+
+    $label = implode(', ', $parts);
+    $lat = isset($data['latitude']) && is_numeric($data['latitude']) ? number_format((float)$data['latitude'], 5, '.', '') : '';
+    $lng = isset($data['longitude']) && is_numeric($data['longitude']) ? number_format((float)$data['longitude'], 5, '.', '') : '';
+    if ($label === '' && $lat !== '' && $lng !== '') {
+        $label = $lat . ', ' . $lng;
+    }
+
+    return [substr($label, 0, 255), $label !== '' ? 'ipwho.is' : ''];
+}
+
 function biotern_two_factor_page_log_attempt(mysqli $mysqli, int $userId, string $identifier, string $role, string $status, string $reason): void
 {
     if (!biotern_two_factor_page_ensure_login_logs($mysqli)) {
         return;
     }
 
-    $stmt = $mysqli->prepare('INSERT INTO login_logs (user_id, identifier, role, status, reason, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())');
+    $ip = substr(biotern_two_factor_client_ip(), 0, 45);
+    [$ipLocationLabel, $ipLocationSource] = biotern_two_factor_ip_location_label($ip);
+    $stmt = $mysqli->prepare('INSERT INTO login_logs (user_id, identifier, role, status, reason, ip_address, user_agent, device_location_status, ip_location_label, ip_location_source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())');
     if (!$stmt) {
         return;
     }
@@ -127,10 +178,10 @@ function biotern_two_factor_page_log_attempt(mysqli $mysqli, int $userId, string
     $role = substr($role, 0, 50);
     $status = substr($status, 0, 20);
     $reason = substr($reason, 0, 100);
-    $ip = substr(biotern_two_factor_client_ip(), 0, 45);
     $userAgent = substr(biotern_two_factor_user_agent(), 0, 255);
+    $deviceLocationStatus = 'not_requested';
 
-    $stmt->bind_param('issssss', $uid, $identifier, $role, $status, $reason, $ip, $userAgent);
+    $stmt->bind_param('isssssssss', $uid, $identifier, $role, $status, $reason, $ip, $userAgent, $deviceLocationStatus, $ipLocationLabel, $ipLocationSource);
     $stmt->execute();
     $stmt->close();
 }

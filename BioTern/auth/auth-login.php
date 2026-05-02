@@ -67,6 +67,98 @@ if (isset($_GET['verify_sent']) && (string)$_GET['verify_sent'] === '1') {
     $login_notice = 'We sent a verification email to your inbox. Please click the button there before logging in.';
 }
 
+function biotern_login_posted_location(): array
+{
+    $latRaw = trim((string)($_POST['device_latitude'] ?? ''));
+    $lngRaw = trim((string)($_POST['device_longitude'] ?? ''));
+    $accuracyRaw = trim((string)($_POST['device_accuracy'] ?? ''));
+    $status = substr(trim((string)($_POST['device_location_status'] ?? 'not_requested')), 0, 30);
+
+    $lat = is_numeric($latRaw) ? (float)$latRaw : null;
+    $lng = is_numeric($lngRaw) ? (float)$lngRaw : null;
+    $accuracy = is_numeric($accuracyRaw) ? max(0, (float)$accuracyRaw) : null;
+
+    if ($lat === null || $lng === null || $lat < -90 || $lat > 90 || $lng < -180 || $lng > 180) {
+        $lat = null;
+        $lng = null;
+        $accuracy = null;
+    }
+
+    if ($status === '') {
+        $status = ($lat !== null && $lng !== null) ? 'captured' : 'not_available';
+    }
+
+    return [$lat, $lng, $accuracy, $status];
+}
+
+function biotern_login_posted_ip_location(): array
+{
+    $label = trim((string)($_POST['ip_location_label'] ?? ''));
+    $source = trim((string)($_POST['ip_location_source'] ?? ''));
+
+    if ($label !== '') {
+        if (function_exists('mb_substr')) {
+            $label = mb_substr($label, 0, 255, 'UTF-8');
+        } else {
+            $label = substr($label, 0, 255);
+        }
+    }
+
+    if ($source !== '') {
+        if (function_exists('mb_substr')) {
+            $source = mb_substr($source, 0, 50, 'UTF-8');
+        } else {
+            $source = substr($source, 0, 50);
+        }
+    }
+
+    return [$label, $source];
+}
+
+function biotern_login_ip_location_label(string $ip): array
+{
+    $ip = trim($ip);
+    if ($ip === '' || filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+        return ['', ''];
+    }
+
+    $url = 'https://ipwho.is/' . rawurlencode($ip) . '?fields=success,city,region,country,latitude,longitude';
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'timeout' => 1.5,
+            'ignore_errors' => true,
+            'header' => "Accept: application/json\r\n",
+        ],
+    ]);
+    $json = @file_get_contents($url, false, $context);
+    if (!is_string($json) || $json === '') {
+        return ['', ''];
+    }
+
+    $data = json_decode($json, true);
+    if (!is_array($data) || empty($data['success'])) {
+        return ['', ''];
+    }
+
+    $parts = [];
+    foreach (['city', 'region', 'country'] as $key) {
+        $value = trim((string)($data[$key] ?? ''));
+        if ($value !== '' && !in_array($value, $parts, true)) {
+            $parts[] = $value;
+        }
+    }
+
+    $label = implode(', ', $parts);
+    $lat = isset($data['latitude']) && is_numeric($data['latitude']) ? number_format((float)$data['latitude'], 5, '.', '') : '';
+    $lng = isset($data['longitude']) && is_numeric($data['longitude']) ? number_format((float)$data['longitude'], 5, '.', '') : '';
+    if ($label === '' && $lat !== '' && $lng !== '') {
+        $label = $lat . ', ' . $lng;
+    }
+
+    return [substr($label, 0, 255), $label !== '' ? 'ipwho.is' : ''];
+}
+
 function log_login_attempt($mysqli, $userId, $identifier, $role, $status, $reason, $ip, $userAgent)
 {
     if (!$mysqli) {
@@ -77,7 +169,12 @@ function log_login_attempt($mysqli, $userId, $identifier, $role, $status, $reaso
         return;
     }
 
-    $stmt = $mysqli->prepare("INSERT INTO login_logs (user_id, identifier, role, status, reason, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
+    [$deviceLatitude, $deviceLongitude, $deviceAccuracy, $deviceLocationStatus] = biotern_login_posted_location();
+    [$ipLocationLabel, $ipLocationSource] = biotern_login_posted_ip_location();
+    if ($ipLocationLabel === '') {
+        [$ipLocationLabel, $ipLocationSource] = biotern_login_ip_location_label((string)$ip);
+    }
+    $stmt = $mysqli->prepare("INSERT INTO login_logs (user_id, identifier, role, status, reason, ip_address, user_agent, device_latitude, device_longitude, device_accuracy, device_location_status, ip_location_label, ip_location_source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
     if (!$stmt) {
         return;
     }
@@ -89,7 +186,7 @@ function log_login_attempt($mysqli, $userId, $identifier, $role, $status, $reaso
     $reason = substr((string)$reason, 0, 100);
     $ip = substr((string)$ip, 0, 45);
     $userAgent = substr((string)$userAgent, 0, 255);
-    $stmt->bind_param('issssss', $uid, $identifier, $role, $status, $reason, $ip, $userAgent);
+    $stmt->bind_param('issssssdddsss', $uid, $identifier, $role, $status, $reason, $ip, $userAgent, $deviceLatitude, $deviceLongitude, $deviceAccuracy, $deviceLocationStatus, $ipLocationLabel, $ipLocationSource);
     $stmt->execute();
     $stmt->close();
 }
@@ -134,6 +231,12 @@ function ensure_login_logs_schema(mysqli $mysqli): bool
         'reason' => "VARCHAR(100) NULL",
         'ip_address' => "VARCHAR(45) NULL",
         'user_agent' => "VARCHAR(255) NULL",
+        'device_latitude' => "DECIMAL(10,7) NULL",
+        'device_longitude' => "DECIMAL(10,7) NULL",
+        'device_accuracy' => "DECIMAL(10,2) NULL",
+        'device_location_status' => "VARCHAR(30) NULL",
+        'ip_location_label' => "VARCHAR(255) NULL",
+        'ip_location_source' => "VARCHAR(50) NULL",
         'created_at' => "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
     ];
 
@@ -527,6 +630,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <form id="authLoginForm" action="<?php echo htmlspecialchars($route_prefix . 'auth/auth-login.php', ENT_QUOTES, 'UTF-8'); ?>" method="post" class="w-100 mt-4 pt-2" novalidate>
                         <input type="hidden" name="next" value="<?php echo htmlspecialchars($next, ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="device_latitude" id="deviceLatitude" value="">
+                        <input type="hidden" name="device_longitude" id="deviceLongitude" value="">
+                        <input type="hidden" name="device_accuracy" id="deviceAccuracy" value="">
+                        <input type="hidden" name="device_location_status" id="deviceLocationStatus" value="not_requested">
+                        <input type="hidden" name="ip_location_label" id="ipLocationLabel" value="">
+                        <input type="hidden" name="ip_location_source" id="ipLocationSource" value="">
                         <?php if ($login_error !== ''): ?>
                         <div class="app-theme-notify-inline app-theme-notify-inline--error auth-login-form-error" role="alert" aria-live="assertive">
                             <?php echo htmlspecialchars((string)$login_error, ENT_QUOTES, 'UTF-8'); ?>

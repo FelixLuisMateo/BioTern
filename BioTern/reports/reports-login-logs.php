@@ -54,6 +54,12 @@ $requiredLoginLogColumns = [
     'reason' => "VARCHAR(100) NULL",
     'ip_address' => "VARCHAR(45) NULL",
     'user_agent' => "VARCHAR(255) NULL",
+    'device_latitude' => "DECIMAL(10,7) NULL",
+    'device_longitude' => "DECIMAL(10,7) NULL",
+    'device_accuracy' => "DECIMAL(10,2) NULL",
+    'device_location_status' => "VARCHAR(30) NULL",
+    'ip_location_label' => "VARCHAR(255) NULL",
+    'ip_location_source' => "VARCHAR(50) NULL",
     'created_at' => "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
 ];
 
@@ -143,8 +149,42 @@ function formatDisplayDeviceLocation($rawIp): string
     return 'Public IP location not captured';
 }
 
+function formatDisplayDeviceLocationFromRow(array $row): string
+{
+    $lat = trim((string)($row['device_latitude'] ?? ''));
+    $lng = trim((string)($row['device_longitude'] ?? ''));
+    $accuracy = trim((string)($row['device_accuracy'] ?? ''));
+    $status = strtolower(trim((string)($row['device_location_status'] ?? '')));
+
+    if ($lat !== '' && $lng !== '' && is_numeric($lat) && is_numeric($lng)) {
+        $label = number_format((float)$lat, 5, '.', '') . ', ' . number_format((float)$lng, 5, '.', '');
+        if ($accuracy !== '' && is_numeric($accuracy)) {
+            $label .= ' (+/- ' . number_format((float)$accuracy, 0) . 'm)';
+        }
+        return $label;
+    }
+
+    if ($status === 'denied') {
+        return 'Location permission denied';
+    }
+    if (in_array($status, ['unsupported', 'insecure_context', 'unavailable', 'timeout', 'error'], true)) {
+        $ipLocation = trim((string)($row['ip_location_label'] ?? ''));
+        if ($ipLocation !== '') {
+            return $ipLocation . ' (IP based)';
+        }
+        return 'Location not available';
+    }
+
+    $ipLocation = trim((string)($row['ip_location_label'] ?? ''));
+    if ($ipLocation !== '') {
+        return $ipLocation . ' (IP based)';
+    }
+
+    return formatDisplayDeviceLocation($row['ip_address'] ?? '');
+}
+
 $sql = "
-    SELECT l.id, l.user_id, l.identifier, l.role, l.status, l.reason, l.ip_address, l.created_at,
+    SELECT l.id, l.user_id, l.identifier, l.role, l.status, l.reason, l.ip_address, l.device_latitude, l.device_longitude, l.device_accuracy, l.device_location_status, l.ip_location_label, l.ip_location_source, l.created_at,
            u.username, u.email
     FROM login_logs l
     LEFT JOIN users u ON u.id = l.user_id
@@ -305,7 +345,7 @@ include 'includes/header.php';
                                             <td class="text-nowrap"><span class="logs-pill bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?> text-capitalize"><?php echo htmlspecialchars((string)($row['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
                                             <td><?php echo htmlspecialchars((string)($row['reason'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td class="text-nowrap"><?php echo htmlspecialchars(formatDisplayIpAddress($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td><span class="logs-address" title="<?php echo htmlspecialchars(formatDisplayDeviceLocation($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(formatDisplayDeviceLocation($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                            <td><span class="logs-address" title="<?php echo htmlspecialchars(formatDisplayDeviceLocationFromRow($row), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(formatDisplayDeviceLocationFromRow($row), ENT_QUOTES, 'UTF-8'); ?></span></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>

@@ -117,6 +117,75 @@ document.addEventListener("DOMContentLoaded", function () {
     return;
   }
 
+  var locationStatus = document.getElementById("deviceLocationStatus");
+  var locationLat = document.getElementById("deviceLatitude");
+  var locationLng = document.getElementById("deviceLongitude");
+  var locationAccuracy = document.getElementById("deviceAccuracy");
+  var ipLocationLabel = document.getElementById("ipLocationLabel");
+  var ipLocationSource = document.getElementById("ipLocationSource");
+
+  if (ipLocationLabel && ipLocationSource && window.fetch) {
+    fetch("https://ipwho.is/?fields=success,city,region,country", {
+      method: "GET",
+      cache: "no-store",
+    })
+      .then(function (response) {
+        return response && response.ok ? response.json() : null;
+      })
+      .then(function (data) {
+        if (!data || !data.success) {
+          return;
+        }
+
+        var parts = [data.city, data.region, data.country].filter(function (value, index, array) {
+          value = String(value || "").trim();
+          return value !== "" && array.indexOf(value) === index;
+        });
+
+        if (parts.length) {
+          ipLocationLabel.value = parts.join(", ");
+          ipLocationSource.value = "ipwho.is-browser";
+        }
+      })
+      .catch(function () {});
+  }
+
+  if (locationStatus && locationLat && locationLng && locationAccuracy) {
+    if (!navigator.geolocation) {
+      locationStatus.value = "unsupported";
+    } else if (window.isSecureContext === false) {
+      locationStatus.value = "insecure_context";
+    } else {
+      locationStatus.value = "requesting";
+      navigator.geolocation.getCurrentPosition(
+        function (position) {
+          var coords = position.coords || {};
+          locationLat.value = typeof coords.latitude === "number" ? coords.latitude.toFixed(7) : "";
+          locationLng.value = typeof coords.longitude === "number" ? coords.longitude.toFixed(7) : "";
+          locationAccuracy.value = typeof coords.accuracy === "number" ? coords.accuracy.toFixed(2) : "";
+          locationStatus.value = locationLat.value && locationLng.value ? "captured" : "not_available";
+        },
+        function (error) {
+          var code = error && typeof error.code === "number" ? error.code : 0;
+          if (code === 1) {
+            locationStatus.value = "denied";
+          } else if (code === 2) {
+            locationStatus.value = "unavailable";
+          } else if (code === 3) {
+            locationStatus.value = "timeout";
+          } else {
+            locationStatus.value = "error";
+          }
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 5000,
+          maximumAge: 300000,
+        }
+      );
+    }
+  }
+
   var requiredFields = Array.prototype.slice.call(
     form.querySelectorAll("input[required], select[required], textarea[required]")
   );
