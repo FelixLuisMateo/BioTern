@@ -76,13 +76,13 @@ $dateTo = trim((string)($_GET['to'] ?? date('Y-m-d')));
 $search = trim((string)($_GET['search'] ?? ''));
 $export = strtolower(trim((string)($_GET['export'] ?? '')));
 $isExportCsv = ($export === 'csv');
-$limit = (int)($_GET['limit'] ?? 25);
+$limit = (int)($_GET['limit'] ?? 10);
 if ($limit <= 0) {
-    $limit = 25;
+    $limit = 10;
 }
-$allowedLimits = [25, 50, 100, 200];
+$allowedLimits = [10, 25, 50, 100];
 if (!in_array($limit, $allowedLimits, true)) {
-    $limit = 25;
+    $limit = 10;
 }
 
 $page = (int)($_GET['page'] ?? 1);

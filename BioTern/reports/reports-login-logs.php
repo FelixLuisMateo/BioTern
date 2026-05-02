@@ -71,6 +71,12 @@ $status = strtolower(trim((string)($_GET['status'] ?? 'all')));
 if (!in_array($status, ['all', 'success', 'failed'], true)) {
     $status = 'all';
 }
+$page = (int)($_GET['page'] ?? 1);
+if ($page <= 0) {
+    $page = 1;
+}
+$limit = 10;
+$offset = ($page - 1) * $limit;
 
 function formatDisplayDateTime($rawValue)
 {
@@ -254,10 +260,25 @@ $sql = "
     FROM login_logs l
     LEFT JOIN users u ON u.id = l.user_id
 ";
+$countSql = "SELECT COUNT(*) AS total_records FROM login_logs l";
 if ($status !== 'all') {
-    $sql .= " WHERE LOWER(TRIM(l.status)) = '" . $conn->real_escape_string($status) . "'";
+    $statusWhere = " WHERE LOWER(TRIM(l.status)) = '" . $conn->real_escape_string($status) . "'";
+    $sql .= $statusWhere;
+    $countSql .= $statusWhere;
 }
-$sql .= " ORDER BY l.created_at DESC, l.id DESC LIMIT 500";
+$totalRecords = 0;
+$countResult = $conn->query($countSql);
+if ($countResult instanceof mysqli_result) {
+    $countRow = $countResult->fetch_assoc();
+    $totalRecords = (int)($countRow['total_records'] ?? 0);
+    $countResult->free();
+}
+$totalPages = max(1, (int)ceil($totalRecords / $limit));
+if ($page > $totalPages) {
+    $page = $totalPages;
+    $offset = ($page - 1) * $limit;
+}
+$sql .= " ORDER BY l.created_at DESC, l.id DESC LIMIT {$limit} OFFSET {$offset}";
 $resultRows = $conn->query($sql);
 $rows = [];
 if ($resultRows instanceof mysqli_result) {
@@ -266,6 +287,12 @@ if ($resultRows instanceof mysqli_result) {
         $rows[] = $row;
     }
 }
+$queryBase = [];
+if ($status !== 'all') {
+    $queryBase['status'] = $status;
+}
+$prevUrl = 'reports-login-logs.php?' . http_build_query(array_merge($queryBase, ['page' => max(1, $page - 1)]));
+$nextUrl = 'reports-login-logs.php?' . http_build_query(array_merge($queryBase, ['page' => min($totalPages, $page + 1)]));
 
 $summary = [
     'all' => 0,
@@ -321,7 +348,10 @@ include 'includes/header.php';
     <div class="logs-hero d-flex flex-wrap align-items-center justify-content-between gap-3">
         <span class="logs-pill bg-soft-primary text-primary">
             <i class="feather feather-clock"></i>
-            Last 500 events
+            <?php echo number_format($totalRecords); ?> events found
+        </span>
+        <span class="logs-pill bg-soft-info text-info">
+            Page <?php echo (int)$page; ?> of <?php echo (int)$totalPages; ?>
         </span>
     </div>
 
@@ -349,6 +379,7 @@ include 'includes/header.php';
                             <option value="success" <?php echo $status === 'success' ? 'selected' : ''; ?>>Success</option>
                             <option value="failed" <?php echo $status === 'failed' ? 'selected' : ''; ?>>Failed</option>
                         </select>
+                        <input type="hidden" name="page" value="1">
                     </div>
                     <div class="col-auto">
                         <a href="reports-login-logs.php" class="btn btn-outline-secondary">Reset</a>
@@ -395,6 +426,23 @@ include 'includes/header.php';
                             </tbody>
                     </table>
                 </div>
+            </div>
+
+            <div class="logs-pagination d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div class="text-muted small">
+                    Showing page <?php echo (int)$page; ?> of <?php echo (int)$totalPages; ?>
+                    (<?php echo number_format($totalRecords); ?> total records, 10 per page)
+                </div>
+                <nav aria-label="Login logs pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="<?php echo htmlspecialchars($prevUrl, ENT_QUOTES, 'UTF-8'); ?>">Prev</a>
+                        </li>
+                        <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="<?php echo htmlspecialchars($nextUrl, ENT_QUOTES, 'UTF-8'); ?>">Next</a>
+                        </li>
+                    </ul>
+                </nav>
             </div>
     </div>
 </div> <!-- .nxl-content -->
