@@ -91,6 +91,30 @@ function biotern_login_posted_location(): array
     return [$lat, $lng, $accuracy, $status];
 }
 
+function biotern_login_posted_ip_location(): array
+{
+    $label = trim((string)($_POST['ip_location_label'] ?? ''));
+    $source = trim((string)($_POST['ip_location_source'] ?? ''));
+
+    if ($label !== '') {
+        if (function_exists('mb_substr')) {
+            $label = mb_substr($label, 0, 255, 'UTF-8');
+        } else {
+            $label = substr($label, 0, 255);
+        }
+    }
+
+    if ($source !== '') {
+        if (function_exists('mb_substr')) {
+            $source = mb_substr($source, 0, 50, 'UTF-8');
+        } else {
+            $source = substr($source, 0, 50);
+        }
+    }
+
+    return [$label, $source];
+}
+
 function biotern_login_ip_location_label(string $ip): array
 {
     $ip = trim($ip);
@@ -146,7 +170,10 @@ function log_login_attempt($mysqli, $userId, $identifier, $role, $status, $reaso
     }
 
     [$deviceLatitude, $deviceLongitude, $deviceAccuracy, $deviceLocationStatus] = biotern_login_posted_location();
-    [$ipLocationLabel, $ipLocationSource] = biotern_login_ip_location_label((string)$ip);
+    [$ipLocationLabel, $ipLocationSource] = biotern_login_posted_ip_location();
+    if ($ipLocationLabel === '') {
+        [$ipLocationLabel, $ipLocationSource] = biotern_login_ip_location_label((string)$ip);
+    }
     $stmt = $mysqli->prepare("INSERT INTO login_logs (user_id, identifier, role, status, reason, ip_address, user_agent, device_latitude, device_longitude, device_accuracy, device_location_status, ip_location_label, ip_location_source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())");
     if (!$stmt) {
         return;
@@ -607,6 +634,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="hidden" name="device_longitude" id="deviceLongitude" value="">
                         <input type="hidden" name="device_accuracy" id="deviceAccuracy" value="">
                         <input type="hidden" name="device_location_status" id="deviceLocationStatus" value="not_requested">
+                        <input type="hidden" name="ip_location_label" id="ipLocationLabel" value="">
+                        <input type="hidden" name="ip_location_source" id="ipLocationSource" value="">
                         <?php if ($login_error !== ''): ?>
                         <div class="app-theme-notify-inline app-theme-notify-inline--error auth-login-form-error" role="alert" aria-live="assertive">
                             <?php echo htmlspecialchars((string)$login_error, ENT_QUOTES, 'UTF-8'); ?>

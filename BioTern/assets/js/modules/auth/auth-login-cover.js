@@ -121,6 +121,34 @@ document.addEventListener("DOMContentLoaded", function () {
   var locationLat = document.getElementById("deviceLatitude");
   var locationLng = document.getElementById("deviceLongitude");
   var locationAccuracy = document.getElementById("deviceAccuracy");
+  var ipLocationLabel = document.getElementById("ipLocationLabel");
+  var ipLocationSource = document.getElementById("ipLocationSource");
+
+  if (ipLocationLabel && ipLocationSource && window.fetch) {
+    fetch("https://ipwho.is/?fields=success,city,region,country", {
+      method: "GET",
+      cache: "no-store",
+    })
+      .then(function (response) {
+        return response && response.ok ? response.json() : null;
+      })
+      .then(function (data) {
+        if (!data || !data.success) {
+          return;
+        }
+
+        var parts = [data.city, data.region, data.country].filter(function (value, index, array) {
+          value = String(value || "").trim();
+          return value !== "" && array.indexOf(value) === index;
+        });
+
+        if (parts.length) {
+          ipLocationLabel.value = parts.join(", ");
+          ipLocationSource.value = "ipwho.is-browser";
+        }
+      })
+      .catch(function () {});
+  }
 
   if (locationStatus && locationLat && locationLng && locationAccuracy) {
     if (!navigator.geolocation) {
