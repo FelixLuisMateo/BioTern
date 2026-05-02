@@ -188,8 +188,8 @@ include __DIR__ . '/../includes/header.php';
                 .parent-consent-builder-page #editor .a4-page {
                     padding: 0.36in 0.55in 0.55in;
                     font-family: Arial, Helvetica, sans-serif !important;
-                    font-size: 11px;
-                    line-height: 1.28;
+                    font-size: 12px;
+                    line-height: 1.34;
                     color: #111827;
                 }
 
@@ -230,7 +230,7 @@ include __DIR__ . '/../includes/header.php';
 
                 .parent-consent-builder-page #editor .parent-consent-title {
                     text-align: center;
-                    font-size: 11px;
+                    font-size: 12px;
                     margin: 0 0 24px;
                     font-weight: 700;
                     text-transform: uppercase;
@@ -238,8 +238,8 @@ include __DIR__ . '/../includes/header.php';
 
                 .parent-consent-builder-page #editor .parent-consent-content p {
                     margin: 0 0 10px;
-                    font-size: 11px !important;
-                    line-height: 1.28 !important;
+                    font-size: 12px !important;
+                    line-height: 1.34 !important;
                     color: #111827 !important;
                 }
 
@@ -271,9 +271,8 @@ include __DIR__ . '/../includes/header.php';
                 .parent-consent-builder-page #editor .parent-consent-sign-name {
                     display: block;
                     min-height: 15px;
-                    margin-top: -18px;
-                    margin-bottom: 3px;
-                    font-size: 11px;
+                    margin: 0 0 6px;
+                    font-size: 12px;
                     font-weight: 700;
                     text-align: center;
                     line-height: 1.1;
@@ -515,7 +514,7 @@ include __DIR__ . '/../includes/header.php';
 
                                                     <p>
                                                         I understand that participation in OJT involves certain risks, including possible accidents, injuries, or health-related concerns. I voluntarily allow my
-                                                        <strong>son/daughter</strong> to undergo OJT and <strong>agree not to hold Clark College of Science and Technology, its administrators, faculty, advisers,
+                                                        son/daughter to undergo OJT and <strong>agree not to hold Clark College of Science and Technology, its administrators, faculty, advisers,
                                                         and staff, as well as the host/partner company, liable for any accident or incident.</strong>
                                                     </p>
 
@@ -526,7 +525,7 @@ include __DIR__ . '/../includes/header.php';
 
                                                     <p>
                                                         With this, I express my trust that reasonable safety measures and precautions will be observed for the welfare of my
-                                                        <strong>son/daughter</strong> throughout the duration of the OJT.
+                                                        son/daughter throughout the duration of the OJT.
                                                     </p>
 
                                                     <p>
@@ -534,18 +533,23 @@ include __DIR__ . '/../includes/header.php';
                                                     </p>
 
                                                     <div class="parent-consent-sign-student">
+                                                        <span class="parent-consent-sign-name" id="pcStudentSignature"><?php echo parent_consent_h($studentName); ?></span>
                                                         <div class="parent-consent-sign-line">
-                                                            <span class="parent-consent-sign-name" id="pcStudentSignature"><?php echo parent_consent_h($studentName); ?></span>
                                                             <strong class="parent-consent-sign-label">Signature over Printed Name of Student</strong>
                                                         </div>
                                                     </div>
 
                                                     <div class="parent-consent-sign-grid">
-                                                        <div class="parent-consent-sign-line">
+                                                        <div>
                                                             <span class="parent-consent-sign-name" id="pcParentSignature"><?php echo parent_consent_h($parentLine); ?></span>
-                                                            <strong class="parent-consent-sign-label">Signature over Printed Name of Parent/Guardian</strong>
+                                                            <div class="parent-consent-sign-line">
+                                                                <strong class="parent-consent-sign-label">Signature over Printed Name of Parent/Guardian</strong>
+                                                            </div>
                                                         </div>
-                                                        <div class="parent-consent-sign-date">Date</div>
+                                                        <div>
+                                                            <span class="parent-consent-sign-name" id="pcDateSignature"><?php echo parent_consent_h($printDate); ?></span>
+                                                            <div class="parent-consent-sign-date">Date</div>
+                                                        </div>
                                                     </div>
                                                 </section>
                                             </div>
@@ -567,9 +571,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var parentInput = document.getElementById('parent_name');
     var companyInput = document.getElementById('company_name');
     var companySearchInput = document.getElementById('company_search');
+    var dateInput = document.getElementById('date');
     var studentPreview = document.getElementById('pcStudent');
     var studentSignature = document.getElementById('pcStudentSignature');
     var parentSignature = document.getElementById('pcParentSignature');
+    var dateSignature = document.getElementById('pcDateSignature');
     var companyClause = document.getElementById('pcCompanyClause');
     var endpoint = new URL('document_parent_consent.php', window.location.href).href;
 
@@ -584,13 +590,16 @@ document.addEventListener('DOMContentLoaded', function () {
         if (parentSignature && parentInput) {
             parentSignature.textContent = parentInput.value.trim();
         }
+        if (dateSignature && dateInput) {
+            dateSignature.textContent = dateInput.value.trim();
+        }
         if (companyClause && companyInput) {
             var company = companyInput.value.trim();
             companyClause.textContent = company ? ' (' + company + ')' : '';
         }
     }
 
-    [studentInput, parentInput, companyInput].forEach(function (input) {
+    [studentInput, parentInput, companyInput, dateInput].forEach(function (input) {
         if (input) {
             input.addEventListener('input', syncPreview);
         }
