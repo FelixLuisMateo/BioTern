@@ -83,6 +83,14 @@ body.login-logs-page .logs-pagination .page-link {
     color: var(--report-text);
 }
 
+body.login-logs-page .logs-pagination .logs-page-jump,
+body.admin-logs-page .logs-pagination .logs-page-jump {
+    min-width: 120px;
+    background: var(--report-surface-soft) !important;
+    border-color: var(--report-border) !important;
+    color: var(--report-text) !important;
+}
+
 body.login-logs-page .logs-pagination .page-link:hover {
     background: var(--report-hover);
     color: var(--report-text);

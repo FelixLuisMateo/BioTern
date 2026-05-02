@@ -48,7 +48,7 @@ document.addEventListener('click', function (event) {
 });
 
 document.addEventListener('change', function (event) {
-    var pageJump = event.target.closest('#pageJump');
+    var pageJump = event.target.closest('#pageJump, .chatlogs-page-jump');
     if (!pageJump || pageJump.tagName !== 'SELECT') {
         return;
     }

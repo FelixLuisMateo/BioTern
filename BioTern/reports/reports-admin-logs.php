@@ -91,6 +91,12 @@ if (!in_array($action, $allowedActions, true)) {
 
 $adminId = (int)($_GET['admin_id'] ?? 0);
 $search = trim((string)($_GET['search'] ?? ''));
+$page = (int)($_GET['page'] ?? 1);
+if ($page <= 0) {
+    $page = 1;
+}
+$limit = 10;
+$offset = ($page - 1) * $limit;
 
 $where = [];
 $types = '';
@@ -121,13 +127,33 @@ if ($search !== '') {
 
 $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
 
+$totalRecords = 0;
+$countSql = 'SELECT COUNT(*) AS total_records FROM admin_activity_logs' . $whereSql;
+$countStmt = $conn->prepare($countSql);
+if ($countStmt) {
+    if ($types !== '') {
+        $countStmt->bind_param($types, ...$params);
+    }
+    $countStmt->execute();
+    $countRow = $countStmt->get_result()->fetch_assoc();
+    $countStmt->close();
+    $totalRecords = (int)($countRow['total_records'] ?? 0);
+}
+$totalPages = max(1, (int)ceil($totalRecords / $limit));
+if ($page > $totalPages) {
+    $page = $totalPages;
+    $offset = ($page - 1) * $limit;
+}
+
 $logs = [];
-$sql = 'SELECT * FROM admin_activity_logs' . $whereSql . ' ORDER BY created_at DESC, id DESC LIMIT 500';
+$sql = 'SELECT * FROM admin_activity_logs' . $whereSql . ' ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?';
 $stmt = $conn->prepare($sql);
 if ($stmt) {
-    if ($types !== '') {
-        $stmt->bind_param($types, ...$params);
-    }
+    $listTypes = $types . 'ii';
+    $listParams = $params;
+    $listParams[] = $limit;
+    $listParams[] = $offset;
+    $stmt->bind_param($listTypes, ...$listParams);
     $stmt->execute();
     $res = $stmt->get_result();
     while ($row = $res->fetch_assoc()) {
@@ -166,6 +192,19 @@ if ($adminRes instanceof mysqli_result) {
     }
 }
 
+$queryBase = [];
+if ($action !== 'all') {
+    $queryBase['action'] = $action;
+}
+if ($adminId > 0) {
+    $queryBase['admin_id'] = $adminId;
+}
+if ($search !== '') {
+    $queryBase['search'] = $search;
+}
+$prevUrl = 'reports-admin-logs.php?' . http_build_query(array_merge($queryBase, ['page' => max(1, $page - 1)]));
+$nextUrl = 'reports-admin-logs.php?' . http_build_query(array_merge($queryBase, ['page' => min($totalPages, $page + 1)]));
+
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page admin-logs-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-login-logs-page.css', 'assets/css/modules/reports/reports-shell.css', 'assets/css/modules/reports/reports-admin-logs-page.css']);
 $page_title = 'BioTern || Admin Logs';
@@ -203,7 +242,10 @@ include 'includes/header.php';
     <div class="logs-hero d-flex flex-wrap align-items-center justify-content-between gap-3">
         <span class="logs-pill bg-soft-primary text-primary">
             <i class="feather feather-shield"></i>
-            Last 500 admin events
+            <?php echo number_format($totalRecords); ?> admin events found
+        </span>
+        <span class="logs-pill bg-soft-info text-info">
+            Page <?php echo (int)$page; ?> of <?php echo (int)$totalPages; ?>
         </span>
     </div>
 
@@ -234,6 +276,7 @@ include 'includes/header.php';
                     <option value="import" <?php echo $action === 'import' ? 'selected' : ''; ?>>Import</option>
                     <option value="export" <?php echo $action === 'export' ? 'selected' : ''; ?>>Export</option>
                 </select>
+                <input type="hidden" name="page" value="1">
             </div>
             <div class="col-sm-6 col-md-3">
                 <label class="form-label mb-1">Admin</label>
@@ -327,6 +370,44 @@ include 'includes/header.php';
             </table>
         </div>
     </div>
+
+    <div class="logs-pagination d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="text-muted small">
+            Showing page <?php echo (int)$page; ?> of <?php echo (int)$totalPages; ?>
+            (<?php echo number_format($totalRecords); ?> total records, 10 per page)
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <form method="get" class="d-flex align-items-center gap-2 mb-0">
+                <?php if ($action !== 'all'): ?>
+                    <input type="hidden" name="action" value="<?php echo htmlspecialchars($action, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php endif; ?>
+                <?php if ($adminId > 0): ?>
+                    <input type="hidden" name="admin_id" value="<?php echo (int)$adminId; ?>">
+                <?php endif; ?>
+                <?php if ($search !== ''): ?>
+                    <input type="hidden" name="search" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php endif; ?>
+                <label for="adminLogsPageJump" class="small text-muted mb-0">Go to page</label>
+                <select id="adminLogsPageJump" name="page" class="form-select form-select-sm logs-page-jump">
+                    <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                        <option value="<?php echo (int)$p; ?>" <?php echo $p === $page ? 'selected' : ''; ?>>
+                            Page <?php echo (int)$p; ?>
+                        </option>
+                    <?php endfor; ?>
+                </select>
+            </form>
+            <nav aria-label="Admin logs pagination">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                        <a class="page-link" href="<?php echo htmlspecialchars($prevUrl, ENT_QUOTES, 'UTF-8'); ?>">Prev</a>
+                    </li>
+                    <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                        <a class="page-link" href="<?php echo htmlspecialchars($nextUrl, ENT_QUOTES, 'UTF-8'); ?>">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
 </div>
 </div>
 </main>
@@ -353,6 +434,15 @@ document.addEventListener('DOMContentLoaded', function () {
             timer = window.setTimeout(function () {
                 form.requestSubmit();
             }, 450);
+        });
+    }
+
+    var pageJump = document.getElementById('adminLogsPageJump');
+    if (pageJump) {
+        pageJump.addEventListener('change', function () {
+            if (pageJump.form) {
+                pageJump.form.submit();
+            }
         });
     }
 });
