@@ -40,6 +40,7 @@ $internship = null;
 $companyProfile = null;
 $recentAttendance = [];
 $lastLoginAt = '';
+$lastBiometricClockIn = '';
 $profileStats = [
     'approved_logs' => 0,
     'pending_logs' => 0,
@@ -199,6 +200,26 @@ if ($student) {
         $recentStmt->close();
     }
 
+    $lastBiometricClockInStmt = $conn->prepare(
+        "SELECT MAX(clock_value) AS last_clocked_in
+         FROM (
+            SELECT TIMESTAMP(attendance_date, morning_time_in) AS clock_value
+            FROM attendances
+            WHERE student_id = ? AND morning_time_in IS NOT NULL AND morning_time_in <> ''
+            UNION ALL
+            SELECT TIMESTAMP(attendance_date, afternoon_time_in) AS clock_value
+            FROM attendances
+            WHERE student_id = ? AND afternoon_time_in IS NOT NULL AND afternoon_time_in <> ''
+         ) biometric_clock_ins"
+    );
+    if ($lastBiometricClockInStmt) {
+        $lastBiometricClockInStmt->bind_param('ii', $studentId, $studentId);
+        $lastBiometricClockInStmt->execute();
+        $lastBiometricClockInRow = $lastBiometricClockInStmt->get_result()->fetch_assoc() ?: null;
+        $lastBiometricClockIn = trim((string)($lastBiometricClockInRow['last_clocked_in'] ?? ''));
+        $lastBiometricClockInStmt->close();
+    }
+
     $summaryStmt = $conn->prepare(
         "SELECT
             COALESCE(SUM(total_hours), 0) AS total_hours,
@@ -312,6 +333,7 @@ $studentStatusDisplay = match (strtolower($studentStatusRaw)) {
 };
 $joinedDate = student_profile_format_date((string)($user['created_at'] ?? ''));
 $lastLoginText = student_profile_format_date($lastLoginAt, 'No login record yet');
+$lastBiometricClockInText = student_profile_format_date($lastBiometricClockIn, 'No biometric clock-in yet');
 $completionChecks = [
     $studentNumber !== '',
     $courseName !== '',
@@ -651,12 +673,12 @@ include 'includes/header.php';
                                 <strong><?php echo htmlspecialchars(student_profile_format_date((string)($student['biometric_registered_at'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></strong>
                             </div>
                             <div>
-                                <span>Member Since</span>
+                                <span>First Date Joined</span>
                                 <strong><?php echo htmlspecialchars($joinedDate, ENT_QUOTES, 'UTF-8'); ?></strong>
                             </div>
                             <div>
-                                <span>Last Login</span>
-                                <strong><?php echo htmlspecialchars($lastLoginText, ENT_QUOTES, 'UTF-8'); ?></strong>
+                                <span>Last Biometric Clock In</span>
+                                <strong><?php echo htmlspecialchars($lastBiometricClockInText, ENT_QUOTES, 'UTF-8'); ?></strong>
                             </div>
                         </div>
                     </div>

@@ -26,6 +26,7 @@
       "filter-semester",
       "filter-supervisor",
       "filter-coordinator",
+      "filter-status",
     ].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.addEventListener("change", submitFilters);
@@ -381,18 +382,10 @@
             encodeURIComponent("Reminder from BioTern");
         }
 
-        if (restoreDraft(studentId)) {
-          updateActionCopy(
-            studentName,
-            trackSelect ? String(trackSelect.value || studentTrack) : studentTrack,
-            supervisorName,
-            coordinatorName,
-            departmentName,
-            "Restored your last saved draft for " + studentName + "."
-          );
-        } else {
-          updateActionCopy(studentName, studentTrack, supervisorName, coordinatorName, departmentName);
-        }
+        try {
+          window.localStorage.removeItem(draftKey(studentId));
+        } catch (e) {}
+        updateActionCopy(studentName, studentTrack, supervisorName, coordinatorName, departmentName);
 
         if (typeof window.BioTernSelectDropdown !== "undefined" &&
             window.BioTernSelectDropdown &&

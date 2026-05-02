@@ -794,19 +794,6 @@ if ($filter_section > 0) {
     }
 }
 
-$selected_adviser = 'N/A';
-if ($filter_supervisor !== '') {
-    $selected_adviser = $filter_supervisor;
-} else {
-    foreach ($students as $srow) {
-        $candidate = trim((string)($srow['supervisor_name'] ?? ''));
-        if ($candidate !== '' && $candidate !== '-') {
-            $selected_adviser = $candidate;
-            break;
-        }
-    }
-}
-
 $page_title = 'Students';
 $page_body_class = 'students-page';
 $page_styles = array(
@@ -830,7 +817,6 @@ include 'includes/header.php';
         </div>
         <div class="print-title">STUDENT SECTION LIST</div>
         <div class="print-meta"><strong>SECTION:</strong> <?php echo htmlspecialchars($selected_section_label); ?></div>
-        <div class="print-meta"><strong>ADVISER:</strong> <?php echo htmlspecialchars($selected_adviser); ?></div>
         <table>
             <thead>
                 <tr>
@@ -1028,6 +1014,14 @@ include 'includes/header.php';
                                         <?php foreach ($coordinators as $coor): ?>
                                             <option value="<?php echo htmlspecialchars($coor, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filter_coordinator == $coor ? 'selected' : ''; ?>><?php echo htmlspecialchars($coor, ENT_QUOTES, 'UTF-8'); ?></option>
                                         <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
+                                    <label class="form-label" for="filter-status">Status</label>
+                                    <select id="filter-status" name="status" class="form-control" data-ui-select="custom">
+                                        <option value="-1" <?php echo $filter_status < 0 ? 'selected' : ''; ?>>-- All Statuses --</option>
+                                        <option value="1" <?php echo $filter_status === 1 ? 'selected' : ''; ?>>Active</option>
+                                        <option value="0" <?php echo $filter_status === 0 ? 'selected' : ''; ?>>Inactive</option>
                                     </select>
                                 </div>
                             </form>

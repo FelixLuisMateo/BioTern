@@ -313,6 +313,30 @@ if ($attendance_record && !empty($open_session['in_time'])) {
     $open_clock_in_time = (string)$open_session['in_time'];
 }
 
+$lastBiometricClockIn = null;
+$lastBiometricClockInStmt = $conn->prepare("
+    SELECT MAX(clock_value) AS last_clocked_in
+    FROM (
+        SELECT TIMESTAMP(attendance_date, morning_time_in) AS clock_value
+        FROM attendances
+        WHERE student_id = ? AND morning_time_in IS NOT NULL AND morning_time_in <> ''
+        UNION ALL
+        SELECT TIMESTAMP(attendance_date, afternoon_time_in) AS clock_value
+        FROM attendances
+        WHERE student_id = ? AND afternoon_time_in IS NOT NULL AND afternoon_time_in <> ''
+    ) biometric_clock_ins
+");
+if ($lastBiometricClockInStmt) {
+    $lastBiometricClockInStmt->bind_param('ii', $student_id, $student_id);
+    $lastBiometricClockInStmt->execute();
+    $lastBiometricClockInRow = $lastBiometricClockInStmt->get_result()->fetch_assoc() ?: null;
+    $lastBiometricClockInStmt->close();
+    $lastBiometricClockIn = trim((string)($lastBiometricClockInRow['last_clocked_in'] ?? ''));
+    if ($lastBiometricClockIn === '') {
+        $lastBiometricClockIn = null;
+    }
+}
+
 // Calculate hours per track so internal/external totals stay isolated after track changes.
 $sum_stmt = $conn->prepare("
     SELECT COALESCE(SUM(total_hours), 0) AS rendered
@@ -921,6 +945,20 @@ echo getStatusBadge($student['status']); ?></div>
                                                     <div class="small text-muted mb-1">Date Registered</div>
                                                     <div class="fw-semibold"><?php
 echo formatDate($student['created_at']); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">First Date Joined</div>
+                                                    <div class="fw-semibold"><?php
+echo formatDate($student['created_at']); ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Last Biometric Clock In</div>
+                                                    <div class="fw-semibold"><?php
+echo $lastBiometricClockIn ? formatDate($lastBiometricClockIn) : 'No biometric clock-in yet'; ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">

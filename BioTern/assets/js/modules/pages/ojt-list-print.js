@@ -67,6 +67,30 @@
     }
 
     function buildPrintRows(table, rows, emptyMessage) {
+        if (table.getAttribute('data-print-mode') === 'student-section') {
+            var studentRows = rows.map(function (row, index) {
+                return (
+                    '<tr>' +
+                    '<td class="print-index">' + (index + 1) + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-student-no') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-last-name') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-first-name') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-middle-name') || '') + '</td>' +
+                    '<td></td>' +
+                    '</tr>'
+                );
+            }).join('');
+
+            if (!studentRows) {
+                studentRows = '<tr><td class="print-index">1</td><td colspan="5">' + escapeHtml(emptyMessage || 'No rows found.') + '</td></tr>';
+            }
+
+            return {
+                headers: '<th>Student No.</th><th>Last Name</th><th>First Name</th><th>Middle Name</th><th>Remarks</th>',
+                rows: studentRows
+            };
+        }
+
         var headerCells = getHeaderCells(table);
         var headers = headerCells.map(function (headerCell) {
             return '<th>' + escapeHtml(tableText(headerCell)) + '</th>';
@@ -153,6 +177,22 @@
                 printSheetNow(printSheet, true);
             });
         });
+
+        function updateSelectedPrintButtons(selectedCount) {
+            selectedPrintBtns.forEach(function (selectedPrintBtn) {
+                selectedPrintBtn.classList.toggle('d-none', selectedCount === 0);
+                selectedPrintBtn.setAttribute('aria-hidden', selectedCount === 0 ? 'true' : 'false');
+                var label = selectedPrintBtn.querySelector('span');
+                if (label) {
+                    label.textContent = selectedCount > 0 ? 'Print Selected (' + selectedCount + ')' : 'Print Selected';
+                }
+            });
+        }
+
+        table.addEventListener('ojt-selection-change', function (event) {
+            updateSelectedPrintButtons((event.detail && event.detail.selectedCount) || 0);
+        });
+        updateSelectedPrintButtons(getSelectedRows(table).length);
 
         fullPrintBtns.forEach(function (fullPrintBtn) {
             fullPrintBtn.addEventListener('click', function (event) {

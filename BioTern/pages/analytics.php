@@ -225,11 +225,6 @@ include 'includes/header.php';
                     <strong><?php echo number_format(a_pct($attendanceStatus['Approved'], $attendanceTotal), 2); ?>%</strong>
                     <small><?php echo number_format($attendanceStatus['Approved']); ?> approved attendance entries</small>
                 </div>
-                <div class="analytics-glance-card">
-                    <span class="analytics-glance-label">Biometric Coverage</span>
-                    <strong><?php echo number_format(a_pct($studentsBiometric, $studentsTotal), 2); ?>%</strong>
-                    <small><?php echo number_format($studentsBiometric); ?> students registered biometrically</small>
-                </div>
             </div>
         </section>
         <section class="analytics-metrics-grid">
