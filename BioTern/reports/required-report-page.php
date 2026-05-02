@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
 $currentRole = strtolower(trim((string)($_SESSION['role'] ?? '')));
@@ -50,6 +51,36 @@ function rr_count(mysqli $conn, string $sql): int
         return (int)($row['total'] ?? 0);
     }
     return 0;
+}
+
+function rr_format_course_section_label(?string $code, ?string $name = null): string
+{
+    if (function_exists('biotern_section_parts')) {
+        $parts = biotern_section_parts($code, $name);
+        $program = trim((string)($parts['program'] ?? ''));
+        $section = trim((string)($parts['section'] ?? ''));
+        if ($program !== '' && $section !== '') {
+            return $program . ' ' . $section;
+        }
+        if ($program !== '') {
+            return $program;
+        }
+        if ($section !== '') {
+            return $section;
+        }
+    }
+
+    return trim((string)($name ?? $code ?? ''));
+}
+
+function rr_add_course_section_labels(array $rows): array
+{
+    foreach ($rows as &$row) {
+        $row['section'] = rr_format_course_section_label((string)($row['section_code'] ?? ''), (string)($row['section_name'] ?? ''));
+        unset($row['section_code'], $row['section_name']);
+    }
+    unset($row);
+    return $rows;
 }
 
 $requiredReportKey = isset($requiredReportKey) ? (string)$requiredReportKey : '';
@@ -136,7 +167,8 @@ $reports = [
                 $sectionSelect = "COALESCE(CONCAT('Section ', s.section_id), 'No Section')";
                 $sectionGroup = '';
             }
-            return rr_rows($conn, "SELECT {$sectionSelect} AS section_name, COUNT(*) AS total_students, SUM(CASE WHEN i.status = 'ongoing' THEN 1 ELSE 0 END) AS ongoing, SUM(CASE WHEN i.status IN ('completed', 'finished') THEN 1 ELSE 0 END) AS finished, SUM(CASE WHEN i.id IS NULL THEN 1 ELSE 0 END) AS not_started FROM students s {$sectionJoin} LEFT JOIN internships i ON i.id = (SELECT i2.id FROM internships i2 WHERE i2.student_id = s.id ORDER BY i2.id DESC LIMIT 1) GROUP BY s.section_id{$sectionGroup} ORDER BY section_name LIMIT 500");
+            $rows = rr_rows($conn, "SELECT " . ($hasCode ? "COALESCE(sec.code, '')" : "''") . " AS section_code, {$sectionSelect} AS section_name, COUNT(*) AS total_students, SUM(CASE WHEN i.status = 'ongoing' THEN 1 ELSE 0 END) AS ongoing, SUM(CASE WHEN i.status IN ('completed', 'finished') THEN 1 ELSE 0 END) AS finished, SUM(CASE WHEN i.id IS NULL THEN 1 ELSE 0 END) AS not_started FROM students s {$sectionJoin} LEFT JOIN internships i ON i.id = (SELECT i2.id FROM internships i2 WHERE i2.student_id = s.id ORDER BY i2.id DESC LIMIT 1) GROUP BY s.section_id{$sectionGroup} ORDER BY section_name LIMIT 500");
+            return rr_add_course_section_labels($rows);
         },
     ],
     'department' => [
@@ -209,7 +241,8 @@ $reports = [
             } else {
                 $sectionSelect = "COALESCE(CONCAT('Section ', s.section_id), '-')";
             }
-            return rr_rows($conn, "SELECT COALESCE(s.student_id, '') AS student_no, TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student, COALESCE(c.name, '-') AS course, {$sectionSelect} AS section_name FROM students s LEFT JOIN courses c ON c.id = s.course_id {$sectionJoin} LEFT JOIN internships i ON i.student_id = s.id WHERE i.id IS NULL ORDER BY student LIMIT 500");
+            $rows = rr_rows($conn, "SELECT COALESCE(s.student_id, '') AS student_no, TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student, COALESCE(c.name, '-') AS course, " . ($hasCode ? "COALESCE(sec.code, '')" : "''") . " AS section_code, {$sectionSelect} AS section_name FROM students s LEFT JOIN courses c ON c.id = s.course_id {$sectionJoin} LEFT JOIN internships i ON i.student_id = s.id WHERE i.id IS NULL ORDER BY student LIMIT 500");
+            return rr_add_course_section_labels($rows);
         },
     ],
     'import-errors' => [
