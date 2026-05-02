@@ -2,7 +2,11 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 
+// Ensure session is properly initialized
 biotern_boot_session(isset($conn) ? $conn : null);
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    @session_start();
+}
 
 $userId = (int)($_SESSION['user_id'] ?? 0);
 if ($userId <= 0) {
@@ -20,6 +24,24 @@ if ($role !== 'admin') {
 if (!function_exists('transfer_csrf_token')) {
     function transfer_csrf_token(): string
     {
+        if (session_status() === PHP_SESSION_NONE) {
+            @session_start();
+        }
+
+        $authHash = function_exists('biotern_auth_session_current_hash') ? biotern_auth_session_current_hash() : '';
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        if ($authHash !== '' && $userId > 0 && function_exists('biotern_auth_cookie_key')) {
+            $issuedAt = (int)($_SESSION['transfer_sql_csrf_issued_at'] ?? 0);
+            if ($issuedAt <= 0 || $issuedAt < time() - biotern_auth_session_ttl_seconds()) {
+                $issuedAt = time();
+                $_SESSION['transfer_sql_csrf_issued_at'] = $issuedAt;
+            }
+
+            $payload = $userId . '|' . $authHash . '|' . $issuedAt . '|import-sql';
+            $mac = hash_hmac('sha256', $payload, biotern_auth_cookie_key());
+            return 'v2.' . $issuedAt . '.' . $mac;
+        }
+
         $token = (string)($_SESSION['transfer_sql_csrf'] ?? '');
         if ($token === '') {
             $token = bin2hex(random_bytes(32));
@@ -32,9 +54,30 @@ if (!function_exists('transfer_csrf_token')) {
 if (!function_exists('transfer_csrf_is_valid')) {
     function transfer_csrf_is_valid(string $postedToken): bool
     {
+        if (session_status() === PHP_SESSION_NONE) {
+            @session_start();
+        }
+
         $postedToken = trim($postedToken);
         if ($postedToken === '') {
             return false;
+        }
+
+        if (preg_match('/^v2\.(\d{9,11})\.([a-f0-9]{64})$/', $postedToken, $matches) === 1) {
+            $issuedAt = (int)$matches[1];
+            $mac = (string)$matches[2];
+            $ttl = function_exists('biotern_auth_session_ttl_seconds') ? biotern_auth_session_ttl_seconds() : (60 * 60 * 12);
+            if ($issuedAt > 0 && $issuedAt <= time() + 300 && $issuedAt >= time() - $ttl) {
+                $authHash = function_exists('biotern_auth_session_current_hash') ? biotern_auth_session_current_hash() : '';
+                $userId = (int)($_SESSION['user_id'] ?? 0);
+                if ($authHash !== '' && $userId > 0 && function_exists('biotern_auth_cookie_key')) {
+                    $payload = $userId . '|' . $authHash . '|' . $issuedAt . '|import-sql';
+                    $expected = hash_hmac('sha256', $payload, biotern_auth_cookie_key());
+                    if (hash_equals($expected, $mac)) {
+                        return true;
+                    }
+                }
+            }
         }
 
         $currentToken = (string)($_SESSION['transfer_sql_csrf'] ?? '');
@@ -50,6 +93,15 @@ if (!function_exists('transfer_csrf_is_valid')) {
 if (!function_exists('transfer_csrf_rotate')) {
     function transfer_csrf_rotate(): string
     {
+        if (session_status() === PHP_SESSION_NONE) {
+            @session_start();
+        }
+
+        if (function_exists('biotern_auth_session_current_hash') && biotern_auth_session_current_hash() !== '') {
+            unset($_SESSION['transfer_sql_csrf_issued_at']);
+            return transfer_csrf_token();
+        }
+
         $currentToken = (string)($_SESSION['transfer_sql_csrf'] ?? '');
         if ($currentToken !== '') {
             $_SESSION['transfer_sql_csrf_previous'] = $currentToken;
