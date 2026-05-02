@@ -186,10 +186,10 @@ include __DIR__ . '/../includes/header.php';
                 }
 
                 .parent-consent-builder-page #editor .a4-page {
-                    padding: 0.36in 0.55in 0.55in;
+                    padding: 0.34in 0.46in 0.50in;
                     font-family: Arial, Helvetica, sans-serif !important;
-                    font-size: 13px;
-                    line-height: 1.38;
+                    font-size: 11px;
+                    line-height: 1.24;
                     color: #111827;
                 }
 
@@ -200,7 +200,7 @@ include __DIR__ . '/../includes/header.php';
                     gap: 8px;
                     border-bottom: 1px solid #1f2937;
                     padding-bottom: 7px;
-                    margin-bottom: 20px;
+                    margin-bottom: 17px;
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-header img {
@@ -213,54 +213,55 @@ include __DIR__ . '/../includes/header.php';
                     text-align: center;
                     color: #1e40af !important;
                     line-height: 1.18;
-                    font-size: 9px;
+                    font-size: 10.5px;
                     font-weight: 600;
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-school strong {
                     display: block;
-                    font-size: 11px;
+                    font-size: 13px;
                     letter-spacing: 0.02em;
+                    color: #1e40af !important;
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-content {
-                    max-width: 6.65in;
+                    max-width: 6.05in;
                     margin: 0 auto;
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-title {
                     text-align: center;
                     font-size: 13px;
-                    margin: 0 0 24px;
+                    margin: 0 0 22px;
                     font-weight: 700;
                     text-transform: uppercase;
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-content p {
-                    margin: 0 0 10px;
-                    font-size: 13px !important;
-                    line-height: 1.38 !important;
+                    margin: 0 0 9px;
+                    font-size: 14px !important;
+                    line-height: 1.36 !important;
                     color: #111827 !important;
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-sign-student {
-                    width: 2.9in;
-                    margin-top: 50px;
+                    width: 2.42in;
+                    margin-top: 45px;
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-sign-grid {
-                    margin-top: 42px;
+                    margin-top: 38px;
                     display: grid;
-                    grid-template-columns: 4.05in 0.86in;
-                    gap: 0.42in;
-                    align-items: end;
+                    grid-template-columns: 2.42in 1.02in;
+                    gap: 2.12in;
+                    align-items: start;
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-sign-line,
                 .parent-consent-builder-page #editor .parent-consent-sign-date {
                     border-top: 0;
-                    padding-top: 4px;
-                    font-size: 9px;
+                    padding-top: 5px;
+                    font-size: 12px;
                     font-weight: 700;
                 }
 
@@ -269,20 +270,43 @@ include __DIR__ . '/../includes/header.php';
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-sign-name {
-                    display: block;
+                    display: flex !important;
+                    align-items: flex-end;
+                    justify-content: center;
+                    width: 100% !important;
+                    box-sizing: border-box;
                     min-height: 18px;
                     margin: 0;
-                    padding: 0 6px 4px;
-                    border-bottom: 1px solid #1f2937;
-                    font-size: 12px;
+                    padding: 0 4px 2px;
+                    border-bottom: 0 !important;
+                    font-size: 9.5px;
                     font-weight: 700;
                     text-align: center;
                     line-height: 1.1;
+                    print-color-adjust: exact;
+                    -webkit-print-color-adjust: exact;
+                }
+
+                .parent-consent-builder-page #editor .parent-consent-written-line {
+                    display: block !important;
+                    width: 100% !important;
+                    height: 1.25px !important;
+                    min-height: 1.25px !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    border: 0 !important;
+                    background: #111827 !important;
+                    font-size: 0 !important;
+                    line-height: 0 !important;
+                    print-color-adjust: exact;
+                    -webkit-print-color-adjust: exact;
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-sign-label {
                     display: block;
                     text-align: left;
+                    font-size: 12px;
+                    white-space: nowrap;
                 }
 
                 .parent-consent-builder-page #editor .parent-consent-sign-date {
@@ -380,8 +404,20 @@ include __DIR__ . '/../includes/header.php';
 
                 @media print {
                     body.parent-consent-builder-page #editor .a4-page {
-                        padding: 0.36in 0.55in 0.55in !important;
+                        padding: 0.34in 0.46in 0.50in !important;
                         min-height: 11in !important;
+                    }
+
+                    body.parent-consent-builder-page #editor .parent-consent-written-line {
+                        display: block !important;
+                        width: 100% !important;
+                        height: 1.25px !important;
+                        min-height: 1.25px !important;
+                        background: #000 !important;
+                        border: 0 !important;
+                        opacity: 1 !important;
+                        print-color-adjust: exact !important;
+                        -webkit-print-color-adjust: exact !important;
                     }
                 }
             </style>
@@ -536,6 +572,7 @@ include __DIR__ . '/../includes/header.php';
 
                                                     <div class="parent-consent-sign-student">
                                                         <span class="parent-consent-sign-name" id="pcStudentSignature"><?php echo parent_consent_h($studentName); ?></span>
+                                                        <span class="parent-consent-written-line"></span>
                                                         <div class="parent-consent-sign-line">
                                                             <strong class="parent-consent-sign-label">Signature over Printed Name of Student</strong>
                                                         </div>
@@ -544,12 +581,14 @@ include __DIR__ . '/../includes/header.php';
                                                     <div class="parent-consent-sign-grid">
                                                         <div>
                                                             <span class="parent-consent-sign-name" id="pcParentSignature"><?php echo parent_consent_h($parentLine); ?></span>
+                                                            <span class="parent-consent-written-line"></span>
                                                             <div class="parent-consent-sign-line">
                                                                 <strong class="parent-consent-sign-label">Signature over Printed Name of Parent/Guardian</strong>
                                                             </div>
                                                         </div>
                                                         <div>
                                                             <span class="parent-consent-sign-name" id="pcDateSignature"><?php echo parent_consent_h($printDate); ?></span>
+                                                            <span class="parent-consent-written-line"></span>
                                                             <div class="parent-consent-sign-date"><strong>Date</strong></div>
                                                         </div>
                                                     </div>
