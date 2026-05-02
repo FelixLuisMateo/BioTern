@@ -125,133 +125,22 @@ function formatDisplayIpAddress($rawIp)
     return $ip;
 }
 
-function formatDisplayUserAddress($rawAddress, $rawIp = '')
+function formatDisplayDeviceLocation($rawIp): string
 {
-    $address = trim((string)$rawAddress);
-    if ($address !== '') {
-        return $address;
+    $ip = trim((string)$rawIp);
+    if ($ip === '') {
+        return '-';
     }
 
-    $ip = trim((string)$rawIp);
-    if ($ip === '' || $ip === '::1' || $ip === '127.0.0.1' || strcasecmp($ip, '0:0:0:0:0:0:0:1') === 0) {
+    if ($ip === '::1' || $ip === '127.0.0.1' || strcasecmp($ip, '0:0:0:0:0:0:0:1') === 0 || strcasecmp($ip, '0000:0000:0000:0000:0000:0000:0000:0001') === 0) {
         return 'Local device';
     }
 
-    return '-';
-}
-
-function loginLogsLookupStudentAddress(mysqli $conn, int $userId, string $identifier): string
-{
-    $identifier = trim($identifier);
-
-    if ($userId <= 0 && $identifier !== '') {
-        $stmt = $conn->prepare('SELECT id FROM users WHERE username = ? OR email = ? ORDER BY id DESC LIMIT 1');
-        if ($stmt) {
-            $stmt->bind_param('ss', $identifier, $identifier);
-            $stmt->execute();
-            $userRow = $stmt->get_result()->fetch_assoc();
-            $stmt->close();
-            $userId = (int)($userRow['id'] ?? 0);
-        }
+    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+        return 'Private network device';
     }
 
-    if (report_login_logs_has_table($conn, 'students') && report_login_logs_table_has_column($conn, 'students', 'address')) {
-        $where = [];
-        $types = '';
-        $params = [];
-
-        if ($userId > 0 && report_login_logs_table_has_column($conn, 'students', 'user_id')) {
-            $where[] = 'user_id = ?';
-            $types .= 'i';
-            $params[] = $userId;
-        }
-        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'students', 'email')) {
-            $where[] = 'email = ?';
-            $types .= 's';
-            $params[] = $identifier;
-        }
-        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'students', 'student_id')) {
-            $where[] = 'student_id = ?';
-            $types .= 's';
-            $params[] = $identifier;
-        }
-        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'students', 'username')) {
-            $where[] = 'username = ?';
-            $types .= 's';
-            $params[] = $identifier;
-        }
-
-        if ($where) {
-            $orderSql = report_login_logs_table_has_column($conn, 'students', 'id') ? ' ORDER BY id DESC' : '';
-            $sql = 'SELECT address FROM students WHERE (' . implode(' OR ', $where) . ') AND NULLIF(TRIM(address), "") IS NOT NULL' . $orderSql . ' LIMIT 1';
-            $stmt = $conn->prepare($sql);
-            if ($stmt) {
-                $stmt->bind_param($types, ...$params);
-                $stmt->execute();
-                $row = $stmt->get_result()->fetch_assoc();
-                $stmt->close();
-                $address = trim((string)($row['address'] ?? ''));
-                if ($address !== '') {
-                    return $address;
-                }
-            }
-        }
-    }
-
-    if (report_login_logs_has_table($conn, 'student_applications') && report_login_logs_table_has_column($conn, 'student_applications', 'address')) {
-        $where = [];
-        $types = '';
-        $params = [];
-
-        if ($userId > 0 && report_login_logs_table_has_column($conn, 'student_applications', 'user_id')) {
-            $where[] = 'user_id = ?';
-            $types .= 'i';
-            $params[] = $userId;
-        }
-        if ($userId > 0 && report_login_logs_table_has_column($conn, 'student_applications', 'created_student_user_id')) {
-            $where[] = 'created_student_user_id = ?';
-            $types .= 'i';
-            $params[] = $userId;
-        }
-        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'student_applications', 'email')) {
-            $where[] = 'email = ?';
-            $types .= 's';
-            $params[] = $identifier;
-        }
-        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'student_applications', 'username')) {
-            $where[] = 'username = ?';
-            $types .= 's';
-            $params[] = $identifier;
-        }
-        if ($identifier !== '' && report_login_logs_table_has_column($conn, 'student_applications', 'student_id')) {
-            $where[] = 'student_id = ?';
-            $types .= 's';
-            $params[] = $identifier;
-        }
-
-        if ($where) {
-            $orderSql = '';
-            if (report_login_logs_table_has_column($conn, 'student_applications', 'submitted_at')) {
-                $orderSql = ' ORDER BY submitted_at DESC';
-            } elseif (report_login_logs_table_has_column($conn, 'student_applications', 'id')) {
-                $orderSql = ' ORDER BY id DESC';
-            }
-            $sql = 'SELECT address FROM student_applications WHERE (' . implode(' OR ', $where) . ') AND NULLIF(TRIM(address), "") IS NOT NULL' . $orderSql . ' LIMIT 1';
-            $stmt = $conn->prepare($sql);
-            if ($stmt) {
-                $stmt->bind_param($types, ...$params);
-                $stmt->execute();
-                $row = $stmt->get_result()->fetch_assoc();
-                $stmt->close();
-                $address = trim((string)($row['address'] ?? ''));
-                if ($address !== '') {
-                    return $address;
-                }
-            }
-        }
-    }
-
-    return '';
+    return 'Public IP location not captured';
 }
 
 $sql = "
@@ -283,7 +172,6 @@ $resultRows = $conn->query($sql);
 $rows = [];
 if ($resultRows instanceof mysqli_result) {
     while ($row = $resultRows->fetch_assoc()) {
-        $row['user_address'] = loginLogsLookupStudentAddress($conn, (int)($row['user_id'] ?? 0), (string)($row['identifier'] ?? ''));
         $rows[] = $row;
     }
 }
@@ -399,7 +287,7 @@ include 'includes/header.php';
                                     <th class="text-nowrap">Status</th>
                                     <th>Reason</th>
                                     <th class="text-nowrap">IP Address</th>
-                                    <th>Address</th>
+                                    <th>Device Location</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -417,7 +305,7 @@ include 'includes/header.php';
                                             <td class="text-nowrap"><span class="logs-pill bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?> text-capitalize"><?php echo htmlspecialchars((string)($row['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
                                             <td><?php echo htmlspecialchars((string)($row['reason'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td class="text-nowrap"><?php echo htmlspecialchars(formatDisplayIpAddress($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td><span class="logs-address" title="<?php echo htmlspecialchars(formatDisplayUserAddress($row['user_address'] ?? '', $row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(formatDisplayUserAddress($row['user_address'] ?? '', $row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                            <td><span class="logs-address" title="<?php echo htmlspecialchars(formatDisplayDeviceLocation($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(formatDisplayDeviceLocation($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
