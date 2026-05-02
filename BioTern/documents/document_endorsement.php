@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ojt_masterlist.php';
+require_once dirname(__DIR__) . '/lib/company_profiles.php';
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
 $db_user = defined('DB_USER') ? DB_USER : 'root';
 $db_password = defined('DB_PASS') ? DB_PASS : '';
@@ -64,6 +65,36 @@ if (isset($_GET['action'])) {
             }
         }
         echo json_encode(['results' => $results]);
+        exit;
+    }
+
+    if ($action === 'search_companies') {
+        $term = trim((string)($_GET['q'] ?? ''));
+        $results = [];
+        foreach (biotern_company_profiles_search($conn, $term, 25) as $company) {
+            $labelParts = [trim((string)($company['company_name'] ?? ''))];
+            $contactText = trim((string)($company['contact_name'] ?? ''));
+            if ($contactText !== '') {
+                $labelParts[] = $contactText;
+            } elseif (trim((string)($company['company_address'] ?? '')) !== '') {
+                $labelParts[] = trim((string)($company['company_address'] ?? ''));
+            }
+
+            $results[] = [
+                'id' => (string)($company['key'] ?? $company['company_lookup_key'] ?? $company['company_name'] ?? ''),
+                'text' => implode(' - ', array_filter($labelParts, static function ($value): bool {
+                    return trim((string)$value) !== '';
+                })),
+            ];
+        }
+        echo json_encode(['results' => $results]);
+        exit;
+    }
+
+    if ($action === 'get_company_profile') {
+        $companyIdentifier = trim((string)($_GET['company'] ?? ''));
+        $company = biotern_company_profile_find($conn, $companyIdentifier);
+        echo json_encode($company ?: new stdClass());
         exit;
     }
 
@@ -272,6 +303,96 @@ include __DIR__ . '/../includes/header.php';
             font-weight: 600;
             border-width: 1px;
         }
+        .endorsement-native-search {
+            position: relative;
+            width: 100%;
+        }
+        .endorsement-native-control {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .endorsement-native-input {
+            padding-right: 38px !important;
+        }
+        .endorsement-native-toggle {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 28px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #9fb0c6;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .endorsement-native-panel {
+            display: none;
+            position: absolute;
+            z-index: 1000;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            max-height: 260px;
+            overflow: auto;
+            border: 1px solid #2f3f56;
+            border-radius: 12px;
+            background: #0f172a;
+            box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+            padding: 8px;
+        }
+        .endorsement-native-panel.is-open {
+            display: block;
+        }
+        .endorsement-native-message {
+            color: #b9c7dd;
+            font-size: 12px;
+            padding: 7px 9px;
+        }
+        .endorsement-native-option {
+            display: block;
+            width: 100%;
+            border: 0;
+            border-radius: 9px;
+            background: transparent;
+            color: #eef5ff;
+            text-align: left;
+            padding: 9px 10px;
+            font-weight: 700;
+        }
+        .endorsement-native-option:hover,
+        .endorsement-native-option:focus {
+            background: rgba(91, 124, 250, 0.2);
+            outline: none;
+        }
+        @media print {
+            body {
+                background: #fff !important;
+            }
+            body * {
+                visibility: hidden !important;
+            }
+            #letter_preview,
+            #letter_preview * {
+                visibility: visible !important;
+            }
+            #letter_preview {
+                position: fixed !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                max-width: none !important;
+                margin: 0 !important;
+                padding: 0.35in 0.55in !important;
+                border: 0 !important;
+                box-shadow: none !important;
+                background: #fff !important;
+            }
+        }
     </style>
     <div class="container">
     <div class="row mt-3">
@@ -323,8 +444,10 @@ include __DIR__ . '/../includes/header.php';
                     <input id="input_position" class="form-control form-control-sm" type="text" placeholder="e.g. Supervisor/Manager">
                 </div>
                 <div class="mt-2">
-                    <label class="form-label">Company Name</label>
-                    <input id="input_company" class="form-control form-control-sm" type="text" placeholder="Company name">
+                    <label for="company_select" class="form-label">Company Name</label>
+                    <select id="company_select" style="width:100%" data-placeholder="Search company, address, or representative"></select>
+                    <input id="input_company" type="hidden" value="">
+                    <small class="text-muted">Search and select company.</small>
                 </div>
                 <div class="mt-2">
                     <label class="form-label">Company Address</label>
@@ -393,10 +516,12 @@ include __DIR__ . '/../includes/header.php';
 <script>
 window.addEventListener('load', function() {
 (function(){
-    const select = $('#student_select');
+    const hasSelect2 = !!(window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function');
+    const select = hasSelect2 ? window.jQuery('#student_select') : null;
     const inputRecipient = document.getElementById('input_recipient');
     const inputPosition = document.getElementById('input_position');
     const inputCompany = document.getElementById('input_company');
+    const companySelect = document.getElementById('company_select');
     const inputCompanyAddress = document.getElementById('input_company_address');
     const inputStudents = document.getElementById('input_students');
     const recipientTitleRadios = Array.prototype.slice.call(document.querySelectorAll('input[name="recipient_title"]'));
@@ -407,7 +532,10 @@ window.addEventListener('load', function() {
     const btnFileEdit = document.getElementById('btn_file_edit');
     const wordTemplateLink = document.getElementById('word_template_link_endorsement');
     const prefillId = <?php echo intval($prefill_student_id); ?>;
+    const endorsementEndpoint = new URL('document_endorsement.php', window.location.href).href;
     let selectedStudentId = prefillId > 0 ? String(prefillId) : '';
+    let selectedStudentName = '';
+    let selectedCompanyKey = '';
 
     function sanitizeStudentLines(raw) {
         return String(raw || '')
@@ -443,13 +571,21 @@ window.addEventListener('load', function() {
     }
 
     function getSelectedStudentName() {
-        const selected = select.select2('data') || [];
-        const first = selected[0] || null;
-        if (first && first.text) {
-            return buildNameFromOptionText(first.text);
+        if (selectedStudentName) {
+            return selectedStudentName;
         }
-        const txt = $('#student_select').find('option:selected').text() || '';
-        return buildNameFromOptionText(txt);
+        if (hasSelect2 && select) {
+            const selected = select.select2('data') || [];
+            const first = selected[0] || null;
+            if (first && first.text) {
+                return buildNameFromOptionText(first.text);
+            }
+            const txt = window.jQuery('#student_select').find('option:selected').text() || '';
+            return buildNameFromOptionText(txt);
+        }
+        const nativeSelect = document.getElementById('student_select');
+        const selectedOption = nativeSelect && nativeSelect.options && nativeSelect.selectedIndex >= 0 ? nativeSelect.options[nativeSelect.selectedIndex] : null;
+        return selectedOption ? buildNameFromOptionText(selectedOption.text || '') : '';
     }
 
     function detectSalutation(name) {
@@ -515,7 +651,7 @@ window.addEventListener('load', function() {
 
     function updateLinks() {
         const p = new URLSearchParams();
-        const selectedId = select.val() || selectedStudentId;
+        const selectedId = (hasSelect2 && select ? select.val() : '') || selectedStudentId;
         if (selectedId) {
             p.set('id', String(selectedId));
         } else if (prefillId > 0) {
@@ -540,9 +676,9 @@ window.addEventListener('load', function() {
                 p.set('use_saved_template', '1');
             }
         } catch (e) {}
-        const genUrl = '../pages/generate_endorsement_letter.php?' + p.toString();
+        const genUrl = 'generate_endorsement_letter.php?' + p.toString();
         btnGenerate.href = genUrl;
-        btnFileEdit.href = '../pages/edit_endorsement.php?blank=1';
+        btnFileEdit.href = 'edit_endorsement.php?blank=1';
         const templateParams = new URLSearchParams();
         templateParams.set('template_type', 'endorsement');
         if (selectedId) templateParams.set('student_id', String(selectedId));
@@ -568,6 +704,10 @@ window.addEventListener('load', function() {
         }
         if (data.company_name) {
             inputCompany.value = String(data.company_name);
+            const existingCompanyInput = document.querySelector('.endorsement-company-search .endorsement-native-input');
+            if (existingCompanyInput) {
+                existingCompanyInput.value = String(data.company_name);
+            }
             changed = true;
         }
         if (data.company_address) {
@@ -586,20 +726,289 @@ window.addEventListener('load', function() {
         return changed;
     }
 
-    select.select2({
-        placeholder: '',
-        ajax: {
-            url: 'document_endorsement.php',
-            dataType: 'json',
-            delay: 250,
-            data: function(params){ return { action: 'search_students', q: params.term }; },
-            processResults: function(data){ return { results: data.results || [] }; }
-        },
-        minimumInputLength: 1,
-        width: 'resolve',
-        dropdownParent: $(document.body),
-        dropdownCssClass: 'select2-dropdown'
-    });
+    function applyCompanyProfile(company, rowLabel) {
+        if (!company || typeof company !== 'object') return;
+
+        const companyName = String(company.company_name || '').trim();
+        selectedCompanyKey = String(company.key || company.company_lookup_key || companyName || '').trim();
+        inputCompany.value = companyName;
+        inputCompanyAddress.value = String(company.company_address || '').trim();
+
+        if (company.contact_name || company.partner_representative) {
+            inputRecipient.value = String(company.contact_name || company.partner_representative || '').trim();
+        }
+        if (company.contact_position || company.partner_position) {
+            inputPosition.value = String(company.contact_position || company.partner_position || '').trim();
+        }
+
+        const companyInput = document.querySelector('.endorsement-company-search .endorsement-native-input');
+        if (companyInput) {
+            companyInput.value = rowLabel || companyName;
+        }
+
+        updatePreview();
+        updateLinks();
+    }
+
+    function loadCompanyProfile(companyIdentifier, rowLabel) {
+        if (!companyIdentifier) return;
+        fetch(endorsementEndpoint + '?action=get_company_profile&company=' + encodeURIComponent(companyIdentifier), { credentials: 'same-origin' })
+            .then(function(response) { return response.json(); })
+            .then(function(company) {
+                applyCompanyProfile(company, rowLabel);
+            })
+            .catch(function(){});
+    }
+
+    function initCompanySearch() {
+        const sel = companySelect;
+        if (!sel || document.querySelector('.endorsement-company-search')) return;
+
+        sel.style.display = 'none';
+        sel.setAttribute('aria-hidden', 'true');
+
+        const wrap = document.createElement('div');
+        wrap.className = 'endorsement-native-search endorsement-company-search';
+        wrap.innerHTML = [
+            '<div class="endorsement-native-control">',
+            '<input type="text" class="form-control form-control-sm endorsement-native-input" placeholder="Search company, address, or representative" autocomplete="off">',
+            '<button type="button" class="endorsement-native-toggle" aria-label="Search companies"><i class="feather-chevron-down"></i></button>',
+            '</div>',
+            '<div class="endorsement-native-panel"><div class="endorsement-native-message">Type at least 1 character.</div><div class="endorsement-native-results"></div></div>'
+        ].join('');
+        sel.insertAdjacentElement('afterend', wrap);
+
+        const input = wrap.querySelector('.endorsement-native-input');
+        const toggle = wrap.querySelector('.endorsement-native-toggle');
+        const panel = wrap.querySelector('.endorsement-native-panel');
+        const message = wrap.querySelector('.endorsement-native-message');
+        const results = wrap.querySelector('.endorsement-native-results');
+        let timer = null;
+        let token = 0;
+
+        function openPanel() {
+            panel.classList.add('is-open');
+        }
+
+        function closePanel() {
+            panel.classList.remove('is-open');
+        }
+
+        function setMessage(text) {
+            message.textContent = text;
+        }
+
+        function render(items) {
+            results.innerHTML = '';
+            if (!items.length) {
+                setMessage('No companies found.');
+                return;
+            }
+            setMessage('Select a company.');
+            items.forEach(function(item) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'endorsement-native-option';
+                btn.textContent = item.text || ('Company ' + item.id);
+                btn.addEventListener('click', function() {
+                    const label = item.text || '';
+                    const option = new Option(label, String(item.id), true, true);
+                    sel.innerHTML = '';
+                    sel.appendChild(option);
+                    input.value = label;
+                    closePanel();
+                    loadCompanyProfile(String(item.id || ''), label);
+                });
+                results.appendChild(btn);
+            });
+        }
+
+        function search(term) {
+            const value = String(term || '').trim();
+            if (value.length < 1) {
+                results.innerHTML = '';
+                setMessage('Type at least 1 character.');
+                return;
+            }
+            token += 1;
+            const currentToken = token;
+            setMessage('Searching...');
+            fetch(endorsementEndpoint + '?action=search_companies&q=' + encodeURIComponent(value), { credentials: 'same-origin' })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (currentToken !== token) return;
+                    render(Array.isArray(data.results) ? data.results : []);
+                })
+                .catch(function() {
+                    if (currentToken !== token) return;
+                    results.innerHTML = '';
+                    setMessage('Search failed. Try again.');
+                });
+        }
+
+        input.addEventListener('focus', function() {
+            openPanel();
+            search(input.value);
+        });
+        input.addEventListener('input', function() {
+            inputCompany.value = input.value.trim();
+            updatePreview();
+            updateLinks();
+            openPanel();
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(function() { search(input.value); }, 220);
+        });
+        toggle.addEventListener('click', function() {
+            openPanel();
+            input.focus();
+            search(input.value);
+        });
+        document.addEventListener('click', function(event) {
+            if (!wrap.contains(event.target)) closePanel();
+        });
+    }
+
+    function loadPickedStudent(pickedId, pickedLabel) {
+        if (!pickedId) return;
+        selectedStudentId = String(pickedId);
+        selectedStudentName = buildNameFromOptionText(pickedLabel || '');
+        appendSelectedStudentToTextarea();
+        fetch(endorsementEndpoint + '?action=get_endorsement&id=' + encodeURIComponent(pickedId), { credentials: 'same-origin' })
+            .then(function(r){ return r.json(); })
+            .then(function(saved){
+                applySavedEndorsement(saved);
+                updatePreview();
+                updateLinks();
+            })
+            .catch(function(){
+                updatePreview();
+                updateLinks();
+            });
+    }
+
+    function initNativeStudentSearch() {
+        const sel = document.getElementById('student_select');
+        if (!sel || document.querySelector('.endorsement-native-search')) return;
+
+        sel.style.display = 'none';
+        sel.setAttribute('aria-hidden', 'true');
+
+        const wrap = document.createElement('div');
+        wrap.className = 'endorsement-native-search';
+        wrap.innerHTML = [
+            '<div class="endorsement-native-control">',
+            '<input type="text" class="form-control form-control-sm endorsement-native-input" placeholder="Search by name or student id" autocomplete="off">',
+            '<button type="button" class="endorsement-native-toggle" aria-label="Search students"><i class="feather-chevron-down"></i></button>',
+            '</div>',
+            '<div class="endorsement-native-panel"><div class="endorsement-native-message">Type at least 1 character.</div><div class="endorsement-native-results"></div></div>'
+        ].join('');
+        sel.insertAdjacentElement('afterend', wrap);
+
+        const input = wrap.querySelector('.endorsement-native-input');
+        const toggle = wrap.querySelector('.endorsement-native-toggle');
+        const panel = wrap.querySelector('.endorsement-native-panel');
+        const message = wrap.querySelector('.endorsement-native-message');
+        const results = wrap.querySelector('.endorsement-native-results');
+        let timer = null;
+        let token = 0;
+
+        function openPanel() {
+            panel.classList.add('is-open');
+        }
+
+        function closePanel() {
+            panel.classList.remove('is-open');
+        }
+
+        function setMessage(text) {
+            message.textContent = text;
+        }
+
+        function render(items) {
+            results.innerHTML = '';
+            if (!items.length) {
+                setMessage('No students found.');
+                return;
+            }
+            setMessage('Select a student.');
+            items.forEach(function(item) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'endorsement-native-option';
+                btn.textContent = item.text || ('Student #' + item.id);
+                btn.addEventListener('click', function() {
+                    const label = item.text || '';
+                    const option = new Option(label, String(item.id), true, true);
+                    sel.innerHTML = '';
+                    sel.appendChild(option);
+                    input.value = buildNameFromOptionText(label);
+                    closePanel();
+                    loadPickedStudent(String(item.id || ''), label);
+                });
+                results.appendChild(btn);
+            });
+        }
+
+        function search(term) {
+            const value = String(term || '').trim();
+            if (value.length < 1) {
+                results.innerHTML = '';
+                setMessage('Type at least 1 character.');
+                return;
+            }
+            token += 1;
+            const currentToken = token;
+            setMessage('Searching...');
+            fetch(endorsementEndpoint + '?action=search_students&q=' + encodeURIComponent(value), { credentials: 'same-origin' })
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (currentToken !== token) return;
+                    render(Array.isArray(data.results) ? data.results : []);
+                })
+                .catch(function() {
+                    if (currentToken !== token) return;
+                    results.innerHTML = '';
+                    setMessage('Search failed. Try again.');
+                });
+        }
+
+        input.addEventListener('focus', function() {
+            openPanel();
+            search(input.value);
+        });
+        input.addEventListener('input', function() {
+            openPanel();
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(function() { search(input.value); }, 220);
+        });
+        toggle.addEventListener('click', function() {
+            openPanel();
+            input.focus();
+            search(input.value);
+        });
+        document.addEventListener('click', function(event) {
+            if (!wrap.contains(event.target)) closePanel();
+        });
+    }
+
+    if (hasSelect2 && select) {
+        select.select2({
+            placeholder: '',
+            ajax: {
+                url: endorsementEndpoint,
+                dataType: 'json',
+                delay: 250,
+                data: function(params){ return { action: 'search_students', q: params.term }; },
+                processResults: function(data){ return { results: data.results || [] }; }
+            },
+            minimumInputLength: 1,
+            width: 'resolve',
+            dropdownParent: window.jQuery(document.body),
+            dropdownCssClass: 'select2-dropdown'
+        });
+    } else {
+        initNativeStudentSearch();
+    }
 
     function createSelectOverlay() {
         if (document.querySelector('.select2-overlay-input')) return;
@@ -634,48 +1043,39 @@ window.addEventListener('load', function() {
             }
         });
 
-        $(document).on('select2:select select2:closing', '#student_select', function(){
+        if (!hasSelect2 || !window.jQuery) return;
+        window.jQuery(document).on('select2:select select2:closing', '#student_select', function(){
             setTimeout(function(){
-                const txt = $('#student_select').find('option:selected').text() || '';
+                const txt = window.jQuery('#student_select').find('option:selected').text() || '';
                 overlay.value = buildNameFromOptionText(txt);
             }, 0);
         });
         container.addEventListener('click', function(){ overlay.focus(); });
     }
 
-    select.on('select2:open', function() {
-        // keep overlay input focused for direct typing behavior
-    });
+    if (hasSelect2 && select) {
+        select.on('select2:open', function() {
+            // keep overlay input focused for direct typing behavior
+        });
 
-    select.on('select2:select', function(){
-        const pickedId = String(select.val() || '');
-        if (pickedId) selectedStudentId = pickedId;
-        appendSelectedStudentToTextarea();
-        if (pickedId) {
-            fetch('document_endorsement.php?action=get_endorsement&id=' + encodeURIComponent(pickedId))
-                .then(function(r){ return r.json(); })
-                .then(function(saved){
-                    applySavedEndorsement(saved);
-                    updatePreview();
-                    updateLinks();
-                })
-                .catch(function(){});
-        }
-        // Clear current selection so user can search/add another student quickly.
-        select.val(null).trigger('change');
-        const overlay = document.querySelector('.select2-overlay-input');
-        if (overlay) overlay.value = '';
-        setTimeout(function(){ if (overlay) overlay.focus(); }, 0);
-        updatePreview();
-        updateLinks();
-    });
+        select.on('select2:select', function(){
+            const pickedId = String(select.val() || '');
+            const pickedLabel = window.jQuery('#student_select').find('option:selected').text() || '';
+            loadPickedStudent(pickedId, pickedLabel);
+            // Clear current selection so user can search/add another student quickly.
+            select.val(null).trigger('change');
+            const overlay = document.querySelector('.select2-overlay-input');
+            if (overlay) overlay.value = '';
+            setTimeout(function(){ if (overlay) overlay.focus(); }, 0);
+        });
 
-    select.on('select2:unselect change', function(){
-        updatePreview();
-        updateLinks();
-    });
+        select.on('select2:unselect change', function(){
+            updatePreview();
+            updateLinks();
+        });
+    }
 
-    [inputRecipient, inputPosition, inputCompany, inputCompanyAddress, inputStudents].forEach(el => {
+    [inputRecipient, inputPosition, inputCompanyAddress, inputStudents].forEach(el => {
         el.addEventListener('input', function(){
             updatePreview();
             updateLinks();
@@ -702,13 +1102,13 @@ window.addEventListener('load', function() {
 
     btnGenerate.addEventListener('click', function(e){
         e.preventDefault();
-        const href = btnGenerate.href || updateLinks();
-        if (!href) return;
-        window.open(href, '_blank');
+        updatePreview();
+        updateLinks();
+        window.print();
     });
 
     if (prefillId > 0) {
-        fetch('document_endorsement.php?action=get_endorsement&id=' + encodeURIComponent(prefillId))
+        fetch(endorsementEndpoint + '?action=get_endorsement&id=' + encodeURIComponent(prefillId), { credentials: 'same-origin' })
             .then(r => r.json())
             .then(saved => {
                 const hasSaved = applySavedEndorsement(saved);
@@ -718,7 +1118,7 @@ window.addEventListener('load', function() {
                     setTimeout(createSelectOverlay, 60);
                     return;
                 }
-                fetch('document_endorsement.php?action=get_student&id=' + encodeURIComponent(prefillId))
+                fetch(endorsementEndpoint + '?action=get_student&id=' + encodeURIComponent(prefillId), { credentials: 'same-origin' })
                     .then(r => r.json())
                     .then(data => {
                         const full = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ').trim();
@@ -726,7 +1126,16 @@ window.addEventListener('load', function() {
                             const text = full + ' - ' + (data.student_id || '');
                             const o = new Option(text, String(prefillId), true, true);
                             selectedStudentId = String(prefillId);
-                            select.append(o).trigger('change');
+                            if (hasSelect2 && select) {
+                                select.append(o).trigger('change');
+                            } else {
+                                const nativeSelect = document.getElementById('student_select');
+                                if (nativeSelect) {
+                                    nativeSelect.innerHTML = '';
+                                    nativeSelect.appendChild(o);
+                                }
+                                selectedStudentName = full;
+                            }
                         }
                         updatePreview();
                         updateLinks();
@@ -736,6 +1145,7 @@ window.addEventListener('load', function() {
     }
 
     setTimeout(createSelectOverlay, 60);
+    initCompanySearch();
     recipientTitleRadios.forEach(function(r){ r.checked = (r.value === PREFILL_RECIPIENT_TITLE); });
     if (!recipientTitleRadios.some(function(r){ return r.checked; }) && recipientTitleRadios.length) {
         const auto = recipientTitleRadios.find(function(r){ return r.value === 'auto'; });
