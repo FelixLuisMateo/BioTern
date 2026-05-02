@@ -174,7 +174,8 @@
     function renderActivity() {
         if (!els.activityList) return;
         if (!state.activity.length) { els.activityList.innerHTML = '<div class="app-storage-empty-mini">No recent storage activity yet.</div>'; return; }
-        els.activityList.innerHTML = state.activity.map((item) => `<div class="app-storage-activity-item"><span class="app-storage-activity-dot"></span><div><strong>${escapeHtml(activityLabel(item.action_type))}</strong><p>${escapeHtml(item.title || item.details || 'Storage update')}</p><small>${escapeHtml(formatDateTime(item.created_at))}</small></div></div>`).join('');
+        const compactActivity = state.activity.slice(0, 4);
+        els.activityList.innerHTML = compactActivity.map((item) => `<div class="app-storage-activity-item"><span class="app-storage-activity-dot"></span><div><strong>${escapeHtml(activityLabel(item.action_type))}</strong><p>${escapeHtml(item.title || item.details || 'Storage update')}</p><small>${escapeHtml(formatDateTime(item.created_at))}</small></div></div>`).join('');
     }
 
     function renderBulkbar() {

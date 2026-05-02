@@ -690,6 +690,21 @@
     gap: 0.75rem;
 }
 
+.app-storage-activity-list {
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+.app-storage-activity-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.app-storage-activity-list::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.28);
+}
+
 .app-storage-activity-item,
 .app-storage-checklist-item,
 .app-storage-history-item {
@@ -752,6 +767,46 @@
     align-items: center;
     gap: 0.55rem;
     color: var(--storage-text);
+    cursor: pointer;
+}
+
+.app-storage-bulk-select-all input,
+.app-storage-item-check input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.app-storage-bulk-select-all::before,
+.app-storage-item-check span {
+    content: "";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    border: 1px solid rgba(148, 163, 184, 0.38);
+    background: rgba(10, 18, 34, 0.84);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    transition: 0.18s ease;
+}
+
+.app-storage-bulk-select-all:has(input:checked)::before,
+.app-storage-item-check input:checked + span {
+    content: "\2713";
+    background: var(--biotern-primary);
+    border-color: rgba(var(--biotern-primary-rgb), 0.85);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.app-storage-bulk-select-all:hover::before,
+.app-storage-item-check:hover span {
+    border-color: rgba(var(--biotern-primary-rgb), 0.75);
+    box-shadow: 0 0 0 4px rgba(var(--biotern-primary-rgb), 0.12);
 }
 
 .app-storage-bulk-actions {
@@ -769,11 +824,7 @@
     top: 0.95rem;
     left: 0.95rem;
     z-index: 2;
-}
-
-.app-storage-item-check input {
-    width: 16px;
-    height: 16px;
+    cursor: pointer;
 }
 
 .app-storage-item-wrap .app-storage-item {

@@ -739,7 +739,7 @@ if ($method === 'GET') {
     }
     $stmt->close();
 
-    $activityStmt = $conn->prepare('SELECT action_type, title, details, created_at FROM storage_activity_logs WHERE user_id = ? ORDER BY id DESC LIMIT 8');
+    $activityStmt = $conn->prepare('SELECT action_type, title, details, created_at FROM storage_activity_logs WHERE user_id = ? ORDER BY id DESC LIMIT 4');
     $activity = [];
     if ($activityStmt) {
         $activityStmt->bind_param('i', $userId);
