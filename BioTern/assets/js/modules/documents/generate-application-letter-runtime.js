@@ -187,4 +187,12 @@
       // keep server-rendered content if localStorage fails
     }
   }
+
+  if (window.location.search && /(?:\?|&)print=1(?:&|$)/.test(window.location.search)) {
+    window.addEventListener("load", function () {
+      window.setTimeout(function () {
+        window.print();
+      }, 250);
+    });
+  }
 })();

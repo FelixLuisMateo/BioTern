@@ -975,6 +975,40 @@
         });
     }
 
+    function collectPrintStyles() {
+        var html = '';
+        Array.prototype.slice.call(document.querySelectorAll('link[rel="stylesheet"], style')).forEach(function (node) {
+            html += node.outerHTML + '\n';
+        });
+        return html;
+    }
+
+    function openPrintWindowFromPreview() {
+        if (!editor) {
+            window.print();
+            return;
+        }
+
+        var printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            window.print();
+            return;
+        }
+
+        printWindow.document.open();
+        printWindow.document.write(
+            '<!doctype html><html><head><meta charset="utf-8">' +
+            '<title>Application Letter</title>' +
+            '<base href="' + document.baseURI.replace(/"/g, '&quot;') + '">' +
+            collectPrintStyles() +
+            '<style>body{background:#fff;margin:0;padding:0;}.no-print,.page-header,.nxl-navigation,.nxl-header{display:none!important;}.builder-editor-surface{box-shadow:none!important;border:0!important;padding:0!important;margin:0 auto!important;max-width:none!important;}.a4-pages-stack{margin:0 auto!important;}</style>' +
+            '</head><body>' + editor.innerHTML +
+            '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});<\/script>' +
+            '</body></html>'
+        );
+        printWindow.document.close();
+    }
+
     function initPrintButton() {
         if (!printButton) {
             return;
@@ -986,7 +1020,7 @@
             }
             ensureA4TemplateStructure();
             updatePreviewFields();
-            window.print();
+            openPrintWindowFromPreview();
         });
     }
 

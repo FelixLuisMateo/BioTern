@@ -245,6 +245,7 @@
     white-space: normal;
     vertical-align: top;
     word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .excel-import-table th:nth-child(1),
@@ -344,6 +345,44 @@
 
 .excel-import-review-table-wrap {
     width: 100%;
+    min-width: 0;
+}
+
+.excel-import-review-table-wrap .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.excel-import-review-table-wrap .excel-import-table {
+    table-layout: fixed;
+    min-width: 760px;
+}
+
+.excel-import-review-table-wrap .excel-import-table th,
+.excel-import-review-table-wrap .excel-import-table td {
+    line-height: 1.45;
+    padding: 0.72rem 0.85rem;
+}
+
+.excel-import-review-table-wrap .excel-import-table th:nth-child(1),
+.excel-import-review-table-wrap .excel-import-table td:nth-child(1) {
+    width: 31%;
+}
+
+.excel-import-review-table-wrap .excel-import-table th:nth-child(2),
+.excel-import-review-table-wrap .excel-import-table td:nth-child(2) {
+    width: 27%;
+}
+
+.excel-import-review-table-wrap .excel-import-table th:nth-child(3),
+.excel-import-review-table-wrap .excel-import-table td:nth-child(3) {
+    width: 30%;
+}
+
+.excel-import-review-table-wrap .excel-import-table th:nth-child(4),
+.excel-import-review-table-wrap .excel-import-table td:nth-child(4) {
+    width: 12%;
+    white-space: nowrap;
 }
 
 .excel-import-student-toolbar {

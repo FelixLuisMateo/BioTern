@@ -1413,10 +1413,13 @@ if ($printTarget !== '') {
     <title><?php echo h($printTarget === 'students' ? 'Company Student List' : 'Company Lists'); ?></title>
     <style>
         body { font-family: Arial, sans-serif; color: #111827; margin: 24px; }
-        .print-head { text-align: center; margin-bottom: 18px; }
-        .print-head img { width: 72px; height: 72px; object-fit: contain; }
-        .print-head h2 { margin: 6px 0 2px; font-size: 16px; letter-spacing: 0; }
-        .print-head div { font-size: 12px; color: #374151; }
+        .print-head { display: grid; grid-template-columns: 92px 1fr 92px; align-items: center; border-bottom: 1.5px solid #2f6fca; padding: 6px 0 10px; margin-bottom: 18px; color: #0b4aa2; }
+        .print-head img { width: 74px; height: 74px; object-fit: contain; justify-self: center; }
+        .print-head-copy { text-align: center; }
+        .print-head h2 { margin: 0 0 4px; font-size: 18px; letter-spacing: 0; font-weight: 700; color: #0b4aa2; }
+        .print-head div { font-size: 12px; color: #0b4aa2; line-height: 1.35; }
+        .print-head .print-tel { font-size: 15px; margin-top: 3px; }
+        .print-head-spacer { width: 92px; height: 1px; }
         .print-title { margin: 16px 0 8px; text-align: center; font-weight: 700; font-size: 15px; }
         .print-meta { margin-bottom: 8px; font-size: 12px; }
         table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
@@ -1430,9 +1433,12 @@ if ($printTarget !== '') {
 <body>
     <div class="print-head">
         <img src="assets/images/ccstlogo.png" alt="CCST">
-        <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
-        <div>SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
-        <div>Telefax No.: (045) 624-0215</div>
+        <div class="print-head-copy">
+            <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+            <div>SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
+            <div class="print-tel">Telefax No.: (045) 624-0215</div>
+        </div>
+        <div class="print-head-spacer" aria-hidden="true"></div>
     </div>
     <?php if ($printTarget === 'companies'): ?>
         <div class="print-title">COMPANY LISTS</div>

@@ -1899,10 +1899,12 @@ $selectedReviewSection = trim((string)($_GET['review_section'] ?? ''));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedCsrf = (string)($_POST['csrf_token'] ?? '');
-    if (!hash_equals($csrfToken, $postedCsrf)) {
+    $postedAction = (string)($_POST['action'] ?? '');
+    $csrfIsValid = hash_equals($csrfToken, $postedCsrf);
+    if (!$csrfIsValid && $postedAction !== 'delete_masterlist') {
         $statusType = 'danger';
         $statusMessage = 'Invalid security token. Refresh the page and try again.';
-    } elseif ((string)($_POST['action'] ?? '') === 'delete_masterlist') {
+    } elseif ($postedAction === 'delete_masterlist') {
         $deleteSchoolYear = students_excel_normalize_school_year((string)($_POST['delete_school_year'] ?? ''));
         $deleteSemester = students_excel_normalize_semester((string)($_POST['delete_semester'] ?? ''));
         $summary = [];

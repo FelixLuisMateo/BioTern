@@ -529,6 +529,7 @@ window.addEventListener('load', function() {
         if (inputCompanyAddress.value) p.set('company_address', inputCompanyAddress.value);
         const checked = greetingRadios.find(function(r){ return r.checked; });
         if (checked && checked.value) p.set('greeting_pref', checked.value);
+        p.set('print', '1');
         const typed = sanitizeStudentLines(inputStudents.value);
         const selectedName = getSelectedStudentName();
         const studentsValue = typed.length ? typed.join('\n') : selectedName;

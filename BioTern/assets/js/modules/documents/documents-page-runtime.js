@@ -344,6 +344,7 @@
             if (getLocalTemplateHtml(APP_TEMPLATE_STORAGE_KEY)) {
                 params.set('use_saved_template', '1');
             }
+            params.set('print', '1');
             params.set('date', new Date().toLocaleDateString());
             var url = 'pages/generate_application_letter.php?' + params.toString();
             gen.dataset.url = url;
@@ -599,6 +600,7 @@
             if (bookNo.value) params.set('book_no', bookNo.value);
             if (seriesNo.value) params.set('series_no', seriesNo.value);
             if (getLocalTemplateHtml(templateStorageKey)) params.set('use_saved_template', '1');
+            params.set('print', '1');
             params.set('date', new Date().toLocaleDateString());
             var url = generateUrl + params.toString();
             btnGenerate.dataset.url = url;
@@ -775,6 +777,7 @@
             var studentsValue = typed.length ? typed.join('\n') : selectedName;
             if (studentsValue) p.set('students', studentsValue);
             if (getLocalTemplateHtml('biotern_endorsement_template_html_v1')) p.set('use_saved_template', '1');
+            p.set('print', '1');
             var genUrl = 'pages/generate_endorsement_letter.php?' + p.toString();
             btnGenerate.href = genUrl;
             btnFileEdit.href = 'pages/edit_endorsement.php?blank=1';
