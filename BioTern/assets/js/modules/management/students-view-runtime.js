@@ -455,6 +455,25 @@
     updatePrintValues();
   }
 
+  function initializeRequestedTab() {
+    var params;
+    try {
+      params = new URLSearchParams(window.location.search);
+    } catch (e) {
+      return;
+    }
+    if (params.get("tab") !== "evaluation") return;
+
+    var trigger = document.querySelector('[data-bs-target="#evaluationTab"]');
+    if (!trigger) return;
+
+    if (window.bootstrap && window.bootstrap.Tab) {
+      window.bootstrap.Tab.getOrCreateInstance(trigger).show();
+    } else {
+      trigger.click();
+    }
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initializeTimer);
   } else {
@@ -471,5 +490,11 @@
     document.addEventListener("DOMContentLoaded", initializeInternalEvaluation);
   } else {
     initializeInternalEvaluation();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeRequestedTab);
+  } else {
+    initializeRequestedTab();
   }
 })();

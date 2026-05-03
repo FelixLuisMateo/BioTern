@@ -15,6 +15,11 @@ $current_user_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['us
 $can_manage_eval_unlock = in_array($current_user_role, ['admin', 'coordinator', 'supervisor'], true);
 $eval_flash_message = '';
 $eval_flash_type = 'success';
+if (!empty($_SESSION['student_view_eval_flash']) && is_array($_SESSION['student_view_eval_flash'])) {
+    $eval_flash_message = (string)($_SESSION['student_view_eval_flash']['message'] ?? '');
+    $eval_flash_type = (string)($_SESSION['student_view_eval_flash']['type'] ?? 'success');
+    unset($_SESSION['student_view_eval_flash']);
+}
 
 function resolve_profile_image_url(string $profilePath, int $userId = 0): ?string {
     $resolved = biotern_avatar_public_src($profilePath, $userId);
@@ -382,6 +387,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eval_unlock_action'])
             }
         }
     }
+
+    $_SESSION['student_view_eval_flash'] = [
+        'type' => $eval_flash_type,
+        'message' => $eval_flash_message,
+    ];
+    header('Location: students-view.php?id=' . (int)$student_id . '&tab=evaluation');
+    exit;
 }
 
 // Check if student has attendance today (any record for today's date).
@@ -704,6 +716,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_internal_eval
             $eval_flash_message = 'Unable to prepare evaluation save.';
         }
     }
+
+    $_SESSION['student_view_eval_flash'] = [
+        'type' => $eval_flash_type,
+        'message' => $eval_flash_message,
+    ];
+    header('Location: students-view.php?id=' . (int)$student_id . '&tab=evaluation');
+    exit;
 }
 
 if (student_view_table_exists($conn, 'evaluations')) {
