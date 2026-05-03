@@ -1224,6 +1224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'clear_users',
             'clear_admin',
             'restart',
+            'restart_windows',
             'save_device_identity',
         ];
         if (in_array($action, $adminOnlyActions, true) && !$isAdmin) {
@@ -2070,6 +2071,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Restart command sent to the machine.'];
                 machine_redirect_after_post([]);
 
+            case 'restart_windows':
+                if (machine_is_cloud_runtime()) {
+                    throw new RuntimeException('Windows restart is not available in cloud runtime.');
+                }
+                if (stripos(PHP_OS_FAMILY, 'Windows') !== 0) {
+                    throw new RuntimeException('Windows restart is only available on Windows hosts.');
+                }
+                $shutdownCmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "shutdown.exe /r /t 30 /c \"BioTern Bridge Restart initiated\""';
+                pclose(popen($shutdownCmd, 'r'));
+                $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Windows restart initiated. System will restart in 30 seconds. Bridge will restart automatically on boot.'];
+                machine_redirect_after_post([]);
+
             case 'save_device_identity':
                 $deviceNo = trim((string)($_POST['device_number'] ?? ''));
                 $password = trim((string)($_POST['communication_password'] ?? ''));
@@ -2589,6 +2602,10 @@ include __DIR__ . '/../includes/header.php';
                             <button type="submit" class="btn btn-primary w-100"><?php echo $cloudRuntime || $syncMode === 'direct_ingest' ? 'Process Ingest Queue' : 'Sync Now'; ?></button>
                         </form>
                         <?php if ($isAdmin && !$cloudRuntime): ?>
+                            <form method="post" class="mt-2" onsubmit="return confirm('Restart Windows? System will restart in 30 seconds. Bridge will restart automatically on boot.')">
+                                <input type="hidden" name="machine_action" value="restart_windows">
+                                <button type="submit" class="btn btn-danger w-100">Restart Windows</button>
+                            </form>
                             <form method="post" class="mt-2">
                                 <input type="hidden" name="machine_action" value="open_restart_bridge_shell">
                                 <button type="submit" class="btn btn-outline-dark w-100">Open PowerShell: Restart Bridge Worker</button>
