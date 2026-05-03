@@ -61,13 +61,13 @@
 
 .app-students-dtr-filter-form {
     display: grid !important;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
     gap: 0.65rem;
     align-items: center;
     padding: 0.82rem 0.95rem;
-    border: 1px solid rgba(148, 163, 184, 0.24);
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid #dbe7f6;
+    border-radius: 12px;
+    background: #ffffff;
 }
 
 .app-students-dtr-filter-label {
@@ -81,6 +81,9 @@
 
 .app-students-dtr-filter-form .form-control {
     min-height: 40px;
+    color: #172033;
+    background-color: #ffffff;
+    border-color: #d6e2f1;
 }
 
 .app-students-dtr-hours-chip {
@@ -88,10 +91,10 @@
     flex-direction: column;
     gap: 0.3rem;
     padding: 0.92rem 1rem;
-    border: 1px solid rgba(90, 118, 170, 0.24);
-    border-radius: 14px;
-    background: rgba(15, 23, 42, 0.96);
-    color: #edf4ff;
+    border: 1px solid #dbe7f6;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #172033;
 }
 
 .app-students-dtr-hours-chip-label {
@@ -99,7 +102,7 @@
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgba(219, 232, 255, 0.76);
+    color: #64748b;
 }
 
 .app-students-dtr-hours-chip-pill {
@@ -109,9 +112,10 @@
     justify-content: center;
     min-width: 112px;
     padding: 0.42rem 0.8rem;
-    border: 1px solid rgba(129, 153, 199, 0.34);
+    border: 1px solid #bfdbfe;
     border-radius: 999px;
-    background: linear-gradient(135deg, rgba(29, 78, 216, 0.18), rgba(var(--biotern-primary-rgb), 0.1));
+    background: #eef4ff;
+    color: #1d4ed8;
 }
 
 .app-students-dtr-hours-chip-value {
@@ -123,7 +127,7 @@
 
 .app-students-dtr-hours-chip-meta {
     font-size: 0.82rem;
-    color: rgba(219, 232, 255, 0.8);
+    color: #64748b;
 }
 
 .app-students-dtr-meta-highlight,

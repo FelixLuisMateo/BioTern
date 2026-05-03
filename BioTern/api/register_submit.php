@@ -313,6 +313,55 @@ function studentAccountAlreadyCreated(mysqli $mysqli, ?string $studentId, ?strin
     return false;
 }
 
+function findVerifiedImportedStudent(mysqli $mysqli, ?string $studentId): ?array
+{
+    $studentId = trim((string)$studentId);
+    if ($studentId === '') {
+        return null;
+    }
+
+    $stmt = $mysqli->prepare("
+        SELECT
+            s.*,
+            u.id AS linked_user_id,
+            COALESCE(u.email, '') AS linked_user_email,
+            COALESCE(u.username, '') AS linked_username
+        FROM students s
+        LEFT JOIN users u ON u.id = s.user_id
+        WHERE TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci = TRIM(?) COLLATE utf8mb4_unicode_ci
+        LIMIT 1
+    ");
+    if (!$stmt) {
+        return null;
+    }
+
+    $stmt->bind_param('s', $studentId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    return is_array($row) ? $row : null;
+}
+
+function emailBelongsToDifferentUser(mysqli $mysqli, string $email, int $allowedUserId): bool
+{
+    $email = trim($email);
+    if ($email === '') {
+        return false;
+    }
+
+    $stmt = $mysqli->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('s', $email);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    return is_array($row) && (int)($row['id'] ?? 0) !== $allowedUserId;
+}
+
 function linkedInternalUserId(mysqli $mysqli, ?string $studentId): int
 {
     $studentId = trim((string)$studentId);
@@ -770,19 +819,27 @@ if ($role === 'student') {
     $emergency_contact = getPost('emergency_contact');
     $emergency_contact_phone = getPost('emergency_contact_phone');
 
+    // Use account_email if provided, otherwise use email
+    $final_email = $account_email ?: $email;
+    if ($final_email === null || $final_email === '' || !filter_var($final_email, FILTER_VALIDATE_EMAIL)) {
+        studentApplicationRedirect('error', 'Please provide a valid account email address.');
+    }
+    $verifiedImportedStudent = findVerifiedImportedStudent($mysqli, $student_id);
+    $verifiedImportedUserId = (int)($verifiedImportedStudent['user_id'] ?? $verifiedImportedStudent['linked_user_id'] ?? 0);
+
     $ojtInternalUserId = linkedInternalUserId($mysqli, $student_id);
-    if ($ojtInternalUserId > 0) {
+    if ($ojtInternalUserId > 0 && ($verifiedImportedUserId <= 0 || $ojtInternalUserId !== $verifiedImportedUserId)) {
         studentApplicationRedirect('exists', 'Your account was already created by the school. Please use the account credentials provided by your teacher/admin.');
     }
 
-    if (studentAccountAlreadyCreated($mysqli, $student_id, $account_email ?: $email)) {
+    if (!$verifiedImportedStudent && studentAccountAlreadyCreated($mysqli, $student_id, $final_email)) {
         studentApplicationRedirect('exists', 'Your account was already created by the school. Please use your Student ID Number to log in or contact the administrator.');
     }
 
     if ($student_id !== null && $student_id !== '' && !preg_match('/^05-\d{4,5}$/', (string)$student_id)) {
         studentApplicationRedirect('error', 'School ID Number must follow the format 05-1234 or 05-12345.');
     }
-    if ($student_id !== null && $student_id !== '' && studentIdAlreadyUsed($mysqli, (string)$student_id)) {
+    if (!$verifiedImportedStudent && $student_id !== null && $student_id !== '' && studentIdAlreadyUsed($mysqli, (string)$student_id)) {
         studentApplicationRedirect('exists', 'An application or account already exists for that School ID Number.');
     }
 
@@ -796,12 +853,6 @@ if ($role === 'student') {
     }
     if ($gender === null) {
         studentApplicationRedirect('error', 'Please select a valid gender.');
-    }
-
-    // Use account_email if provided, otherwise use email
-    $final_email = $account_email ?: $email;
-    if ($final_email === null || $final_email === '' || !filter_var($final_email, FILTER_VALIDATE_EMAIL)) {
-        studentApplicationRedirect('error', 'Please provide a valid account email address.');
     }
 
     $username_seed = $student_id ?: ($final_email ?: ($first_name . '.' . $last_name));
@@ -1077,8 +1128,142 @@ if ($role === 'student') {
         $supervisor_name = isset($sup_row['full_name']) ? (string)$sup_row['full_name'] : null;
     }
 
-    // Hash password for staging; user account is created only after approval.
     $pwdHash = password_hash($password ?: bin2hex(random_bytes(4)), PASSWORD_DEFAULT);
+    $departmentIdForApp = !empty($department_id) ? (int)$department_id : 0;
+    $sectionIdForApp = !empty($section_id) ? (int)$section_id : 0;
+    $supervisorIdForApp = !empty($supervisor_id) ? (int)$supervisor_id : 0;
+    $coordinatorIdForApp = !empty($coordinator_id) ? (int)$coordinator_id : 0;
+    if ($verifiedImportedStudent) {
+        $studentPk = (int)($verifiedImportedStudent['id'] ?? 0);
+        $user_id = $verifiedImportedUserId;
+        if ($studentPk <= 0) {
+            studentApplicationRedirect('error', 'Unable to verify your imported student record.');
+        }
+        if (emailBelongsToDifferentUser($mysqli, $final_email, $user_id)) {
+            studentApplicationRedirect('exists', 'That email address is already used by another account.');
+        }
+
+        $displayName = trim((string)$first_name . ' ' . (string)$last_name);
+        $claimUsername = trim((string)($verifiedImportedStudent['linked_username'] ?? ''));
+        if ($claimUsername === '') {
+            $claimUsername = generateUniqueUsername($mysqli, $student_id ?: $final_email, 'student');
+        }
+
+        if ($user_id <= 0) {
+            $createUserErrorCode = null;
+            $createUserErrorMessage = null;
+            $user_id = (int)createUser($mysqli, $claimUsername, $final_email, $password ?: bin2hex(random_bytes(4)), 'student', $createUserErrorCode, $createUserErrorMessage);
+            if ($user_id <= 0) {
+                studentApplicationRedirect('error', $createUserErrorMessage ?: 'Unable to create your student account.');
+            }
+        }
+
+        $userUpdateStmt = $mysqli->prepare("
+            UPDATE users
+            SET name = ?, username = ?, email = ?, password = ?, role = 'student',
+                is_active = 1, application_status = 'approved', approved_at = NOW(),
+                rejected_at = NULL, approval_notes = NULL
+            WHERE id = ?
+            LIMIT 1
+        ");
+        if (!$userUpdateStmt) {
+            studentApplicationRedirect('error', 'Unable to approve your verified student account.');
+        }
+        $userUpdateStmt->bind_param('ssssi', $displayName, $claimUsername, $final_email, $pwdHash, $user_id);
+        if (!$userUpdateStmt->execute()) {
+            $userUpdateStmt->close();
+            studentApplicationRedirect('error', 'Unable to approve your verified student account.');
+        }
+        $userUpdateStmt->close();
+
+        $studentUpdateStmt = $mysqli->prepare("
+            UPDATE students
+            SET user_id = ?, course_id = ?, student_id = ?, first_name = ?, last_name = ?, middle_name = ?,
+                username = ?, password = ?, email = ?, department_id = NULLIF(?, 0), section_id = NULLIF(?, 0),
+                semester = NULLIF(?, ''), school_year = NULLIF(?, ''), address = NULLIF(?, ''),
+                phone = NULLIF(?, ''), date_of_birth = NULLIF(?, ''), gender = NULLIF(?, ''),
+                supervisor_id = NULLIF(?, 0), supervisor_name = NULLIF(?, ''),
+                coordinator_id = NULLIF(?, 0), coordinator_name = NULLIF(?, ''),
+                internal_total_hours = ?, internal_total_hours_remaining = ?,
+                external_total_hours = ?, external_total_hours_remaining = ?,
+                assignment_track = ?, emergency_contact = NULLIF(?, ''),
+                application_status = 'approved', status = 1, updated_at = NOW()
+            WHERE id = ?
+            LIMIT 1
+        ");
+        if (!$studentUpdateStmt) {
+            studentApplicationRedirect('error', 'Unable to update your verified student record.');
+        }
+        $studentUpdateStmt->bind_param(
+            'iisssssssiissssssisisiissssi',
+            $user_id,
+            $course_id,
+            $student_id,
+            $first_name,
+            $last_name,
+            $middle_name,
+            $claimUsername,
+            $pwdHash,
+            $final_email,
+            $departmentIdForApp,
+            $sectionIdForApp,
+            $semester,
+            $school_year,
+            $address,
+            $phone,
+            $date_of_birth,
+            $gender,
+            $supervisorIdForApp,
+            $supervisor_name,
+            $coordinatorIdForApp,
+            $coordinator_name,
+            $internal_total_hours,
+            $internal_total_hours_remaining,
+            $external_total_hours,
+            $external_total_hours_remaining,
+            $assignment_track,
+            $emergency_contact,
+            $studentPk
+        );
+        if (!$studentUpdateStmt->execute()) {
+            $studentUpdateStmt->close();
+            studentApplicationRedirect('error', 'Unable to update your verified student record.');
+        }
+        $studentUpdateStmt->close();
+
+        if ($student_id !== '') {
+            $linkInternalStmt = $mysqli->prepare("
+                UPDATE ojt_internal
+                SET user_id = NULLIF(?, 0), updated_at = NOW()
+                WHERE TRIM(COALESCE(student_no, '')) COLLATE utf8mb4_unicode_ci = TRIM(?) COLLATE utf8mb4_unicode_ci
+                  AND (user_id IS NULL OR user_id = 0 OR user_id = ?)
+            ");
+            if ($linkInternalStmt) {
+                $linkInternalStmt->bind_param('isi', $user_id, $student_id, $user_id);
+                $linkInternalStmt->execute();
+                $linkInternalStmt->close();
+            }
+        }
+
+        if (ensureStudentApplicationsTable($mysqli)) {
+            $stageApproveStmt = $mysqli->prepare("
+                UPDATE student_applications
+                SET user_id = NULLIF(?, 0), status = 'approved', reviewed_at = NOW(),
+                    reviewed_by = NULL, approval_notes = 'Auto-approved from imported student list',
+                    disciplinary_remark = NULL, created_student_user_id = NULLIF(?, 0)
+                WHERE student_id = ? AND status = 'pending'
+            ");
+            if ($stageApproveStmt) {
+                $stageApproveStmt->bind_param('iis', $user_id, $user_id, $student_id);
+                $stageApproveStmt->execute();
+                $stageApproveStmt->close();
+            }
+        }
+
+        studentApplicationRedirect('approved', 'Registration approved. You can now log in using your Student ID Number and password.');
+    }
+
+    // Hash password for staging; user account is created only after approval.
     $user_id = $ojtInternalUserId > 0 ? $ojtInternalUserId : 0;
 
     $existingUserStmt = $mysqli->prepare("SELECT id, COALESCE(application_status, 'approved') AS application_status FROM users WHERE email = ? LIMIT 1");
@@ -1163,10 +1348,6 @@ if ($role === 'student') {
         studentApplicationRedirect('error', 'Unable to queue the student application for review.');
     }
 
-    $departmentIdForApp = !empty($department_id) ? (int)$department_id : 0;
-    $sectionIdForApp = !empty($section_id) ? (int)$section_id : 0;
-    $supervisorIdForApp = !empty($supervisor_id) ? (int)$supervisor_id : 0;
-    $coordinatorIdForApp = !empty($coordinator_id) ? (int)$coordinator_id : 0;
     $stageStmt->bind_param(
         'isssssssiiissssssssisisiisss',
         $user_id,

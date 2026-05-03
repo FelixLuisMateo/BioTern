@@ -1497,6 +1497,98 @@ function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
 
     return (int)($candidate['id'] ?? 0) > (int)($existing['id'] ?? 0);
 }
+
+if (trim((string)($_GET['print'] ?? '')) === 'list') {
+    $printRange = $start_date !== '' && $end_date !== ''
+        ? ($start_date . ' to ' . $end_date)
+        : ($filter_date !== '' ? $filter_date : 'Current filtered list');
+    ?>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>BioTern || Attendance Print Preview</title>
+    <style>
+        @page { size: A4 landscape; margin: 10mm; }
+        body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #111827; background: #fff; }
+        .screen-actions { max-width: 1120px; margin: 18px auto 0; display: flex; justify-content: flex-end; gap: 10px; }
+        .screen-actions button { border: 1px solid #cbd5e1; background: #fff; color: #0f172a; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+        .screen-actions .primary { background: #0ea5e9; border-color: #0ea5e9; color: #fff; }
+        .paper { max-width: 1120px; margin: 0 auto; padding: 8mm 8mm 10mm; box-sizing: border-box; }
+        .print-header { display: grid; grid-template-columns: 78px minmax(0,1fr) 78px; align-items: center; gap: 12px; border-bottom: 2px solid #2f5fb3; padding-bottom: 9px; }
+        .print-header img { width: 68px; height: 68px; object-fit: contain; }
+        .print-header-copy { text-align: center; line-height: 1.25; }
+        .print-school { margin: 0; font-size: 24px; font-weight: 800; }
+        .print-meta { margin: 0; font-size: 13px; color: #1f4e9f; font-weight: 600; }
+        .print-title { text-align: center; font-size: 20px; font-weight: 800; margin: 18px 0 10px; text-transform: uppercase; }
+        .filter-line { font-size: 12px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th, td { border: 1px solid #cbd5e1; padding: 6px 7px; text-align: left; vertical-align: top; }
+        thead th { background: #f8fafc; font-weight: 800; text-transform: uppercase; font-size: 10px; }
+        .text-center { text-align: center; }
+        @media print { .screen-actions { display: none; } .paper { max-width: none; padding: 0; } }
+    </style>
+</head>
+<body>
+    <div class="screen-actions"><button type="button" onclick="window.close()">Close</button><button type="button" class="primary" onclick="window.print()">Print</button></div>
+    <main class="paper">
+        <header class="print-header">
+            <img src="assets/images/ccstlogo.png" alt="CCST">
+            <div class="print-header-copy">
+                <h1 class="print-school">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h1>
+                <p class="print-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</p>
+                <p class="print-meta">Telefax No.: (045) 624-0215</p>
+            </div>
+            <div aria-hidden="true"></div>
+        </header>
+        <div class="print-title">Attendance List</div>
+        <div class="filter-line"><strong>FILTER:</strong> <?php echo htmlspecialchars($printRange, ENT_QUOTES, 'UTF-8'); ?> / <?php echo htmlspecialchars($filter_reports === 'all' ? 'All reports' : ucwords(str_replace('_', ' ', $filter_reports)), ENT_QUOTES, 'UTF-8'); ?> / <?php echo htmlspecialchars($filter_status === 'all' ? 'All statuses' : ucwords(str_replace('_', ' ', $filter_status)), ENT_QUOTES, 'UTF-8'); ?></div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Student No.</th>
+                    <th>Name</th>
+                    <th>Course / Section</th>
+                    <th>AM In</th>
+                    <th>AM Out</th>
+                    <th>PM In</th>
+                    <th>PM Out</th>
+                    <th>Total Hours</th>
+                    <th>Status</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($attendances)): ?>
+                    <tr><td colspan="12" class="text-center">No attendance records matched the current filters.</td></tr>
+                <?php else: ?>
+                    <?php foreach ($attendances as $index => $attendance): ?>
+                        <tr>
+                            <td><?php echo (int)$index + 1; ?></td>
+                            <td><?php echo htmlspecialchars((string)($attendance['attendance_date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars((string)($attendance['student_number'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars(trim((string)($attendance['last_name'] ?? '') . ', ' . (string)($attendance['first_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars(trim((string)($attendance['course_name'] ?? '-') . ' / ' . biotern_format_section_label((string)($attendance['section_code'] ?? ''), (string)($attendance['section_name'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars(!empty($attendance['morning_time_in']) ? date('h:i A', strtotime((string)$attendance['morning_time_in'])) : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars(!empty($attendance['morning_time_out']) ? date('h:i A', strtotime((string)$attendance['morning_time_out'])) : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars(!empty($attendance['afternoon_time_in']) ? date('h:i A', strtotime((string)$attendance['afternoon_time_in'])) : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars(!empty($attendance['afternoon_time_out']) ? date('h:i A', strtotime((string)$attendance['afternoon_time_out'])) : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars(number_format((float)($attendance['total_hours'] ?? 0), 2), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', attendance_list_status_key($attendance))), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars(ucfirst((string)($attendance['record_origin'] ?? 'internal')), ENT_QUOTES, 'UTF-8'); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </main>
+</body>
+</html>
+    <?php
+    exit;
+}
 ?>
 <?php
 $page_title = 'BioTern || Student Attendance';
@@ -1596,7 +1688,8 @@ include 'includes/header.php';
                                         <span>XML</span>
                                     </a>
                                     <div class="dropdown-divider"></div>
-                                    <a href="javascript:void(0);" class="dropdown-item">
+                                    <?php $attendancePrintQuery = http_build_query(array_merge($_GET, ['print' => 'list'])); ?>
+                                    <a href="attendance.php?<?php echo htmlspecialchars($attendancePrintQuery, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" class="dropdown-item">
                                         <i class="bi bi-printer me-3"></i>
                                         <span>Print</span>
                                     </a>

@@ -33,6 +33,38 @@ function company_display_name(?string $value): string
     return $value !== '' ? $value : 'Unnamed Company';
 }
 
+function company_student_name_parts(array $student): array
+{
+    $last = trim((string)($student['last_name'] ?? ''));
+    $first = trim((string)($student['first_name'] ?? ''));
+    $middle = trim((string)($student['middle_name'] ?? ''));
+    if ($last !== '' || $first !== '' || $middle !== '') {
+        return [$last, $first, $middle];
+    }
+
+    $display = trim((string)($student['display_name'] ?? $student['student_name'] ?? ''));
+    if ($display === '') {
+        return ['', '', ''];
+    }
+    if (strpos($display, ',') !== false) {
+        [$last, $rest] = array_map('trim', explode(',', $display, 2));
+        $parts = preg_split('/\s+/', $rest) ?: [];
+        $first = trim((string)array_shift($parts));
+        $middle = trim(implode(' ', $parts));
+        return [$last, $first, $middle];
+    }
+
+    $parts = preg_split('/\s+/', $display) ?: [];
+    if (count($parts) >= 2) {
+        $last = (string)array_pop($parts);
+        $first = (string)array_shift($parts);
+        $middle = trim(implode(' ', $parts));
+        return [$last, $first, $middle];
+    }
+
+    return ['', $display, ''];
+}
+
 function company_datetime_label(?string $value): string
 {
     $value = trim((string)$value);
@@ -1050,7 +1082,11 @@ if ($internshipsTableReady) {
                 $requiredHours = 250;
             }
 
+            $statusKey = strtolower(trim((string)($row['internship_status'] ?? '')));
             $renderedHours = company_external_rendered_hours($conn, (int)($row['student_record_id'] ?? 0), (int)($row['user_id'] ?? 0));
+            if (in_array($statusKey, ['finished', 'completed', 'complete'], true)) {
+                $renderedHours = $requiredHours;
+            }
             $renderedHours = min($requiredHours, max(0, $renderedHours));
 
             $row['required_hours'] = $requiredHours;
@@ -1330,6 +1366,11 @@ if (companies_table_exists($conn, 'ojt_masterlist')) {
             $row['internship_id'] = 0;
             $row['internship_status'] = trim((string)($row['status'] ?? '')) !== '' ? strtolower(trim((string)$row['status'])) : 'ongoing';
             $row['internship_type'] = 'external';
+            if (in_array((string)$row['internship_status'], ['finished', 'completed', 'complete'], true)) {
+                $renderedHours = $requiredHours;
+                $row['rendered_hours'] = $requiredHours;
+                $row['progress_pct'] = 100;
+            }
             $row['position'] = trim((string)($row['supervisor_position'] ?? ''));
             $row['start_date'] = '';
             $row['end_date'] = '';
@@ -1524,22 +1565,22 @@ if ($printTarget !== '') {
     <meta charset="utf-8">
     <title><?php echo h($printTarget === 'students' ? 'Company Student List' : 'Company Lists'); ?></title>
     <style>
-        body { font-family: Arial, sans-serif; color: #111827; margin: 24px; }
-        .print-head { display: grid; grid-template-columns: 92px 1fr 92px; align-items: center; border-bottom: 1.5px solid #2f6fca; padding: 6px 0 10px; margin-bottom: 18px; color: #0b4aa2; }
-        .print-head img { width: 74px; height: 74px; object-fit: contain; justify-self: center; }
+        body { font-family: Arial, sans-serif; color: #111827; margin: 10px; }
+        .print-head { display: grid; grid-template-columns: 64px 1fr 64px; align-items: center; border-bottom: 1.5px solid #2f6fca; padding: 2px 0 6px; margin-bottom: 10px; color: #0b4aa2; }
+        .print-head img { width: 54px; height: 54px; object-fit: contain; justify-self: center; }
         .print-head-copy { text-align: center; }
-        .print-head h2 { margin: 0 0 4px; font-size: 18px; letter-spacing: 0; font-weight: 700; color: #0b4aa2; }
-        .print-head div { font-size: 12px; color: #0b4aa2; line-height: 1.35; }
-        .print-head .print-tel { font-size: 15px; margin-top: 3px; }
-        .print-head-spacer { width: 92px; height: 1px; }
-        .print-title { margin: 16px 0 8px; text-align: center; font-weight: 700; font-size: 15px; }
-        .print-meta { margin-bottom: 8px; font-size: 12px; }
-        table { width: 100%; border-collapse: collapse; font-size: 11px; table-layout: fixed; }
-        th, td { border: 1px solid #1f2937; padding: 6px 7px; vertical-align: top; word-break: break-word; }
+        .print-head h2 { margin: 0 0 2px; font-size: 15px; letter-spacing: 0; font-weight: 700; color: #0b4aa2; }
+        .print-head div { font-size: 10px; color: #0b4aa2; line-height: 1.2; }
+        .print-head .print-tel { font-size: 11px; margin-top: 2px; }
+        .print-head-spacer { width: 64px; height: 1px; }
+        .print-title { margin: 8px 0 5px; text-align: center; font-weight: 700; font-size: 13px; }
+        .print-meta { margin-bottom: 5px; font-size: 10.5px; }
+        table { width: 100%; border-collapse: collapse; font-size: 9.5px; table-layout: fixed; }
+        th, td { border: 1px solid #1f2937; padding: 3px 4px; vertical-align: top; word-break: break-word; }
         th { background: #f3f4f6; font-weight: 700; }
-        .col-index { width: 36px; text-align: center; }
+        .col-index { width: 28px; text-align: center; }
         small { display: block; color: #4b5563; margin-top: 2px; }
-        @media print { body { margin: 12mm; } }
+        @media print { body { margin: 6mm; } }
     </style>
 </head>
 <body>
@@ -1606,12 +1647,13 @@ if ($printTarget !== '') {
                     <tr><td class="col-index">1</td><td colspan="6">No students matched the current filter for this company.</td></tr>
                 <?php else: ?>
                     <?php foreach ($companyInterns as $index => $intern): ?>
+                        <?php [$printLastName, $printFirstName, $printMiddleName] = company_student_name_parts($intern); ?>
                         <tr>
                             <td class="col-index"><?php echo (int)$index + 1; ?></td>
                             <td><?php echo h((string)($intern['student_id'] ?? '')); ?></td>
-                            <td><?php echo h((string)($intern['last_name'] ?? '')); ?></td>
-                            <td><?php echo h((string)($intern['first_name'] ?? '')); ?></td>
-                            <td><?php echo h((string)($intern['middle_name'] ?? '')); ?></td>
+                            <td><?php echo h($printLastName); ?></td>
+                            <td><?php echo h($printFirstName); ?></td>
+                            <td><?php echo h($printMiddleName); ?></td>
                             <td><?php echo h(trim((string)($intern['course_name'] ?? '-') . ' / ' . (string)($intern['section_label'] ?? '-'))); ?></td>
                             <td><?php echo h(ucfirst((string)($intern['internship_status'] ?? 'Unknown'))); ?></td>
                         </tr>

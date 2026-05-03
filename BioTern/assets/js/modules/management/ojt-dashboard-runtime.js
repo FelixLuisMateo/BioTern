@@ -12,13 +12,13 @@
       if (filterForm) filterForm.submit();
     }
 
-    ["ojtFilterCourse", "ojtFilterSection", "ojtFilterSchoolYear", "ojtFilterSemester", "ojtFilterStage", "ojtFilterRisk"].forEach(function (id) {
+    ["ojtFilterCourse", "ojtFilterSection", "ojtFilterSchoolYear", "ojtFilterSemester", "ojtFilterStage", "ojtFilterRisk", "ojtFilterAccount"].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.addEventListener("change", submitFilters);
     });
 
     var printBtn = document.getElementById("ojtPrintBtn");
-    if (printBtn) {
+    if (printBtn && !printBtn.hasAttribute("data-ojt-print-full")) {
       printBtn.addEventListener("click", function (e) {
         e.preventDefault();
         window.print();
