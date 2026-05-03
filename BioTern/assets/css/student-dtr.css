@@ -1,194 +1,16 @@
 .student-dtr-shell {
     display: grid;
     gap: 1rem;
-    max-width: 100%;
-    overflow-x: clip;
-    --dtr-card-bg: var(--student-card-bg, var(--biotern-surface, #ffffff));
-    --dtr-card-border: var(--student-card-border, var(--biotern-border, rgba(15, 23, 42, 0.08)));
-    --dtr-card-shadow: var(--student-card-shadow, 0 10px 30px rgba(15, 23, 42, 0.06));
-    --dtr-text: var(--student-text, var(--bs-body-color, #0f172a));
-    --dtr-muted: var(--student-muted, var(--bs-secondary-color, #64748b));
-    --dtr-soft-bg: var(--student-soft-bg, var(--biotern-surface-muted, #f8fafc));
-    --dtr-soft-border: var(--student-soft-border, var(--biotern-border, rgba(15, 23, 42, 0.08)));
+    --dtr-card-bg: var(--student-card-bg, var(--dash-card-bg, #ffffff));
+    --dtr-card-border: var(--student-card-border, var(--dash-card-border, rgba(15, 23, 42, 0.08)));
+    --dtr-card-shadow: var(--student-card-shadow, var(--dash-card-shadow, 0 10px 30px rgba(15, 23, 42, 0.06)));
+    --dtr-text: var(--student-text, var(--dash-text, #0f172a));
+    --dtr-muted: var(--student-muted, var(--dash-muted, #64748b));
+    --dtr-soft-bg: var(--student-soft-bg, var(--dash-item-bg, #f8fafc));
+    --dtr-soft-border: var(--student-soft-border, var(--dash-item-border, rgba(15, 23, 42, 0.08)));
     --dtr-accent: var(--dtr-muted);
     --dtr-accent-strong: var(--dtr-text);
     --dtr-accent-soft: var(--dtr-soft-bg);
-}
-
-.student-dtr-station-hero {
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 390px);
-    gap: 1.5rem;
-    align-items: end;
-    overflow: hidden;
-    padding: 1.6rem;
-    border-radius: 1.25rem;
-    border: 1px solid var(--dtr-card-border);
-    background: var(--dtr-card-bg);
-    color: var(--dtr-text);
-    box-shadow: var(--dtr-card-shadow);
-}
-
-.student-dtr-hero-main {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    gap: 0.9rem;
-}
-
-.student-dtr-station-chip {
-    display: inline-flex;
-    width: fit-content;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.35rem 0.8rem;
-    border-radius: 999px;
-    border: 1px solid var(--dtr-soft-border);
-    background: var(--dtr-soft-bg);
-    color: var(--dtr-accent);
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-.student-dtr-station-hero .student-dtr-persona {
-    align-items: center;
-}
-
-.student-dtr-station-hero .student-dtr-avatar {
-    width: 74px;
-    height: 74px;
-    border-color: var(--dtr-soft-border);
-    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
-}
-
-.student-dtr-station-hero .student-dtr-title {
-    color: var(--dtr-text);
-    font-size: clamp(1.8rem, 3vw, 2.65rem);
-}
-
-.student-dtr-hero-copy {
-    max-width: 620px;
-    margin: 0.35rem 0 0;
-    color: var(--dtr-muted);
-    line-height: 1.55;
-}
-
-.student-dtr-hero-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.55rem;
-}
-
-.student-dtr-hero-pills span {
-    display: inline-flex;
-    align-items: center;
-    min-height: 34px;
-    padding: 0.4rem 0.75rem;
-    border-radius: 999px;
-    border: 1px solid var(--dtr-soft-border);
-    background: var(--dtr-soft-bg);
-    color: var(--dtr-text);
-    font-size: 0.78rem;
-    font-weight: 700;
-}
-
-.student-dtr-station-filter {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    grid-template-columns: minmax(120px, 0.7fr) minmax(160px, 1fr) auto;
-    gap: 0.65rem;
-    align-items: end;
-    min-width: 0;
-    width: 100%;
-    padding: 0.85rem;
-    border-radius: 1rem;
-    border: 1px solid var(--dtr-soft-border);
-    background: var(--dtr-soft-bg);
-}
-
-.student-dtr-station-filter label {
-    display: block;
-    margin-bottom: 0.35rem;
-    color: var(--dtr-muted);
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-.student-dtr-station-filter select,
-.student-dtr-station-filter button {
-    width: 100%;
-    min-height: 44px;
-    border-radius: 0.78rem;
-    font-weight: 800;
-}
-
-.student-dtr-station-filter select {
-    border: 1px solid var(--dtr-soft-border);
-    background: var(--dtr-card-bg);
-    color: var(--dtr-text);
-    padding: 0.65rem 0.85rem;
-}
-
-.student-dtr-station-filter select option {
-    background: var(--dtr-card-bg);
-    color: var(--dtr-text);
-}
-
-.student-dtr-station-filter button {
-    border: 1px solid var(--dtr-soft-border);
-    padding: 0.65rem 1rem;
-    background: var(--bs-primary, #5b7cfa);
-    color: #ffffff;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    box-shadow: none;
-    white-space: nowrap;
-}
-
-.student-dtr-shell--manual {
-    max-width: 1120px;
-    margin-inline: auto;
-}
-
-.student-dtr-shell--manual .student-dtr-station-hero {
-    grid-template-columns: 1fr;
-    padding: 1.25rem;
-}
-
-.student-dtr-shell--manual .student-dtr-station-hero .student-dtr-avatar {
-    width: 58px;
-    height: 58px;
-}
-
-.student-dtr-shell--manual .student-dtr-station-hero .student-dtr-title {
-    font-size: clamp(1.7rem, 2.5vw, 2.2rem);
-}
-
-.student-dtr-shell--manual .student-dtr-hero-copy {
-    max-width: 760px;
-}
-
-.student-dtr-shell--manual .student-dtr-record-entry-card {
-    margin-top: 0 !important;
-}
-
-.student-dtr-shell--manual .row.g-4 {
-    margin-inline: 0;
-}
-
-.student-dtr-shell--manual .row.g-4 > [class*="col-"] {
-    padding-inline: 0;
-}
-
-.student-dtr-shell--manual .student-dtr-record-entry-card {
-    width: min(100%, 760px);
-    margin-inline: auto;
 }
 
 .student-dtr-hero-card {
@@ -314,16 +136,11 @@
 }
 
 .student-dtr-metric {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.85rem;
     padding: 1.1rem 1.15rem;
     border-radius: 1rem;
     border: 1px solid var(--dash-card-border, var(--dtr-card-border)) !important;
-    background:
-        linear-gradient(180deg, rgba(47, 134, 206, 0.06), rgba(47, 134, 206, 0)),
-        var(--dash-card-bg, var(--dtr-card-bg)) !important;
-    box-shadow: 0 12px 26px rgba(13, 30, 58, 0.08);
+    background: var(--dash-card-bg, var(--dtr-card-bg)) !important;
+    box-shadow: none;
 }
 
 .student-dtr-metric strong {
@@ -338,34 +155,6 @@
     display: block;
     margin-top: 0.35rem;
     color: var(--dtr-muted);
-}
-
-.student-dtr-metric-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    width: 42px;
-    height: 42px;
-    border-radius: 0.9rem;
-    background: rgba(47, 134, 206, 0.13);
-    color: #1e6fb0;
-    font-size: 1rem;
-}
-
-.student-dtr-metric-icon.approved {
-    background: rgba(34, 197, 94, 0.13);
-    color: #16a34a;
-}
-
-.student-dtr-metric-icon.pending {
-    background: rgba(245, 158, 11, 0.14);
-    color: #d97706;
-}
-
-.student-dtr-metric-icon.hours {
-    background: rgba(14, 165, 233, 0.14);
-    color: #0284c7;
 }
 
 .student-dtr-table-wrap {
@@ -472,33 +261,6 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
-.student-dtr-fallback-card .student-dtr-time-field,
-.student-dtr-fallback-card .student-dtr-time-select {
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em;
-}
-
-.student-dtr-fallback-guide {
-    display: grid;
-    gap: 0.55rem;
-    padding: 0.95rem 1rem;
-    border-radius: 1rem;
-    background: var(--dtr-accent-soft);
-    border: 1px solid var(--dtr-soft-border);
-    color: var(--dtr-text);
-}
-
-.student-dtr-fallback-guide strong {
-    color: var(--dtr-text);
-    font-size: 0.9rem;
-}
-
-.student-dtr-fallback-guide span {
-    color: var(--dtr-muted);
-    font-size: 0.82rem;
-    line-height: 1.45;
-}
-
 .student-dtr-fallback-card .form-control[type="file"] {
     padding: 0;
     overflow: hidden;
@@ -571,70 +333,6 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
-.student-dtr-record-entry-card .card-body {
-    padding: 1.25rem;
-}
-
-.student-dtr-record-entry-card h3 {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    color: var(--dtr-text);
-}
-
-.student-dtr-record-entry-card form.row {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.85rem;
-    margin-inline: 0;
-}
-
-.student-dtr-record-entry-card form.row > [class*="col-"] {
-    width: auto;
-    max-width: none;
-    padding-inline: 0;
-}
-
-.student-dtr-record-entry-card .col-12,
-.student-dtr-record-entry-card .student-dtr-clock-wrap,
-.student-dtr-record-entry-card #fallbackGeneratedRowsWrap {
-    grid-column: 1 / -1;
-}
-
-.student-dtr-record-entry-card .col-md-4 {
-    grid-column: span 2;
-}
-
-.student-dtr-record-entry-card .col-md-3 {
-    grid-column: span 1;
-}
-
-.student-dtr-record-entry-card .student-dtr-clock-wrap {
-    max-width: none;
-}
-
-.student-dtr-record-entry-card .student-dtr-proof-clock {
-    min-height: 70px;
-    justify-content: center !important;
-    flex-direction: column;
-    gap: 0.35rem;
-    border-style: dashed;
-    background: color-mix(in srgb, var(--dtr-soft-bg) 82%, var(--bs-primary, #5b7cfa) 18%);
-}
-
-.student-dtr-record-entry-card .student-dtr-proof-clock strong {
-    color: color-mix(in srgb, var(--dtr-text) 88%, #ffffff 12%);
-    font-size: clamp(1.5rem, 2.6vw, 2rem);
-    line-height: 1;
-    letter-spacing: 0.08em;
-    font-variant-numeric: tabular-nums;
-}
-
-.student-dtr-record-entry-card .student-dtr-proof-clock span {
-    color: color-mix(in srgb, var(--dtr-text) 82%, #ffffff 18%) !important;
-    font-weight: 700;
-}
-
 .student-dtr-proof-clock .text-muted,
 .student-dtr-fallback-card .text-muted {
     color: var(--dtr-muted) !important;
@@ -650,70 +348,6 @@
     height: 100%;
 }
 
-.student-dtr-side-list {
-    display: grid;
-    gap: 0.65rem;
-}
-
-.student-dtr-side-list > div {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.85rem;
-    min-width: 0;
-    padding: 0.8rem 0.9rem;
-    border-radius: 0.85rem;
-    background: var(--dtr-soft-bg) !important;
-    border: 1px solid var(--dtr-soft-border) !important;
-    color: var(--dtr-text) !important;
-}
-
-.student-panel .student-dtr-side-list > div,
-.student-detail-list.student-dtr-side-list > div,
-html.app-skin-dark .student-panel .student-dtr-side-list > div,
-html.app-skin-dark .student-detail-list.student-dtr-side-list > div {
-    background: var(--dtr-soft-bg) !important;
-    border-color: var(--dtr-soft-border) !important;
-    color: var(--dtr-text) !important;
-    box-shadow: none !important;
-}
-
-.student-dtr-side-list span {
-    min-width: 0;
-    color: var(--dtr-muted) !important;
-    font-size: 0.78rem;
-}
-
-.student-dtr-side-list strong {
-    min-width: 0;
-    color: var(--dtr-text) !important;
-    font-size: 0.82rem;
-    text-align: right;
-    overflow-wrap: anywhere;
-}
-
-.student-dtr-fallback-card .table-responsive {
-    border-radius: 0.9rem;
-    border: 1px solid var(--dtr-soft-border);
-}
-
-.student-dtr-fallback-card .table {
-    margin-bottom: 0;
-}
-
-.student-dtr-fallback-card .table th {
-    color: var(--dtr-accent);
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    border-color: var(--dtr-soft-border);
-}
-
-.student-dtr-fallback-card .table td {
-    color: var(--dtr-text);
-    border-color: var(--dtr-soft-border);
-}
-
 html.app-skin-dark .student-dtr-filter .form-select {
     background: var(--dtr-soft-bg);
     border-color: var(--dtr-soft-border);
@@ -721,13 +355,13 @@ html.app-skin-dark .student-dtr-filter .form-select {
 }
 
 html.app-skin-dark .student-dtr-shell {
-    --dtr-card-bg: var(--biotern-surface, #12161f);
-    --dtr-card-border: var(--biotern-border, #2b3340);
+    --dtr-card-bg: var(--dash-card-bg, #121a2d);
+    --dtr-card-border: var(--dash-card-border, #1b2436);
     --dtr-card-shadow: var(--dash-card-shadow, none);
-    --dtr-text: var(--bs-body-color, #e5e7eb);
-    --dtr-muted: var(--bs-secondary-color, #94a3b8);
-    --dtr-soft-bg: var(--dtr-card-bg);
-    --dtr-soft-border: var(--dtr-card-border);
+    --dtr-text: var(--dash-text, #e5e7eb);
+    --dtr-muted: var(--dash-muted, #94a3b8);
+    --dtr-soft-bg: var(--dash-item-bg, #0f172a);
+    --dtr-soft-border: var(--dash-item-border, #1b2436);
     --dtr-accent: var(--dtr-muted);
     --dtr-accent-strong: var(--dtr-text);
     --dtr-accent-soft: var(--dtr-soft-bg);
@@ -774,12 +408,10 @@ html.app-skin-dark .student-dtr-filter .form-label {
 html.app-skin-dark .student-dtr-metric,
 html.app-skin-dark .student-dtr-report-export-card,
 html.app-skin-dark .student-dtr-table td,
-html.app-skin-dark .student-dtr-empty,
-html.app-skin-dark .student-dtr-fallback-card .table td,
-html.app-skin-dark .student-dtr-fallback-card .table th {
-    background: var(--dtr-card-bg) !important;
-    border-color: var(--dtr-card-border) !important;
-    box-shadow: none !important;
+html.app-skin-dark .student-dtr-empty {
+    background: var(--dtr-soft-bg);
+    border-color: var(--dtr-soft-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 html.app-skin-dark .student-dtr-fallback-card .form-label {
@@ -846,32 +478,10 @@ html.app-skin-dark .student-dtr-empty {
     color: var(--dtr-muted);
 }
 
-html.app-skin-dark .student-dtr-metric {
-    background:
-        linear-gradient(180deg, rgba(47, 134, 206, 0.08), rgba(47, 134, 206, 0)),
-        var(--dtr-card-bg) !important;
-    border-color: rgba(160, 195, 230, 0.16) !important;
-}
-
 /* Desktop Layout - 4 columns */
 @media (min-width: 1400px) {
     .student-dtr-metrics {
         grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 1399.98px) {
-    .student-dtr-station-hero {
-        grid-template-columns: 1fr;
-        align-items: start;
-    }
-
-    .student-dtr-station-filter {
-        max-width: 680px;
-    }
-
-    .student-dtr-metrics {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
@@ -884,16 +494,6 @@ html.app-skin-dark .student-dtr-metric {
 
 /* Large tablet - adjust hero layout */
 @media (max-width: 991.98px) {
-    .student-dtr-station-hero {
-        grid-template-columns: 1fr;
-        align-items: start;
-    }
-
-    .student-dtr-station-filter {
-        width: 100%;
-        min-width: 0;
-    }
-
     .student-dtr-hero {
         flex-direction: column;
         align-items: flex-start;
@@ -902,104 +502,6 @@ html.app-skin-dark .student-dtr-metric {
 
 /* Mobile optimization - compact layout */
 @media (max-width: 767.98px) {
-    .student-dtr-shell {
-        gap: 0.75rem;
-        overflow-x: hidden;
-    }
-
-    .student-dtr-shell--manual {
-        width: 100%;
-        max-width: 430px;
-        padding-inline: 0;
-    }
-
-    .student-dtr-station-hero {
-        padding: 1.1rem;
-        border-radius: 1rem;
-        gap: 1rem;
-    }
-
-    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-station-hero {
-        padding: 1rem;
-    }
-
-    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-persona {
-        align-items: flex-start;
-        gap: 0.8rem;
-    }
-
-    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-station-hero .student-dtr-avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 0.8rem;
-    }
-
-    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-station-hero .student-dtr-title {
-        font-size: 1.35rem;
-        line-height: 1.2;
-    }
-
-    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-hero-copy {
-        font-size: 0.8rem;
-        line-height: 1.45;
-    }
-
-    .student-dtr-shell--manual .student-dtr-station-hero {
-        padding: 1rem;
-        border-radius: 1rem;
-    }
-
-    .student-dtr-shell--manual .student-dtr-station-chip {
-        margin-bottom: 0;
-        font-size: 0.66rem;
-    }
-
-    .student-dtr-shell--manual .student-dtr-persona {
-        gap: 0.85rem;
-    }
-
-    .student-dtr-shell--manual .student-dtr-station-hero .student-dtr-avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 0.8rem;
-    }
-
-    .student-dtr-shell--manual .student-dtr-station-hero .student-dtr-title {
-        font-size: 1.18rem;
-        line-height: 1.25;
-    }
-
-    .student-dtr-shell--manual .student-dtr-hero-copy {
-        margin-top: 0.2rem;
-        font-size: 0.78rem;
-        line-height: 1.45;
-    }
-
-    .student-dtr-shell--manual .student-dtr-hero-pills {
-        display: none;
-    }
-
-    .student-dtr-station-filter {
-        grid-template-columns: 1fr;
-        padding: 0.75rem;
-        max-width: 100%;
-    }
-
-    .student-dtr-station-filter select,
-    .student-dtr-station-filter button {
-        min-height: 42px;
-        font-size: 0.88rem;
-    }
-
-    .student-dtr-hero-pills span {
-        min-height: 30px;
-        font-size: 0.72rem;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
     .student-dtr-metrics {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.65rem;
@@ -1007,13 +509,6 @@ html.app-skin-dark .student-dtr-metric {
 
     .student-dtr-metric {
         padding: 0.9rem 0.95rem;
-        gap: 0.65rem;
-    }
-
-    .student-dtr-metric-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 0.75rem;
     }
 
     .student-dtr-metric strong {
@@ -1051,98 +546,8 @@ html.app-skin-dark .student-dtr-metric {
         margin-bottom: 0.65rem;
     }
 
-    .student-dtr-record-entry-card {
-        border-radius: 1rem;
-    }
-
-    .student-dtr-record-entry-card .card-body {
-        padding: 1rem;
-    }
-
-    .student-dtr-record-entry-card .d-flex.mb-3 {
-        margin-bottom: 0.8rem !important;
-    }
-
-    .student-dtr-record-entry-card h3 {
-        font-size: 1.2rem;
-        line-height: 1.3;
-    }
-
-    .student-dtr-record-entry-card .student-dtr-meta {
-        font-size: 0.78rem;
-        line-height: 1.45;
-    }
-
-    .student-dtr-record-entry-card form.row {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.75rem;
-    }
-
-    .student-dtr-record-entry-card .col-md-4,
-    .student-dtr-record-entry-card .col-md-3 {
-        grid-column: span 1;
-    }
-
-    .student-dtr-record-entry-card .col-12,
-    .student-dtr-record-entry-card .student-dtr-clock-wrap,
-    .student-dtr-record-entry-card #fallbackGeneratedRowsWrap {
-        grid-column: 1 / -1;
-    }
-
-    .student-dtr-record-entry-card .student-dtr-proof-clock {
-        min-height: 78px;
-        border-radius: 0.9rem;
-    }
-
-    .student-dtr-record-entry-card .student-dtr-proof-clock strong {
-        font-size: 1.55rem;
-    }
-
-    .student-dtr-record-entry-card .student-dtr-proof-clock span {
-        font-size: 0.72rem;
-    }
-
-    .student-dtr-record-entry-card .student-dtr-fallback-guide {
-        gap: 0.45rem;
-        padding: 0.8rem;
-        border-radius: 0.9rem;
-    }
-
-    .student-dtr-record-entry-card .student-dtr-fallback-guide strong {
-        font-size: 0.82rem;
-    }
-
-    .student-dtr-record-entry-card .student-dtr-fallback-guide span {
-        font-size: 0.74rem;
-    }
-
-    .student-dtr-record-entry-card .d-flex.flex-wrap.align-items-end.gap-3 {
-        display: grid !important;
-        gap: 0.55rem !important;
-    }
-
-    .student-dtr-record-entry-card #generateFallbackRows {
-        width: 100%;
-        min-height: 44px;
-        border-radius: 0.85rem;
-    }
-
-    .student-dtr-record-entry-card .table-responsive {
-        max-width: 100%;
-        overflow-x: auto;
-    }
-
-    .student-dtr-record-entry-card .table {
-        min-width: 680px;
-    }
-
     .student-dtr-report-export-card .row > [class*="col-"] {
         width: 100%;
-    }
-
-    .student-dtr-report-export-card .card-body,
-    .student-panel .card-body {
-        overflow-x: hidden;
     }
 
     .student-dtr-report-export-card .btn {
@@ -1151,27 +556,6 @@ html.app-skin-dark .student-dtr-metric {
 
     .student-dtr-fallback-card .btn-warning {
         width: 100%;
-    }
-
-    .student-dtr-report-export-card .card-body,
-    .student-dtr-fallback-card .card-body,
-    .student-dtr-side-card .card-body {
-        padding: 0.95rem;
-    }
-
-    .student-dtr-report-export-card h3,
-    .student-dtr-fallback-card h3 {
-        font-size: 1.35rem;
-    }
-
-    .student-dtr-side-card h3 {
-        font-size: 1.2rem;
-        margin-bottom: 0.65rem !important;
-    }
-
-    .student-dtr-side-list div {
-        padding: 0.75rem 0.8rem;
-        border-radius: 0.8rem;
     }
 
     .student-dtr-proof-clock {
@@ -1183,51 +567,18 @@ html.app-skin-dark .student-dtr-metric {
 
 /* Small mobile - further optimizations */
 @media (max-width: 639px) {
-    .student-dtr-shell--manual {
-        max-width: 100%;
-    }
-
-    .student-dtr-shell--manual .student-dtr-station-hero {
-        display: none;
-    }
-
-    .student-dtr-station-hero .student-dtr-persona {
-        align-items: flex-start;
-    }
-
-    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-station-chip {
-        font-size: 0.64rem;
-        padding: 0.3rem 0.65rem;
-    }
-
-    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-hero-pills {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 0.4rem;
-    }
-
-    .student-dtr-station-hero .student-dtr-avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 0.9rem;
-    }
-
-    .student-dtr-hero-copy {
-        font-size: 0.78rem;
-    }
-
     .student-dtr-hero {
         flex-direction: column;
         align-items: flex-start;
     }
 
     .student-dtr-title {
-        font-size: 1.22rem;
+        font-size: 1.4rem;
     }
 
     .student-dtr-avatar {
-        width: 48px;
-        height: 48px;
+        width: 60px;
+        height: 60px;
     }
 
     .student-dtr-hero-card .card-body {
@@ -1240,17 +591,12 @@ html.app-skin-dark .student-dtr-metric {
     }
 
     .student-dtr-metric {
-        padding: 0.8rem 0.85rem;
+        padding: 0.8rem 0.9rem;
     }
 
     .student-dtr-metric strong {
         font-size: 1.3rem;
         margin-top: 0.35rem;
-    }
-
-    .student-dtr-metric small {
-        font-size: 0.72rem;
-        line-height: 1.35;
     }
 
     .student-dtr-filter .form-select,
@@ -1261,70 +607,23 @@ html.app-skin-dark .student-dtr-metric {
 
     .student-dtr-fallback-card .form-control,
     .student-dtr-fallback-card .form-select {
-        min-height: 42px;
         height: 42px;
         font-size: 0.9rem;
     }
 
-    .student-dtr-record-entry-card form.row {
-        grid-template-columns: 1fr;
-        gap: 0.7rem;
-    }
-
-    .student-dtr-record-entry-card .col-md-4,
-    .student-dtr-record-entry-card .col-md-3 {
-        grid-column: 1 / -1;
-    }
-
-    .student-dtr-record-entry-card .form-label {
-        margin-bottom: 0.35rem;
-        font-size: 0.68rem;
-    }
-
     .student-dtr-fallback-card .btn-warning {
-        height: auto;
-        min-height: 46px;
+        height: 42px;
         font-size: 0.9rem;
     }
 
     .student-dtr-proof-clock {
-        min-height: 42px;
-        height: auto;
+        height: 42px;
         padding: 0 0.75rem;
-    }
-
-    .student-dtr-record-entry-card .student-dtr-proof-clock {
-        min-height: 82px;
-        padding: 0.8rem;
-    }
-
-    .student-dtr-record-entry-card .student-dtr-proof-clock strong {
-        font-size: 1.7rem;
-    }
-
-    .student-dtr-record-entry-card textarea.form-control {
-        min-height: 96px;
-    }
-
-    .student-dtr-record-entry-card .col-12.d-flex.flex-wrap.gap-2.align-items-center {
-        display: grid !important;
-        gap: 0.55rem !important;
-    }
-
-    .student-dtr-report-export-card .btn,
-    .student-dtr-fallback-card .btn,
-    .student-dtr-side-card .btn {
-        min-height: 42px;
-        font-size: 0.88rem;
     }
 
     .student-dtr-table {
         min-width: 0;
         border-spacing: 0;
-    }
-
-    .student-dtr-table-wrap {
-        overflow-x: hidden;
     }
 
     .student-dtr-table thead {
@@ -1347,25 +646,24 @@ html.app-skin-dark .student-dtr-metric {
 
     .student-dtr-table td {
         position: relative;
-        padding: 0.7rem 0.85rem 0.7rem 6.4rem;
+        padding: 0.75rem 1rem 0.75rem 7.5rem;
         border-left: 1px solid var(--dtr-soft-border);
         border-right: 1px solid var(--dtr-soft-border);
         border-radius: 0;
         min-height: 48px;
         display: flex;
         align-items: center;
-        font-size: 0.82rem;
-        overflow-wrap: anywhere;
+        font-size: 0.9rem;
     }
 
     .student-dtr-table td::before {
         content: attr(data-label);
         position: absolute;
         left: 0.75rem;
-        top: 0.75rem;
-        transform: none;
-        width: 5.3rem;
-        font-size: 0.58rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 6rem;
+        font-size: 0.65rem;
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -1389,41 +687,6 @@ html.app-skin-dark .student-dtr-metric {
     .student-dtr-table td div {
         position: relative;
         z-index: 1;
-    }
-
-    .student-dtr-table td[data-label="Date"] {
-        align-items: flex-start;
-        padding-top: 1.4rem;
-    }
-
-    .student-dtr-table td[data-label="Date"],
-    .student-dtr-table td[data-label="Status"] {
-        align-items: flex-start;
-        flex-wrap: wrap;
-        gap: 0.35rem;
-        padding: 2rem 0.85rem 0.85rem;
-    }
-
-    .student-dtr-table td[data-label="Date"]::before,
-    .student-dtr-table td[data-label="Status"]::before {
-        right: 0.85rem;
-        width: auto;
-    }
-
-    .student-dtr-table td[data-label="Date"] strong,
-    .student-dtr-table td[data-label="Date"] .student-dtr-cell-note,
-    .student-dtr-table td[data-label="Date"] a,
-    .student-dtr-table td[data-label="Status"] .student-dtr-status,
-    .student-dtr-table td[data-label="Status"] .badge {
-        max-width: 100%;
-        min-width: 0;
-        white-space: normal;
-        overflow-wrap: anywhere;
-        line-height: 1.25;
-    }
-
-    .student-dtr-table td[data-label="Status"] .badge {
-        margin-left: 0 !important;
     }
 
     html.app-skin-dark .student-dtr-table td::before {

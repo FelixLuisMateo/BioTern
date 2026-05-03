@@ -3,8 +3,25 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/document_access.php';
 require_once dirname(__DIR__) . '/lib/company_profiles.php';
+require_once dirname(__DIR__) . '/includes/auth-session.php';
+biotern_boot_session(isset($conn) ? $conn : null);
 $prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $prefill_company_key = trim((string)($_GET['company'] ?? ''));
+$documentsCurrentUserId = (int)($_SESSION['user_id'] ?? 0);
+$documentsCurrentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+$documentsIsStudentViewOnly = ($documentsCurrentRole === 'student');
+if ($documentsIsStudentViewOnly && $documentsCurrentUserId > 0) {
+    $studentLookupStmt = $conn->prepare("SELECT id FROM students WHERE user_id = ? LIMIT 1");
+    if ($studentLookupStmt) {
+        $studentLookupStmt->bind_param('i', $documentsCurrentUserId);
+        $studentLookupStmt->execute();
+        $studentLookupRow = $studentLookupStmt->get_result()->fetch_assoc() ?: null;
+        $studentLookupStmt->close();
+        if ($studentLookupRow) {
+            $prefill_student_id = (int)($studentLookupRow['id'] ?? 0);
+        }
+    }
+}
 
 // Simple AJAX endpoints served by this file (reuse same endpoints as application document)
 if (isset($_GET['action'])) {
@@ -12,6 +29,22 @@ if (isset($_GET['action'])) {
     header('Content-Type: application/json');
 
     if ($action === 'search_students') {
+        if ($documentsIsStudentViewOnly) {
+            $stmt = $conn->prepare("SELECT id, first_name, middle_name, last_name, student_id FROM students WHERE id = ? LIMIT 1");
+            $out = [];
+            if ($stmt) {
+                $stmt->bind_param('i', $prefill_student_id);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc() ?: null;
+                $stmt->close();
+                if ($row) {
+                    $name = trim((string)$row['first_name'] . ' ' . (!empty($row['middle_name']) ? (string)$row['middle_name'] . ' ' : '') . (string)$row['last_name']);
+                    $out[] = ['id' => (int)$row['id'], 'text' => trim($name . ' - ' . (string)$row['student_id'])];
+                }
+            }
+            echo json_encode(['results' => $out]);
+            exit;
+        }
         $term = isset($_GET['q']) ? $conn->real_escape_string($_GET['q']) : '';
         $gateWhere = documents_students_search_gate_sql($conn, 's');
         $sql = "SELECT id, first_name, middle_name, last_name, student_id FROM students s WHERE (CONCAT(first_name,' ',middle_name,' ',last_name) LIKE '%" . $term . "%' OR student_id LIKE '%" . $term . "%') AND {$gateWhere} ORDER BY first_name LIMIT 50";
@@ -63,6 +96,10 @@ if (isset($_GET['action'])) {
 
     if ($action === 'get_student' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
+        if ($documentsIsStudentViewOnly && $id !== $prefill_student_id) {
+            echo json_encode(['access_denied' => true, 'message' => 'Document access denied.']);
+            exit;
+        }
         $access = documents_student_can_generate($conn, $id);
         if (empty($access['allowed'])) {
             echo json_encode(['access_denied' => true, 'message' => (string)($access['reason'] ?? 'Document access denied.')]);
@@ -79,6 +116,10 @@ if (isset($_GET['action'])) {
 
     if ($action === 'get_moa' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
+        if ($documentsIsStudentViewOnly && $id !== $prefill_student_id) {
+            echo json_encode(['access_denied' => true, 'message' => 'Document access denied.']);
+            exit;
+        }
         $access = documents_student_can_generate($conn, $id);
         if (empty($access['allowed'])) {
             echo json_encode(['access_denied' => true, 'message' => (string)($access['reason'] ?? 'Document access denied.')]);
@@ -134,7 +175,7 @@ include __DIR__ . '/../includes/header.php';
                 </ul>
             </div>
             <div class="page-header-middle">
-                <p class="page-header-statement">Use the template builder flow to update and generate the printable Memorandum of Agreement.</p>
+                <p class="page-header-statement"><?php echo $documentsIsStudentViewOnly ? 'Preview your Memorandum of Agreement in read-only mode.' : 'Use the template builder flow to update and generate the printable Memorandum of Agreement.'; ?></p>
             </div>
             <?php ob_start(); ?>
                 <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
@@ -147,7 +188,7 @@ include __DIR__ . '/../includes/header.php';
             ]);
             ?>
         </div>
-<div class="application-document-builder moa-page doc-page-root" data-page="moa" data-prefill-student-id="<?php echo intval($prefill_student_id); ?>" data-prefill-company="<?php echo htmlspecialchars($prefill_company_key, ENT_QUOTES, 'UTF-8'); ?>">
+<div class="application-document-builder moa-page doc-page-root" data-page="moa" data-student-view-only="<?php echo $documentsIsStudentViewOnly ? '1' : '0'; ?>" data-prefill-student-id="<?php echo intval($prefill_student_id); ?>" data-prefill-company="<?php echo htmlspecialchars($prefill_company_key, ENT_QUOTES, 'UTF-8'); ?>">
         <style>
             .moa-fill-line {
                 display: inline-block;
@@ -163,12 +204,12 @@ include __DIR__ . '/../includes/header.php';
                     <div class="builder-card">
                         <div class="builder-card-head">
                             <h6>Record Source</h6>
-                            <p>Search student and company records, then the MOA preview updates instantly.</p>
+                        <p><?php echo $documentsIsStudentViewOnly ? 'Your MOA is loaded from your linked student record.' : 'Search student and company records, then the MOA preview updates instantly.'; ?></p>
                         </div>
 
                         <div class="builder-field">
                         <label for="student_select" class="form-label">Student Name</label>
-                        <select id="student_select" data-placeholder="Search by name or student id" class="student-select-full"></select>
+                        <select id="student_select" data-placeholder="Search by name or student id" class="student-select-full" <?php echo $documentsIsStudentViewOnly ? 'disabled' : ''; ?>></select>
                         <small class="text-muted application-source-hint">Search and select from student records.</small>
                         </div>
 
@@ -319,13 +360,13 @@ include __DIR__ . '/../includes/header.php';
                                 <p>MOA preview, editor, and print layout in one place.</p>
                             </div>
                             <div class="builder-editor-actions">
-                            <button id="btn_toggle_edit" class="btn btn-light" type="button" aria-pressed="false">Edit Template</button>
-                            <button id="btn_save" class="btn btn-primary" type="button">Save Template</button>
-                            <button id="btn_reset" class="btn btn-light" type="button">Reset</button>
+                            <button id="btn_toggle_edit" class="btn btn-light" type="button" aria-pressed="false" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>Edit Template</button>
+                            <button id="btn_save" class="btn btn-primary" type="button" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>Save Template</button>
+                            <button id="btn_reset" class="btn btn-light" type="button" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>Reset</button>
                             <button id="btn_print" class="btn btn-success" type="button">Print MOA</button>
                             </div>
                         </div>
-                        <div class="builder-toolbar is-disabled" id="builder_toolbar" aria-label="Template formatting tools" aria-hidden="true">
+                        <div class="builder-toolbar is-disabled" id="builder_toolbar" aria-label="Template formatting tools" aria-hidden="true" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>
                             <button id="btn_bold" class="btn btn-light" type="button"><strong>B</strong></button>
                             <button id="btn_italic" class="btn btn-light" type="button"><em>I</em></button>
                             <button id="btn_underline" class="btn btn-light" type="button"><u>U</u></button>
@@ -429,6 +470,16 @@ include __DIR__ . '/../includes/header.php';
     </div>
     </div>
 </main>
+<?php if ($documentsIsStudentViewOnly): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.application-builder-sidebar input, .application-builder-sidebar textarea, .application-builder-sidebar select').forEach(function (node) {
+        node.disabled = true;
+        node.readOnly = true;
+    });
+});
+</script>
+<?php endif; ?>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 
 

@@ -261,8 +261,8 @@ if ($studentMode) {
 				<input type="hidden" name="external_action" value="manual_range">
 				<input type="hidden" name="return_to" value="external-biometric.php">
 				<div class="mb-3">
-					<label for="manualDtrNotes" class="form-label">Reason / Details</label>
-					<input type="text" class="form-control" name="notes" id="manualDtrNotes" maxlength="255" placeholder="Example: Encoded from physical DTR because the external log was missing.">
+					<label for="manualDtrNotes" class="form-label">Reason / Details (Optional)</label>
+					<input type="text" class="form-control" name="notes" id="manualDtrNotes" maxlength="255" placeholder="Optional note for the reviewer.">
 				</div>
 				<div id="manualDtrRows" style="overflow-x:auto;"></div>
 				<div class="mt-3">
@@ -316,10 +316,10 @@ document.getElementById('generateManualDtrRows').onclick = function() {
 		var dateStr = d.toISOString().slice(0,10);
 		rows.push('<tr>' +
 			'<td data-label="Date"><strong>' + dateStr + '</strong><input type="hidden" name="dates[]" value="' + dateStr + '"></td>' +
-			'<td data-label="Morning In">' + buildExternalTimeSelect('morning_time_in[]', '08:00') + '</td>' +
-			'<td data-label="Morning Out">' + buildExternalTimeSelect('morning_time_out[]', '12:00') + '</td>' +
-			'<td data-label="Afternoon In">' + buildExternalTimeSelect('afternoon_time_in[]', '13:00') + '</td>' +
-			'<td data-label="Afternoon Out">' + buildExternalTimeSelect('afternoon_time_out[]', '17:00') + '</td>' +
+			'<td data-label="Morning In">' + buildExternalTimeSelect('morning_time_in[]', '') + '</td>' +
+			'<td data-label="Morning Out">' + buildExternalTimeSelect('morning_time_out[]', '') + '</td>' +
+			'<td data-label="Afternoon In">' + buildExternalTimeSelect('afternoon_time_in[]', '') + '</td>' +
+			'<td data-label="Afternoon Out">' + buildExternalTimeSelect('afternoon_time_out[]', '') + '</td>' +
 		'</tr>');
 		idx++;
 	}

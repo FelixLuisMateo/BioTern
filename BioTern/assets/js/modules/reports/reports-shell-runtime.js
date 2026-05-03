@@ -81,33 +81,37 @@
 
                 if (cells.length <= visibleCells) {
                     row.classList.remove("reports-mobile-row-collapsed");
+                    var plainToggleCell = row.querySelector(".reports-mobile-collapse-cell");
+                    if (plainToggleCell) {
+                        plainToggleCell.remove();
+                    }
                     return;
                 }
 
-                var toggleCell = row.querySelector(".reports-mobile-collapse-cell");
-                if (!toggleCell) {
-                    toggleCell = document.createElement("td");
-                    toggleCell.className = "reports-mobile-collapse-cell";
-                    toggleCell.setAttribute("colspan", String(cells.length));
-
-                    var btn = document.createElement("button");
-                    btn.type = "button";
-                    btn.className = "reports-mobile-collapse-btn";
-                    btn.textContent = "Show more";
-                    btn.setAttribute("aria-expanded", "false");
-                    btn.addEventListener("click", function () {
-                        var collapsed = row.classList.contains("reports-mobile-row-collapsed");
-                        row.classList.toggle("reports-mobile-row-collapsed", !collapsed);
-                        btn.setAttribute("aria-expanded", collapsed ? "true" : "false");
-                        btn.textContent = collapsed ? "Show less" : "Show more";
-                    });
-
-                    toggleCell.appendChild(btn);
-                    row.appendChild(toggleCell);
-                }
-
-                var toggleBtn = row.querySelector(".reports-mobile-collapse-btn");
                 if (isMobileViewport()) {
+                    var toggleCell = row.querySelector(".reports-mobile-collapse-cell");
+                    if (!toggleCell) {
+                        toggleCell = document.createElement("td");
+                        toggleCell.className = "reports-mobile-collapse-cell";
+                        toggleCell.setAttribute("colspan", String(cells.length));
+
+                        var btn = document.createElement("button");
+                        btn.type = "button";
+                        btn.className = "reports-mobile-collapse-btn";
+                        btn.textContent = "Show more";
+                        btn.setAttribute("aria-expanded", "false");
+                        btn.addEventListener("click", function () {
+                            var collapsed = row.classList.contains("reports-mobile-row-collapsed");
+                            row.classList.toggle("reports-mobile-row-collapsed", !collapsed);
+                            btn.setAttribute("aria-expanded", collapsed ? "true" : "false");
+                            btn.textContent = collapsed ? "Show less" : "Show more";
+                        });
+
+                        toggleCell.appendChild(btn);
+                        row.appendChild(toggleCell);
+                    }
+
+                    var toggleBtn = row.querySelector(".reports-mobile-collapse-btn");
                     row.classList.add("reports-mobile-row-collapsed");
                     if (toggleBtn) {
                         toggleBtn.textContent = "Show more";
@@ -115,9 +119,9 @@
                     }
                 } else {
                     row.classList.remove("reports-mobile-row-collapsed");
-                    if (toggleBtn) {
-                        toggleBtn.textContent = "Show less";
-                        toggleBtn.setAttribute("aria-expanded", "true");
+                    var desktopToggleCell = row.querySelector(".reports-mobile-collapse-cell");
+                    if (desktopToggleCell) {
+                        desktopToggleCell.remove();
                     }
                 }
             });

@@ -518,9 +518,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
     if (!$useGeneratedEntries && $fallbackMode === 'weekly' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $attendanceEndDate)) {
         $errors[] = 'Valid week end date is required for weekly fallback.';
     }
-    if ($fallbackReason === '') {
-        $errors[] = 'Reason/details are required.';
-    }
     if ($studentRemainingHours <= 0) {
         $errors[] = 'Your required internship hours are already completed. Please contact your coordinator for corrections.';
     }
@@ -696,7 +693,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
                     $notes[] = 'Overtime: ' . number_format((float)$metrics['overtime_hours'], 2) . ' hr';
                 }
                 if ($notes !== []) {
-                    $remarks .= ' | ' . implode(' | ', $notes);
+                    $remarks = trim($remarks . ($remarks !== '' ? ' | ' : '') . implode(' | ', $notes));
                 }
 
                 $netHours = (float)$metrics['net_hours'];
@@ -1048,30 +1045,30 @@ include 'includes/header.php';
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackMorningIn">Morning In</label>
                                 <select class="form-select student-dtr-time-select" id="fallbackMorningIn" name="morning_time_in">
-                                    <?php echo student_dtr_time_select_options_html('08:00', 5, 11); ?>
+                                    <?php echo student_dtr_time_select_options_html('', 5, 11); ?>
                                 </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackMorningOut">Morning Out</label>
                                 <select class="form-select student-dtr-time-select" id="fallbackMorningOut" name="morning_time_out">
-                                    <?php echo student_dtr_time_select_options_html('11:30', 5, 11); ?>
+                                    <?php echo student_dtr_time_select_options_html('', 5, 11); ?>
                                 </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
                                 <select class="form-select student-dtr-time-select" id="fallbackAfternoonIn" name="afternoon_time_in">
-                                    <?php echo student_dtr_time_select_options_html('13:00', 12, 23); ?>
+                                    <?php echo student_dtr_time_select_options_html('', 12, 23); ?>
                                 </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
                                 <select class="form-select student-dtr-time-select" id="fallbackAfternoonOut" name="afternoon_time_out">
-                                    <?php echo student_dtr_time_select_options_html('17:00', 12, 23); ?>
+                                    <?php echo student_dtr_time_select_options_html('', 12, 23); ?>
                                 </select>
                             </div>
                             <div class="col-12">
-                                <label class="form-label" for="fallbackReason">Reason / Details</label>
-                                <textarea class="form-control" id="fallbackReason" name="fallback_reason" rows="3" placeholder="Example: Biometric machine was offline. My supervisor confirmed my time in and out."></textarea>
+                                <label class="form-label" for="fallbackReason">Reason / Details (Optional)</label>
+                                <textarea class="form-control" id="fallbackReason" name="fallback_reason" rows="3" placeholder="Optional note for the reviewer."></textarea>
                             </div>
                             <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
                                 <button type="submit" class="btn btn-warning" <?php echo max(0, $remainingHours) <= 0 ? 'disabled' : ''; ?>>Submit Manual DTR for Review</button>
@@ -1328,10 +1325,10 @@ include 'includes/header.php';
             rows.push(
                 '<tr>' +
                     '<td><strong>' + escapeHtml(formatLabel(isoDate)) + '</strong></td>' +
-                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_in]', '08:00', 5, 11) + '</td>' +
-                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_out]', '11:30', 5, 11) + '</td>' +
-                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_in]', '13:00', 12, 23) + '</td>' +
-                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_out]', '17:00', 12, 23) + '</td>' +
+                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_in]', '', 5, 11) + '</td>' +
+                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_out]', '', 5, 11) + '</td>' +
+                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_in]', '', 12, 23) + '</td>' +
+                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_out]', '', 12, 23) + '</td>' +
                 '</tr>'
             );
         }

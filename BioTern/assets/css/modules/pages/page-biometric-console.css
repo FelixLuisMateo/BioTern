@@ -986,6 +986,26 @@ html.app-skin-dark .page-biometric-machine .bio-console-hero-side small {
     }
 }
 
+@media (max-width: 991.98px) {
+    body.mobile-bottom-nav.page-ojt-internal-list .bio-console-shell,
+    body.mobile-bottom-nav.page-ojt-external-list .bio-console-shell {
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    body.mobile-bottom-nav.page-ojt-internal-list .bio-console-panel,
+    body.mobile-bottom-nav.page-ojt-external-list .bio-console-panel {
+        margin-left: -2px !important;
+        margin-right: -2px !important;
+    }
+
+    body.mobile-bottom-nav.page-ojt-internal-list .table-responsive,
+    body.mobile-bottom-nav.page-ojt-external-list .table-responsive {
+        padding-left: 2px;
+        padding-right: 2px;
+    }
+}
+
 @media (max-width: 1199.98px) {
     body.page-ojt-internal-list .bio-console-table,
     body.page-ojt-internal-list .bio-console-table thead,

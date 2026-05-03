@@ -439,6 +439,7 @@ html.app-skin-dark .dtr-empty-note {
     color: #8fa0ba;
 }
 
+
 @media (max-width: 991.98px) {
     .app-students-dtr-toolbar,
     .toolbar {
@@ -602,4 +603,42 @@ html.app-skin-dark .dtr-empty-note {
         text-transform: uppercase;
         letter-spacing: 0.03em;
     }
+}
+
+/* External DTR visual mode: flatter gray review surface (matches attendance review look). */
+body.students-external-dtr-page.external-dtr-review .app-students-dtr-hero-card,
+body.students-external-dtr-page.external-dtr-review .app-students-dtr-summary-card,
+body.students-external-dtr-page.external-dtr-review .app-students-dtr-day-card,
+body.students-external-dtr-page.external-dtr-review .dtr-summary-card,
+body.students-external-dtr-page.external-dtr-review .dtr-day-card {
+    background: #f8fafc;
+    border-color: #d5dee9;
+    box-shadow: none;
+}
+
+body.students-external-dtr-page.external-dtr-review .app-students-dtr-hero-card {
+    background: #f1f5f9;
+}
+
+body.students-external-dtr-page.external-dtr-review .app-students-dtr-filter-form,
+body.students-external-dtr-page.external-dtr-review .app-students-dtr-hours-chip {
+    background: #ffffff;
+    border-color: #d5dee9;
+}
+
+body.students-external-dtr-page.external-dtr-review .app-students-dtr-table th,
+body.students-external-dtr-page.external-dtr-review .dtr-table th {
+    background: #eef2f7;
+    color: #334155;
+    border-bottom-color: #d5dee9;
+}
+
+body.students-external-dtr-page.external-dtr-review .app-students-dtr-table td,
+body.students-external-dtr-page.external-dtr-review .dtr-table td {
+    border-bottom-color: #e2e8f0;
+}
+
+body.students-external-dtr-page.external-dtr-review .app-students-dtr-table tbody tr:hover,
+body.students-external-dtr-page.external-dtr-review .dtr-table tbody tr:hover {
+    background: #f8fafc;
 }
