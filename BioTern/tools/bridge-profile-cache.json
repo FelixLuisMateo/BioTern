@@ -1,6 +1,6 @@
 ﻿{
     "bridge_enabled":  true,
-    "cloud_base_url":  "https://biotern-ccst.vercel.app",
+    "cloud_base_url":  "https://biotern.vercel.app",
     "ingest_path":  "/api/f20h_ingest.php",
     "ingest_api_token":  "eDeYGNLhVBHePxAxObSRZuwyDzHaQIZK",
     "poll_seconds":  5,
@@ -11,5 +11,5 @@
     "device_number":  1,
     "communication_password":  "0",
     "output_path":  "/var/task/user/attendance.txt",
-    "updated_at":  "2026-05-03 01:39:43"
+    "updated_at":  "2026-05-03 16:55:19"
 }

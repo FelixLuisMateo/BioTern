@@ -1,5 +1,5 @@
 param(
-    [string]$SiteBaseUrl = "https://biotern-ccst.vercel.app",
+    [string]$SiteBaseUrl = "https://biotern.vercel.app",
     [string]$BridgeToken = "",
     [string]$WorkspaceRoot = "",
     [int]$DefaultPollSeconds = 30,

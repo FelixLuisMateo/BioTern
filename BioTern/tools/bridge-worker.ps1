@@ -308,6 +308,9 @@ function Update-ConnectorConfig {
     $deviceNumber = [int]($BridgeConfig.device_number)
     $communicationPassword = [string]($BridgeConfig.communication_password)
     $outputPath = [string]($BridgeConfig.output_path)
+    if ([string]::IsNullOrWhiteSpace($outputPath) -or $outputPath -like '/var/task/*') {
+        $outputPath = Join-Path $WorkspaceRoot 'attendance.txt'
+    }
 
     if ($PreferLocalConnectorNetwork -and $existingConfig) {
         if (-not [string]::IsNullOrWhiteSpace([string]$existingConfig.ipAddress)) { $ipAddress = [string]$existingConfig.ipAddress }
