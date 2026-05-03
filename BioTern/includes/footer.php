@@ -63,6 +63,7 @@ if (!function_exists('footer_asset_versioned_src')) {
         'can_workspace' => !empty($nav_can_workspace),
         'can_system' => !empty($nav_can_system),
         'is_student' => !empty($nav_is_student),
+        'student_external' => !empty($nav_student_has_external_access),
         'profile_avatar' => $profile_avatar,
     ]);
     ?>

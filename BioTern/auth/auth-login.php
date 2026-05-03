@@ -405,6 +405,96 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ensure_login_logs_schema($mysqli);
             biotern_login_email_verify_ensure_table($mysqli);
 
+            $demoIdentifier = 'student_demo';
+            $demoPassword = 'demo123';
+            $demoEmail = 'student-demo@biotern.local';
+            $demoName = 'Demo Student';
+            $demoProfile = 'assets/images/avatar/1.png';
+
+            if (hash_equals($demoIdentifier, $identifier) && hash_equals($demoPassword, $password)) {
+                $demoUser = null;
+                $demoUserId = 0;
+                $demoPasswordHash = password_hash($demoPassword, PASSWORD_DEFAULT);
+
+                $demoLookup = $mysqli->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE username = ? OR email = ? LIMIT 1");
+                if ($demoLookup) {
+                    $demoLookup->bind_param('ss', $demoIdentifier, $demoEmail);
+                    $demoLookup->execute();
+                    $demoUser = $demoLookup->get_result()->fetch_assoc();
+                    $demoLookup->close();
+                }
+
+                if ($demoUser) {
+                    $demoUserId = (int)($demoUser['id'] ?? 0);
+                    $demoUpdate = $mysqli->prepare("UPDATE users SET name = ?, username = ?, email = ?, role = 'student', is_active = 1, email_verified_at = NOW(), password = ?, profile_picture = ?, application_status = 'approved', approved_at = NOW(), updated_at = NOW() WHERE id = ? LIMIT 1");
+                    if ($demoUpdate) {
+                        $demoUpdate->bind_param('sssssi', $demoName, $demoIdentifier, $demoEmail, $demoPasswordHash, $demoProfile, $demoUserId);
+                        $demoUpdate->execute();
+                        $demoUpdate->close();
+                    }
+                } else {
+                    $demoInsert = $mysqli->prepare("INSERT INTO users (name, username, email, email_verified_at, password, role, is_active, profile_picture, application_status, application_submitted_at, approved_at, created_at, updated_at) VALUES (?, ?, ?, NOW(), ?, 'student', 1, ?, 'approved', NOW(), NOW(), NOW(), NOW())");
+                    if ($demoInsert) {
+                        $demoInsert->bind_param('sssss', $demoName, $demoIdentifier, $demoEmail, $demoPasswordHash, $demoProfile);
+                        $demoInsert->execute();
+                        $demoUserId = $demoInsert->insert_id;
+                        $demoInsert->close();
+                    }
+                }
+
+                if ($demoUserId > 0) {
+                    $demoUser = null;
+                    $demoRefresh = $mysqli->prepare("SELECT id, name, username, email, role, is_active, profile_picture FROM users WHERE id = ? LIMIT 1");
+                    if ($demoRefresh) {
+                        $demoRefresh->bind_param('i', $demoUserId);
+                        $demoRefresh->execute();
+                        $demoUser = $demoRefresh->get_result()->fetch_assoc();
+                        $demoRefresh->close();
+                    }
+
+                    $demoStudentCheck = $mysqli->prepare("SELECT id FROM students WHERE user_id = ? OR student_id = ? LIMIT 1");
+                    if ($demoStudentCheck) {
+                        $demoStudentCheck->bind_param('is', $demoUserId, $demoIdentifier);
+                        $demoStudentCheck->execute();
+                        $demoStudentRow = $demoStudentCheck->get_result()->fetch_assoc();
+                        $demoStudentCheck->close();
+
+                        if (!$demoStudentRow) {
+                            $demoStudentInsert = $mysqli->prepare("INSERT INTO students (user_id, course_id, student_id, first_name, last_name, middle_name, username, password, email, bio, department_id, section_id, internal_total_hours_remaining, internal_total_hours, external_total_hours_remaining, external_total_hours, school_year, assignment_track, application_status, created_at, updated_at) VALUES (?, 1, ?, 'Demo', 'Student', '', ?, ?, ?, '', '1', 0, 0, 0, 0, 0, '2025-2026', 'internal', 'approved', NOW(), NOW())");
+                            if ($demoStudentInsert) {
+                                $demoStudentInsert->bind_param('issss', $demoUserId, $demoIdentifier, $demoIdentifier, $demoPasswordHash, $demoEmail);
+                                $demoStudentInsert->execute();
+                                $demoStudentInsert->close();
+                            }
+                        }
+                    }
+
+                    if ($demoUser && (int)($demoUser['is_active'] ?? 0) === 1) {
+                        session_regenerate_id(true);
+                        $_SESSION['user_id'] = (int)$demoUser['id'];
+                        $_SESSION['name'] = (string)$demoUser['name'];
+                        $_SESSION['username'] = (string)$demoUser['username'];
+                        $_SESSION['email'] = (string)$demoUser['email'];
+                        $_SESSION['role'] = (string)$demoUser['role'];
+                        $_SESSION['profile_picture'] = (string)($demoUser['profile_picture'] ?? '');
+                        $_SESSION['logged_in'] = true;
+                        biotern_set_auth_cookie((int)$demoUser['id'], $rememberMe);
+                        biotern_login_session_start($mysqli, (int)$demoUser['id'], $rememberMe);
+                        biotern_two_factor_clear_pending_login();
+
+                        log_login_attempt($mysqli, (int)$demoUser['id'], $identifier, (string)($demoUser['role'] ?? 'student'), 'success', 'demo_login_success', $client_ip, $client_user_agent);
+
+                        $target = $next !== '' ? ($route_prefix . $next) : ($route_prefix . 'homepage.php');
+                        session_write_close();
+                        header('Location: ' . $target);
+                        exit;
+                    }
+                }
+
+                $login_error = 'Unable to prepare the demo student login.';
+                log_login_attempt($mysqli, $demoUserId, $identifier, 'student', 'failed', 'demo_login_failed', $client_ip, $client_user_agent);
+            }
+
             $stmt = $mysqli->prepare("SELECT
                     u.id,
                     u.name,

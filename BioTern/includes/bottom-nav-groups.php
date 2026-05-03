@@ -8,6 +8,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         $canWorkspace = !empty($context['can_workspace']);
         $canSystem = !empty($context['can_system']);
         $isStudent = !empty($context['is_student']);
+        $studentHasExternal = !empty($context['student_external']);
 
         $profileAvatar = isset($context['profile_avatar']) && is_string($context['profile_avatar']) && trim($context['profile_avatar']) !== ''
             ? trim($context['profile_avatar'])
@@ -15,21 +16,70 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
 
         $navGroups = [];
 
+        $homeRoutes = $isStudent ? ['homepage.php'] : ['homepage.php', 'analytics.php'];
+        $homeItems = [
+            ['label' => 'Overview', 'href' => 'homepage.php', 'icon' => 'feather-grid'],
+        ];
+        if (!$isStudent) {
+            $homeItems[] = ['label' => 'Analytics', 'href' => 'analytics.php', 'icon' => 'feather-bar-chart-2'];
+        }
+
         $navGroups[] = [
             'key' => 'home',
-            'label' => 'Home',
+            'label' => $isStudent ? 'Dashboard' : 'Home',
             'icon' => 'feather-home',
-            'routes' => ['homepage.php', 'analytics.php'],
+            'routes' => $homeRoutes,
             'sections' => [
                 [
                     'title' => 'Dashboard',
-                    'items' => [
-                        ['label' => 'Overview', 'href' => 'homepage.php', 'icon' => 'feather-grid'],
-                        ['label' => 'Analytics', 'href' => 'analytics.php', 'icon' => 'feather-bar-chart-2'],
-                    ],
+                    'items' => $homeItems,
                 ],
             ],
         ];
+
+        if ($isStudent) {
+            $studentDtrItems = [
+                ['label' => 'My Internal DTR', 'href' => 'student-internal-dtr.php', 'icon' => 'feather-clock'],
+                ['label' => 'Manual DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'],
+            ];
+
+            if ($studentHasExternal) {
+                array_splice($studentDtrItems, 1, 0, [
+                    ['label' => 'My External DTR', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'],
+                ]);
+            }
+
+            $navGroups[] = [
+                'key' => 'student',
+                'label' => 'Student',
+                'icon' => 'feather-user-check',
+                'routes' => [
+                    'student-profile.php',
+                    'student-dtr.php', 'student-internal-dtr.php',
+                    'student-external-dtr.php', 'external-biometric.php',
+                    'student-manual-dtr.php',
+                    'student-documents.php',
+                ],
+                'sections' => [
+                    [
+                        'title' => 'My Profile',
+                        'items' => [
+                            ['label' => 'My Profile', 'href' => 'student-profile.php', 'icon' => 'feather-user'],
+                        ],
+                    ],
+                    [
+                        'title' => 'DTR',
+                        'items' => $studentDtrItems,
+                    ],
+                    [
+                        'title' => 'Documents',
+                        'items' => [
+                            ['label' => 'My Documents', 'href' => 'student-documents.php', 'icon' => 'feather-file-text'],
+                        ],
+                    ],
+                ],
+            ];
+        }
 
         if ($canInternship) {
             $navGroups[] = [
@@ -156,6 +206,42 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
             ];
         }
 
+        if ($isStudent) {
+            $navGroups[] = [
+                'key' => 'student-settings',
+                'label' => 'My Settings',
+                'icon' => 'feather-settings',
+                'routes' => ['notifications.php', 'account-settings.php'],
+                'sections' => [
+                    [
+                        'title' => 'Settings',
+                        'items' => [
+                            ['label' => 'Notifications', 'href' => 'notifications.php', 'icon' => 'feather-bell'],
+                            ['label' => 'Account Settings', 'href' => 'account-settings.php', 'icon' => 'feather-user'],
+                        ],
+                    ],
+                ],
+            ];
+
+            $navGroups[] = [
+                'key' => 'student-tools',
+                'label' => 'Student Tools',
+                'icon' => 'feather-tool',
+                'routes' => ['apps-notes.php', 'apps-storage.php', 'apps-calendar.php', 'theme-customizer.php'],
+                'sections' => [
+                    [
+                        'title' => 'Tools',
+                        'items' => [
+                            ['label' => 'Notes', 'href' => 'apps-notes.php', 'icon' => 'feather-edit-2'],
+                            ['label' => 'Storage', 'href' => 'apps-storage.php', 'icon' => 'feather-hard-drive'],
+                            ['label' => 'Calendar', 'href' => 'apps-calendar.php', 'icon' => 'feather-calendar'],
+                            ['label' => 'Appearance', 'href' => 'theme-customizer.php', 'icon' => 'feather-droplet'],
+                        ],
+                    ],
+                ],
+            ];
+        }
+
         if ($canSystem) {
             $navGroups[] = [
                 'key' => 'system',
@@ -218,23 +304,25 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
             ];
         }
 
-        $navGroups[] = [
-            'key' => 'profile',
-            'label' => 'Profile',
-            'icon' => 'feather-user',
-            'routes' => ['account-settings.php', 'notifications.php'],
-            'avatar' => $profileAvatar,
-            'sections' => [
-                [
-                    'title' => 'Account',
-                    'items' => [
-                        ['label' => 'Account Settings', 'href' => 'account-settings.php#security', 'icon' => 'feather-settings'],
-                        ['label' => 'Notifications', 'href' => 'notifications.php', 'icon' => 'feather-bell'],
-                        ['label' => 'Logout', 'href' => 'auth-login.php?logout=1', 'icon' => 'feather-log-out'],
+        if (!$isStudent) {
+            $navGroups[] = [
+                'key' => 'profile',
+                'label' => 'Profile',
+                'icon' => 'feather-user',
+                'routes' => ['account-settings.php', 'notifications.php'],
+                'avatar' => $profileAvatar,
+                'sections' => [
+                    [
+                        'title' => 'Account',
+                        'items' => [
+                            ['label' => 'Account Settings', 'href' => 'account-settings.php#security', 'icon' => 'feather-settings'],
+                            ['label' => 'Notifications', 'href' => 'notifications.php', 'icon' => 'feather-bell'],
+                            ['label' => 'Logout', 'href' => 'auth-login.php?logout=1', 'icon' => 'feather-log-out'],
+                        ],
                     ],
                 ],
-            ],
-        ];
+            ];
+        }
 
         return $navGroups;
     }

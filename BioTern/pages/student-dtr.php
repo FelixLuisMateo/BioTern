@@ -748,52 +748,19 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
+        <div class="page-header dashboard-page-header">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">My Internal DTR</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                    <li class="breadcrumb-item">My Internal DTR</li>
+                </ul>
+            </div>
+        </div>
         <div class="main-content">
             <div class="student-home-shell student-dtr-shell">
-                <section class="card student-home-hero border-0 student-dtr-hero-card">
-            <div class="card-body">
-                <div class="student-dtr-hero">
-                    <div>
-                        <span class="student-home-eyebrow">Internal Daily Time Record</span>
-                        <h2><?php echo htmlspecialchars($displayName !== '' ? $displayName : 'Student User', ENT_QUOTES, 'UTF-8'); ?></h2>
-                        <p>Track your attendance logs for <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?>, review approval status, and submit a fallback record only when the biometric machine is unavailable.</p>
-                        <div class="student-home-meta">
-                            <?php if (!empty($courseSection)): ?>
-                            <span><?php echo htmlspecialchars(implode(' | ', $courseSection), ENT_QUOTES, 'UTF-8'); ?></span>
-                            <?php endif; ?>
-                            <span><?php echo htmlspecialchars($track === 'external' ? 'External Assignment' : 'Internal Assignment', ENT_QUOTES, 'UTF-8'); ?></span>
-                            <span><?php echo number_format($attendanceSummary['total_logs']); ?> logs this month</span>
-                        </div>
-                    </div>
-                    <form method="get" class="student-dtr-filter">
-                        <div>
-                            <label class="form-label" for="studentDtrMonthSelect">Month</label>
-                            <select id="studentDtrMonthSelect" name="month_num" class="form-select">
-                                <?php foreach ($monthOptions as $monthNumber => $monthLabelOption): ?>
-                                <option value="<?php echo $monthNumber; ?>" <?php echo $monthNumber === $selectedMonthNumber ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($monthLabelOption, ENT_QUOTES, 'UTF-8'); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="form-label" for="studentDtrYearSelect">Year</label>
-                            <select id="studentDtrYearSelect" name="year" class="form-select">
-                                <?php foreach ($availableYears as $yearOption): ?>
-                                <option value="<?php echo $yearOption; ?>" <?php echo $yearOption === $selectedYear ? 'selected' : ''; ?>>
-                                    <?php echo $yearOption; ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div>
-                            <button type="submit" class="btn btn-primary">Apply</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </section>
-
         <?php if (is_array($studentDtrFlash) && !empty($studentDtrFlash['message'])): ?>
         <div class="alert alert-<?php echo htmlspecialchars((string)($studentDtrFlash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> mt-4">
             <?php echo htmlspecialchars((string)$studentDtrFlash['message'], ENT_QUOTES, 'UTF-8'); ?>
@@ -801,9 +768,29 @@ include 'includes/header.php';
         <?php endif; ?>
 
         <div class="student-dtr-metrics">
+            <article class="student-metric-card student-dtr-metric">
+                <div class="student-dtr-meta">Total Logs</div>
+                <strong><?php echo (int)$attendanceSummary['total_logs']; ?></strong>
+                <small>Recorded entries for <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?>.</small>
+            </article>
+            <article class="student-metric-card student-dtr-metric">
+                <div class="student-dtr-meta">Approved</div>
+                <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
+                <small><?php echo number_format((float)$attendanceInsights['approved_hours'], 2); ?> approved hours.</small>
+            </article>
+            <article class="student-metric-card student-dtr-metric">
+                <div class="student-dtr-meta">Pending</div>
+                <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
+                <small><?php echo number_format((float)$attendanceInsights['pending_hours'], 2); ?> hours waiting.</small>
+            </article>
+            <article class="student-metric-card student-dtr-metric">
+                <div class="student-dtr-meta">Logged Hours</div>
+                <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?></strong>
+                <small>Average <?php echo number_format((float)$attendanceInsights['average_hours'], 2); ?> hours per entry.</small>
+            </article>
+        </div>
 
-        <!-- Clock-in/Clock-out Report Request Section (Internal Students) -->
-        <section class="card student-dtr-report-export-card mt-4 mb-4">
+        <section class="card student-dtr-report-export-card">
             <div class="card-body">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
                     <div>
@@ -837,120 +824,99 @@ include 'includes/header.php';
                 </form>
             </div>
         </section>
-            <article class="student-metric-card student-dtr-metric">
-                <div class="student-dtr-meta">Total Logs</div>
-                <strong><?php echo (int)$attendanceSummary['total_logs']; ?></strong>
-                <small>Recorded entries for <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?>.</small>
-            </article>
-            <article class="student-metric-card student-dtr-metric">
-                <div class="student-dtr-meta">Approved</div>
-                <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
-                <small><?php echo number_format((float)$attendanceInsights['approved_hours'], 2); ?> approved hours.</small>
-            </article>
-            <article class="student-metric-card student-dtr-metric">
-                <div class="student-dtr-meta">Pending</div>
-                <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
-                <small><?php echo number_format((float)$attendanceInsights['pending_hours'], 2); ?> hours waiting.</small>
-            </article>
-            <article class="student-metric-card student-dtr-metric">
-                <div class="student-dtr-meta">Logged Hours</div>
-                <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?></strong>
-                <small>Average <?php echo number_format((float)$attendanceInsights['average_hours'], 2); ?> hours per entry.</small>
-            </article>
-        </div>
-
-        <section class="card student-panel mt-4 student-dtr-fallback-card" id="manual-dtr">
-            <div class="card-body">
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-                    <div>
-                        <span class="student-metric-label">Machine Down Fallback</span>
-                        <h3 class="mb-1">Submit Manual Internal DTR</h3>
-                        <div class="student-dtr-meta">Use this only when the biometric machine is unavailable. Manual fallback entries stay in review until checked by the school.</div>
-                    </div>
-                </div>
-                <form method="post" enctype="multipart/form-data" class="row g-3">
-                    <input type="hidden" name="student_action" value="submit_machine_down">
-                    <input type="hidden" name="proof_clock_time" id="proofClockTime" value="">
-                    <div class="col-md-4">
-                        <label class="form-label" for="fallbackMode">Mode</label>
-                        <select class="form-select" id="fallbackMode" name="fallback_mode">
-                            <option value="weekly" selected>Date range generator</option>
-                            <option value="daily">Single date only</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label" for="fallbackAttendanceDate">Start Date</label>
-                        <input type="date" class="form-control" id="fallbackAttendanceDate" name="attendance_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label" for="fallbackAttendanceEndDate">End Date (weekly only)</label>
-                        <input type="date" class="form-control" id="fallbackAttendanceEndDate" name="attendance_end_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Proof Clock</label>
-                        <div class="form-control d-flex align-items-center justify-content-between student-dtr-proof-clock">
-                            <strong id="proofClockDisplay">--:--:--</strong>
-                            <span class="text-muted small" id="proofClockDate">--</span>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label" for="proofImage">Proof Image</label>
-                        <input type="file" class="form-control" id="proofImage" name="proof_image" accept="image/png,image/jpeg,image/webp" capture="environment" required>
-                    </div>
-                    <div class="col-12">
-                        <div class="d-flex flex-wrap align-items-end gap-3">
-                            <div>
-                                <button type="button" class="btn btn-outline-primary" id="generateFallbackRows">Generate Range Dates</button>
-                            </div>
-                            <small class="text-muted">Choose a start and end date, then generate one row per day so you can encode morning and afternoon times directly.</small>
-                        </div>
-                    </div>
-                    <div class="col-12" id="fallbackGeneratedRowsWrap" style="display:none;">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Morning In</th>
-                                        <th>Morning Out</th>
-                                        <th>Afternoon In</th>
-                                        <th>Afternoon Out</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="fallbackGeneratedRows"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label" for="fallbackMorningIn">Morning In</label>
-                        <input type="time" class="form-control" id="fallbackMorningIn" name="morning_time_in">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label" for="fallbackMorningOut">Morning Out</label>
-                        <input type="time" class="form-control" id="fallbackMorningOut" name="morning_time_out">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
-                        <input type="time" class="form-control" id="fallbackAfternoonIn" name="afternoon_time_in">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
-                        <input type="time" class="form-control" id="fallbackAfternoonOut" name="afternoon_time_out">
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label" for="fallbackReason">Reason / What happened</label>
-                        <textarea class="form-control" id="fallbackReason" name="fallback_reason" rows="3" placeholder="Example: Biometric machine was offline from 8:00 AM to 5:00 PM. Supervisor confirmed my time in/out."></textarea>
-                    </div>
-                    <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
-                        <button type="submit" class="btn btn-warning" <?php echo max(0, $remainingHours) <= 0 ? 'disabled' : ''; ?>>Submit Fallback Attendance</button>
-                        <small class="text-muted">Generated rows submit one entry per day. The single-date time inputs still work if you only need one date. Lunch is auto-deducted when needed, and overtime is noted in remarks.</small>
-                    </div>
-                </form>
-            </div>
-        </section>
 
         <div class="row g-4 align-items-start mt-0">
             <div class="col-12 col-xl-8">
+                <section class="card student-panel student-dtr-fallback-card mb-4" id="manual-dtr">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                            <div>
+                                <span class="student-metric-label">Machine Down Fallback</span>
+                                <h3 class="mb-1">Submit Manual Internal DTR</h3>
+                                <div class="student-dtr-meta">Use this only when the biometric machine is unavailable. Manual fallback entries stay in review until checked by the school.</div>
+                            </div>
+                        </div>
+                        <form method="post" enctype="multipart/form-data" class="row g-3">
+                            <input type="hidden" name="student_action" value="submit_machine_down">
+                            <input type="hidden" name="proof_clock_time" id="proofClockTime" value="">
+                            <div class="col-md-4">
+                                <label class="form-label" for="fallbackMode">Mode</label>
+                                <select class="form-select" id="fallbackMode" name="fallback_mode">
+                                    <option value="weekly" selected>Date range generator</option>
+                                    <option value="daily">Single date only</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="fallbackAttendanceDate">Start Date</label>
+                                <input type="date" class="form-control" id="fallbackAttendanceDate" name="attendance_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="fallbackAttendanceEndDate">End Date (weekly only)</label>
+                                <input type="date" class="form-control" id="fallbackAttendanceEndDate" name="attendance_end_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Proof Clock</label>
+                                <div class="form-control d-flex align-items-center justify-content-between student-dtr-proof-clock">
+                                    <strong id="proofClockDisplay">--:--:--</strong>
+                                    <span class="text-muted small" id="proofClockDate">--</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="proofImage">Proof Image</label>
+                                <input type="file" class="form-control" id="proofImage" name="proof_image" accept="image/png,image/jpeg,image/webp" capture="environment" required>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex flex-wrap align-items-end gap-3">
+                                    <div>
+                                        <button type="button" class="btn btn-outline-primary" id="generateFallbackRows">Generate Range Dates</button>
+                                    </div>
+                                    <small class="text-muted">Choose a start and end date, then generate one row per day so you can encode morning and afternoon times directly.</small>
+                                </div>
+                            </div>
+                            <div class="col-12" id="fallbackGeneratedRowsWrap" style="display:none;">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Morning In</th>
+                                                <th>Morning Out</th>
+                                                <th>Afternoon In</th>
+                                                <th>Afternoon Out</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="fallbackGeneratedRows"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="fallbackMorningIn">Morning In</label>
+                                <input type="time" class="form-control" id="fallbackMorningIn" name="morning_time_in">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="fallbackMorningOut">Morning Out</label>
+                                <input type="time" class="form-control" id="fallbackMorningOut" name="morning_time_out">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
+                                <input type="time" class="form-control" id="fallbackAfternoonIn" name="afternoon_time_in">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
+                                <input type="time" class="form-control" id="fallbackAfternoonOut" name="afternoon_time_out">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="fallbackReason">Reason / What happened</label>
+                                <textarea class="form-control" id="fallbackReason" name="fallback_reason" rows="3" placeholder="Example: Biometric machine was offline from 8:00 AM to 5:00 PM. Supervisor confirmed my time in/out."></textarea>
+                            </div>
+                            <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+                                <button type="submit" class="btn btn-warning" <?php echo max(0, $remainingHours) <= 0 ? 'disabled' : ''; ?>>Submit Fallback Attendance</button>
+                                <small class="text-muted">Generated rows submit one entry per day. The single-date time inputs still work if you only need one date. Lunch is auto-deducted when needed, and overtime is noted in remarks.</small>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
                 <section class="card student-panel">
                     <div class="card-body">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">

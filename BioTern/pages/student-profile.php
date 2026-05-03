@@ -397,6 +397,22 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
+        <div class="page-header dashboard-page-header">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">My Profile</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                    <li class="breadcrumb-item">My Profile</li>
+                </ul>
+            </div>
+            <div class="page-header-right ms-auto">
+                <span class="badge bg-soft-primary text-primary fs-11">
+                    <i class="feather-calendar me-1"></i> <?php echo htmlspecialchars(date('M d, Y'), ENT_QUOTES, 'UTF-8'); ?>
+                </span>
+            </div>
+        </div>
         <div class="main-content">
             <div class="student-home-shell student-profile-shell">
         <div class="row g-4 align-items-start">
@@ -436,28 +452,51 @@ include 'includes/header.php';
                             <a href="student-manual-dtr.php" class="btn btn-outline-secondary"><?php echo $studentHasExternalAccess ? 'Manual DTR (Track-Based)' : 'Manual Internal DTR'; ?></a>
                             <a href="student-documents.php" class="btn btn-outline-secondary">My Documents</a>
                         </div>
+
+                        <div class="mt-4">
+                            <span class="student-metric-label">Profile Completion</span>
+                            <h3 class="mb-3">Readiness</h3>
+                        </div>
+                        <div class="student-profile-progress-card student-profile-progress-card--compact mt-0">
+                            <div class="student-progress-row">
+                                <span>Profile details filled</span>
+                                <strong><?php echo $profileCompletion; ?>%</strong>
+                            </div>
+                            <div class="progress student-profile-progress">
+                                <div class="progress-bar" role="progressbar" style="width: <?php echo $profileCompletion; ?>%;" aria-valuenow="<?php echo $profileCompletion; ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small>Keep your account details complete so printed documents and student records stay accurate.</small>
+                        </div>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="account-settings.php#overview" class="btn btn-primary">Update My Details</a>
+                            <a href="student-documents.php" class="btn btn-outline-secondary">Review My Documents</a>
+                        </div>
+
+                        <div class="mt-4">
+                            <span class="student-metric-label">Recent Attendance</span>
+                            <h3 class="mb-3">Activity</h3>
+                        </div>
+                        <?php if (!empty($recentAttendance)): ?>
+                            <div class="student-attendance-list">
+                                <?php foreach ($recentAttendance as $attendance): ?>
+                                    <?php $attendanceStatus = ucfirst(trim((string)($attendance['status'] ?? 'pending'))); ?>
+                                    <div class="student-attendance-item">
+                                        <div>
+                                            <strong><?php echo htmlspecialchars(student_profile_format_date((string)($attendance['attendance_date'] ?? ''), 'Unknown date'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                            <span><?php echo htmlspecialchars($attendanceStatus . ' | ' . ucfirst((string)($attendance['source'] ?? 'manual')), ENT_QUOTES, 'UTF-8'); ?></span>
+                                        </div>
+                                        <b><?php echo number_format((float)($attendance['total_hours'] ?? 0), 2); ?> hrs</b>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="student-empty-state">No attendance entries yet.</div>
+                        <?php endif; ?>
                     </div>
                 </section>
             </div>
 
             <div class="col-12 col-xl-6">
-                <section class="card student-home-hero student-profile-hero">
-                    <div class="card-body">
-                        <div class="student-home-hero__content student-profile-hero__content">
-                            <div>
-                                <span class="student-home-eyebrow">Overview</span>
-                                <h2>My Profile</h2>
-                                <p>Review your student identity, school assignment, account status, and latest internship information without leaving the student workspace.</p>
-                            </div>
-                            <div class="student-home-actions">
-                                <span class="badge bg-soft-primary text-primary fs-11">
-                                    <i class="feather-calendar me-1"></i> <?php echo htmlspecialchars(date('M d, Y'), ENT_QUOTES, 'UTF-8'); ?>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
                 <div class="student-profile-metric-grid">
                     <div class="student-profile-timer-row mb-3">
                         <div class="student-profile-timer-card student-profile-timer-card--primary">
@@ -512,67 +551,72 @@ include 'includes/header.php';
                     <?php endif; ?>
                 </div>
 
-                <section class="card student-panel mt-4">
-                    <div class="card-body">
-                        <div class="student-profile-section-head">
-                            <div>
-                                <span class="student-metric-label">Academic Info</span>
-                                <h3 class="mb-1">Student Information</h3>
+                <div class="row g-3 student-profile-info-row mt-1">
+                    <div class="col-12 col-lg-6">
+                        <section class="card student-panel h-100">
+                            <div class="card-body">
+                                <div class="student-profile-section-head">
+                                    <div>
+                                        <span class="student-metric-label">Academic Info</span>
+                                        <h3 class="mb-1">Student Information</h3>
+                                    </div>
+                                    <div class="student-profile-section-copy">Your main school record linked to this account.</div>
+                                </div>
+                                <div class="student-profile-field-grid">
+                                    <div class="student-profile-field">
+                                        <span class="student-profile-field-label">Student Number</span>
+                                        <strong><?php echo htmlspecialchars(student_profile_value($studentNumber, 'Not yet available'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                    </div>
+                                    <div class="student-profile-field">
+                                        <span class="student-profile-field-label">Student Status</span>
+                                        <strong><?php echo htmlspecialchars($studentStatusDisplay, ENT_QUOTES, 'UTF-8'); ?></strong>
+                                    </div>
+                                    <div class="student-profile-field">
+                                        <span class="student-profile-field-label">Course</span>
+                                        <strong><?php echo htmlspecialchars(student_profile_value($courseName, 'Not yet available'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                    </div>
+                                    <div class="student-profile-field">
+                                        <span class="student-profile-field-label">Department</span>
+                                        <strong><?php echo htmlspecialchars(student_profile_value($departmentName, 'Not yet available'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                    </div>
+                                    <div class="student-profile-field student-profile-field--full">
+                                        <span class="student-profile-field-label">Section</span>
+                                        <strong><?php echo htmlspecialchars(student_profile_value($sectionName, 'Not yet assigned'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="student-profile-section-copy">Your main school record linked to this account.</div>
-                        </div>
-                        <div class="student-profile-field-grid">
-                            <div class="student-profile-field">
-                                <span class="student-profile-field-label">Student Number</span>
-                                <strong><?php echo htmlspecialchars(student_profile_value($studentNumber, 'Not yet available'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div class="student-profile-field">
-                                <span class="student-profile-field-label">Student Status</span>
-                                <strong><?php echo htmlspecialchars($studentStatusDisplay, ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div class="student-profile-field">
-                                <span class="student-profile-field-label">Course</span>
-                                <strong><?php echo htmlspecialchars(student_profile_value($courseName, 'Not yet available'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div class="student-profile-field">
-                                <span class="student-profile-field-label">Department</span>
-                                <strong><?php echo htmlspecialchars(student_profile_value($departmentName, 'Not yet available'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div class="student-profile-field student-profile-field--full">
-                                <span class="student-profile-field-label">Section</span>
-                                <strong><?php echo htmlspecialchars(student_profile_value($sectionName, 'Not yet assigned'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                        </div>
+                        </section>
                     </div>
-                </section>
-
-                <section class="card student-panel mt-4">
-                    <div class="card-body">
-                        <div class="student-profile-section-head">
-                            <div>
-                                <span class="student-metric-label">Contact</span>
-                                <h3 class="mb-1">Account And Contact</h3>
+                    <div class="col-12 col-lg-6">
+                        <section class="card student-panel h-100">
+                            <div class="card-body">
+                                <div class="student-profile-section-head">
+                                    <div>
+                                        <span class="student-metric-label">Contact</span>
+                                        <h3 class="mb-1">Account And Contact</h3>
+                                    </div>
+                                    <div class="student-profile-section-copy">Main contact details saved in BioTern.</div>
+                                </div>
+                                <div class="student-profile-field-grid">
+                                    <div class="student-profile-field">
+                                        <span class="student-profile-field-label">Email</span>
+                                        <strong><?php echo htmlspecialchars(student_profile_value($contactEmail, 'Not yet available'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                    </div>
+                                    <div class="student-profile-field">
+                                        <span class="student-profile-field-label">Phone</span>
+                                        <strong><?php echo htmlspecialchars(student_profile_value($contactPhone, 'Not yet available'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                    </div>
+                                    <div class="student-profile-field student-profile-field--full">
+                                        <span class="student-profile-field-label">Address</span>
+                                        <strong><?php echo nl2br(htmlspecialchars(student_profile_value($contactAddress, 'Not yet available'), ENT_QUOTES, 'UTF-8')); ?></strong>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="student-profile-section-copy">Main contact details saved in BioTern.</div>
-                        </div>
-                        <div class="student-profile-field-grid">
-                            <div class="student-profile-field">
-                                <span class="student-profile-field-label">Email</span>
-                                <strong><?php echo htmlspecialchars(student_profile_value($contactEmail, 'Not yet available'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div class="student-profile-field">
-                                <span class="student-profile-field-label">Phone</span>
-                                <strong><?php echo htmlspecialchars(student_profile_value($contactPhone, 'Not yet available'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div class="student-profile-field student-profile-field--full">
-                                <span class="student-profile-field-label">Address</span>
-                                <strong><?php echo nl2br(htmlspecialchars(student_profile_value($contactAddress, 'Not yet available'), ENT_QUOTES, 'UTF-8')); ?></strong>
-                            </div>
-                        </div>
+                        </section>
                     </div>
-                </section>
+                </div>
 
-                <section class="card student-panel mt-4">
+                <section class="card student-panel mt-4 student-profile-personal-card">
                     <div class="card-body">
                         <div class="student-profile-section-head">
                             <div>
@@ -601,133 +645,38 @@ include 'includes/header.php';
                         </div>
                     </div>
                 </section>
-            </div>
 
-            <div class="col-12 col-xl-3">
-                <section class="card student-panel">
+                <section class="card student-panel mt-4 student-profile-card-horizontal">
                     <div class="card-body">
-                        <span class="student-metric-label">Internship</span>
-                        <h3 class="mb-3">Latest Details</h3>
-                        <div class="student-detail-list student-profile-detail-list">
+                        <div class="student-profile-section-head">
                             <div>
-                                <span>Company</span>
-                                <strong><?php echo htmlspecialchars(student_profile_value((string)($internship['company_name'] ?? ''), 'No company assigned yet'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                <span class="student-metric-label">Internship</span>
+                                <h3 class="mb-1">Student Profile Card</h3>
                             </div>
-                            <div>
-                                <span>Company Address</span>
-                                <strong><?php echo htmlspecialchars(student_profile_value((string)($internship['company_address'] ?? ''), 'No company address saved yet'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div>
-                                <span>Representative</span>
-                                <strong><?php echo htmlspecialchars(student_profile_value((string)($internship['company_representative'] ?? ''), student_profile_value((string)($internship['company_supervisor_name'] ?? ''), 'Not provided')), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div>
-                                <span>Representative Position</span>
-                                <strong><?php echo htmlspecialchars(student_profile_value((string)($internship['company_representative_position'] ?? ''), student_profile_value((string)($internship['company_supervisor_position'] ?? ''), 'Not provided')), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div>
-                                <span>Position</span>
-                                <strong><?php echo htmlspecialchars(student_profile_value((string)($internship['position'] ?? ''), 'No position assigned yet'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div>
-                                <span>Track</span>
-                                <strong><?php echo htmlspecialchars(ucfirst($assignmentTrack), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div>
-                                <span>Status</span>
-                                <strong><?php echo htmlspecialchars(student_profile_value((string)($internship['status'] ?? ''), 'Not started'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div>
-                                <span>Start Date</span>
-                                <strong><?php echo htmlspecialchars(student_profile_format_date((string)($internship['start_date'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div>
-                                <span>End Date</span>
-                                <strong><?php echo htmlspecialchars(student_profile_format_date((string)($internship['end_date'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div>
-                                <span>Remaining Internal Hours</span>
-                                <strong><?php echo number_format($internalRemainingHours, 2); ?> / <?php echo number_format($internalTotalHours, 0); ?></strong>
-                            </div>
+                        </div>
+                        <div class="student-profile-facts student-profile-facts--horizontal">
+                            <article class="student-profile-fact"><span>Company</span><strong><?php echo htmlspecialchars(student_profile_value((string)($internship['company_name'] ?? ''), 'No company assigned yet'), ENT_QUOTES, 'UTF-8'); ?></strong></article>
+                            <article class="student-profile-fact"><span>Company Address</span><strong><?php echo htmlspecialchars(student_profile_value((string)($internship['company_address'] ?? ''), 'No company address saved yet'), ENT_QUOTES, 'UTF-8'); ?></strong></article>
+                            <article class="student-profile-fact"><span>Representative</span><strong><?php echo htmlspecialchars(student_profile_value((string)($internship['company_representative'] ?? ''), student_profile_value((string)($internship['company_supervisor_name'] ?? ''), 'Not provided')), ENT_QUOTES, 'UTF-8'); ?></strong></article>
+                            <article class="student-profile-fact"><span>Representative Position</span><strong><?php echo htmlspecialchars(student_profile_value((string)($internship['company_representative_position'] ?? ''), student_profile_value((string)($internship['company_supervisor_position'] ?? ''), 'Not provided')), ENT_QUOTES, 'UTF-8'); ?></strong></article>
+                            <article class="student-profile-fact"><span>Position</span><strong><?php echo htmlspecialchars(student_profile_value((string)($internship['position'] ?? ''), 'No position assigned yet'), ENT_QUOTES, 'UTF-8'); ?></strong></article>
+                            <article class="student-profile-fact"><span>Track</span><strong><?php echo htmlspecialchars(ucfirst($assignmentTrack), ENT_QUOTES, 'UTF-8'); ?></strong></article>
+                            <article class="student-profile-fact"><span>Status</span><strong><?php echo htmlspecialchars(student_profile_value((string)($internship['status'] ?? ''), 'Not started'), ENT_QUOTES, 'UTF-8'); ?></strong></article>
+                            <article class="student-profile-fact"><span>Start Date</span><strong><?php echo htmlspecialchars(student_profile_format_date((string)($internship['start_date'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></strong></article>
+                            <article class="student-profile-fact"><span>End Date</span><strong><?php echo htmlspecialchars(student_profile_format_date((string)($internship['end_date'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></strong></article>
+                            <article class="student-profile-fact"><span>Remaining Internal Hours</span><strong><?php echo number_format($internalRemainingHours, 2); ?> / <?php echo number_format($internalTotalHours, 0); ?></strong></article>
                             <?php if ($studentHasExternalAccess): ?>
-                            <div>
-                                <span>Remaining External Hours</span>
-                                <strong><?php echo number_format($externalRemainingHours, 2); ?> / <?php echo number_format($externalTotalHours, 0); ?></strong>
-                            </div>
+                            <article class="student-profile-fact"><span>Remaining External Hours</span><strong><?php echo number_format($externalRemainingHours, 2); ?> / <?php echo number_format($externalTotalHours, 0); ?></strong></article>
                             <?php endif; ?>
+                            <article class="student-profile-fact"><span>Biometric</span><strong><?php echo $biometricReady ? 'Registered' : 'Pending'; ?></strong></article>
+                            <article class="student-profile-fact"><span>Biometric Date</span><strong><?php echo htmlspecialchars(student_profile_format_date((string)($student['biometric_registered_at'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></strong></article>
+                            <article class="student-profile-fact"><span>First Date Joined</span><strong><?php echo htmlspecialchars($joinedDate, ENT_QUOTES, 'UTF-8'); ?></strong></article>
+                            <article class="student-profile-fact"><span>Last Biometric Clock In</span><strong><?php echo htmlspecialchars($lastBiometricClockInText, ENT_QUOTES, 'UTF-8'); ?></strong></article>
                         </div>
-                    </div>
-                </section>
-
-                <section class="card student-panel mt-4">
-                    <div class="card-body">
-                        <span class="student-metric-label">Account Status</span>
-                        <h3 class="mb-3">BioTern Status</h3>
-                        <div class="student-detail-list student-profile-detail-list">
-                            <div>
-                                <span>Biometric</span>
-                                <strong><?php echo $biometricReady ? 'Registered' : 'Pending'; ?></strong>
-                            </div>
-                            <div>
-                                <span>Biometric Date</span>
-                                <strong><?php echo htmlspecialchars(student_profile_format_date((string)($student['biometric_registered_at'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div>
-                                <span>First Date Joined</span>
-                                <strong><?php echo htmlspecialchars($joinedDate, ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                            <div>
-                                <span>Last Biometric Clock In</span>
-                                <strong><?php echo htmlspecialchars($lastBiometricClockInText, ENT_QUOTES, 'UTF-8'); ?></strong>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="card student-panel mt-4">
-                    <div class="card-body">
-                        <span class="student-metric-label">Profile Completion</span>
-                        <h3 class="mb-3">Readiness</h3>
-                        <div class="student-profile-progress-card student-profile-progress-card--compact mt-0">
-                            <div class="student-progress-row">
-                                <span>Profile details filled</span>
-                                <strong><?php echo $profileCompletion; ?>%</strong>
-                            </div>
-                            <div class="progress student-profile-progress">
-                                <div class="progress-bar" role="progressbar" style="width: <?php echo $profileCompletion; ?>%;" aria-valuenow="<?php echo $profileCompletion; ?>" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                            <small>Keep your account details complete so printed documents and student records stay accurate.</small>
-                        </div>
-                        <div class="d-grid gap-2 mt-3">
-                            <a href="account-settings.php#overview" class="btn btn-primary">Update My Details</a>
-                            <a href="student-documents.php" class="btn btn-outline-secondary">Review My Documents</a>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="card student-panel mt-4">
-                    <div class="card-body">
-                        <span class="student-metric-label">Recent Attendance</span>
-                        <h3 class="mb-3">Activity</h3>
-                        <?php if (!empty($recentAttendance)): ?>
-                            <div class="student-attendance-list">
-                                <?php foreach ($recentAttendance as $attendance): ?>
-                                    <?php $attendanceStatus = ucfirst(trim((string)($attendance['status'] ?? 'pending'))); ?>
-                                    <div class="student-attendance-item">
-                                        <div>
-                                            <strong><?php echo htmlspecialchars(student_profile_format_date((string)($attendance['attendance_date'] ?? ''), 'Unknown date'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                                            <span><?php echo htmlspecialchars($attendanceStatus . ' | ' . ucfirst((string)($attendance['source'] ?? 'manual')), ENT_QUOTES, 'UTF-8'); ?></span>
-                                        </div>
-                                        <b><?php echo number_format((float)($attendance['total_hours'] ?? 0), 2); ?> hrs</b>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php else: ?>
-                            <div class="student-empty-state">No attendance entries yet.</div>
-                        <?php endif; ?>
                     </div>
                 </section>
             </div>
+
         </div>
     </div>
 </div>
