@@ -512,14 +512,14 @@
     width: 100%;
     margin: 0 auto;
     border-collapse: collapse;
-    font-size: 13px;
-    line-height: 1.24;
+    font-size: 14.2px;
+    line-height: 1.32;
 }
 
 .student-internal-eval-print-table th,
 .student-internal-eval-print-table td {
     border: 1px solid #111;
-    padding: 5.5px 7.5px;
+    padding: 7px 8px;
     vertical-align: top;
 }
 
@@ -530,7 +530,7 @@
 
 .student-internal-eval-print-table td:nth-child(2),
 .student-internal-eval-print-table td:nth-child(3) {
-    width: 112px;
+    width: 118px;
     text-align: center;
 }
 
