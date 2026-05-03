@@ -430,15 +430,17 @@
 .student-internal-eval-print-header {
     display: flex;
     align-items: center;
-    gap: 18px;
+    justify-content: center;
+    gap: 20px;
     border-bottom: 2px solid #111;
-    padding-bottom: 5px;
-    margin-bottom: 9px;
+    padding: 0 12mm 5px 0;
+    margin: 0 0 9px;
 }
 
 .student-internal-eval-print-header img {
-    width: 58px;
+    width: 52px;
     height: auto;
+    flex: 0 0 auto;
 }
 
 .student-internal-eval-print-header h2,
@@ -447,13 +449,19 @@
     text-align: center;
 }
 
+.student-internal-eval-print-header > div {
+    min-width: 112mm;
+}
+
 .student-internal-eval-print-header h2 {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 900;
+    letter-spacing: 0.02em;
 }
 
 .student-internal-eval-print-header p {
-    font-size: 10.2px;
+    font-size: 8.6px;
+    line-height: 1.05;
 }
 
 .student-internal-eval-paper h3 {
