@@ -1214,7 +1214,7 @@ include 'includes/header.php';
                                                             <div class="line"><strong>Username:</strong> <?php echo htmlspecialchars((string)($row['username'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Email:</strong> <?php echo htmlspecialchars((string)($row['email'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Student ID:</strong> <?php echo htmlspecialchars((string)($row['student_id'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></div>
-                                                            <div class="line"><strong>Address:</strong> <?php echo htmlspecialchars($addressLabel, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                            <div class="line line-wide"><strong>Address:</strong> <?php echo htmlspecialchars($addressLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Phone:</strong> <?php echo htmlspecialchars($phoneLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Date of Birth:</strong> <?php echo htmlspecialchars($dateOfBirthLabel, ENT_QUOTES, 'UTF-8'); ?></div>
                                                             <div class="line"><strong>Gender:</strong> <?php echo htmlspecialchars($genderLabel, ENT_QUOTES, 'UTF-8'); ?></div>

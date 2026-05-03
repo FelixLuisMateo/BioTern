@@ -252,6 +252,12 @@ html.app-skin-dark .apps-review-toolbar .form-label {
     border-radius: 9px;
     border: 1px solid rgba(140, 160, 190, 0.18);
     background: rgba(248, 250, 252, 0.92);
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.detail-meta .line-wide {
+    grid-column: 1 / -1;
 }
 
 .detail-meta .line:last-child {

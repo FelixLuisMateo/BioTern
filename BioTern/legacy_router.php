@@ -135,6 +135,7 @@ $map = [
   'student-profile.php' => 'pages/student-profile.php',
   'student-dtr.php' => 'pages/student-dtr.php',
   'student-internal-dtr.php' => 'pages/student-dtr.php',
+  'manual-dtr-proof.php' => 'pages/manual-dtr-proof.php',
   'student-documents.php' => 'pages/student-documents.php',
   'student-application-letter.php' => 'pages/student-application-letter.php',
   'student-endorsement-letter.php' => 'pages/student-endorsement-letter.php',

@@ -305,16 +305,39 @@ document.getElementById('generateManualDtrRows').onclick = function() {
 		var dateStr = d.toISOString().slice(0,10);
 		rows.push('<tr>' +
 			'<td>' + dateStr + '<input type="hidden" name="dates[]" value="' + dateStr + '"></td>' +
-			'<td><input type="time" name="morning_time_in[]" class="form-control"></td>' +
-			'<td><input type="time" name="morning_time_out[]" class="form-control"></td>' +
-			'<td><input type="time" name="afternoon_time_in[]" class="form-control"></td>' +
-			'<td><input type="time" name="afternoon_time_out[]" class="form-control"></td>' +
+			'<td><input type="text" name="morning_time_in[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="08:00" autocomplete="off"></td>' +
+			'<td><input type="text" name="morning_time_out[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="12:00" autocomplete="off"></td>' +
+			'<td><input type="text" name="afternoon_time_in[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="13:00" autocomplete="off"></td>' +
+			'<td><input type="text" name="afternoon_time_out[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="17:00" autocomplete="off"></td>' +
 		'</tr>');
 		idx++;
 	}
 	var table = '<div style="overflow-x:auto;"><table class="table table-bordered mt-3"><thead><tr><th>Date</th><th>Morning In</th><th>Morning Out</th><th>Afternoon In</th><th>Afternoon Out</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
 	document.getElementById('manualDtrRows').innerHTML = table;
 	document.getElementById('manualDtrTableForm').style.display = '';
+	enhanceExternalManualTimeFields(document.getElementById('manualDtrRows'));
 };
+
+function enhanceExternalManualTimeFields(scope) {
+	Array.prototype.slice.call((scope || document).querySelectorAll('.external-manual-time-field')).forEach(function(input) {
+		if (input.dataset.timeEnhanced === '1') return;
+		input.dataset.timeEnhanced = '1';
+		input.addEventListener('input', function() {
+			var digits = input.value.replace(/\D/g, '').slice(0, 4);
+			input.value = digits.length >= 3 ? digits.slice(0, digits.length - 2).padStart(2, '0') + ':' + digits.slice(-2) : digits;
+		});
+		input.addEventListener('blur', function() {
+			var match = input.value.match(/^(\d{1,2}):(\d{2})$/);
+			if (!match) {
+				input.value = '';
+				return;
+			}
+			var hour = Math.max(0, Math.min(23, parseInt(match[1], 10) || 0));
+			var minute = Math.max(0, Math.min(59, parseInt(match[2], 10) || 0));
+			input.value = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+		});
+	});
+}
+enhanceExternalManualTimeFields(document);
 </script>
 <?php include 'includes/footer.php'; ?>

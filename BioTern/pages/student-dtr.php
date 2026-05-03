@@ -35,6 +35,50 @@ function student_dtr_manual_upload_web_path(string $relativePath): string
     return '../uploads/manual_dtr/' . ltrim(str_replace('\\', '/', $relativePath), '/');
 }
 
+function student_dtr_ensure_manual_attachment_table(mysqli $conn): void
+{
+    $conn->query("CREATE TABLE IF NOT EXISTS manual_dtr_attachments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        student_id INT NOT NULL,
+        attendance_id INT NOT NULL,
+        attendance_date DATE NULL,
+        file_path VARCHAR(255) NOT NULL DEFAULT '',
+        file_name VARCHAR(255) NOT NULL DEFAULT '',
+        file_type VARCHAR(100) NOT NULL DEFAULT '',
+        file_size INT NOT NULL DEFAULT 0,
+        reason TEXT NULL,
+        uploaded_by INT NULL,
+        storage_driver VARCHAR(30) NOT NULL DEFAULT 'filesystem',
+        file_blob LONGBLOB NULL,
+        created_at DATETIME NULL,
+        updated_at DATETIME NULL,
+        deleted_at DATETIME NULL,
+        INDEX idx_manual_dtr_student (student_id),
+        INDEX idx_manual_dtr_attendance (attendance_id),
+        INDEX idx_manual_dtr_deleted (deleted_at)
+    )");
+
+    $columns = [];
+    if ($result = $conn->query('SHOW COLUMNS FROM manual_dtr_attachments')) {
+        while ($row = $result->fetch_assoc()) {
+            $columns[strtolower((string)($row['Field'] ?? ''))] = true;
+        }
+        $result->free();
+    }
+
+    $alterMap = [
+        'storage_driver' => "ALTER TABLE manual_dtr_attachments ADD COLUMN storage_driver VARCHAR(30) NOT NULL DEFAULT 'filesystem' AFTER uploaded_by",
+        'file_blob' => "ALTER TABLE manual_dtr_attachments ADD COLUMN file_blob LONGBLOB NULL AFTER storage_driver",
+        'deleted_at' => "ALTER TABLE manual_dtr_attachments ADD COLUMN deleted_at DATETIME NULL AFTER updated_at",
+    ];
+
+    foreach ($alterMap as $column => $sql) {
+        if (!isset($columns[$column])) {
+            $conn->query($sql);
+        }
+    }
+}
+
 function student_dtr_calculate_hours(array $attendance): float
 {
     $segments = [
@@ -290,6 +334,7 @@ if (!$student && $user) {
 
 if ($student) {
     $studentId = (int)($student['id'] ?? 0);
+    student_dtr_ensure_manual_attachment_table($conn);
     student_dtr_ensure_runtime_dir(student_dtr_manual_upload_dir());
 
     $internshipStmt = $conn->prepare(
@@ -368,7 +413,7 @@ if ($student) {
             $idList = implode(',', array_map('intval', array_unique($attendanceIds)));
             $proofMap = [];
             $proofResult = $conn->query("
-                SELECT attendance_id, file_path, file_name
+                SELECT id, attendance_id, file_path, file_name, storage_driver
                 FROM manual_dtr_attachments
                 WHERE deleted_at IS NULL
                   AND attendance_id IN ($idList)
@@ -382,8 +427,10 @@ if ($student) {
                     }
 
                     $proofMap[$attendanceId] = [
+                        'id' => (int)($proofRow['id'] ?? 0),
                         'file_path' => (string)($proofRow['file_path'] ?? ''),
                         'file_name' => (string)($proofRow['file_name'] ?? ''),
+                        'storage_driver' => (string)($proofRow['storage_driver'] ?? 'filesystem'),
                     ];
                 }
             }
@@ -420,8 +467,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
         if ($value === '') {
             return null;
         }
-        if (preg_match('/^\d{2}:\d{2}$/', $value)) {
-            return $value . ':00';
+        if (preg_match('/^(\d{1,2}):(\d{2})$/', $value, $matches)) {
+            $hour = max(0, min(23, (int)$matches[1]));
+            $minute = max(0, min(59, (int)$matches[2]));
+            return sprintf('%02d:%02d:00', $hour, $minute);
         }
         if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $value)) {
             return $value;
@@ -586,11 +635,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
         $proofOriginalName = trim((string)($proofFile['name'] ?? 'proof-image'));
         $proofMime = (string)@mime_content_type((string)$proofFile['tmp_name']);
         $proofExtension = $allowedMimeTypes[$proofMime] ?? 'jpg';
+        $proofBlob = @file_get_contents((string)$proofFile['tmp_name']);
+        $proofStorageDriver = 'filesystem';
         $safeDatePart = preg_replace('/[^0-9]/', '', $attendanceDate) ?: date('Ymd');
         $targetFileName = sprintf('student_%d_%s_%s.%s', $studentId, $safeDatePart, date('His'), $proofExtension);
         $targetPath = rtrim($uploadDir, '/\\') . DIRECTORY_SEPARATOR . $targetFileName;
 
-        if (!student_dtr_ensure_runtime_dir($uploadDir) || !@move_uploaded_file((string)$proofFile['tmp_name'], $targetPath)) {
+        if (student_dtr_ensure_runtime_dir($uploadDir) && @move_uploaded_file((string)$proofFile['tmp_name'], $targetPath)) {
+            $proofRelativePath = $targetFileName;
+            $proofBlob = null;
+        } elseif (is_string($proofBlob) && $proofBlob !== '') {
+            $proofStorageDriver = 'database';
+            $proofRelativePath = '';
+        } else {
             $_SESSION['student_dtr_flash'] = [
                 'type' => 'danger',
                 'message' => 'Could not save the proof image.',
@@ -600,7 +657,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
             exit;
         }
 
-        $proofRelativePath = $targetFileName;
         $insert = $conn->prepare("
             INSERT INTO attendances (
                 student_id, attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out,
@@ -656,8 +712,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
 
                 $attachmentStmt = $conn->prepare("
                     INSERT INTO manual_dtr_attachments (
-                        student_id, attendance_id, attendance_date, file_path, file_name, file_type, file_size, reason, uploaded_by, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                        student_id, attendance_id, attendance_date, file_path, file_name, file_type, file_size, reason, uploaded_by, storage_driver, file_blob, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
                 ");
                 if ($attachmentStmt) {
                     $fileSize = (int)($proofFile['size'] ?? 0);
@@ -665,7 +721,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
                     foreach ($attendanceIds as $index => $attendanceId) {
                         $attendanceDateForAttachment = $targetDates[$index] ?? $attendanceDate;
                         $attachmentStmt->bind_param(
-                            'iissssisi',
+                            'iissssisiss',
                             $studentId,
                             $attendanceId,
                             $attendanceDateForAttachment,
@@ -674,7 +730,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
                             $proofMime,
                             $fileSize,
                             $attachmentReason,
-                            $uploadedBy
+                            $uploadedBy,
+                            $proofStorageDriver,
+                            $proofBlob
                         );
                         $attachmentStmt->execute();
                     }
@@ -831,19 +889,27 @@ include 'includes/header.php';
                     <div class="card-body">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                             <div>
-                                <span class="student-metric-label">Machine Down Fallback</span>
-                                <h3 class="mb-1">Submit Manual Internal DTR</h3>
-                                <div class="student-dtr-meta">Use this only when the biometric machine is unavailable. Manual fallback entries stay in review until checked by the school.</div>
+                                <span class="student-metric-label">Manual DTR</span>
+                                <h3 class="mb-1">Submit Missed Internal Time</h3>
+                                <div class="student-dtr-meta">Use this only when the biometric machine was unavailable or your time was not captured.</div>
                             </div>
                         </div>
                         <form method="post" enctype="multipart/form-data" class="row g-3">
                             <input type="hidden" name="student_action" value="submit_machine_down">
                             <input type="hidden" name="proof_clock_time" id="proofClockTime" value="">
+                            <div class="col-12">
+                                <div class="student-dtr-fallback-guide">
+                                    <strong>Before submitting, follow this flow:</strong>
+                                    <span>1. Choose one date or multiple missed dates, then click Generate Date Rows.</span>
+                                    <span>2. Enter times in 24-hour format, like 08:00, 12:00, 13:00, and 17:00.</span>
+                                    <span>3. Upload proof and explain what happened. The entry stays pending until school review.</span>
+                                </div>
+                            </div>
                             <div class="col-md-4">
-                                <label class="form-label" for="fallbackMode">Mode</label>
+                                <label class="form-label" for="fallbackMode">Submission Type</label>
                                 <select class="form-select" id="fallbackMode" name="fallback_mode">
-                                    <option value="weekly" selected>Date range generator</option>
-                                    <option value="daily">Single date only</option>
+                                    <option value="weekly" selected>Multiple dates</option>
+                                    <option value="daily">One date only</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
@@ -851,11 +917,11 @@ include 'includes/header.php';
                                 <input type="date" class="form-control" id="fallbackAttendanceDate" name="attendance_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label" for="fallbackAttendanceEndDate">End Date (weekly only)</label>
+                                <label class="form-label" for="fallbackAttendanceEndDate">End Date</label>
                                 <input type="date" class="form-control" id="fallbackAttendanceEndDate" name="attendance_end_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">Proof Clock</label>
+                                <label class="form-label">Current Clock</label>
                                 <div class="form-control d-flex align-items-center justify-content-between student-dtr-proof-clock">
                                     <strong id="proofClockDisplay">--:--:--</strong>
                                     <span class="text-muted small" id="proofClockDate">--</span>
@@ -868,9 +934,9 @@ include 'includes/header.php';
                             <div class="col-12">
                                 <div class="d-flex flex-wrap align-items-end gap-3">
                                     <div>
-                                        <button type="button" class="btn btn-outline-primary" id="generateFallbackRows">Generate Range Dates</button>
+                                        <button type="button" class="btn btn-outline-primary" id="generateFallbackRows">Generate Date Rows</button>
                                     </div>
-                                    <small class="text-muted">Choose a start and end date, then generate one row per day so you can encode morning and afternoon times directly.</small>
+                                    <small class="text-muted">If you choose one date only, this can still generate a single row. If you leave rows hidden, the time boxes below will be used.</small>
                                 </div>
                             </div>
                             <div class="col-12" id="fallbackGeneratedRowsWrap" style="display:none;">
@@ -891,27 +957,27 @@ include 'includes/header.php';
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackMorningIn">Morning In</label>
-                                <input type="time" class="form-control" id="fallbackMorningIn" name="morning_time_in">
+                                <input type="text" class="form-control student-dtr-time-field" id="fallbackMorningIn" name="morning_time_in" inputmode="numeric" placeholder="08:00" autocomplete="off">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackMorningOut">Morning Out</label>
-                                <input type="time" class="form-control" id="fallbackMorningOut" name="morning_time_out">
+                                <input type="text" class="form-control student-dtr-time-field" id="fallbackMorningOut" name="morning_time_out" inputmode="numeric" placeholder="12:00" autocomplete="off">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
-                                <input type="time" class="form-control" id="fallbackAfternoonIn" name="afternoon_time_in">
+                                <input type="text" class="form-control student-dtr-time-field" id="fallbackAfternoonIn" name="afternoon_time_in" inputmode="numeric" placeholder="13:00" autocomplete="off">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
-                                <input type="time" class="form-control" id="fallbackAfternoonOut" name="afternoon_time_out">
+                                <input type="text" class="form-control student-dtr-time-field" id="fallbackAfternoonOut" name="afternoon_time_out" inputmode="numeric" placeholder="17:00" autocomplete="off">
                             </div>
                             <div class="col-12">
-                                <label class="form-label" for="fallbackReason">Reason / What happened</label>
-                                <textarea class="form-control" id="fallbackReason" name="fallback_reason" rows="3" placeholder="Example: Biometric machine was offline from 8:00 AM to 5:00 PM. Supervisor confirmed my time in/out."></textarea>
+                                <label class="form-label" for="fallbackReason">Reason / Details</label>
+                                <textarea class="form-control" id="fallbackReason" name="fallback_reason" rows="3" placeholder="Example: Biometric machine was offline. My supervisor confirmed my time in and out."></textarea>
                             </div>
                             <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
-                                <button type="submit" class="btn btn-warning" <?php echo max(0, $remainingHours) <= 0 ? 'disabled' : ''; ?>>Submit Fallback Attendance</button>
-                                <small class="text-muted">Generated rows submit one entry per day. The single-date time inputs still work if you only need one date. Lunch is auto-deducted when needed, and overtime is noted in remarks.</small>
+                                <button type="submit" class="btn btn-warning" <?php echo max(0, $remainingHours) <= 0 ? 'disabled' : ''; ?>>Submit Manual DTR for Review</button>
+                                <small class="text-muted">Each generated row becomes one pending DTR entry. Lunch is auto-deducted when needed, and overtime is noted in remarks.</small>
                             </div>
                         </form>
                     </div>
@@ -957,6 +1023,10 @@ include 'includes/header.php';
                                             <?php if (!empty($row['proof_attachment']['file_path'])): ?>
                                             <div class="student-dtr-cell-note mt-1">
                                                 <a href="<?php echo htmlspecialchars(student_dtr_manual_upload_web_path((string)$row['proof_attachment']['file_path']), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">View proof image</a>
+                                            </div>
+                                            <?php elseif (!empty($row['proof_attachment']['id']) && strtolower((string)($row['proof_attachment']['storage_driver'] ?? '')) === 'database'): ?>
+                                            <div class="student-dtr-cell-note mt-1">
+                                                <a href="manual-dtr-proof.php?id=<?php echo (int)$row['proof_attachment']['id']; ?>" target="_blank" rel="noopener noreferrer">View proof image</a>
                                             </div>
                                             <?php endif; ?>
                                             <?php
@@ -1147,20 +1217,56 @@ include 'includes/header.php';
             rows.push(
                 '<tr>' +
                     '<td><strong>' + escapeHtml(formatLabel(isoDate)) + '</strong></td>' +
-                    '<td><input type="time" class="form-control" name="generated_entries[' + escapeHtml(isoDate) + '][morning_time_in]"></td>' +
-                    '<td><input type="time" class="form-control" name="generated_entries[' + escapeHtml(isoDate) + '][morning_time_out]"></td>' +
-                    '<td><input type="time" class="form-control" name="generated_entries[' + escapeHtml(isoDate) + '][afternoon_time_in]"></td>' +
-                    '<td><input type="time" class="form-control" name="generated_entries[' + escapeHtml(isoDate) + '][afternoon_time_out]"></td>' +
+                    '<td><input type="text" class="form-control student-dtr-time-field" inputmode="numeric" placeholder="08:00" autocomplete="off" name="generated_entries[' + escapeHtml(isoDate) + '][morning_time_in]"></td>' +
+                    '<td><input type="text" class="form-control student-dtr-time-field" inputmode="numeric" placeholder="12:00" autocomplete="off" name="generated_entries[' + escapeHtml(isoDate) + '][morning_time_out]"></td>' +
+                    '<td><input type="text" class="form-control student-dtr-time-field" inputmode="numeric" placeholder="13:00" autocomplete="off" name="generated_entries[' + escapeHtml(isoDate) + '][afternoon_time_in]"></td>' +
+                    '<td><input type="text" class="form-control student-dtr-time-field" inputmode="numeric" placeholder="17:00" autocomplete="off" name="generated_entries[' + escapeHtml(isoDate) + '][afternoon_time_out]"></td>' +
                 '</tr>'
             );
         }
 
         rowsBody.innerHTML = rows.join('');
+        enhanceTimeFields(rowsBody);
         rowsWrap.style.display = rows.length ? '' : 'none';
         if (modeSelect) {
             modeSelect.value = 'weekly';
         }
     });
+
+    function normalizeTimeValue(value) {
+        var digits = String(value || '').replace(/\D/g, '').slice(0, 4);
+        if (digits.length >= 3) {
+            return digits.slice(0, digits.length - 2).padStart(2, '0') + ':' + digits.slice(-2);
+        }
+        return digits;
+    }
+
+    function clampTimeValue(value) {
+        var match = String(value || '').match(/^(\d{1,2}):(\d{2})$/);
+        if (!match) {
+            return '';
+        }
+        var hour = Math.max(0, Math.min(23, parseInt(match[1], 10) || 0));
+        var minute = Math.max(0, Math.min(59, parseInt(match[2], 10) || 0));
+        return String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+    }
+
+    function enhanceTimeFields(scope) {
+        Array.prototype.slice.call((scope || document).querySelectorAll('.student-dtr-time-field')).forEach(function (input) {
+            if (input.dataset.timeEnhanced === '1') {
+                return;
+            }
+            input.dataset.timeEnhanced = '1';
+            input.addEventListener('input', function () {
+                input.value = normalizeTimeValue(input.value);
+            });
+            input.addEventListener('blur', function () {
+                input.value = clampTimeValue(input.value);
+            });
+        });
+    }
+
+    enhanceTimeFields(document);
 }());
 </script>
 <?php include 'includes/footer.php'; ?>

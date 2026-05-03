@@ -79,8 +79,10 @@ if (!function_exists('external_attendance_normalize_time')) {
             return null;
         }
 
-        if (preg_match('/^\d{2}:\d{2}$/', $value)) {
-            return $value . ':00';
+        if (preg_match('/^(\d{1,2}):(\d{2})$/', $value, $matches)) {
+            $hour = max(0, min(23, (int)$matches[1]));
+            $minute = max(0, min(59, (int)$matches[2]));
+            return sprintf('%02d:%02d:00', $hour, $minute);
         }
 
         if (preg_match('/^\d{2}:\d{2}:\d{2}$/', $value)) {

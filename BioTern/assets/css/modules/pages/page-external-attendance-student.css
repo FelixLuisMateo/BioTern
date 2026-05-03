@@ -1,5 +1,7 @@
-.external-manual-table input[type="time"] {
+.external-manual-table .external-manual-time-field {
     min-width: 130px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
 }
 
 @media (max-width: 767.98px) {
@@ -52,7 +54,7 @@
         color: #587799;
     }
 
-    .external-manual-table input[type="time"] {
+    .external-manual-table .external-manual-time-field {
         min-width: 0;
         width: 100%;
     }
