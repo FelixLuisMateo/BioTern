@@ -127,6 +127,7 @@ $map = [
   'document_application.php' => 'documents/document_application.php',
   'document_endorsement.php' => 'documents/document_endorsement.php',
   'document_moa.php' => 'documents/document_moa.php',
+  'document_student_performance_internal.php' => 'documents/document_student_performance_internal.php',
   'document_dau_moa.php' => 'documents/document_dau_moa.php',
   'document_resume.php' => 'documents/document_resume.php',
   'document_dtr.php' => 'documents/document_dtr.php',
