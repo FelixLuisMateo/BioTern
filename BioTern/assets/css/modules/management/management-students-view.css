@@ -544,15 +544,22 @@
 }
 
 .student-internal-eval-print-recommendation div {
+    display: block;
     min-height: 82px;
     white-space: pre-wrap;
-    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 18px, #111 19px);
-    line-height: 19px;
+    background-image: none;
+    line-height: 18px;
 }
 
 .student-internal-eval-print-recommendation span {
     display: block;
-    min-height: 19px;
+    min-height: 18px;
+}
+
+.student-internal-eval-print-recommendation i {
+    display: block;
+    height: 18px;
+    border-bottom: 1px solid #111;
 }
 
 .student-internal-eval-print-signature {
