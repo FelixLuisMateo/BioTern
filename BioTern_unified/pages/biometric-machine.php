@@ -1118,10 +1118,6 @@ include __DIR__ . '/../includes/header.php';
             </div>
         <?php endif; ?>
 
-        <div class="alert alert-info">
-            Fingerprint templates stay on the F20H. BioTern only manages machine user records, mappings, and attendance events. Card numbers are masked for non-admin views.
-        </div>
-
         <div class="row g-3 mb-3">
             <div class="col-md-4">
                 <div class="card stretch stretch-full">

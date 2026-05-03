@@ -3,6 +3,10 @@ require_once dirname(__DIR__) . '/config/db.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+$avatar_helpers = dirname(__DIR__) . '/includes/avatar.php';
+if (file_exists($avatar_helpers)) {
+    require_once $avatar_helpers;
+}
 $ops_helpers = dirname(__DIR__) . '/lib/ops_helpers.php';
 if (file_exists($ops_helpers)) {
     require_once $ops_helpers;
@@ -77,16 +81,62 @@ function stage_badge_class(string $stage): string {
 }
 
 function resolve_profile_image_url(string $profilePath): ?string {
-    $clean = ltrim(str_replace('\\', '/', trim($profilePath)), '/');
-    if ($clean === '') {
+    $resolved = function_exists('biotern_avatar_public_src')
+        ? biotern_avatar_public_src($profilePath)
+        : ltrim(str_replace('\\', '/', trim($profilePath)), '/');
+    if ($resolved === '') {
         return null;
     }
-    $rootPath = dirname(__DIR__) . '/' . $clean;
+    $rootPath = dirname(__DIR__) . '/' . $resolved;
     if (!file_exists($rootPath)) {
         return null;
     }
     $mtime = @filemtime($rootPath);
-    return $clean . ($mtime ? ('?v=' . $mtime) : '');
+    return $resolved . ($mtime ? ('?v=' . $mtime) : '');
+}
+
+function ojt_student_initials(string $firstName, string $lastName): string {
+    $tokens = [];
+    foreach ([$firstName, $lastName] as $value) {
+        $clean = trim((string)$value);
+        if ($clean === '') {
+            continue;
+        }
+        $parts = preg_split('/\s+/', $clean);
+        $source = $parts && $parts[0] !== '' ? $parts[0] : $clean;
+        $tokens[] = strtoupper(substr($source, 0, 1));
+    }
+
+    if ($tokens !== []) {
+        return implode('', array_slice($tokens, 0, 2));
+    }
+
+    $fallback = trim((string)$firstName . ' ' . (string)$lastName);
+    if ($fallback === '') {
+        return 'BT';
+    }
+
+    $parts = preg_split('/\s+/', $fallback) ?: [];
+    $initials = '';
+    foreach (array_slice($parts, 0, 2) as $part) {
+        $initials .= strtoupper(substr($part, 0, 1));
+    }
+
+    return $initials !== '' ? $initials : 'BT';
+}
+
+function ojt_initials_avatar_uri(string $firstName, string $lastName): string {
+    $initials = ojt_student_initials($firstName, $lastName);
+    $seed = strtolower(trim($firstName . ' ' . $lastName));
+    $palette = ['1d4ed8', '0f766e', 'b45309', 'be123c', '4338ca', '0f172a'];
+    $background = $palette[abs(crc32($seed)) % count($palette)];
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">'
+        . '<rect width="120" height="120" rx="60" fill="#' . $background . '"/>'
+        . '<text x="60" y="68" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700" fill="#ffffff">'
+        . htmlspecialchars($initials, ENT_QUOTES, 'UTF-8')
+        . '</text></svg>';
+
+    return 'data:image/svg+xml;charset=UTF-8,' . rawurlencode($svg);
 }
 
 function formatSectionDisplayLabel($code, $name): string {
@@ -206,6 +256,7 @@ SELECT
     s.created_at,
     COALESCE(NULLIF(s.school_year, ''), '-') AS school_year,
     COALESCE(NULLIF(s.semester, ''), '-') AS semester,
+    u_student.id AS account_user_id,
     COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
     c.name AS course_name,
     COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '-') AS section_name,
@@ -262,7 +313,7 @@ LEFT JOIN (
     GROUP BY student_id
 ) att ON att.student_id = s.id
 WHERE COALESCE(u_student.application_status, 'approved') = 'approved'
-ORDER BY s.first_name, s.last_name
+ORDER BY s.last_name, s.first_name
 ";
 
 $res = $conn->query($sql);
@@ -336,7 +387,12 @@ if ($res) {
 }
 
 usort($rows, function($a, $b) {
-    return intval($b['risk_score'] ?? 0) <=> intval($a['risk_score'] ?? 0);
+    $a_name = strtolower(trim((string)($a['last_name'] ?? '') . ' ' . (string)($a['first_name'] ?? '')));
+    $b_name = strtolower(trim((string)($b['last_name'] ?? '') . ' ' . (string)($b['first_name'] ?? '')));
+    if ($a_name === $b_name) {
+        return intval($a['id'] ?? 0) <=> intval($b['id'] ?? 0);
+    }
+    return strcmp($a_name, $b_name);
 });
 
 $total = count($rows);
@@ -1256,11 +1312,15 @@ endif; ?>
                         <?php
 foreach ($rows as $index => $r): ?>
                             <?php
-$profile = trim((string)($r['profile_picture'] ?? ''));
-                            $img = 'assets/images/avatar/' . (($index % 5) + 1) . '.png';
-                            $profile_url = resolve_profile_image_url($profile);
-                            if ($profile_url !== null) {
-                                $img = $profile_url;
+                            $profile = trim((string)($r['profile_picture'] ?? ''));
+                            $has_account = (int)($r['account_user_id'] ?? 0) > 0;
+                            $img = $has_account
+                                ? resolve_profile_image_url($profile)
+                                : ojt_initials_avatar_uri((string)($r['first_name'] ?? ''), (string)($r['last_name'] ?? ''));
+                            if ($img === null || $img === '') {
+                                $img = $has_account
+                                    ? 'assets/images/avatar/1.png'
+                                    : ojt_initials_avatar_uri((string)($r['first_name'] ?? ''), (string)($r['last_name'] ?? ''));
                             }
                             $required = (float)($r['required_hours'] ?? 0);
                             $rendered = (float)($r['rendered_hours'] ?? 0);
