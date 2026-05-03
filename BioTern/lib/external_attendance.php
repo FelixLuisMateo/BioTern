@@ -167,6 +167,73 @@ if (!function_exists('external_attendance_validate_record')) {
     }
 }
 
+if (!function_exists('external_attendance_expected_previous')) {
+    function external_attendance_expected_previous(string $clockType): ?string
+    {
+        $order = ['morning_in', 'morning_out', 'afternoon_in', 'afternoon_out'];
+        $index = array_search($clockType, $order, true);
+        if ($index === false || $index === 0) {
+            return null;
+        }
+
+        return $order[$index - 1];
+    }
+}
+
+if (!function_exists('external_attendance_validate_transition')) {
+    function external_attendance_validate_transition(array $record, string $clockType, string $clockTime): array
+    {
+        $targetColumn = attendance_action_to_column($clockType);
+        if ($targetColumn === null || $targetColumn === 'break_time_in' || $targetColumn === 'break_time_out') {
+            return ['ok' => false, 'message' => 'Invalid external DTR punch.'];
+        }
+
+        if (!empty($record[$targetColumn])) {
+            return ['ok' => false, 'message' => ucfirst(str_replace('_', ' ', $clockType)) . ' already recorded.'];
+        }
+
+        $order = ['morning_in', 'morning_out', 'afternoon_in', 'afternoon_out'];
+        $currentIndex = array_search($clockType, $order, true);
+        if ($currentIndex === false) {
+            return ['ok' => false, 'message' => 'Invalid external DTR punch.'];
+        }
+
+        for ($i = $currentIndex + 1; $i < count($order); $i++) {
+            $laterColumn = attendance_action_to_column($order[$i]);
+            if ($laterColumn !== null && !empty($record[$laterColumn])) {
+                return ['ok' => false, 'message' => 'Cannot record ' . str_replace('_', ' ', $clockType) . ' after ' . str_replace('_', ' ', $order[$i]) . ' already exists.'];
+            }
+        }
+
+        $previousAction = external_attendance_expected_previous($clockType);
+        if ($previousAction !== null) {
+            $previousColumn = attendance_action_to_column($previousAction);
+            if ($previousColumn !== null && empty($record[$previousColumn])) {
+                return ['ok' => false, 'message' => 'Please record ' . str_replace('_', ' ', $previousAction) . ' before ' . str_replace('_', ' ', $clockType) . '.'];
+            }
+        }
+
+        $newMinutes = attendance_time_to_minutes($clockTime);
+        if ($newMinutes === null) {
+            return ['ok' => false, 'message' => 'Invalid clock time format.'];
+        }
+
+        $lastRecordedMinutes = null;
+        for ($i = 0; $i < count($order); $i++) {
+            $column = attendance_action_to_column($order[$i]);
+            if ($column !== null && !empty($record[$column])) {
+                $lastRecordedMinutes = attendance_time_to_minutes((string)$record[$column]);
+            }
+        }
+
+        if ($lastRecordedMinutes !== null && $newMinutes < $lastRecordedMinutes) {
+            return ['ok' => false, 'message' => 'New punch time cannot be earlier than the latest recorded punch.'];
+        }
+
+        return ['ok' => true, 'message' => 'OK'];
+    }
+}
+
 if (!function_exists('external_attendance_upload_dir')) {
     function external_attendance_upload_dir(): string
     {

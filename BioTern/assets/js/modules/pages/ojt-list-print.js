@@ -28,6 +28,87 @@
         return (clone.textContent || '').replace(/\s+/g, ' ').trim();
     }
 
+    function labelTextForControl(control) {
+        if (!control) {
+            return '';
+        }
+
+        var label = control.id ? document.querySelector('label[for="' + control.id.replace(/"/g, '\\"') + '"]') : null;
+        var text = label ? label.textContent : (control.getAttribute('aria-label') || control.name || 'Filter');
+        return String(text || 'Filter').replace(/\s+/g, ' ').replace(/[:*]+$/g, '').trim();
+    }
+
+    function controlDisplayValue(control) {
+        if (!control || control.disabled || !control.name || control.type === 'hidden') {
+            return '';
+        }
+
+        var tag = String(control.tagName || '').toLowerCase();
+        var type = String(control.type || '').toLowerCase();
+
+        if (['button', 'submit', 'reset', 'file', 'password'].indexOf(type) !== -1) {
+            return '';
+        }
+
+        if ((type === 'checkbox' || type === 'radio') && !control.checked) {
+            return '';
+        }
+
+        var rawValue = String(control.value || '').trim();
+        if (rawValue === '' || rawValue === '0' || rawValue.toLowerCase() === 'all') {
+            return '';
+        }
+
+        if (tag === 'select') {
+            var option = control.options && control.selectedIndex >= 0 ? control.options[control.selectedIndex] : null;
+            var optionText = option ? String(option.textContent || '').replace(/\s+/g, ' ').trim() : rawValue;
+            if (/^all\s+/i.test(optionText)) {
+                return '';
+            }
+            return optionText || rawValue;
+        }
+
+        return rawValue;
+    }
+
+    function currentFilterSubtitle(table) {
+        var fallback = table.getAttribute('data-print-subtitle') || '';
+        var form = null;
+        var formSelector = table.getAttribute('data-print-filter-form');
+
+        if (formSelector) {
+            try {
+                form = document.querySelector(formSelector);
+            } catch (error) {
+                form = null;
+            }
+        }
+
+        if (!form) {
+            var scope = table.closest('.card, .app-data-card, main, body');
+            form = scope ? scope.querySelector('form.fingerprint-form, form.app-ojt-filter-form, form.filter-form, form') : null;
+        }
+
+        if (!form) {
+            form = document.querySelector('form.fingerprint-form, form.app-ojt-filter-form, form.filter-form');
+        }
+
+        if (!form) {
+            return fallback;
+        }
+
+        var parts = [];
+        Array.prototype.slice.call(form.elements || []).forEach(function (control) {
+            var value = controlDisplayValue(control);
+            if (!value) {
+                return;
+            }
+            parts.push(labelTextForControl(control) + ': ' + value);
+        });
+
+        return parts.length ? parts.join(' / ') : fallback;
+    }
+
     function isPrintableColumn(cell) {
         return cell && !cell.classList.contains('app-ojt-select-column') && cell.getAttribute('data-print-exclude') !== '1';
     }
@@ -116,6 +197,29 @@
             };
         }
 
+        if (table.getAttribute('data-print-mode') === 'external-student-list') {
+            var externalRows = rows.map(function (row, index) {
+                return (
+                    '<tr>' +
+                    '<td class="print-index">' + (index + 1) + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-student-no') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-name') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-course-section') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-status') || '') + '</td>' +
+                    '</tr>'
+                );
+            }).join('');
+
+            if (!externalRows) {
+                externalRows = '<tr><td class="print-index">1</td><td colspan="4">' + escapeHtml(emptyMessage || 'No rows found.') + '</td></tr>';
+            }
+
+            return {
+                headers: '<th>Student ID</th><th>Name</th><th>Course / Section</th><th>Status</th>',
+                rows: externalRows
+            };
+        }
+
         var headerCells = getHeaderCells(table);
         var headers = headerCells.map(function (headerCell) {
             return '<th>' + escapeHtml(tableText(headerCell)) + '</th>';
@@ -148,7 +252,7 @@
             titleNode.textContent = table.getAttribute('data-print-title') || 'Selected List';
         }
         if (subtitleNode) {
-            subtitleNode.textContent = table.getAttribute('data-print-subtitle') || '';
+            subtitleNode.textContent = currentFilterSubtitle(table);
             subtitleNode.hidden = !subtitleNode.textContent;
         }
         if (headNode) {

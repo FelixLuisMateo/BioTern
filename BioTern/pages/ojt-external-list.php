@@ -329,7 +329,7 @@ ob_end_flush();
             <div class="card mb-4 bio-console-panel">
                 <div class="card-header"><strong>External List Filters</strong></div>
                 <div class="card-body border-bottom">
-                    <form method="get" class="row g-2 align-items-end fingerprint-form">
+                    <form method="get" class="row g-2 align-items-end fingerprint-form" id="ojtExternalFilterForm">
                         <div class="col-12 col-md-4">
                             <label class="form-label" for="search">Search</label>
                             <input type="text" class="form-control" id="search" name="search" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Student no, name, email">
@@ -376,7 +376,7 @@ ob_end_flush();
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtExternalListTable" data-ojt-select-table data-print-mode="student-section" data-print-title="External Student List" data-print-subtitle="<?php echo htmlspecialchars($printFilterLabel, ENT_QUOTES, 'UTF-8'); ?>">
+                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtExternalListTable" data-ojt-select-table data-print-mode="external-student-list" data-print-title="External Student List" data-print-subtitle="<?php echo htmlspecialchars($printFilterLabel, ENT_QUOTES, 'UTF-8'); ?>" data-print-filter-form="#ojtExternalFilterForm">
                             <thead>
                                 <tr>
                                     <th class="app-ojt-select-column">
@@ -400,7 +400,7 @@ ob_end_flush();
                             <?php else: ?>
                                 <?php foreach ($rows as $row): ?>
                                     <?php $externalViewHref = 'ojt-external-view.php?id=' . (int)($row['student_row_id'] ?? 0) . '&student_no=' . rawurlencode((string)($row['student_no'] ?? '')); ?>
-                                    <tr data-ojt-external-row-id="<?php echo (int)($row['student_row_id'] ?? 0); ?>" data-ojt-external-row-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-label="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-course="<?php echo htmlspecialchars((string)($row['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-section="<?php echo htmlspecialchars(biotern_format_section_code((string)($row['section_name'] ?? 'N/A')), ENT_QUOTES, 'UTF-8'); ?>" data-print-student-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-last-name="<?php echo htmlspecialchars((string)($row['last_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-first-name="<?php echo htmlspecialchars((string)($row['first_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-middle-name="<?php echo htmlspecialchars((string)($row['middle_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-row-href="<?php echo htmlspecialchars($externalViewHref, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <tr data-ojt-external-row-id="<?php echo (int)($row['student_row_id'] ?? 0); ?>" data-ojt-external-row-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-label="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-course="<?php echo htmlspecialchars((string)($row['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-section="<?php echo htmlspecialchars(biotern_format_section_code((string)($row['section_name'] ?? 'N/A')), ENT_QUOTES, 'UTF-8'); ?>" data-print-student-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-name="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>" data-print-course-section="<?php echo htmlspecialchars(trim((string)($row['course_name'] ?? 'N/A') . ' / ' . biotern_format_section_code((string)($row['section_name'] ?? 'N/A'))), ENT_QUOTES, 'UTF-8'); ?>" data-print-status="<?php echo htmlspecialchars(ucfirst((string)($row['ojt_status'] ?? 'External')), ENT_QUOTES, 'UTF-8'); ?>" data-row-href="<?php echo htmlspecialchars($externalViewHref, ENT_QUOTES, 'UTF-8'); ?>">
                                         <td class="app-ojt-select-column" data-label="Select" data-print-exclude="1">
                                             <div class="form-check app-ojt-select-check">
                                                 <input class="form-check-input" type="checkbox" data-ojt-row-select aria-label="Select student <?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?>">
@@ -482,7 +482,7 @@ ob_end_flush();
     </div>
 </div>
 <section class="student-list-print-sheet app-students-print-sheet app-ojt-selected-print-sheet" data-ojt-print-sheet="ojtExternalListTable" aria-hidden="true">
-    <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
+    <img class="crest" src="assets/images/ccstlogo.png" alt="crest" data-hide-onerror="1">
     <div class="header">
         <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
         <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga &middot;</div>
