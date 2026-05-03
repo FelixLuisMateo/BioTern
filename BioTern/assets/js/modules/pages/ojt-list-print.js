@@ -91,6 +91,31 @@
             };
         }
 
+        if (table.getAttribute('data-print-mode') === 'ojt-student-list') {
+            var ojtRows = rows.map(function (row, index) {
+                return (
+                    '<tr>' +
+                    '<td class="print-index">' + (index + 1) + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-student-no') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-last-name') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-first-name') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-middle-name') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-course-section') || '') + '</td>' +
+                    '<td></td>' +
+                    '</tr>'
+                );
+            }).join('');
+
+            if (!ojtRows) {
+                ojtRows = '<tr><td class="print-index">1</td><td colspan="6">' + escapeHtml(emptyMessage || 'No rows found.') + '</td></tr>';
+            }
+
+            return {
+                headers: '<th>Student No.</th><th>Last Name</th><th>First Name</th><th>Middle Name</th><th>Course / Section</th><th>Remarks</th>',
+                rows: ojtRows
+            };
+        }
+
         var headerCells = getHeaderCells(table);
         var headers = headerCells.map(function (headerCell) {
             return '<th>' + escapeHtml(tableText(headerCell)) + '</th>';
@@ -160,18 +185,18 @@
             '.print-preview-toolbar button{appearance:none;border:0;border-radius:8px;padding:10px 16px;font:700 16px/1.2 Arial,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-height:0!important;height:auto!important;min-width:0!important;width:auto!important;max-width:none!important;}' +
             '.print-preview-toolbar .primary{background:#0ea5e9;color:#fff;}' +
             '.print-preview-toolbar .light{background:#eef2f7;color:#172033;}' +
-            '.student-list-print-sheet,.ojt-print-sheet{display:block!important;position:static!important;visibility:visible!important;width:100%!important;max-width:100%!important;background:#fff!important;color:#111!important;font-family:Arial,Helvetica,sans-serif!important;font-size:12px!important;padding:18px 24px!important;box-sizing:border-box!important;}' +
-            '.student-list-print-sheet .header,.ojt-print-sheet .header{position:relative!important;overflow:visible!important;height:auto!important;min-height:1.1in!important;text-align:center!important;border-bottom:1px solid #8ab0e6;padding:.08in 0 .06in 1.05in!important;margin-bottom:14px;z-index:2;}' +
-            '.student-list-print-sheet .crest,.ojt-print-sheet .crest{position:absolute!important;display:block!important;top:.18in!important;left:.18in!important;width:.8in!important;height:.8in!important;max-width:.8in!important;max-height:.8in!important;object-fit:contain!important;z-index:5!important;opacity:1!important;visibility:visible!important;}' +
+            '.student-list-print-sheet,.ojt-print-sheet{display:block!important;position:static!important;visibility:visible!important;width:7.45in!important;max-width:100%!important;min-height:10.4in!important;margin:0 auto!important;background:#fff!important;color:#111!important;font-family:Arial,Helvetica,sans-serif!important;font-size:11.5px!important;padding:.38in .42in!important;box-sizing:border-box!important;}' +
+            '.student-list-print-sheet .header,.ojt-print-sheet .header{position:relative!important;overflow:visible!important;height:auto!important;min-height:.78in!important;text-align:center!important;border-bottom:1px solid #8ab0e6;padding:.06in 0 .06in .85in!important;margin-bottom:18px;z-index:2;}' +
+            '.student-list-print-sheet .crest,.ojt-print-sheet .crest{position:absolute!important;display:block!important;top:.08in!important;left:.12in!important;width:.64in!important;height:.64in!important;max-width:.64in!important;max-height:.64in!important;object-fit:contain!important;z-index:5!important;opacity:1!important;visibility:visible!important;}' +
             '.student-list-print-sheet .header h2,.ojt-print-sheet .header h2{font-family:Calibri,Arial,sans-serif;color:#1b4f9c;font-size:14pt;margin:6px 0 2px;font-weight:700;text-transform:uppercase;}' +
             '.student-list-print-sheet .header .meta,.student-list-print-sheet .header .tel,.ojt-print-sheet .header .meta,.ojt-print-sheet .header .tel{font-family:Calibri,Arial,sans-serif;color:#1b4f9c;}' +
             '.student-list-print-sheet .header .meta,.ojt-print-sheet .header .meta{font-size:10pt;}' +
             '.student-list-print-sheet .header .tel,.ojt-print-sheet .header .tel{font-size:12pt;}' +
-            '.student-list-print-sheet .print-title,.ojt-print-sheet .print-title{text-align:center;font-size:34px;letter-spacing:1px;font-weight:700;margin:26px 0 22px;}' +
-            '.student-list-print-sheet .print-meta,.ojt-print-sheet .print-meta{margin-bottom:14px;font-size:13px;}' +
+            '.student-list-print-sheet .print-title,.ojt-print-sheet .print-title{text-align:center;font-size:28px;letter-spacing:.5px;font-weight:700;margin:18px 0 18px;}' +
+            '.student-list-print-sheet .print-meta,.ojt-print-sheet .print-meta{margin-bottom:14px;font-size:12px;}' +
             '.student-list-print-sheet .print-meta strong,.ojt-print-sheet .print-meta strong{min-width:76px;display:inline-block;}' +
-            '.student-list-print-sheet table,.ojt-print-sheet table{width:100%;border-collapse:collapse;font-size:12px;}' +
-            '.student-list-print-sheet th,.student-list-print-sheet td,.ojt-print-sheet th,.ojt-print-sheet td{border:1px solid #d9d9d9;padding:8px 8px;text-align:left;}' +
+            '.student-list-print-sheet table,.ojt-print-sheet table{width:100%;border-collapse:collapse;font-size:11.5px;table-layout:fixed;}' +
+            '.student-list-print-sheet th,.student-list-print-sheet td,.ojt-print-sheet th,.ojt-print-sheet td{border:1px solid #d9d9d9;padding:7px 7px;text-align:left;vertical-align:top;word-break:normal;overflow-wrap:anywhere;}' +
             '.student-list-print-sheet th,.ojt-print-sheet th{text-transform:uppercase;font-weight:700;background:#f8f8f8;}' +
             '.student-list-print-sheet .print-index,.ojt-print-sheet .print-index,.student-list-print-sheet td.col-index,.student-list-print-sheet th.col-index,.ojt-print-sheet td.col-index,.ojt-print-sheet th.col-index{width:46px;text-align:center;white-space:nowrap;}' +
             '@media print{body{padding:0}.print-preview-toolbar{display:none!important}}' +
