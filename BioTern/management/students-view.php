@@ -1659,6 +1659,9 @@ endforeach; ?>
                                                         <p>Recommendation for the trainee's Further Growth:</p>
                                                         <div class="student-internal-eval-print-lines">
                                                             <span data-eval-output="recommendation"></span>
+                                                            <i></i>
+                                                            <i></i>
+                                                            <i></i>
                                                         </div>
                                                     </div>
                                                     <div class="student-internal-eval-print-signature">Trainee's Supervisor Signature</div>

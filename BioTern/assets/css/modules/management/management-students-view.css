@@ -430,15 +430,17 @@
 .student-internal-eval-print-header {
     display: flex;
     align-items: center;
-    gap: 18px;
+    justify-content: center;
+    gap: 20px;
     border-bottom: 2px solid #111;
-    padding-bottom: 5px;
-    margin-bottom: 9px;
+    padding: 0 12mm 5px 0;
+    margin: 0 0 9px;
 }
 
 .student-internal-eval-print-header img {
-    width: 58px;
+    width: 52px;
     height: auto;
+    flex: 0 0 auto;
 }
 
 .student-internal-eval-print-header h2,
@@ -447,13 +449,19 @@
     text-align: center;
 }
 
+.student-internal-eval-print-header > div {
+    min-width: 112mm;
+}
+
 .student-internal-eval-print-header h2 {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 900;
+    letter-spacing: 0.02em;
 }
 
 .student-internal-eval-print-header p {
-    font-size: 10.2px;
+    font-size: 8.6px;
+    line-height: 1.05;
 }
 
 .student-internal-eval-paper h3 {
@@ -501,17 +509,17 @@
 }
 
 .student-internal-eval-print-table {
-    width: 96%;
+    width: 94%;
     margin: 0 auto;
     border-collapse: collapse;
-    font-size: 12.8px;
-    line-height: 1.18;
+    font-size: 11.6px;
+    line-height: 1.14;
 }
 
 .student-internal-eval-print-table th,
 .student-internal-eval-print-table td {
     border: 1px solid #111;
-    padding: 4px 6px;
+    padding: 3px 5px;
     vertical-align: top;
 }
 
@@ -522,7 +530,7 @@
 
 .student-internal-eval-print-table td:nth-child(2),
 .student-internal-eval-print-table td:nth-child(3) {
-    width: 112px;
+    width: 96px;
     text-align: center;
 }
 
@@ -544,15 +552,22 @@
 }
 
 .student-internal-eval-print-recommendation div {
+    display: block;
     min-height: 82px;
     white-space: pre-wrap;
-    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 18px, #111 19px);
-    line-height: 19px;
+    background-image: none;
+    line-height: 18px;
 }
 
 .student-internal-eval-print-recommendation span {
     display: block;
-    min-height: 19px;
+    min-height: 18px;
+}
+
+.student-internal-eval-print-recommendation i {
+    display: block;
+    height: 18px;
+    border-bottom: 1px solid #111;
 }
 
 .student-internal-eval-print-signature {
