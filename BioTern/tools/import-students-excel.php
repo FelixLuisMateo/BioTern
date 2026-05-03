@@ -34,9 +34,12 @@ function students_excel_csrf_token(): string
 
 function students_excel_preview_dir(): string
 {
-    $base = sys_get_temp_dir();
+    $base = dirname(__DIR__) . '/uploads';
+    if (!is_dir($base)) {
+        @mkdir($base, 0775, true);
+    }
     if ($base === '' || !is_dir($base) || !is_writable($base)) {
-        $base = dirname(__DIR__) . '/uploads';
+        $base = sys_get_temp_dir();
     }
 
     $dir = rtrim($base, '/\\') . DIRECTORY_SEPARATOR . 'biotern-import-previews';
@@ -45,6 +48,48 @@ function students_excel_preview_dir(): string
     }
 
     return $dir;
+}
+
+function students_excel_pending_meta_path(string $token): string
+{
+    if (!preg_match('/^[a-f0-9]{32}$/', $token)) {
+        return '';
+    }
+
+    return rtrim(students_excel_preview_dir(), '/\\') . DIRECTORY_SEPARATOR . 'pending_' . $token . '.json';
+}
+
+function students_excel_save_pending_import(string $token, array $pendingImport): bool
+{
+    $metaPath = students_excel_pending_meta_path($token);
+    if ($metaPath === '') {
+        return false;
+    }
+
+    return file_put_contents($metaPath, json_encode($pendingImport, JSON_PRETTY_PRINT)) !== false;
+}
+
+function students_excel_load_pending_import(string $token, int $userId): ?array
+{
+    $metaPath = students_excel_pending_meta_path($token);
+    if ($metaPath === '' || !is_file($metaPath)) {
+        return null;
+    }
+
+    $data = json_decode((string)file_get_contents($metaPath), true);
+    if (!is_array($data) || (int)($data['user_id'] ?? 0) !== $userId) {
+        return null;
+    }
+
+    return $data;
+}
+
+function students_excel_delete_pending_import_meta(string $token): void
+{
+    $metaPath = students_excel_pending_meta_path($token);
+    if ($metaPath !== '' && is_file($metaPath)) {
+        @unlink($metaPath);
+    }
 }
 
 function students_excel_header(string $value): string
@@ -1144,7 +1189,6 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
                 $duplicateStmt->close();
                 if (is_array($duplicateRow)) {
                     $summary['masterlist_duplicate_rows_skipped'] = (int)($summary['masterlist_duplicate_rows_skipped'] ?? 0) + 1;
-                    $errors[] = 'Masterlist row ' . ($index + 2) . ': duplicate student_no ' . $studentNo . ' already exists for ' . $rowSchoolYear . ' / ' . $rowSemester . ' (skipped).';
                     continue;
                 }
             }
@@ -1621,16 +1665,18 @@ function students_excel_preview_workbook(mysqli $mysqli, string $path, string $s
                     }
                 }
             }
-            if (count($preview['rows']) < 80) {
-                $preview['rows'][] = [
-                    'row' => $index + 2,
-                    'student_no' => $studentNo,
-                    'student_name' => $studentName,
-                    'section' => students_excel_row_value($row, ['section']),
-                    'company' => students_excel_row_value($row, ['company_name', 'company']),
-                    'issue' => $issue,
-                ];
-            }
+            $preview['rows'][] = [
+                'row' => $index + 2,
+                'student_no' => $studentNo,
+                'student_name' => $studentName,
+                'section' => students_excel_row_value($row, ['section']),
+                'company' => students_excel_row_value($row, ['company_name', 'company']),
+                'company_address' => students_excel_row_value($row, ['company_address', 'address']),
+                'supervisor_name' => students_excel_row_value($row, ['supervisor_name']),
+                'supervisor_position' => students_excel_row_value($row, ['supervisor_position', 'position']),
+                'company_representative' => students_excel_row_value($row, ['company_representative']),
+                'issue' => $issue,
+            ];
         }
         $preview['totals'] = $totals;
         $message = 'Review the masterlist before confirming import.';
@@ -1667,16 +1713,14 @@ function students_excel_preview_workbook(mysqli $mysqli, string $path, string $s
                 $totals['new_students']++;
             }
         }
-        if (count($preview['rows']) < 80) {
-            $preview['rows'][] = [
-                'row' => $index + 2,
-                'student_no' => $studentCode,
-                'student_name' => trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '')),
-                'section' => (string)($row['section_id'] ?? ''),
-                'company' => '',
-                'issue' => $issue,
-            ];
-        }
+        $preview['rows'][] = [
+            'row' => $index + 2,
+            'student_no' => $studentCode,
+            'student_name' => trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '')),
+            'section' => (string)($row['section_id'] ?? ''),
+            'company' => '',
+            'issue' => $issue,
+        ];
     }
     $preview['totals'] = $totals;
     $message = 'Review the student workbook before confirming import.';
@@ -1746,7 +1790,8 @@ function students_excel_import_workbook(mysqli $mysqli, string $path, string $so
         if (!empty($errors)) {
             $message .= ' Some rows need review.';
         }
-        return $summary['masterlist_rows_upserted'] > 0;
+        return ((int)($summary['masterlist_rows_upserted'] ?? 0) > 0)
+            || ((int)($summary['masterlist_duplicate_rows_skipped'] ?? 0) > 0);
     }
 
     if (empty($studentsRows)) {
@@ -2170,27 +2215,12 @@ function students_excel_delete_masterlist(mysqli $mysqli, string $schoolYear, st
               AND {$internshipProfileWhere}
         ";
 
-        if ($affectedCompanyKeys !== []) {
-            $profilePlaceholders = implode(',', array_fill(0, count($affectedCompanyKeys), '?'));
-            $deleteProfileSql .= " AND pc.company_lookup_key IN ({$profilePlaceholders})";
-            $profileTypes = str_repeat('s', count($affectedCompanyKeys));
-            $profileParams = array_keys($affectedCompanyKeys);
-            $profileStmt = $mysqli->prepare($deleteProfileSql);
-            if ($profileStmt) {
-                students_excel_bind_dynamic($profileStmt, $profileTypes, $profileParams);
-                if ($profileStmt->execute()) {
-                    $summary['orphan_company_profiles_deleted'] = (int)$profileStmt->affected_rows;
-                }
-                $profileStmt->close();
-            }
-        } else {
-            $profileStmt = $mysqli->prepare($deleteProfileSql);
-            if ($profileStmt && $profileStmt->execute()) {
-                $summary['orphan_company_profiles_deleted'] = (int)$profileStmt->affected_rows;
-            }
-            if ($profileStmt) {
-                $profileStmt->close();
-            }
+        $profileStmt = $mysqli->prepare($deleteProfileSql);
+        if ($profileStmt && $profileStmt->execute()) {
+            $summary['orphan_company_profiles_deleted'] = (int)$profileStmt->affected_rows;
+        }
+        if ($profileStmt) {
+            $profileStmt->close();
         }
     }
 
@@ -2231,7 +2261,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $selectedReviewSemester = $ok ? $deleteSemester : $selectedReviewSemester;
     } elseif ($postedAction === 'confirm_import') {
         $pendingImport = is_array($_SESSION['students_excel_pending_import'] ?? null) ? $_SESSION['students_excel_pending_import'] : null;
+        $postedPendingToken = (string)($_POST['pending_token'] ?? '');
         $pendingPath = (string)($pendingImport['path'] ?? '');
+        if (($pendingPath === '' || !is_file($pendingPath)) && $postedPendingToken !== '') {
+            $pendingImport = students_excel_load_pending_import($postedPendingToken, $userId);
+            $pendingPath = (string)($pendingImport['path'] ?? '');
+        }
         if ($pendingPath === '' || !is_file($pendingPath)) {
             $statusType = 'danger';
             $statusMessage = 'No reviewed workbook is waiting to import. Upload and review the workbook again.';
@@ -2242,6 +2277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $originalName = (string)($pendingImport['name'] ?? 'uploaded-workbook.xlsx');
             $overrideSemester = (string)($pendingImport['semester'] ?? '');
             $ok = students_excel_import_workbook($conn, $pendingPath, $originalName, $overrideSemester, $summary, $errors, $message);
+            students_excel_delete_pending_import_meta((string)($pendingImport['token'] ?? $postedPendingToken));
             @unlink($pendingPath);
             unset($_SESSION['students_excel_pending_import'], $_SESSION['students_excel_pending_preview']);
             $pendingImport = null;
@@ -2280,7 +2316,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $originalName = $overrideSchoolYear;
                 }
                 $previewDir = students_excel_preview_dir();
-                $previewPath = rtrim($previewDir, '/\\') . DIRECTORY_SEPARATOR . 'pending_' . $userId . '_' . bin2hex(random_bytes(8)) . '.xlsx';
+                $pendingToken = bin2hex(random_bytes(16));
+                $previewPath = rtrim($previewDir, '/\\') . DIRECTORY_SEPARATOR . 'pending_' . $userId . '_' . $pendingToken . '.xlsx';
                 $stored = is_uploaded_file($tmpName) ? move_uploaded_file($tmpName, $previewPath) : copy($tmpName, $previewPath);
                 if (!$stored) {
                     $statusType = 'danger';
@@ -2297,18 +2334,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if ($previousPendingPath !== '' && $previousPendingPath !== $previewPath && is_file($previousPendingPath)) {
                             @unlink($previousPendingPath);
                         }
-                        $_SESSION['students_excel_pending_import'] = [
+                        students_excel_delete_pending_import_meta((string)($pendingImport['token'] ?? ''));
+                        $pendingImportData = [
+                            'token' => $pendingToken,
+                            'user_id' => $userId,
                             'path' => $previewPath,
                             'name' => $originalName,
                             'semester' => $overrideSemester,
+                            'created_at' => date('c'),
                         ];
-                        $_SESSION['students_excel_pending_preview'] = $preview;
-                        $pendingImport = $_SESSION['students_excel_pending_import'];
-                        $pendingPreview = $preview;
-                        $statusType = 'success';
-                        $statusMessage = $message;
-                        foreach (($preview['totals'] ?? []) as $label => $value) {
-                            $statusDetails[] = ucwords(str_replace('_', ' ', (string)$label)) . ': ' . (int)$value;
+                        if (!students_excel_save_pending_import($pendingToken, $pendingImportData)) {
+                            @unlink($previewPath);
+                            $statusType = 'danger';
+                            $statusMessage = 'Unable to prepare the reviewed workbook for import. Check that the uploads folder is writable.';
+                        } else {
+                            $_SESSION['students_excel_pending_import'] = $pendingImportData;
+                            $_SESSION['students_excel_pending_preview'] = $preview;
+                            $pendingImport = $_SESSION['students_excel_pending_import'];
+                            $pendingPreview = $preview;
+                            $statusType = 'success';
+                            $statusMessage = $message;
+                            foreach (($preview['totals'] ?? []) as $label => $value) {
+                                $statusDetails[] = ucwords(str_replace('_', ' ', (string)$label)) . ': ' . (int)$value;
+                            }
                         }
                     }
                 }
@@ -2376,10 +2424,6 @@ include dirname(__DIR__) . '/includes/header.php';
                         <i class="feather-database me-2"></i>
                         <span>Data Transfer</span>
                     </a>
-                    <a href="students-edit.php" class="btn btn-outline-secondary">
-                        <i class="feather-users me-2"></i>
-                        <span>Review Students</span>
-                    </a>
                 </div>
             </div>
         </div>
@@ -2387,62 +2431,75 @@ include dirname(__DIR__) . '/includes/header.php';
 <div class="container-xxl py-4 excel-import-page-wrap">
     <div class="excel-import-shell">
         <?php if ($statusType !== ''): ?><div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;"><div id="importStatusToast" class="toast text-bg-<?php echo $statusType === 'success' ? 'success' : 'danger'; ?> border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="7000"><div class="d-flex"><div class="toast-body"><?php echo htmlspecialchars($statusMessage, ENT_QUOTES, 'UTF-8'); ?></div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div></div><div class="alert alert-<?php echo $statusType === 'success' ? 'success' : 'danger'; ?> mb-4"><strong><?php echo $statusType === 'success' ? 'Success:' : 'Import error:'; ?></strong> <?php echo htmlspecialchars($statusMessage, ENT_QUOTES, 'UTF-8'); ?><?php if (!empty($statusDetails)): ?><div class="small mt-2"><?php foreach ($statusDetails as $detail): ?><div><?php echo htmlspecialchars((string)$detail, ENT_QUOTES, 'UTF-8'); ?></div><?php endforeach; ?></div><?php endif; ?></div><?php endif; ?>
-        <div class="card excel-import-hero mb-4"><div class="card-body p-4 p-md-5"><span class="excel-import-badge">Separate Excel Workflow</span><h2 class="mt-3 mb-2 text-white">Import either a student workbook or the teacher OJT masterlist</h2><p class="mb-0 text-white-50">This page now supports the existing Students/Documents workbook and the teacher masterlist format so you can centralize OJT data on localhost without replacing the whole SQL database.</p><div class="excel-import-hero-actions"><a href="import-sql.php" class="btn btn-light-brand">Back to Data Transfer</a><a href="students-edit.php" class="btn btn-light">Review Students</a></div></div></div>
+        <div class="card excel-import-hero mb-4"><div class="card-body p-4 p-md-5"><span class="excel-import-badge">Separate Excel Workflow</span><h2 class="mt-3 mb-2 text-white">Import either a student workbook or the teacher OJT masterlist</h2><p class="mb-0 text-white-50">This page now supports the existing Students/Documents workbook and the teacher masterlist format so you can centralize OJT data on localhost without replacing the whole SQL database.</p><div class="excel-import-hero-actions"><a href="import-sql.php" class="btn btn-light-brand">Back to Data Transfer</a><a href="ojt.php" class="btn btn-light">Open OJT List</a><a href="masterlist-pending-students.php" class="btn btn-light">Pending Accounts</a></div></div></div>
         <div class="row g-4">
             <div class="col-lg-8">
-                <div class="card excel-import-card"><div class="card-body p-4 p-md-5"><div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3"><div><span class="excel-import-badge">Import Workbook</span><h4 class="mt-3 mb-2">Teacher masterlist or Students/Documents workbook</h4><p class="text-muted mb-0">Upload the teacher masterlist with columns like <code>STUDENT NAME</code>, <code>COMPANY</code>, <code>SUPERVISOR NAME</code>, and <code>STATUS</code>, or use the older <code>Students</code> plus optional <code>Documents</code> workbook.</p></div><a href="import-sql.php" class="btn btn-light">Back to SQL Tools</a></div><form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="action" value="preview_import"><div class="mb-3"><label for="excel_file" class="form-label fw-semibold">Upload Excel workbook</label><input class="form-control" type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"><div class="form-text">The teacher file can be a single-sheet workbook. The older import still accepts <code>Students</code> and optional <code>Documents</code>.</div></div><div class="mb-3"><label for="school_year_override" class="form-label fw-semibold">School year override</label><input class="form-control" type="text" id="school_year_override" name="school_year_override" placeholder="e.g. 2025-2026 or 25-26"><div class="form-text">Leave blank to infer from the filename. Use this if the file name does not clearly include the school year.</div></div><div class="mb-3"><label for="semester_override" class="form-label fw-semibold">Semester override</label><select class="form-select" id="semester_override" name="semester_override"><option value="">Infer from file or sheet</option><option value="1st Semester">1st Semester</option><option value="2nd Semester">2nd Semester</option><option value="Summer">Summer</option></select><div class="form-text">Use this when the uploaded masterlist belongs to a specific semester. Imports now refresh by school year and semester together.</div></div><div class="d-flex flex-wrap gap-2 excel-import-form-actions"><button type="submit" class="btn btn-primary">Review Workbook</button><a href="students-edit.php" class="btn btn-outline-primary">Review Students</a></div></form></div></div>
-                <?php if (is_array($pendingPreview) && !empty($pendingPreview['type'])): ?>
-                <div class="card excel-import-card mt-4">
-                    <div class="card-body p-4 p-md-5">
-                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-                            <div>
-                                <span class="excel-import-badge">Review Before Import</span>
-                                <h4 class="mt-3 mb-2"><?php echo ((string)$pendingPreview['type'] === 'masterlist') ? 'Masterlist preview' : 'Students workbook preview'; ?></h4>
-                                <p class="text-muted mb-0">Duplicates and skipped rows are shown here first. Nothing is saved to the database until you confirm.</p>
-                            </div>
-                            <form method="post">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
-                                <input type="hidden" name="action" value="confirm_import">
-                                <button type="submit" class="btn btn-success">Confirm Import to Database</button>
-                            </form>
-                        </div>
-                        <?php if ((string)($pendingPreview['school_year'] ?? '') !== '' || (string)($pendingPreview['semester'] ?? '') !== ''): ?>
-                        <div class="small text-muted mb-3">
-                            <?php if ((string)($pendingPreview['school_year'] ?? '') !== ''): ?><span class="me-3">School year: <strong><?php echo htmlspecialchars((string)$pendingPreview['school_year'], ENT_QUOTES, 'UTF-8'); ?></strong></span><?php endif; ?>
-                            <?php if ((string)($pendingPreview['semester'] ?? '') !== ''): ?><span>Semester: <strong><?php echo htmlspecialchars((string)$pendingPreview['semester'], ENT_QUOTES, 'UTF-8'); ?></strong></span><?php endif; ?>
-                        </div>
-                        <?php endif; ?>
-                        <div class="row g-3 mb-4">
-                            <?php foreach (($pendingPreview['totals'] ?? []) as $label => $value): ?>
-                            <div class="col-sm-6 col-xl-4"><div class="excel-import-stat"><div class="text-muted small"><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', (string)$label)), ENT_QUOTES, 'UTF-8'); ?></div><div class="excel-import-stat-value"><?php echo (int)$value; ?></div></div></div>
-                            <?php endforeach; ?>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle excel-import-table excel-import-preview-table">
-                                <thead><tr><th>Row</th><th>Student No.</th><th>Student</th><th>Section</th><th>Company</th><th>Status</th></tr></thead>
-                                <tbody>
-                                    <?php foreach (($pendingPreview['rows'] ?? []) as $previewRow): ?>
-                                    <tr>
-                                        <td><?php echo (int)($previewRow['row'] ?? 0); ?></td>
-                                        <td><?php echo htmlspecialchars((string)($previewRow['student_no'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td><?php echo htmlspecialchars((string)($previewRow['student_name'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td><?php echo htmlspecialchars((string)($previewRow['section'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td><?php echo htmlspecialchars((string)($previewRow['company'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td><?php echo htmlspecialchars((string)($previewRow['issue'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
+                <div class="card excel-import-card"><div class="card-body p-4 p-md-5"><div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3"><div><span class="excel-import-badge">Import Workbook</span><h4 class="mt-3 mb-2">Teacher masterlist or Students/Documents workbook</h4><p class="text-muted mb-0">Upload the teacher masterlist with columns like <code>STUDENT NAME</code>, <code>COMPANY</code>, <code>SUPERVISOR NAME</code>, and <code>STATUS</code>, or use the older <code>Students</code> plus optional <code>Documents</code> workbook.</p></div><a href="import-sql.php" class="btn btn-light">Back to SQL Tools</a></div><form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="action" value="preview_import"><div class="mb-3"><label for="excel_file" class="form-label fw-semibold">Upload Excel workbook</label><input class="form-control" type="file" id="excel_file" name="excel_file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"><div class="form-text">The teacher file can be a single-sheet workbook. The older import still accepts <code>Students</code> and optional <code>Documents</code>.</div></div><div class="mb-3"><label for="school_year_override" class="form-label fw-semibold">School year override</label><input class="form-control" type="text" id="school_year_override" name="school_year_override" placeholder="e.g. 2025-2026 or 25-26"><div class="form-text">Leave blank to infer from the filename. Use this if the file name does not clearly include the school year.</div></div><div class="mb-3"><label for="semester_override" class="form-label fw-semibold">Semester override</label><select class="form-select" id="semester_override" name="semester_override"><option value="">Infer from file or sheet</option><option value="1st Semester">1st Semester</option><option value="2nd Semester">2nd Semester</option><option value="Summer">Summer</option></select><div class="form-text">Use this when the uploaded masterlist belongs to a specific semester. Imports now refresh by school year and semester together.</div></div><div class="d-flex flex-wrap gap-2 excel-import-form-actions"><button type="submit" class="btn btn-primary">Review Workbook</button></div></form></div></div>
             </div>
             <div class="col-lg-4">
                 <div class="card excel-import-card mb-4"><div class="card-body"><span class="excel-import-badge">Workbook Rules</span><div class="excel-import-step mt-3"><h6>Teacher masterlist supported</h6><p class="text-muted mb-0">Single-sheet masterlists are imported into centralized tables <code>ojt_masterlist</code> and <code>ojt_partner_companies</code>. They do not create rows in <code>students</code>, but now automatically create/sync <code>internships</code> records when a matching student account already exists.</p></div><div class="excel-import-step mt-3"><h6>Older student workbook still works</h6><p class="text-muted mb-0">For direct account/student imports, use <code>Students</code> and optional <code>Documents</code> with the original columns. Student imports now also attempt to sync a matching masterlist row into <code>internships</code>.</p></div></div></div>
-                <div class="card excel-import-card"><div class="card-body"><span class="excel-import-badge">Localhost Review</span><h5 class="mt-3 mb-2">Open this on localhost</h5><p class="text-muted mb-2">Review this tool locally before pushing changes.</p><div class="small"><div><code>http://localhost/BioTern/BioTern/import-students-excel.php</code></div></div></div></div>
             </div>
         </div>
+        <?php if (is_array($pendingPreview) && !empty($pendingPreview['type'])): ?>
+        <div class="card excel-import-card excel-import-preview-card mt-4">
+            <div class="card-body p-4 p-md-5">
+                <div class="excel-import-preview-head mb-3">
+                    <div>
+                        <span class="excel-import-badge">Review Before Import</span>
+                        <h4 class="mt-3 mb-2"><?php echo ((string)$pendingPreview['type'] === 'masterlist') ? 'Masterlist preview' : 'Students workbook preview'; ?></h4>
+                        <p class="text-muted mb-0">Duplicates and skipped rows are shown here first. Nothing is saved to the database until you confirm.</p>
+                    </div>
+                    <form method="post" class="excel-import-confirm-form">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="action" value="confirm_import">
+                        <input type="hidden" name="pending_token" value="<?php echo htmlspecialchars((string)($pendingImport['token'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                        <button type="submit" class="btn btn-success">Confirm Import to Database</button>
+                    </form>
+                </div>
+                <?php if ((string)($pendingPreview['school_year'] ?? '') !== '' || (string)($pendingPreview['semester'] ?? '') !== ''): ?>
+                <div class="small text-muted mb-3">
+                    <?php if ((string)($pendingPreview['school_year'] ?? '') !== ''): ?><span class="me-3">School year: <strong><?php echo htmlspecialchars((string)$pendingPreview['school_year'], ENT_QUOTES, 'UTF-8'); ?></strong></span><?php endif; ?>
+                    <?php if ((string)($pendingPreview['semester'] ?? '') !== ''): ?><span>Semester: <strong><?php echo htmlspecialchars((string)$pendingPreview['semester'], ENT_QUOTES, 'UTF-8'); ?></strong></span><?php endif; ?>
+                </div>
+                <?php endif; ?>
+                <div class="row g-3 mb-4">
+                    <?php foreach (($pendingPreview['totals'] ?? []) as $label => $value): ?>
+                    <div class="col-6 col-lg-4 col-xxl"><div class="excel-import-stat"><div class="text-muted small"><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', (string)$label)), ENT_QUOTES, 'UTF-8'); ?></div><div class="excel-import-stat-value"><?php echo (int)$value; ?></div></div></div>
+                    <?php endforeach; ?>
+                </div>
+                <div class="excel-import-preview-table-wrap">
+                    <table class="table table-sm align-middle excel-import-table excel-import-preview-table">
+                        <thead><tr><th>Row</th><th>Student No.</th><th>Student</th><th>Section</th><th>Company</th><th>Status</th><th>Details</th></tr></thead>
+                        <tbody>
+                            <?php foreach (($pendingPreview['rows'] ?? []) as $previewIndex => $previewRow): ?>
+                            <?php $detailId = 'excelPreviewDetails' . (int)$previewIndex; ?>
+                            <tr>
+                                <td data-label="Row"><?php echo (int)($previewRow['row'] ?? 0); ?></td>
+                                <td data-label="Student No."><?php echo htmlspecialchars((string)($previewRow['student_no'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td data-label="Student"><?php echo htmlspecialchars((string)($previewRow['student_name'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td data-label="Section"><?php echo htmlspecialchars((string)($previewRow['section'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td data-label="Company"><?php echo htmlspecialchars((string)($previewRow['company'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td data-label="Status"><?php echo htmlspecialchars((string)($previewRow['issue'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td data-label="Details"><button type="button" class="btn btn-sm btn-outline-info excel-import-detail-toggle" data-preview-detail-toggle data-target="<?php echo htmlspecialchars($detailId, ENT_QUOTES, 'UTF-8'); ?>" aria-expanded="false">Show</button></td>
+                            </tr>
+                            <tr class="excel-import-preview-detail-row" id="<?php echo htmlspecialchars($detailId, ENT_QUOTES, 'UTF-8'); ?>" hidden>
+                                <td colspan="7">
+                                    <div class="excel-import-preview-detail-grid">
+                                        <div><span>Company</span><strong><?php echo htmlspecialchars((string)($previewRow['company'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                                        <div><span>Supervisor</span><strong><?php echo htmlspecialchars((string)($previewRow['supervisor_name'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                                        <div><span>Position</span><strong><?php echo htmlspecialchars((string)($previewRow['supervisor_position'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                                        <div><span>Representative</span><strong><?php echo htmlspecialchars((string)($previewRow['company_representative'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                                        <div class="excel-import-detail-wide"><span>Address</span><strong><?php echo htmlspecialchars((string)($previewRow['company_address'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
         <div class="card excel-import-card mt-4"><div class="card-body p-4 p-md-5"><span class="excel-import-badge">Suggested Columns</span><div class="row g-4 mt-1"><div class="col-md-6"><h6>Teacher masterlist columns</h6><p class="text-muted mb-0"><code>student_no</code>, <code>student_name</code>, <code>contact_no</code>, <code>section</code>, <code>company</code>, <code>address</code>, <code>supervisor_name</code>, <code>position</code>, <code>company_representative</code>, <code>status</code>. The importer skips duplicate student numbers and saves the rest into master tables for OJT document prefilling.</p></div><div class="col-md-6"><h6>Older Students/Documents workbook</h6><p class="text-muted mb-0"><code>student_id</code>, <code>first_name</code>, <code>last_name</code>, <code>email</code>, <code>course_id</code>, plus the optional document metadata columns like <code>document_type</code>, <code>file_name</code>, and <code>file_path</code>.</p></div></div></div></div>
         <div class="card excel-import-card mt-4" data-excel-review-root data-selected-section="<?php echo htmlspecialchars($selectedReviewSection, ENT_QUOTES, 'UTF-8'); ?>"><div class="card-body p-4 p-md-5"><div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4"><div><span class="excel-import-badge">Year Review</span><h4 class="mt-3 mb-1">Imported masterlist by school year</h4><p class="text-muted mb-0">Check what is currently stored before or after each import.</p></div><div class="d-flex flex-wrap gap-2 align-items-end"><form method="get" class="d-flex flex-wrap gap-2 align-items-end"><div><label for="review_year" class="form-label fw-semibold mb-1">Review school year</label><select class="form-select" id="review_year" name="review_year"><?php if (empty($masterlistYearOptions)): ?><option value="">No imported year yet</option><?php else: ?><?php foreach ($masterlistYearOptions as $yearOption): ?><option value="<?php echo htmlspecialchars((string)$yearOption['school_year'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo $selectedReviewYear === (string)$yearOption['school_year'] ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)$yearOption['school_year'], ENT_QUOTES, 'UTF-8'); ?> (<?php echo (int)$yearOption['row_count']; ?> rows)</option><?php endforeach; ?><?php endif; ?></select></div><div><label for="review_semester" class="form-label fw-semibold mb-1">Semester</label><select class="form-select" id="review_semester" name="review_semester"><option value="">All semesters</option><?php foreach ($masterlistSemesterOptions as $semesterOption): ?><option value="<?php echo htmlspecialchars((string)$semesterOption['semester'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo $selectedReviewSemester === (string)$semesterOption['semester'] ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)$semesterOption['semester'], ENT_QUOTES, 'UTF-8'); ?> (<?php echo (int)$semesterOption['row_count']; ?> rows)</option><?php endforeach; ?></select></div><button type="submit" class="btn btn-outline-primary">Refresh Review</button></form><?php if ($selectedReviewYear !== ''): ?><form method="post" onsubmit="return confirm('Delete the selected imported masterlist rows?');"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="action" value="delete_masterlist"><input type="hidden" name="delete_school_year" value="<?php echo htmlspecialchars($selectedReviewYear, ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="delete_semester" value="<?php echo htmlspecialchars($selectedReviewSemester, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="btn btn-outline-danger">Delete Masterlist</button></form><?php endif; ?></div></div><?php if ($selectedReviewYear === '' || (int)$masterlistReview['totals']['rows'] <= 0): ?><div class="alert alert-warning mb-0">No masterlist rows found yet for review. Import the teacher workbook first.</div><?php else: ?><div class="row g-3 mb-4"><div class="col-md-3"><div class="excel-import-stat"><div class="text-muted small">Rows</div><div class="excel-import-stat-value"><?php echo (int)$masterlistReview['totals']['rows']; ?></div></div></div><div class="col-md-3"><div class="excel-import-stat"><div class="text-muted small">Companies</div><div class="excel-import-stat-value"><?php echo (int)$masterlistReview['totals']['companies']; ?></div></div></div><div class="col-md-3"><div class="excel-import-stat"><div class="text-muted small">Sections</div><div class="excel-import-stat-value"><?php echo (int)$masterlistReview['totals']['sections']; ?></div></div></div><div class="col-md-3"><div class="excel-import-stat"><div class="text-muted small">Ongoing</div><div class="excel-import-stat-value"><?php echo (int)$masterlistReview['totals']['ongoing']; ?></div></div></div></div><div class="excel-import-review-grid mb-4"><div><h6>Sections</h6><p class="text-muted excel-import-filter-note mb-3">Click a section to change only the student rows below.</p><div class="d-grid gap-2" id="excelImportSectionList"><button type="button" class="excel-import-section-link<?php echo $selectedReviewSection === '' ? ' active' : ''; ?>" data-excel-section-control data-section=""><span>All sections</span><strong><?php echo (int)$masterlistReview['totals']['rows']; ?></strong></button><?php foreach ($masterlistReview['sections'] as $sectionRow): ?><?php $sectionName = trim((string)($sectionRow['section'] ?? '')); if ($sectionName === '') { continue; } ?><button type="button" class="excel-import-section-link<?php echo $selectedReviewSection === $sectionName ? ' active' : ''; ?>" data-excel-section-control data-section="<?php echo htmlspecialchars($sectionName, ENT_QUOTES, 'UTF-8'); ?>"><span><?php echo htmlspecialchars($sectionName, ENT_QUOTES, 'UTF-8'); ?></span><strong><?php echo (int)($sectionRow['row_count'] ?? 0); ?></strong></button><?php endforeach; ?></div></div><div class="excel-import-review-table-wrap"><h6>Companies</h6><div class="table-responsive"><table class="table table-sm align-middle excel-import-table"><thead><tr><th>Company</th><th>Supervisor</th><th>Position</th><th class="text-end">Students</th></tr></thead><tbody><?php foreach ($masterlistReview['companies'] as $companyRow): ?><tr><td><?php echo htmlspecialchars((string)($companyRow['company_name'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td><td><?php echo htmlspecialchars((string)($companyRow['supervisor_name'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td><td><?php echo htmlspecialchars((string)($companyRow['supervisor_position'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td><td class="text-end"><?php echo (int)($companyRow['student_count'] ?? 0); ?></td></tr><?php endforeach; ?></tbody></table></div></div></div><div class="mt-4"><div class="excel-import-student-toolbar mb-3"><div><h6 class="mb-1" id="excelImportRowsHeading"><?php echo $selectedReviewSection !== '' ? 'Students in ' . htmlspecialchars($selectedReviewSection, ENT_QUOTES, 'UTF-8') : 'All imported rows'; ?></h6><p class="text-muted mb-0" id="excelImportRowsSubheading"><?php echo $selectedReviewSection !== '' ? 'Showing the full student list for the selected section in ' . htmlspecialchars($selectedReviewSemester !== '' ? $selectedReviewSemester : 'the selected semester', ENT_QUOTES, 'UTF-8') . '.' : 'Showing the full imported student list for this school year' . ($selectedReviewSemester !== '' ? ' and semester.' : '.'); ?></p></div><div class="excel-import-chip-row" id="excelImportSectionChips"><button type="button" class="excel-import-chip excel-import-chip-clear<?php echo $selectedReviewSection === '' ? ' active' : ''; ?>" data-excel-section-control data-section="">Show all sections</button><?php foreach ($masterlistReview['sections'] as $sectionRow): ?><?php $sectionName = trim((string)($sectionRow['section'] ?? '')); if ($sectionName === '') { continue; } ?><button type="button" class="excel-import-chip<?php echo $selectedReviewSection === $sectionName ? ' active' : ''; ?>" data-excel-section-control data-section="<?php echo htmlspecialchars($sectionName, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($sectionName, ENT_QUOTES, 'UTF-8'); ?><span><?php echo (int)($sectionRow['row_count'] ?? 0); ?></span></button><?php endforeach; ?></div></div><div class="excel-import-results-empty" id="excelImportEmptyState">No students found for this section in the selected school year and semester.</div><div class="table-responsive"><table class="table table-sm align-middle excel-import-table" id="excelImportRowsTable"><thead><tr><th>Student No.</th><th>Student</th><th>Contact</th><th>Semester</th><th>Section</th><th>Company</th><th>Supervisor</th><th>Status</th></tr></thead><tbody><?php foreach ($masterlistReview['rows'] as $reviewRow): ?><?php $rowSection = trim((string)($reviewRow['section'] ?? '')); ?><tr data-section="<?php echo htmlspecialchars($rowSection, ENT_QUOTES, 'UTF-8'); ?>"><td><?php echo htmlspecialchars((string)($reviewRow['student_no'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td><td><?php echo htmlspecialchars((string)($reviewRow['student_name'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td><td><?php echo htmlspecialchars((string)($reviewRow['contact_no'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td><td><?php echo htmlspecialchars((string)($reviewRow['semester'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td><td><?php echo htmlspecialchars((string)($reviewRow['section'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td><td><?php echo htmlspecialchars((string)($reviewRow['company_name'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td><td><?php echo htmlspecialchars(trim((string)($reviewRow['supervisor_name'] ?? '') . ((string)($reviewRow['supervisor_position'] ?? '') !== '' ? ' / ' . (string)$reviewRow['supervisor_position'] : '')) ?: '-', ENT_QUOTES, 'UTF-8'); ?></td><td><?php echo htmlspecialchars((string)($reviewRow['status'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td></tr><?php endforeach; ?></tbody></table></div></div><?php endif; ?></div></div>
     </div>

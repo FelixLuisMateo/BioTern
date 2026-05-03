@@ -5,12 +5,13 @@ require_once __DIR__ . '/../lib/section_format.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
 $studentId = (int)($_GET['id'] ?? 0);
-if ($studentId <= 0) {
+$studentNoParam = trim((string)($_GET['student_no'] ?? ''));
+if ($studentId <= 0 && $studentNoParam === '') {
     header('Location: ojt-external-list.php');
     exit;
 }
 
-$stmt = $conn->prepare("
+$studentSql = "
     SELECT
         s.id,
         s.student_id,
@@ -29,9 +30,11 @@ $stmt = $conn->prepare("
     LEFT JOIN courses c ON c.id = s.course_id
     LEFT JOIN sections sec ON sec.id = s.section_id
     WHERE s.id = ?
+       OR TRIM(COALESCE(s.student_id, '')) = ?
     LIMIT 1
-");
-$stmt->bind_param('i', $studentId);
+";
+$stmt = $conn->prepare($studentSql);
+$stmt->bind_param('is', $studentId, $studentNoParam);
 $stmt->execute();
 $student = $stmt->get_result()->fetch_assoc() ?: null;
 $stmt->close();
@@ -40,6 +43,7 @@ if (!$student) {
     header('Location: ojt-external-list.php');
     exit;
 }
+$studentId = (int)($student['id'] ?? $studentId);
 
 $internStmt = $conn->prepare("
     SELECT company_name, company_address, position, start_date, end_date, status, required_hours, rendered_hours

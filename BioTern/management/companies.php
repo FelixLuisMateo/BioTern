@@ -5,6 +5,7 @@ require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/company_profiles.php';
 require_once dirname(__DIR__) . '/lib/ojt_masterlist_import.php';
+require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/tools/excel-workbook-reader.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
@@ -63,6 +64,112 @@ function company_progress_pct($rendered, $required): int
         return 100;
     }
     return $pct;
+}
+
+function company_has_directory_details(array $company): bool
+{
+    foreach ([
+        'company_address',
+        'supervisor_name',
+        'supervisor_position',
+        'company_representative',
+        'company_representative_position',
+        'company_profile_picture',
+    ] as $field) {
+        if (trim((string)($company[$field] ?? '')) !== '') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function companies_cleanup_orphan_directory(mysqli $conn): int
+{
+    if (!companies_table_exists($conn, 'ojt_partner_companies')) {
+        return 0;
+    }
+
+    $masterlistJoin = companies_table_exists($conn, 'ojt_masterlist')
+        ? "
+        LEFT JOIN ojt_masterlist ml
+            ON ml.company_id = pc.id
+            OR TRIM(LOWER(COALESCE(ml.company_name, ''))) = TRIM(LOWER(COALESCE(pc.company_name, '')))
+        "
+        : '';
+    $masterlistWhere = companies_table_exists($conn, 'ojt_masterlist') ? 'ml.id IS NULL' : '1 = 1';
+
+    $internshipJoin = '';
+    $internshipWhere = '1 = 1';
+    if (companies_table_exists($conn, 'internships')) {
+        $internshipJoin = "
+        LEFT JOIN internships i
+            ON TRIM(LOWER(COALESCE(i.company_name, ''))) = TRIM(LOWER(COALESCE(pc.company_name, '')))
+            AND i.deleted_at IS NULL
+        ";
+        $internshipWhere = 'i.id IS NULL';
+    }
+
+    $deleteSql = "
+        DELETE pc FROM ojt_partner_companies pc
+        {$masterlistJoin}
+        {$internshipJoin}
+        WHERE {$masterlistWhere}
+          AND {$internshipWhere}
+    ";
+
+    if (!$conn->query($deleteSql)) {
+        return 0;
+    }
+
+    return max(0, (int)$conn->affected_rows);
+}
+
+function company_external_rendered_hours(mysqli $conn, int $studentRecordId, int $userId): float
+{
+    static $cache = [];
+    $cacheKey = $studentRecordId . '|' . $userId;
+    if (array_key_exists($cacheKey, $cache)) {
+        return $cache[$cacheKey];
+    }
+
+    if ($studentRecordId <= 0 && $userId <= 0) {
+        $cache[$cacheKey] = 0.0;
+        return 0.0;
+    }
+
+    external_attendance_ensure_schema($conn);
+    $ids = array_values(array_unique(array_filter([$studentRecordId, $userId], static fn(int $id): bool => $id > 0)));
+    if (count($ids) === 1) {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(SUM(total_hours), 0) AS rendered
+            FROM external_attendance
+            WHERE student_id = ? AND LOWER(COALESCE(status, 'pending')) <> 'rejected'
+        ");
+        if (!$stmt) {
+            $cache[$cacheKey] = 0.0;
+            return 0.0;
+        }
+        $stmt->bind_param('i', $ids[0]);
+    } else {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(SUM(total_hours), 0) AS rendered
+            FROM external_attendance
+            WHERE student_id IN (?, ?) AND LOWER(COALESCE(status, 'pending')) <> 'rejected'
+        ");
+        if (!$stmt) {
+            $cache[$cacheKey] = 0.0;
+            return 0.0;
+        }
+        $stmt->bind_param('ii', $ids[0], $ids[1]);
+    }
+
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc() ?: ['rendered' => 0];
+    $stmt->close();
+
+    $cache[$cacheKey] = max(0.0, (float)($row['rendered'] ?? 0));
+    return $cache[$cacheKey];
 }
 
 function company_status_tone(string $status): string
@@ -198,6 +305,26 @@ $companyForm = [
 ];
 $companyFormErrors = [];
 $openModalId = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'cleanup_company_directory') {
+    if (!in_array($role, ['admin', 'coordinator'], true)) {
+        $_SESSION['companies_flash'] = [
+            'type' => 'danger',
+            'message' => 'You do not have permission to clean company records.',
+        ];
+    } else {
+        $deletedCompanies = companies_cleanup_orphan_directory($conn);
+        $_SESSION['companies_flash'] = [
+            'type' => 'success',
+            'message' => $deletedCompanies > 0
+                ? 'Cleaned ' . $deletedCompanies . ' orphan company record(s).'
+                : 'No orphan company records needed cleanup.',
+        ];
+    }
+
+    header('Location: companies.php');
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'save_company') {
     $editingCompanyId = (int)($_POST['company_id'] ?? 0);
@@ -931,14 +1058,7 @@ if ($internshipsTableReady) {
                 $requiredHours = 250;
             }
 
-            $remainingHoursRaw = $row['external_total_hours_remaining'] ?? null;
-            $remainingHours = $remainingHoursRaw !== null && $remainingHoursRaw !== ''
-                ? max(0, (int)$remainingHoursRaw)
-                : null;
-            $renderedHours = (int)($row['rendered_hours'] ?? 0);
-            if ($renderedHours <= 0 && $remainingHours !== null) {
-                $renderedHours = max(0, $requiredHours - $remainingHours);
-            }
+            $renderedHours = company_external_rendered_hours($conn, (int)($row['student_record_id'] ?? 0), (int)($row['user_id'] ?? 0));
             $renderedHours = min($requiredHours, max(0, $renderedHours));
 
             $row['required_hours'] = $requiredHours;
@@ -1205,10 +1325,7 @@ if (companies_table_exists($conn, 'ojt_masterlist')) {
             if ($requiredHours <= 0) {
                 $requiredHours = 250;
             }
-            $remainingHoursRaw = $row['external_total_hours_remaining'] ?? null;
-            $renderedHours = $remainingHoursRaw !== null && $remainingHoursRaw !== ''
-                ? max(0, $requiredHours - max(0, (int)$remainingHoursRaw))
-                : 0;
+            $renderedHours = company_external_rendered_hours($conn, (int)($row['student_record_id'] ?? 0), (int)($row['user_id'] ?? 0));
 
             $row['student_id'] = trim((string)($row['student_id'] ?? '')) !== '' ? (string)$row['student_id'] : (string)($row['student_no'] ?? '');
             $row['display_name'] = $displayName !== '' ? $displayName : 'Unnamed Student';
@@ -1303,6 +1420,9 @@ foreach ($companyMap as $key => $company) {
     $company['ongoing_count'] = count(array_filter($filteredRows, static function (array $row): bool {
         return strtolower(trim((string)($row['internship_status'] ?? ''))) === 'ongoing';
     }));
+    if (!$hasStudentFilters && $company['intern_count'] <= 0 && !company_has_directory_details($company)) {
+        continue;
+    }
 
     $latestActivity = trim((string)($company['updated_at'] ?? ''));
     foreach ($filteredRows as $row) {
@@ -1575,6 +1695,13 @@ include 'includes/header.php';
                         <i class="feather-upload-cloud me-2"></i>
                         <span>Import External Template</span>
                     </button>
+                    <form method="post" action="companies.php" onsubmit="return confirm('Clean company directory records that are no longer linked to a masterlist or internship?');">
+                        <input type="hidden" name="action" value="cleanup_company_directory">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="feather-trash-2 me-2"></i>
+                            <span>Clean Empty Companies</span>
+                        </button>
+                    </form>
                 <?php endif; ?>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCompanyModal">
                     <i class="feather-plus me-2"></i>

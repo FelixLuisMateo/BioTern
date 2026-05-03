@@ -85,6 +85,7 @@ $map = [
   'ojt-edit.php' => 'management/ojt-edit.php',
   'ojt-view.php' => 'management/ojt-view.php',
   'ojt-workflow-board.php' => 'management/ojt-workflow-board.php',
+  'masterlist-pending-students.php' => 'management/masterlist-pending-students.php',
 
   'attendance.php' => 'pages/attendance.php',
   'analytics.php' => 'pages/analytics.php',
@@ -106,6 +107,7 @@ $map = [
   'fingerprint_mapping.php' => 'pages/fingerprint_mapping.php',
   'ojt-internal-list.php' => 'pages/ojt-internal-list.php',
   'ojt-external-list.php' => 'pages/ojt-external-list.php',
+  'ojt-external-view.php' => 'pages/ojt-external-view.php',
   'biometric-machine.php' => 'pages/biometric-machine.php',
   'bridge-setup-manual.php' => 'pages/bridge-setup-manual.php',
   'biometric_machine_sync.php' => 'tools/biometric_machine_sync.php',
@@ -373,7 +375,7 @@ if ($is_logged_in) {
     'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php',
     'external-attendance.php', 'external-attendance-manual.php',
     'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'bridge-setup-manual.php', 'biometric_machine_sync.php',
-    'ojt-internal-list.php', 'ojt-external-list.php',
+    'ojt-internal-list.php', 'ojt-external-list.php', 'ojt-external-view.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
     'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
   ];

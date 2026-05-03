@@ -78,9 +78,34 @@
     render(selectedSection);
   }
 
+  function initExcelPreviewDetails() {
+    var toggles = Array.prototype.slice.call(
+      document.querySelectorAll("[data-preview-detail-toggle]")
+    );
+    if (!toggles.length) {
+      return;
+    }
+
+    toggles.forEach(function (toggle) {
+      toggle.addEventListener("click", function () {
+        var targetId = toggle.getAttribute("data-target") || "";
+        var row = targetId ? document.getElementById(targetId) : null;
+        if (!row) {
+          return;
+        }
+
+        var expanded = toggle.getAttribute("aria-expanded") === "true";
+        row.hidden = expanded;
+        toggle.setAttribute("aria-expanded", expanded ? "false" : "true");
+        toggle.textContent = expanded ? "Show" : "Hide";
+      });
+    });
+  }
+
   function initTransferTools() {
     initStatusToast();
     initExcelSectionReview();
+    initExcelPreviewDetails();
   }
 
   if (document.readyState === "loading") {
