@@ -35,6 +35,21 @@ function student_dtr_manual_upload_web_path(string $relativePath): string
     return '../uploads/manual_dtr/' . ltrim(str_replace('\\', '/', $relativePath), '/');
 }
 
+function student_dtr_time_select_options_html(string $selected = ''): string
+{
+    $selected = substr(trim($selected), 0, 5);
+    $html = '<option value="">Select time</option>';
+    for ($hour = 0; $hour < 24; $hour++) {
+        for ($minute = 0; $minute < 60; $minute += 30) {
+            $value = sprintf('%02d:%02d', $hour, $minute);
+            $label = date('g:i A', strtotime($value . ':00'));
+            $isSelected = $value === $selected ? ' selected' : '';
+            $html .= '<option value="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '"' . $isSelected . '>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</option>';
+        }
+    }
+    return $html;
+}
+
 function student_dtr_ensure_manual_attachment_table(mysqli $conn): void
 {
     $conn->query("CREATE TABLE IF NOT EXISTS manual_dtr_attachments (
@@ -901,7 +916,7 @@ include 'includes/header.php';
                                 <div class="student-dtr-fallback-guide">
                                     <strong>Before submitting, follow this flow:</strong>
                                     <span>1. Choose one date or multiple missed dates, then click Generate Date Rows.</span>
-                                    <span>2. Enter times in 24-hour format, like 08:00, 12:00, 13:00, and 17:00.</span>
+                                    <span>2. Pick the closest time from each dropdown, like 8:00 AM, 12:00 PM, 1:00 PM, and 5:00 PM.</span>
                                     <span>3. Upload proof and explain what happened. The entry stays pending until school review.</span>
                                 </div>
                             </div>
@@ -957,19 +972,27 @@ include 'includes/header.php';
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackMorningIn">Morning In</label>
-                                <input type="text" class="form-control student-dtr-time-field" id="fallbackMorningIn" name="morning_time_in" inputmode="numeric" placeholder="08:00" autocomplete="off">
+                                <select class="form-select student-dtr-time-select" id="fallbackMorningIn" name="morning_time_in">
+                                    <?php echo student_dtr_time_select_options_html('08:00'); ?>
+                                </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackMorningOut">Morning Out</label>
-                                <input type="text" class="form-control student-dtr-time-field" id="fallbackMorningOut" name="morning_time_out" inputmode="numeric" placeholder="12:00" autocomplete="off">
+                                <select class="form-select student-dtr-time-select" id="fallbackMorningOut" name="morning_time_out">
+                                    <?php echo student_dtr_time_select_options_html('12:00'); ?>
+                                </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
-                                <input type="text" class="form-control student-dtr-time-field" id="fallbackAfternoonIn" name="afternoon_time_in" inputmode="numeric" placeholder="13:00" autocomplete="off">
+                                <select class="form-select student-dtr-time-select" id="fallbackAfternoonIn" name="afternoon_time_in">
+                                    <?php echo student_dtr_time_select_options_html('13:00'); ?>
+                                </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
-                                <input type="text" class="form-control student-dtr-time-field" id="fallbackAfternoonOut" name="afternoon_time_out" inputmode="numeric" placeholder="17:00" autocomplete="off">
+                                <select class="form-select student-dtr-time-select" id="fallbackAfternoonOut" name="afternoon_time_out">
+                                    <?php echo student_dtr_time_select_options_html('17:00'); ?>
+                                </select>
                             </div>
                             <div class="col-12">
                                 <label class="form-label" for="fallbackReason">Reason / Details</label>
@@ -1186,6 +1209,23 @@ include 'includes/header.php';
             .replace(/'/g, '&#039;');
     };
 
+    var buildTimeOptions = function (selected) {
+        var options = ['<option value="">Select time</option>'];
+        for (var hour = 0; hour < 24; hour++) {
+            for (var minute = 0; minute < 60; minute += 30) {
+                var value = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+                var hour12 = hour % 12 || 12;
+                var label = hour12 + ':' + String(minute).padStart(2, '0') + ' ' + (hour < 12 ? 'AM' : 'PM');
+                options.push('<option value="' + value + '"' + (value === selected ? ' selected' : '') + '>' + label + '</option>');
+            }
+        }
+        return options.join('');
+    };
+
+    var buildTimeSelect = function (name, selected) {
+        return '<select class="form-select student-dtr-time-select" name="' + name + '">' + buildTimeOptions(selected || '') + '</select>';
+    };
+
     var formatLabel = function (dateValue) {
         var parts = dateValue.split('-');
         if (parts.length !== 3) {
@@ -1214,19 +1254,19 @@ include 'includes/header.php';
         var rows = [];
         for (var cursor = new Date(startDate); cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
             var isoDate = new Date(cursor.getTime() - (cursor.getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
+            var safeDate = escapeHtml(isoDate);
             rows.push(
                 '<tr>' +
                     '<td><strong>' + escapeHtml(formatLabel(isoDate)) + '</strong></td>' +
-                    '<td><input type="text" class="form-control student-dtr-time-field" inputmode="numeric" placeholder="08:00" autocomplete="off" name="generated_entries[' + escapeHtml(isoDate) + '][morning_time_in]"></td>' +
-                    '<td><input type="text" class="form-control student-dtr-time-field" inputmode="numeric" placeholder="12:00" autocomplete="off" name="generated_entries[' + escapeHtml(isoDate) + '][morning_time_out]"></td>' +
-                    '<td><input type="text" class="form-control student-dtr-time-field" inputmode="numeric" placeholder="13:00" autocomplete="off" name="generated_entries[' + escapeHtml(isoDate) + '][afternoon_time_in]"></td>' +
-                    '<td><input type="text" class="form-control student-dtr-time-field" inputmode="numeric" placeholder="17:00" autocomplete="off" name="generated_entries[' + escapeHtml(isoDate) + '][afternoon_time_out]"></td>' +
+                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_in]', '08:00') + '</td>' +
+                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_out]', '12:00') + '</td>' +
+                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_in]', '13:00') + '</td>' +
+                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_out]', '17:00') + '</td>' +
                 '</tr>'
             );
         }
 
         rowsBody.innerHTML = rows.join('');
-        enhanceTimeFields(rowsBody);
         rowsWrap.style.display = rows.length ? '' : 'none';
         if (modeSelect) {
             modeSelect.value = 'weekly';

@@ -251,7 +251,7 @@ if ($studentMode) {
 			<div class="external-manual-guide mb-3">
 				<strong>How to submit external manual DTR:</strong>
 				<span>1. Choose the missed start and end date, then click Generate Date Rows.</span>
-				<span>2. Type time in 24-hour format, like 08:00, 12:00, 13:00, and 17:00.</span>
+				<span>2. Pick the closest time from each dropdown, like 8:00 AM, 12:00 PM, 1:00 PM, and 5:00 PM.</span>
 				<span>3. Add a short note if needed, then submit. Entries stay pending until review.</span>
 			</div>
 			<form id="manualDtrRangeForm" class="mb-3">
@@ -298,6 +298,23 @@ setInterval(updateExternalBiometricClock, 1000);
 updateExternalBiometricClock();
 
 // Manual DTR range table generation
+function buildExternalTimeOptions(selected) {
+	var options = ['<option value="">Select time</option>'];
+	for (var hour = 0; hour < 24; hour++) {
+		for (var minute = 0; minute < 60; minute += 30) {
+			var value = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+			var hour12 = hour % 12 || 12;
+			var label = hour12 + ':' + String(minute).padStart(2, '0') + ' ' + (hour < 12 ? 'AM' : 'PM');
+			options.push('<option value="' + value + '"' + (value === selected ? ' selected' : '') + '>' + label + '</option>');
+		}
+	}
+	return options.join('');
+}
+
+function buildExternalTimeSelect(name, selected) {
+	return '<select class="form-select external-manual-time-select" name="' + name + '">' + buildExternalTimeOptions(selected || '') + '</select>';
+}
+
 document.getElementById('generateManualDtrRows').onclick = function() {
 	var from = document.getElementById('manual_date_from').value;
 	var to = document.getElementById('manual_date_to').value;
@@ -311,17 +328,16 @@ document.getElementById('generateManualDtrRows').onclick = function() {
 		var dateStr = d.toISOString().slice(0,10);
 		rows.push('<tr>' +
 			'<td data-label="Date"><strong>' + dateStr + '</strong><input type="hidden" name="dates[]" value="' + dateStr + '"></td>' +
-			'<td data-label="Morning In"><input type="text" name="morning_time_in[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="08:00" autocomplete="off"></td>' +
-			'<td data-label="Morning Out"><input type="text" name="morning_time_out[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="12:00" autocomplete="off"></td>' +
-			'<td data-label="Afternoon In"><input type="text" name="afternoon_time_in[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="13:00" autocomplete="off"></td>' +
-			'<td data-label="Afternoon Out"><input type="text" name="afternoon_time_out[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="17:00" autocomplete="off"></td>' +
+			'<td data-label="Morning In">' + buildExternalTimeSelect('morning_time_in[]', '08:00') + '</td>' +
+			'<td data-label="Morning Out">' + buildExternalTimeSelect('morning_time_out[]', '12:00') + '</td>' +
+			'<td data-label="Afternoon In">' + buildExternalTimeSelect('afternoon_time_in[]', '13:00') + '</td>' +
+			'<td data-label="Afternoon Out">' + buildExternalTimeSelect('afternoon_time_out[]', '17:00') + '</td>' +
 		'</tr>');
 		idx++;
 	}
 	var table = '<div class="table-responsive"><table class="table table-hover align-middle mb-0 external-manual-table"><thead><tr><th>Date</th><th>Morning In</th><th>Morning Out</th><th>Afternoon In</th><th>Afternoon Out</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
 	document.getElementById('manualDtrRows').innerHTML = table;
 	document.getElementById('manualDtrTableForm').style.display = '';
-	enhanceExternalManualTimeFields(document.getElementById('manualDtrRows'));
 };
 
 function enhanceExternalManualTimeFields(scope) {
