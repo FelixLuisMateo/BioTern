@@ -557,6 +557,21 @@ ob_end_flush();
 .import-kpi { border: 1px solid rgba(120, 148, 255, 0.25); border-radius: 12px; padding: 10px 12px; background: rgba(6, 20, 52, 0.4); }
 .import-kpi-label { font-size: 12px; color: #9eb6ff; display: block; }
 .import-kpi-value { font-size: 18px; font-weight: 700; color: #ffffff; }
+.import-preview-card { margin-top: 1.5rem; }
+.import-preview-scroll {
+    max-width: 100%;
+    max-height: min(72vh, 760px);
+    overflow: auto;
+    border-radius: 0 0 12px 12px;
+}
+.import-preview-scroll table {
+    min-width: 1200px;
+    width: max-content;
+}
+.import-preview-scroll th,
+.import-preview-scroll td {
+    white-space: nowrap;
+}
 .biotern-toast { position: fixed; right: 18px; top: 78px; z-index: 2050; min-width: 320px; max-width: 460px; padding: 12px 14px; border-radius: 10px; color: #fff; opacity: 0; transform: translateY(-10px); transition: all .25s ease; box-shadow: 0 12px 28px rgba(0,0,0,.28); }
 .biotern-toast.show { opacity: 1; transform: translateY(0); }
 .biotern-toast-success { background: linear-gradient(135deg, #0e8c5a, #15a66d); }
@@ -627,8 +642,8 @@ ob_end_flush();
             $headers = $preview['headers'];
             $rows = $preview['rows'];
             $duplicates = $preview['duplicates'];
-            echo '<div class="card mt-4"><div class="card-header"><strong>Preview Import Data</strong></div><div class="card-body">';
-            echo '<div class="table-responsive"><table class="table table-bordered table-sm align-middle">';
+            echo '<div class="card import-preview-card"><div class="card-header"><strong>Preview Import Data</strong></div><div class="card-body p-0">';
+            echo '<div class="table-responsive import-preview-scroll"><table class="table table-bordered table-sm align-middle mb-0">';
             echo '<thead><tr>';
             foreach ($headers as $h) {
                 echo '<th>' . htmlspecialchars($h) . '</th>';
