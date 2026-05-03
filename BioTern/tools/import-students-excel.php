@@ -2215,27 +2215,12 @@ function students_excel_delete_masterlist(mysqli $mysqli, string $schoolYear, st
               AND {$internshipProfileWhere}
         ";
 
-        if ($affectedCompanyKeys !== []) {
-            $profilePlaceholders = implode(',', array_fill(0, count($affectedCompanyKeys), '?'));
-            $deleteProfileSql .= " AND pc.company_lookup_key IN ({$profilePlaceholders})";
-            $profileTypes = str_repeat('s', count($affectedCompanyKeys));
-            $profileParams = array_keys($affectedCompanyKeys);
-            $profileStmt = $mysqli->prepare($deleteProfileSql);
-            if ($profileStmt) {
-                students_excel_bind_dynamic($profileStmt, $profileTypes, $profileParams);
-                if ($profileStmt->execute()) {
-                    $summary['orphan_company_profiles_deleted'] = (int)$profileStmt->affected_rows;
-                }
-                $profileStmt->close();
-            }
-        } else {
-            $profileStmt = $mysqli->prepare($deleteProfileSql);
-            if ($profileStmt && $profileStmt->execute()) {
-                $summary['orphan_company_profiles_deleted'] = (int)$profileStmt->affected_rows;
-            }
-            if ($profileStmt) {
-                $profileStmt->close();
-            }
+        $profileStmt = $mysqli->prepare($deleteProfileSql);
+        if ($profileStmt && $profileStmt->execute()) {
+            $summary['orphan_company_profiles_deleted'] = (int)$profileStmt->affected_rows;
+        }
+        if ($profileStmt) {
+            $profileStmt->close();
         }
     }
 

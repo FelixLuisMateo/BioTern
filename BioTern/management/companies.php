@@ -84,6 +84,47 @@ function company_has_directory_details(array $company): bool
     return false;
 }
 
+function companies_cleanup_orphan_directory(mysqli $conn): int
+{
+    if (!companies_table_exists($conn, 'ojt_partner_companies')) {
+        return 0;
+    }
+
+    $masterlistJoin = companies_table_exists($conn, 'ojt_masterlist')
+        ? "
+        LEFT JOIN ojt_masterlist ml
+            ON ml.company_id = pc.id
+            OR TRIM(LOWER(COALESCE(ml.company_name, ''))) = TRIM(LOWER(COALESCE(pc.company_name, '')))
+        "
+        : '';
+    $masterlistWhere = companies_table_exists($conn, 'ojt_masterlist') ? 'ml.id IS NULL' : '1 = 1';
+
+    $internshipJoin = '';
+    $internshipWhere = '1 = 1';
+    if (companies_table_exists($conn, 'internships')) {
+        $internshipJoin = "
+        LEFT JOIN internships i
+            ON TRIM(LOWER(COALESCE(i.company_name, ''))) = TRIM(LOWER(COALESCE(pc.company_name, '')))
+            AND i.deleted_at IS NULL
+        ";
+        $internshipWhere = 'i.id IS NULL';
+    }
+
+    $deleteSql = "
+        DELETE pc FROM ojt_partner_companies pc
+        {$masterlistJoin}
+        {$internshipJoin}
+        WHERE {$masterlistWhere}
+          AND {$internshipWhere}
+    ";
+
+    if (!$conn->query($deleteSql)) {
+        return 0;
+    }
+
+    return max(0, (int)$conn->affected_rows);
+}
+
 function company_external_rendered_hours(mysqli $conn, int $studentRecordId, int $userId): float
 {
     static $cache = [];
@@ -264,6 +305,26 @@ $companyForm = [
 ];
 $companyFormErrors = [];
 $openModalId = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'cleanup_company_directory') {
+    if (!in_array($role, ['admin', 'coordinator'], true)) {
+        $_SESSION['companies_flash'] = [
+            'type' => 'danger',
+            'message' => 'You do not have permission to clean company records.',
+        ];
+    } else {
+        $deletedCompanies = companies_cleanup_orphan_directory($conn);
+        $_SESSION['companies_flash'] = [
+            'type' => 'success',
+            'message' => $deletedCompanies > 0
+                ? 'Cleaned ' . $deletedCompanies . ' orphan company record(s).'
+                : 'No orphan company records needed cleanup.',
+        ];
+    }
+
+    header('Location: companies.php');
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'save_company') {
     $editingCompanyId = (int)($_POST['company_id'] ?? 0);
@@ -1634,6 +1695,13 @@ include 'includes/header.php';
                         <i class="feather-upload-cloud me-2"></i>
                         <span>Import External Template</span>
                     </button>
+                    <form method="post" action="companies.php" onsubmit="return confirm('Clean company directory records that are no longer linked to a masterlist or internship?');">
+                        <input type="hidden" name="action" value="cleanup_company_directory">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="feather-trash-2 me-2"></i>
+                            <span>Clean Empty Companies</span>
+                        </button>
+                    </form>
                 <?php endif; ?>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCompanyModal">
                     <i class="feather-plus me-2"></i>
