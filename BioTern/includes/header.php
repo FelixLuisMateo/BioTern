@@ -1016,6 +1016,12 @@ if ($header_db instanceof mysqli) {
                         });
                     }
 
+                    modalEl.addEventListener('hide.bs.modal', function () {
+                        if (!pending) {
+                            rememberDismissedIds(activeAnnouncementIds());
+                        }
+                    });
+
                     removeLocallyDismissedArticles();
                     if (!activeAnnouncementIds().length) {
                         return;
@@ -1040,6 +1046,9 @@ if ($header_db instanceof mysqli) {
                     }
 
                     window.setTimeout(function () {
+                        // Treat the popup as seen once it is shown so the same
+                        // announcement does not interrupt every page refresh.
+                        rememberDismissedIds(activeAnnouncementIds());
                         modal.show();
                     }, 350);
                 }
