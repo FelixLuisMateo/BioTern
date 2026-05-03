@@ -45,7 +45,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
 
             if ($studentHasExternal) {
                 array_splice($studentDtrItems, 1, 0, [
-                    ['label' => 'My External DTR', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'],
+                    ['label' => 'External Biometric', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'],
                 ]);
             }
 
