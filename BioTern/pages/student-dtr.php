@@ -959,18 +959,25 @@ include 'includes/header.php';
 
         <div class="row g-4 align-items-start mt-0">
             <div class="col-12 col-xl-8">
-                <section class="card student-panel student-dtr-fallback-card mb-4" id="manual-dtr">
+                <section class="card student-panel student-dtr-fallback-card student-dtr-record-entry-card mb-4" id="manual-dtr">
                     <div class="card-body">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                             <div>
                                 <span class="student-metric-label">Manual DTR</span>
-                                <h3 class="mb-1">Submit Missed Internal Time</h3>
+                                <h3 class="mb-1"><i class="feather-log-in me-1"></i> Record Time Entry</h3>
                                 <div class="student-dtr-meta">Use this only when the biometric machine was unavailable or your time was not captured.</div>
                             </div>
                         </div>
                         <form method="post" enctype="multipart/form-data" class="row g-3">
                             <input type="hidden" name="student_action" value="submit_machine_down">
                             <input type="hidden" name="proof_clock_time" id="proofClockTime" value="">
+                            <div class="col-12 student-dtr-clock-wrap">
+                                <label class="form-label">Current Clock</label>
+                                <div class="form-control d-flex align-items-center justify-content-between student-dtr-proof-clock">
+                                    <strong id="proofClockDisplay">--:--:--</strong>
+                                    <span class="text-muted small" id="proofClockDate">--</span>
+                                </div>
+                            </div>
                             <div class="col-12">
                                 <div class="student-dtr-fallback-guide">
                                     <strong>Before submitting, follow this flow:</strong>
@@ -993,13 +1000,6 @@ include 'includes/header.php';
                             <div class="col-md-4">
                                 <label class="form-label" for="fallbackAttendanceEndDate">End Date</label>
                                 <input type="date" class="form-control" id="fallbackAttendanceEndDate" name="attendance_end_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Current Clock</label>
-                                <div class="form-control d-flex align-items-center justify-content-between student-dtr-proof-clock">
-                                    <strong id="proofClockDisplay">--:--:--</strong>
-                                    <span class="text-muted small" id="proofClockDate">--</span>
-                                </div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="proofImage">Proof Image</label>

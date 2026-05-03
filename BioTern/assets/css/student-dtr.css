@@ -22,25 +22,10 @@
     overflow: hidden;
     padding: 1.6rem;
     border-radius: 1.25rem;
-    border: 1px solid rgba(160, 195, 230, 0.2);
-    background:
-        radial-gradient(circle at 90% -15%, rgba(244, 183, 64, 0.3), transparent 34%),
-        radial-gradient(circle at -8% 110%, rgba(10, 178, 229, 0.22), transparent 36%),
-        linear-gradient(135deg, #041c3b 0%, #0d2c58 48%, #12456e 100%);
-    color: #f7fbff;
-    box-shadow: 0 24px 44px rgba(8, 22, 46, 0.34);
-}
-
-.student-dtr-station-hero::after {
-    content: "";
-    position: absolute;
-    inset: auto -48px -72px auto;
-    width: 220px;
-    height: 220px;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    background: rgba(255, 255, 255, 0.04);
-    pointer-events: none;
+    border: 1px solid var(--dtr-card-border);
+    background: var(--dtr-card-bg);
+    color: var(--dtr-text);
+    box-shadow: var(--dtr-card-shadow);
 }
 
 .student-dtr-hero-main {
@@ -57,9 +42,9 @@
     gap: 0.45rem;
     padding: 0.35rem 0.8rem;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    background: rgba(255, 255, 255, 0.1);
-    color: #f7fbff;
+    border: 1px solid var(--dtr-soft-border);
+    background: var(--dtr-soft-bg);
+    color: var(--dtr-accent);
     font-size: 0.72rem;
     font-weight: 800;
     letter-spacing: 0.08em;
@@ -73,19 +58,19 @@
 .student-dtr-station-hero .student-dtr-avatar {
     width: 74px;
     height: 74px;
-    border-color: rgba(255, 255, 255, 0.22);
-    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.22);
+    border-color: var(--dtr-soft-border);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
 }
 
 .student-dtr-station-hero .student-dtr-title {
-    color: #ffffff;
+    color: var(--dtr-text);
     font-size: clamp(1.8rem, 3vw, 2.65rem);
 }
 
 .student-dtr-hero-copy {
     max-width: 620px;
     margin: 0.35rem 0 0;
-    color: rgba(240, 248, 255, 0.86);
+    color: var(--dtr-muted);
     line-height: 1.55;
 }
 
@@ -101,9 +86,9 @@
     min-height: 34px;
     padding: 0.4rem 0.75rem;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.09);
-    color: rgba(247, 251, 255, 0.92);
+    border: 1px solid var(--dtr-soft-border);
+    background: var(--dtr-soft-bg);
+    color: var(--dtr-text);
     font-size: 0.78rem;
     font-weight: 700;
 }
@@ -118,15 +103,14 @@
     min-width: min(100%, 450px);
     padding: 0.85rem;
     border-radius: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    background: rgba(4, 18, 38, 0.36);
-    backdrop-filter: blur(10px);
+    border: 1px solid var(--dtr-soft-border);
+    background: var(--dtr-soft-bg);
 }
 
 .student-dtr-station-filter label {
     display: block;
     margin-bottom: 0.35rem;
-    color: rgba(240, 248, 255, 0.72);
+    color: var(--dtr-muted);
     font-size: 0.68rem;
     font-weight: 800;
     letter-spacing: 0.1em;
@@ -142,25 +126,25 @@
 }
 
 .student-dtr-station-filter select {
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
+    border: 1px solid var(--dtr-soft-border);
+    background: var(--dtr-card-bg);
+    color: var(--dtr-text);
     padding: 0.65rem 0.85rem;
 }
 
 .student-dtr-station-filter select option {
-    background: #0d2c58;
-    color: #ffffff;
+    background: var(--dtr-card-bg);
+    color: var(--dtr-text);
 }
 
 .student-dtr-station-filter button {
-    border: 0;
+    border: 1px solid var(--dtr-soft-border);
     padding: 0.65rem 1rem;
-    background: linear-gradient(90deg, #1e6fb0, #2384b8 58%, #2f9bc0);
+    background: var(--bs-primary, #5b7cfa);
     color: #ffffff;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    box-shadow: 0 12px 24px rgba(6, 30, 62, 0.24);
+    box-shadow: none;
 }
 
 .student-dtr-hero-card {
@@ -543,6 +527,69 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
+.student-dtr-record-entry-card .card-body {
+    padding: 1.25rem;
+}
+
+.student-dtr-record-entry-card h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--dtr-text);
+}
+
+.student-dtr-record-entry-card form.row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-inline: 0;
+}
+
+.student-dtr-record-entry-card form.row > [class*="col-"] {
+    width: auto;
+    max-width: none;
+    padding-inline: 0;
+}
+
+.student-dtr-record-entry-card .col-12,
+.student-dtr-record-entry-card .student-dtr-clock-wrap,
+.student-dtr-record-entry-card #fallbackGeneratedRowsWrap {
+    grid-column: 1 / -1;
+}
+
+.student-dtr-record-entry-card .col-md-4 {
+    grid-column: span 2;
+}
+
+.student-dtr-record-entry-card .col-md-3 {
+    grid-column: span 1;
+}
+
+.student-dtr-record-entry-card .student-dtr-clock-wrap {
+    max-width: 420px;
+}
+
+.student-dtr-record-entry-card .student-dtr-proof-clock {
+    min-height: 76px;
+    justify-content: center !important;
+    flex-direction: column;
+    gap: 0.35rem;
+    border-style: dashed;
+    background: color-mix(in srgb, var(--dtr-soft-bg) 82%, var(--bs-primary, #5b7cfa) 18%);
+}
+
+.student-dtr-record-entry-card .student-dtr-proof-clock strong {
+    color: var(--dtr-text);
+    font-size: clamp(1.65rem, 3vw, 2.15rem);
+    line-height: 1;
+    letter-spacing: 0.08em;
+    font-variant-numeric: tabular-nums;
+}
+
+.student-dtr-record-entry-card .student-dtr-proof-clock span {
+    font-weight: 700;
+}
+
 .student-dtr-proof-clock .text-muted,
 .student-dtr-fallback-card .text-muted {
     color: var(--dtr-muted) !important;
@@ -858,6 +905,21 @@ html.app-skin-dark .student-dtr-metric {
         margin-bottom: 0.65rem;
     }
 
+    .student-dtr-record-entry-card form.row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .student-dtr-record-entry-card .col-md-4,
+    .student-dtr-record-entry-card .col-md-3 {
+        grid-column: span 1;
+    }
+
+    .student-dtr-record-entry-card .col-12,
+    .student-dtr-record-entry-card .student-dtr-clock-wrap,
+    .student-dtr-record-entry-card #fallbackGeneratedRowsWrap {
+        grid-column: 1 / -1;
+    }
+
     .student-dtr-report-export-card .row > [class*="col-"] {
         width: 100%;
     }
@@ -957,6 +1019,15 @@ html.app-skin-dark .student-dtr-metric {
         min-height: 42px;
         height: 42px;
         font-size: 0.9rem;
+    }
+
+    .student-dtr-record-entry-card form.row {
+        grid-template-columns: 1fr;
+    }
+
+    .student-dtr-record-entry-card .col-md-4,
+    .student-dtr-record-entry-card .col-md-3 {
+        grid-column: 1 / -1;
     }
 
     .student-dtr-fallback-card .btn-warning {
