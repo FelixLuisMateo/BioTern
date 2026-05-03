@@ -361,8 +361,8 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                     </a>
                 </li>
                 <?php endif; ?>
-                <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['student-dtr.php', 'student-internal-dtr.php', 'student-manual-dtr.php']) ? ' active' : ''; ?>">
-                    <a href="student-internal-dtr.php#manual-dtr" class="nxl-link">
+                <li class="nxl-item<?php echo biotern_nav_is_active('student-manual-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="student-manual-dtr.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-edit-3"></i></span>
                         <span class="nxl-mtext">Manual DTR</span>
                     </a>

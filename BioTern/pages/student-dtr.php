@@ -811,7 +811,14 @@ $lastRecordedDateText = $attendanceInsights['last_recorded_date'] !== ''
     ? date('M d, Y', strtotime($attendanceInsights['last_recorded_date']))
     : 'No entries yet';
 
-$page_title = 'BioTern || My Internal DTR';
+$studentDtrManualOnly = defined('BIOTERN_STUDENT_MANUAL_DTR_PAGE') && BIOTERN_STUDENT_MANUAL_DTR_PAGE;
+$studentDtrPageHeading = $studentDtrManualOnly ? 'Manual DTR' : 'My Internal DTR';
+$studentDtrHeroTitle = $studentDtrManualOnly ? 'Record Time Entry' : 'My Internal DTR';
+$studentDtrHeroCopy = $studentDtrManualOnly
+    ? 'Submit a missed internal attendance entry when the biometric machine was unavailable or your time was not captured.'
+    : 'Track your biometric logs, review attendance status, and download monthly attendance reports.';
+
+$page_title = 'BioTern || ' . $studentDtrPageHeading;
 $page_styles = [
     'assets/css/homepage-student.css',
     'assets/css/student-dtr.css',
@@ -826,11 +833,11 @@ include 'includes/header.php';
         <div class="page-header dashboard-page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">My Internal DTR</h5>
+                    <h5 class="m-b-10"><?php echo htmlspecialchars($studentDtrPageHeading, ENT_QUOTES, 'UTF-8'); ?></h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                    <li class="breadcrumb-item">My Internal DTR</li>
+                    <li class="breadcrumb-item"><?php echo htmlspecialchars($studentDtrPageHeading, ENT_QUOTES, 'UTF-8'); ?></li>
                 </ul>
             </div>
         </div>
@@ -844,13 +851,13 @@ include 'includes/header.php';
 
         <section class="student-dtr-station-hero">
             <div class="student-dtr-hero-main">
-                <span class="student-dtr-station-chip">Internal Attendance Station</span>
+                <span class="student-dtr-station-chip"><?php echo $studentDtrManualOnly ? 'Manual Attendance Entry' : 'Internal Attendance Station'; ?></span>
                 <div class="student-dtr-persona">
                     <img src="<?php echo htmlspecialchars($avatarSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?>" class="student-dtr-avatar">
                     <div>
-                        <h2 class="student-dtr-title">My Internal DTR</h2>
+                        <h2 class="student-dtr-title"><?php echo htmlspecialchars($studentDtrHeroTitle, ENT_QUOTES, 'UTF-8'); ?></h2>
                         <p class="student-dtr-hero-copy">
-                            Track your biometric logs, submit missed time, and download monthly attendance reports.
+                            <?php echo htmlspecialchars($studentDtrHeroCopy, ENT_QUOTES, 'UTF-8'); ?>
                         </p>
                     </div>
                 </div>
@@ -862,6 +869,7 @@ include 'includes/header.php';
                     <span><?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?></span>
                 </div>
             </div>
+            <?php if (!$studentDtrManualOnly): ?>
             <form method="get" class="student-dtr-station-filter">
                 <div>
                     <label for="dtrHeroYear">Year</label>
@@ -885,8 +893,10 @@ include 'includes/header.php';
                 </div>
                 <button type="submit">View DTR</button>
             </form>
+            <?php endif; ?>
         </section>
 
+        <?php if (!$studentDtrManualOnly): ?>
         <div class="student-dtr-metrics">
             <article class="student-metric-card student-dtr-metric">
                 <span class="student-dtr-metric-icon"><i class="feather-list"></i></span>
@@ -956,9 +966,11 @@ include 'includes/header.php';
                 </form>
             </div>
         </section>
+        <?php endif; ?>
 
         <div class="row g-4 align-items-start mt-0">
-            <div class="col-12 col-xl-8">
+            <div class="<?php echo $studentDtrManualOnly ? 'col-12 col-xl-8 mx-auto' : 'col-12 col-xl-8'; ?>">
+                <?php if ($studentDtrManualOnly): ?>
                 <section class="card student-panel student-dtr-fallback-card student-dtr-record-entry-card mb-4" id="manual-dtr">
                     <div class="card-body">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
@@ -1064,7 +1076,9 @@ include 'includes/header.php';
                         </form>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if (!$studentDtrManualOnly): ?>
                 <section class="card student-panel">
                     <div class="card-body">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
@@ -1164,8 +1178,10 @@ include 'includes/header.php';
                         <?php endif; ?>
                     </div>
                 </section>
+                <?php endif; ?>
             </div>
 
+            <?php if (!$studentDtrManualOnly): ?>
             <div class="col-12 col-xl-4">
                 <section class="card student-panel student-dtr-side-card">
                     <div class="card-body">
@@ -1235,12 +1251,13 @@ include 'includes/header.php';
                         <div class="d-grid gap-2">
                             <a href="student-profile.php" class="btn btn-outline-primary">My Profile</a>
                             <a href="student-documents.php" class="btn btn-outline-secondary">My Documents</a>
-                            <a href="student-internal-dtr.php#manual-dtr" class="btn btn-outline-secondary">Manual DTR</a>
+                            <a href="student-manual-dtr.php" class="btn btn-outline-secondary">Manual DTR</a>
                             <a href="apps-calendar.php" class="btn btn-outline-secondary">Calendar</a>
                         </div>
                     </div>
                 </section>
             </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
