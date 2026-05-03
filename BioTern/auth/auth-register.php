@@ -399,7 +399,7 @@ if (isset($_GET['registered'])) {
                                 <div class="row g-3">
                                     <div class="col-12 mb-2">
                                         <label class="form-label fs-12 mb-1" for="studentStreetAddress">Current Address</label>
-                                        <input type="text" id="studentStreetAddress" class="form-control" placeholder="Street / House No. (optional)" autocomplete="street-address" data-no-floating="1">
+                                        <input type="text" id="studentStreetAddress" class="form-control" placeholder="Street / House No. " autocomplete="street-address" data-no-floating="1">
                                         <input type="hidden" name="address" id="studentAddress">
                                     </div>
                                 </div>
