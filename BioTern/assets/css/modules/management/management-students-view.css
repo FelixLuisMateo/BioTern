@@ -544,32 +544,32 @@
 }
 
 .student-internal-eval-print-recommendation {
-    width: 86%;
-    margin: 18px auto 0;
+    width: 100%;
+    margin: 18px 0 0;
 }
 
 .student-internal-eval-print-recommendation p {
-    margin-bottom: 8px;
+    margin: 0 0 12px;
 }
 
 .student-internal-eval-print-recommendation div {
     display: block;
-    min-height: 82px;
+    min-height: 96px;
     white-space: pre-wrap;
     background-image: none;
-    line-height: 18px;
+    line-height: 20px;
 }
 
 .student-internal-eval-print-recommendation span {
     display: block;
     min-height: 0;
-    padding-bottom: 2px;
+    padding: 0 0 3px;
     border-bottom: 1px solid #111;
 }
 
 .student-internal-eval-print-recommendation i {
     display: block;
-    height: 18px;
+    height: 20px;
     border-bottom: 1px solid #111;
 }
 
