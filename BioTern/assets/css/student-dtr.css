@@ -1,13 +1,13 @@
 .student-dtr-shell {
     display: grid;
     gap: 1rem;
-    --dtr-card-bg: var(--student-card-bg, var(--biotern-surface, #ffffff));
-    --dtr-card-border: var(--student-card-border, var(--biotern-border, rgba(15, 23, 42, 0.08)));
-    --dtr-card-shadow: var(--student-card-shadow, 0 10px 30px rgba(15, 23, 42, 0.06));
-    --dtr-text: var(--student-text, var(--bs-body-color, #0f172a));
-    --dtr-muted: var(--student-muted, var(--bs-secondary-color, #64748b));
-    --dtr-soft-bg: var(--student-soft-bg, var(--biotern-surface-muted, #f8fafc));
-    --dtr-soft-border: var(--student-soft-border, var(--biotern-border, rgba(15, 23, 42, 0.08)));
+    --dtr-card-bg: var(--student-card-bg, var(--dash-card-bg, #ffffff));
+    --dtr-card-border: var(--student-card-border, var(--dash-card-border, rgba(15, 23, 42, 0.08)));
+    --dtr-card-shadow: var(--student-card-shadow, var(--dash-card-shadow, 0 10px 30px rgba(15, 23, 42, 0.06)));
+    --dtr-text: var(--student-text, var(--dash-text, #0f172a));
+    --dtr-muted: var(--student-muted, var(--dash-muted, #64748b));
+    --dtr-soft-bg: var(--student-soft-bg, var(--dash-item-bg, #f8fafc));
+    --dtr-soft-border: var(--student-soft-border, var(--dash-item-border, rgba(15, 23, 42, 0.08)));
     --dtr-accent: var(--dtr-muted);
     --dtr-accent-strong: var(--dtr-text);
     --dtr-accent-soft: var(--dtr-soft-bg);
@@ -261,33 +261,6 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
-.student-dtr-fallback-card .student-dtr-time-field,
-.student-dtr-fallback-card .student-dtr-time-select {
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em;
-}
-
-.student-dtr-fallback-guide {
-    display: grid;
-    gap: 0.55rem;
-    padding: 0.95rem 1rem;
-    border-radius: 1rem;
-    background: var(--dtr-accent-soft);
-    border: 1px solid var(--dtr-soft-border);
-    color: var(--dtr-text);
-}
-
-.student-dtr-fallback-guide strong {
-    color: var(--dtr-text);
-    font-size: 0.9rem;
-}
-
-.student-dtr-fallback-guide span {
-    color: var(--dtr-muted);
-    font-size: 0.82rem;
-    line-height: 1.45;
-}
-
 .student-dtr-fallback-card .form-control[type="file"] {
     padding: 0;
     overflow: hidden;
@@ -375,70 +348,6 @@
     height: 100%;
 }
 
-.student-dtr-side-list {
-    display: grid;
-    gap: 0.65rem;
-}
-
-.student-dtr-side-list > div {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.85rem;
-    min-width: 0;
-    padding: 0.8rem 0.9rem;
-    border-radius: 0.85rem;
-    background: var(--dtr-soft-bg) !important;
-    border: 1px solid var(--dtr-soft-border) !important;
-    color: var(--dtr-text) !important;
-}
-
-.student-panel .student-dtr-side-list > div,
-.student-detail-list.student-dtr-side-list > div,
-html.app-skin-dark .student-panel .student-dtr-side-list > div,
-html.app-skin-dark .student-detail-list.student-dtr-side-list > div {
-    background: var(--dtr-soft-bg) !important;
-    border-color: var(--dtr-soft-border) !important;
-    color: var(--dtr-text) !important;
-    box-shadow: none !important;
-}
-
-.student-dtr-side-list span {
-    min-width: 0;
-    color: var(--dtr-muted) !important;
-    font-size: 0.78rem;
-}
-
-.student-dtr-side-list strong {
-    min-width: 0;
-    color: var(--dtr-text) !important;
-    font-size: 0.82rem;
-    text-align: right;
-    overflow-wrap: anywhere;
-}
-
-.student-dtr-fallback-card .table-responsive {
-    border-radius: 0.9rem;
-    border: 1px solid var(--dtr-soft-border);
-}
-
-.student-dtr-fallback-card .table {
-    margin-bottom: 0;
-}
-
-.student-dtr-fallback-card .table th {
-    color: var(--dtr-accent);
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    border-color: var(--dtr-soft-border);
-}
-
-.student-dtr-fallback-card .table td {
-    color: var(--dtr-text);
-    border-color: var(--dtr-soft-border);
-}
-
 html.app-skin-dark .student-dtr-filter .form-select {
     background: var(--dtr-soft-bg);
     border-color: var(--dtr-soft-border);
@@ -446,13 +355,13 @@ html.app-skin-dark .student-dtr-filter .form-select {
 }
 
 html.app-skin-dark .student-dtr-shell {
-    --dtr-card-bg: var(--biotern-surface, #12161f);
-    --dtr-card-border: var(--biotern-border, #2b3340);
+    --dtr-card-bg: var(--dash-card-bg, #121a2d);
+    --dtr-card-border: var(--dash-card-border, #1b2436);
     --dtr-card-shadow: var(--dash-card-shadow, none);
-    --dtr-text: var(--bs-body-color, #e5e7eb);
-    --dtr-muted: var(--bs-secondary-color, #94a3b8);
-    --dtr-soft-bg: var(--dtr-card-bg);
-    --dtr-soft-border: var(--dtr-card-border);
+    --dtr-text: var(--dash-text, #e5e7eb);
+    --dtr-muted: var(--dash-muted, #94a3b8);
+    --dtr-soft-bg: var(--dash-item-bg, #0f172a);
+    --dtr-soft-border: var(--dash-item-border, #1b2436);
     --dtr-accent: var(--dtr-muted);
     --dtr-accent-strong: var(--dtr-text);
     --dtr-accent-soft: var(--dtr-soft-bg);
@@ -499,12 +408,10 @@ html.app-skin-dark .student-dtr-filter .form-label {
 html.app-skin-dark .student-dtr-metric,
 html.app-skin-dark .student-dtr-report-export-card,
 html.app-skin-dark .student-dtr-table td,
-html.app-skin-dark .student-dtr-empty,
-html.app-skin-dark .student-dtr-fallback-card .table td,
-html.app-skin-dark .student-dtr-fallback-card .table th {
-    background: var(--dtr-card-bg) !important;
-    border-color: var(--dtr-card-border) !important;
-    box-shadow: none !important;
+html.app-skin-dark .student-dtr-empty {
+    background: var(--dtr-soft-bg);
+    border-color: var(--dtr-soft-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 html.app-skin-dark .student-dtr-fallback-card .form-label {
@@ -595,10 +502,6 @@ html.app-skin-dark .student-dtr-empty {
 
 /* Mobile optimization - compact layout */
 @media (max-width: 767.98px) {
-    .student-dtr-shell {
-        gap: 0.75rem;
-    }
-
     .student-dtr-metrics {
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 0.65rem;
@@ -655,27 +558,6 @@ html.app-skin-dark .student-dtr-empty {
         width: 100%;
     }
 
-    .student-dtr-report-export-card .card-body,
-    .student-dtr-fallback-card .card-body,
-    .student-dtr-side-card .card-body {
-        padding: 0.95rem;
-    }
-
-    .student-dtr-report-export-card h3,
-    .student-dtr-fallback-card h3 {
-        font-size: 1.35rem;
-    }
-
-    .student-dtr-side-card h3 {
-        font-size: 1.2rem;
-        margin-bottom: 0.65rem !important;
-    }
-
-    .student-dtr-side-list div {
-        padding: 0.75rem 0.8rem;
-        border-radius: 0.8rem;
-    }
-
     .student-dtr-proof-clock {
         gap: 0.75rem;
         flex-wrap: wrap;
@@ -725,7 +607,6 @@ html.app-skin-dark .student-dtr-empty {
 
     .student-dtr-fallback-card .form-control,
     .student-dtr-fallback-card .form-select {
-        min-height: 42px;
         height: 42px;
         font-size: 0.9rem;
     }
@@ -736,16 +617,8 @@ html.app-skin-dark .student-dtr-empty {
     }
 
     .student-dtr-proof-clock {
-        min-height: 42px;
         height: 42px;
         padding: 0 0.75rem;
-    }
-
-    .student-dtr-report-export-card .btn,
-    .student-dtr-fallback-card .btn,
-    .student-dtr-side-card .btn {
-        min-height: 42px;
-        font-size: 0.88rem;
     }
 
     .student-dtr-table {
@@ -787,8 +660,8 @@ html.app-skin-dark .student-dtr-empty {
         content: attr(data-label);
         position: absolute;
         left: 0.75rem;
-        top: 0.75rem;
-        transform: none;
+        top: 50%;
+        transform: translateY(-50%);
         width: 6rem;
         font-size: 0.65rem;
         font-weight: 700;
@@ -814,11 +687,6 @@ html.app-skin-dark .student-dtr-empty {
     .student-dtr-table td div {
         position: relative;
         z-index: 1;
-    }
-
-    .student-dtr-table td[data-label="Date"] {
-        align-items: flex-start;
-        padding-top: 1.6rem;
     }
 
     html.app-skin-dark .student-dtr-table td::before {

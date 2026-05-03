@@ -559,3 +559,10 @@ body.reports-page .card .table-hover > tbody > tr:hover > * {
     }
 }
 
+@media (min-width: 992px) {
+    body.reports-page .reports-mobile-collapse-cell,
+    body.reports-page .reports-mobile-collapse-btn {
+        display: none !important;
+    }
+}
+

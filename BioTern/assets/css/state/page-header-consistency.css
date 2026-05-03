@@ -386,8 +386,9 @@ body .page-header .page-header-actions-toggle {
   }
 
   body.mobile-bottom-nav .page-header {
-    position: relative !important;
-    top: auto !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1025 !important;
     left: auto !important;
     right: auto !important;
     display: flex !important;
@@ -410,8 +411,8 @@ body .page-header .page-header-actions-toggle {
     min-width: 0 !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
     gap: 0.35rem !important;
     padding: 0 56px 0 12px !important;
   }
@@ -424,11 +425,37 @@ body .page-header .page-header-actions-toggle {
     margin: 0 !important;
     font-size: 1.05rem !important;
     line-height: 1.2 !important;
-    text-align: center !important;
+    text-align: left !important;
+    border-right: 0 !important;
     white-space: normal;
     overflow: visible;
     text-overflow: clip;
-    padding: 0 8px !important;
+    padding: 0 !important;
+  }
+
+  /* Keep desktop-only subtext out of the mobile page header area. */
+  body.mobile-bottom-nav .page-header .page-header-middle,
+  body.mobile-bottom-nav .page-header .page-header-statement,
+  body.mobile-bottom-nav .page-header .page-subtitle,
+  body.mobile-bottom-nav .page-header .app-ojt-page-subtitle {
+    display: none !important;
+  }
+
+  /* Remove any separator/decorative line around mobile page-header title. */
+  body.mobile-bottom-nav .page-header .page-header-title::before,
+  body.mobile-bottom-nav .page-header .page-header-title::after,
+  body.mobile-bottom-nav .page-header .page-header-title h5::before,
+  body.mobile-bottom-nav .page-header .page-header-title h5::after {
+    content: none !important;
+    display: none !important;
+    border: 0 !important;
+  }
+
+  body.mobile-bottom-nav .page-header,
+  body.mobile-bottom-nav .page-header::before,
+  body.mobile-bottom-nav .page-header::after {
+    border-bottom: 0 !important;
+    box-shadow: none !important;
   }
 
   body.mobile-bottom-nav .page-header .page-header-right {

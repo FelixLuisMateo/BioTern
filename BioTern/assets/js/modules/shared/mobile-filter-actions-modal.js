@@ -6,6 +6,13 @@
     return;
   }
 
+  var ACTION_TOGGLE_SELECTOR =
+    ".page-header-actions-toggle, .app-students-actions-toggle, .app-ojt-actions-toggle, .app-applications-actions-toggle, .app-page-header-auto-toggle, .page-header-right-open-toggle";
+  var ACTION_PANEL_SELECTOR =
+    ".page-header-actions, .app-students-actions-panel, .app-ojt-actions-panel, .app-applications-actions-panel, [class*='actions-panel']";
+  var FILTER_HOST_SELECTOR =
+    ".logs-filter-wrap, .report-filter-wrap, .chatreports-filter-wrap, .chatlogs-filter, .attendance-exceptions-toolbar";
+
   function isMobile() {
     return global.matchMedia && global.matchMedia("(max-width: 991.98px)").matches;
   }
@@ -103,9 +110,7 @@
       if (fieldCount < 1 || !hasSubmit) {
         continue;
       }
-      var host =
-        getForm.closest(".logs-filter-wrap, .report-filter-wrap, .chatreports-filter-wrap, .chatlogs-filter, .attendance-exceptions-toolbar") ||
-        getForm;
+      var host = getForm.closest(FILTER_HOST_SELECTOR) || getForm;
       pushUnique(host);
     }
     return matches;
@@ -192,7 +197,7 @@
       if (form.className && /filter/i.test(form.className)) {
         score += 3;
       }
-      if (form.closest(".logs-filter-wrap, .report-filter-wrap, .chatreports-filter-wrap, .chatlogs-filter, .attendance-exceptions-toolbar, .required-report-filters")) {
+      if (form.closest(FILTER_HOST_SELECTOR + ", .required-report-filters")) {
         score += 4;
       }
       if (score > bestScore) {
@@ -337,12 +342,19 @@
       ? searchHost.querySelector("input")
       : right.querySelector('input[type="search"], input[name*="search" i], input[id*="search" i]');
 
-    if (!searchInput && !searchHost) {
-      return;
-    }
+    var sourceNode = searchHost || (searchInput ? (searchInput.closest("form") || searchInput.parentElement) : null);
+    var sourceSearchField = searchInput;
 
-    var sourceNode = searchHost || searchInput.closest("form") || searchInput.parentElement;
-    if (!sourceNode) {
+    // Fallback for OJT/Students list pages where search lives in filter form (not page-header-right).
+    if (!sourceNode || !sourceSearchField) {
+      var filterForm = findFilterSourceForm();
+      var filterSearch = filterForm ? filterForm.querySelector("input[name='search'], input[type='search'], input[id*='search' i]") : null;
+      if (filterForm && filterSearch) {
+        sourceNode = filterForm;
+        sourceSearchField = filterSearch;
+      }
+    }
+    if (!sourceNode || !sourceSearchField) {
       return;
     }
 
@@ -357,6 +369,13 @@
 
     var cloned = sourceNode.cloneNode(true);
     cloned.classList.add("mobile-page-header-search-clone");
+    var clonedSearchField = cloned.querySelector("input[name='search'], input[type='search'], input[id*='search' i]");
+    var clonedSubmit =
+      cloned.querySelector("button[type='submit'], input[type='submit']") ||
+      cloned.querySelector(".btn.btn-primary, .btn[type='button']");
+    if (clonedSubmit && clonedSubmit.type && clonedSubmit.type.toLowerCase() !== "submit") {
+      clonedSubmit.type = "submit";
+    }
     existingPanel.innerHTML = "";
     existingPanel.appendChild(cloned);
 
@@ -380,14 +399,27 @@
       }
     });
 
+    if (cloned && cloned.addEventListener && sourceSearchField) {
+      cloned.addEventListener("submit", function (event) {
+        event.preventDefault();
+        if (clonedSearchField) {
+          sourceSearchField.value = clonedSearchField.value;
+          sourceSearchField.dispatchEvent(new Event("input", { bubbles: true }));
+          sourceSearchField.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        var sourceForm = sourceSearchField.closest("form");
+        if (sourceForm) {
+          sourceForm.submit();
+        }
+      });
+    }
+
     right.insertBefore(btn, right.firstChild || null);
   }
 
   function buildActionsModal(header, right, index) {
-    var toggle =
-      right.querySelector(".page-header-actions-toggle, .app-students-actions-toggle, .app-ojt-actions-toggle, .app-applications-actions-toggle, .app-page-header-auto-toggle, .page-header-right-open-toggle");
-    var panel =
-      right.querySelector(".page-header-actions, .app-students-actions-panel, .app-ojt-actions-panel, .app-applications-actions-panel, [class*='actions-panel']");
+    var toggle = right.querySelector(ACTION_TOGGLE_SELECTOR);
+    var panel = right.querySelector(ACTION_PANEL_SELECTOR);
     var dropdownMenus = right.querySelectorAll(".dropdown-menu");
     var hasAnySource = !!(toggle || panel || (dropdownMenus && dropdownMenus.length));
     if (!hasAnySource) {
@@ -436,16 +468,12 @@
         }
         if (
           node.matches &&
-          node.matches(
-            ".page-header-mobile-actions-toggle, .page-header-actions-toggle, .app-students-actions-toggle, .app-ojt-actions-toggle, .app-applications-actions-toggle, .app-page-header-auto-toggle, .page-header-right-open-toggle"
-          )
+          node.matches(".page-header-mobile-actions-toggle, " + ACTION_TOGGLE_SELECTOR)
         ) {
           return;
         }
         var clone = node.cloneNode(true);
-        var clonedDesktopToggles = clone.querySelectorAll(
-          ".page-header-actions-toggle, .app-students-actions-toggle, .app-ojt-actions-toggle, .app-applications-actions-toggle, .app-page-header-auto-toggle, .page-header-right-open-toggle"
-        );
+        var clonedDesktopToggles = clone.querySelectorAll(ACTION_TOGGLE_SELECTOR);
         for (var t = 0; t < clonedDesktopToggles.length; t += 1) {
           clonedDesktopToggles[t].remove();
         }
@@ -611,9 +639,7 @@
     if (!right) {
       return;
     }
-    var legacy = right.querySelectorAll(
-      ".page-header-actions-toggle, .app-students-actions-toggle, .app-ojt-actions-toggle, .app-applications-actions-toggle, .page-header-right-open-toggle, .app-page-header-auto-toggle"
-    );
+    var legacy = right.querySelectorAll(ACTION_TOGGLE_SELECTOR);
     for (var i = 0; i < legacy.length; i += 1) {
       var legacyNode = legacy[i];
       legacyNode.classList.add("mobile-actions-source-hidden");
@@ -639,9 +665,7 @@
       var iconClass = icon ? (icon.className || "") : "";
       var isGridIcon = /feather-grid/.test(iconClass);
       var isKnownToggle =
-        node.matches(
-          ".page-header-actions-toggle, .app-students-actions-toggle, .app-ojt-actions-toggle, .app-applications-actions-toggle, .page-header-right-open-toggle, .app-page-header-auto-toggle, .page-header-mobile-actions-toggle"
-        );
+        node.matches(ACTION_TOGGLE_SELECTOR + ", .page-header-mobile-actions-toggle");
       if (isGridIcon || isKnownToggle) {
         gridLike.push(node);
       }
@@ -701,6 +725,68 @@
     }
   }
 
+  function ensureMobilePrevNext() {
+    if (!document.body || !isMobile()) {
+      return;
+    }
+    var isListPage =
+      document.body.classList.contains("page-ojt-internal-list") ||
+      document.body.classList.contains("page-ojt-external-list") ||
+      document.body.classList.contains("page-students") ||
+      document.body.classList.contains("students-page");
+    if (!isListPage) {
+      return;
+    }
+    if (document.querySelector(".app-mobile-prev-next")) {
+      return;
+    }
+
+    var root =
+      document.querySelector(".app-mobile-list") ||
+      document.querySelector(".app-students-mobile-list") ||
+      document.querySelector(".app-ojt-mobile-list");
+    if (!root) {
+      return;
+    }
+
+    var items = root.querySelectorAll(".app-mobile-item, .app-student-mobile-item, .app-ojt-mobile-item, details");
+    if (!items || items.length < 2) {
+      return;
+    }
+
+    var nav = document.createElement("div");
+    nav.className = "app-mobile-prev-next d-flex gap-2 mt-2";
+    nav.innerHTML =
+      '<button type="button" class="btn btn-light-brand app-mobile-prev-btn">Previous</button>' +
+      '<button type="button" class="btn btn-light-brand app-mobile-next-btn">Next</button>';
+    root.insertAdjacentElement("afterend", nav);
+
+    function focusItem(nextIndex) {
+      var clamped = Math.max(0, Math.min(items.length - 1, nextIndex));
+      var target = items[clamped];
+      if (!target) {
+        return;
+      }
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (target.tagName && target.tagName.toLowerCase() === "details") {
+        target.open = true;
+      }
+      target.setAttribute("tabindex", "-1");
+      target.focus({ preventScroll: true });
+      nav.setAttribute("data-mobile-index", String(clamped));
+    }
+
+    nav.querySelector(".app-mobile-prev-btn").addEventListener("click", function () {
+      var current = parseInt(nav.getAttribute("data-mobile-index") || "0", 10);
+      focusItem(current - 1);
+    });
+    nav.querySelector(".app-mobile-next-btn").addEventListener("click", function () {
+      var current = parseInt(nav.getAttribute("data-mobile-index") || "0", 10);
+      focusItem(current + 1);
+    });
+    nav.setAttribute("data-mobile-index", "0");
+  }
+
   function boot() {
     if (!document.body || !document.body.classList.contains("mobile-bottom-nav")) {
       return;
@@ -732,19 +818,16 @@
 
       // Filter/Search modalization should work independently from actions panel availability.
       buildFilterModal(header, right, i + 1);
-      // Keep header controls minimal on filter-driven list/table pages:
-      // if a filter toggle is present, skip adding search toggle.
-      if (!right.querySelector(".page-header-mobile-filter-toggle")) {
-        buildSearchToggle(header, right, i + 1);
-      }
+      buildSearchToggle(header, right, i + 1);
 
       // Actions modalization requires an actions source in this header.
-      if (right.querySelector(".page-header-actions, .app-students-actions-panel, .app-ojt-actions-panel, .app-applications-actions-panel, [class*='actions-panel'], .page-header-actions-toggle, .app-page-header-auto-toggle")) {
+      if (right.querySelector(ACTION_PANEL_SELECTOR + ", " + ACTION_TOGGLE_SELECTOR)) {
         buildActionsModal(header, right, i + 1);
         dedupeActionsButtons(right);
       }
     }
     forceHideMobileFilterPanels();
+    ensureMobilePrevNext();
   }
 
   global.BioTernMobileFilterActionsModal = {

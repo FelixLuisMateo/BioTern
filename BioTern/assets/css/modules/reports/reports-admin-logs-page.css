@@ -3,9 +3,9 @@ body.admin-logs-page .main-content {
 }
 
 body.admin-logs-page .logs-hero {
-    padding: 1rem 1.15rem;
+    padding: 0.72rem 0.88rem;
     margin-bottom: 1rem;
-    min-height: 62px;
+    min-height: 48px;
 }
 
 body.admin-logs-page .logs-hero .logs-pill {
@@ -19,8 +19,8 @@ body.admin-logs-page .logs-summary-grid {
 }
 
 body.admin-logs-page .logs-kpi {
-    min-height: 88px;
-    padding: 1rem 1.1rem;
+    min-height: 72px;
+    padding: 0.78rem 0.92rem;
     border: 1px solid var(--report-border);
     border-radius: 14px;
     display: flex;
@@ -36,11 +36,11 @@ body.admin-logs-page .logs-kpi-label {
 }
 
 body.admin-logs-page .logs-kpi-value {
-    font-size: 1.75rem;
+    font-size: 1.42rem;
 }
 
 body.admin-logs-page .logs-filter-wrap {
-    padding: 1rem;
+    padding: 0.72rem 0.82rem;
     margin-bottom: 1rem;
     border: 1px solid var(--report-border);
     border-radius: 14px;
@@ -55,7 +55,15 @@ body.admin-logs-page .logs-filter-wrap .form-label {
 
 body.admin-logs-page .logs-filter-wrap .form-control,
 body.admin-logs-page .logs-filter-wrap .form-select {
-    min-height: 42px;
+    min-height: 36px;
+    padding-top: 0.36rem;
+    padding-bottom: 0.36rem;
+}
+
+body.admin-logs-page .logs-filter-wrap .btn {
+    min-height: 36px;
+    padding-top: 0.36rem;
+    padding-bottom: 0.36rem;
 }
 
 body.admin-logs-page .logs-table-card {
@@ -69,22 +77,30 @@ body.admin-logs-page .logs-table-card .table {
     margin-bottom: 0;
 }
 
+body.admin-logs-page .logs-table-card .table > :not(caption) > * > * {
+    padding: 0.5rem 0.64rem !important;
+}
+
 body.admin-logs-page .logs-table-card thead th {
-    padding: 0.95rem 1rem;
-    font-size: 0.72rem;
+    padding: 0.52rem 0.64rem;
+    font-size: 0.69rem;
+    line-height: 1.15;
     letter-spacing: 0.03em;
 }
 
 body.admin-logs-page .logs-table-card tbody td {
-    padding: 1rem;
+    padding: 0.5rem 0.64rem;
+    font-size: 0.76rem;
+    line-height: 1.2;
     vertical-align: middle;
 }
 
 body.admin-logs-page .logs-activity-comment {
-    max-width: 420px;
+    max-width: 360px;
     color: var(--report-text);
-    font-weight: 700;
-    line-height: 1.45;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.2;
     white-space: normal;
 }
 

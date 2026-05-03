@@ -40,14 +40,9 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         if ($isStudent) {
             $studentDtrItems = [
                 ['label' => 'My Internal DTR', 'href' => 'student-internal-dtr.php', 'icon' => 'feather-clock'],
+                ['label' => 'My External DTR', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'],
                 ['label' => 'Manual DTR', 'href' => 'student-internal-dtr.php#manual-dtr', 'icon' => 'feather-edit-3'],
             ];
-
-            if ($studentHasExternal) {
-                array_splice($studentDtrItems, 1, 0, [
-                    ['label' => 'My External DTR', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'],
-                ]);
-            }
 
             $navGroups[] = [
                 'key' => 'student',

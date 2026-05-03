@@ -1,4 +1,4 @@
-body {
+.dashboard-home {
     --student-card-bg: var(--dash-card-bg, #ffffff);
     --student-card-border: var(--dash-card-border, rgba(15, 23, 42, 0.08));
     --student-card-shadow: var(--dash-card-shadow, 0 10px 30px rgba(15, 23, 42, 0.06));
@@ -552,12 +552,7 @@ html.app-skin-dark .student-shortcut-card i {
     }
 
     .student-home-shell {
-        gap: 0.75rem;
-        padding: 0 0 0.75rem;
-    }
-
-    .student-page-header {
-        margin-bottom: 0.75rem;
+        padding-top: 0.1rem;
     }
 
     .student-quick-grid {
@@ -598,79 +593,5 @@ html.app-skin-dark .student-shortcut-card i {
     .student-detail-list strong,
     .student-attendance-item b {
         text-align: left;
-    }
-
-    .student-metric-card h3 {
-        font-size: 1.4rem;
-    }
-
-    .student-metric-card p,
-    .student-metric-label {
-        font-size: 0.78rem;
-        letter-spacing: 0.08em;
-    }
-
-    .student-panel .card-body,
-    .student-metric-card .card-body {
-        padding: 0.9rem;
-    }
-}
-
-@media (max-width: 575.98px) {
-    .student-home-shell .dashboard-page-header {
-        padding: 0.45rem 0.55rem !important;
-    }
-
-    .student-home-shell .dashboard-page-header .page-header-title h5 {
-        font-size: 1.1rem;
-        line-height: 1.2;
-    }
-
-    .student-home-meta {
-        gap: 0.45rem;
-    }
-
-    .student-home-meta span {
-        padding: 0.42rem 0.62rem;
-        font-size: 0.76rem;
-    }
-
-    .student-metric-card h3 {
-        font-size: 1.25rem;
-    }
-
-    .student-hours-timer {
-        padding: 0.82rem 0.78rem;
-        border-radius: 0.9rem;
-    }
-
-    .student-hours-timer__header h6 {
-        font-size: 0.92rem;
-    }
-
-    .student-hours-timer__summary,
-    .student-hours-timer__sync {
-        font-size: 0.78rem;
-    }
-
-    .student-shortcut-card {
-        min-height: 104px;
-        padding: 0.82rem;
-    }
-
-    .student-shortcut-card i {
-        width: 2.15rem;
-        height: 2.15rem;
-        font-size: 0.9rem;
-    }
-
-    .student-detail-list div,
-    .student-attendance-item {
-        padding: 0.78rem 0.82rem;
-        border-radius: 0.8rem;
-    }
-
-    .student-empty-state {
-        padding: 0.82rem;
     }
 }

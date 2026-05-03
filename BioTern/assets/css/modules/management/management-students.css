@@ -1030,6 +1030,12 @@ html.app-skin-dark .app-students-mobile-empty {
 }
 
 @media (max-width: 991.98px) {
+    body.mobile-bottom-nav.page-students .nxl-content,
+    body.mobile-bottom-nav.students-page .nxl-content {
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
+    }
+
     .nxl-content {
         padding-left: 0.65rem;
         padding-right: 0.65rem;
