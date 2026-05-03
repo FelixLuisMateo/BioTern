@@ -186,7 +186,6 @@ $nav_active_documents = biotern_nav_any_active($nav_current_file, [
     'document_dtr.php',
     'document_waiver.php',
     'document_parent_consent.php',
-    'document_student_performance_internal.php',
 ]);
 $nav_active_student = biotern_nav_any_active($nav_current_file, [
     'student-profile.php',
@@ -316,7 +315,6 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('document_moa.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_moa.php">MOA</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('document_dau_moa.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_dau_moa.php">DAU MOA</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('document_parent_consent.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_parent_consent.php">Parent Consent</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('document_student_performance_internal.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_student_performance_internal.php">Internal Evaluation</a></li>
                     </ul>
                 </li>
                 <li class="nxl-item nxl-hasmenu<?php echo $nav_active_reports ? ' active nxl-trigger' : ''; ?>">

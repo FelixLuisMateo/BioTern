@@ -275,6 +275,258 @@
     padding-bottom: 1.5rem !important;
 }
 
+.student-internal-eval-card {
+    border: 1px solid var(--biotern-border);
+    border-radius: 16px;
+    background: var(--biotern-surface-muted);
+    padding: 1rem;
+}
+
+.student-internal-eval-saved {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.student-internal-eval-saved > div {
+    border: 1px solid var(--biotern-border);
+    border-radius: 14px;
+    background: var(--biotern-surface-muted);
+    padding: 0.75rem 0.85rem;
+}
+
+.student-internal-eval-saved span {
+    display: block;
+    color: #9fb7e8;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.student-internal-eval-saved strong {
+    display: block;
+    margin-top: 0.28rem;
+    color: #f8fbff;
+    font-size: 0.95rem;
+}
+
+.student-internal-eval-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.student-internal-eval-eyebrow {
+    color: #8db1ff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.student-internal-eval-score {
+    min-width: 86px;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid rgba(93, 125, 255, 0.35);
+    border-radius: 14px;
+    background: rgba(93, 125, 255, 0.12);
+    color: #f8fbff;
+    font-size: 1.45rem;
+    font-weight: 900;
+    line-height: 1;
+    text-align: center;
+}
+
+.student-internal-eval-score small {
+    font-size: 0.78rem;
+}
+
+.student-internal-eval-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--biotern-border);
+    border-radius: 14px;
+}
+
+.student-internal-eval-table {
+    min-width: 720px;
+    color: var(--biotern-text);
+}
+
+.student-internal-eval-table th,
+.student-internal-eval-table td {
+    border-color: var(--biotern-border) !important;
+    padding: 0.62rem 0.72rem;
+    vertical-align: middle;
+}
+
+.student-internal-eval-table thead th {
+    color: #dbeafe;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.student-internal-eval-group-row td {
+    background: rgba(93, 125, 255, 0.12);
+    color: #f8fbff;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.student-internal-eval-factor-no {
+    display: inline-block;
+    min-width: 1.4rem;
+    color: #9fb7e8;
+    font-weight: 800;
+}
+
+.student-internal-eval-rating-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.student-internal-eval-rating-control .form-control {
+    width: 82px;
+    text-align: center;
+}
+
+.student-internal-eval-total-row td {
+    color: #f8fbff;
+    font-weight: 900;
+}
+
+.student-internal-eval-print-sheet {
+    display: none;
+}
+
+.student-internal-eval-paper {
+    width: 210mm;
+    min-height: 297mm;
+    box-sizing: border-box;
+    padding: 14mm 16mm;
+    background: #fff;
+    color: #000;
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+    line-height: 1.18;
+}
+
+.student-internal-eval-print-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-bottom: 2px solid #111;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+.student-internal-eval-print-header img {
+    width: 58px;
+    height: auto;
+}
+
+.student-internal-eval-print-header h2,
+.student-internal-eval-print-header p {
+    margin: 0;
+    text-align: center;
+}
+
+.student-internal-eval-print-header h2 {
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.student-internal-eval-paper h3 {
+    margin: 8px 0 12px;
+    font-size: 12px;
+    line-height: 1.25;
+    text-align: center;
+}
+
+.student-internal-eval-print-meta {
+    width: 58%;
+    margin-bottom: 14px;
+}
+
+.student-internal-eval-print-meta p {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 8px;
+    margin: 4px 0;
+}
+
+.student-internal-eval-print-meta span {
+    min-height: 16px;
+    border-bottom: 1px solid #111;
+}
+
+.student-internal-eval-print-purpose {
+    margin: 10px 0;
+}
+
+.student-internal-eval-print-scale {
+    width: 52%;
+    margin: 8px auto 12px;
+}
+
+.student-internal-eval-print-scale p {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    margin: 2px 0;
+}
+
+.student-internal-eval-print-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.student-internal-eval-print-table th,
+.student-internal-eval-print-table td {
+    border: 1px solid #111;
+    padding: 3px 5px;
+    vertical-align: top;
+}
+
+.student-internal-eval-print-table th {
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.student-internal-eval-print-table td:nth-child(2),
+.student-internal-eval-print-table td:nth-child(3) {
+    width: 86px;
+    text-align: center;
+}
+
+.student-internal-eval-print-group td {
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.student-internal-eval-print-recommendation {
+    margin-top: 12px;
+}
+
+.student-internal-eval-print-recommendation div {
+    min-height: 58px;
+    white-space: pre-wrap;
+    border-bottom: 1px solid #111;
+}
+
+.student-internal-eval-print-signature {
+    width: 190px;
+    margin: 34px 0 0 auto;
+    padding-top: 6px;
+    border-top: 1px solid #111;
+    text-align: center;
+}
+
 /* Section: neutralize legacy primary/info blue classes within Student View */
 .app-students-view-page-header .btn-primary,
 .app-students-view-main-content .btn-primary,

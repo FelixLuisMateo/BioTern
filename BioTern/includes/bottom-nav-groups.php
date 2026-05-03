@@ -95,7 +95,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-hours-completion.php',
                     'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
                     'reports-unassigned-students.php', 'reports-document.php',
-                    'document_application.php', 'document_endorsement.php', 'document_moa.php', 'document_dau_moa.php', 'document_parent_consent.php', 'document_student_performance_internal.php',
+                    'document_application.php', 'document_endorsement.php', 'document_moa.php', 'document_dau_moa.php', 'document_parent_consent.php',
                 ],
                 'sections' => [
                     [
@@ -127,7 +127,6 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'MOA', 'href' => 'document_moa.php', 'icon' => 'feather-file-text'],
                             ['label' => 'DAU MOA', 'href' => 'document_dau_moa.php', 'icon' => 'feather-file-text'],
                             ['label' => 'Parent Consent', 'href' => 'document_parent_consent.php', 'icon' => 'feather-file-text'],
-                            ['label' => 'Internal Evaluation', 'href' => 'document_student_performance_internal.php', 'icon' => 'feather-clipboard'],
                         ],
                     ],
                     [
