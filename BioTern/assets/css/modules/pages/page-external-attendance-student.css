@@ -1,7 +1,62 @@
+.external-manual-guide {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.95rem 1rem;
+    border-radius: 1rem;
+    background: rgba(64, 117, 255, 0.1);
+    border: 1px solid rgba(91, 132, 255, 0.22);
+    color: #132f50;
+}
+
+.external-manual-guide strong {
+    color: #102f51;
+    font-size: 0.9rem;
+}
+
+.external-manual-guide span {
+    color: #587799;
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.record-section .form-label {
+    color: #2d4f72;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.record-section .form-control,
+.record-section .form-select {
+    border-color: #c7d6e5;
+    background: #f8fbff;
+    color: #0f3154;
+    font-weight: 600;
+    box-shadow: none;
+}
+
+.record-section .form-control:focus,
+.record-section .form-select:focus {
+    border-color: #6aa7de;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(47, 134, 206, 0.14);
+}
+
 .external-manual-table .external-manual-time-field {
     min-width: 130px;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.02em;
+}
+
+.external-manual-table th,
+.external-history-table th {
+    color: #254a6f;
+}
+
+.external-manual-table td,
+.external-history-table td {
+    color: #173b5f;
 }
 
 @media (max-width: 767.98px) {
@@ -64,6 +119,53 @@ html.app-skin-dark .external-manual-table tr,
 html.app-skin-dark .external-history-table tr {
     background: #0b1f35;
     border-color: rgba(160, 195, 230, 0.18);
+}
+
+html.app-skin-dark .external-manual-guide {
+    background: rgba(91, 132, 255, 0.11);
+    border-color: rgba(145, 190, 230, 0.28);
+    color: #eaf4ff;
+}
+
+html.app-skin-dark .external-manual-guide strong {
+    color: #f7fbff;
+}
+
+html.app-skin-dark .external-manual-guide span {
+    color: #b7d2ed;
+}
+
+html.app-skin-dark .record-section .form-label {
+    color: #cfe6ff;
+}
+
+html.app-skin-dark .record-section .form-control,
+html.app-skin-dark .record-section .form-select {
+    background: #122d49 !important;
+    border-color: #365a7f !important;
+    color: #f6fbff !important;
+    -webkit-text-fill-color: #f6fbff !important;
+    box-shadow: none !important;
+}
+
+html.app-skin-dark .record-section .form-control:focus,
+html.app-skin-dark .record-section .form-select:focus {
+    background: #163655 !important;
+    border-color: #6aa7de !important;
+}
+
+html.app-skin-dark .external-manual-table th,
+html.app-skin-dark .external-history-table th {
+    background: #1a3a5a !important;
+    border-color: #32587e !important;
+    color: #dff0ff !important;
+}
+
+html.app-skin-dark .external-manual-table td,
+html.app-skin-dark .external-history-table td {
+    background: #0b1f35 !important;
+    border-color: #284a6d !important;
+    color: #cfe6ff !important;
 }
 
 html.app-skin-dark .external-manual-table td::before,

@@ -97,7 +97,7 @@ $page_title = 'BioTern || External Biometric DTR';
 $page_styles = [
 	'assets/css/homepage-student.css',
 	'assets/css/student-dtr.css',
-	'assets/css/modules/pages/page-external-biometric.css',
+	'assets/css/modules/pages/page-demo-biometric.css',
 	'assets/css/modules/pages/page-external-attendance-student.css',
 ];
 $page_scripts = [
@@ -244,22 +244,28 @@ if ($studentMode) {
 
 			<section class="record-section mb-4" id="manual-dtr">
 				<div class="card-header border-0 bg-transparent px-4 pt-4">
-					<h5 class="mb-1">Manual External DTR Range Input</h5>
-					<p class="text-muted mb-0">Select your date range, generate one row per day, then enter morning and afternoon times directly.</p>
+					<h5 class="mb-1">Submit Missed External Time</h5>
+					<p class="text-muted mb-0">Use this when your external DTR was not captured or you need to encode days from your physical DTR.</p>
 				</div>
 				<div class="card-body pt-3">
+			<div class="external-manual-guide mb-3">
+				<strong>How to submit external manual DTR:</strong>
+				<span>1. Choose the missed start and end date, then click Generate Date Rows.</span>
+				<span>2. Type time in 24-hour format, like 08:00, 12:00, 13:00, and 17:00.</span>
+				<span>3. Add a short note if needed, then submit. Entries stay pending until review.</span>
+			</div>
 			<form id="manualDtrRangeForm" class="mb-3">
 				<div class="row g-3 align-items-end">
 					<div class="col-12 col-sm-6 col-md-4 mb-2 mb-md-0">
-						<label for="manual_date_from" class="form-label">Date From</label>
+						<label for="manual_date_from" class="form-label">Start Date</label>
 						<input type="date" class="form-control" name="manual_date_from" id="manual_date_from" required>
 					</div>
 					<div class="col-12 col-sm-6 col-md-4 mb-2 mb-md-0">
-						<label for="manual_date_to" class="form-label">Date To</label>
+						<label for="manual_date_to" class="form-label">End Date</label>
 						<input type="date" class="form-control" name="manual_date_to" id="manual_date_to" required>
 					</div>
 					<div class="col-12 col-md-4">
-						<button type="button" class="btn btn-success w-100" id="generateManualDtrRows">Generate Days</button>
+						<button type="button" class="btn btn-success w-100" id="generateManualDtrRows">Generate Date Rows</button>
 					</div>
 				</div>
 			</form>
@@ -267,12 +273,12 @@ if ($studentMode) {
 				<input type="hidden" name="external_action" value="manual_range">
 				<input type="hidden" name="return_to" value="external-biometric.php">
 				<div class="mb-3">
-					<label for="manualDtrNotes" class="form-label">Batch Notes</label>
-					<input type="text" class="form-control" name="notes" id="manualDtrNotes" maxlength="255" placeholder="Optional note for this generated external DTR batch">
+					<label for="manualDtrNotes" class="form-label">Reason / Details</label>
+					<input type="text" class="form-control" name="notes" id="manualDtrNotes" maxlength="255" placeholder="Example: Encoded from physical DTR because the external log was missing.">
 				</div>
 				<div id="manualDtrRows" style="overflow-x:auto;"></div>
 				<div class="mt-3">
-					<button type="submit" class="btn btn-primary w-100">Submit Manual DTR</button>
+					<button type="submit" class="btn btn-primary w-100">Submit External DTR for Review</button>
 				</div>
 			</form>
 				</div>
@@ -304,15 +310,15 @@ document.getElementById('generateManualDtrRows').onclick = function() {
 	for (var d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
 		var dateStr = d.toISOString().slice(0,10);
 		rows.push('<tr>' +
-			'<td>' + dateStr + '<input type="hidden" name="dates[]" value="' + dateStr + '"></td>' +
-			'<td><input type="text" name="morning_time_in[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="08:00" autocomplete="off"></td>' +
-			'<td><input type="text" name="morning_time_out[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="12:00" autocomplete="off"></td>' +
-			'<td><input type="text" name="afternoon_time_in[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="13:00" autocomplete="off"></td>' +
-			'<td><input type="text" name="afternoon_time_out[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="17:00" autocomplete="off"></td>' +
+			'<td data-label="Date"><strong>' + dateStr + '</strong><input type="hidden" name="dates[]" value="' + dateStr + '"></td>' +
+			'<td data-label="Morning In"><input type="text" name="morning_time_in[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="08:00" autocomplete="off"></td>' +
+			'<td data-label="Morning Out"><input type="text" name="morning_time_out[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="12:00" autocomplete="off"></td>' +
+			'<td data-label="Afternoon In"><input type="text" name="afternoon_time_in[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="13:00" autocomplete="off"></td>' +
+			'<td data-label="Afternoon Out"><input type="text" name="afternoon_time_out[]" class="form-control external-manual-time-field" inputmode="numeric" placeholder="17:00" autocomplete="off"></td>' +
 		'</tr>');
 		idx++;
 	}
-	var table = '<div style="overflow-x:auto;"><table class="table table-bordered mt-3"><thead><tr><th>Date</th><th>Morning In</th><th>Morning Out</th><th>Afternoon In</th><th>Afternoon Out</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+	var table = '<div class="table-responsive"><table class="table table-hover align-middle mb-0 external-manual-table"><thead><tr><th>Date</th><th>Morning In</th><th>Morning Out</th><th>Afternoon In</th><th>Afternoon Out</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
 	document.getElementById('manualDtrRows').innerHTML = table;
 	document.getElementById('manualDtrTableForm').style.display = '';
 	enhanceExternalManualTimeFields(document.getElementById('manualDtrRows'));

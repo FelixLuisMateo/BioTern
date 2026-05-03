@@ -346,7 +346,7 @@ if ($currentRole === 'student') {
     $page_styles = [
         'assets/css/homepage-student.css',
         'assets/css/student-dtr.css',
-        'assets/css/modules/pages/page-external-biometric.css',
+        'assets/css/modules/pages/page-demo-biometric.css',
         'assets/css/modules/pages/page-external-attendance-student.css',
     ];
     include 'includes/header.php';

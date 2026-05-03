@@ -155,7 +155,7 @@ $page_title = 'BioTern || Manual External DTR';
 $page_styles = [
     'assets/css/homepage-student.css',
     'assets/css/student-dtr.css',
-    'assets/css/modules/pages/page-external-biometric.css',
+    'assets/css/modules/pages/page-demo-biometric.css',
     'assets/css/modules/pages/page-external-attendance-student.css',
 ];
 include 'includes/header.php';
@@ -189,7 +189,7 @@ include 'includes/header.php';
                         <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center">
                             <div>
                                 <h5 class="mb-1">Date-Range External DTR Capture</h5>
-                                <p class="text-muted mb-0">Sundays are skipped automatically. Existing saved values for the same date will preload in the row.</p>
+                                <p class="text-muted mb-0">Use this for larger external DTR batches from your physical record.</p>
                             </div>
                             <a href="external-attendance.php" class="btn btn-outline-secondary">
                                 <i class="feather-arrow-left me-2"></i>
@@ -198,6 +198,12 @@ include 'includes/header.php';
                         </div>
                     </div>
                     <div class="card-body pt-3">
+                        <div class="external-manual-guide mb-4">
+                            <strong>Before saving, follow this flow:</strong>
+                            <span>1. Pick the date range and generate the rows. Sundays are skipped automatically.</span>
+                            <span>2. Type each time in 24-hour format, like 08:00, 12:00, 13:00, and 17:00.</span>
+                            <span>3. Upload your physical DTR photo if available, add notes, then save for review.</span>
+                        </div>
                         <form method="get" class="row g-3 align-items-end mb-4">
                             <div class="col-md-4">
                                 <label class="form-label" for="externalRangeStart">Start Date</label>
@@ -226,7 +232,7 @@ include 'includes/header.php';
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label" for="externalRangeNotes">Notes</label>
-                                        <input id="externalRangeNotes" type="text" name="range_notes" class="form-control" maxlength="255" placeholder="Optional note for this DTR batch">
+                                        <input id="externalRangeNotes" type="text" name="range_notes" class="form-control" maxlength="255" placeholder="Example: Encoded from my physical external DTR.">
                                     </div>
                                 </div>
 
@@ -262,7 +268,7 @@ include 'includes/header.php';
                                 </div>
 
                                 <div class="d-flex justify-content-end">
-                                    <button type="submit" class="btn btn-success">Save Manual External DTR</button>
+                                    <button type="submit" class="btn btn-success">Save External DTR for Review</button>
                                 </div>
                             </form>
                         <?php endif; ?>
