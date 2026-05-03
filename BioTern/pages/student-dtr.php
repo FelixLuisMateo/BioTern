@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -758,6 +759,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
             }
 
             $success = $successCount > 0;
+            if ($success && function_exists('attendance_workflow_sync_student_progress')) {
+                attendance_workflow_sync_student_progress($conn, $studentId);
+            }
             $_SESSION['student_dtr_flash'] = [
                 'type' => $success ? 'success' : 'danger',
                 'message' => $success

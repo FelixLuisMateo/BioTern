@@ -623,7 +623,7 @@
 }
 
 .student-dtr-record-entry-card .student-dtr-proof-clock strong {
-    color: var(--dtr-text);
+    color: color-mix(in srgb, var(--dtr-text) 88%, #ffffff 12%);
     font-size: clamp(1.5rem, 2.6vw, 2rem);
     line-height: 1;
     letter-spacing: 0.08em;
@@ -631,6 +631,7 @@
 }
 
 .student-dtr-record-entry-card .student-dtr-proof-clock span {
+    color: color-mix(in srgb, var(--dtr-text) 82%, #ffffff 18%) !important;
     font-weight: 700;
 }
 
@@ -1393,6 +1394,36 @@ html.app-skin-dark .student-dtr-metric {
     .student-dtr-table td[data-label="Date"] {
         align-items: flex-start;
         padding-top: 1.4rem;
+    }
+
+    .student-dtr-table td[data-label="Date"],
+    .student-dtr-table td[data-label="Status"] {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        padding: 2rem 0.85rem 0.85rem;
+    }
+
+    .student-dtr-table td[data-label="Date"]::before,
+    .student-dtr-table td[data-label="Status"]::before {
+        right: 0.85rem;
+        width: auto;
+    }
+
+    .student-dtr-table td[data-label="Date"] strong,
+    .student-dtr-table td[data-label="Date"] .student-dtr-cell-note,
+    .student-dtr-table td[data-label="Date"] a,
+    .student-dtr-table td[data-label="Status"] .student-dtr-status,
+    .student-dtr-table td[data-label="Status"] .badge {
+        max-width: 100%;
+        min-width: 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        line-height: 1.25;
+    }
+
+    .student-dtr-table td[data-label="Status"] .badge {
+        margin-left: 0 !important;
     }
 
     html.app-skin-dark .student-dtr-table td::before {

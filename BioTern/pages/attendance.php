@@ -1279,7 +1279,7 @@ function synchronizeAttendanceProgress(mysqli $conn, array &$attendances): void 
     $sumStmt = $conn->prepare("
         SELECT COALESCE(SUM(total_hours), 0) AS rendered
         FROM attendances
-        WHERE student_id = ? AND (status IS NULL OR status <> 'rejected')
+        WHERE student_id = ? AND LOWER(COALESCE(status, 'pending')) = 'approved'
     ");
     $internshipLookupStmt = $conn->prepare("
         SELECT id, required_hours
