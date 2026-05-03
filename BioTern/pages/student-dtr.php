@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -758,6 +759,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
             }
 
             $success = $successCount > 0;
+            if ($success && function_exists('attendance_workflow_sync_student_progress')) {
+                attendance_workflow_sync_student_progress($conn, $studentId);
+            }
             $_SESSION['student_dtr_flash'] = [
                 'type' => $success ? 'success' : 'danger',
                 'message' => $success
@@ -811,7 +815,14 @@ $lastRecordedDateText = $attendanceInsights['last_recorded_date'] !== ''
     ? date('M d, Y', strtotime($attendanceInsights['last_recorded_date']))
     : 'No entries yet';
 
-$page_title = 'BioTern || My Internal DTR';
+$studentDtrManualOnly = defined('BIOTERN_STUDENT_MANUAL_DTR_PAGE') && BIOTERN_STUDENT_MANUAL_DTR_PAGE;
+$studentDtrPageHeading = $studentDtrManualOnly ? 'Manual DTR' : 'My Internal DTR';
+$studentDtrHeroTitle = $studentDtrManualOnly ? 'Record Time Entry' : 'My Internal DTR';
+$studentDtrHeroCopy = $studentDtrManualOnly
+    ? 'Submit a missed internal attendance entry when the biometric machine was unavailable or your time was not captured.'
+    : 'Track your biometric logs, review attendance status, and download monthly attendance reports.';
+
+$page_title = 'BioTern || ' . $studentDtrPageHeading;
 $page_styles = [
     'assets/css/homepage-student.css',
     'assets/css/student-dtr.css',
@@ -826,42 +837,102 @@ include 'includes/header.php';
         <div class="page-header dashboard-page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">My Internal DTR</h5>
+                    <h5 class="m-b-10"><?php echo htmlspecialchars($studentDtrPageHeading, ENT_QUOTES, 'UTF-8'); ?></h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                    <li class="breadcrumb-item">My Internal DTR</li>
+                    <li class="breadcrumb-item"><?php echo htmlspecialchars($studentDtrPageHeading, ENT_QUOTES, 'UTF-8'); ?></li>
                 </ul>
             </div>
         </div>
         <div class="main-content">
-            <div class="student-home-shell student-dtr-shell">
+            <div class="student-home-shell student-dtr-shell<?php echo $studentDtrManualOnly ? ' student-dtr-shell--manual' : ''; ?>">
         <?php if (is_array($studentDtrFlash) && !empty($studentDtrFlash['message'])): ?>
         <div class="alert alert-<?php echo htmlspecialchars((string)($studentDtrFlash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> mt-4">
             <?php echo htmlspecialchars((string)$studentDtrFlash['message'], ENT_QUOTES, 'UTF-8'); ?>
         </div>
         <?php endif; ?>
 
+        <section class="student-dtr-station-hero">
+            <div class="student-dtr-hero-main">
+                <span class="student-dtr-station-chip"><?php echo $studentDtrManualOnly ? 'Manual Attendance Entry' : 'Internal Attendance Station'; ?></span>
+                <div class="student-dtr-persona">
+                    <img src="<?php echo htmlspecialchars($avatarSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?>" class="student-dtr-avatar">
+                    <div>
+                        <h2 class="student-dtr-title"><?php echo htmlspecialchars($studentDtrHeroTitle, ENT_QUOTES, 'UTF-8'); ?></h2>
+                        <p class="student-dtr-hero-copy">
+                            <?php echo htmlspecialchars($studentDtrHeroCopy, ENT_QUOTES, 'UTF-8'); ?>
+                        </p>
+                    </div>
+                </div>
+                <div class="student-dtr-hero-pills">
+                    <span><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php if (!empty($courseSection)): ?>
+                    <span><?php echo htmlspecialchars(implode(' / ', $courseSection), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php endif; ?>
+                    <span><?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                </div>
+            </div>
+            <?php if (!$studentDtrManualOnly): ?>
+            <form method="get" class="student-dtr-station-filter">
+                <div>
+                    <label for="dtrHeroYear">Year</label>
+                    <select id="dtrHeroYear" name="year">
+                        <?php foreach ($availableYears as $yearOption): ?>
+                        <option value="<?php echo (int)$yearOption; ?>" <?php echo (int)$yearOption === $selectedYear ? 'selected' : ''; ?>>
+                            <?php echo (int)$yearOption; ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label for="dtrHeroMonth">Month</label>
+                    <select id="dtrHeroMonth" name="month_num">
+                        <?php foreach ($monthOptions as $monthNumber => $monthLabelOption): ?>
+                        <option value="<?php echo (int)$monthNumber; ?>" <?php echo (int)$monthNumber === $selectedMonthNumber ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($monthLabelOption, ENT_QUOTES, 'UTF-8'); ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <button type="submit">View DTR</button>
+            </form>
+            <?php endif; ?>
+        </section>
+
+        <?php if (!$studentDtrManualOnly): ?>
         <div class="student-dtr-metrics">
             <article class="student-metric-card student-dtr-metric">
-                <div class="student-dtr-meta">Total Logs</div>
-                <strong><?php echo (int)$attendanceSummary['total_logs']; ?></strong>
-                <small>Recorded entries for <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?>.</small>
+                <span class="student-dtr-metric-icon"><i class="feather-list"></i></span>
+                <div>
+                    <div class="student-dtr-meta">Total Logs</div>
+                    <strong><?php echo (int)$attendanceSummary['total_logs']; ?></strong>
+                    <small>Recorded entries for <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?>.</small>
+                </div>
             </article>
             <article class="student-metric-card student-dtr-metric">
-                <div class="student-dtr-meta">Approved</div>
-                <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
-                <small><?php echo number_format((float)$attendanceInsights['approved_hours'], 2); ?> approved hours.</small>
+                <span class="student-dtr-metric-icon approved"><i class="feather-check-circle"></i></span>
+                <div>
+                    <div class="student-dtr-meta">Approved</div>
+                    <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
+                    <small><?php echo number_format((float)$attendanceInsights['approved_hours'], 2); ?> approved hours.</small>
+                </div>
             </article>
             <article class="student-metric-card student-dtr-metric">
-                <div class="student-dtr-meta">Pending</div>
-                <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
-                <small><?php echo number_format((float)$attendanceInsights['pending_hours'], 2); ?> hours waiting.</small>
+                <span class="student-dtr-metric-icon pending"><i class="feather-clock"></i></span>
+                <div>
+                    <div class="student-dtr-meta">Pending</div>
+                    <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
+                    <small><?php echo number_format((float)$attendanceInsights['pending_hours'], 2); ?> hours waiting.</small>
+                </div>
             </article>
             <article class="student-metric-card student-dtr-metric">
-                <div class="student-dtr-meta">Logged Hours</div>
-                <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?></strong>
-                <small>Average <?php echo number_format((float)$attendanceInsights['average_hours'], 2); ?> hours per entry.</small>
+                <span class="student-dtr-metric-icon hours"><i class="feather-activity"></i></span>
+                <div>
+                    <div class="student-dtr-meta">Logged Hours</div>
+                    <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?></strong>
+                    <small>Average <?php echo number_format((float)$attendanceInsights['average_hours'], 2); ?> hours per entry.</small>
+                </div>
             </article>
         </div>
 
@@ -899,21 +970,30 @@ include 'includes/header.php';
                 </form>
             </div>
         </section>
+        <?php endif; ?>
 
         <div class="row g-4 align-items-start mt-0">
-            <div class="col-12 col-xl-8">
-                <section class="card student-panel student-dtr-fallback-card mb-4" id="manual-dtr">
+            <div class="<?php echo $studentDtrManualOnly ? 'col-12 col-xl-8 mx-auto' : 'col-12 col-xl-8'; ?>">
+                <?php if ($studentDtrManualOnly): ?>
+                <section class="card student-panel student-dtr-fallback-card student-dtr-record-entry-card mb-4" id="manual-dtr">
                     <div class="card-body">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                             <div>
                                 <span class="student-metric-label">Manual DTR</span>
-                                <h3 class="mb-1">Submit Missed Internal Time</h3>
+                                <h3 class="mb-1"><i class="feather-log-in me-1"></i> Record Time Entry</h3>
                                 <div class="student-dtr-meta">Use this only when the biometric machine was unavailable or your time was not captured.</div>
                             </div>
                         </div>
                         <form method="post" enctype="multipart/form-data" class="row g-3">
                             <input type="hidden" name="student_action" value="submit_machine_down">
                             <input type="hidden" name="proof_clock_time" id="proofClockTime" value="">
+                            <div class="col-12 student-dtr-clock-wrap">
+                                <label class="form-label">Current Clock</label>
+                                <div class="form-control d-flex align-items-center justify-content-between student-dtr-proof-clock">
+                                    <strong id="proofClockDisplay">--:--:--</strong>
+                                    <span class="text-muted small" id="proofClockDate">--</span>
+                                </div>
+                            </div>
                             <div class="col-12">
                                 <div class="student-dtr-fallback-guide">
                                     <strong>Before submitting, follow this flow:</strong>
@@ -936,13 +1016,6 @@ include 'includes/header.php';
                             <div class="col-md-4">
                                 <label class="form-label" for="fallbackAttendanceEndDate">End Date</label>
                                 <input type="date" class="form-control" id="fallbackAttendanceEndDate" name="attendance_end_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Current Clock</label>
-                                <div class="form-control d-flex align-items-center justify-content-between student-dtr-proof-clock">
-                                    <strong id="proofClockDisplay">--:--:--</strong>
-                                    <span class="text-muted small" id="proofClockDate">--</span>
-                                </div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="proofImage">Proof Image</label>
@@ -1007,7 +1080,9 @@ include 'includes/header.php';
                         </form>
                     </div>
                 </section>
+                <?php endif; ?>
 
+                <?php if (!$studentDtrManualOnly): ?>
                 <section class="card student-panel">
                     <div class="card-body">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
@@ -1107,8 +1182,10 @@ include 'includes/header.php';
                         <?php endif; ?>
                     </div>
                 </section>
+                <?php endif; ?>
             </div>
 
+            <?php if (!$studentDtrManualOnly): ?>
             <div class="col-12 col-xl-4">
                 <section class="card student-panel student-dtr-side-card">
                     <div class="card-body">
@@ -1171,19 +1248,8 @@ include 'includes/header.php';
                         </div>
                     </div>
                 </section>
-
-                <section class="card student-panel mt-4">
-                    <div class="card-body">
-                        <span class="student-metric-label">Quick Links</span>
-                        <div class="d-grid gap-2">
-                            <a href="student-profile.php" class="btn btn-outline-primary">My Profile</a>
-                            <a href="student-documents.php" class="btn btn-outline-secondary">My Documents</a>
-                            <a href="student-internal-dtr.php#manual-dtr" class="btn btn-outline-secondary">Manual DTR</a>
-                            <a href="apps-calendar.php" class="btn btn-outline-secondary">Calendar</a>
-                        </div>
-                    </div>
-                </section>
             </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>

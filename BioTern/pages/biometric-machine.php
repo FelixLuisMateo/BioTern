@@ -86,6 +86,58 @@ function machine_open_bridge_log_tail_shell(string $workspaceRoot): void
     pclose(popen($launchCmd, 'r'));
 }
 
+function machine_run_local_powershell(array $arguments, int $timeoutSeconds = 90): array
+{
+    if (stripos(PHP_OS_FAMILY, 'Windows') !== 0 || machine_is_cloud_runtime()) {
+        throw new RuntimeException('Bridge repair actions can only run from the local Windows bridge computer.');
+    }
+
+    $escaped = array_map('escapeshellarg', $arguments);
+    $command = 'powershell.exe ' . implode(' ', $escaped);
+    $descriptorSpec = [
+        0 => ['pipe', 'r'],
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ];
+
+    $process = proc_open($command, $descriptorSpec, $pipes, dirname(__DIR__));
+    if (!is_resource($process)) {
+        throw new RuntimeException('Unable to start PowerShell.');
+    }
+
+    fclose($pipes[0]);
+    stream_set_blocking($pipes[1], false);
+    stream_set_blocking($pipes[2], false);
+
+    $stdout = '';
+    $stderr = '';
+    $startedAt = time();
+    while (true) {
+        $stdout .= (string)stream_get_contents($pipes[1]);
+        $stderr .= (string)stream_get_contents($pipes[2]);
+        $status = proc_get_status($process);
+        if (empty($status['running'])) {
+            break;
+        }
+        if ((time() - $startedAt) > $timeoutSeconds) {
+            proc_terminate($process);
+            throw new RuntimeException('PowerShell command timed out while repairing the bridge task.');
+        }
+        usleep(150000);
+    }
+
+    $stdout .= (string)stream_get_contents($pipes[1]);
+    $stderr .= (string)stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    $exitCode = proc_close($process);
+
+    return [
+        'exit_code' => $exitCode,
+        'output' => trim($stdout . ($stderr !== '' ? "\n" . $stderr : '')),
+    ];
+}
+
 function machine_is_cloud_runtime(): bool
 {
     return getenv('VERCEL') !== false
@@ -1224,6 +1276,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'clear_users',
             'clear_admin',
             'restart',
+            'restart_windows',
             'save_device_identity',
         ];
         if (in_array($action, $adminOnlyActions, true) && !$isAdmin) {
@@ -1265,11 +1318,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new RuntimeException('Direct machine commands are disabled in cloud runtime. Use F20H direct ingest by posting events to /api/f20h_ingest.php, then run Sync Now to reconcile logs into attendance.');
         }
 
-        if (machine_is_cloud_runtime() && in_array($action, ['open_restart_bridge_shell', 'open_bridge_log_tail_shell'], true)) {
+        if (machine_is_cloud_runtime() && in_array($action, ['open_restart_bridge_shell', 'open_bridge_log_tail_shell', 'repair_bridge_task_now', 'restart_bridge_task_now'], true)) {
             throw new RuntimeException('Bridge shell launcher actions are available only on the local Windows bridge computer.');
         }
 
         switch ($action) {
+            case 'repair_bridge_task_now':
+                $bridgeProfile = machine_fetch_bridge_profile($conn);
+                $bridgeToken = trim((string)($bridgeProfile['bridge_token'] ?? ''));
+                if ($bridgeToken === '') {
+                    $envBridgeToken = getenv('BIOTERN_BRIDGE_TOKEN');
+                    if (is_string($envBridgeToken) && trim($envBridgeToken) !== '') {
+                        $bridgeToken = trim($envBridgeToken);
+                    }
+                }
+                if ($bridgeToken === '') {
+                    throw new RuntimeException('Bridge token is missing. Save the Bridge Profile first, then try repair again.');
+                }
+
+                $baseUrl = trim((string)($bridgeProfile['cloud_base_url'] ?? ''));
+                if ($baseUrl === '') {
+                    $baseUrl = machine_bridge_default_cloud_base_url();
+                }
+                if ($baseUrl === '') {
+                    throw new RuntimeException('Cloud base URL is missing. Save the Bridge Profile first, then try repair again.');
+                }
+
+                $workspaceRoot = dirname(__DIR__);
+                $result = machine_run_local_powershell([
+                    '-NoProfile',
+                    '-ExecutionPolicy',
+                    'Bypass',
+                    '-File',
+                    $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'install-bridge-worker-task.ps1',
+                    '-SiteBaseUrl',
+                    $baseUrl,
+                    '-BridgeToken',
+                    $bridgeToken,
+                    '-TaskName',
+                    'BioTernBridgeWorker',
+                    '-PreferLocalConnectorNetwork',
+                    '0',
+                ]);
+
+                if ((int)$result['exit_code'] !== 0) {
+                    throw new RuntimeException($result['output'] !== '' ? $result['output'] : 'Bridge repair command failed.');
+                }
+
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => 'Bridge auto-start task repaired and started.' . ($result['output'] !== '' ? "\n" . $result['output'] : ''),
+                ];
+                machine_redirect_after_post([]);
+
+            case 'restart_bridge_task_now':
+                $workspaceRoot = dirname(__DIR__);
+                $result = machine_run_local_powershell([
+                    '-NoProfile',
+                    '-ExecutionPolicy',
+                    'Bypass',
+                    '-File',
+                    $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'manage-bridge-worker-task.ps1',
+                    '-Action',
+                    'restart',
+                    '-TaskName',
+                    'BioTernBridgeWorker',
+                ]);
+
+                if ((int)$result['exit_code'] !== 0) {
+                    throw new RuntimeException($result['output'] !== '' ? $result['output'] : 'Bridge restart command failed.');
+                }
+
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => 'Bridge worker restarted.' . ($result['output'] !== '' ? "\n" . $result['output'] : ''),
+                ];
+                machine_redirect_after_post([]);
+
             case 'open_restart_bridge_shell':
                 machine_open_restart_bridge_shell(dirname(__DIR__));
                 $_SESSION['machine_manager_flash'] = [
@@ -2070,6 +2195,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Restart command sent to the machine.'];
                 machine_redirect_after_post([]);
 
+            case 'restart_windows':
+                if (machine_is_cloud_runtime()) {
+                    throw new RuntimeException('Windows restart is not available in cloud runtime.');
+                }
+                if (stripos(PHP_OS_FAMILY, 'Windows') !== 0) {
+                    throw new RuntimeException('Windows restart is only available on Windows hosts.');
+                }
+                $shutdownCmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "shutdown.exe /r /t 30 /c \"BioTern Bridge Restart initiated\""';
+                pclose(popen($shutdownCmd, 'r'));
+                $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Windows restart initiated. System will restart in 30 seconds. Bridge will restart automatically on boot.'];
+                machine_redirect_after_post([]);
+
             case 'save_device_identity':
                 $deviceNo = trim((string)($_POST['device_number'] ?? ''));
                 $password = trim((string)($_POST['communication_password'] ?? ''));
@@ -2481,10 +2618,6 @@ include __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-        <div class="alert alert-info machine-info-note" role="note" aria-label="F20H data handling notice">
-            Fingerprint templates stay on the F20H. BioTern only manages machine user records, mappings, and attendance events. Card numbers are masked for non-admin views.
-        </div>
-
         <div class="row g-3 mb-3">
             <div class="col-md-4">
                 <div class="card stretch stretch-full machine-kpi-card">
@@ -2589,6 +2722,18 @@ include __DIR__ . '/../includes/header.php';
                             <button type="submit" class="btn btn-primary w-100"><?php echo $cloudRuntime || $syncMode === 'direct_ingest' ? 'Process Ingest Queue' : 'Sync Now'; ?></button>
                         </form>
                         <?php if ($isAdmin && !$cloudRuntime): ?>
+                            <form method="post" class="mt-2" data-confirm="Repair and start the BioTern bridge task on this Windows computer?">
+                                <input type="hidden" name="machine_action" value="repair_bridge_task_now">
+                                <button type="submit" class="btn btn-success w-100">Repair Bridge Now</button>
+                            </form>
+                            <form method="post" class="mt-2">
+                                <input type="hidden" name="machine_action" value="restart_bridge_task_now">
+                                <button type="submit" class="btn btn-outline-success w-100">Restart Bridge Now</button>
+                            </form>
+                            <form method="post" class="mt-2" onsubmit="return confirm('Restart Windows? System will restart in 30 seconds. Bridge will restart automatically on boot.')">
+                                <input type="hidden" name="machine_action" value="restart_windows">
+                                <button type="submit" class="btn btn-danger w-100">Restart Windows</button>
+                            </form>
                             <form method="post" class="mt-2">
                                 <input type="hidden" name="machine_action" value="open_restart_bridge_shell">
                                 <button type="submit" class="btn btn-outline-dark w-100">Open PowerShell: Restart Bridge Worker</button>
@@ -2652,11 +2797,6 @@ include __DIR__ . '/../includes/header.php';
                         <button class="btn btn-sm btn-outline-secondary machine-section-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#machineUsersCollapse" aria-expanded="true" aria-controls="machineUsersCollapse">Toggle Users</button>
                     </div>
                     <div class="card-body collapse show" id="machineUsersCollapse">
-                        <?php if ($cloudRuntime): ?>
-                            <div class="alert alert-warning">
-                                Direct LAN reads are not available in Vercel runtime. Use Read All Users (Bridge Cache) after bridge worker sync from Router 2.
-                            </div>
-                        <?php endif; ?>
                         <form method="post" class="row g-2 align-items-end mb-3">
                             <input type="hidden" name="machine_action" value="get_user">
                             <div class="col-sm-6">

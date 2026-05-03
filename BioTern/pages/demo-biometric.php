@@ -1,10 +1,4 @@
 <?php
-// This file has been renamed. Please use external-biometric.php instead.
-header('Location: external-biometric.php');
-exit;
-
-?>
-<?php
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
@@ -122,11 +116,11 @@ function calculate_attendance_hours(array $row) {
 }
 
 function sync_student_hours(mysqli $conn, int $student_id) {
-    // Recompute total rendered hours from non-rejected attendance records.
+    // Only approved records should reduce the student's remaining required hours.
     $sum_stmt = $conn->prepare("
         SELECT COALESCE(SUM(total_hours), 0) AS rendered
         FROM attendances
-        WHERE student_id = ? AND (status IS NULL OR status <> 'rejected')
+        WHERE student_id = ? AND LOWER(COALESCE(status, 'pending')) = 'approved'
     ");
     $sum_stmt->bind_param("i", $student_id);
     $sum_stmt->execute();

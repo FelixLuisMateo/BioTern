@@ -98,6 +98,10 @@ $student_name = trim(($student['first_name'] ?? '') . ' ' . ($student['middle_na
 if ($student_name === '') {
     $student_name = 'Student #' . (string)($student['student_id'] ?? $student_id);
 }
+$viewer_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+$is_student_viewer = ($viewer_role === 'student');
+$profile_back_href = $is_student_viewer ? 'student-profile.php' : ('students-view.php?id=' . intval($student_id));
+$profile_back_label = $is_student_viewer ? 'Back to My Profile' : 'Back to Profile';
 $assignment_track = strtolower((string)($student['assignment_track'] ?? 'internal'));
 $total_hours_target = $assignment_track === 'external'
     ? (float)($student['external_total_hours'] ?? 0)
@@ -152,7 +156,7 @@ include 'includes/header.php';
             <h5 class="m-b-10">Student Internal Daily Time Record</h5>
         </div>
         <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="students-view.php?id=<?php echo intval($student_id); ?>">Student Profile</a></li>
+            <li class="breadcrumb-item"><a href="<?php echo h($profile_back_href); ?>"><?php echo $is_student_viewer ? 'My Profile' : 'Student Profile'; ?></a></li>
             <li class="breadcrumb-item">Internal DTR</li>
         </ul>
     </div>
@@ -162,9 +166,9 @@ include 'includes/header.php';
                 <i class="feather-corner-up-left me-2"></i>
                 <span>Last Month</span>
             </a>
-            <a href="students-view.php?id=<?php echo intval($student_id); ?>" class="btn btn-outline-secondary">
+            <a href="<?php echo h($profile_back_href); ?>" class="btn btn-outline-secondary">
                 <i class="feather-arrow-left me-2"></i>
-                <span>Back to Profile</span>
+                <span><?php echo h($profile_back_label); ?></span>
             </a>
             <a href="document_dtr.php?track=internal&student_id=<?php echo intval($student_id); ?>&start_date=<?php echo h($start_date_input); ?>&end_date=<?php echo h($end_date_input); ?>" target="_blank" rel="noopener" class="btn btn-primary">
                 <i class="feather-printer me-2"></i>

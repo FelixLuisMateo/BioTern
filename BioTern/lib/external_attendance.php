@@ -613,7 +613,7 @@ if (!function_exists('external_attendance_sync_student_hours')) {
         $sumStmt = $conn->prepare("
             SELECT COALESCE(SUM(total_hours), 0) AS rendered
             FROM external_attendance
-            WHERE student_id = ? AND status <> 'rejected'
+            WHERE student_id = ? AND LOWER(COALESCE(status, 'pending')) = 'approved'
         ");
         if (!$sumStmt) {
             return;

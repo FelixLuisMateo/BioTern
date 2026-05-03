@@ -538,7 +538,7 @@ include 'includes/header.php';
                         . ' of ' . number_format($student_timer_total_hours, 0) . ' hrs completed'
                     : 'No required hours are configured yet. Check your profile for assignment details.';
                 $student_dtr_route = $student_has_external_track ? 'external-biometric.php' : 'student-internal-dtr.php';
-                $student_dtr_label = $student_has_external_track ? 'My External DTR' : 'My Internal DTR';
+                $student_dtr_label = $student_has_external_track ? 'External Biometric' : 'My Internal DTR';
                 $student_dtr_summary = $student_has_external_track
                     ? 'Check your external attendance and hours.'
                     : 'Check attendance and hours.';

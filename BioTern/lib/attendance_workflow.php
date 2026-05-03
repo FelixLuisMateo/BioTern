@@ -370,7 +370,7 @@ if (!function_exists('attendance_workflow_sync_student_progress')) {
         $sumStmt = $conn->prepare("
             SELECT COALESCE(SUM(total_hours), 0) AS rendered
             FROM attendances
-            WHERE student_id = ? AND (status IS NULL OR status <> 'rejected')
+            WHERE student_id = ? AND LOWER(COALESCE(status, 'pending')) = 'approved'
         ");
         if (!$sumStmt) {
             return;

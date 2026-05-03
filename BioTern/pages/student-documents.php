@@ -37,6 +37,25 @@ function student_documents_fetch_row(mysqli $conn, string $table, int $studentId
     return $row;
 }
 
+function student_documents_fetch_by_student_or_user(mysqli $conn, string $table, int $studentId, int $userId): ?array
+{
+    if ($studentId <= 0 || !student_documents_table_exists($conn, $table)) {
+        return null;
+    }
+
+    $stmt = $conn->prepare("SELECT * FROM `{$table}` WHERE user_id IN (?, ?) ORDER BY id DESC LIMIT 1");
+    if (!$stmt) {
+        return student_documents_fetch_row($conn, $table, $studentId);
+    }
+
+    $stmt->bind_param('ii', $studentId, $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc() ?: null;
+    $stmt->close();
+
+    return $row;
+}
+
 function student_documents_build_url(string $base, array $params): string
 {
     $clean = [];
@@ -97,10 +116,10 @@ if ($displayName === '') {
 $sectionLabel = biotern_format_section_label((string)($student['section_code'] ?? ''), (string)($student['section_name'] ?? ''));
 $avatarSrc = biotern_avatar_public_src((string)($user['profile_picture'] ?? ''), $currentUserId);
 
-$applicationRow = student_documents_fetch_row($conn, 'application_letter', $studentId);
-$endorsementRow = student_documents_fetch_row($conn, 'endorsement_letter', $studentId);
-$moaRow = student_documents_fetch_row($conn, 'moa', $studentId);
-$dauMoaRow = student_documents_fetch_row($conn, 'dau_moa', $studentId);
+$applicationRow = student_documents_fetch_by_student_or_user($conn, 'application_letter', $studentId, $currentUserId);
+$endorsementRow = student_documents_fetch_by_student_or_user($conn, 'endorsement_letter', $studentId, $currentUserId);
+$moaRow = student_documents_fetch_by_student_or_user($conn, 'moa', $studentId, $currentUserId);
+$dauMoaRow = student_documents_fetch_by_student_or_user($conn, 'dau_moa', $studentId, $currentUserId);
 
 $documentCards = [
     [
@@ -126,12 +145,12 @@ $documentCards = [
     [
         'title' => 'Parent Consent and Waiver',
         'status' => 'Available to view and print anytime.',
-        'view_url' => 'document_parent_consent.php',
+        'view_url' => student_documents_build_url('document_parent_consent.php', ['student_id' => $studentId]),
     ],
     [
         'title' => 'Resume',
         'status' => 'Available from your linked BioTern profile.',
-        'view_url' => student_documents_build_url('pages/generate_resume.php', ['id' => $studentId]),
+        'view_url' => student_documents_build_url('generate_resume.php', ['id' => $studentId]),
     ],
 ];
 

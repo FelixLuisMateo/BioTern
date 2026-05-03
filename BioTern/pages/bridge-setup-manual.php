@@ -157,6 +157,67 @@ function bridge_manual_send_kit_zip(string $workspaceRoot): void
     exit;
 }
 
+function bridge_manual_is_local_windows_runtime(): bool
+{
+    $host = strtolower(trim((string)($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '')));
+    $isLocalHost = $host === ''
+        || preg_match('/^(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/', $host);
+
+    return stripos(PHP_OS_FAMILY, 'Windows') === 0 && (bool)$isLocalHost;
+}
+
+function bridge_manual_run_powershell(array $arguments, int $timeoutSeconds = 90): array
+{
+    if (!bridge_manual_is_local_windows_runtime()) {
+        throw new RuntimeException('One-click bridge repair can only run from the local Windows/XAMPP bridge computer.');
+    }
+
+    $escaped = array_map('escapeshellarg', $arguments);
+    $command = 'powershell.exe ' . implode(' ', $escaped);
+    $descriptorSpec = [
+        0 => ['pipe', 'r'],
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ];
+
+    $process = proc_open($command, $descriptorSpec, $pipes, dirname(__DIR__));
+    if (!is_resource($process)) {
+        throw new RuntimeException('Unable to start PowerShell.');
+    }
+
+    fclose($pipes[0]);
+    stream_set_blocking($pipes[1], false);
+    stream_set_blocking($pipes[2], false);
+
+    $stdout = '';
+    $stderr = '';
+    $startedAt = time();
+    while (true) {
+        $stdout .= (string)stream_get_contents($pipes[1]);
+        $stderr .= (string)stream_get_contents($pipes[2]);
+        $status = proc_get_status($process);
+        if (empty($status['running'])) {
+            break;
+        }
+        if ((time() - $startedAt) > $timeoutSeconds) {
+            proc_terminate($process);
+            throw new RuntimeException('PowerShell command timed out while repairing bridge task.');
+        }
+        usleep(150000);
+    }
+
+    $stdout .= (string)stream_get_contents($pipes[1]);
+    $stderr .= (string)stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    $exitCode = proc_close($process);
+
+    return [
+        'exit_code' => $exitCode,
+        'output' => trim($stdout . ($stderr !== '' ? "\n" . $stderr : '')),
+    ];
+}
+
 $workspaceRoot = dirname(__DIR__);
 $download = trim((string)($_GET['download'] ?? ''));
 if ($download !== '') {
@@ -196,7 +257,7 @@ if ($baseUrl === '') {
     }
 }
 if ($baseUrl === '') {
-    $baseUrl = 'https://biotern-ccst.vercel.app';
+    $baseUrl = 'https://biotern.vercel.app';
 }
 if (stripos($baseUrl, 'http://') === 0) {
     $baseUrl = 'https://' . substr($baseUrl, 7);
@@ -217,6 +278,73 @@ $statusCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\
 $restartCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\manage-bridge-worker-task.ps1" -Action restart -TaskName "BioTernBridgeWorker"';
 $execPolicyCommand = 'Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force';
 $openFolderHint = 'Open the extracted folder that contains the tools folder, then open PowerShell in that folder.';
+$bridgeManualFlash = $_SESSION['bridge_manual_flash'] ?? null;
+unset($_SESSION['bridge_manual_flash']);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $manualAction = trim((string)($_POST['bridge_manual_action'] ?? ''));
+    try {
+        if ($manualAction === 'repair_bridge_now') {
+            if ($bridgeToken === '' || $bridgeToken === 'YOUR_BRIDGE_TOKEN') {
+                throw new RuntimeException('Bridge token is missing. Save the Bridge Profile first, then try repair again.');
+            }
+
+            $result = bridge_manual_run_powershell([
+                '-NoProfile',
+                '-ExecutionPolicy',
+                'Bypass',
+                '-File',
+                $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'install-bridge-worker-task.ps1',
+                '-SiteBaseUrl',
+                $baseUrl,
+                '-BridgeToken',
+                $bridgeToken,
+                '-TaskName',
+                'BioTernBridgeWorker',
+                '-PreferLocalConnectorNetwork',
+                '0',
+            ]);
+
+            if ((int)$result['exit_code'] !== 0) {
+                throw new RuntimeException($result['output'] !== '' ? $result['output'] : 'Bridge repair command failed.');
+            }
+
+            $_SESSION['bridge_manual_flash'] = [
+                'type' => 'success',
+                'message' => 'Bridge auto-start task repaired and started. ' . trim((string)$result['output']),
+            ];
+        } elseif ($manualAction === 'restart_bridge_now') {
+            $result = bridge_manual_run_powershell([
+                '-NoProfile',
+                '-ExecutionPolicy',
+                'Bypass',
+                '-File',
+                $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'manage-bridge-worker-task.ps1',
+                '-Action',
+                'restart',
+                '-TaskName',
+                'BioTernBridgeWorker',
+            ]);
+
+            if ((int)$result['exit_code'] !== 0) {
+                throw new RuntimeException($result['output'] !== '' ? $result['output'] : 'Bridge restart command failed.');
+            }
+
+            $_SESSION['bridge_manual_flash'] = [
+                'type' => 'success',
+                'message' => 'Bridge worker restarted. ' . trim((string)$result['output']),
+            ];
+        }
+    } catch (Throwable $e) {
+        $_SESSION['bridge_manual_flash'] = [
+            'type' => 'danger',
+            'message' => $e->getMessage(),
+        ];
+    }
+
+    header('Location: bridge-setup-manual.php');
+    exit;
+}
 
 $page_title = 'BioTern || Bridge Setup Manual';
 $page_body_class = 'page-bridge-setup-manual';
@@ -247,6 +375,13 @@ include __DIR__ . '/../includes/header.php';
                 </a>
             </div>
         </div>
+
+        <?php if (is_array($bridgeManualFlash)): ?>
+            <div class="alert alert-<?php echo bridge_manual_h((string)($bridgeManualFlash['type'] ?? 'info')); ?> alert-dismissible fade show" role="alert">
+                <?php echo nl2br(bridge_manual_h((string)($bridgeManualFlash['message'] ?? ''))); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
 
         <div class="card bio-console-hero mb-3">
             <div class="card-body">
@@ -374,6 +509,18 @@ include __DIR__ . '/../includes/header.php';
                 <div class="card stretch stretch-full">
                     <div class="card-header"><h6 class="card-title mb-0">Step 4: Verify and Maintain</h6></div>
                     <div class="card-body">
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <form method="post" data-confirm="Repair and start the BioTern bridge task on this Windows computer?">
+                                <input type="hidden" name="bridge_manual_action" value="repair_bridge_now">
+                                <button type="submit" class="btn btn-primary">Repair Bridge Now</button>
+                            </form>
+                            <form method="post">
+                                <input type="hidden" name="bridge_manual_action" value="restart_bridge_now">
+                                <button type="submit" class="btn btn-outline-primary">Restart Bridge Now</button>
+                            </form>
+                        </div>
+                        <small class="text-muted d-block mb-3">These buttons work only when this page is opened from the local Windows/XAMPP bridge computer.</small>
+
                         <label class="form-label">Check status anytime</label>
                         <div class="input-group mb-2">
                             <input type="text" class="form-control" id="bridgeManualStatusCmd" value="<?php echo bridge_manual_h($statusCommand); ?>" readonly>

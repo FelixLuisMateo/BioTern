@@ -103,6 +103,7 @@ $map = [
   'generate_moa.php' => 'documents/document_moa.php',
   'generate_resume.php' => 'pages/generate_resume.php',
   'import_database.php' => 'pages/import_database.php',
+  'demo-biometric.php' => 'pages/demo-biometric.php',
   'external-biometric.php' => 'pages/external-biometric.php',
   'fingerprint_mapping.php' => 'pages/fingerprint_mapping.php',
   'ojt-internal-list.php' => 'pages/ojt-internal-list.php',
@@ -134,7 +135,7 @@ $map = [
   'document_parent_consent.php' => 'documents/document_parent_consent.php',
   'student-profile.php' => 'pages/student-profile.php',
   'student-dtr.php' => 'pages/student-dtr.php',
-  'student-internal-dtr.php' => 'pages/student-dtr.php',
+  'student-internal-dtr.php' => 'pages/student-internal-dtr.php',
   'manual-dtr-proof.php' => 'pages/manual-dtr-proof.php',
   'student-documents.php' => 'pages/student-documents.php',
   'student-application-letter.php' => 'pages/student-application-letter.php',
@@ -375,7 +376,7 @@ if ($is_logged_in) {
     'applications-review.php',
     'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php',
     'external-attendance.php', 'external-attendance-manual.php',
-    'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'bridge-setup-manual.php', 'biometric_machine_sync.php',
+    'demo-biometric.php', 'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'bridge-setup-manual.php', 'biometric_machine_sync.php',
     'ojt-internal-list.php', 'ojt-external-list.php', 'ojt-external-view.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
     'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
@@ -406,6 +407,7 @@ if ($is_logged_in) {
   if (in_array($file, $internship_files, true) && !in_array($current_role, ['admin', 'coordinator', 'supervisor'], true)) {
     $student_internship_allowed_files = [
       'external-biometric.php',
+      'demo-biometric.php',
       'student-external-dtr.php',
       'student-manual-dtr.php',
       'student-dtr.php',

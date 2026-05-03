@@ -24,5 +24,5 @@ if ($assignmentTrack === 'external') {
     exit;
 }
 
-header('Location: student-internal-dtr.php#manual-dtr');
-exit;
+define('BIOTERN_STUDENT_MANUAL_DTR_PAGE', true);
+require __DIR__ . '/student-dtr.php';

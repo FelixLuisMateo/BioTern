@@ -115,15 +115,6 @@ if ($nav_current_file === '') {
     $nav_current_file = strtolower(basename((string)$nav_request_path));
 }
 $nav_student_has_external_access = ($nav_student_track === 'external') || ($nav_is_student && $nav_current_file === 'external-biometric.php');
-if ($nav_is_student && !$nav_student_has_external_access && $nav_student_id > 0 && isset($conn) && $conn instanceof mysqli) {
-    $nav_external_stmt = $conn->prepare('SELECT 1 FROM external_attendance WHERE student_id = ? LIMIT 1');
-    if ($nav_external_stmt) {
-        $nav_external_stmt->bind_param('i', $nav_student_id);
-        $nav_external_stmt->execute();
-        $nav_student_has_external_access = (bool)($nav_external_stmt->get_result()->fetch_assoc() ?: null);
-        $nav_external_stmt->close();
-    }
-}
 
 if (!function_exists('biotern_nav_route_key')) {
     function biotern_nav_route_key($href) {
@@ -228,7 +219,7 @@ $nav_active_student_tools = biotern_nav_any_active($nav_current_file, [
 ]);
 $nav_active_tools = biotern_nav_any_active($nav_current_file, [
     'theme-customizer.php', 'import-sql.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php',
-    'reports-import-errors.php', 'reports-dtr-manual-input.php',
+    'reports-import-errors.php', 'reports-dtr-manual-input.php', 'demo-biometric.php',
 ]);
 ?>
 <nav class="nxl-navigation">
@@ -356,7 +347,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                 <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['student-external-dtr.php', 'external-biometric.php']) ? ' active' : ''; ?>">
                     <a href="external-biometric.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-briefcase"></i></span>
-                        <span class="nxl-mtext">My External DTR</span>
+                        <span class="nxl-mtext">External Biometric</span>
                     </a>
                 </li>
                 <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['student-dtr.php', 'student-internal-dtr.php', 'student-manual-dtr.php']) ? ' active' : ''; ?>">
@@ -515,6 +506,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('import-ojt-external.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-ojt-external.php">Import OJT External</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-import-errors.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-import-errors.php">Import Error Report</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-dtr-manual-input.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-dtr-manual-input.php">Manual DTR Input</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('demo-biometric.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="demo-biometric.php">Biometric Demo</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('import-sql.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-sql.php">Data Transfer</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('theme-customizer.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="theme-customizer.php">Appearance</a></li>
                     </ul>

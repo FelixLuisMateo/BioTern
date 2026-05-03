@@ -20,19 +20,6 @@ if ($studentMode) {
 	$track = strtolower(trim((string)($studentContext['assignment_track'] ?? 'internal')));
 	$allowExternal = ($track === 'external');
 
-	if ($studentContext && !$allowExternal) {
-		$studentId = (int)($studentContext['id'] ?? 0);
-		if ($studentId > 0) {
-			$accessStmt = $conn->prepare("SELECT 1 FROM external_attendance WHERE student_id = ? LIMIT 1");
-			if ($accessStmt) {
-				$accessStmt->bind_param('i', $studentId);
-				$accessStmt->execute();
-				$allowExternal = (bool)($accessStmt->get_result()->fetch_assoc() ?: null);
-				$accessStmt->close();
-			}
-		}
-	}
-
 	if (!$studentContext || !$allowExternal) {
 		header('Location: homepage.php');
 		exit;
@@ -165,10 +152,10 @@ if ($studentMode) {
 			<section class="bio-hero">
 				<div class="bio-hero-chip">
 					<i class="feather-shield"></i>
-					<span>External Biometric DTR</span>
+					<span>Account-Linked External Biometric</span>
 				</div>
 				<h2><?php echo htmlspecialchars(trim((string)($studentContext['first_name'] . ' ' . $studentContext['last_name'])), ENT_QUOTES, 'UTF-8'); ?></h2>
-				<p>Clock in for your external duty with one tap, then use the date-range generator below if you need to encode multiple DTR days manually.</p>
+				<p>This scanner-style page is tied to your student account, so no student selector is needed. Each punch goes to your own external DTR.</p>
 				<div class="student-home-meta mt-3">
 					<span><?php echo htmlspecialchars((string)($studentContext['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></span>
 					<span><?php echo htmlspecialchars((string)($studentContext['section_code'] ?? 'No section'), ENT_QUOTES, 'UTF-8'); ?></span>
@@ -202,11 +189,12 @@ if ($studentMode) {
 			<div class="bio-layout mb-4">
 				<aside class="scanner-card">
 					<figure class="fingerprint-image">
-						<div class="display-4 text-primary"><i class="feather-shield"></i></div>
-						<p class="scan-label">ACCOUNT-LINKED BIOMETRIC ACTION</p>
+						<img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 250'%3E%3Ccircle cx='100' cy='120' r='80' fill='none' stroke='%2395b6d4' stroke-width='2'/%3E%3Ccircle cx='100' cy='120' r='70' fill='none' stroke='%23aac6df' stroke-width='1.2'/%3E%3Ccircle cx='100' cy='120' r='60' fill='none' stroke='%23bed4e7' stroke-width='1'/%3E%3Cpath d='M 100 50 Q 120 70 140 100 T 150 150' fill='none' stroke='%235b7da2' stroke-width='1.6'/%3E%3Cpath d='M 100 50 Q 80 70 60 100 T 50 150' fill='none' stroke='%235b7da2' stroke-width='1.6'/%3E%3Cpath d='M 100 50 Q 100 75 100 100 L 100 150' fill='none' stroke='%236e8fb1' stroke-width='2'/%3E%3C/svg%3E" alt="Fingerprint">
+						<p class="scan-label">EXTERNAL FINGERPRINT DEMO</p>
 					</figure>
 					<div class="scanner-stat">
-						External DTR for <?php echo htmlspecialchars(date('F d, Y', strtotime($today)), ENT_QUOTES, 'UTF-8'); ?>
+						<div><?php echo htmlspecialchars((string)($studentContext['student_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+						<div>External DTR for <?php echo htmlspecialchars(date('F d, Y', strtotime($today)), ENT_QUOTES, 'UTF-8'); ?></div>
 					</div>
 				</aside>
 
