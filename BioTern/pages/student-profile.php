@@ -505,7 +505,7 @@ include 'includes/header.php';
                             <?php if ($studentHasExternalAccess): ?>
                             <a href="external-biometric.php" class="btn btn-outline-primary">External DTR</a>
                             <?php endif; ?>
-                            <a href="student-manual-dtr.php" class="btn btn-outline-secondary"><?php echo $studentHasExternalAccess ? 'Manual DTR (Track-Based)' : 'Manual Internal DTR'; ?></a>
+                            <a href="student-internal-dtr.php#manual-dtr" class="btn btn-outline-secondary">Manual Internal DTR</a>
                             <a href="student-documents.php" class="btn btn-outline-secondary">My Documents</a>
                         </div>
 

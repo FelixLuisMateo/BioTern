@@ -35,11 +35,13 @@ function student_dtr_manual_upload_web_path(string $relativePath): string
     return '../uploads/manual_dtr/' . ltrim(str_replace('\\', '/', $relativePath), '/');
 }
 
-function student_dtr_time_select_options_html(string $selected = ''): string
+function student_dtr_time_select_options_html(string $selected = '', int $startHour = 0, int $endHour = 23): string
 {
     $selected = substr(trim($selected), 0, 5);
     $html = '<option value="">Select time</option>';
-    for ($hour = 0; $hour < 24; $hour++) {
+    $startHour = max(0, min(23, $startHour));
+    $endHour = max($startHour, min(23, $endHour));
+    for ($hour = $startHour; $hour <= $endHour; $hour++) {
         for ($minute = 0; $minute < 60; $minute += 30) {
             $value = sprintf('%02d:%02d', $hour, $minute);
             $label = date('g:i A', strtotime($value . ':00'));
@@ -973,25 +975,25 @@ include 'includes/header.php';
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackMorningIn">Morning In</label>
                                 <select class="form-select student-dtr-time-select" id="fallbackMorningIn" name="morning_time_in">
-                                    <?php echo student_dtr_time_select_options_html('08:00'); ?>
+                                    <?php echo student_dtr_time_select_options_html('08:00', 5, 11); ?>
                                 </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackMorningOut">Morning Out</label>
                                 <select class="form-select student-dtr-time-select" id="fallbackMorningOut" name="morning_time_out">
-                                    <?php echo student_dtr_time_select_options_html('12:00'); ?>
+                                    <?php echo student_dtr_time_select_options_html('11:30', 5, 11); ?>
                                 </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
                                 <select class="form-select student-dtr-time-select" id="fallbackAfternoonIn" name="afternoon_time_in">
-                                    <?php echo student_dtr_time_select_options_html('13:00'); ?>
+                                    <?php echo student_dtr_time_select_options_html('13:00', 12, 23); ?>
                                 </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
                                 <select class="form-select student-dtr-time-select" id="fallbackAfternoonOut" name="afternoon_time_out">
-                                    <?php echo student_dtr_time_select_options_html('17:00'); ?>
+                                    <?php echo student_dtr_time_select_options_html('17:00', 12, 23); ?>
                                 </select>
                             </div>
                             <div class="col-12">
@@ -1176,7 +1178,7 @@ include 'includes/header.php';
                         <div class="d-grid gap-2">
                             <a href="student-profile.php" class="btn btn-outline-primary">My Profile</a>
                             <a href="student-documents.php" class="btn btn-outline-secondary">My Documents</a>
-                            <a href="student-manual-dtr.php" class="btn btn-outline-secondary">Manual DTR</a>
+                            <a href="student-internal-dtr.php#manual-dtr" class="btn btn-outline-secondary">Manual DTR</a>
                             <a href="apps-calendar.php" class="btn btn-outline-secondary">Calendar</a>
                         </div>
                     </div>
@@ -1209,9 +1211,11 @@ include 'includes/header.php';
             .replace(/'/g, '&#039;');
     };
 
-    var buildTimeOptions = function (selected) {
+    var buildTimeOptions = function (selected, startHour, endHour) {
         var options = ['<option value="">Select time</option>'];
-        for (var hour = 0; hour < 24; hour++) {
+        startHour = Math.max(0, Math.min(23, startHour || 0));
+        endHour = Math.max(startHour, Math.min(23, endHour || 23));
+        for (var hour = startHour; hour <= endHour; hour++) {
             for (var minute = 0; minute < 60; minute += 30) {
                 var value = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
                 var hour12 = hour % 12 || 12;
@@ -1222,8 +1226,8 @@ include 'includes/header.php';
         return options.join('');
     };
 
-    var buildTimeSelect = function (name, selected) {
-        return '<select class="form-select student-dtr-time-select" name="' + name + '">' + buildTimeOptions(selected || '') + '</select>';
+    var buildTimeSelect = function (name, selected, startHour, endHour) {
+        return '<select class="form-select student-dtr-time-select" name="' + name + '">' + buildTimeOptions(selected || '', startHour, endHour) + '</select>';
     };
 
     var formatLabel = function (dateValue) {
@@ -1258,10 +1262,10 @@ include 'includes/header.php';
             rows.push(
                 '<tr>' +
                     '<td><strong>' + escapeHtml(formatLabel(isoDate)) + '</strong></td>' +
-                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_in]', '08:00') + '</td>' +
-                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_out]', '12:00') + '</td>' +
-                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_in]', '13:00') + '</td>' +
-                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_out]', '17:00') + '</td>' +
+                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_in]', '08:00', 5, 11) + '</td>' +
+                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_out]', '11:30', 5, 11) + '</td>' +
+                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_in]', '13:00', 12, 23) + '</td>' +
+                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_out]', '17:00', 12, 23) + '</td>' +
                 '</tr>'
             );
         }

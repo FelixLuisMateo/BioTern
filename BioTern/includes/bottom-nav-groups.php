@@ -40,7 +40,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         if ($isStudent) {
             $studentDtrItems = [
                 ['label' => 'My Internal DTR', 'href' => 'student-internal-dtr.php', 'icon' => 'feather-clock'],
-                ['label' => 'Manual DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'],
+                ['label' => 'Manual DTR', 'href' => 'student-internal-dtr.php#manual-dtr', 'icon' => 'feather-edit-3'],
             ];
 
             if ($studentHasExternal) {
