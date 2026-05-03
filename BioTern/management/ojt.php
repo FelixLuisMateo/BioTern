@@ -901,7 +901,7 @@ include 'includes/header.php';
         <div class="card app-ojt-dashboard-card stretch stretch-full app-ojt-table-card app-data-card app-data-toolbar" id="ojtWorklist">
             <div class="card-body p-0">
                 <div class="table-responsive students-table-wrap app-ojt-table-wrap app-data-table-wrap">
-                    <table class="table table-hover mb-0 app-ojt-list-table app-data-table" id="ojtListTable" data-ojt-select-table data-print-mode="ojt-student-list" data-print-title="OJT Student List" data-print-subtitle="<?php echo htmlspecialchars($print_filter_label, ENT_QUOTES, 'UTF-8'); ?>">
+                    <table class="table table-hover mb-0 app-ojt-list-table app-data-table" id="ojtListTable" data-ojt-select-table data-print-mode="ojt-student-list" data-print-title="OJT Student List" data-print-subtitle="<?php echo htmlspecialchars($print_filter_label, ENT_QUOTES, 'UTF-8'); ?>" data-print-filter-form="#ojtFilterForm">
                         <thead>
                         <tr>
                             <th class="app-ojt-select-column">

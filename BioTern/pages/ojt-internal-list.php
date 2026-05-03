@@ -730,7 +730,7 @@ ob_end_flush();
             <div class="card mb-4 bio-console-panel">
                 <div class="card-header"><strong>Internal List Filters</strong></div>
                 <div class="card-body border-bottom">
-                    <form method="get" class="row g-2 align-items-end fingerprint-form">
+                    <form method="get" class="row g-2 align-items-end fingerprint-form" id="ojtInternalFilterForm">
                         <?php if ($mapFingerId > 0): ?>
                             <input type="hidden" name="map_finger_id" value="<?php echo $mapFingerId; ?>">
                         <?php endif; ?>
@@ -791,7 +791,7 @@ ob_end_flush();
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtInternalListTable" data-ojt-select-table data-print-mode="student-section" data-print-title="Internal Student List" data-print-subtitle="<?php echo htmlspecialchars($printFilterLabel, ENT_QUOTES, 'UTF-8'); ?>">
+                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtInternalListTable" data-ojt-select-table data-print-mode="student-section" data-print-title="Internal Student List" data-print-subtitle="<?php echo htmlspecialchars($printFilterLabel, ENT_QUOTES, 'UTF-8'); ?>" data-print-filter-form="#ojtInternalFilterForm">
                             <thead>
                                 <tr>
                                     <th class="app-ojt-select-column">
