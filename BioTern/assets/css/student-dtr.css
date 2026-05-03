@@ -903,6 +903,7 @@ html.app-skin-dark .student-dtr-metric {
 @media (max-width: 767.98px) {
     .student-dtr-shell {
         gap: 0.75rem;
+        overflow-x: hidden;
     }
 
     .student-dtr-shell--manual {
@@ -914,6 +915,32 @@ html.app-skin-dark .student-dtr-metric {
     .student-dtr-station-hero {
         padding: 1.1rem;
         border-radius: 1rem;
+        gap: 1rem;
+    }
+
+    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-station-hero {
+        padding: 1rem;
+    }
+
+    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-persona {
+        align-items: flex-start;
+        gap: 0.8rem;
+    }
+
+    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-station-hero .student-dtr-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 0.8rem;
+    }
+
+    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-station-hero .student-dtr-title {
+        font-size: 1.35rem;
+        line-height: 1.2;
+    }
+
+    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-hero-copy {
+        font-size: 0.8rem;
+        line-height: 1.45;
     }
 
     .student-dtr-shell--manual .student-dtr-station-hero {
@@ -954,11 +981,22 @@ html.app-skin-dark .student-dtr-metric {
     .student-dtr-station-filter {
         grid-template-columns: 1fr;
         padding: 0.75rem;
+        max-width: 100%;
+    }
+
+    .student-dtr-station-filter select,
+    .student-dtr-station-filter button {
+        min-height: 42px;
+        font-size: 0.88rem;
     }
 
     .student-dtr-hero-pills span {
         min-height: 30px;
         font-size: 0.72rem;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .student-dtr-metrics {
@@ -968,6 +1006,13 @@ html.app-skin-dark .student-dtr-metric {
 
     .student-dtr-metric {
         padding: 0.9rem 0.95rem;
+        gap: 0.65rem;
+    }
+
+    .student-dtr-metric-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 0.75rem;
     }
 
     .student-dtr-metric strong {
@@ -1094,6 +1139,11 @@ html.app-skin-dark .student-dtr-metric {
         width: 100%;
     }
 
+    .student-dtr-report-export-card .card-body,
+    .student-panel .card-body {
+        overflow-x: hidden;
+    }
+
     .student-dtr-report-export-card .btn {
         width: 100%;
     }
@@ -1144,14 +1194,25 @@ html.app-skin-dark .student-dtr-metric {
         align-items: flex-start;
     }
 
+    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-station-chip {
+        font-size: 0.64rem;
+        padding: 0.3rem 0.65rem;
+    }
+
+    .student-dtr-shell:not(.student-dtr-shell--manual) .student-dtr-hero-pills {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.4rem;
+    }
+
     .student-dtr-station-hero .student-dtr-avatar {
-        width: 58px;
-        height: 58px;
+        width: 48px;
+        height: 48px;
         border-radius: 0.9rem;
     }
 
     .student-dtr-hero-copy {
-        font-size: 0.86rem;
+        font-size: 0.78rem;
     }
 
     .student-dtr-hero {
@@ -1160,12 +1221,12 @@ html.app-skin-dark .student-dtr-metric {
     }
 
     .student-dtr-title {
-        font-size: 1.4rem;
+        font-size: 1.22rem;
     }
 
     .student-dtr-avatar {
-        width: 60px;
-        height: 60px;
+        width: 48px;
+        height: 48px;
     }
 
     .student-dtr-hero-card .card-body {
@@ -1178,12 +1239,17 @@ html.app-skin-dark .student-dtr-metric {
     }
 
     .student-dtr-metric {
-        padding: 0.8rem 0.9rem;
+        padding: 0.8rem 0.85rem;
     }
 
     .student-dtr-metric strong {
         font-size: 1.3rem;
         margin-top: 0.35rem;
+    }
+
+    .student-dtr-metric small {
+        font-size: 0.72rem;
+        line-height: 1.35;
     }
 
     .student-dtr-filter .form-select,
@@ -1256,6 +1322,10 @@ html.app-skin-dark .student-dtr-metric {
         border-spacing: 0;
     }
 
+    .student-dtr-table-wrap {
+        overflow-x: hidden;
+    }
+
     .student-dtr-table thead {
         display: none;
     }
@@ -1276,14 +1346,15 @@ html.app-skin-dark .student-dtr-metric {
 
     .student-dtr-table td {
         position: relative;
-        padding: 0.75rem 1rem 0.75rem 7.5rem;
+        padding: 0.7rem 0.85rem 0.7rem 6.4rem;
         border-left: 1px solid var(--dtr-soft-border);
         border-right: 1px solid var(--dtr-soft-border);
         border-radius: 0;
         min-height: 48px;
         display: flex;
         align-items: center;
-        font-size: 0.9rem;
+        font-size: 0.82rem;
+        overflow-wrap: anywhere;
     }
 
     .student-dtr-table td::before {
@@ -1292,8 +1363,8 @@ html.app-skin-dark .student-dtr-metric {
         left: 0.75rem;
         top: 0.75rem;
         transform: none;
-        width: 6rem;
-        font-size: 0.65rem;
+        width: 5.3rem;
+        font-size: 0.58rem;
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -1321,7 +1392,7 @@ html.app-skin-dark .student-dtr-metric {
 
     .student-dtr-table td[data-label="Date"] {
         align-items: flex-start;
-        padding-top: 1.6rem;
+        padding-top: 1.4rem;
     }
 
     html.app-skin-dark .student-dtr-table td::before {
