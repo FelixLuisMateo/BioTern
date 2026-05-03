@@ -85,6 +85,34 @@ function students_excel_load_pending_import(string $token, int $userId): ?array
     return $data;
 }
 
+function students_excel_load_latest_pending_import(int $userId): ?array
+{
+    $dir = students_excel_preview_dir();
+    if (!is_dir($dir)) {
+        return null;
+    }
+
+    $latest = null;
+    $latestTime = 0;
+    foreach (glob(rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . 'pending_*.json') ?: [] as $metaPath) {
+        $data = json_decode((string)@file_get_contents($metaPath), true);
+        if (!is_array($data) || (int)($data['user_id'] ?? 0) !== $userId) {
+            continue;
+        }
+        $pendingPath = (string)($data['path'] ?? '');
+        if ($pendingPath === '' || !is_file($pendingPath)) {
+            continue;
+        }
+        $createdAt = strtotime((string)($data['created_at'] ?? '')) ?: (int)@filemtime($metaPath);
+        if ($createdAt >= $latestTime) {
+            $latest = $data;
+            $latestTime = $createdAt;
+        }
+    }
+
+    return $latest;
+}
+
 function students_excel_delete_pending_import_meta(string $token): void
 {
     $metaPath = students_excel_pending_meta_path($token);
@@ -2306,6 +2334,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pendingPath = (string)($pendingImport['path'] ?? '');
         }
         if ($pendingPath === '' || !is_file($pendingPath)) {
+            $pendingImport = students_excel_load_latest_pending_import($userId);
+            $pendingPath = (string)($pendingImport['path'] ?? '');
+        }
+        if ($pendingPath === '' || !is_file($pendingPath)) {
             $statusType = 'danger';
             $statusMessage = 'No reviewed workbook is waiting to import. Upload and review the workbook again.';
         } else {
@@ -2315,13 +2347,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $originalName = (string)($pendingImport['name'] ?? 'uploaded-workbook.xlsx');
             $overrideSemester = (string)($pendingImport['semester'] ?? '');
             $ok = students_excel_import_workbook($conn, $pendingPath, $originalName, $overrideSemester, $summary, $errors, $message);
-            students_excel_delete_pending_import_meta((string)($pendingImport['token'] ?? $postedPendingToken));
-            @unlink($pendingPath);
-            unset($_SESSION['students_excel_pending_import'], $_SESSION['students_excel_pending_preview']);
-            $pendingImport = null;
-            $pendingPreview = null;
             $statusType = $ok ? 'success' : 'danger';
             $statusMessage = $message !== '' ? $message : ($ok ? 'Excel import completed.' : 'Excel import failed.');
+            if ($ok) {
+                students_excel_delete_pending_import_meta((string)($pendingImport['token'] ?? $postedPendingToken));
+                @unlink($pendingPath);
+                unset($_SESSION['students_excel_pending_import'], $_SESSION['students_excel_pending_preview']);
+                $pendingImport = null;
+                $pendingPreview = null;
+            } else {
+                $_SESSION['students_excel_pending_import'] = $pendingImport;
+            }
             foreach ($summary as $label => $value) {
                 $statusDetails[] = ucwords(str_replace('_', ' ', (string)$label)) . ': ' . (int)$value;
             }
@@ -2496,11 +2532,11 @@ include dirname(__DIR__) . '/includes/header.php';
                         <h4 class="mt-3 mb-2"><?php echo ((string)$pendingPreview['type'] === 'masterlist') ? 'Masterlist preview' : 'Students workbook preview'; ?></h4>
                         <p class="text-muted mb-0">Duplicates and skipped rows are shown here first. Nothing is saved to the database until you confirm.</p>
                     </div>
-                    <form method="post" class="excel-import-confirm-form">
+                    <form method="post" class="excel-import-confirm-form" data-confirm-import-form>
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="action" value="confirm_import">
                         <input type="hidden" name="pending_token" value="<?php echo htmlspecialchars((string)($pendingImport['token'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                        <button type="submit" class="btn btn-success">Confirm Import to Database</button>
+                        <button type="submit" class="btn btn-success" data-confirm-import-button>Confirm Import to Database</button>
                     </form>
                 </div>
                 <?php if ((string)($pendingPreview['school_year'] ?? '') !== '' || (string)($pendingPreview['semester'] ?? '') !== ''): ?>
@@ -2553,5 +2589,17 @@ include dirname(__DIR__) . '/includes/header.php';
 </div>
 </div>
 </main>
+<script>
+document.querySelectorAll('[data-confirm-import-form]').forEach(function (form) {
+    form.addEventListener('submit', function () {
+        var button = form.querySelector('[data-confirm-import-button]');
+        if (!button) {
+            return;
+        }
+        button.disabled = true;
+        button.textContent = 'Importing...';
+    });
+});
+</script>
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>
 

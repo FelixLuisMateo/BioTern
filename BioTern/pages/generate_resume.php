@@ -63,6 +63,9 @@ $section = biotern_format_section_label((string)($student['section_code'] ?? '')
 $company = trim((string)($student['company_name'] ?? ''));
 $companyAddress = trim((string)($student['company_address'] ?? ''));
 $companyPosition = trim((string)($student['position'] ?? ''));
+if ($companyPosition !== '' && preg_match('/\b(head|supervisor|manager|coordinator|representative|director|president|officer)\b/i', $companyPosition)) {
+    $companyPosition = '';
+}
 $phone = trim((string)($student['phone'] ?? ''));
 $email = trim((string)($student['email'] ?? ''));
 $birthday = trim((string)($student['date_of_birth'] ?? ''));
@@ -290,7 +293,7 @@ if ($summary === '') {
             <div class="company-block">
                 <p class="company-name"><?php echo resume_h($company !== '' ? $company : 'No company linked yet'); ?></p>
                 <p class="company-meta">
-                    <strong>Position:</strong> <?php echo resume_h($companyPosition !== '' ? $companyPosition : 'Position pending'); ?><br>
+                    <strong>Internship Role:</strong> <?php echo resume_h($companyPosition !== '' ? $companyPosition : 'OJT Trainee'); ?><br>
                     <strong>Status:</strong> <?php echo resume_h(trim((string)($student['internship_status'] ?? '')) !== '' ? ucfirst((string)$student['internship_status']) : 'Not started'); ?><br>
                     <strong>Address:</strong> <?php echo resume_h($companyAddress !== '' ? $companyAddress : 'No company address saved yet'); ?>
                 </p>

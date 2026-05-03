@@ -215,6 +215,38 @@ $exportQuery = array_filter([
 ], static fn($value): bool => $value !== '' && $value !== null);
 $exportUrl = 'export-ojt-list.php?' . http_build_query($exportQuery);
 
+$courseFilterLabel = '';
+foreach ($courses as $course) {
+    if ((int)($course['id'] ?? 0) === $filterCourseId) {
+        $courseFilterLabel = (string)($course['name'] ?? '');
+        break;
+    }
+}
+$sectionFilterLabel = '';
+foreach ($sections as $section) {
+    if ((int)($section['id'] ?? 0) === $filterSectionId) {
+        $sectionFilterLabel = (string)($section['section_label'] ?? '');
+        break;
+    }
+}
+$printFilterParts = [];
+if ($filterSchoolYear !== '') {
+    $printFilterParts[] = 'SY: ' . $filterSchoolYear;
+}
+if ($filterSemester !== '') {
+    $printFilterParts[] = $filterSemester;
+}
+if ($courseFilterLabel !== '') {
+    $printFilterParts[] = 'Course: ' . $courseFilterLabel;
+}
+if ($sectionFilterLabel !== '') {
+    $printFilterParts[] = 'Section: ' . $sectionFilterLabel;
+}
+if ($search !== '') {
+    $printFilterParts[] = 'Search: ' . $search;
+}
+$printFilterLabel = $printFilterParts !== [] ? implode(' / ', $printFilterParts) : 'All external students';
+
 $page_title = 'External Student List';
 $page_body_class = 'page-fingerprint-mapping page-ojt-external-list';
 $page_styles = [
@@ -336,7 +368,7 @@ ob_end_flush();
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtExternalListTable" data-ojt-select-table data-print-mode="student-section" data-print-title="External Student List" data-print-subtitle="<?php echo htmlspecialchars(trim(($filterSchoolYear !== '' ? $filterSchoolYear . ' / ' : '') . ($filterSemester !== '' ? $filterSemester : 'Filtered external list')), ENT_QUOTES, 'UTF-8'); ?>">
+                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtExternalListTable" data-ojt-select-table data-print-mode="student-section" data-print-title="External Student List" data-print-subtitle="<?php echo htmlspecialchars($printFilterLabel, ENT_QUOTES, 'UTF-8'); ?>">
                             <thead>
                                 <tr>
                                     <th class="app-ojt-select-column">
@@ -449,7 +481,7 @@ ob_end_flush();
         <div class="tel">Telefax No.: (045) 624-0215</div>
     </div>
     <div class="print-title" data-ojt-print-title>EXTERNAL STUDENT LIST</div>
-    <div class="print-meta"><strong>FILTER:</strong> <span data-ojt-print-subtitle><?php echo htmlspecialchars(trim(($filterSchoolYear !== '' ? $filterSchoolYear . ' / ' : '') . ($filterSemester !== '' ? $filterSemester : 'Filtered external list')), ENT_QUOTES, 'UTF-8'); ?></span></div>
+    <div class="print-meta"><strong>FILTER:</strong> <span data-ojt-print-subtitle><?php echo htmlspecialchars($printFilterLabel, ENT_QUOTES, 'UTF-8'); ?></span></div>
     <table>
         <thead>
             <tr></tr>
