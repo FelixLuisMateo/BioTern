@@ -278,6 +278,24 @@ ob_end_flush();
 .import-kpi { border: 1px solid rgba(120, 148, 255, 0.25); border-radius: 12px; padding: 10px 12px; background: rgba(6, 20, 52, 0.4); }
 .import-kpi-label { font-size: 12px; color: #9eb6ff; display: block; }
 .import-kpi-value { font-size: 18px; font-weight: 700; color: #ffffff; }
+.import-preview-card { margin-top: 1.5rem; }
+.page-fingerprint-mapping .table-responsive.import-preview-scroll {
+    display: block;
+    max-width: 100%;
+    max-height: 72vh;
+    max-height: min(72vh, 760px);
+    overflow-x: auto;
+    overflow-y: auto;
+    border-radius: 0 0 12px 12px;
+}
+.import-preview-scroll table {
+    min-width: 1200px;
+    width: max-content;
+}
+.import-preview-scroll th,
+.import-preview-scroll td {
+    white-space: nowrap;
+}
 .biotern-toast { position: fixed; right: 18px; top: 78px; z-index: 2050; min-width: 320px; max-width: 460px; padding: 12px 14px; border-radius: 10px; color: #fff; opacity: 0; transform: translateY(-10px); transition: all .25s ease; box-shadow: 0 12px 28px rgba(0,0,0,.28); }
 .biotern-toast.show { opacity: 1; transform: translateY(0); }
 .biotern-toast-success { background: linear-gradient(135deg, #0e8c5a, #15a66d); }

@@ -558,10 +558,13 @@ ob_end_flush();
 .import-kpi-label { font-size: 12px; color: #9eb6ff; display: block; }
 .import-kpi-value { font-size: 18px; font-weight: 700; color: #ffffff; }
 .import-preview-card { margin-top: 1.5rem; }
-.import-preview-scroll {
+.page-fingerprint-mapping .table-responsive.import-preview-scroll {
+    display: block;
     max-width: 100%;
+    max-height: 72vh;
     max-height: min(72vh, 760px);
-    overflow: auto;
+    overflow-x: auto;
+    overflow-y: auto;
     border-radius: 0 0 12px 12px;
 }
 .import-preview-scroll table {
