@@ -50,6 +50,48 @@ function students_excel_preview_dir(): string
     return $dir;
 }
 
+function students_excel_pending_meta_path(string $token): string
+{
+    if (!preg_match('/^[a-f0-9]{32}$/', $token)) {
+        return '';
+    }
+
+    return rtrim(students_excel_preview_dir(), '/\\') . DIRECTORY_SEPARATOR . 'pending_' . $token . '.json';
+}
+
+function students_excel_save_pending_import(string $token, array $pendingImport): bool
+{
+    $metaPath = students_excel_pending_meta_path($token);
+    if ($metaPath === '') {
+        return false;
+    }
+
+    return file_put_contents($metaPath, json_encode($pendingImport, JSON_PRETTY_PRINT)) !== false;
+}
+
+function students_excel_load_pending_import(string $token, int $userId): ?array
+{
+    $metaPath = students_excel_pending_meta_path($token);
+    if ($metaPath === '' || !is_file($metaPath)) {
+        return null;
+    }
+
+    $data = json_decode((string)file_get_contents($metaPath), true);
+    if (!is_array($data) || (int)($data['user_id'] ?? 0) !== $userId) {
+        return null;
+    }
+
+    return $data;
+}
+
+function students_excel_delete_pending_import_meta(string $token): void
+{
+    $metaPath = students_excel_pending_meta_path($token);
+    if ($metaPath !== '' && is_file($metaPath)) {
+        @unlink($metaPath);
+    }
+}
+
 function students_excel_header(string $value): string
 {
     $value = strtolower(trim($value));
@@ -2234,7 +2276,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $selectedReviewSemester = $ok ? $deleteSemester : $selectedReviewSemester;
     } elseif ($postedAction === 'confirm_import') {
         $pendingImport = is_array($_SESSION['students_excel_pending_import'] ?? null) ? $_SESSION['students_excel_pending_import'] : null;
+        $postedPendingToken = (string)($_POST['pending_token'] ?? '');
         $pendingPath = (string)($pendingImport['path'] ?? '');
+        if (($pendingPath === '' || !is_file($pendingPath)) && $postedPendingToken !== '') {
+            $pendingImport = students_excel_load_pending_import($postedPendingToken, $userId);
+            $pendingPath = (string)($pendingImport['path'] ?? '');
+        }
         if ($pendingPath === '' || !is_file($pendingPath)) {
             $statusType = 'danger';
             $statusMessage = 'No reviewed workbook is waiting to import. Upload and review the workbook again.';
@@ -2245,6 +2292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $originalName = (string)($pendingImport['name'] ?? 'uploaded-workbook.xlsx');
             $overrideSemester = (string)($pendingImport['semester'] ?? '');
             $ok = students_excel_import_workbook($conn, $pendingPath, $originalName, $overrideSemester, $summary, $errors, $message);
+            students_excel_delete_pending_import_meta((string)($pendingImport['token'] ?? $postedPendingToken));
             @unlink($pendingPath);
             unset($_SESSION['students_excel_pending_import'], $_SESSION['students_excel_pending_preview']);
             $pendingImport = null;
@@ -2283,7 +2331,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $originalName = $overrideSchoolYear;
                 }
                 $previewDir = students_excel_preview_dir();
-                $previewPath = rtrim($previewDir, '/\\') . DIRECTORY_SEPARATOR . 'pending_' . $userId . '_' . bin2hex(random_bytes(8)) . '.xlsx';
+                $pendingToken = bin2hex(random_bytes(16));
+                $previewPath = rtrim($previewDir, '/\\') . DIRECTORY_SEPARATOR . 'pending_' . $userId . '_' . $pendingToken . '.xlsx';
                 $stored = is_uploaded_file($tmpName) ? move_uploaded_file($tmpName, $previewPath) : copy($tmpName, $previewPath);
                 if (!$stored) {
                     $statusType = 'danger';
@@ -2300,18 +2349,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if ($previousPendingPath !== '' && $previousPendingPath !== $previewPath && is_file($previousPendingPath)) {
                             @unlink($previousPendingPath);
                         }
-                        $_SESSION['students_excel_pending_import'] = [
+                        students_excel_delete_pending_import_meta((string)($pendingImport['token'] ?? ''));
+                        $pendingImportData = [
+                            'token' => $pendingToken,
+                            'user_id' => $userId,
                             'path' => $previewPath,
                             'name' => $originalName,
                             'semester' => $overrideSemester,
+                            'created_at' => date('c'),
                         ];
-                        $_SESSION['students_excel_pending_preview'] = $preview;
-                        $pendingImport = $_SESSION['students_excel_pending_import'];
-                        $pendingPreview = $preview;
-                        $statusType = 'success';
-                        $statusMessage = $message;
-                        foreach (($preview['totals'] ?? []) as $label => $value) {
-                            $statusDetails[] = ucwords(str_replace('_', ' ', (string)$label)) . ': ' . (int)$value;
+                        if (!students_excel_save_pending_import($pendingToken, $pendingImportData)) {
+                            @unlink($previewPath);
+                            $statusType = 'danger';
+                            $statusMessage = 'Unable to prepare the reviewed workbook for import. Check that the uploads folder is writable.';
+                        } else {
+                            $_SESSION['students_excel_pending_import'] = $pendingImportData;
+                            $_SESSION['students_excel_pending_preview'] = $preview;
+                            $pendingImport = $_SESSION['students_excel_pending_import'];
+                            $pendingPreview = $preview;
+                            $statusType = 'success';
+                            $statusMessage = $message;
+                            foreach (($preview['totals'] ?? []) as $label => $value) {
+                                $statusDetails[] = ucwords(str_replace('_', ' ', (string)$label)) . ': ' . (int)$value;
+                            }
                         }
                     }
                 }
@@ -2411,6 +2471,7 @@ include dirname(__DIR__) . '/includes/header.php';
                     <form method="post" class="excel-import-confirm-form">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="action" value="confirm_import">
+                        <input type="hidden" name="pending_token" value="<?php echo htmlspecialchars((string)($pendingImport['token'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                         <button type="submit" class="btn btn-success">Confirm Import to Database</button>
                     </form>
                 </div>
