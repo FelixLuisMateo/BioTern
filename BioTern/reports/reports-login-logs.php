@@ -31,21 +31,6 @@ function report_login_logs_has_column(mysqli $conn, string $column): bool
     return $result && $result->num_rows > 0;
 }
 
-function report_login_logs_has_table(mysqli $conn, string $table): bool
-{
-    $safeTable = $conn->real_escape_string($table);
-    $result = $conn->query("SHOW TABLES LIKE '{$safeTable}'");
-    return $result && $result->num_rows > 0;
-}
-
-function report_login_logs_table_has_column(mysqli $conn, string $table, string $column): bool
-{
-    $safeTable = $conn->real_escape_string($table);
-    $safeColumn = $conn->real_escape_string($column);
-    $result = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
-    return $result && $result->num_rows > 0;
-}
-
 $requiredLoginLogColumns = [
     'user_id' => "INT NULL",
     'identifier' => "VARCHAR(191) NULL",

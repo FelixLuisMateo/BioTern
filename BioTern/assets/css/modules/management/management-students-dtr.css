@@ -450,7 +450,7 @@ html.app-skin-dark .dtr-empty-note {
     }
 }
 
-@media (max-width: 767.98px) {
+@media (max-width: 991.98px) {
     .app-students-dtr-hero-card .card-body {
         padding: 0.9rem;
     }

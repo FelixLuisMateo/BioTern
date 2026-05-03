@@ -248,6 +248,7 @@ if ($res instanceof mysqli_result) {
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-shell.css']);
+$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-shell-runtime.js']);
 $page_title = 'BioTern || Manual DTR Input Report';
 include 'includes/header.php';
 ?>

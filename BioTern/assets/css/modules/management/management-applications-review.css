@@ -542,6 +542,14 @@ html.app-skin-dark .apps-review-toolbar .form-label {
 }
 
 @media (max-width: 991px) {
+    .apps-review-shell .table-responsive {
+        overflow: visible;
+    }
+
+    .apps-review-table tbody {
+        display: block;
+    }
+
     .detail-grid {
         grid-template-columns: 1fr;
     }
@@ -579,6 +587,11 @@ html.app-skin-dark .apps-review-toolbar .form-label {
         grid-template-columns: 96px minmax(0, 1fr);
         gap: 8px;
         padding: 8px;
+    }
+
+    .apps-review-table tr.summary-row td[data-label="Review"] .expand-btn {
+        width: 100%;
+        min-width: 0;
     }
 
     .action-form {

@@ -328,7 +328,7 @@ body.mobile-bottom-nav {
         left: 50%;
         right: auto;
         transform: translateX(-50%);
-        width: min(100vw, 560px);
+        width: min(calc(100vw - 10px), 840px);
         bottom: 0;
         z-index: 4500;
         height: var(--bottom-nav-height);
@@ -351,6 +351,28 @@ body.mobile-bottom-nav {
 
     .biotern-bottom-nav::-webkit-scrollbar {
         display: none;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+    body.mobile-bottom-nav {
+        --bottom-nav-height: 78px;
+    }
+
+    .biotern-bottom-nav {
+        padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+        gap: 0.5rem;
+    }
+
+    .biotern-bottom-link {
+        max-width: 96px;
+        min-height: 46px;
+        border-radius: 16px;
+    }
+
+    .biotern-bottom-avatar {
+        width: 28px;
+        height: 28px;
     }
 }
 

@@ -5,6 +5,10 @@ biotern_boot_session(isset($conn) ? $conn : null);
 
 $landing_user_id = (int)($_SESSION['user_id'] ?? 0);
 $landing_logged_in = $landing_user_id > 0 || !empty($_SESSION['logged_in']);
+if ($landing_logged_in) {
+    header('Location: homepage.php');
+    exit;
+}
 $landing_signin_href = $landing_logged_in ? 'homepage.php' : 'auth/auth-login.php';
 $landing_signin_label = $landing_logged_in ? 'Dashboard' : 'Sign In';
 $landing_hero_href = $landing_logged_in ? 'homepage.php' : 'auth/auth-login.php';

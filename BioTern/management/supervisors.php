@@ -47,6 +47,7 @@ if ($res) {
 }
 
 $page_title = 'Supervisors';
+$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/management/management-supervisors.css']);
 include 'includes/header.php';
 ?>
 <main class="nxl-container">
@@ -71,7 +72,7 @@ include 'includes/header.php';
         <div class="alert alert-<?php echo h($message_type); ?> py-2"><?php echo h($message); ?></div>
     <?php endif; ?>
 
-    <div class="card stretch stretch-full app-data-card app-data-toolbar app-academic-list-card">
+    <div class="card stretch stretch-full app-data-card app-data-toolbar app-academic-list-card app-mobile-inline-list-card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="card-title mb-0">All Supervisors</h5>
             <span class="badge bg-primary text-white px-3 py-1 fw-semibold"><?php echo count($rows); ?> total</span>
@@ -133,6 +134,54 @@ include 'includes/header.php';
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+            </div>
+            <div class="app-mobile-list app-ojt-mobile-list">
+                <?php if (!$rows): ?>
+                    <div class="app-ojt-mobile-empty text-muted">No supervisors found.</div>
+                <?php else: ?>
+                    <?php foreach ($rows as $r): ?>
+                        <?php
+                        $fullName = trim((string)($r['first_name'] ?? '') . ' ' . (string)($r['middle_name'] ?? '') . ' ' . (string)($r['last_name'] ?? ''));
+                        $email = (string)($r['email'] ?? '-');
+                        $phone = (string)($r['phone'] ?? '-');
+                        $department = (string)($r['department_name'] ?? '-');
+                        $specialization = (string)($r['specialization'] ?? '-');
+                        $office = (string)($r['office_location'] ?? ($r['office'] ?? '-'));
+                        $statusLabel = (int)($r['is_active'] ?? 0) === 1 ? 'Active' : 'Inactive';
+                        $statusClass = (int)($r['is_active'] ?? 0) === 1 ? 'status-active' : 'status-inactive';
+                        ?>
+                        <details class="app-mobile-item app-ojt-mobile-item">
+                            <summary class="app-mobile-summary app-ojt-mobile-summary">
+                                <div class="app-mobile-summary-main app-ojt-mobile-summary-main">
+                                    <div class="app-mobile-summary-text app-ojt-mobile-summary-text">
+                                        <span class="app-mobile-name app-ojt-mobile-name"><?php echo h($fullName !== '' ? $fullName : '-'); ?></span>
+                                        <span class="app-mobile-subtext app-ojt-mobile-subtext">ID: <?php echo (int)($r['id'] ?? 0); ?> | <?php echo h($department); ?></span>
+                                    </div>
+                                </div>
+                                <span class="app-ojt-mobile-status-dot <?php echo h($statusClass); ?>" aria-hidden="true"></span>
+                            </summary>
+                            <div class="app-mobile-details app-ojt-mobile-details">
+                                <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">User</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h((string)($r['user_name'] ?? '-')); ?></span></div>
+                                <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">Email</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h($email); ?></span></div>
+                                <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">Phone</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h($phone); ?></span></div>
+                                <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">Specialization</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h($specialization); ?></span></div>
+                                <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">Office</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h($office); ?></span></div>
+                                <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">Status</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h($statusLabel); ?></span></div>
+                                <div class="app-mobile-row app-mobile-row-stack app-ojt-mobile-row app-ojt-mobile-row-stack">
+                                    <span class="app-mobile-label app-ojt-mobile-label">Actions</span>
+                                    <div class="app-ojt-mobile-actions d-flex gap-2">
+                                        <a href="supervisors-edit.php?id=<?php echo (int)$r['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <form method="post" data-confirm-message="Delete this supervisor?">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </details>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </div>
     </div>

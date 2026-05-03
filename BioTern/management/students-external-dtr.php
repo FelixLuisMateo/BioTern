@@ -279,6 +279,47 @@ include 'includes/header.php';
                             </tbody>
                         </table>
                     </div>
+                    <div class="dtr-mobile-list app-students-dtr-mobile-list">
+                        <?php for ($cursor = $range_start_ts; $cursor !== false && $range_end_ts !== false && $cursor <= $range_end_ts; $cursor = strtotime('+1 day', $cursor)): ?>
+                            <?php
+                            $date_iso = date('Y-m-d', $cursor);
+                            $day = (int)date('j', $cursor);
+                            $row = $records_by_date[$date_iso] ?? null;
+                            ?>
+                            <div class="dtr-day-card app-students-dtr-day-card">
+                                <div class="dtr-day-top app-students-dtr-day-top">
+                                    <p class="dtr-day-title app-students-dtr-day-title">Day <?php echo $day; ?> - <?php echo h(date('M d, Y', strtotime($date_iso))); ?></p>
+                                    <?php echo $row ? status_badge($row['status']) : '<span class="badge bg-soft-secondary text-secondary">No Record</span>'; ?>
+                                </div>
+                                <?php if ($row): ?>
+                                    <div class="dtr-slot-grid app-students-dtr-slot-grid">
+                                        <div class="dtr-slot app-students-dtr-slot">
+                                            <p class="dtr-slot-label app-students-dtr-slot-label">Morning In</p>
+                                            <p class="dtr-slot-value app-students-dtr-slot-value"><?php echo h(fmt_time($row['morning_time_in'])); ?></p>
+                                        </div>
+                                        <div class="dtr-slot app-students-dtr-slot">
+                                            <p class="dtr-slot-label app-students-dtr-slot-label">Morning Out</p>
+                                            <p class="dtr-slot-value app-students-dtr-slot-value"><?php echo h(fmt_time($row['morning_time_out'])); ?></p>
+                                        </div>
+                                        <div class="dtr-slot app-students-dtr-slot">
+                                            <p class="dtr-slot-label app-students-dtr-slot-label">Afternoon In</p>
+                                            <p class="dtr-slot-value app-students-dtr-slot-value"><?php echo h(fmt_time($row['afternoon_time_in'])); ?></p>
+                                        </div>
+                                        <div class="dtr-slot app-students-dtr-slot">
+                                            <p class="dtr-slot-label app-students-dtr-slot-label">Afternoon Out</p>
+                                            <p class="dtr-slot-value app-students-dtr-slot-value"><?php echo h(fmt_time($row['afternoon_time_out'])); ?></p>
+                                        </div>
+                                    </div>
+                                    <div class="dtr-hours-row app-students-dtr-hours-row">
+                                        <p class="dtr-hours-label app-students-dtr-hours-label">Total Hours</p>
+                                        <p class="dtr-hours-value app-students-dtr-hours-value"><?php echo h(fmt_hours_hm((float)($row['total_hours'] ?? 0))); ?></p>
+                                    </div>
+                                <?php else: ?>
+                                    <p class="dtr-empty-note app-students-dtr-empty-note">No attendance logs for this day.</p>
+                                <?php endif; ?>
+                            </div>
+                        <?php endfor; ?>
+                    </div>
                 </div>
             </div>
         </div>

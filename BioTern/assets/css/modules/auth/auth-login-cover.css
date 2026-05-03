@@ -338,7 +338,7 @@ html.app-theme-gray:not(.app-skin-dark) body.auth-login-page {
     }
 }
 
-@media (max-width: 991.98px) {
+@media (max-width: 767.98px) {
     html,
     body,
     body.auth-login-page {
@@ -370,7 +370,7 @@ html.app-theme-gray:not(.app-skin-dark) body.auth-login-page {
         min-height: 100vh;
         min-height: 100dvh;
         height: auto;
-        background: transparent;
+        background: var(--biotern-surface, #0f172a);
         padding: 0 !important;
         margin: 0 !important;
         border-radius: 0 !important;
@@ -408,48 +408,13 @@ html.app-theme-gray:not(.app-skin-dark) body.auth-login-page {
     }
 
     body.auth-login-page .login-bg-watermark {
-        opacity: 1;
-        background-position: center top, center top;
-    }
-}
-
-@media (min-width: 768px) and (max-width: 991.98px) {
-    body.auth-login-page .auth-cover-wrapper {
-        min-height: 100vh;
-        min-height: 100dvh;
-        height: 100vh;
-        height: 100dvh;
-        padding: 24px 18px;
-        overflow: hidden;
-    }
-
-    body.auth-login-page .auth-cover-sidebar-inner {
-        min-height: 0;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 !important;
-    }
-
-    body.auth-login-page .auth-cover-card-wrapper {
-        max-width: 540px;
-        min-height: 0;
-        height: auto;
-        margin: 0 auto;
+        display: none;
     }
 
     body.auth-login-page .auth-cover-card {
-        min-height: 0;
-        height: auto;
-        border-radius: 18px;
-        padding: 2.5rem !important;
-        display: block;
-    }
-}
-
-@media (max-width: 767.98px) {
-    body.auth-login-page .auth-cover-card {
+        background: var(--auth-card-surface);
+        border-color: var(--auth-card-border);
+        box-shadow: none;
         border-radius: 0;
         border-left: 0;
         border-right: 0;
