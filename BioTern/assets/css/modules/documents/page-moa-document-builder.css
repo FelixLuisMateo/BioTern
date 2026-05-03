@@ -1,3 +1,47 @@
+.moa-page .main-content {
+    padding-top: 20px;
+}
+
+.moa-page .application-builder-grid {
+    display: grid;
+    grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.moa-page .application-builder-sidebar .builder-field {
+    margin-top: 14px;
+}
+
+.moa-page .application-source-hint {
+    display: block;
+    margin-top: 6px;
+    line-height: 1.35;
+}
+
+.moa-page .application-autofill-panel {
+    margin: 14px 0;
+    padding: 12px 13px;
+    border: 1px solid rgba(96, 165, 250, 0.28);
+    border-radius: 12px;
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--doc-builder-muted);
+    font-size: 0.79rem;
+    line-height: 1.4;
+}
+
+.moa-page .application-autofill-panel p {
+    margin: 4px 0 0;
+}
+
+.moa-page .application-autofill-title {
+    color: var(--doc-builder-text);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 .moa-page .moa-builder-controls {
     margin-bottom: 10px;
 }
@@ -9,6 +53,32 @@
     gap: 8px;
     flex-wrap: wrap;
 }
+
+.moa-page .builder-paper,
+.moa-page .doc-preview {
+    background: transparent;
+}
+
+.moa-page .doc-preview {
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    overflow-x: auto;
+}
+
+@media (max-width: 1199.98px) {
+    .moa-page .application-builder-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .moa-page .main-content {
+        padding-top: 16px;
+    }
+}
+
 
 .moa-page .moa-builder-controls .builder-toolbar {
     margin-top: 8px;

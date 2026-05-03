@@ -405,10 +405,10 @@
     function applyCompanyProfile(data) {
         if (!data || typeof data !== 'object') return;
 
-        if (partnerName) partnerName.value = (data.company_name || '').toString();
-        if (partnerAddress) partnerAddress.value = (data.company_address || '').toString();
-        if (partnerRep) partnerRep.value = (data.partner_representative || data.contact_name || '').toString();
-        if (partnerPosition) partnerPosition.value = (data.partner_position || data.contact_position || '').toString();
+        if (partnerName) partnerName.value = (data.company_name || data.name || '').toString();
+        if (partnerAddress) partnerAddress.value = (data.company_address || data.address || '').toString();
+        if (partnerRep) partnerRep.value = (data.partner_representative || data.contact_name || data.company_representative || data.supervisor_name || '').toString();
+        if (partnerPosition) partnerPosition.value = (data.partner_position || data.contact_position || data.company_representative_position || data.supervisor_position || '').toString();
 
         if (companySelect && companySelect.length) {
             var optionLabel = (data.company_name || '').toString();
@@ -421,6 +421,17 @@
 
         updatePreview();
         captureDraftBaseline();
+    }
+
+    function applyCompanySearchItem(item) {
+        if (!item || typeof item !== 'object') return;
+        applyCompanyProfile({
+            key: item.id || '',
+            company_name: item.name || '',
+            company_address: item.address || '',
+            contact_name: item.contact_name || '',
+            contact_position: item.contact_position || ''
+        });
     }
 
     function loadCompanyProfile(companyKey) {
@@ -492,6 +503,8 @@
         companySelect.on('select2:select', function () {
             var companyKey = String(companySelect.val() || '');
             if (!companyKey) return;
+            var picked = companySelect.select2('data') || [];
+            applyCompanySearchItem(picked[0] || null);
             loadCompanyProfile(companyKey);
         });
     }
@@ -564,14 +577,36 @@
             styles += node.outerHTML + '\n';
         });
 
+        var printCss = [
+            'html,body{background:#fff!important;margin:0!important;padding:0!important;}',
+            '@page{size:A4;margin:0;}',
+            '.no-print,.page-header,.nxl-navigation,.nxl-header{display:none!important;}',
+            '#moa_content{display:block!important;margin:0!important;padding:0!important;background:#fff!important;width:100%!important;}',
+            '#moa_content.a4-pages-stack{display:block!important;gap:0!important;}',
+            '#moa_content .a4-page{width:210mm!important;min-height:297mm!important;height:297mm!important;box-sizing:border-box!important;margin:0!important;padding:0.24in 0.58in 0.18in!important;background:#fff!important;box-shadow:none!important;page-break-after:always!important;break-after:page!important;overflow:hidden!important;}',
+            '#moa_content .a4-page:first-child{padding:0.16in 0.50in 0.10in!important;}',
+            '#moa_content .a4-page:last-child{page-break-after:auto!important;break-after:auto!important;}',
+            '#moa_content,#moa_content *{font-family:"Arial Narrow",Arial,sans-serif!important;color:#000!important;}',
+            '#moa_content{font-size:9.2pt!important;}',
+            '#moa_content h5{font-size:11.2pt!important;margin:2px 0 4px!important;}',
+            '#moa_content p,#moa_content li{font-size:9.2pt!important;line-height:1.05!important;margin-top:1px!important;margin-bottom:2px!important;}',
+            '#moa_content .a4-page:first-child p,#moa_content .a4-page:first-child li{font-size:8.75pt!important;line-height:1.01!important;margin-top:0!important;margin-bottom:1px!important;}',
+            '#moa_content ol{margin-top:2px!important;margin-bottom:2px!important;padding-left:0.20in!important;}',
+            '#moa_content li{margin-bottom:0!important;}',
+            '#moa_content .mt-12{margin-top:8px!important;}',
+            '#moa_content .mt-16{margin-top:10px!important;}',
+            '#moa_content .mt-24{margin-top:14px!important;}',
+            '#moa_content .mt-40{margin-top:24px!important;}'
+        ].join('');
+
         printWindow.document.open();
         printWindow.document.write(
             '<!doctype html><html><head><meta charset="utf-8">' +
             '<title>' + (isDau ? 'DAU Memorandum of Agreement' : 'Memorandum of Agreement') + '</title>' +
             '<base href="' + document.baseURI.replace(/"/g, '&quot;') + '">' +
             styles +
-            '<style>body{background:#fff;margin:0;padding:0;}.no-print,.page-header,.nxl-navigation,.nxl-header{display:none!important;}.doc-preview{display:block!important;margin:0!important;padding:0!important;background:#fff!important;}.a4-pages-stack{margin:0 auto!important;}</style>' +
-            '</head><body><div class="doc-preview"><div class="a4-pages-stack">' + editor.innerHTML + '</div></div>' +
+            '<style>' + printCss + '</style>' +
+            '</head><body class="application-builder-page moa-builder-page"><div id="moa_content" class="a4-pages-stack">' + editor.innerHTML + '</div>' +
             '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});<\/script>' +
             '</body></html>'
         );

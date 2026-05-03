@@ -85,6 +85,7 @@ $map = [
   'ojt-edit.php' => 'management/ojt-edit.php',
   'ojt-view.php' => 'management/ojt-view.php',
   'ojt-workflow-board.php' => 'management/ojt-workflow-board.php',
+  'masterlist-pending-students.php' => 'management/masterlist-pending-students.php',
 
   'attendance.php' => 'pages/attendance.php',
   'analytics.php' => 'pages/analytics.php',

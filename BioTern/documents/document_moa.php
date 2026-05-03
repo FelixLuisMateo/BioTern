@@ -19,7 +19,7 @@ if (isset($_GET['action'])) {
         $out = [];
         if ($res) {
             while ($r = $res->fetch_assoc()) {
-                $text = trim($r['first_name'] . ' ' . ($r['middle_name'] ? $r['middle_name'] . ' ' : '') . $r['last_name']) . ' — ' . $r['student_id'];
+                $text = trim($r['first_name'] . ' ' . ($r['middle_name'] ? $r['middle_name'] . ' ' : '') . $r['last_name']) . ' - ' . $r['student_id'];
                 $out[] = ['id' => $r['id'], 'text' => $text];
             }
         }
@@ -44,6 +44,10 @@ if (isset($_GET['action'])) {
                 'text' => implode(' - ', array_filter($labelParts, static function ($value): bool {
                     return trim((string)$value) !== '';
                 })),
+                'name' => trim((string)($company['company_name'] ?? '')),
+                'address' => trim((string)($company['company_address'] ?? '')),
+                'contact_name' => trim((string)($company['contact_name'] ?? $company['company_representative'] ?? $company['supervisor_name'] ?? '')),
+                'contact_position' => trim((string)($company['contact_position'] ?? $company['company_representative_position'] ?? $company['supervisor_position'] ?? '')),
             ];
         }
         echo json_encode(['results' => $results]);
@@ -154,36 +158,49 @@ include __DIR__ . '/../includes/header.php';
             }
         </style>
         <div class="main-content">
-        <div class="container moa-content">
-            <div class="row doc-workspace-row">
-                <div class="col-lg-6 doc-form-pane">
-                    <div class="card p-3">
-                        <label for="student_select" class="form-label">Search Student</label>
+            <div class="application-builder-grid">
+                <section class="application-builder-sidebar">
+                    <div class="builder-card">
+                        <div class="builder-card-head">
+                            <h6>Record Source</h6>
+                            <p>Search student and company records, then the MOA preview updates instantly.</p>
+                        </div>
+
+                        <div class="builder-field">
+                        <label for="student_select" class="form-label">Student Name</label>
                         <select id="student_select" data-placeholder="Search by name or student id" class="student-select-full"></select>
+                        <small class="text-muted application-source-hint">Search and select from student records.</small>
+                        </div>
 
-                        <div class="mt-3">
-                            <label for="company_select" class="form-label">Search Company</label>
+                        <div class="builder-field">
+                            <label for="company_select" class="form-label">Company / Training Site</label>
                             <select id="company_select" data-placeholder="Search company, address, or representative" class="company-select-full"></select>
+                            <small class="text-muted application-source-hint">Pick a company to auto-fill company, representative, position, and address.</small>
                         </div>
 
-                        <div class="mt-3">
+                        <div class="application-autofill-panel">
+                            <div class="application-autofill-title">Company Details</div>
+                            <p>These fields update from the selected company record. You can still adjust them before printing.</p>
+                        </div>
+
+                        <div class="builder-field">
                             <label class="form-label">Company Name</label>
-                            <input id="moa_partner_name" class="form-control form-control-sm" type="text" placeholder="Partner company name">
+                            <input id="moa_partner_name" class="form-control" type="text" placeholder="Partner company name">
                         </div>
 
-                        <div class="mt-2">
+                        <div class="builder-field">
                             <label class="form-label">Company Address</label>
-                            <textarea id="moa_partner_address" class="form-control form-control-sm" rows="2" placeholder="Partner address"></textarea>
+                            <textarea id="moa_partner_address" class="form-control" rows="2" placeholder="Partner address"></textarea>
                         </div>
 
-                        <div class="mt-2">
+                        <div class="builder-field">
                             <label class="form-label">Partner Representative</label>
-                            <input id="moa_partner_rep" class="form-control form-control-sm" type="text" placeholder="Representative (e.g. Mr. Edward Docena)">
+                            <input id="moa_partner_rep" class="form-control" type="text" placeholder="Representative (e.g. Mr. Edward Docena)">
                         </div>
 
-                        <div class="mt-2">
+                        <div class="builder-field">
                             <label class="form-label">Representative Position</label>
-                            <input id="moa_partner_position" class="form-control form-control-sm" type="text" placeholder="Position (e.g. CEO)">
+                            <input id="moa_partner_position" class="form-control" type="text" placeholder="Position (e.g. CEO)">
                         </div>
 
                         <div class="mt-2">
@@ -291,15 +308,22 @@ include __DIR__ . '/../includes/header.php';
                             <button id="btn_print_moa" type="button" class="btn btn-success flex-grow-1">Generate / Print MOA</button>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <div class="col-lg-6 doc-template-pane">
+                <section class="application-builder-canvas">
+                    <div class="builder-card builder-card-editor">
                     <div class="moa-builder-controls">
-                        <div class="builder-editor-actions">
+                        <div class="builder-editor-head">
+                            <div>
+                                <h6>Template Builder</h6>
+                                <p>MOA preview, editor, and print layout in one place.</p>
+                            </div>
+                            <div class="builder-editor-actions">
                             <button id="btn_toggle_edit" class="btn btn-light" type="button" aria-pressed="false">Edit Template</button>
                             <button id="btn_save" class="btn btn-primary" type="button">Save Template</button>
                             <button id="btn_reset" class="btn btn-light" type="button">Reset</button>
-                            <button id="btn_print" class="btn btn-success" type="button">Print</button>
+                            <button id="btn_print" class="btn btn-success" type="button">Print MOA</button>
+                            </div>
                         </div>
                         <div class="builder-toolbar is-disabled" id="builder_toolbar" aria-label="Template formatting tools" aria-hidden="true">
                             <button id="btn_bold" class="btn btn-light" type="button"><strong>B</strong></button>
@@ -398,13 +422,12 @@ include __DIR__ . '/../includes/header.php';
 
                         </div>
                     </div>
-                </div>
+                    </div>
+                </section>
             </div>
         </div>
-
-</div>
-        </div>
-</div> <!-- .nxl-content -->
+    </div>
+    </div>
 </main>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 

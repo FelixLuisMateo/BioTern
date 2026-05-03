@@ -75,16 +75,17 @@
 
 .excel-import-hero-actions .btn-light,
 .excel-import-hero-actions .btn-light-brand {
-    background: #ffffff;
-    border-color: rgba(255, 255, 255, 0.72);
-    color: #195b42;
+    background: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.82) !important;
+    color: #195b42 !important;
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+    opacity: 1 !important;
 }
 
 .excel-import-hero-actions .btn-light:hover,
 .excel-import-hero-actions .btn-light-brand:hover {
-    background: #f4fff8;
-    color: #12422f;
+    background: #f4fff8 !important;
+    color: #12422f !important;
 }
 
 .transfer-kpis {
