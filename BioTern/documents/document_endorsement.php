@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ojt_masterlist.php';
 require_once dirname(__DIR__) . '/lib/company_profiles.php';
+require_once dirname(__DIR__) . '/includes/auth-session.php';
 $host = defined('DB_HOST') ? DB_HOST : 'localhost';
 $db_user = defined('DB_USER') ? DB_USER : 'root';
 $db_password = defined('DB_PASS') ? DB_PASS : '';
@@ -14,8 +15,24 @@ try {
 } catch (Exception $e) {
     die('Database error: ' . $e->getMessage());
 }
+biotern_boot_session($conn);
 
 $prefill_student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$documentsCurrentUserId = (int)($_SESSION['user_id'] ?? 0);
+$documentsCurrentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+$documentsIsStudentViewOnly = ($documentsCurrentRole === 'student');
+if ($documentsIsStudentViewOnly && $documentsCurrentUserId > 0) {
+    $studentLookupStmt = $conn->prepare("SELECT id FROM students WHERE user_id = ? LIMIT 1");
+    if ($studentLookupStmt) {
+        $studentLookupStmt->bind_param('i', $documentsCurrentUserId);
+        $studentLookupStmt->execute();
+        $studentLookupRow = $studentLookupStmt->get_result()->fetch_assoc() ?: null;
+        $studentLookupStmt->close();
+        if ($studentLookupRow) {
+            $prefill_student_id = (int)($studentLookupRow['id'] ?? 0);
+        }
+    }
+}
 $prefill_greeting_pref = strtolower(trim((string)($_GET['greeting_pref'] ?? 'either')));
 if (!in_array($prefill_greeting_pref, ['sir', 'maam', 'either'], true)) {
     $prefill_greeting_pref = 'either';
@@ -49,6 +66,12 @@ if (isset($_GET['action'])) {
     $action = $_GET['action'];
 
     if ($action === 'search_students') {
+        if ($documentsIsStudentViewOnly) {
+            $row = endorsement_document_student($conn, $prefill_student_id);
+            $name = trim((string)($row['first_name'] ?? '') . ' ' . (!empty($row['middle_name']) ? (string)$row['middle_name'] . ' ' : '') . (string)($row['last_name'] ?? ''));
+            echo json_encode(['results' => $row ? [['id' => $prefill_student_id, 'text' => trim($name . ' - ' . (string)($row['student_id'] ?? ''))]] : []]);
+            exit;
+        }
         $term = isset($_GET['q']) ? $conn->real_escape_string($_GET['q']) : '';
         $sql = "SELECT id, first_name, middle_name, last_name, student_id
                 FROM students
@@ -104,6 +127,10 @@ if (isset($_GET['action'])) {
 
     if ($action === 'get_student' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
+        if ($documentsIsStudentViewOnly && $id !== $prefill_student_id) {
+            echo json_encode(['access_denied' => true, 'message' => 'Document access denied.']);
+            exit;
+        }
         $row = endorsement_document_student($conn, $id);
         echo json_encode($row ?: new stdClass());
         exit;
@@ -111,6 +138,10 @@ if (isset($_GET['action'])) {
 
     if ($action === 'get_endorsement' && isset($_GET['id'])) {
         $id = intval($_GET['id']);
+        if ($documentsIsStudentViewOnly && $id !== $prefill_student_id) {
+            echo json_encode(['access_denied' => true, 'message' => 'Document access denied.']);
+            exit;
+        }
         $student = endorsement_document_student($conn, $id);
         $masterlist = !empty($student) ? biotern_masterlist_fetch_for_student($conn, $student) : [];
         $row = !empty($masterlist) ? biotern_masterlist_endorsement_defaults($masterlist, $student) : [];
@@ -162,7 +193,7 @@ include __DIR__ . '/../includes/header.php';
                 </ul>
             </div>
             <div class="page-header-middle">
-                <p class="page-header-statement">Use one workspace to select students, pull company data, and generate a print-ready endorsement letter.</p>
+                <p class="page-header-statement"><?php echo $documentsIsStudentViewOnly ? 'Preview your endorsement document in read-only mode.' : 'Use one workspace to select students, pull company data, and generate a print-ready endorsement letter.'; ?></p>
             </div>
             <?php ob_start(); ?>
                 <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
@@ -175,19 +206,19 @@ include __DIR__ . '/../includes/header.php';
             ?>
         </div>
 
-        <div class="application-document-builder endorsement-page" data-prefill-student-id="<?php echo (int)$prefill_student_id; ?>" data-prefill-company="<?php echo htmlspecialchars((string)($_GET['company'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-prefill-recipient-title="<?php echo htmlspecialchars($prefill_recipient_title, ENT_QUOTES, 'UTF-8'); ?>">
+        <div class="application-document-builder endorsement-page" data-student-view-only="<?php echo $documentsIsStudentViewOnly ? '1' : '0'; ?>" data-prefill-student-id="<?php echo (int)$prefill_student_id; ?>" data-prefill-company="<?php echo htmlspecialchars((string)($_GET['company'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-prefill-recipient-title="<?php echo htmlspecialchars($prefill_recipient_title, ENT_QUOTES, 'UTF-8'); ?>">
             <div class="main-content">
                 <div class="application-builder-grid">
                     <section class="application-builder-sidebar">
                         <div class="builder-card">
                             <div class="builder-card-head">
                                 <h6>Record Source</h6>
-                                <p>Search student and company records, then the letter preview updates instantly.</p>
+                                <p><?php echo $documentsIsStudentViewOnly ? 'Your document is loaded from your linked student record.' : 'Search student and company records, then the letter preview updates instantly.'; ?></p>
                             </div>
 
                             <div class="builder-field">
                                 <label for="student_select" class="form-label">Student Name</label>
-                                <select id="student_select" data-placeholder="Search by name or student id"></select>
+                                <select id="student_select" data-placeholder="Search by name or student id" <?php echo $documentsIsStudentViewOnly ? 'disabled' : ''; ?>></select>
                                 <small class="text-muted application-source-hint">Search and select from student records.</small>
                             </div>
 
@@ -260,14 +291,14 @@ include __DIR__ . '/../includes/header.php';
                                     <p>Endorsement letter preview, editor, and print layout in one place.</p>
                                 </div>
                                 <div class="builder-editor-actions">
-                                    <button id="btn_toggle_edit" class="btn btn-light" type="button" aria-pressed="false">Edit Template</button>
-                                    <button id="btn_save" class="btn btn-primary" type="button">Save Template</button>
-                                    <button id="btn_reset" class="btn btn-light" type="button">Reset</button>
+                                    <button id="btn_toggle_edit" class="btn btn-light" type="button" aria-pressed="false" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>Edit Template</button>
+                                    <button id="btn_save" class="btn btn-primary" type="button" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>Save Template</button>
+                                    <button id="btn_reset" class="btn btn-light" type="button" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>Reset</button>
                                     <button id="btn_print" class="btn btn-success" type="button">Print Letter</button>
                                 </div>
                             </div>
 
-                            <div class="builder-toolbar is-disabled" id="builder_toolbar" aria-label="Template formatting tools" aria-hidden="true">
+                            <div class="builder-toolbar is-disabled" id="builder_toolbar" aria-label="Template formatting tools" aria-hidden="true" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>
                                 <button id="btn_bold" class="btn btn-light" type="button"><strong>B</strong></button>
                                 <button id="btn_italic" class="btn btn-light" type="button"><em>I</em></button>
                                 <button id="btn_underline" class="btn btn-light" type="button"><u>U</u></button>
@@ -1415,6 +1446,16 @@ window.addEventListener('load', function() {
     updatePreview();
     updateLinks();
 })();
+});
+</script>
+<?php endif; ?>
+<?php if ($documentsIsStudentViewOnly): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.application-builder-sidebar input, .application-builder-sidebar textarea, .application-builder-sidebar select').forEach(function (node) {
+        node.disabled = true;
+        node.readOnly = true;
+    });
 });
 </script>
 <?php endif; ?>

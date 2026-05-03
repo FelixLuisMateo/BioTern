@@ -370,7 +370,27 @@ if (!empty($filter_coordinator)) {
     )";
 }
 
-$include_internal_records = in_array($filter_reports, ['all', 'internal_dtr'], true);
+$hasManualDtrAttachments = function_exists('table_exists') && table_exists($conn, 'manual_dtr_attachments');
+if ($filter_reports === 'proof') {
+    $where[] = $hasManualDtrAttachments
+        ? "EXISTS (SELECT 1 FROM manual_dtr_attachments mda_filter WHERE mda_filter.attendance_id = a.id AND mda_filter.deleted_at IS NULL)"
+        : '1 = 0';
+}
+
+$manualProofSelect = 'NULL AS proof_photo_path';
+$manualProofJoin = '';
+if ($hasManualDtrAttachments) {
+    $manualProofSelect = "CASE WHEN mda.id IS NOT NULL THEN CONCAT('manual-dtr-proof.php?id=', mda.id) ELSE NULL END AS proof_photo_path";
+    $manualProofJoin = "
+    LEFT JOIN manual_dtr_attachments mda ON mda.id = (
+        SELECT MIN(mda_inner.id)
+        FROM manual_dtr_attachments mda_inner
+        WHERE mda_inner.attendance_id = a.id
+          AND mda_inner.deleted_at IS NULL
+    )";
+}
+
+$include_internal_records = in_array($filter_reports, ['all', 'internal_dtr', 'proof'], true);
 $include_external_records = in_array($filter_reports, ['all', 'external_queue', 'proof'], true);
 
 $attendance_query = "
@@ -390,7 +410,7 @@ $attendance_query = "
         a.approved_at,
         a.remarks,
         'internal' AS record_origin,
-        NULL AS proof_photo_path,
+        {$manualProofSelect},
         s.id as student_id,
         s.user_id,
         s.department_id,
@@ -422,6 +442,7 @@ $attendance_query = "
     LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
     LEFT JOIN departments d ON i.department_id = d.id
     LEFT JOIN users u ON a.approved_by = u.id
+    {$manualProofJoin}
     WHERE " . implode(' AND ', $where) . "
     ORDER BY a.attendance_date DESC, a.id DESC, s.last_name ASC
     LIMIT 100
