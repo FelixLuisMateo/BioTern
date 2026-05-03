@@ -233,6 +233,7 @@ if ($summaryRes instanceof mysqli_result) {
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page chat-penalties-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-shell.css', 'assets/css/modules/reports/reports-login-logs-page.css', 'assets/css/modules/reports/reports-chat-penalties-page.css']);
+$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-chat-penalties-page.js', 'assets/js/modules/reports/reports-shell-runtime.js']);
 $page_title = 'BioTern || Chat Penalties';
 include 'includes/header.php';
 ?>
@@ -383,29 +384,3 @@ include 'includes/header.php';
 </div>
 </main>
 <?php include 'includes/footer.php'; ?>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var form = document.querySelector('.chat-penalties-auto-filter');
-    if (!form) {
-        return;
-    }
-
-    var search = form.querySelector('input[name="search"]');
-    var timer = null;
-
-    form.querySelectorAll('select').forEach(function (select) {
-        select.addEventListener('change', function () {
-            form.requestSubmit();
-        });
-    });
-
-    if (search) {
-        search.addEventListener('input', function () {
-            window.clearTimeout(timer);
-            timer = window.setTimeout(function () {
-                form.requestSubmit();
-            }, 450);
-        });
-    }
-});
-</script>

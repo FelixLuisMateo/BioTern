@@ -1,8 +1,0 @@
-/* Compatibility wrapper during SMACSS migration.
- * Source modules:
- * - state/mobile-layout.css
- * - state/mobile-components.css
- */
-
-@import url("./state/mobile-layout.css");
-@import url("./state/mobile-components.css");

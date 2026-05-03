@@ -4,7 +4,7 @@ This project now uses `assets/css/smacss.css` as the shared stylesheet entrypoin
 
 ## Current mapping
 
-- Base: `theme.min.css` (vendor/template foundation)
+- Base: `theme-base.css` (bridge entry; currently imports legacy `theme-legacy.css`)
 - Layout: `layout/app-core-shell.css` (app shell + shared structure)
 - Module:
   - `modules/app-core-utilities.css` (shared utility-like classes)
@@ -26,13 +26,11 @@ This project now uses `assets/css/smacss.css` as the shared stylesheet entrypoin
 - State:
   - `state/mobile-layout.css`
   - `state/mobile-components.css`
+  - `state/mobile-components-extended.css`
 
 ## Compatibility files
 
-- `core.css` now imports the split core modules for backward compatibility.
-- `ui.css` now imports `modules/app-ui-interactions.css` for backward compatibility.
-- `theme.css` now imports the split theme modules for backward compatibility.
-- `mobile.css` now imports the split state modules for backward compatibility.
+- Legacy compatibility wrappers removed: `core.css`, `ui.css`, `theme.css`, `mobile.css`.
 - Legacy domain folders (`pages`, `management`, `documents`, `reports`, `auth`, `apps`) have been retired.
 - Domain CSS now lives directly under `assets/css/modules/<domain>/`.
 
@@ -68,6 +66,8 @@ This project now uses `assets/css/smacss.css` as the shared stylesheet entrypoin
 - Put page/domain-specific styles under `modules/` (for example `modules/pages/`, `modules/management/`, `modules/documents/`).
 - Put color/skin/scheme overrides in the corresponding file under `theme/`.
 - Put viewport/state-specific overrides in the corresponding file under `state/`.
+- Prefer `state/mobile-components-extended.css` for new reusable mobile UI blocks (cards, KPI grid, chips, stacked tables, sticky actions) instead of page-local one-offs.
+- Keep page-scoped responsive rules inside each page module file (for example `modules/pages/page-home-dashboard.css`), and reserve `state/*` for shared cross-page mobile behavior.
 - Avoid editing `theme.min.css` directly unless absolutely required.
 
 ## Next migration steps

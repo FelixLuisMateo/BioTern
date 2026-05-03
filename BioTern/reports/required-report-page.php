@@ -715,7 +715,7 @@ $appliedFilterSummary = rr_applied_filter_summary($serverFilterFields);
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page required-report-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-shell.css', 'assets/css/modules/reports/reports-required-page.css']);
-$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/required-report-page.js']);
+$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/required-report-page.js', 'assets/js/modules/reports/reports-shell-runtime.js']);
 $page_title = 'BioTern || ' . (string)$report['title'];
 include 'includes/header.php';
 ?>
@@ -736,7 +736,7 @@ include 'includes/header.php';
         <?php ob_start(); ?>
             <a href="reports-admin-logs.php" class="btn btn-outline-primary"><i class="feather-shield me-1"></i>Admin Logs</a>
             <button type="button" class="btn btn-outline-primary" data-required-report-export><i class="feather-download me-1"></i>Export CSV</button>
-            <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
+            <button type="button" class="btn btn-light-brand js-print-report"><i class="feather-printer me-1"></i>Print</button>
         <?php biotern_render_page_header_actions(['menu_id' => 'requiredReportActionsMenu', 'items_html' => ob_get_clean()]); ?>
     </div>
 

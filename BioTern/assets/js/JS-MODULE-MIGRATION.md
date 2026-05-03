@@ -18,13 +18,19 @@ Shared runtime cores currently include:
 - `assets/js/modules/shared/common-init-guards.js` (disables duplicate legacy header-search blocks in `common-init.min.js`)
 - `assets/js/modules/shared/theme-state-core.js` (theme preference normalization + root class application)
 - `assets/js/modules/shared/runtime-boot.js` (shared safe boot/on-ready helper for init wrappers)
+- `assets/js/modules/shared/mobile-filter-actions-modal.js` (mobile filter/actions modal runtime)
 
-Root init wrappers now consistently consume `BioTernRuntimeBoot` when available:
+Global runtime scripts currently loaded from `includes/footer.php`:
 
 - `assets/js/global-ui-helpers.js`
+- `assets/js/mobile-bottom-nav.js`
+- `assets/js/theme-preferences-runtime.js`
+- `assets/js/common-init.min.js`
+
+Legacy wrappers removed from global footer loading:
+
 - `assets/js/customers-init.min.js`
 - `assets/js/navigation-state.js`
-- `assets/js/mobile-bottom-nav.js`
 - `assets/js/theme-customizer-init.min.js`
 
 ## Current loading pattern
@@ -40,6 +46,7 @@ Root init wrappers now consistently consume `BioTernRuntimeBoot` when available:
 
 ## Next steps
 
-1. Convert remaining hardcoded domain `<script>` tags to `$page_scripts` where practical.
+1. Convert remaining hardcoded domain `<script>` tags and inline handlers to `$page_scripts` + module files where practical.
 2. Continue moving duplicated logic out of `common-init.min.js` into shared modules.
 3. Introduce lightweight JS linting/format checks for module folders.
+4. Keep reports pages on `assets/js/modules/reports/*` plus shared `assets/js/modules/reports/reports-shell-runtime.js` for delegated actions (for example print).

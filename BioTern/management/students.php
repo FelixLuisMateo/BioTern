@@ -795,7 +795,7 @@ if ($filter_section > 0) {
 }
 
 $page_title = 'Students';
-$page_body_class = 'students-page';
+$page_body_class = 'students-page mobile-bottom-nav';
 $page_styles = array(
     'assets/css/modules/management/management-students-shared.css',
     'assets/css/modules/management/management-students.css'

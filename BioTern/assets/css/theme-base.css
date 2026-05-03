@@ -1,0 +1,12 @@
+/* BioTern theme base bridge
+ *
+ * Purpose:
+ * - Create a stable import target for SMACSS while we gradually decouple
+ *   legacy `theme-legacy.css` into modular theme/base files.
+ *
+ * Phase 1 strategy (no behavior change):
+ * - Keep loading the legacy bundle through this bridge.
+ * - Future phases can replace this single import with curated module imports.
+ */
+
+@import url("./theme-legacy.css");

@@ -87,18 +87,18 @@
   body.mobile-bottom-nav .page-header .app-applications-actions-toggle,
   body.mobile-bottom-nav .page-header .page-header-right-open-toggle,
   body.mobile-bottom-nav .page-header .app-page-header-auto-toggle {
-    width: 40px !important;
-    min-width: 40px !important;
-    max-width: 40px !important;
-    min-height: 40px !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    max-width: 38px !important;
+    min-height: 38px !important;
     padding: 0 !important;
-    border-radius: 999px !important;
+    border-radius: 10px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     overflow: hidden !important;
-    background: transparent !important;
-    border-color: transparent !important;
+    background: var(--biotern-surface-muted, rgba(15, 23, 42, 0.07)) !important;
+    border-color: var(--biotern-border, rgba(148, 163, 184, 0.25)) !important;
     box-shadow: none !important;
   }
 

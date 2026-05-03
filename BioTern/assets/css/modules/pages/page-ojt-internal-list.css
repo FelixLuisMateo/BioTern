@@ -582,6 +582,10 @@ html.app-skin-dark body.page-ojt-internal-list .app-ojt-internal-status-ongoing 
 }
 
 @media (max-width: 991.98px) {
+    body.mobile-bottom-nav.page-ojt-internal-list .bio-console-panel > .card-header + .card-body.border-bottom {
+        display: none !important;
+    }
+
     .page-ojt-internal-list .bio-console-table thead th,
     .page-ojt-internal-list .bio-console-table tbody td {
         padding-left: 0.7rem;

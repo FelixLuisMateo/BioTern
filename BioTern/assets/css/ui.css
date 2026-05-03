@@ -1,6 +1,0 @@
-/* Compatibility wrapper during SMACSS migration.
- * Source module:
- * - modules/app-ui-interactions.css
- */
-
-@import url("./modules/app-ui-interactions.css");

@@ -37,7 +37,7 @@
   function findToggle(right) {
     return directChildMatch(
       right,
-      ".page-header-actions-toggle, .app-students-actions-toggle, .app-ojt-actions-toggle, .app-applications-actions-toggle, .app-ojt-workflow-actions-toggle, .page-header-right-open-toggle, .app-page-header-auto-toggle, [class*='actions-toggle']"
+      ".page-header-actions-toggle, .app-students-actions-toggle, .app-ojt-actions-toggle, .app-applications-actions-toggle, .app-ojt-workflow-actions-toggle, .page-header-right-open-toggle, .app-page-header-auto-toggle, [class*='actions-toggle']:not(.page-header-mobile-actions-toggle):not(.page-header-mobile-filter-toggle):not(.page-header-mobile-search-toggle)"
     );
   }
 
@@ -396,6 +396,13 @@
 
   function bindPair(header, toggle, panel) {
     if (!toggle || !panel || toggle.dataset.phcBound === "1") {
+      return;
+    }
+    if (
+      toggle.classList.contains("page-header-mobile-actions-toggle") ||
+      toggle.classList.contains("page-header-mobile-filter-toggle") ||
+      toggle.classList.contains("page-header-mobile-search-toggle")
+    ) {
       return;
     }
     toggle.dataset.phcBound = "1";

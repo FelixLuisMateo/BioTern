@@ -639,7 +639,7 @@ if ($search !== '') {
 $printFilterLabel = $mapFingerId > 0 ? 'Fingerprint mapping mode' : ($printFilterParts !== [] ? implode(' / ', $printFilterParts) : 'All internal students');
 
 $page_title = 'Internal Student List';
-$page_body_class = 'page-fingerprint-mapping page-ojt-internal-list';
+$page_body_class = 'page-fingerprint-mapping page-ojt-internal-list mobile-bottom-nav';
 $page_styles = [
     'assets/css/layout/page_shell.css',
     'assets/css/modules/pages/page-biometric-console.css',
@@ -679,24 +679,32 @@ ob_end_flush();
                             <span class="text-muted fs-12">Quick Actions</span>
                         </div>
                         <div class="dashboard-actions-grid page-header-right-items-wrapper">
-                            <a href="<?php echo htmlspecialchars($exportUrl, ENT_QUOTES, 'UTF-8'); ?>" class="action-tile">
-                                <i class="feather-upload-cloud"></i>
-                                <span>Export Internal List</span>
-                            </a>
-                            <button type="button" class="action-tile" data-ojt-print-full="ojtInternalListTable">
-                                <i class="feather-printer"></i>
+                            <div class="dropdown">
+                                <a class="btn btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside" role="button" aria-label="Export options">
+                                    <i class="feather-paperclip me-2"></i>
+                                    <span>Export</span>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <a href="<?php echo htmlspecialchars($exportUrl, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
+                                        <i class="bi bi-file-earmark-spreadsheet me-3"></i>
+                                        <span>Excel</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-light js-print-page" data-ojt-print-full="ojtInternalListTable">
+                                <i class="feather-printer me-2"></i>
                                 <span>Print List</span>
                             </button>
-                            <button type="button" class="action-tile" data-ojt-print-selected="ojtInternalListTable">
-                                <i class="feather-printer"></i>
+                            <button type="button" class="btn btn-light d-none js-print-selected" data-ojt-print-selected="ojtInternalListTable" aria-hidden="true">
+                                <i class="feather-printer me-2"></i>
                                 <span>Print Selected</span>
                             </button>
-                            <a href="ojt-external-list.php" class="action-tile">
-                                <i class="feather-list"></i>
+                            <a href="ojt-external-list.php" class="btn btn-light-brand">
+                                <i class="feather-list me-2"></i>
                                 <span>View External List</span>
                             </a>
-                            <a href="fingerprint_mapping.php" class="action-tile">
-                                <i class="feather-hash"></i>
+                            <a href="fingerprint_mapping.php" class="btn btn-outline-secondary">
+                                <i class="feather-hash me-2"></i>
                                 <span>Back To Fingerprints</span>
                             </a>
                         </div>
@@ -807,21 +815,21 @@ ob_end_flush();
                             <?php else: ?>
                                 <?php foreach ($rows as $row): ?>
                                     <tr data-ojt-student-row-id="<?php echo (int)($row['student_row_id'] ?? 0); ?>" data-ojt-student-label="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>" data-print-student-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-last-name="<?php echo htmlspecialchars((string)($row['last_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-first-name="<?php echo htmlspecialchars((string)($row['first_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-middle-name="<?php echo htmlspecialchars((string)($row['middle_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-row-href="ojt-internal-view.php?id=<?php echo (int)($row['student_row_id'] ?? 0); ?>">
-                                        <td class="app-ojt-select-column" data-print-exclude="1">
+                                        <td class="app-ojt-select-column" data-label="Select" data-print-exclude="1">
                                             <div class="form-check app-ojt-select-check">
                                                 <input class="form-check-input" type="checkbox" data-ojt-row-select aria-label="Select student <?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?>">
                                             </div>
                                         </td>
-                                        <td><?php echo htmlspecialchars(trim((string)($row['student_no'] ?? '')) !== '' ? (string)$row['student_no'] : 'N/A', ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td>
+                                        <td data-label="Student No"><?php echo htmlspecialchars(trim((string)($row['student_no'] ?? '')) !== '' ? (string)$row['student_no'] : 'N/A', ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td data-label="Name">
                                             <div class="fw-semibold"><?php echo htmlspecialchars(trim((string)$row['last_name'] . ', ' . (string)$row['first_name'] . ' ' . (string)$row['middle_name']), ENT_QUOTES, 'UTF-8'); ?></div>
                                             <small class="text-muted"><?php echo htmlspecialchars((string)($row['ojt_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></small>
                                         </td>
-                                        <td>
+                                        <td data-label="Course / Section">
                                             <div><?php echo htmlspecialchars((string)($row['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></div>
                                             <small class="text-muted"><?php echo htmlspecialchars(biotern_format_section_code((string)($row['section_name'] ?? 'N/A')), ENT_QUOTES, 'UTF-8'); ?></small>
                                         </td>
-                                        <td>
+                                        <td data-label="Linked Account">
                                             <?php if ((int)($row['student_user_id'] ?? 0) > 0 || (int)($row['ojt_user_id'] ?? 0) > 0): ?>
                                                 <div class="fw-semibold"><?php echo htmlspecialchars((string)($row['account_name'] ?? 'Linked Account'), ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <small class="text-muted" data-print-exclude="1">User ID: <?php echo (int)($row['student_user_id'] ?: $row['ojt_user_id']); ?></small>
@@ -829,13 +837,13 @@ ob_end_flush();
                                                 <span class="badge bg-soft-warning text-warning">Not Linked Yet</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td>
+                                        <td data-label="Status">
                                             <span class="badge <?php echo htmlspecialchars((string)($row['internal_status_badge_class'] ?? 'bg-soft-secondary text-muted'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)($row['internal_status_label'] ?? 'Not Started'), ENT_QUOTES, 'UTF-8'); ?></span>
                                             <?php if (trim((string)($row['internship_status'] ?? '')) !== ''): ?>
                                                 <div><small class="text-muted" data-print-exclude="1">Internship: <?php echo htmlspecialchars(ucfirst((string)$row['internship_status']), ENT_QUOTES, 'UTF-8'); ?></small></div>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="text-end" data-print-exclude="1">
+                                        <td class="text-end" data-label="Action" data-print-exclude="1">
                                             <?php if ($mapFingerId > 0): ?>
                                                 <?php $candidateUserId = (int)($row['student_user_id'] ?: $row['ojt_user_id']); ?>
                                                 <?php if ($candidateUserId > 0): ?>

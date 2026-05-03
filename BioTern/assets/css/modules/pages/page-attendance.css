@@ -610,7 +610,62 @@ html.app-skin-dark .filter-toggle-btn:focus {
             font-size: 1.1rem;
         }
 
-        .attendance-filter,
-        .app-attendance-filter-link {
-            cursor: pointer;
-        }
+.attendance-filter,
+.app-attendance-filter-link {
+    cursor: pointer;
+}
+
+@media (max-width: 767.98px) {
+    body.attendance-page #attendanceList,
+    body.attendance-page #attendanceList thead,
+    body.attendance-page #attendanceList tbody,
+    body.attendance-page #attendanceList tr,
+    body.attendance-page #attendanceList td {
+        display: block;
+        width: 100%;
+    }
+
+    body.attendance-page #attendanceList thead {
+        display: none;
+    }
+
+    body.attendance-page #attendanceList tbody tr {
+        margin: 0 0 0.85rem;
+        padding: 0.95rem;
+        border: 1px solid #d9e4ef;
+        border-radius: 14px;
+        background: #ffffff;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+    }
+
+    body.attendance-page #attendanceList tbody td {
+        border: 0;
+        padding: 0.38rem 0;
+        white-space: normal !important;
+    }
+
+    body.attendance-page #attendanceList tbody td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 0.2rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+    }
+
+    body.attendance-page #attendanceList tbody td[data-label="Select"]::before {
+        content: "";
+        display: none;
+    }
+
+    html.app-skin-dark body.attendance-page #attendanceList tbody tr {
+        border-color: #2b3747;
+        background: #0f172a;
+    }
+
+    html.app-skin-dark body.attendance-page #attendanceList tbody td::before {
+        color: #9fb0c5;
+    }
+}

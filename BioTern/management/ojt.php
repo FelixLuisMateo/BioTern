@@ -675,7 +675,7 @@ if ($account_filter !== 'all') {
 $print_filter_label = $print_filter_parts !== [] ? implode(' / ', $print_filter_parts) : 'Current filtered OJT list';
 
 $page_title = 'BioTern || OJT Dashboard';
-$page_body_class = 'app-page-ojt-dashboard';
+$page_body_class = 'app-page-ojt-dashboard mobile-bottom-nav';
 $page_styles = [
     'assets/css/modules/management/management-filters.css',
     'assets/css/modules/management/management-ojt-shared.css',
@@ -812,6 +812,14 @@ include 'includes/header.php';
                             <a href="ojt-create.php" class="action-tile action-tile-primary" data-action-priority="1">
                                 <i class="feather-plus"></i>
                                 <span>New OJT Assignment</span>
+                            </a>
+                            <a href="ojt-internal-list.php" class="action-tile">
+                                <i class="feather-list"></i>
+                                <span>Internal List</span>
+                            </a>
+                            <a href="ojt-external-list.php" class="action-tile">
+                                <i class="feather-list"></i>
+                                <span>External List</span>
                             </a>
                         </div>
                     </div>

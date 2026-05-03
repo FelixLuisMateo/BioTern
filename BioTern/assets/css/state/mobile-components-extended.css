@@ -1,0 +1,188 @@
+/* Mobile Component Pack (opt-in)
+ *
+ * These classes are intentionally opt-in so existing screens do not change
+ * unless a page adds the class/data attribute.
+ */
+
+@media (max-width: 991.98px) {
+  .mobile-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+  }
+
+  .mobile-card-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid #edf1f5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .mobile-card-body {
+    padding: 12px 14px;
+  }
+
+  .mobile-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .mobile-kpi-tile {
+    border: 1px solid #e8edf3;
+    border-radius: 12px;
+    background: #fff;
+    padding: 10px 12px;
+  }
+
+  .mobile-kpi-label {
+    margin: 0;
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .mobile-kpi-value {
+    margin-top: 4px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.1;
+  }
+
+  .mobile-chip-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding-bottom: 2px;
+  }
+
+  .mobile-chip-row.is-drag-scroll {
+    cursor: grab;
+    user-select: none;
+  }
+
+  .mobile-chip-row.is-drag-scroll.is-dragging {
+    cursor: grabbing;
+  }
+
+  .mobile-chip {
+    flex: 0 0 auto;
+    border: 1px solid #dbe4ee;
+    border-radius: 999px;
+    background: #fff;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 9px 12px;
+    white-space: nowrap;
+  }
+
+  .mobile-chip.is-active {
+    background: #3454d1;
+    border-color: #3454d1;
+    color: #fff;
+  }
+
+  .mobile-empty-state {
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    background: #f8fafc;
+    color: #64748b;
+    text-align: center;
+    padding: 18px 14px;
+    font-size: 13px;
+  }
+
+  .mobile-action-bar {
+    position: sticky;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    z-index: 35;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  }
+
+  .mobile-action-bar > .btn,
+  .mobile-action-bar > a.btn {
+    flex: 1 1 0;
+    min-height: 38px;
+  }
+
+  .mobile-table-stack {
+    width: 100%;
+  }
+
+  .mobile-table-stack thead {
+    display: none;
+  }
+
+  .mobile-table-stack tbody tr {
+    display: block;
+    margin-bottom: 10px;
+    border: 1px solid #e6ecf2;
+    border-radius: 12px;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  .mobile-table-stack tbody td {
+    display: grid;
+    grid-template-columns: minmax(90px, 32%) 1fr;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #eef3f7;
+  }
+
+  .mobile-table-stack tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .mobile-table-stack tbody td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .mobile-collapse {
+    display: none;
+  }
+
+  .mobile-collapse.is-open {
+    display: block;
+  }
+}
+
+html.app-skin-dark .mobile-card,
+html.app-skin-dark .mobile-kpi-tile,
+html.app-skin-dark .mobile-table-stack tbody tr,
+html.app-skin-dark .mobile-action-bar {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+html.app-skin-dark .mobile-kpi-value {
+  color: #e2e8f0;
+}
+
+html.app-skin-dark .mobile-kpi-label,
+html.app-skin-dark .mobile-empty-state,
+html.app-skin-dark .mobile-table-stack tbody td::before {
+  color: #94a3b8;
+}

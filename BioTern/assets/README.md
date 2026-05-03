@@ -5,25 +5,30 @@ This folder is now organized by responsibility so CSS/JS files are easier to fin
 ## CSS
 
 - `assets/css/`:
-  - Global theme/core styles only (`bootstrap.min.css`, `theme.min.css`, `core.css`, `ui.css`, `theme.css`, `mobile.css`)
-- `assets/css/apps/`: App page styles
-- `assets/css/auth/`: Authentication page styles
-- `assets/css/documents/`: Documents, generators, and editor page styles
+  - Global/shared entry files only (`bootstrap.min.css`, `smacss.css`, `theme-base.css`, `theme-legacy.css`)
+- `assets/css/modules/apps/`: App page styles
+- `assets/css/modules/auth/`: Authentication page styles
+- `assets/css/modules/documents/`: Documents, generators, and editor page styles
 - `assets/css/layout/`: Shared layout shells (`page_shell.css`, `page-editor-shell.css`)
-- `assets/css/management/`: Management module styles
-- `assets/css/pages/`: General standalone page styles
-- `assets/css/reports/`: Report page styles
+- `assets/css/modules/management/`: Management module styles
+- `assets/css/modules/pages/`: General standalone page styles
+- `assets/css/modules/reports/`: Report page styles
+- `assets/css/state/`: State/responsive behavior
+  - Includes mobile component packs (`mobile-components.css`, `mobile-components-extended.css`)
+- `assets/css/theme/`: Theme/scheme layer
 
 ## JS
 
 - `assets/js/`:
-  - Global runtime scripts only (`common-init.min.js`, theme/runtime helpers, navigation/mobile globals)
-- `assets/js/apps/`: App page scripts
-- `assets/js/auth/`: Authentication page scripts
-- `assets/js/documents/`: Documents, generators, and editor page scripts
-- `assets/js/management/`: Management module scripts
-- `assets/js/pages/`: General standalone page scripts
-- `assets/js/reports/`: Report page scripts
+  - Global runtime scripts only (`common-init.min.js`, `global-ui-helpers.js`, theme/runtime helpers)
+- `assets/js/modules/apps/`: App page scripts
+- `assets/js/modules/auth/`: Authentication page scripts
+- `assets/js/modules/documents/`: Documents, generators, and editor page scripts
+- `assets/js/modules/management/`: Management module scripts
+- `assets/js/modules/pages/`: General standalone page scripts
+- `assets/js/modules/reports/`: Report page scripts
+- `assets/js/modules/shared/`: Shared cross-domain runtimes
+  - Includes mobile shared behaviors (for example `mobile-components-runtime.js`)
 
 ## Rule Of Thumb
 

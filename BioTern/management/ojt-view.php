@@ -1176,7 +1176,6 @@ $page_styles = [
 ];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',
-    'assets/js/page-init-noop.min.js',
     'assets/js/modules/management/ojt-view-runtime.js',
 ];
 

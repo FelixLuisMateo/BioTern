@@ -75,6 +75,11 @@
     };
 
     BottomNavigationState.prototype.bindSheetEvents = function (sheet, nav) {
+        if (sheet.dataset.bottomNavBound === "1") {
+            return;
+        }
+        sheet.dataset.bottomNavBound = "1";
+
         var self = this;
 
         nav.querySelectorAll(".biotern-bottom-link[data-panel-target]").forEach(function (button) {
@@ -103,16 +108,113 @@
             });
         }
 
-        document.addEventListener("keydown", function (event) {
-            if (event.key === "Escape") {
-                self.closeSheet(sheet, nav);
-            }
-        });
+        if (!this._handleEscape) {
+            this._handleEscape = function (event) {
+                if (event.key === "Escape") {
+                    self.closeSheet(sheet, nav);
+                }
+            };
+            document.addEventListener("keydown", this._handleEscape);
+        }
 
         sheet.querySelectorAll(".biotern-bottom-sheet-link").forEach(function (link) {
             link.addEventListener("click", function () {
                 self.closeSheet(sheet, nav);
             });
+        });
+    };
+
+    BottomNavigationState.prototype.bindSwipeScroll = function (nav) {
+        if (!nav || nav.dataset.bottomNavSwipeBound === "1") {
+            return;
+        }
+        nav.dataset.bottomNavSwipeBound = "1";
+
+        var isPointerDown = false;
+        var startX = 0;
+        var startY = 0;
+        var startScrollLeft = 0;
+        var moved = false;
+        var dragIntentLocked = false;
+        var horizontalDrag = false;
+
+        function clientXFromEvent(event) {
+            if (event.touches && event.touches[0]) {
+                return event.touches[0].clientX;
+            }
+            if (event.changedTouches && event.changedTouches[0]) {
+                return event.changedTouches[0].clientX;
+            }
+            return event.clientX || 0;
+        }
+
+        function onDown(event) {
+            isPointerDown = true;
+            moved = false;
+            dragIntentLocked = false;
+            horizontalDrag = false;
+            startX = clientXFromEvent(event);
+            startY = (event.touches && event.touches[0] ? event.touches[0].clientY : event.clientY || 0);
+            startScrollLeft = nav.scrollLeft;
+        }
+
+        function onMove(event) {
+            if (!isPointerDown) {
+                return;
+            }
+            var dx = clientXFromEvent(event) - startX;
+            var currentY = (event.touches && event.touches[0] ? event.touches[0].clientY : event.clientY || 0);
+            var dy = currentY - startY;
+
+            // Lock gesture intent after a meaningful movement.
+            if (!dragIntentLocked && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+                dragIntentLocked = true;
+                horizontalDrag = Math.abs(dx) > Math.abs(dy);
+                if (horizontalDrag) {
+                    nav.classList.add("is-dragging");
+                }
+            }
+
+            if (!horizontalDrag) {
+                return;
+            }
+
+            if (Math.abs(dx) > 10) {
+                moved = true;
+            }
+            nav.scrollLeft = startScrollLeft - dx;
+            if (event.cancelable) {
+                event.preventDefault();
+            }
+        }
+
+        function onUp() {
+            isPointerDown = false;
+            dragIntentLocked = false;
+            horizontalDrag = false;
+            nav.classList.remove("is-dragging");
+        }
+
+        nav.addEventListener("touchstart", onDown, { passive: true });
+        nav.addEventListener("touchmove", onMove, { passive: false });
+        nav.addEventListener("touchend", onUp);
+        nav.addEventListener("mousedown", onDown);
+        global.addEventListener("mousemove", onMove);
+        global.addEventListener("mouseup", onUp);
+
+        // Prevent accidental tap when swipe-drag occurred.
+        nav.querySelectorAll(".biotern-bottom-link").forEach(function (link) {
+            link.addEventListener(
+                "click",
+                function (event) {
+                    if (moved) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        moved = false;
+                    }
+                },
+                true
+            );
         });
     };
 
@@ -123,6 +225,7 @@
         }
 
         this.setActiveRoute(nav);
+        this.bindSwipeScroll(nav);
 
         var sheet = this.getSheet();
         if (!sheet) {
