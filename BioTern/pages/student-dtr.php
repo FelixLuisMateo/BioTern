@@ -1244,18 +1244,6 @@ include 'includes/header.php';
                         </div>
                     </div>
                 </section>
-
-                <section class="card student-panel mt-4">
-                    <div class="card-body">
-                        <span class="student-metric-label">Quick Links</span>
-                        <div class="d-grid gap-2">
-                            <a href="student-profile.php" class="btn btn-outline-primary">My Profile</a>
-                            <a href="student-documents.php" class="btn btn-outline-secondary">My Documents</a>
-                            <a href="student-manual-dtr.php" class="btn btn-outline-secondary">Manual DTR</a>
-                            <a href="apps-calendar.php" class="btn btn-outline-secondary">Calendar</a>
-                        </div>
-                    </div>
-                </section>
             </div>
             <?php endif; ?>
         </div>
