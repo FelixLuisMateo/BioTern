@@ -554,15 +554,15 @@
 
 .student-internal-eval-print-lines {
     display: block;
-    min-height: 52px;
+    min-height: 72px;
     background: none;
 }
 
 .student-internal-eval-print-line {
     display: block;
     width: 100%;
-    min-height: 52px;
-    line-height: 13px;
+    min-height: 72px;
+    line-height: 18px;
     padding: 0;
     border-bottom: 0;
     white-space: normal;
@@ -570,9 +570,9 @@
     background-image: repeating-linear-gradient(
         to bottom,
         transparent 0,
-        transparent 12px,
-        #111 12px,
-        #111 13px
+        transparent 17px,
+        #111 17px,
+        #111 18px
     );
 }
 
