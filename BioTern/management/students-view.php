@@ -24,6 +24,17 @@ function resolve_profile_image_url(string $profilePath, int $userId = 0): ?strin
     return $resolved;
 }
 
+function student_view_table_exists(mysqli $conn, string $table): bool
+{
+    $escaped = $conn->real_escape_string($table);
+    $res = $conn->query("SHOW TABLES LIKE '{$escaped}'");
+    $exists = ($res instanceof mysqli_result) && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+    return $exists;
+}
+
 // Get student ID from URL parameter
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
@@ -146,8 +157,110 @@ function student_internship_start_date(mysqli $conn, int $studentId, string $typ
     return $value !== '' ? $value : null;
 }
 
+function student_external_attendance_ids(array $student): array
+{
+    return array_values(array_unique(array_filter([
+        (int)($student['id'] ?? 0),
+        (int)($student['user_id'] ?? 0),
+    ], static fn(int $id): bool => $id > 0)));
+}
+
+function student_external_attendance_start_date(mysqli $conn, array $ids): ?string
+{
+    if (empty($ids)) {
+        return null;
+    }
+
+    external_attendance_ensure_schema($conn);
+    if (count($ids) === 1) {
+        $stmt = $conn->prepare("SELECT MIN(attendance_date) AS start_date FROM external_attendance WHERE student_id = ?");
+        if (!$stmt) {
+            return null;
+        }
+        $stmt->bind_param('i', $ids[0]);
+    } else {
+        $stmt = $conn->prepare("SELECT MIN(attendance_date) AS start_date FROM external_attendance WHERE student_id IN (?, ?)");
+        if (!$stmt) {
+            return null;
+        }
+        $stmt->bind_param('ii', $ids[0], $ids[1]);
+    }
+
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc() ?: null;
+    $stmt->close();
+    $value = trim((string)($row['start_date'] ?? ''));
+    return $value !== '' ? $value : null;
+}
+
+function student_external_attendance_rendered_hours(mysqli $conn, array $ids): float
+{
+    if (empty($ids)) {
+        return 0.0;
+    }
+
+    external_attendance_ensure_schema($conn);
+    if (count($ids) === 1) {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(SUM(total_hours), 0) AS rendered
+            FROM external_attendance
+            WHERE student_id = ? AND LOWER(COALESCE(status, 'pending')) <> 'rejected'
+        ");
+        if (!$stmt) {
+            return 0.0;
+        }
+        $stmt->bind_param('i', $ids[0]);
+    } else {
+        $stmt = $conn->prepare("
+            SELECT COALESCE(SUM(total_hours), 0) AS rendered
+            FROM external_attendance
+            WHERE student_id IN (?, ?) AND LOWER(COALESCE(status, 'pending')) <> 'rejected'
+        ");
+        if (!$stmt) {
+            return 0.0;
+        }
+        $stmt->bind_param('ii', $ids[0], $ids[1]);
+    }
+
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc() ?: ['rendered' => 0];
+    $stmt->close();
+    return max(0.0, (float)($row['rendered'] ?? 0));
+}
+
+function student_masterlist_company_row(mysqli $conn, array $student): ?array
+{
+    if (!student_view_table_exists($conn, 'ojt_masterlist')) {
+        return null;
+    }
+
+    $studentNo = trim((string)($student['student_id'] ?? ''));
+    if ($studentNo === '') {
+        return null;
+    }
+
+    $stmt = $conn->prepare("
+        SELECT company_name, company_address, supervisor_name, supervisor_position, company_representative, status, school_year, semester
+        FROM ojt_masterlist
+        WHERE TRIM(COALESCE(student_no, '')) = ?
+          AND TRIM(COALESCE(company_name, '')) <> ''
+        ORDER BY updated_at DESC, id DESC
+        LIMIT 1
+    ");
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('s', $studentNo);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc() ?: null;
+    $stmt->close();
+
+    return is_array($row) ? $row : null;
+}
+
 $student['internal_start_date'] = null;
 $student['external_start_date'] = null;
+$externalAttendanceIds = student_external_attendance_ids($student);
 $internalAttendanceStartStmt = $conn->prepare("SELECT MIN(attendance_date) AS start_date FROM attendances WHERE student_id = ?");
 if ($internalAttendanceStartStmt) {
     $internalAttendanceStartStmt->bind_param('i', $student_id);
@@ -160,16 +273,9 @@ if ($internalAttendanceStartStmt) {
     }
 }
 external_attendance_ensure_schema($conn);
-$externalAttendanceStartStmt = $conn->prepare("SELECT MIN(attendance_date) AS start_date FROM external_attendance WHERE student_id = ?");
-if ($externalAttendanceStartStmt) {
-    $externalAttendanceStartStmt->bind_param('i', $student_id);
-    $externalAttendanceStartStmt->execute();
-    $externalAttendanceStartRow = $externalAttendanceStartStmt->get_result()->fetch_assoc() ?: null;
-    $externalAttendanceStartStmt->close();
-    $externalAttendanceStartValue = trim((string)($externalAttendanceStartRow['start_date'] ?? ''));
-    if ($externalAttendanceStartValue !== '') {
-        $student['external_start_date'] = $externalAttendanceStartValue;
-    }
+$externalAttendanceStartValue = student_external_attendance_start_date($conn, $externalAttendanceIds);
+if ($externalAttendanceStartValue !== null) {
+    $student['external_start_date'] = $externalAttendanceStartValue;
 }
 if (empty($student['internal_start_date'])) {
     $student['internal_start_date'] = student_internship_start_date($conn, $student_id, 'internal');
@@ -193,6 +299,23 @@ if ($latestInternshipStmt) {
 }
 
 $latestCompanyName = trim((string)($student_latest_internship['company_name'] ?? ''));
+if ($latestCompanyName === '') {
+    $masterlistCompany = student_masterlist_company_row($conn, $student);
+    if ($masterlistCompany) {
+        $student_latest_internship = [
+            'company_name' => trim((string)($masterlistCompany['company_name'] ?? '')),
+            'company_address' => trim((string)($masterlistCompany['company_address'] ?? '')),
+            'position' => trim((string)($masterlistCompany['supervisor_position'] ?? '')),
+            'status' => trim((string)($masterlistCompany['status'] ?? 'ongoing')),
+            'start_date' => '',
+            'end_date' => '',
+            'company_representative' => trim((string)($masterlistCompany['company_representative'] ?? '')),
+            'supervisor_name' => trim((string)($masterlistCompany['supervisor_name'] ?? '')),
+            'supervisor_position' => trim((string)($masterlistCompany['supervisor_position'] ?? '')),
+        ];
+        $latestCompanyName = trim((string)$student_latest_internship['company_name']);
+    }
+}
 if ($latestCompanyName !== '') {
     $student_company_profile = biotern_company_profile_fetch_by_name($conn, $latestCompanyName);
     if ($student_company_profile) {
@@ -348,20 +471,7 @@ $sum_stmt->execute();
 $sum_row = $sum_stmt->get_result()->fetch_assoc();
 $sum_stmt->close();
 
-external_attendance_ensure_schema($conn);
-$external_sum_stmt = $conn->prepare("
-    SELECT COALESCE(SUM(total_hours), 0) AS rendered
-    FROM external_attendance
-    WHERE student_id = ? AND status <> 'rejected'
-");
-$external_hours_rendered = 0.0;
-if ($external_sum_stmt) {
-    $external_sum_stmt->bind_param("i", $student_id);
-    $external_sum_stmt->execute();
-    $external_sum_row = $external_sum_stmt->get_result()->fetch_assoc();
-    $external_hours_rendered = isset($external_sum_row['rendered']) ? (float)$external_sum_row['rendered'] : 0.0;
-    $external_sum_stmt->close();
-}
+$external_hours_rendered = student_external_attendance_rendered_hours($conn, $externalAttendanceIds);
 
 $internal_hours_rendered = isset($sum_row['rendered']) ? (float)$sum_row['rendered'] : 0.0;
 if ($internal_hours_rendered <= 0 && isset($student['rendered_hours']) && strtolower(trim((string)($student['assignment_track'] ?? 'internal'))) !== 'external') {
