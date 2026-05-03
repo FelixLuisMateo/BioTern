@@ -117,7 +117,7 @@ if ($nav_current_file === '') {
 $nav_student_has_external_access = ($nav_student_track === 'external') || ($nav_is_student && $nav_current_file === 'external-biometric.php');
 
 if (!function_exists('biotern_nav_route_key')) {
-    function biotern_nav_route_key($href) {
+    function biotern_nav_route_key(string $href): string {
         $href = trim((string)$href);
         if ($href === '' || stripos($href, 'javascript:') === 0 || $href === '#') {
             return '';
@@ -139,14 +139,14 @@ if (!function_exists('biotern_nav_route_key')) {
 }
 
 if (!function_exists('biotern_nav_is_active')) {
-    function biotern_nav_is_active($href, $current) {
+    function biotern_nav_is_active(string $href, string $current): bool {
         $key = biotern_nav_route_key($href);
         return $key !== '' && $current !== '' && $key === $current;
     }
 }
 
 if (!function_exists('biotern_nav_any_active')) {
-    function biotern_nav_any_active($current, $hrefs) {
+    function biotern_nav_any_active(string $current, array $hrefs): bool {
         foreach ((array)$hrefs as $href) {
             if (biotern_nav_is_active($href, $current)) {
                 return true;
