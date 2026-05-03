@@ -233,7 +233,7 @@ if ($summaryRes instanceof mysqli_result) {
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page chat-penalties-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-shell.css', 'assets/css/modules/reports/reports-login-logs-page.css', 'assets/css/modules/reports/reports-chat-penalties-page.css']);
-$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-chat-penalties-page.js', 'assets/js/modules/reports/reports-shell-runtime.js']);
+$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-chat-penalties-page.js', 'assets/js/modules/reports/reports-login-logs-page.js', 'assets/js/modules/reports/reports-shell-runtime.js']);
 $page_title = 'BioTern || Chat Penalties';
 include 'includes/header.php';
 ?>
@@ -318,7 +318,7 @@ include 'includes/header.php';
 
     <div class="logs-table-card">
         <div class="table-responsive">
-            <table class="table table-hover align-middle">
+            <table class="table table-hover align-middle logs-mobile-table" data-mobile-collapse="true" data-mobile-visible-cells="3">
                 <thead>
                     <tr>
                         <th>User</th>
@@ -338,29 +338,29 @@ include 'includes/header.php';
                             $statusClass = chatpenalties_status_class($rowStatus);
                             ?>
                             <tr>
-                                <td>
+                                <td data-label="User">
                                     <div class="fw-semibold"><?php echo chatpenalties_esc($row['punished_user'] ?? '-'); ?></div>
                                     <small class="text-muted"><?php echo chatpenalties_esc($row['punished_email'] ?? 'No email'); ?></small>
                                 </td>
-                                <td>
+                                <td data-label="Punishment">
                                     <span class="logs-pill bg-soft-primary text-primary"><?php echo chatpenalties_esc(chatpenalties_label((string)($row['action'] ?? ''))); ?></span>
                                     <?php if ((int)($row['report_id'] ?? 0) > 0): ?>
                                         <div><small class="text-muted">Report #<?php echo (int)$row['report_id']; ?></small></div>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td data-label="Reason / Note">
                                     <div><?php echo chatpenalties_esc(trim((string)($row['reason'] ?? '')) !== '' ? (string)$row['reason'] : '-'); ?></div>
                                     <?php if (trim((string)($row['moderator_note'] ?? '')) !== ''): ?>
                                         <small class="text-muted"><?php echo chatpenalties_esc((string)$row['moderator_note']); ?></small>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td data-label="Duration">
                                     <div><small class="text-muted">Start</small> <?php echo chatpenalties_esc(chatpenalties_format_datetime($row['starts_at'] ?? '')); ?></div>
                                     <div><small class="text-muted">End</small> <?php echo chatpenalties_esc(chatpenalties_format_datetime($row['ends_at'] ?? '')); ?></div>
                                 </td>
-                                <td><?php echo chatpenalties_esc($row['moderator_name'] ?? '-'); ?></td>
-                                <td><span class="logs-pill bg-soft-<?php echo $statusClass; ?> text-<?php echo $statusClass; ?>"><?php echo chatpenalties_esc($rowStatus); ?></span></td>
-                                <td class="text-nowrap">
+                                <td data-label="Moderator"><?php echo chatpenalties_esc($row['moderator_name'] ?? '-'); ?></td>
+                                <td data-label="Status"><span class="logs-pill bg-soft-<?php echo $statusClass; ?> text-<?php echo $statusClass; ?>"><?php echo chatpenalties_esc($rowStatus); ?></span></td>
+                                <td class="text-nowrap" data-label="Action">
                                     <?php if ($rowStatus === 'Active'): ?>
                                         <form method="post" onsubmit="return confirm('Remove this chat punishment?');">
                                             <input type="hidden" name="action" value="revoke">

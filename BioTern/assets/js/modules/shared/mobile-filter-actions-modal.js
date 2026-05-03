@@ -61,7 +61,7 @@
     }
 
     var knownFilterForms = contentRoot.querySelectorAll(
-      "form.filter-form, form.app-ojt-filter-form, form.login-logs-auto-filter, form.admin-logs-auto-filter, #studentsFilterForm, #ojtFilterForm"
+      "form.filter-form, form.app-ojt-filter-form, form.login-logs-auto-filter, form.admin-logs-auto-filter, form.chatreports-auto-filter, form.chat-penalties-auto-filter, form.required-report-server-filters, .chatlogs-filter form, .logs-filter-wrap form, .report-filter-wrap form, .chatreports-filter-wrap, .attendance-exceptions-toolbar form, #studentsFilterForm, #ojtFilterForm"
     );
     for (var f = 0; f < knownFilterForms.length; f += 1) {
       var formNode = knownFilterForms[f];
@@ -82,6 +82,31 @@
       if (/filter/i.test(header.textContent || "")) {
         pushUnique(card);
       }
+    }
+
+    // Fallback: include likely GET-based filter forms (for pages where filter
+    // controls are in plain cards/rows without dedicated filter class names).
+    var getForms = contentRoot.querySelectorAll("form[method='get']");
+    for (var gf = 0; gf < getForms.length; gf += 1) {
+      var getForm = getForms[gf];
+      if (!getForm || !isElement(getForm)) {
+        continue;
+      }
+      if (getForm.classList.contains("chatreports-action-form")) {
+        continue;
+      }
+      if (getForm.closest(".pagination, nav")) {
+        continue;
+      }
+      var fieldCount = getForm.querySelectorAll("select, input[type='date'], input[type='search'], input[type='text'], input[type='number']").length;
+      var hasSubmit = !!getForm.querySelector("button[type='submit'], input[type='submit']");
+      if (fieldCount < 1 || !hasSubmit) {
+        continue;
+      }
+      var host =
+        getForm.closest(".logs-filter-wrap, .report-filter-wrap, .chatreports-filter-wrap, .chatlogs-filter, .attendance-exceptions-toolbar, .card") ||
+        getForm;
+      pushUnique(host);
     }
     return matches;
   }
@@ -134,14 +159,48 @@
   }
 
   function findFilterSourceForm() {
-    return (
+    var explicit =
       document.querySelector("#studentsFilterForm") ||
       document.querySelector("#ojtFilterForm") ||
       document.querySelector("form.filter-form") ||
       document.querySelector("form.app-ojt-filter-form") ||
       document.querySelector("form.login-logs-auto-filter") ||
-      document.querySelector("form.admin-logs-auto-filter")
-    );
+      document.querySelector("form.admin-logs-auto-filter") ||
+      document.querySelector("form.chatreports-auto-filter") ||
+      document.querySelector("form.chat-penalties-auto-filter") ||
+      document.querySelector("form.required-report-server-filters");
+    if (explicit) {
+      return explicit;
+    }
+
+    var forms = document.querySelectorAll(".nxl-content form[method='get'], .main-content form[method='get'], form[method='get']");
+    var best = null;
+    var bestScore = -1;
+    for (var i = 0; i < forms.length; i += 1) {
+      var form = forms[i];
+      if (!form || !form.querySelectorAll) {
+        continue;
+      }
+      if (form.closest(".pagination, nav, .logs-pagination, .chatlogs-pagination")) {
+        continue;
+      }
+      var controls = form.querySelectorAll("select, input[type='date'], input[type='search'], input[type='text'], input[type='number']");
+      if (!controls.length) {
+        continue;
+      }
+      var score = controls.length;
+      if (form.className && /filter/i.test(form.className)) {
+        score += 3;
+      }
+      if (form.closest(".logs-filter-wrap, .report-filter-wrap, .chatreports-filter-wrap, .chatlogs-filter, .attendance-exceptions-toolbar, .required-report-filters")) {
+        score += 4;
+      }
+      if (score > bestScore) {
+        best = form;
+        bestScore = score;
+      }
+    }
+    return best;
   }
 
   function ensureFilterModalFromSource(sourceForm, index) {
@@ -184,17 +243,24 @@
   }
 
   function buildFilterModal(header, right, index) {
-    var contentRoot = document.querySelector(".nxl-content .main-content") || document.querySelector(".main-content") || document;
+    var contentRoot =
+      document.querySelector(".nxl-content .main-content") ||
+      document.querySelector(".main-content") ||
+      document.querySelector(".nxl-content") ||
+      document;
     var filterCards = allFilterCards(contentRoot);
     var filterCard = filterCards.length ? filterCards[0] : null;
     if (!filterCard) {
       return;
     }
     var sourceForm = null;
-    if (filterCard.matches && filterCard.matches("form")) {
+    if (filterCard && filterCard.matches && filterCard.matches("form")) {
       sourceForm = filterCard;
-    } else {
+    } else if (filterCard) {
       sourceForm = filterCard.querySelector("form");
+    }
+    if (!sourceForm) {
+      sourceForm = findFilterSourceForm();
     }
     if (!sourceForm) {
       return;
@@ -211,34 +277,39 @@
     var modalId = "mobileFiltersModal" + index;
     var modal = ensureModal(modalId, "Filters");
     var body = modal.querySelector(".modal-body");
-    body.innerHTML = "";
 
-    var cloneForm = sourceForm.cloneNode(true);
-    cloneForm.classList.add("mobile-filter-form-clone");
-    syncCloneFromSource(sourceForm, cloneForm);
-
-    var footerRow = document.createElement("div");
-    footerRow.className = "d-grid gap-2 mt-3";
-    var applyBtn = document.createElement("button");
-    applyBtn.type = "button";
-    applyBtn.className = "btn btn-primary";
-    applyBtn.textContent = "Apply Filters";
-    footerRow.appendChild(applyBtn);
-    cloneForm.appendChild(footerRow);
-    body.appendChild(cloneForm);
-
-    applyBtn.addEventListener("click", function () {
-      syncSourceFromClone(sourceForm, cloneForm);
-      var bsModal = global.bootstrap && global.bootstrap.Modal ? global.bootstrap.Modal.getOrCreateInstance(modal) : null;
-      if (bsModal) {
-        bsModal.hide();
+    function rebuildFilterBody() {
+      body.innerHTML = "";
+      var liveSource = sourceForm || findFilterSourceForm();
+      if (!liveSource) {
+        return;
       }
-      sourceForm.submit();
-    });
+      var cloneForm = liveSource.cloneNode(true);
+      cloneForm.classList.add("mobile-filter-form-clone");
+      syncCloneFromSource(liveSource, cloneForm);
 
-    modal.addEventListener("show.bs.modal", function () {
-      syncCloneFromSource(sourceForm, cloneForm);
-    });
+      var footerRow = document.createElement("div");
+      footerRow.className = "d-grid gap-2 mt-3";
+      var applyBtn = document.createElement("button");
+      applyBtn.type = "button";
+      applyBtn.className = "btn btn-primary";
+      applyBtn.textContent = "Apply Filters";
+      footerRow.appendChild(applyBtn);
+      cloneForm.appendChild(footerRow);
+      body.appendChild(cloneForm);
+
+      applyBtn.addEventListener("click", function () {
+        syncSourceFromClone(liveSource, cloneForm);
+        var bsModal = global.bootstrap && global.bootstrap.Modal ? global.bootstrap.Modal.getOrCreateInstance(modal) : null;
+        if (bsModal) {
+          bsModal.hide();
+        }
+        liveSource.submit();
+      });
+    }
+
+    rebuildFilterBody();
+    modal.addEventListener("show.bs.modal", rebuildFilterBody);
 
     var btn = document.createElement("button");
     btn.type = "button";
@@ -646,7 +717,17 @@
       }
       var right = header.querySelector(".page-header-right");
       if (!right) {
-        continue;
+        // Some report pages render left + middle only; create a right action slot
+        // so mobile filter/actions modal buttons can still mount.
+        right = document.createElement("div");
+        right.className = "page-header-right ms-auto";
+        var rightItems = document.createElement("div");
+        rightItems.className = "page-header-right-items d-flex";
+        var rightWrap = document.createElement("div");
+        rightWrap.className = "d-flex align-items-center gap-2 page-header-right-items-wrapper";
+        rightItems.appendChild(rightWrap);
+        right.appendChild(rightItems);
+        header.appendChild(right);
       }
 
       // Filter/Search modalization should work independently from actions panel availability.

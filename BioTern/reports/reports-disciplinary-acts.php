@@ -140,8 +140,8 @@ usort($records, static function (array $a, array $b): int {
 });
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page');
-$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-shell.css']);
-$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-shell-runtime.js']);
+$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-shell.css', 'assets/css/modules/reports/reports-login-logs-page.css']);
+$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-login-logs-page.js', 'assets/js/modules/reports/reports-shell-runtime.js']);
 $page_title = 'BioTern || Disciplinary Acts Report';
 include 'includes/header.php';
 ?>
@@ -205,7 +205,7 @@ include 'includes/header.php';
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover mb-0 logs-mobile-table" data-mobile-collapse="true" data-mobile-visible-cells="3">
                     <thead>
                         <tr>
                             <th>Student</th>
@@ -230,16 +230,16 @@ include 'includes/header.php';
                                 if ($status === 'pending') $statusClass = 'warning';
                                 ?>
                                 <tr>
-                                    <td>
+                                    <td data-label="Student">
                                         <div class="fw-semibold"><?php echo rep_h($row['student_name'] !== '' ? $row['student_name'] : '-'); ?></div>
                                         <small class="text-muted">ID: <?php echo rep_h($row['student_number']); ?></small>
                                     </td>
-                                    <td><span class="badge bg-soft-<?php echo rep_h($statusClass); ?> text-<?php echo rep_h($statusClass); ?> text-capitalize"><?php echo rep_h($status); ?></span></td>
-                                    <td><?php echo rep_h($row['disciplinary_remark']); ?></td>
-                                    <td><?php echo rep_h(trim((string)$row['approval_notes']) !== '' ? $row['approval_notes'] : '-'); ?></td>
-                                    <td><?php echo rep_h(trim((string)$row['reviewed_by_name']) !== '' ? $row['reviewed_by_name'] : '-'); ?></td>
-                                    <td><?php echo rep_h(rep_format_datetime((string)$row['happened_at'])); ?></td>
-                                    <td><span class="badge bg-soft-primary text-primary"><?php echo rep_h(strtoupper((string)$row['source'])); ?></span></td>
+                                    <td data-label="Status"><span class="badge bg-soft-<?php echo rep_h($statusClass); ?> text-<?php echo rep_h($statusClass); ?> text-capitalize"><?php echo rep_h($status); ?></span></td>
+                                    <td data-label="Disciplinary Remark"><?php echo rep_h($row['disciplinary_remark']); ?></td>
+                                    <td data-label="Approval Note"><?php echo rep_h(trim((string)$row['approval_notes']) !== '' ? $row['approval_notes'] : '-'); ?></td>
+                                    <td data-label="Reviewed By"><?php echo rep_h(trim((string)$row['reviewed_by_name']) !== '' ? $row['reviewed_by_name'] : '-'); ?></td>
+                                    <td data-label="Date"><?php echo rep_h(rep_format_datetime((string)$row['happened_at'])); ?></td>
+                                    <td data-label="Source"><span class="badge bg-soft-primary text-primary"><?php echo rep_h(strtoupper((string)$row['source'])); ?></span></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>

@@ -986,7 +986,7 @@ html.app-skin-dark .page-biometric-machine .bio-console-hero-side small {
     }
 }
 
-@media (max-width: 767.98px) {
+@media (max-width: 1199.98px) {
     body.page-ojt-internal-list .bio-console-table,
     body.page-ojt-internal-list .bio-console-table thead,
     body.page-ojt-internal-list .bio-console-table tbody,
@@ -999,6 +999,18 @@ html.app-skin-dark .page-biometric-machine .bio-console-hero-side small {
     body.page-ojt-external-list .bio-console-table td {
         display: block;
         width: 100%;
+        min-width: 0 !important;
+    }
+
+    body.page-ojt-internal-list .table-responsive,
+    body.page-ojt-external-list .table-responsive {
+        overflow-x: visible !important;
+    }
+
+    body.page-ojt-internal-list .bio-console-table,
+    body.page-ojt-external-list .bio-console-table {
+        min-width: 0 !important;
+        table-layout: fixed;
     }
 
     body.page-ojt-internal-list .bio-console-table thead,
@@ -1013,6 +1025,7 @@ html.app-skin-dark .page-biometric-machine .bio-console-hero-side small {
         border: 1px solid var(--biotern-border, rgba(148, 163, 184, 0.22));
         border-radius: 14px;
         background: var(--biotern-surface, #ffffff);
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
     }
 
     body.page-ojt-internal-list .bio-console-table tbody td,
@@ -1045,5 +1058,10 @@ html.app-skin-dark .page-biometric-machine .bio-console-hero-side small {
     body.page-ojt-external-list .bio-console-table .app-ojt-select-column {
         padding-top: 0.1rem;
         padding-bottom: 0.15rem;
+    }
+
+    body.page-ojt-internal-list .bio-console-table .btn,
+    body.page-ojt-external-list .bio-console-table .btn {
+        width: 100%;
     }
 }

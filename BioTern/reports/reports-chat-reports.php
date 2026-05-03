@@ -503,8 +503,8 @@ if ($schemaError === '') {
 }
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page reports-chat-reports-page');
-$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-chat-reports-page.css', 'assets/css/modules/reports/reports-shell.css']);
-$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-chat-reports-page.js', 'assets/js/modules/reports/reports-shell-runtime.js']);
+$page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-chat-reports-page.css', 'assets/css/modules/reports/reports-shell.css', 'assets/css/modules/reports/reports-login-logs-page.css']);
+$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-chat-reports-page.js', 'assets/js/modules/reports/reports-login-logs-page.js', 'assets/js/modules/reports/reports-shell-runtime.js']);
 $page_title = 'BioTern || Reported Chats';
 include 'includes/header.php';
 ?>
@@ -596,7 +596,7 @@ include 'includes/header.php';
     <div class="chatreports-table-card card">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 logs-mobile-table" data-mobile-collapse="true" data-mobile-visible-cells="2">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -623,8 +623,8 @@ include 'includes/header.php';
                                 }
                                 ?>
                                 <tr>
-                                    <td class="chatreports-id">#<?php echo (int)$item['id']; ?></td>
-                                    <td class="chatreports-report-cell">
+                                    <td class="chatreports-id" data-label="#">#<?php echo (int)$item['id']; ?></td>
+                                    <td class="chatreports-report-cell" data-label="Report">
                                         <div class="chatreports-pair">
                                             <div>
                                                 <span class="chatreports-label">Reporter</span>
@@ -641,14 +641,14 @@ include 'includes/header.php';
                                             <span>Message: <?php echo chatreports_esc((string)($item['message_created_at'] ?: '-')); ?></span>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Message & Reason">
                                         <div class="chatreports-message"><?php echo chatreports_esc($preview); ?></div>
                                         <div class="chatreports-reason">
                                             <span class="chatreports-label">Reason</span>
                                             <?php echo chatreports_esc((string)$item['reason']); ?>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Status / Review">
                                         <span class="chatreports-status-badge chatreports-status-<?php echo chatreports_esc($status); ?>"><?php echo chatreports_esc(chatreports_status_label($status)); ?></span>
                                         <div class="chatreports-review">
                                             <?php if ((string)$item['reviewed_at'] !== ''): ?>
@@ -667,7 +667,7 @@ include 'includes/header.php';
                                             <?php endif; ?>
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Moderation">
                                         <form method="post" class="chatreports-action-form">
                                             <input type="hidden" name="action" value="update-report-status">
                                             <input type="hidden" name="report_id" value="<?php echo (int)$item['id']; ?>">

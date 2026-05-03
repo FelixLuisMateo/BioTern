@@ -366,6 +366,120 @@ body.reports-page .card .table-hover > tbody > tr:hover > * {
     body.reports-page .chatlogs-conversations .table {
         min-width: 0;
     }
+
+    /* Global mobile list/table rendering for all report pages. */
+    body.reports-page .reports-mobile-table {
+        min-width: 0 !important;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    body.reports-page .reports-mobile-table thead {
+        display: none;
+    }
+
+    body.reports-page .reports-mobile-table tbody,
+    body.reports-page .reports-mobile-table tr,
+    body.reports-page .reports-mobile-table td {
+        display: block;
+        width: 100%;
+    }
+
+    body.reports-page .reports-mobile-table tbody tr {
+        margin: 0 0 0.8rem;
+        border: 1px solid var(--report-border);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--report-surface-soft);
+    }
+
+    body.reports-page .reports-mobile-table tbody tr td {
+        position: relative;
+        padding: 0.78rem 0.82rem 0.78rem 8.2rem !important;
+        border-bottom: 1px solid var(--report-border);
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-align: left;
+    }
+
+    body.reports-page .reports-mobile-table tbody tr td:last-child {
+        border-bottom: 0;
+    }
+
+    body.reports-page .reports-mobile-table tbody tr td[colspan] {
+        padding: 1rem 0.9rem !important;
+        text-align: center;
+    }
+
+    body.reports-page .reports-mobile-table tbody tr td[colspan]::before {
+        content: none !important;
+    }
+
+    body.reports-page .reports-mobile-table tbody tr td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0.82rem;
+        top: 0.78rem;
+        width: 6.8rem;
+        color: var(--report-muted);
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1.25;
+    }
+
+    body.reports-page .reports-mobile-table tbody tr.reports-mobile-row-collapsed td.reports-mobile-extra-cell {
+        display: none !important;
+    }
+
+    body.reports-page .reports-mobile-collapse-cell {
+        padding: 0.62rem 0.82rem !important;
+        background: color-mix(in srgb, var(--report-surface-soft) 84%, var(--report-surface) 16%);
+        border-top: 1px solid var(--report-border);
+    }
+
+    body.reports-page .reports-mobile-collapse-cell::before {
+        content: none !important;
+    }
+
+    body.reports-page .reports-mobile-collapse-btn {
+        width: 100%;
+        border: 1px solid var(--report-border);
+        border-radius: 9px;
+        background: var(--report-surface);
+        color: var(--report-text);
+        min-height: 36px;
+        font-size: 0.76rem;
+        font-weight: 700;
+    }
+
+    /* Mobile/tablet: filters + statistics are moved to popup menu actions. */
+    body.mobile-bottom-nav.reports-page .logs-summary-grid,
+    body.mobile-bottom-nav.reports-page .chatreports-summary-grid,
+    body.mobile-bottom-nav.reports-page .chatlogs-kpi-grid,
+    body.mobile-bottom-nav.reports-page .report-summary-grid,
+    body.mobile-bottom-nav.reports-page .required-report-summary,
+    body.mobile-bottom-nav.reports-page .attendance-exceptions-kpi-grid,
+    body.mobile-bottom-nav.reports-page .logs-filter-wrap,
+    body.mobile-bottom-nav.reports-page .report-filter-wrap,
+    body.mobile-bottom-nav.reports-page .chatreports-filter-wrap,
+    body.mobile-bottom-nav.reports-page .chatlogs-filter,
+    body.mobile-bottom-nav.reports-page .attendance-exceptions-toolbar,
+    body.mobile-bottom-nav.reports-page .required-report-filters,
+    body.mobile-bottom-nav.reports-page .required-report-server-filters {
+        display: none !important;
+    }
+
+    /* Fallback: reports using plain GET filter forms inside card bodies. */
+    body.mobile-bottom-nav.reports-page .card > .card-body > form[method="get"] {
+        display: none !important;
+    }
+
+    /* Last-resort fallback: hide inline GET filter forms in reports content area. */
+    body.mobile-bottom-nav.reports-page .main-content form[method="get"]:not(.chatreports-action-form) {
+        display: none !important;
+    }
 }
 
 @media (max-width: 575.98px) {
