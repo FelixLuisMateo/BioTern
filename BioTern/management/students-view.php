@@ -29,6 +29,19 @@ function resolve_profile_image_url(string $profilePath, int $userId = 0): ?strin
     return $resolved;
 }
 
+function student_view_public_asset_url(string $path): string
+{
+    $scriptDir = trim(str_replace('\\', '/', (string)dirname((string)($_SERVER['SCRIPT_NAME'] ?? ''))), '/');
+    $segments = $scriptDir === '' ? [] : explode('/', $scriptDir);
+    $moduleDirs = ['management', 'documents', 'reports', 'apps', 'auth', 'api', 'includes'];
+    if (!empty($segments) && in_array(strtolower((string)end($segments)), $moduleDirs, true)) {
+        array_pop($segments);
+    }
+    $base = empty($segments) ? '' : '/' . implode('/', $segments);
+
+    return $base . '/' . ltrim($path, '/');
+}
+
 function student_view_table_exists(mysqli $conn, string $table): bool
 {
     $escaped = $conn->real_escape_string($table);
@@ -1531,7 +1544,7 @@ endforeach; ?>
                                             <section class="student-internal-eval-print-sheet" id="studentInternalEvalPrintSheet" aria-hidden="true">
                                                 <div class="student-internal-eval-paper student-internal-eval-paper--page-1">
                                                     <div class="student-internal-eval-print-header">
-                                                        <img src="../assets/images/ccstlogo.png" alt="CCST">
+                                                        <img src="<?php echo htmlspecialchars(student_view_public_asset_url('assets/images/ccstlogo.png'), ENT_QUOTES, 'UTF-8'); ?>" alt="CCST">
                                                         <div>
                                                             <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
                                                             <p>(Formerly Clark International College of Science & Technology)</p>
@@ -1605,7 +1618,7 @@ endforeach; ?>
                                                 </div>
                                                 <div class="student-internal-eval-paper student-internal-eval-paper--page-2">
                                                     <div class="student-internal-eval-print-header">
-                                                        <img src="../assets/images/ccstlogo.png" alt="CCST">
+                                                        <img src="<?php echo htmlspecialchars(student_view_public_asset_url('assets/images/ccstlogo.png'), ENT_QUOTES, 'UTF-8'); ?>" alt="CCST">
                                                         <div>
                                                             <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
                                                             <p>(Formerly Clark International College of Science & Technology)</p>

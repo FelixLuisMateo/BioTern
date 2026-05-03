@@ -438,7 +438,7 @@
 }
 
 .student-internal-eval-print-header img {
-    width: 52px;
+    width: 58px;
     height: auto;
     flex: 0 0 auto;
 }
@@ -509,17 +509,17 @@
 }
 
 .student-internal-eval-print-table {
-    width: 96%;
+    width: 100%;
     margin: 0 auto;
     border-collapse: collapse;
-    font-size: 12.2px;
-    line-height: 1.2;
+    font-size: 13px;
+    line-height: 1.24;
 }
 
 .student-internal-eval-print-table th,
 .student-internal-eval-print-table td {
     border: 1px solid #111;
-    padding: 4px 6px;
+    padding: 5.5px 7.5px;
     vertical-align: top;
 }
 
@@ -530,7 +530,7 @@
 
 .student-internal-eval-print-table td:nth-child(2),
 .student-internal-eval-print-table td:nth-child(3) {
-    width: 104px;
+    width: 112px;
     text-align: center;
 }
 
