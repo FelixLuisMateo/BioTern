@@ -554,23 +554,27 @@
 
 .student-internal-eval-print-recommendation div {
     display: block;
-    min-height: 40px;
+    min-height: 64px;
     white-space: pre-wrap;
-    background-image: none;
-    line-height: 10px;
+    line-height: 16px;
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 15px,
+        #111 15px,
+        #111 16px
+    );
 }
 
 .student-internal-eval-print-recommendation span {
     display: block;
     min-height: 0;
-    padding: 0 0 2px;
-    border-bottom: 1px solid #111;
+    padding: 0;
+    border-bottom: 0;
 }
 
 .student-internal-eval-print-recommendation i {
-    display: block;
-    height: 10px;
-    border-bottom: 1px solid #111;
+    display: none;
 }
 
 .student-internal-eval-print-signature {
