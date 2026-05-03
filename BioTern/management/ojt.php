@@ -728,6 +728,10 @@ include 'includes/header.php';
                                 <i class="feather-kanban"></i>
                                 <span>Workflow Board</span>
                             </a>
+                            <a href="masterlist-pending-students.php" class="action-tile">
+                                <i class="feather-user-plus"></i>
+                                <span>Pending Accounts</span>
+                            </a>
                             <a href="ojt.php?<?php echo http_build_query(array_merge($_GET, ['export' => 'csv'])); ?>" class="action-tile">
                                 <i class="feather-download"></i>
                                 <span>Export CSV</span>
