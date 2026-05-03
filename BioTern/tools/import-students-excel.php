@@ -34,9 +34,12 @@ function students_excel_csrf_token(): string
 
 function students_excel_preview_dir(): string
 {
-    $base = sys_get_temp_dir();
+    $base = dirname(__DIR__) . '/uploads';
+    if (!is_dir($base)) {
+        @mkdir($base, 0775, true);
+    }
     if ($base === '' || !is_dir($base) || !is_writable($base)) {
-        $base = dirname(__DIR__) . '/uploads';
+        $base = sys_get_temp_dir();
     }
 
     $dir = rtrim($base, '/\\') . DIRECTORY_SEPARATOR . 'biotern-import-previews';
@@ -1621,20 +1624,18 @@ function students_excel_preview_workbook(mysqli $mysqli, string $path, string $s
                     }
                 }
             }
-            if (count($preview['rows']) < 80) {
-                $preview['rows'][] = [
-                    'row' => $index + 2,
-                    'student_no' => $studentNo,
-                    'student_name' => $studentName,
-                    'section' => students_excel_row_value($row, ['section']),
-                    'company' => students_excel_row_value($row, ['company_name', 'company']),
-                    'company_address' => students_excel_row_value($row, ['company_address', 'address']),
-                    'supervisor_name' => students_excel_row_value($row, ['supervisor_name']),
-                    'supervisor_position' => students_excel_row_value($row, ['supervisor_position', 'position']),
-                    'company_representative' => students_excel_row_value($row, ['company_representative']),
-                    'issue' => $issue,
-                ];
-            }
+            $preview['rows'][] = [
+                'row' => $index + 2,
+                'student_no' => $studentNo,
+                'student_name' => $studentName,
+                'section' => students_excel_row_value($row, ['section']),
+                'company' => students_excel_row_value($row, ['company_name', 'company']),
+                'company_address' => students_excel_row_value($row, ['company_address', 'address']),
+                'supervisor_name' => students_excel_row_value($row, ['supervisor_name']),
+                'supervisor_position' => students_excel_row_value($row, ['supervisor_position', 'position']),
+                'company_representative' => students_excel_row_value($row, ['company_representative']),
+                'issue' => $issue,
+            ];
         }
         $preview['totals'] = $totals;
         $message = 'Review the masterlist before confirming import.';
@@ -1671,16 +1672,14 @@ function students_excel_preview_workbook(mysqli $mysqli, string $path, string $s
                 $totals['new_students']++;
             }
         }
-        if (count($preview['rows']) < 80) {
-            $preview['rows'][] = [
-                'row' => $index + 2,
-                'student_no' => $studentCode,
-                'student_name' => trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '')),
-                'section' => (string)($row['section_id'] ?? ''),
-                'company' => '',
-                'issue' => $issue,
-            ];
-        }
+        $preview['rows'][] = [
+            'row' => $index + 2,
+            'student_no' => $studentCode,
+            'student_name' => trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '')),
+            'section' => (string)($row['section_id'] ?? ''),
+            'company' => '',
+            'issue' => $issue,
+        ];
     }
     $preview['totals'] = $totals;
     $message = 'Review the student workbook before confirming import.';
