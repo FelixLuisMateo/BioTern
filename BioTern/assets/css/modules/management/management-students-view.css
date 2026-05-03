@@ -473,7 +473,7 @@
 
 .student-internal-eval-print-meta {
     width: 46%;
-    margin-bottom: 18px;
+    margin-bottom: 21px;
 }
 
 .student-internal-eval-print-meta p {
@@ -489,12 +489,12 @@
 }
 
 .student-internal-eval-print-purpose {
-    margin: 14px 0 13px;
+    margin: 17px 0 15px;
 }
 
 .student-internal-eval-print-scale {
     width: 52%;
-    margin: 7px auto 14px;
+    margin: 9px auto 17px;
 }
 
 .student-internal-eval-print-scale p {
@@ -504,7 +504,7 @@
 }
 
 .student-internal-eval-print-part-title {
-    margin: 0 0 4px;
+    margin: 0 0 7px;
     font-weight: 700;
 }
 
@@ -574,12 +574,12 @@
 }
 
 .student-internal-eval-print-line--short {
-    width: 100%;
+    width: 66%;
 }
 
 .student-internal-eval-print-signature {
     width: 190px;
-    margin: 24px 48px 0 auto;
+    margin: 36px 48px 0 auto;
     padding-top: 6px;
     border-top: 1px solid #111;
     text-align: center;
