@@ -609,15 +609,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
                 'message' => 'Student record not found.',
             ];
         } else {
-            $track = strtolower(trim((string)($studentRow['assignment_track'] ?? 'internal')));
-            if (!in_array($track, ['internal', 'external'], true)) {
-                $track = 'internal';
-            }
-            $requiredHours = $track === 'external'
-                ? (int)($studentRow['external_total_hours'] ?? 0)
-                : (int)($studentRow['internal_total_hours'] ?? 0);
+            $track = 'external';
+            $requiredHours = (int)($studentRow['external_total_hours'] ?? 0);
             if ($requiredHours <= 0) {
-                $requiredHours = $track === 'external' ? 250 : 600;
+                $requiredHours = 250;
             }
             $schoolYearValue = trim((string)($studentRow['school_year'] ?? ''));
             if ($schoolYearValue === '') {
@@ -645,12 +640,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') ==
             if ($latestInternshipId > 0) {
                 $linkStmt = $conn->prepare("
                     UPDATE internships
-                    SET company_name = ?, company_address = ?, updated_at = NOW()
+                    SET company_name = ?, company_address = ?, type = 'external', required_hours = ?, updated_at = NOW()
                     WHERE id = ?
                     LIMIT 1
                 ");
                 if ($linkStmt) {
-                    $linkStmt->bind_param('ssi', $selectedCompanyName, $selectedCompanyAddress, $latestInternshipId);
+                    $linkStmt->bind_param('ssii', $selectedCompanyName, $selectedCompanyAddress, $requiredHours, $latestInternshipId);
                     $linkOk = $linkStmt->execute();
                     $linkStmt->close();
                 }
@@ -1050,10 +1045,7 @@ if ($internshipsTableReady) {
             $track = 'external';
             $row['resolved_track'] = $track;
 
-            $requiredHours = (int)($row['required_hours'] ?? 0);
-            if ($requiredHours <= 0) {
-                $requiredHours = (int)($row['external_total_hours'] ?? 0);
-            }
+            $requiredHours = (int)($row['external_total_hours'] ?? 0);
             if ($requiredHours <= 0) {
                 $requiredHours = 250;
             }

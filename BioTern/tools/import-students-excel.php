@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 $studentsExcelVendorAutoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (is_file($studentsExcelVendorAutoload)) {
     require_once $studentsExcelVendorAutoload;
@@ -109,6 +110,29 @@ function students_excel_lookup_key(string $value): string
     $value = strtolower(trim($value));
     $value = preg_replace('/[^a-z0-9]+/', '', $value);
     return (string)$value;
+}
+
+function students_excel_section_label(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+    if (function_exists('biotern_format_section_label')) {
+        $formatted = biotern_format_section_label($value, '');
+        if ($formatted !== '') {
+            return $formatted;
+        }
+    }
+    return $value;
+}
+
+function students_excel_section_filter_key(string $value): string
+{
+    if (function_exists('biotern_section_filter_key')) {
+        return biotern_section_filter_key($value);
+    }
+    return students_excel_lookup_key($value);
 }
 
 function students_excel_row_value(array $row, array $keys, string $default = ''): string
@@ -1156,7 +1180,7 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
         }
         $studentName = trim((string)($row['student_name'] ?? ''));
         $contactNo = students_excel_row_value($row, ['contact_no', 'contact_number']);
-        $section = students_excel_row_value($row, ['section']);
+        $section = students_excel_section_label(students_excel_row_value($row, ['section']));
         $status = students_excel_row_value($row, ['status']);
         $companyName = students_excel_row_value($row, ['company_name', 'company']);
         $companyAddress = students_excel_row_value($row, ['company_address', 'address']);
@@ -1999,37 +2023,9 @@ function students_excel_masterlist_review(mysqli $mysqli, string $schoolYear, st
     if ($semesterFilter !== '') {
         $rowsSql .= " AND semester = ?";
     }
-    if ($sectionFilter !== '') {
-        $rowsSql .= " AND section = ?";
-    }
     $rowsSql .= " ORDER BY semester ASC, section ASC, student_name ASC";
 
     $stmt = $mysqli->prepare($rowsSql);
-    if ($stmt) {
-        if ($semesterFilter !== '' && $sectionFilter !== '') {
-            $stmt->bind_param('sss', $schoolYear, $semesterFilter, $sectionFilter);
-        } elseif ($semesterFilter !== '') {
-            $stmt->bind_param('ss', $schoolYear, $semesterFilter);
-        } elseif ($sectionFilter !== '') {
-            $stmt->bind_param('ss', $schoolYear, $sectionFilter);
-        } else {
-            $stmt->bind_param('s', $schoolYear);
-        }
-        $stmt->execute();
-        $res = $stmt->get_result();
-        while ($row = $res->fetch_assoc()) {
-            $result['rows'][] = $row;
-        }
-        $stmt->close();
-    }
-
-    $stmt = $mysqli->prepare("SELECT section, COUNT(*) AS row_count
-        FROM ojt_masterlist
-        WHERE school_year = ?
-        " . ($semesterFilter !== '' ? "AND semester = ?" : "") . "
-        GROUP BY section
-        ORDER BY row_count DESC, section ASC
-        LIMIT 12");
     if ($stmt) {
         if ($semesterFilter !== '') {
             $stmt->bind_param('ss', $schoolYear, $semesterFilter);
@@ -2038,10 +2034,52 @@ function students_excel_masterlist_review(mysqli $mysqli, string $schoolYear, st
         }
         $stmt->execute();
         $res = $stmt->get_result();
+        $selectedSectionKey = $sectionFilter !== '' ? students_excel_section_filter_key($sectionFilter) : '';
         while ($row = $res->fetch_assoc()) {
-            $result['sections'][] = $row;
+            $row['section'] = students_excel_section_label((string)($row['section'] ?? ''));
+            if ($selectedSectionKey !== '' && students_excel_section_filter_key((string)($row['section'] ?? '')) !== $selectedSectionKey) {
+                continue;
+            }
+            $result['rows'][] = $row;
         }
         $stmt->close();
+    }
+
+    $stmt = $mysqli->prepare("SELECT section
+        FROM ojt_masterlist
+        WHERE school_year = ?
+        " . ($semesterFilter !== '' ? "AND semester = ?" : "") . "
+        ORDER BY section ASC");
+    if ($stmt) {
+        if ($semesterFilter !== '') {
+            $stmt->bind_param('ss', $schoolYear, $semesterFilter);
+        } else {
+            $stmt->bind_param('s', $schoolYear);
+        }
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $sectionsByKey = [];
+        while ($row = $res->fetch_assoc()) {
+            $sectionLabel = students_excel_section_label((string)($row['section'] ?? ''));
+            $sectionKey = students_excel_section_filter_key($sectionLabel);
+            if ($sectionKey === '') {
+                continue;
+            }
+            if (!isset($sectionsByKey[$sectionKey])) {
+                $sectionsByKey[$sectionKey] = [
+                    'section' => $sectionLabel,
+                    'row_count' => 0,
+                ];
+            }
+            $sectionsByKey[$sectionKey]['row_count']++;
+        }
+        $stmt->close();
+        $result['sections'] = array_values($sectionsByKey);
+        usort($result['sections'], static function (array $a, array $b): int {
+            $countCompare = (int)($b['row_count'] ?? 0) <=> (int)($a['row_count'] ?? 0);
+            return $countCompare !== 0 ? $countCompare : strcasecmp((string)($a['section'] ?? ''), (string)($b['section'] ?? ''));
+        });
+        $result['sections'] = array_slice($result['sections'], 0, 12);
     }
 
     $stmt = $mysqli->prepare("SELECT company_name, supervisor_name, supervisor_position, COUNT(*) AS student_count
@@ -2385,6 +2423,15 @@ $availableSections = array_values(array_filter(array_map(
     static fn(array $sectionRow): string => trim((string)($sectionRow['section'] ?? '')),
     $masterlistReview['sections']
 )));
+if ($selectedReviewSection !== '') {
+    $selectedReviewSectionKey = students_excel_section_filter_key($selectedReviewSection);
+    foreach ($availableSections as $availableSection) {
+        if ($selectedReviewSectionKey !== '' && students_excel_section_filter_key($availableSection) === $selectedReviewSectionKey) {
+            $selectedReviewSection = $availableSection;
+            break;
+        }
+    }
+}
 if ($selectedReviewSection !== '' && !in_array($selectedReviewSection, $availableSections, true)) {
     $selectedReviewSection = '';
     $masterlistReview = students_excel_masterlist_review($conn, $selectedReviewYear, $selectedReviewSemester);

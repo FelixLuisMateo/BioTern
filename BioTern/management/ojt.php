@@ -101,6 +101,18 @@ function formatSectionDisplayLabel($code, $name): string {
     return $code !== '' ? $code : $name;
 }
 
+function sectionFilterMatches(string $rowSection, string $filterSection): bool {
+    if ($filterSection === '') {
+        return true;
+    }
+    if (function_exists('biotern_section_filter_key')) {
+        $rowKey = biotern_section_filter_key($rowSection);
+        $filterKey = biotern_section_filter_key($filterSection);
+        return $rowKey !== '' && $filterKey !== '' && $rowKey === $filterKey;
+    }
+    return strcasecmp($rowSection, $filterSection) === 0;
+}
+
 function normalize_person_name(string $name): string {
     $clean = trim(preg_replace('/\s+/', ' ', $name));
     if ($clean === '') {
@@ -200,6 +212,16 @@ if ($sres) {
             $s['section_label'] = formatSectionDisplayLabel($s['code'] ?? '', $s['name'] ?? '');
         }
         $sections[] = $s;
+    }
+}
+if ($section_filter !== '' && function_exists('biotern_section_filter_key')) {
+    $sectionFilterKey = biotern_section_filter_key($section_filter);
+    foreach ($sections as $sectionOption) {
+        $sectionOptionLabel = (string)($sectionOption['section_label'] ?? '');
+        if ($sectionFilterKey !== '' && biotern_section_filter_key($sectionOptionLabel) === $sectionFilterKey) {
+            $section_filter = $sectionOptionLabel;
+            break;
+        }
     }
 }
 
@@ -365,7 +387,7 @@ if ($res) {
         if ($course_filter !== '' && strcasecmp((string)($row['course_name'] ?? ''), $course_filter) !== 0) {
             continue;
         }
-        if ($section_filter !== '' && strcasecmp((string)($row['section_name'] ?? ''), $section_filter) !== 0) {
+        if ($section_filter !== '' && !sectionFilterMatches((string)($row['section_name'] ?? ''), $section_filter)) {
             continue;
         }
         if ($school_year_filter !== '' && strcasecmp((string)($row['school_year'] ?? ''), $school_year_filter) !== 0) {
@@ -431,7 +453,7 @@ if (ojt_table_exists($conn, 'ojt_masterlist')) {
                 'semester' => trim((string)($ml['semester'] ?? '-')) ?: '-',
                 'profile_picture' => '',
                 'course_name' => 'Pending account',
-                'section_name' => trim((string)($ml['section'] ?? '-')) ?: '-',
+                'section_name' => formatSectionDisplayLabel((string)($ml['section'] ?? ''), '') ?: '-',
                 'company_name' => trim((string)($ml['company_name'] ?? '')),
                 'internship_status' => trim((string)($ml['status'] ?? 'pending')) ?: 'pending',
                 'required_hours' => 250,
@@ -464,7 +486,7 @@ if (ojt_table_exists($conn, 'ojt_masterlist')) {
             if ($course_filter !== '' && strcasecmp((string)($row['course_name'] ?? ''), $course_filter) !== 0) {
                 continue;
             }
-            if ($section_filter !== '' && strcasecmp((string)($row['section_name'] ?? ''), $section_filter) !== 0) {
+            if ($section_filter !== '' && !sectionFilterMatches((string)($row['section_name'] ?? ''), $section_filter)) {
                 continue;
             }
             if ($school_year_filter !== '' && strcasecmp((string)($row['school_year'] ?? ''), $school_year_filter) !== 0) {

@@ -153,3 +153,12 @@ if (!function_exists('biotern_format_section_label')) {
         return trim((string)$name);
     }
 }
+
+if (!function_exists('biotern_section_filter_key')) {
+    function biotern_section_filter_key(?string $value): string
+    {
+        $normalized = biotern_normalize_section_code($value);
+        $key = strtolower(trim($normalized !== '' ? $normalized : (string)$value));
+        return (string)preg_replace('/[^a-z0-9]+/', '', $key);
+    }
+}
