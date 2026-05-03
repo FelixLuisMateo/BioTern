@@ -325,14 +325,15 @@ body.mobile-bottom-nav {
 @media (max-width: 991.98px) {
     .biotern-bottom-nav {
         position: fixed;
-        left: 50%;
-        right: auto;
-        transform: translateX(-50%);
-        width: min(calc(100vw - 10px), 840px);
+        left: 0;
+        right: 0;
+        transform: none;
+        width: 100%;
+        max-width: none;
         bottom: 0;
         z-index: 4500;
         height: var(--bottom-nav-height);
-        padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+        padding: 10px max(12px, env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-right));
         display: flex;
         align-items: center;
         justify-content: center;
@@ -345,6 +346,7 @@ body.mobile-bottom-nav {
         touch-action: auto;
         background: linear-gradient(180deg, var(--mobile-surface) 0%, var(--mobile-surface-muted) 100%);
         border-top: 1px solid var(--mobile-border);
+        border-radius: 0;
         box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.18);
         backdrop-filter: blur(12px);
     }
