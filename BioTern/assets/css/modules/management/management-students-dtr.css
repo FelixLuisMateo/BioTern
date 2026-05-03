@@ -469,6 +469,51 @@ html.app-skin-dark .dtr-day-card .badge.bg-soft-secondary {
 
 
 @media (max-width: 991.98px) {
+    body.mobile-bottom-nav .app-students-dtr-page-header {
+        display: block !important;
+        min-height: 0 !important;
+        padding: 0.72rem 0.82rem !important;
+        margin-bottom: 0.65rem !important;
+    }
+
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-left {
+        width: 100% !important;
+        margin-bottom: 0.55rem !important;
+        padding: 0 !important;
+    }
+
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right {
+        position: static !important;
+        right: auto !important;
+        top: auto !important;
+        transform: none !important;
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right .d-flex {
+        width: 100%;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem !important;
+    }
+
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right .btn {
+        min-height: 34px;
+        width: 100%;
+        justify-content: center;
+        padding: 0.34rem 0.56rem;
+        font-size: 0.71rem;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right .btn i {
+        margin-right: 0.3rem !important;
+    }
+
     .app-students-dtr-toolbar,
     .toolbar {
         grid-template-columns: 1fr;
@@ -527,26 +572,59 @@ html.app-skin-dark .dtr-day-card .badge.bg-soft-secondary {
     .dtr-mobile-list {
         display: flex;
         flex-direction: column;
-        gap: 0.85rem;
-        padding: 0.95rem;
+        gap: 0.62rem;
+        padding: 0.72rem;
         background: linear-gradient(180deg, #f7faff 0%, #ffffff 100%);
     }
 
     .app-students-dtr-day-card,
     .dtr-day-card {
-        padding: 0.95rem;
+        padding: 0.74rem 0.78rem;
+        border-radius: 12px;
     }
 
     .app-students-dtr-slot-grid,
     .dtr-slot-grid {
         grid-template-columns: 1fr 1fr;
-        gap: 0.6rem;
+        gap: 0.48rem;
     }
 
     .app-students-dtr-hours-row,
     .dtr-hours-row {
         align-items: flex-start;
         flex-direction: column;
+        gap: 0.45rem;
+        margin-top: 0.65rem;
+        padding-top: 0.62rem;
+    }
+
+    .app-students-dtr-day-title,
+    .dtr-day-title {
+        font-size: 0.87rem;
+        line-height: 1.25;
+    }
+
+    .app-students-dtr-slot,
+    .dtr-slot {
+        padding: 0.56rem 0.62rem;
+    }
+
+    .app-students-dtr-slot-label,
+    .dtr-slot-label {
+        font-size: 0.62rem;
+        letter-spacing: 0.08em;
+    }
+
+    .app-students-dtr-slot-value,
+    .dtr-slot-value {
+        margin-top: 0.2rem;
+        font-size: 0.84rem;
+    }
+
+    .app-students-dtr-hours-value,
+    .dtr-hours-value {
+        font-size: 0.82rem;
+        padding: 0.3rem 0.56rem;
     }
 }
 

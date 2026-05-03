@@ -452,7 +452,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $demoRefresh->close();
                     }
 
-                    $demoStudentCheck = $mysqli->prepare("SELECT id FROM students WHERE user_id = ? OR student_id = ? LIMIT 1");
+                    $demoStudentCheck = $mysqli->prepare("SELECT id, user_id FROM students WHERE user_id = ? OR student_id = ? LIMIT 1");
                     if ($demoStudentCheck) {
                         $demoStudentCheck->bind_param('is', $demoUserId, $demoIdentifier);
                         $demoStudentCheck->execute();
@@ -465,6 +465,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $demoStudentInsert->bind_param('issss', $demoUserId, $demoIdentifier, $demoIdentifier, $demoPasswordHash, $demoEmail);
                                 $demoStudentInsert->execute();
                                 $demoStudentInsert->close();
+                            }
+                        } else {
+                            $demoStudentId = (int)($demoStudentRow['id'] ?? 0);
+                            $demoStudentUserId = (int)($demoStudentRow['user_id'] ?? 0);
+                            if ($demoStudentId > 0 && $demoStudentUserId !== $demoUserId) {
+                                $demoStudentRelink = $mysqli->prepare("
+                                    UPDATE students
+                                    SET user_id = ?, student_id = ?, username = ?, password = ?, email = ?, first_name = 'Demo', last_name = 'Student', assignment_track = 'internal', application_status = 'approved', updated_at = NOW()
+                                    WHERE id = ?
+                                    LIMIT 1
+                                ");
+                                if ($demoStudentRelink) {
+                                    $demoStudentRelink->bind_param('issssi', $demoUserId, $demoIdentifier, $demoIdentifier, $demoPasswordHash, $demoEmail, $demoStudentId);
+                                    $demoStudentRelink->execute();
+                                    $demoStudentRelink->close();
+                                }
                             }
                         }
                     }
