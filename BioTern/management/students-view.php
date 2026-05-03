@@ -601,7 +601,6 @@ if ($student_eval_period_start !== '' || $student_eval_period_end !== '') {
 }
 $student_internal_eval_factors = [
     'Ability and Application' => [
-        ['Work Performance', 10],
         ['Knowledge of Work (able to grasp assignment)', 10],
         ['Quantity of Work (can cope with work demand with condition unexpected work load in a limited time)', 10],
         ['Quality of Work (performs as assigned job effectively as possible)', 10],
@@ -612,6 +611,7 @@ $student_internal_eval_factors = [
         ['Physical Appearance (personally well-groomed and always wears appropriate dress)', 5],
         ['Attitude Towards Work (always shows enthusiasm and interest)', 5],
         ['Courtesy (observes rule and regulation of establishment)', 5],
+        ['Conduct (observes rule and regulation of establishment)', 5],
         ['Perseverance and Industriousness (shows work over and above what is assigned)', 5],
         ['Drive and Leadership (inquisitive and aggressive)', 5],
         ['Mental Maturity (effective and calm under pressure)', 5],
@@ -1538,6 +1538,7 @@ echo htmlspecialchars($student_eval_company, ENT_QUOTES, 'UTF-8'); ?></span></p>
                                                         <p><span>57 - 69</span>Satisfactory Performance</p>
                                                         <p><span>45 - 56</span>Unsatisfactory Performance</p>
                                                     </div>
+                                                    <p class="student-internal-eval-print-part-title">Part I. ABILITY AND APPLICATION</p>
                                                     <table class="student-internal-eval-print-table">
                                                         <thead>
                                                             <tr>
@@ -1550,22 +1551,26 @@ echo htmlspecialchars($student_eval_company, ENT_QUOTES, 'UTF-8'); ?></span></p>
                                                             <?php
 $evalPrintIndex = 0;
 foreach ($student_internal_eval_factors as $groupTitle => $factors): ?>
+                                                                <?php
+$evalPrintGroupIndex = 0;
+?>
                                                                 <tr class="student-internal-eval-print-group">
                                                                     <td colspan="3"><?php
-echo htmlspecialchars((string)$groupTitle, ENT_QUOTES, 'UTF-8'); ?></td>
+echo htmlspecialchars($groupTitle === 'Ability and Application' ? 'A. Work Performance' : 'B. Personality Traits', ENT_QUOTES, 'UTF-8'); ?></td>
                                                                 </tr>
                                                                 <?php
 foreach ($factors as $factor):
     $factorLabel = (string)($factor[0] ?? '');
     $factorMax = (int)($factor[1] ?? 0);
     $evalPrintIndex++;
-    if ($evalPrintIndex > 8) {
+    $evalPrintGroupIndex++;
+    if ($evalPrintIndex > 7) {
         continue;
     }
 ?>
                                                                     <tr>
                                                                         <td><?php
-echo (int)$evalPrintIndex; ?>. <?php
+echo (int)$evalPrintGroupIndex; ?>. <?php
 echo htmlspecialchars($factorLabel, ENT_QUOTES, 'UTF-8'); ?></td>
                                                                         <td><?php
 echo (int)$factorMax; ?>%</td>
@@ -1601,17 +1606,19 @@ if ($groupTitle !== 'Personality Traits') {
 }
 ?>
                                                                 <?php
+$evalPrintGroupIndex = 0;
 foreach ($factors as $factor):
     $factorLabel = (string)($factor[0] ?? '');
     $factorMax = (int)($factor[1] ?? 0);
     $evalPrintIndex++;
-    if ($evalPrintIndex <= 8) {
+    $evalPrintGroupIndex++;
+    if ($evalPrintGroupIndex <= 2) {
         continue;
     }
 ?>
                                                                     <tr>
                                                                         <td><?php
-echo (int)$evalPrintIndex; ?>. <?php
+echo (int)$evalPrintGroupIndex; ?>. <?php
 echo htmlspecialchars($factorLabel, ENT_QUOTES, 'UTF-8'); ?></td>
                                                                         <td><?php
 echo (int)$factorMax; ?>%</td>
