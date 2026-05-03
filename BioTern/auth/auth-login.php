@@ -159,7 +159,7 @@ function biotern_login_ip_location_label(string $ip): array
     return [substr($label, 0, 255), $label !== '' ? 'ipwho.is' : ''];
 }
 
-function log_login_attempt($mysqli, $userId, $identifier, $role, $status, $reason, $ip, $userAgent)
+function log_login_attempt(?mysqli $mysqli, ?int $userId, string $identifier, string $role, string $status, string $reason, string $ip, string $userAgent): void
 {
     if (!$mysqli) {
         return;

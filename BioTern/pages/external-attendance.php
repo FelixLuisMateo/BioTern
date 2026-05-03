@@ -96,7 +96,7 @@ function external_attendance_action_locked(array $record, string $clockType): bo
         }
     }
 
-    $previousAction = attendance_expected_previous($clockType);
+    $previousAction = external_attendance_expected_previous($clockType);
     if ($previousAction !== null) {
         $previousColumn = attendance_action_to_column($previousAction);
         if ($previousColumn !== null && empty($record[$previousColumn])) {
@@ -201,7 +201,7 @@ if ($currentRole === 'student') {
                 'afternoon_time_out' => null,
             ];
 
-            $validation = attendance_validate_transition($existing, $clockType, $clockTime);
+            $validation = external_attendance_validate_transition($existing, $clockType, $clockTime);
             if (!($validation['ok'] ?? false)) {
                 external_attendance_flash_redirect((string)($validation['message'] ?? 'Invalid external DTR punch.'), 'warning', $studentTarget);
             }
@@ -414,6 +414,7 @@ if ($currentRole === 'student') {
                             <form method="post" id="externalBiometricForm">
                                 <input type="hidden" name="external_action" value="quick_clock">
                                 <input type="hidden" name="clock_date" value="<?php echo htmlspecialchars($today, ENT_QUOTES, 'UTF-8'); ?>">
+                                <input type="hidden" name="clock_type" id="externalBiometricClockType" value="">
 
                                 <div class="form-group-custom">
                                     <label>Clock Type</label>
@@ -423,7 +424,7 @@ if ($currentRole === 'student') {
                                             <button
                                                 type="submit"
                                                 class="clock-btn external-clock-btn<?php echo $isLocked ? ' is-complete' : ''; ?>"
-                                                name="clock_type"
+                                                data-clock-type="<?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?>"
                                                 value="<?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?>"
                                                 <?php echo $isLocked ? 'disabled aria-disabled="true"' : ''; ?>
                                             >
@@ -539,6 +540,7 @@ if ($currentRole === 'student') {
     (function () {
         var timeNode = document.getElementById('externalCurrentTime');
         var form = document.getElementById('externalBiometricForm');
+        var clockTypeInput = document.getElementById('externalBiometricClockType');
         if (timeNode) {
             var syncTime = function () {
                 var now = new Date();
@@ -551,14 +553,22 @@ if ($currentRole === 'student') {
             window.setInterval(syncTime, 1000);
         }
 
-        if (form) {
+        if (form && clockTypeInput) {
             Array.prototype.forEach.call(form.querySelectorAll('.external-clock-btn'), function (button) {
                 button.addEventListener('click', function () {
                     if (button.disabled) {
                         return;
                     }
-                    button.disabled = true;
+                    clockTypeInput.value = button.getAttribute('data-clock-type') || button.value || '';
+                    window.setTimeout(function () {
+                        button.disabled = true;
+                    }, 0);
                 });
+            });
+            form.addEventListener('submit', function (event) {
+                if (!clockTypeInput.value) {
+                    event.preventDefault();
+                }
             });
         }
     }());
