@@ -842,7 +842,7 @@ include 'includes/header.php';
             </div>
         </div>
         <div class="main-content">
-            <div class="student-home-shell student-dtr-shell">
+            <div class="student-home-shell student-dtr-shell<?php echo $studentDtrManualOnly ? ' student-dtr-shell--manual' : ''; ?>">
         <?php if (is_array($studentDtrFlash) && !empty($studentDtrFlash['message'])): ?>
         <div class="alert alert-<?php echo htmlspecialchars((string)($studentDtrFlash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> mt-4">
             <?php echo htmlspecialchars((string)$studentDtrFlash['message'], ENT_QUOTES, 'UTF-8'); ?>
