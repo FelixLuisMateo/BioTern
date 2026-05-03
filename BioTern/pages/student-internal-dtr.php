@@ -22,6 +22,45 @@ if ($stmt) {
 }
 
 if ($studentId <= 0) {
+    $sessionUsername = trim((string)($_SESSION['username'] ?? ''));
+    $sessionEmail = trim((string)($_SESSION['email'] ?? ''));
+    $fallbackStmt = $conn->prepare(
+        "SELECT id, user_id
+         FROM students
+         WHERE ((? <> '' AND LOWER(COALESCE(student_id, '')) = LOWER(?))
+            OR (? <> '' AND LOWER(COALESCE(username, '')) = LOWER(?))
+            OR (? <> '' AND LOWER(COALESCE(email, '')) = LOWER(?)))
+         ORDER BY id DESC
+         LIMIT 1"
+    );
+    if ($fallbackStmt) {
+        $fallbackStmt->bind_param(
+            'ssssss',
+            $sessionUsername,
+            $sessionUsername,
+            $sessionUsername,
+            $sessionUsername,
+            $sessionEmail,
+            $sessionEmail
+        );
+        $fallbackStmt->execute();
+        $fallbackRow = $fallbackStmt->get_result()->fetch_assoc() ?: [];
+        $fallbackStmt->close();
+
+        $studentId = (int)($fallbackRow['id'] ?? 0);
+        $mappedUserId = (int)($fallbackRow['user_id'] ?? 0);
+        if ($studentId > 0 && $mappedUserId !== $currentUserId) {
+            $relinkStmt = $conn->prepare('UPDATE students SET user_id = ?, updated_at = NOW() WHERE id = ? LIMIT 1');
+            if ($relinkStmt) {
+                $relinkStmt->bind_param('ii', $currentUserId, $studentId);
+                $relinkStmt->execute();
+                $relinkStmt->close();
+            }
+        }
+    }
+}
+
+if ($studentId <= 0) {
     header('Location: homepage.php');
     exit;
 }
