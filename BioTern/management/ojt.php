@@ -388,6 +388,104 @@ if ($res) {
     }
 }
 
+if (ojt_table_exists($conn, 'ojt_masterlist')) {
+    $pendingMasterlistSql = "
+        SELECT
+            ml.id AS masterlist_id,
+            ml.school_year,
+            ml.semester,
+            ml.student_no,
+            ml.student_name,
+            ml.section,
+            ml.company_name,
+            ml.status,
+            ml.updated_at
+        FROM ojt_masterlist ml
+        LEFT JOIN students s
+            ON TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci = TRIM(COALESCE(ml.student_no, '')) COLLATE utf8mb4_unicode_ci
+        WHERE s.id IS NULL
+        ORDER BY ml.student_name ASC, ml.id ASC
+    ";
+    $pendingMasterlistRes = $conn->query($pendingMasterlistSql);
+    if ($pendingMasterlistRes) {
+        while ($ml = $pendingMasterlistRes->fetch_assoc()) {
+            $studentName = normalize_person_name((string)($ml['student_name'] ?? ''));
+            $firstName = $studentName;
+            $lastName = '';
+            if (strpos($studentName, ',') !== false) {
+                [$lastName, $firstName] = array_map('trim', explode(',', $studentName, 2));
+            }
+
+            $row = [
+                'id' => 0,
+                'masterlist_id' => (int)($ml['masterlist_id'] ?? 0),
+                'source_type' => 'masterlist_pending_account',
+                'student_id' => trim((string)($ml['student_no'] ?? '')),
+                'first_name' => $firstName !== '' ? $firstName : $studentName,
+                'last_name' => $lastName,
+                'email' => '',
+                'phone' => '',
+                'student_status' => 'pending',
+                'created_at' => (string)($ml['updated_at'] ?? ''),
+                'school_year' => trim((string)($ml['school_year'] ?? '-')) ?: '-',
+                'semester' => trim((string)($ml['semester'] ?? '-')) ?: '-',
+                'profile_picture' => '',
+                'course_name' => 'Pending account',
+                'section_name' => trim((string)($ml['section'] ?? '-')) ?: '-',
+                'company_name' => trim((string)($ml['company_name'] ?? '')),
+                'internship_status' => trim((string)($ml['status'] ?? 'pending')) ?: 'pending',
+                'required_hours' => 250,
+                'rendered_hours' => 0,
+                'start_date' => '',
+                'end_date' => '',
+                'supervisor_name' => '',
+                'coordinator_name' => '',
+                'has_application' => 0,
+                'has_endorsement' => 0,
+                'has_moa' => 0,
+                'has_dau_moa' => 0,
+                'wf_application' => '',
+                'wf_endorsement' => '',
+                'wf_moa' => '',
+                'wf_dau_moa' => '',
+                'last_attendance_date' => '',
+                'pending_logs' => 0,
+                'attendance_total_hours' => 0,
+                'progress_pct' => 0,
+                'stage' => 'Applied',
+                'risk_flags' => ['Pending account creation'],
+                'risk_score' => 20,
+            ];
+
+            $haystack = strtolower(trim(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? '') . ' ' . ($row['student_id'] ?? '') . ' ' . ($row['course_name'] ?? '') . ' ' . (string)($ml['company_name'] ?? '')));
+            if ($search !== '' && strpos($haystack, strtolower($search)) === false) {
+                continue;
+            }
+            if ($course_filter !== '' && strcasecmp((string)($row['course_name'] ?? ''), $course_filter) !== 0) {
+                continue;
+            }
+            if ($section_filter !== '' && strcasecmp((string)($row['section_name'] ?? ''), $section_filter) !== 0) {
+                continue;
+            }
+            if ($school_year_filter !== '' && strcasecmp((string)($row['school_year'] ?? ''), $school_year_filter) !== 0) {
+                continue;
+            }
+            if ($semester_filter !== '' && strcasecmp((string)($row['semester'] ?? ''), $semester_filter) !== 0) {
+                continue;
+            }
+            if ($status_filter !== '' && strcasecmp((string)$row['stage'], $status_filter) !== 0) {
+                continue;
+            }
+            if ($risk_filter === 'clean') {
+                continue;
+            }
+
+            $rows[] = $row;
+        }
+        $pendingMasterlistRes->close();
+    }
+}
+
 usort($rows, function($a, $b) {
     return intval($b['risk_score'] ?? 0) <=> intval($a['risk_score'] ?? 0);
 });
@@ -783,8 +881,9 @@ include 'includes/header.php';
                                 'school_year' => (string)($r['school_year'] ?? ''),
                                 'semester' => (string)($r['semester'] ?? ''),
                             ]);
-                            $ojt_view_link = 'ojt-view.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '');
-                            $ojt_edit_link = 'ojt-edit.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '');
+                            $has_student_account = (int)($r['id'] ?? 0) > 0;
+                            $ojt_view_link = $has_student_account ? ('ojt-view.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '')) : '#';
+                            $ojt_edit_link = $has_student_account ? ('ojt-edit.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '')) : '#';
                             ?>
                             <tr class="app-ojt-table-row app-ojt-table-row-<?php echo htmlspecialchars($risk_band); ?>">
                                 <td class="app-ojt-select-column">
@@ -793,12 +892,14 @@ include 'includes/header.php';
                                     </div>
                                 </td>
                                 <td data-label="Student">
-                                    <a class="student-link app-ojt-student-link app-ojt-student-block" href="<?php echo htmlspecialchars($ojt_view_link); ?>">
+                                    <a class="student-link app-ojt-student-link app-ojt-student-block<?php echo !$has_student_account ? ' pe-none' : ''; ?>" href="<?php echo htmlspecialchars($ojt_view_link); ?>">
                                         <img src="<?php echo htmlspecialchars($img); ?>" class="app-avatar-42" alt="profile">
                                         <div class="app-ojt-student-block-copy">
                                             <div class="app-ojt-student-name"><?php echo htmlspecialchars(trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''))); ?></div>
                                             <div class="app-ojt-student-meta"><?php echo htmlspecialchars($r['student_id'] ?? ''); ?></div>
                                             <div class="app-ojt-student-submeta"><?php echo htmlspecialchars($r['course_name'] ?? '-'); ?></div>
+                                            <?php if (!$has_student_account && trim((string)($r['company_name'] ?? '')) !== ''): ?><div class="app-ojt-student-submeta"><?php echo htmlspecialchars((string)$r['company_name']); ?></div><?php endif; ?>
+                                            <?php if (!$has_student_account): ?><div class="app-ojt-student-submeta text-warning">Pending account creation</div><?php endif; ?>
                                         </div>
                                     </a>
                                 </td>
@@ -852,9 +953,13 @@ include 'includes/header.php';
                                 </td>
                                 <td data-label="Actions" data-print-exclude="1">
                                     <div class="app-ojt-row-actions">
-                                        <a class="btn btn-sm btn-light app-ojt-action-btn" href="<?php echo htmlspecialchars($ojt_view_link); ?>">Open Record</a>
-                                        <a class="btn btn-sm btn-outline-primary app-ojt-action-btn" href="<?php echo htmlspecialchars($ojt_edit_link); ?>">Update OJT</a>
-                                        <a class="btn btn-sm btn-outline-success app-ojt-action-btn app-ojt-action-btn-wide" href="students-internal-dtr.php?id=<?php echo (int)$r['id']; ?>">Open Internal DTR</a>
+                                        <?php if ($has_student_account): ?>
+                                            <a class="btn btn-sm btn-light app-ojt-action-btn" href="<?php echo htmlspecialchars($ojt_view_link); ?>">Open Record</a>
+                                            <a class="btn btn-sm btn-outline-primary app-ojt-action-btn" href="<?php echo htmlspecialchars($ojt_edit_link); ?>">Update OJT</a>
+                                            <a class="btn btn-sm btn-outline-success app-ojt-action-btn app-ojt-action-btn-wide" href="students-internal-dtr.php?id=<?php echo (int)$r['id']; ?>">Open Internal DTR</a>
+                                        <?php else: ?>
+                                            <span class="btn btn-sm btn-outline-warning app-ojt-action-btn app-ojt-action-btn-wide disabled">Create student account first</span>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
@@ -908,8 +1013,9 @@ include 'includes/header.php';
                                 'school_year' => (string)($r['school_year'] ?? ''),
                                 'semester' => (string)($r['semester'] ?? ''),
                             ]);
-                            $ojt_view_link = 'ojt-view.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '');
-                            $ojt_edit_link = 'ojt-edit.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '');
+                            $has_student_account = (int)($r['id'] ?? 0) > 0;
+                            $ojt_view_link = $has_student_account ? ('ojt-view.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '')) : '#';
+                            $ojt_edit_link = $has_student_account ? ('ojt-edit.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '')) : '#';
                             ?>
                             <details class="app-ojt-mobile-item app-mobile-item">
                                 <summary class="app-ojt-mobile-summary app-mobile-summary">
@@ -920,6 +1026,8 @@ include 'includes/header.php';
                                         <div class="app-ojt-mobile-summary-text app-mobile-summary-text">
                                             <span class="app-ojt-mobile-name app-mobile-name"><?php echo htmlspecialchars(trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? ''))); ?></span>
                                             <span class="app-ojt-mobile-subtext app-mobile-subtext">ID: <?php echo htmlspecialchars((string)($r['student_id'] ?? '')); ?> &middot; <?php echo htmlspecialchars((string)($r['course_name'] ?? '-')); ?></span>
+                                            <?php if (!$has_student_account && trim((string)($r['company_name'] ?? '')) !== ''): ?><span class="app-ojt-mobile-subtext app-mobile-subtext"><?php echo htmlspecialchars((string)$r['company_name']); ?></span><?php endif; ?>
+                                            <?php if (!$has_student_account): ?><span class="app-ojt-mobile-subtext app-mobile-subtext text-warning">Pending account creation</span><?php endif; ?>
                                         </div>
                                     </div>
                                     <span class="app-ojt-mobile-status-dot <?php echo htmlspecialchars($summary_status_class); ?>" aria-hidden="true"></span>
@@ -965,9 +1073,13 @@ include 'includes/header.php';
                                         </span>
                                     </div>
                                     <div class="app-ojt-mobile-actions">
-                                        <a class="btn btn-sm btn-light" href="<?php echo htmlspecialchars($ojt_view_link); ?>">View</a>
-                                        <a class="btn btn-sm btn-outline-primary" href="<?php echo htmlspecialchars($ojt_edit_link); ?>">Edit</a>
-                                        <a class="btn btn-sm btn-outline-success" href="students-internal-dtr.php?id=<?php echo (int)$r['id']; ?>">Internal DTR</a>
+                                        <?php if ($has_student_account): ?>
+                                            <a class="btn btn-sm btn-light" href="<?php echo htmlspecialchars($ojt_view_link); ?>">View</a>
+                                            <a class="btn btn-sm btn-outline-primary" href="<?php echo htmlspecialchars($ojt_edit_link); ?>">Edit</a>
+                                            <a class="btn btn-sm btn-outline-success" href="students-internal-dtr.php?id=<?php echo (int)$r['id']; ?>">Internal DTR</a>
+                                        <?php else: ?>
+                                            <span class="btn btn-sm btn-outline-warning disabled" aria-disabled="true">Create student account first</span>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </details>
