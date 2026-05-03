@@ -48,6 +48,21 @@ function external_attendance_manual_range_days_page(string $startDate, string $e
     return $days;
 }
 
+function external_attendance_manual_time_options_page(string $selected = ''): string
+{
+    $selected = substr(trim($selected), 0, 5);
+    $html = '<option value="">Select time</option>';
+    for ($hour = 0; $hour < 24; $hour++) {
+        for ($minute = 0; $minute < 60; $minute += 30) {
+            $value = sprintf('%02d:%02d', $hour, $minute);
+            $label = date('g:i A', strtotime($value . ':00'));
+            $isSelected = $value === $selected ? ' selected' : '';
+            $html .= '<option value="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '"' . $isSelected . '>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</option>';
+        }
+    }
+    return $html;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $rangeStart = trim((string)($_POST['range_start'] ?? ''));
     $rangeEnd = trim((string)($_POST['range_end'] ?? ''));
@@ -201,7 +216,7 @@ include 'includes/header.php';
                         <div class="external-manual-guide mb-4">
                             <strong>Before saving, follow this flow:</strong>
                             <span>1. Pick the date range and generate the rows. Sundays are skipped automatically.</span>
-                            <span>2. Type each time in 24-hour format, like 08:00, 12:00, 13:00, and 17:00.</span>
+                            <span>2. Pick the closest time from each dropdown, like 8:00 AM, 12:00 PM, 1:00 PM, and 5:00 PM.</span>
                             <span>3. Upload your physical DTR photo if available, add notes, then save for review.</span>
                         </div>
                         <form method="get" class="row g-3 align-items-end mb-4">
@@ -257,10 +272,10 @@ include 'includes/header.php';
                                                         <div class="fw-semibold"><?php echo htmlspecialchars(date('M d, Y', strtotime($day)), ENT_QUOTES, 'UTF-8'); ?></div>
                                                         <div class="small text-muted"><?php echo htmlspecialchars(date('l', strtotime($day)), ENT_QUOTES, 'UTF-8'); ?></div>
                                                     </td>
-                                                    <td data-label="Morning In"><input type="text" class="form-control external-manual-time-field" inputmode="numeric" placeholder="08:00" autocomplete="off" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][morning_time_in]" value="<?php echo htmlspecialchars(substr((string)($existingRow['morning_time_in'] ?? ''), 0, 5), ENT_QUOTES, 'UTF-8'); ?>"></td>
-                                                    <td data-label="Morning Out"><input type="text" class="form-control external-manual-time-field" inputmode="numeric" placeholder="12:00" autocomplete="off" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][morning_time_out]" value="<?php echo htmlspecialchars(substr((string)($existingRow['morning_time_out'] ?? ''), 0, 5), ENT_QUOTES, 'UTF-8'); ?>"></td>
-                                                    <td data-label="Afternoon In"><input type="text" class="form-control external-manual-time-field" inputmode="numeric" placeholder="13:00" autocomplete="off" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][afternoon_time_in]" value="<?php echo htmlspecialchars(substr((string)($existingRow['afternoon_time_in'] ?? ''), 0, 5), ENT_QUOTES, 'UTF-8'); ?>"></td>
-                                                    <td data-label="Afternoon Out"><input type="text" class="form-control external-manual-time-field" inputmode="numeric" placeholder="17:00" autocomplete="off" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][afternoon_time_out]" value="<?php echo htmlspecialchars(substr((string)($existingRow['afternoon_time_out'] ?? ''), 0, 5), ENT_QUOTES, 'UTF-8'); ?>"></td>
+                                                    <td data-label="Morning In"><select class="form-select external-manual-time-select" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][morning_time_in]"><?php echo external_attendance_manual_time_options_page((string)($existingRow['morning_time_in'] ?? '08:00')); ?></select></td>
+                                                    <td data-label="Morning Out"><select class="form-select external-manual-time-select" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][morning_time_out]"><?php echo external_attendance_manual_time_options_page((string)($existingRow['morning_time_out'] ?? '12:00')); ?></select></td>
+                                                    <td data-label="Afternoon In"><select class="form-select external-manual-time-select" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][afternoon_time_in]"><?php echo external_attendance_manual_time_options_page((string)($existingRow['afternoon_time_in'] ?? '13:00')); ?></select></td>
+                                                    <td data-label="Afternoon Out"><select class="form-select external-manual-time-select" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][afternoon_time_out]"><?php echo external_attendance_manual_time_options_page((string)($existingRow['afternoon_time_out'] ?? '17:00')); ?></select></td>
                                                 </tr>
                                             <?php endforeach; ?>
                                         </tbody>

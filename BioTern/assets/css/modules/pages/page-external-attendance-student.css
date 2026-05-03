@@ -43,7 +43,8 @@
     box-shadow: 0 0 0 4px rgba(47, 134, 206, 0.14);
 }
 
-.external-manual-table .external-manual-time-field {
+.external-manual-table .external-manual-time-field,
+.external-manual-table .external-manual-time-select {
     min-width: 130px;
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.02em;
@@ -109,7 +110,8 @@
         color: #587799;
     }
 
-    .external-manual-table .external-manual-time-field {
+    .external-manual-table .external-manual-time-field,
+    .external-manual-table .external-manual-time-select {
         min-width: 0;
         width: 100%;
     }
