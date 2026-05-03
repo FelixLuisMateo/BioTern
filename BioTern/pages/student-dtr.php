@@ -842,26 +842,83 @@ include 'includes/header.php';
         </div>
         <?php endif; ?>
 
+        <section class="student-dtr-station-hero">
+            <div class="student-dtr-hero-main">
+                <span class="student-dtr-station-chip">Internal Attendance Station</span>
+                <div class="student-dtr-persona">
+                    <img src="<?php echo htmlspecialchars($avatarSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?>" class="student-dtr-avatar">
+                    <div>
+                        <h2 class="student-dtr-title">My Internal DTR</h2>
+                        <p class="student-dtr-hero-copy">
+                            Track your biometric logs, submit missed time, and download monthly attendance reports.
+                        </p>
+                    </div>
+                </div>
+                <div class="student-dtr-hero-pills">
+                    <span><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php if (!empty($courseSection)): ?>
+                    <span><?php echo htmlspecialchars(implode(' / ', $courseSection), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php endif; ?>
+                    <span><?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                </div>
+            </div>
+            <form method="get" class="student-dtr-station-filter">
+                <div>
+                    <label for="dtrHeroYear">Year</label>
+                    <select id="dtrHeroYear" name="year">
+                        <?php foreach ($availableYears as $yearOption): ?>
+                        <option value="<?php echo (int)$yearOption; ?>" <?php echo (int)$yearOption === $selectedYear ? 'selected' : ''; ?>>
+                            <?php echo (int)$yearOption; ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label for="dtrHeroMonth">Month</label>
+                    <select id="dtrHeroMonth" name="month_num">
+                        <?php foreach ($monthOptions as $monthNumber => $monthLabelOption): ?>
+                        <option value="<?php echo (int)$monthNumber; ?>" <?php echo (int)$monthNumber === $selectedMonthNumber ? 'selected' : ''; ?>>
+                            <?php echo htmlspecialchars($monthLabelOption, ENT_QUOTES, 'UTF-8'); ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <button type="submit">View DTR</button>
+            </form>
+        </section>
+
         <div class="student-dtr-metrics">
             <article class="student-metric-card student-dtr-metric">
-                <div class="student-dtr-meta">Total Logs</div>
-                <strong><?php echo (int)$attendanceSummary['total_logs']; ?></strong>
-                <small>Recorded entries for <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?>.</small>
+                <span class="student-dtr-metric-icon"><i class="feather-list"></i></span>
+                <div>
+                    <div class="student-dtr-meta">Total Logs</div>
+                    <strong><?php echo (int)$attendanceSummary['total_logs']; ?></strong>
+                    <small>Recorded entries for <?php echo htmlspecialchars($monthLabel, ENT_QUOTES, 'UTF-8'); ?>.</small>
+                </div>
             </article>
             <article class="student-metric-card student-dtr-metric">
-                <div class="student-dtr-meta">Approved</div>
-                <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
-                <small><?php echo number_format((float)$attendanceInsights['approved_hours'], 2); ?> approved hours.</small>
+                <span class="student-dtr-metric-icon approved"><i class="feather-check-circle"></i></span>
+                <div>
+                    <div class="student-dtr-meta">Approved</div>
+                    <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
+                    <small><?php echo number_format((float)$attendanceInsights['approved_hours'], 2); ?> approved hours.</small>
+                </div>
             </article>
             <article class="student-metric-card student-dtr-metric">
-                <div class="student-dtr-meta">Pending</div>
-                <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
-                <small><?php echo number_format((float)$attendanceInsights['pending_hours'], 2); ?> hours waiting.</small>
+                <span class="student-dtr-metric-icon pending"><i class="feather-clock"></i></span>
+                <div>
+                    <div class="student-dtr-meta">Pending</div>
+                    <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
+                    <small><?php echo number_format((float)$attendanceInsights['pending_hours'], 2); ?> hours waiting.</small>
+                </div>
             </article>
             <article class="student-metric-card student-dtr-metric">
-                <div class="student-dtr-meta">Logged Hours</div>
-                <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?></strong>
-                <small>Average <?php echo number_format((float)$attendanceInsights['average_hours'], 2); ?> hours per entry.</small>
+                <span class="student-dtr-metric-icon hours"><i class="feather-activity"></i></span>
+                <div>
+                    <div class="student-dtr-meta">Logged Hours</div>
+                    <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?></strong>
+                    <small>Average <?php echo number_format((float)$attendanceInsights['average_hours'], 2); ?> hours per entry.</small>
+                </div>
             </article>
         </div>
 
