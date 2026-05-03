@@ -1,5 +1,6 @@
 @media print {
     @page {
+        size: A4 portrait;
         margin: 0;
     }
 
@@ -163,5 +164,201 @@
     body.application-builder-page img {
         print-color-adjust: exact !important;
         -webkit-print-color-adjust: exact !important;
+    }
+
+    body.moa-builder-page {
+        width: 210mm !important;
+        min-height: 297mm !important;
+    }
+
+    body.moa-builder-page #moa_content {
+        display: block !important;
+        width: 210mm !important;
+        max-width: 210mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        font-size: 11.15pt !important;
+    }
+
+    body.moa-builder-page #moa_content.a4-pages-stack {
+        display: block !important;
+        gap: 0 !important;
+        width: 210mm !important;
+        max-width: 210mm !important;
+    }
+
+    body.moa-builder-page #moa_content > .a4-pages-stack {
+        display: block !important;
+        width: 210mm !important;
+        max-width: 210mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    body.moa-builder-page #moa_content,
+    body.moa-builder-page #moa_content * {
+        font-family: "Arial Narrow", Arial, sans-serif !important;
+        color: #000 !important;
+    }
+
+    body.moa-builder-page #moa_content .a4-page {
+        width: 210mm !important;
+        min-height: 297mm !important;
+        height: 297mm !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 0.28in 0.42in 0.24in !important;
+        background: #fff !important;
+        box-shadow: none !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        overflow: hidden !important;
+    }
+
+    body.moa-builder-page #moa_content .a4-page:first-child {
+        padding: 0.20in 0.38in 0.16in !important;
+    }
+
+    body.moa-builder-page #moa_content .a4-page:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+    }
+
+    body.moa-builder-page #moa_content h5 {
+        font-size: 12pt !important;
+        margin: 3px 0 7px !important;
+    }
+
+    body.moa-builder-page #moa_content p,
+    body.moa-builder-page #moa_content li,
+    body.moa-builder-page #moa_content .a4-page:first-child p,
+    body.moa-builder-page #moa_content .a4-page:first-child li {
+        font-size: 11.15pt !important;
+        line-height: 1.26 !important;
+        margin-top: 3px !important;
+        margin-bottom: 6px !important;
+    }
+
+    body.moa-builder-page #moa_content ol {
+        margin-top: 3px !important;
+        margin-bottom: 4px !important;
+        padding-left: 0.23in !important;
+    }
+
+    body.moa-builder-page #moa_content .a4-page:first-child ol {
+        margin-top: 8px !important;
+        margin-bottom: 8px !important;
+        padding-left: 0.27in !important;
+    }
+
+    body.moa-builder-page #moa_content li {
+        margin-bottom: 1px !important;
+    }
+
+    body.moa-builder-page #moa_content .mt-12 {
+        margin-top: 10px !important;
+    }
+
+    body.moa-builder-page #moa_content .mt-16 {
+        margin-top: 12px !important;
+    }
+
+    body.moa-builder-page #moa_content .mt-24 {
+        margin-top: 18px !important;
+    }
+
+    body.moa-builder-page #moa_content .mt-40 {
+        margin-top: 34px !important;
+    }
+
+    body.moa-builder-page.native-moa-printing > :not(#native_moa_print_content) {
+        display: none !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content {
+        display: block !important;
+        width: 210mm !important;
+        max-width: 210mm !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        font-family: "Arial Narrow", Arial, sans-serif !important;
+        color: #000 !important;
+        font-size: 11.15pt !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content .a4-page {
+        width: 210mm !important;
+        min-height: 297mm !important;
+        height: 297mm !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 0.28in 0.42in 0.24in !important;
+        background: #fff !important;
+        box-shadow: none !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        overflow: hidden !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content .a4-page:first-child {
+        padding: 0.20in 0.38in 0.16in !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content .a4-page:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content,
+    body.moa-builder-page.native-moa-printing #native_moa_print_content * {
+        font-family: "Arial Narrow", Arial, sans-serif !important;
+        color: #000 !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content h5 {
+        font-size: 12pt !important;
+        margin: 3px 0 7px !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content p,
+    body.moa-builder-page.native-moa-printing #native_moa_print_content li {
+        font-size: 11.15pt !important;
+        line-height: 1.26 !important;
+        margin-top: 3px !important;
+        margin-bottom: 6px !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content ol {
+        margin-top: 3px !important;
+        margin-bottom: 4px !important;
+        padding-left: 0.23in !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content .a4-page:first-child ol {
+        margin-top: 8px !important;
+        margin-bottom: 8px !important;
+        padding-left: 0.27in !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content li {
+        margin-bottom: 1px !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content .mt-12 {
+        margin-top: 10px !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content .mt-16 {
+        margin-top: 12px !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content .mt-24 {
+        margin-top: 18px !important;
+    }
+
+    body.moa-builder-page.native-moa-printing #native_moa_print_content .mt-40 {
+        margin-top: 34px !important;
     }
 }

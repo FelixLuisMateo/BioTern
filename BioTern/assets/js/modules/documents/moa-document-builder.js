@@ -688,6 +688,42 @@
         }
     }
 
+    function initNativePrintCleanup() {
+        var nativePrintContainer = null;
+
+        function cleanupNativePrintClone() {
+            document.body.classList.remove('native-moa-printing');
+            if (nativePrintContainer && nativePrintContainer.parentNode) {
+                nativePrintContainer.parentNode.removeChild(nativePrintContainer);
+            }
+            nativePrintContainer = null;
+        }
+
+        window.addEventListener('beforeprint', function () {
+            ensureA4TemplateStructure();
+            updatePreview();
+
+            cleanupNativePrintClone();
+            var pagesHtml = Array.prototype.slice.call(editor.querySelectorAll('.a4-page')).map(function (page) {
+                return page.outerHTML;
+            }).join('');
+            if (!pagesHtml) {
+                return;
+            }
+
+            nativePrintContainer = document.createElement('div');
+            nativePrintContainer.id = 'native_moa_print_content';
+            nativePrintContainer.className = 'a4-pages-stack';
+            nativePrintContainer.innerHTML = pagesHtml;
+            document.body.appendChild(nativePrintContainer);
+            document.body.classList.add('native-moa-printing');
+        });
+
+        window.addEventListener('afterprint', function () {
+            cleanupNativePrintClone();
+        });
+    }
+
     function bindFieldInputs() {
         [
             partnerName, partnerRep, partnerPosition, partnerAddress, companyReceipt, totalHours, schoolRep, schoolPosition,
@@ -714,6 +750,7 @@
         bindFieldInputs();
         initEditToggle();
         initPrintButtons();
+        initNativePrintCleanup();
         setEditMode(false);
 
         clearFormFields();
@@ -738,6 +775,7 @@
         bindFieldInputs();
         initEditToggle();
         initPrintButtons();
+        initNativePrintCleanup();
         setEditMode(false);
         clearFormFields();
         ensureA4TemplateStructure();
