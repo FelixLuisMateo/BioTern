@@ -636,27 +636,50 @@ html.app-skin-dark .dtr-day-card .badge.bg-soft-secondary {
         height: auto;
         min-height: 0;
         padding: 1rem;
+        margin: 0 0 1rem;
+        overflow: visible;
     }
 
     body.mobile-bottom-nav .app-students-dtr-page-header .page-header-left {
         width: 100%;
+        min-width: 0;
+        align-items: flex-start !important;
+        flex-direction: column;
+        gap: 0.45rem;
+    }
+
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-title,
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-title h5 {
+        width: 100%;
+        max-width: 100%;
+        white-space: normal;
+        line-height: 1.18;
+        margin: 0;
+    }
+
+    body.mobile-bottom-nav .app-students-dtr-page-header .breadcrumb {
+        display: none;
     }
 
     body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right {
         position: static;
         width: 100%;
         margin-left: 0 !important;
+        transform: none !important;
     }
 
     body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right .d-flex {
         display: grid !important;
         grid-template-columns: 1fr;
         width: 100%;
+        gap: 0.5rem !important;
     }
 
     body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right .btn {
         width: 100%;
         justify-content: center;
+        min-height: 42px;
+        margin: 0;
     }
 
     .app-students-dtr-day-top,
