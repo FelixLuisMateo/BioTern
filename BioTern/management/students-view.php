@@ -1510,7 +1510,7 @@ endforeach; ?>
                                             </form>
 
                                             <section class="student-internal-eval-print-sheet" id="studentInternalEvalPrintSheet" aria-hidden="true">
-                                                <div class="student-internal-eval-paper">
+                                                <div class="student-internal-eval-paper student-internal-eval-paper--page-1">
                                                     <div class="student-internal-eval-print-header">
                                                         <img src="../assets/images/ccstlogo.png" alt="CCST">
                                                         <div>
@@ -1559,6 +1559,55 @@ foreach ($factors as $factor):
     $factorLabel = (string)($factor[0] ?? '');
     $factorMax = (int)($factor[1] ?? 0);
     $evalPrintIndex++;
+    if ($evalPrintIndex > 8) {
+        continue;
+    }
+?>
+                                                                    <tr>
+                                                                        <td><?php
+echo (int)$evalPrintIndex; ?>. <?php
+echo htmlspecialchars($factorLabel, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                        <td><?php
+echo (int)$factorMax; ?>%</td>
+                                                                        <td><span data-eval-rating-output="<?php
+echo (int)$evalPrintIndex; ?>"></span></td>
+                                                                    </tr>
+                                                                <?php
+endforeach; ?>
+                                                            <?php
+endforeach; ?>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div class="student-internal-eval-paper student-internal-eval-paper--page-2">
+                                                    <div class="student-internal-eval-print-header">
+                                                        <img src="../assets/images/ccstlogo.png" alt="CCST">
+                                                        <div>
+                                                            <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+                                                            <p>(Formerly Clark International College of Science & Technology)</p>
+                                                            <p>SNS Bldg., Auera St., Samsonville Subd., Dau, Mabalacat City, Pampanga</p>
+                                                            <p>Telefax No.: (045) 624-0215</p>
+                                                        </div>
+                                                    </div>
+                                                    <table class="student-internal-eval-print-table student-internal-eval-print-table--continuation">
+                                                        <tbody>
+                                                            <?php
+$evalPrintIndex = 0;
+foreach ($student_internal_eval_factors as $groupTitle => $factors): ?>
+                                                                <?php
+if ($groupTitle !== 'Personality Traits') {
+    $evalPrintIndex += count($factors);
+    continue;
+}
+?>
+                                                                <?php
+foreach ($factors as $factor):
+    $factorLabel = (string)($factor[0] ?? '');
+    $factorMax = (int)($factor[1] ?? 0);
+    $evalPrintIndex++;
+    if ($evalPrintIndex <= 8) {
+        continue;
+    }
 ?>
                                                                     <tr>
                                                                         <td><?php
@@ -1582,7 +1631,7 @@ endforeach; ?>
                                                     </table>
                                                     <div class="student-internal-eval-print-recommendation">
                                                         <p>Recommendation for the trainee's Further Growth:</p>
-                                                        <div data-eval-output="recommendation"></div>
+                                                        <div class="student-internal-eval-print-lines" data-eval-output="recommendation"></div>
                                                     </div>
                                                     <div class="student-internal-eval-print-signature">Trainee's Supervisor Signature</div>
                                                 </div>
