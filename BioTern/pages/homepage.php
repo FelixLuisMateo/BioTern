@@ -7,7 +7,7 @@ include_once dirname(__DIR__) . '/includes/dashboard_data.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 
 if (!function_exists('dashboard_fetch_count')) {
-    function dashboard_fetch_count($conn, $sql, $key = 'count')
+    function dashboard_fetch_count(?mysqli $conn, string $sql, string $key = 'count'): int
     {
         if (!isset($conn)) {
             return 0;
@@ -24,7 +24,7 @@ if (!function_exists('dashboard_fetch_count')) {
 }
 
 if (!function_exists('dashboard_fetch_all')) {
-    function dashboard_fetch_all($conn, $sql)
+    function dashboard_fetch_all(?mysqli $conn, string $sql): array
     {
         $rows = array();
         if (!isset($conn)) {
@@ -45,7 +45,7 @@ if (!function_exists('dashboard_fetch_all')) {
 }
 
 if (!function_exists('dashboard_table_exists')) {
-    function dashboard_table_exists($conn, $table)
+    function dashboard_table_exists(?mysqli $conn, string $table): bool
     {
         if (!isset($conn)) {
             return false;
@@ -58,7 +58,7 @@ if (!function_exists('dashboard_table_exists')) {
 }
 
 if (!function_exists('dashboard_column_exists')) {
-    function dashboard_column_exists($conn, $table, $column)
+    function dashboard_column_exists(?mysqli $conn, string $table, string $column): bool
     {
         if (!isset($conn)) {
             return false;
@@ -72,7 +72,7 @@ if (!function_exists('dashboard_column_exists')) {
 }
 
 if (!function_exists('dashboard_safe_table_count')) {
-    function dashboard_safe_table_count($conn, $table, $where = '1')
+    function dashboard_safe_table_count(?mysqli $conn, string $table, string $where = '1'): int
     {
         if (!dashboard_table_exists($conn, $table)) {
             return 0;
@@ -84,14 +84,14 @@ if (!function_exists('dashboard_safe_table_count')) {
 }
 
 if (!function_exists('dashboard_format_section_chip')) {
-    function dashboard_format_section_chip($code, $name)
+    function dashboard_format_section_chip(string $code, string $name): string
     {
-        return biotern_format_section_label((string)$code, (string)$name);
+        return biotern_format_section_label($code, $name);
     }
 }
 
 if (!function_exists('dashboard_format_duration_clock')) {
-    function dashboard_format_duration_clock($seconds)
+    function dashboard_format_duration_clock(float $seconds): string
     {
         $totalSeconds = max(0, (int)round((float)$seconds));
         $hours = (int)floor($totalSeconds / 3600);

@@ -125,29 +125,29 @@ if ($externalRecordCount <= 0 && $externalRenderedHours <= 0 && $total_hours_rem
 }
 $total_hours_completed = max(0, $total_hours_target - $total_hours_remaining);
 
-function h($value) {
+function h(mixed $value): string {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
-function fmt_time($time_value) {
+function fmt_time(mixed $time_value): string {
     if (empty($time_value)) return '-';
     return date('h:i A', strtotime($time_value));
 }
 
-function fmt_hours_hm($hours_value) {
+function fmt_hours_hm(float|int|string $hours_value): string {
     $minutes_total = (int)max(0, round(((float)$hours_value) * 60));
     $hours = intdiv($minutes_total, 60);
     $minutes = $minutes_total % 60;
     return str_pad((string)$hours, 2, '0', STR_PAD_LEFT) . 'h:' . str_pad((string)$minutes, 2, '0', STR_PAD_LEFT) . 'm';
 }
 
-function fmt_hours_compact($hours_value) {
+function fmt_hours_compact(float|int|string $hours_value): string {
     $formatted = number_format((float)$hours_value, 2, '.', '');
     $formatted = rtrim(rtrim($formatted, '0'), '.');
     return $formatted !== '' ? $formatted : '0';
 }
 
-function status_badge($status) {
+function status_badge(string $status): string {
     $s = strtolower((string)$status);
     if ($s === 'approved') return '<span class="badge bg-soft-success text-success">Approved</span>';
     if ($s === 'rejected') return '<span class="badge bg-soft-danger text-danger">Rejected</span>';
