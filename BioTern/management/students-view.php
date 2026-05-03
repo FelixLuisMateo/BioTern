@@ -1671,10 +1671,10 @@ endforeach; ?>
                                                     <div class="student-internal-eval-print-recommendation">
                                                         <p>Recommendation for the trainee's Further Growth:</p>
                                                         <div class="student-internal-eval-print-lines">
-                                                            <span data-eval-output="recommendation"></span>
-                                                            <i></i>
-                                                            <i></i>
-                                                            <i></i>
+                                                            <span class="student-internal-eval-print-line" data-eval-output="recommendation"></span>
+                                                            <span class="student-internal-eval-print-line" aria-hidden="true"></span>
+                                                            <span class="student-internal-eval-print-line" aria-hidden="true"></span>
+                                                            <span class="student-internal-eval-print-line student-internal-eval-print-line--short" aria-hidden="true"></span>
                                                         </div>
                                                     </div>
                                                     <div class="student-internal-eval-print-signature">Trainee's Supervisor Signature</div>
