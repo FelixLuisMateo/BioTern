@@ -33,6 +33,13 @@
   }
 
   function initDataTable() {
+    var isMobileTableView =
+      window.matchMedia && window.matchMedia("(max-width: 991.98px)").matches;
+    if (isMobileTableView) {
+      initFilterControls();
+      return;
+    }
+
     if (
       window.jQuery &&
       window.jQuery.fn &&
@@ -77,6 +84,56 @@
       target.addEventListener("show.bs.collapse", syncToggleState);
       target.addEventListener("hide.bs.collapse", syncToggleState);
       syncToggleState();
+    });
+  }
+
+  function initMobileRowCollapse() {
+    if (!(window.matchMedia && window.matchMedia("(max-width: 991.98px)").matches)) {
+      return;
+    }
+    var table = document.getElementById("usersListTable");
+    if (!table) {
+      return;
+    }
+    var rows = table.querySelectorAll("tbody tr");
+    rows.forEach(function (row) {
+      if (!row || row.querySelector("td[colspan]")) {
+        return;
+      }
+      var cells = Array.prototype.slice.call(row.querySelectorAll("td"));
+      if (cells.length <= 2) {
+        return;
+      }
+
+      cells.forEach(function (cell, index) {
+        if (index >= 2) {
+          cell.classList.add("app-users-mobile-extra-cell");
+        }
+      });
+
+      var toggleCell = row.querySelector(".app-users-mobile-toggle-cell");
+      if (!toggleCell) {
+        toggleCell = document.createElement("td");
+        toggleCell.className = "app-users-mobile-toggle-cell";
+        toggleCell.setAttribute("colspan", String(cells.length));
+
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "app-users-mobile-toggle-btn";
+        btn.textContent = "Show more";
+        btn.setAttribute("aria-expanded", "false");
+        btn.addEventListener("click", function () {
+          var collapsed = row.classList.contains("app-users-mobile-collapsed");
+          row.classList.toggle("app-users-mobile-collapsed", !collapsed);
+          btn.textContent = collapsed ? "Show less" : "Show more";
+          btn.setAttribute("aria-expanded", collapsed ? "true" : "false");
+        });
+
+        toggleCell.appendChild(btn);
+        row.appendChild(toggleCell);
+      }
+
+      row.classList.add("app-users-mobile-collapsed");
     });
   }
 
@@ -165,6 +222,7 @@
     initFilterAutoSubmit();
     initDataTable();
     initInlineDetails();
+    initMobileRowCollapse();
     initActionDropdownPortal();
   }
 
