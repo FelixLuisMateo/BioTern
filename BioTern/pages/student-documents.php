@@ -125,22 +125,22 @@ $documentCards = [
     [
         'title' => 'Application Letter',
         'status' => $applicationRow ? 'Ready to view and print.' : 'No saved application letter yet.',
-        'view_url' => $applicationRow ? 'student-application-letter.php' : '',
+        'view_url' => $applicationRow ? student_documents_build_url('document_application.php', ['id' => $studentId]) : '',
     ],
     [
         'title' => 'Endorsement Letter',
         'status' => $endorsementRow ? 'Ready to view and print.' : 'No saved endorsement letter yet.',
-        'view_url' => $endorsementRow ? 'student-endorsement-letter.php' : '',
+        'view_url' => $endorsementRow ? student_documents_build_url('document_endorsement.php', ['id' => $studentId]) : '',
     ],
     [
         'title' => 'MOA',
         'status' => $moaRow ? 'Ready to view and print.' : 'No saved MOA yet.',
-        'view_url' => $moaRow ? 'student-moa.php' : '',
+        'view_url' => $moaRow ? student_documents_build_url('document_moa.php', ['id' => $studentId]) : '',
     ],
     [
         'title' => 'DAU MOA',
         'status' => $dauMoaRow ? 'Ready to view and print.' : 'No saved DAU MOA yet.',
-        'view_url' => $dauMoaRow ? 'student-dau-moa.php' : '',
+        'view_url' => $dauMoaRow ? student_documents_build_url('document_dau_moa.php', ['id' => $studentId]) : '',
     ],
     [
         'title' => 'Parent Consent and Waiver',
