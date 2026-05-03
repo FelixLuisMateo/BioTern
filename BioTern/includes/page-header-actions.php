@@ -15,25 +15,17 @@ if (!function_exists('biotern_render_page_header_actions')) {
         $rootClass = trim('page-header-right ms-auto ' . (string)($config['root_class'] ?? ''));
         $toggleClass = trim('btn btn-sm btn-light-brand page-header-actions-toggle ' . (string)($config['toggle_class'] ?? ''));
         $panelClass = trim('page-header-actions ' . (string)($config['panel_class'] ?? ''));
-        $toggleIcon = trim((string)($config['toggle_icon'] ?? 'feather-grid'));
-        $toggleLabel = trim((string)($config['toggle_label'] ?? 'Actions'));
-        $metaLabel = trim((string)($config['meta_label'] ?? 'Quick Actions'));
+        $toggleIcon = trim((string)($config['toggle_icon'] ?? '')) ?: 'feather-grid';
+        $toggleLabel = trim((string)($config['toggle_label'] ?? '')) ?: 'Actions';
+        $metaLabel = trim((string)($config['meta_label'] ?? '')) ?: 'Quick Actions';
+        $toggleAriaLabel = trim((string)($config['toggle_aria_label'] ?? '')) ?: 'Header actions';
         $showMeta = !array_key_exists('show_meta', $config) || (bool)$config['show_meta'];
-
-        if ($toggleIcon === '') {
-            $toggleIcon = 'feather-grid';
-        }
-        if ($toggleLabel === '') {
-            $toggleLabel = 'Actions';
-        }
-        if ($metaLabel === '') {
-            $metaLabel = 'Quick Actions';
-        }
         ?>
         <div class="<?php echo htmlspecialchars($rootClass, ENT_QUOTES, 'UTF-8'); ?>">
             <button
                 type="button"
                 class="<?php echo htmlspecialchars($toggleClass, ENT_QUOTES, 'UTF-8'); ?>"
+                aria-label="<?php echo htmlspecialchars($toggleAriaLabel, ENT_QUOTES, 'UTF-8'); ?>"
                 aria-expanded="false"
                 aria-controls="<?php echo htmlspecialchars($menuId, ENT_QUOTES, 'UTF-8'); ?>"
             >

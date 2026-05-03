@@ -41,13 +41,6 @@
     );
   }
 
-  function panelHasActions(panel) {
-    if (!panel) {
-      return false;
-    }
-    return !!panel.querySelector("a, button, .dropdown, form");
-  }
-
   function findPrimaryContainer(right) {
     if (!right) {
       return null;

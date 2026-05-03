@@ -66,7 +66,7 @@
     for (var f = 0; f < knownFilterForms.length; f += 1) {
       var formNode = knownFilterForms[f];
       var formContainer =
-        formNode.closest(".filter-panel, .filter-card, .app-ojt-filter-card, .logs-filter-wrap, .report-filter-wrap, .chatreports-filter-wrap, .chatlogs-filter, .attendance-exceptions-toolbar, .card") ||
+        formNode.closest(".filter-panel, .filter-card, .app-ojt-filter-card, .logs-filter-wrap, .report-filter-wrap, .chatreports-filter-wrap, .chatlogs-filter, .attendance-exceptions-toolbar") ||
         formNode;
       pushUnique(formContainer);
     }
@@ -104,7 +104,7 @@
         continue;
       }
       var host =
-        getForm.closest(".logs-filter-wrap, .report-filter-wrap, .chatreports-filter-wrap, .chatlogs-filter, .attendance-exceptions-toolbar, .card") ||
+        getForm.closest(".logs-filter-wrap, .report-filter-wrap, .chatreports-filter-wrap, .chatlogs-filter, .attendance-exceptions-toolbar") ||
         getForm;
       pushUnique(host);
     }
