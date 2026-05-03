@@ -438,7 +438,7 @@
 }
 
 .student-internal-eval-print-header img {
-    width: 52px;
+    width: 58px;
     height: auto;
     flex: 0 0 auto;
 }
@@ -509,17 +509,17 @@
 }
 
 .student-internal-eval-print-table {
-    width: 94%;
+    width: 100%;
     margin: 0 auto;
     border-collapse: collapse;
-    font-size: 11.6px;
-    line-height: 1.14;
+    font-size: 14.2px;
+    line-height: 1.32;
 }
 
 .student-internal-eval-print-table th,
 .student-internal-eval-print-table td {
     border: 1px solid #111;
-    padding: 3px 5px;
+    padding: 7px 8px;
     vertical-align: top;
 }
 
@@ -530,7 +530,7 @@
 
 .student-internal-eval-print-table td:nth-child(2),
 .student-internal-eval-print-table td:nth-child(3) {
-    width: 96px;
+    width: 118px;
     text-align: center;
 }
 
@@ -544,35 +544,38 @@
 }
 
 .student-internal-eval-print-recommendation {
-    margin-top: 18px;
+    width: 74%;
+    margin: 12px 0 0;
 }
 
 .student-internal-eval-print-recommendation p {
-    margin-bottom: 8px;
+    margin: 0 0 5px;
 }
 
 .student-internal-eval-print-recommendation div {
     display: block;
-    min-height: 82px;
+    min-height: 42px;
     white-space: pre-wrap;
     background-image: none;
-    line-height: 18px;
+    line-height: 11px;
 }
 
 .student-internal-eval-print-recommendation span {
     display: block;
-    min-height: 18px;
+    min-height: 0;
+    padding: 0 0 3px;
+    border-bottom: 1px solid #111;
 }
 
 .student-internal-eval-print-recommendation i {
     display: block;
-    height: 18px;
+    height: 11px;
     border-bottom: 1px solid #111;
 }
 
 .student-internal-eval-print-signature {
     width: 190px;
-    margin: 78px 58px 0 auto;
+    margin: 24px 48px 0 auto;
     padding-top: 6px;
     border-top: 1px solid #111;
     text-align: center;
