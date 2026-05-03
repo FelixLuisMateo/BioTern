@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/company_profiles.php';
+require_once __DIR__ . '/section_format.php';
 
 function biotern_ojt_masterlist_header_present(array $rows): bool
 {
@@ -55,6 +56,21 @@ function biotern_ojt_masterlist_lookup_key(string $value): string
 {
     $value = strtolower(trim($value));
     return (string)preg_replace('/[^a-z0-9]+/', '', $value);
+}
+
+function biotern_ojt_masterlist_section_label(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+    if (function_exists('biotern_format_section_label')) {
+        $formatted = biotern_format_section_label($value, '');
+        if ($formatted !== '') {
+            return $formatted;
+        }
+    }
+    return $value;
 }
 
 function biotern_ojt_masterlist_school_year(string $value): string
@@ -170,7 +186,7 @@ function biotern_ojt_masterlist_import_rows(mysqli $conn, array $rows, string $s
         $semester = biotern_ojt_masterlist_semester(biotern_ojt_masterlist_row_value($row, ['semester', 'term']));
         $studentName = biotern_ojt_masterlist_row_value($row, ['student_name']);
         $contactNo = biotern_ojt_masterlist_row_value($row, ['contact_no', 'contact_number']);
-        $section = biotern_ojt_masterlist_row_value($row, ['section']);
+        $section = biotern_ojt_masterlist_section_label(biotern_ojt_masterlist_row_value($row, ['section']));
         $companyName = biotern_ojt_masterlist_row_value($row, ['company_name', 'company']);
         $companyAddress = biotern_ojt_masterlist_row_value($row, ['company_address', 'address']);
         $supervisorName = biotern_ojt_masterlist_row_value($row, ['supervisor_name']);

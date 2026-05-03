@@ -283,6 +283,178 @@
     });
   }
 
+  function initializeInternalEvaluation() {
+    var root = document.getElementById("studentInternalEval");
+    var sheet = document.getElementById("studentInternalEvalPrintSheet");
+    if (!root || !sheet) return;
+
+    var ratings = Array.prototype.slice.call(
+      root.querySelectorAll(".student-internal-eval-rating")
+    );
+    var totalCard = document.getElementById("studentInternalEvalTotal");
+    var totalTable = document.getElementById("studentInternalEvalTableTotal");
+    var hiddenTotal = document.getElementById("studentInternalEvalHiddenTotal");
+    var recommendation = root.querySelector(".student-internal-eval-recommendation");
+    var cfg = document.getElementById("students-view-runtime-config");
+    var studentId = toInt(cfg && cfg.dataset.studentId, 0);
+    var storageKey = "student_internal_evaluation_" + String(studentId || "draft");
+
+    function saveDraft() {
+      try {
+        var draft = {
+          ratings: {},
+          meta: {},
+          recommendation: recommendation ? recommendation.value : "",
+        };
+        ratings.forEach(function (input) {
+          draft.ratings[input.getAttribute("data-eval-index")] = input.value || "";
+        });
+        Array.prototype.slice.call(root.querySelectorAll(".student-internal-eval-meta")).forEach(
+          function (input) {
+            draft.meta[input.getAttribute("data-eval-meta")] = input.value || "";
+          }
+        );
+        localStorage.setItem(storageKey, JSON.stringify(draft));
+      } catch (e) {}
+    }
+
+    function loadDraft() {
+      try {
+        var raw = localStorage.getItem(storageKey);
+        var draft = raw ? JSON.parse(raw) : null;
+        if (!draft || typeof draft !== "object") return;
+        ratings.forEach(function (input) {
+          var key = input.getAttribute("data-eval-index");
+          if (draft.ratings && Object.prototype.hasOwnProperty.call(draft.ratings, key)) {
+            input.value = draft.ratings[key] || "";
+          }
+        });
+        Array.prototype.slice.call(root.querySelectorAll(".student-internal-eval-meta")).forEach(
+          function (input) {
+            var key = input.getAttribute("data-eval-meta");
+            if (draft.meta && Object.prototype.hasOwnProperty.call(draft.meta, key)) {
+              input.value = draft.meta[key] || "";
+            }
+          }
+        );
+        if (recommendation && typeof draft.recommendation === "string") {
+          recommendation.value = draft.recommendation;
+        }
+      } catch (e) {}
+    }
+
+    function clampRating(input) {
+      var max = toInt(input.getAttribute("data-eval-max"), 0);
+      var value = toInt(input.value, 0);
+      if (value < 0) value = 0;
+      if (max > 0 && value > max) value = max;
+      input.value = input.value === "" ? "" : String(value);
+      return input.value === "" ? 0 : value;
+    }
+
+    function updatePrintValues() {
+      var total = 0;
+      ratings.forEach(function (input) {
+        var index = input.getAttribute("data-eval-index");
+        var value = clampRating(input);
+        total += value;
+        var target = sheet.querySelector('[data-eval-rating-output="' + index + '"]');
+        if (target) target.textContent = value ? String(value) + "%" : "";
+      });
+
+      if (totalCard) totalCard.textContent = String(total);
+      if (totalTable) totalTable.textContent = String(total);
+      if (hiddenTotal) hiddenTotal.value = String(total);
+      var totalOutput = sheet.querySelector('[data-eval-output="total"]');
+      if (totalOutput) totalOutput.textContent = String(total) + "%";
+
+      Array.prototype.slice.call(root.querySelectorAll(".student-internal-eval-meta")).forEach(
+        function (input) {
+          var key = input.getAttribute("data-eval-meta");
+          var output = key ? sheet.querySelector('[data-eval-output="' + key + '"]') : null;
+          if (output) output.textContent = input.value || "";
+        }
+      );
+
+      var recommendationOutput = sheet.querySelector('[data-eval-output="recommendation"]');
+      if (recommendationOutput) {
+        recommendationOutput.textContent = recommendation ? recommendation.value : "";
+      }
+      saveDraft();
+    }
+
+    function printEvaluation() {
+      updatePrintValues();
+
+      var clone = sheet.cloneNode(true);
+      Array.prototype.slice.call(clone.querySelectorAll("img")).forEach(function (img) {
+        var raw = img.getAttribute("src");
+        if (raw) img.setAttribute("src", new URL(raw, window.location.href).href);
+      });
+
+      var iframe = document.createElement("iframe");
+      iframe.setAttribute("title", "Print Internal Evaluation");
+      iframe.style.position = "fixed";
+      iframe.style.right = "0";
+      iframe.style.bottom = "0";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      document.body.appendChild(iframe);
+
+      var doc = iframe.contentDocument || iframe.contentWindow.document;
+      doc.open();
+      doc.write(
+        '<!doctype html><html><head><meta charset="utf-8"><title>Internal Evaluation</title>' +
+          '<style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}.student-internal-eval-print-sheet{display:block}.student-internal-eval-paper{width:210mm;height:297mm;box-sizing:border-box;padding:12mm 15mm;background:#fff;color:#000;font-family:Arial,sans-serif;font-size:11px;line-height:1.18;overflow:hidden}.student-internal-eval-paper--page-1{page-break-after:always;break-after:page}.student-internal-eval-paper--page-2{padding-top:12mm}.student-internal-eval-print-header{display:flex;align-items:center;gap:18px;border-bottom:2px solid #111;padding-bottom:5px;margin-bottom:9px}.student-internal-eval-print-header img{width:58px;height:auto}.student-internal-eval-print-header h2,.student-internal-eval-print-header p{margin:0;text-align:center}.student-internal-eval-print-header h2{font-size:13.2px;font-weight:900}.student-internal-eval-print-header p{font-size:8.4px}.student-internal-eval-paper h3{margin:8px 0 13px;font-size:11.6px;line-height:1.15;text-align:center}.student-internal-eval-print-meta{width:48%;margin-bottom:17px}.student-internal-eval-print-meta p{display:grid;grid-template-columns:105px 1fr;gap:8px;margin:4px 0}.student-internal-eval-print-meta span{min-height:15px;border-bottom:1px solid #111}.student-internal-eval-print-purpose{margin:14px 0 14px}.student-internal-eval-print-scale{width:54%;margin:8px auto 15px}.student-internal-eval-print-scale p{display:grid;grid-template-columns:96px 1fr;margin:3px 0}.student-internal-eval-print-table{width:100%;border-collapse:collapse}.student-internal-eval-print-table th,.student-internal-eval-print-table td{border:1px solid #111;padding:3px 5px;vertical-align:top}.student-internal-eval-print-table th{text-align:center;text-transform:uppercase}.student-internal-eval-print-table td:nth-child(2),.student-internal-eval-print-table td:nth-child(3){width:86px;text-align:center}.student-internal-eval-print-group td{font-weight:900;text-transform:uppercase}.student-internal-eval-print-recommendation{margin-top:16px}.student-internal-eval-print-recommendation p{margin-bottom:8px}.student-internal-eval-print-recommendation div{min-height:68px;white-space:pre-wrap;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 16px,#111 17px);line-height:17px}.student-internal-eval-print-signature{width:190px;margin:48px 38px 0 auto;padding-top:6px;border-top:1px solid #111;text-align:center}</style>' +
+          '</head><body>' +
+          clone.innerHTML +
+          "</body></html>"
+      );
+      doc.close();
+
+      setTimeout(function () {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+        setTimeout(function () {
+          iframe.remove();
+        }, 500);
+      }, 250);
+    }
+
+    ratings.forEach(function (input) {
+      input.addEventListener("input", updatePrintValues);
+      input.addEventListener("blur", updatePrintValues);
+    });
+    Array.prototype.slice.call(root.querySelectorAll(".student-internal-eval-meta")).forEach(
+      function (input) {
+        input.addEventListener("input", updatePrintValues);
+      }
+    );
+    if (recommendation) recommendation.addEventListener("input", updatePrintValues);
+
+    var resetButton = document.getElementById("studentInternalEvalReset");
+    if (resetButton) {
+      resetButton.addEventListener("click", function () {
+        ratings.forEach(function (input) {
+          input.value = "";
+        });
+        if (recommendation) recommendation.value = "";
+        try {
+          localStorage.removeItem(storageKey);
+        } catch (e) {}
+        updatePrintValues();
+      });
+    }
+
+    var printButton = document.getElementById("studentInternalEvalPrint");
+    if (printButton) printButton.addEventListener("click", printEvaluation);
+    root.addEventListener("submit", updatePrintValues);
+
+    loadDraft();
+    updatePrintValues();
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initializeTimer);
   } else {
@@ -293,5 +465,11 @@
     document.addEventListener("DOMContentLoaded", initializeFollowToggle);
   } else {
     initializeFollowToggle();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeInternalEvaluation);
+  } else {
+    initializeInternalEvaluation();
   }
 })();

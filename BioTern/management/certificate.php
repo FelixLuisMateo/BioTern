@@ -105,7 +105,8 @@ include 'includes/header.php';
             <p class="mb-2">This certifies that</p>
             <h4 class="mb-3"><?php echo htmlspecialchars(trim(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? ''))); ?></h4>
             <p class="mb-2">has completed the internship requirements.</p>
-            <p class="mb-2">Evaluation Rating: <strong><?php echo (int)($evaluation['score'] ?? 0); ?>/5</strong></p>
+            <?php $certificateScore = (int)($evaluation['score'] ?? 0); ?>
+            <p class="mb-2">Evaluation Rating: <strong><?php echo $certificateScore > 5 ? $certificateScore . '%' : $certificateScore . '/5'; ?></strong></p>
             <p class="text-muted mb-4">Date Issued: <?php echo htmlspecialchars((string)($evaluation['evaluation_date'] ?? '')); ?></p>
             <div class="d-flex justify-content-center gap-2">
                 <button type="button" class="btn btn-primary js-print-certificate">Print Certificate</button>

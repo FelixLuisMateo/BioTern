@@ -101,6 +101,18 @@ function formatSectionDisplayLabel($code, $name): string {
     return $code !== '' ? $code : $name;
 }
 
+function sectionFilterMatches(string $rowSection, string $filterSection): bool {
+    if ($filterSection === '') {
+        return true;
+    }
+    if (function_exists('biotern_section_filter_key')) {
+        $rowKey = biotern_section_filter_key($rowSection);
+        $filterKey = biotern_section_filter_key($filterSection);
+        return $rowKey !== '' && $filterKey !== '' && $rowKey === $filterKey;
+    }
+    return strcasecmp($rowSection, $filterSection) === 0;
+}
+
 function normalize_person_name(string $name): string {
     $clean = trim(preg_replace('/\s+/', ' ', $name));
     if ($clean === '') {
@@ -157,6 +169,10 @@ $school_year_filter = trim((string)($_GET['school_year'] ?? ''));
 $semester_filter = trim((string)($_GET['semester'] ?? ''));
 $status_filter = trim((string)($_GET['stage'] ?? ''));
 $risk_filter = trim((string)($_GET['risk'] ?? 'all'));
+$account_filter = trim((string)($_GET['account'] ?? 'all'));
+if (!in_array($account_filter, ['all', 'with_account', 'without_account'], true)) {
+    $account_filter = 'all';
+}
 
 $students_has_school_year = ojt_column_exists($conn, 'students', 'school_year');
 $students_has_semester = ojt_column_exists($conn, 'students', 'semester');
@@ -200,6 +216,16 @@ if ($sres) {
             $s['section_label'] = formatSectionDisplayLabel($s['code'] ?? '', $s['name'] ?? '');
         }
         $sections[] = $s;
+    }
+}
+if ($section_filter !== '' && function_exists('biotern_section_filter_key')) {
+    $sectionFilterKey = biotern_section_filter_key($section_filter);
+    foreach ($sections as $sectionOption) {
+        $sectionOptionLabel = (string)($sectionOption['section_label'] ?? '');
+        if ($sectionFilterKey !== '' && biotern_section_filter_key($sectionOptionLabel) === $sectionFilterKey) {
+            $section_filter = $sectionOptionLabel;
+            break;
+        }
     }
 }
 
@@ -365,7 +391,7 @@ if ($res) {
         if ($course_filter !== '' && strcasecmp((string)($row['course_name'] ?? ''), $course_filter) !== 0) {
             continue;
         }
-        if ($section_filter !== '' && strcasecmp((string)($row['section_name'] ?? ''), $section_filter) !== 0) {
+        if ($section_filter !== '' && !sectionFilterMatches((string)($row['section_name'] ?? ''), $section_filter)) {
             continue;
         }
         if ($school_year_filter !== '' && strcasecmp((string)($row['school_year'] ?? ''), $school_year_filter) !== 0) {
@@ -381,6 +407,9 @@ if ($res) {
             continue;
         }
         if ($risk_filter === 'clean' && count($risk) > 0) {
+            continue;
+        }
+        if ($account_filter === 'without_account') {
             continue;
         }
 
@@ -431,7 +460,7 @@ if (ojt_table_exists($conn, 'ojt_masterlist')) {
                 'semester' => trim((string)($ml['semester'] ?? '-')) ?: '-',
                 'profile_picture' => '',
                 'course_name' => 'Pending account',
-                'section_name' => trim((string)($ml['section'] ?? '-')) ?: '-',
+                'section_name' => formatSectionDisplayLabel((string)($ml['section'] ?? ''), '') ?: '-',
                 'company_name' => trim((string)($ml['company_name'] ?? '')),
                 'internship_status' => trim((string)($ml['status'] ?? 'pending')) ?: 'pending',
                 'required_hours' => 250,
@@ -464,7 +493,7 @@ if (ojt_table_exists($conn, 'ojt_masterlist')) {
             if ($course_filter !== '' && strcasecmp((string)($row['course_name'] ?? ''), $course_filter) !== 0) {
                 continue;
             }
-            if ($section_filter !== '' && strcasecmp((string)($row['section_name'] ?? ''), $section_filter) !== 0) {
+            if ($section_filter !== '' && !sectionFilterMatches((string)($row['section_name'] ?? ''), $section_filter)) {
                 continue;
             }
             if ($school_year_filter !== '' && strcasecmp((string)($row['school_year'] ?? ''), $school_year_filter) !== 0) {
@@ -477,6 +506,9 @@ if (ojt_table_exists($conn, 'ojt_masterlist')) {
                 continue;
             }
             if ($risk_filter === 'clean') {
+                continue;
+            }
+            if ($account_filter === 'with_account') {
                 continue;
             }
 
@@ -530,6 +562,9 @@ foreach ([$search, $course_filter, $section_filter, $status_filter] as $active_f
 if ($risk_filter !== 'all') {
     $active_filter_count++;
 }
+if ($account_filter !== 'all') {
+    $active_filter_count++;
+}
 if ($school_year_filter !== '') {
     $active_filter_count++;
 }
@@ -562,6 +597,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['queue_reminders'])) {
         'semester' => $semester_filter,
         'stage' => $status_filter,
         'risk' => $risk_filter,
+        'account' => $account_filter,
         'queued' => 1,
     ], static function ($value) {
         return $value !== '' && $value !== null;
@@ -614,6 +650,29 @@ if ($semester_filter !== '') {
 if ($school_year_filter !== '') {
     $print_section_label .= ' / ' . $school_year_filter;
 }
+$print_filter_parts = [];
+if ($course_filter !== '') {
+    $print_filter_parts[] = 'Course: ' . $course_filter;
+}
+if ($section_filter !== '') {
+    $print_filter_parts[] = 'Section: ' . $section_filter;
+}
+if ($school_year_filter !== '') {
+    $print_filter_parts[] = 'SY: ' . $school_year_filter;
+}
+if ($semester_filter !== '') {
+    $print_filter_parts[] = $semester_filter;
+}
+if ($status_filter !== '') {
+    $print_filter_parts[] = 'Stage: ' . $status_filter;
+}
+if ($risk_filter !== 'all') {
+    $print_filter_parts[] = 'Risk: ' . ($risk_filter === 'at_risk' ? 'At Risk' : 'Clean');
+}
+if ($account_filter !== 'all') {
+    $print_filter_parts[] = 'Account: ' . ($account_filter === 'without_account' ? 'Without Account' : 'With Account');
+}
+$print_filter_label = $print_filter_parts !== [] ? implode(' / ', $print_filter_parts) : 'Current filtered OJT list';
 
 $page_title = 'BioTern || OJT Dashboard';
 $page_body_class = 'app-page-ojt-dashboard mobile-bottom-nav';
@@ -640,7 +699,7 @@ include 'includes/header.php';
         <div class="tel app-ojt-print-tel">Telefax No.: (045) 624-0215</div>
     </div>
     <div class="print-title app-ojt-print-title">OJT STUDENT LIST</div>
-    <div class="print-meta app-ojt-print-meta-row"><strong>SECTION:</strong> <?php echo htmlspecialchars($print_section_label); ?></div>
+    <div class="print-meta app-ojt-print-meta-row"><strong>FILTER:</strong> <?php echo htmlspecialchars($print_filter_label); ?></div>
     <table>
         <thead>
             <tr>
@@ -736,7 +795,7 @@ include 'includes/header.php';
                                 <i class="feather-download"></i>
                                 <span>Export CSV</span>
                             </a>
-                            <button type="button" class="action-tile" id="ojtPrintBtn">
+                            <button type="button" class="action-tile" id="ojtPrintBtn" data-ojt-print-full="ojtListTable">
                                 <i class="feather-printer"></i>
                                 <span>Print List</span>
                             </button>
@@ -828,6 +887,14 @@ include 'includes/header.php';
                             <option value="clean" <?php echo ($risk_filter === 'clean') ? 'selected' : ''; ?>>Clean</option>
                         </select>
                     </div>
+                    <div class="col-xl-2 col-lg-4 col-md-6">
+                        <label class="form-label" for="ojtFilterAccount">Account</label>
+                        <select name="account" id="ojtFilterAccount" class="form-control" data-ui-select="custom">
+                            <option value="all" <?php echo ($account_filter === 'all') ? 'selected' : ''; ?>>All Accounts</option>
+                            <option value="with_account" <?php echo ($account_filter === 'with_account') ? 'selected' : ''; ?>>With Account</option>
+                            <option value="without_account" <?php echo ($account_filter === 'without_account') ? 'selected' : ''; ?>>Without Account</option>
+                        </select>
+                    </div>
                 </form>
             </div>
             </div>
@@ -836,7 +903,7 @@ include 'includes/header.php';
         <div class="card app-ojt-dashboard-card stretch stretch-full app-ojt-table-card app-data-card app-data-toolbar" id="ojtWorklist">
             <div class="card-body p-0">
                 <div class="table-responsive students-table-wrap app-ojt-table-wrap app-data-table-wrap">
-                    <table class="table table-hover mb-0 app-ojt-list-table app-data-table" id="ojtListTable" data-ojt-select-table data-print-title="OJT Student List" data-print-subtitle="<?php echo htmlspecialchars(trim($print_section_label !== 'ALL' ? 'Section: ' . $print_section_label : 'Current filtered OJT list'), ENT_QUOTES, 'UTF-8'); ?>">
+                    <table class="table table-hover mb-0 app-ojt-list-table app-data-table" id="ojtListTable" data-ojt-select-table data-print-title="OJT Student List" data-print-subtitle="<?php echo htmlspecialchars($print_filter_label, ENT_QUOTES, 'UTF-8'); ?>">
                         <thead>
                         <tr>
                             <th class="app-ojt-select-column">
@@ -1110,7 +1177,7 @@ include 'includes/header.php';
         <div class="tel">Telefax No.: (045) 624-0215</div>
     </div>
     <div class="print-title" data-ojt-print-title>OJT STUDENT LIST</div>
-    <p class="print-meta" data-ojt-print-subtitle><?php echo htmlspecialchars(trim($print_section_label !== 'ALL' ? 'Section: ' . $print_section_label : 'Current filtered OJT list'), ENT_QUOTES, 'UTF-8'); ?></p>
+    <p class="print-meta" data-ojt-print-subtitle><?php echo htmlspecialchars($print_filter_label, ENT_QUOTES, 'UTF-8'); ?></p>
     <table>
         <thead>
             <tr></tr>

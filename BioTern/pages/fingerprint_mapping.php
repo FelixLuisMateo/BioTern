@@ -74,6 +74,10 @@ if (!in_array($detectedStatus, ['all', 'mapped', 'unmapped'], true)) {
 $detectedQuery = trim((string)($_GET['detected_query'] ?? ''));
 $unmappedQuery = trim((string)($_GET['unmapped_query'] ?? ''));
 $unmappedAdminOnly = (int)($_GET['unmapped_admin_only'] ?? 0) === 1;
+$printMode = strtolower(trim((string)($_GET['print'] ?? '')));
+if (!in_array($printMode, ['mapped', 'unmapped_students'], true)) {
+    $printMode = '';
+}
 $authorizedRoles = ['admin', 'coordinator', 'supervisor'];
 
 if (isset($_SESSION['fingerprint_mapping_flash']) && is_array($_SESSION['fingerprint_mapping_flash'])) {
@@ -264,6 +268,46 @@ foreach ($mappings as $row) {
 }
 
 $filteredStudentMappings = array_values(array_filter($studentMappings, static function (array $row) use ($filterCourseId, $filterSectionId): bool {
+    if ($filterCourseId > 0 && (int)($row['course_id'] ?? 0) !== $filterCourseId) {
+        return false;
+    }
+
+    if ($filterSectionId > 0 && (int)($row['section_id'] ?? 0) !== $filterSectionId) {
+        return false;
+    }
+
+    return true;
+}));
+
+$unmappedStudents = [];
+$unmappedStudentSql = "
+    SELECT
+        s.id AS student_row_id,
+        s.student_id AS student_number,
+        s.created_at,
+        s.course_id,
+        s.section_id,
+        c.name AS course_name,
+        sec.code AS section_code,
+        sec.name AS section_name,
+        TRIM(CONCAT(COALESCE(s.last_name, ''), ', ', COALESCE(s.first_name, ''), ' ', COALESCE(s.middle_name, ''))) AS student_name
+    FROM students s
+    LEFT JOIN fingerprint_user_map m ON m.user_id = s.user_id
+    LEFT JOIN courses c ON c.id = s.course_id
+    LEFT JOIN sections sec ON sec.id = s.section_id
+    WHERE COALESCE(s.user_id, 0) > 0
+      AND m.user_id IS NULL
+    ORDER BY s.last_name ASC, s.first_name ASC
+";
+$unmappedStudentRes = $conn->query($unmappedStudentSql);
+if ($unmappedStudentRes instanceof mysqli_result) {
+    while ($row = $unmappedStudentRes->fetch_assoc()) {
+        $row['section_label'] = biotern_format_section_label((string)($row['section_code'] ?? ''), (string)($row['section_name'] ?? ''));
+        $unmappedStudents[] = $row;
+    }
+    $unmappedStudentRes->close();
+}
+$filteredUnmappedStudents = array_values(array_filter($unmappedStudents, static function (array $row) use ($filterCourseId, $filterSectionId): bool {
     if ($filterCourseId > 0 && (int)($row['course_id'] ?? 0) !== $filterCourseId) {
         return false;
     }
@@ -549,6 +593,106 @@ $filteredDetectedFingerprints = array_values(array_filter($detectedFingerprints,
     return str_contains($haystack, strtolower($detectedQuery));
 }));
 
+$courseFilterLabel = '';
+foreach ($courses as $course) {
+    if ((int)($course['id'] ?? 0) === $filterCourseId) {
+        $courseFilterLabel = (string)($course['name'] ?? '');
+        break;
+    }
+}
+$sectionFilterLabel = '';
+foreach ($sections as $section) {
+    if ((int)($section['id'] ?? 0) === $filterSectionId) {
+        $sectionFilterLabel = (string)($section['section_label'] ?? '');
+        break;
+    }
+}
+$fingerprintFilterParts = [];
+if ($courseFilterLabel !== '') {
+    $fingerprintFilterParts[] = 'Course: ' . $courseFilterLabel;
+}
+if ($sectionFilterLabel !== '') {
+    $fingerprintFilterParts[] = 'Section: ' . $sectionFilterLabel;
+}
+$fingerprintPrintFilterLabel = $fingerprintFilterParts !== [] ? implode(' / ', $fingerprintFilterParts) : 'All students';
+
+if ($printMode !== '') {
+    $printRows = $printMode === 'mapped' ? $filteredStudentMappings : $filteredUnmappedStudents;
+    $printTitle = $printMode === 'mapped' ? 'Mapped Fingerprint Students' : 'Students Without Fingerprint Mapping';
+    ob_end_clean();
+    ?>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title><?php echo htmlspecialchars($printTitle, ENT_QUOTES, 'UTF-8'); ?></title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #111827; margin: 18px; }
+        .toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 14px; }
+        .toolbar button { border: 0; border-radius: 6px; padding: 9px 14px; font-weight: 700; cursor: pointer; }
+        .toolbar .primary { background: #0ea5e9; color: #fff; }
+        .toolbar .light { background: #eef2f7; color: #172033; }
+        .print-head { display: grid; grid-template-columns: 74px 1fr 74px; align-items: center; border-bottom: 1.5px solid #2f6fca; padding-bottom: 8px; margin-bottom: 12px; color: #0b4aa2; }
+        .print-head img { width: 62px; height: 62px; object-fit: contain; justify-self: center; }
+        .print-head-copy { text-align: center; }
+        .print-head h2 { margin: 0 0 3px; font-size: 17px; color: #0b4aa2; }
+        .print-head div { font-size: 11px; color: #0b4aa2; line-height: 1.25; }
+        .print-title { text-align: center; font-size: 15px; font-weight: 700; margin: 12px 0 8px; }
+        .print-meta { font-size: 12px; margin-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11px; }
+        th, td { border: 1px solid #1f2937; padding: 5px 6px; vertical-align: top; word-break: break-word; }
+        th { background: #f3f4f6; }
+        .col-index { width: 34px; text-align: center; }
+        @media print { body { margin: 10mm; } .toolbar { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="toolbar"><button class="light" type="button" onclick="window.close()">Close</button><button class="primary" type="button" onclick="window.print()">Print</button></div>
+    <div class="print-head">
+        <img src="assets/images/ccstlogo.png" alt="CCST">
+        <div class="print-head-copy">
+            <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+            <div>SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
+            <div>Telefax No.: (045) 624-0215</div>
+        </div>
+        <div aria-hidden="true"></div>
+    </div>
+    <div class="print-title"><?php echo htmlspecialchars(strtoupper($printTitle), ENT_QUOTES, 'UTF-8'); ?></div>
+    <div class="print-meta"><strong>FILTER:</strong> <?php echo htmlspecialchars($fingerprintPrintFilterLabel, ENT_QUOTES, 'UTF-8'); ?></div>
+    <table>
+        <thead>
+            <tr>
+                <th class="col-index">#</th>
+                <th>Finger ID</th>
+                <th>Student No.</th>
+                <th>Name</th>
+                <th>Course / Section</th>
+                <th>Date Registered</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if ($printRows === []): ?>
+                <tr><td class="col-index">1</td><td colspan="5">No students matched the current filters.</td></tr>
+            <?php else: ?>
+                <?php foreach ($printRows as $index => $row): ?>
+                    <tr>
+                        <td class="col-index"><?php echo (int)$index + 1; ?></td>
+                        <td><?php echo $printMode === 'mapped' ? (int)($row['finger_id'] ?? 0) : 'Not mapped'; ?></td>
+                        <td><?php echo htmlspecialchars((string)($row['student_number'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td><?php echo htmlspecialchars(trim((string)($row['student_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td><?php echo htmlspecialchars(trim((string)($row['course_name'] ?? '-') . ' / ' . (string)($row['section_label'] ?? '-')), ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td><?php echo htmlspecialchars((string)($row[$printMode === 'mapped' ? 'created_at' : 'created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</body>
+</html>
+    <?php
+    exit;
+}
+
 $page_title = 'Fingerprint Mapping';
 $page_body_class = 'page-fingerprint-mapping';
 $page_styles = [
@@ -743,6 +887,18 @@ ob_end_flush();
                         <a href="fingerprint_mapping.php" class="btn btn-light">Clear</a>
                     </div>
                 </form>
+                <?php $fingerprintPrintQuery = http_build_query(array_filter([
+                    'filter_course_id' => $filterCourseId > 0 ? (string)$filterCourseId : '',
+                    'filter_section_id' => $filterSectionId > 0 ? (string)$filterSectionId : '',
+                ], static fn($value): bool => $value !== '')); ?>
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                    <a href="fingerprint_mapping.php?print=mapped<?php echo $fingerprintPrintQuery !== '' ? '&' . htmlspecialchars($fingerprintPrintQuery, ENT_QUOTES, 'UTF-8') : ''; ?>" target="_blank" class="btn btn-sm btn-outline-primary">
+                        <i class="feather-printer me-1"></i> Print Mapped Students
+                    </a>
+                    <a href="fingerprint_mapping.php?print=unmapped_students<?php echo $fingerprintPrintQuery !== '' ? '&' . htmlspecialchars($fingerprintPrintQuery, ENT_QUOTES, 'UTF-8') : ''; ?>" target="_blank" class="btn btn-sm btn-outline-secondary">
+                        <i class="feather-printer me-1"></i> Print Not Mapped Students
+                    </a>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">

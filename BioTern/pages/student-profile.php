@@ -27,6 +27,35 @@ function student_profile_format_date(?string $value, string $fallback = 'Not yet
     return $timestamp !== false ? date('M d, Y', $timestamp) : $fallback;
 }
 
+function student_profile_table_exists(mysqli $conn, string $table): bool
+{
+    $escaped = $conn->real_escape_string($table);
+    $res = $conn->query("SHOW TABLES LIKE '{$escaped}'");
+    $exists = ($res instanceof mysqli_result) && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+    return $exists;
+}
+
+function student_profile_column_exists(mysqli $conn, string $table, string $column): bool
+{
+    static $cache = [];
+    $key = $table . '.' . $column;
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+
+    $safeTable = str_replace('`', '``', $table);
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    $cache[$key] = ($res instanceof mysqli_result) && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+    return $cache[$key];
+}
+
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentRole = strtolower(trim((string)($_SESSION['role'] ?? '')));
 if ($currentRole !== 'student' || $currentUserId <= 0) {
@@ -38,6 +67,7 @@ $user = null;
 $student = null;
 $internship = null;
 $companyProfile = null;
+$studentEvaluation = null;
 $recentAttendance = [];
 $lastLoginAt = '';
 $lastBiometricClockIn = '';
@@ -251,6 +281,25 @@ if ($student) {
         $externalProfileStats = $externalSummaryStmt->get_result()->fetch_assoc() ?: $externalProfileStats;
         $externalSummaryStmt->close();
     }
+
+    if (student_profile_table_exists($conn, 'evaluations')) {
+        $deletedFilter = student_profile_column_exists($conn, 'evaluations', 'deleted_at')
+            ? ' AND deleted_at IS NULL'
+            : '';
+        $evaluationStmt = $conn->prepare("
+            SELECT evaluator_name, evaluation_date, score, feedback
+            FROM evaluations
+            WHERE student_id = ? {$deletedFilter}
+            ORDER BY evaluation_date DESC, id DESC
+            LIMIT 1
+        ");
+        if ($evaluationStmt) {
+            $evaluationStmt->bind_param('i', $studentId);
+            $evaluationStmt->execute();
+            $studentEvaluation = $evaluationStmt->get_result()->fetch_assoc() ?: null;
+            $evaluationStmt->close();
+        }
+    }
 }
 
 $lastLoginStmt = $conn->prepare('SELECT created_at FROM login_logs WHERE user_id = ? AND status = ? ORDER BY created_at DESC LIMIT 1');
@@ -334,6 +383,13 @@ $studentStatusDisplay = match (strtolower($studentStatusRaw)) {
 $joinedDate = student_profile_format_date((string)($user['created_at'] ?? ''));
 $lastLoginText = student_profile_format_date($lastLoginAt, 'No login record yet');
 $lastBiometricClockInText = student_profile_format_date($lastBiometricClockIn, 'No biometric clock-in yet');
+$evaluationScore = $studentEvaluation ? (int)($studentEvaluation['score'] ?? 0) : null;
+$evaluationDateText = $studentEvaluation
+    ? student_profile_format_date((string)($studentEvaluation['evaluation_date'] ?? ''), 'No date saved')
+    : 'Not rated yet';
+$evaluationEvaluator = $studentEvaluation
+    ? student_profile_value((string)($studentEvaluation['evaluator_name'] ?? ''), 'Supervisor')
+    : 'Waiting for supervisor';
 $completionChecks = [
     $studentNumber !== '',
     $courseName !== '',
@@ -538,6 +594,18 @@ include 'includes/header.php';
                             <span class="student-metric-label">Remaining Internal Hours</span>
                             <h3><?php echo number_format($internalRemainingHours, 1); ?></h3>
                             <p>Internal hours still needed before completion.</p>
+                        </div>
+                    </article>
+                    <article class="card student-metric-card student-profile-evaluation-card">
+                        <div class="card-body">
+                            <span class="student-metric-label">Evaluation Score</span>
+                            <?php if ($evaluationScore !== null): ?>
+                                <h3><?php echo (int)$evaluationScore; ?>%</h3>
+                                <p>Rated by <?php echo htmlspecialchars($evaluationEvaluator, ENT_QUOTES, 'UTF-8'); ?> on <?php echo htmlspecialchars($evaluationDateText, ENT_QUOTES, 'UTF-8'); ?>.</p>
+                            <?php else: ?>
+                                <h3>Pending</h3>
+                                <p>Your supervisor has not submitted the final evaluation yet.</p>
+                            <?php endif; ?>
                         </div>
                     </article>
                     <?php if ($studentHasExternalAccess): ?>

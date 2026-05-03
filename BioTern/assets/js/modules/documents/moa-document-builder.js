@@ -236,12 +236,14 @@
         }
 
         var directChildren = Array.prototype.slice.call(editor.children || []);
-        var stack = null;
+        var stack = editor.classList && editor.classList.contains('a4-pages-stack') ? editor : null;
 
-        for (var i = 0; i < directChildren.length; i += 1) {
-            if (directChildren[i].classList && directChildren[i].classList.contains('a4-pages-stack')) {
-                stack = directChildren[i];
-                break;
+        if (!stack) {
+            for (var i = 0; i < directChildren.length; i += 1) {
+                if (directChildren[i].classList && directChildren[i].classList.contains('a4-pages-stack')) {
+                    stack = directChildren[i];
+                    break;
+                }
             }
         }
 
@@ -252,6 +254,18 @@
                 stack.appendChild(editor.firstChild);
             }
             editor.appendChild(stack);
+        }
+
+        if (stack === editor) {
+            Array.prototype.slice.call(stack.children || []).forEach(function (child) {
+                if (!child || !child.classList || !child.classList.contains('a4-pages-stack')) {
+                    return;
+                }
+                while (child.firstChild) {
+                    stack.insertBefore(child.firstChild, child);
+                }
+                stack.removeChild(child);
+            });
         }
 
         var stackChildren = Array.prototype.slice.call(stack.children || []);
@@ -566,10 +580,11 @@
             return;
         }
 
-        var printWindow = window.open('', '_blank');
-        if (!printWindow) {
-            window.print();
-            return;
+        var pagesHtml = Array.prototype.slice.call(editor.querySelectorAll('.a4-page')).map(function (page) {
+            return page.outerHTML;
+        }).join('');
+        if (!pagesHtml) {
+            pagesHtml = editor.innerHTML;
         }
 
         var styles = '';
@@ -578,39 +593,80 @@
         });
 
         var printCss = [
-            'html,body{background:#fff!important;margin:0!important;padding:0!important;}',
-            '@page{size:A4;margin:0;}',
+            'html,body{background:#fff!important;margin:0!important;padding:0!important;width:210mm!important;min-height:297mm!important;}',
+            '@page{size:A4 portrait;margin:0;}',
             '.no-print,.page-header,.nxl-navigation,.nxl-header{display:none!important;}',
-            '#moa_content{display:block!important;margin:0!important;padding:0!important;background:#fff!important;width:100%!important;}',
-            '#moa_content.a4-pages-stack{display:block!important;gap:0!important;}',
-            '#moa_content .a4-page{width:210mm!important;min-height:297mm!important;height:297mm!important;box-sizing:border-box!important;margin:0!important;padding:0.24in 0.58in 0.18in!important;background:#fff!important;box-shadow:none!important;page-break-after:always!important;break-after:page!important;overflow:hidden!important;}',
-            '#moa_content .a4-page:first-child{padding:0.16in 0.50in 0.10in!important;}',
+            '#moa_content{display:block!important;margin:0!important;padding:0!important;background:#fff!important;width:210mm!important;max-width:210mm!important;}',
+            '#moa_content.a4-pages-stack{display:block!important;gap:0!important;width:210mm!important;max-width:210mm!important;}',
+            '#moa_content .a4-page{width:210mm!important;min-height:297mm!important;height:297mm!important;box-sizing:border-box!important;margin:0!important;padding:0.28in 0.42in 0.24in!important;background:#fff!important;box-shadow:none!important;page-break-after:always!important;break-after:page!important;overflow:hidden!important;}',
+            '#moa_content .a4-page:first-child{padding:0.20in 0.38in 0.16in!important;}',
             '#moa_content .a4-page:last-child{page-break-after:auto!important;break-after:auto!important;}',
             '#moa_content,#moa_content *{font-family:"Arial Narrow",Arial,sans-serif!important;color:#000!important;}',
-            '#moa_content{font-size:9.2pt!important;}',
-            '#moa_content h5{font-size:11.2pt!important;margin:2px 0 4px!important;}',
-            '#moa_content p,#moa_content li{font-size:9.2pt!important;line-height:1.05!important;margin-top:1px!important;margin-bottom:2px!important;}',
-            '#moa_content .a4-page:first-child p,#moa_content .a4-page:first-child li{font-size:8.75pt!important;line-height:1.01!important;margin-top:0!important;margin-bottom:1px!important;}',
-            '#moa_content ol{margin-top:2px!important;margin-bottom:2px!important;padding-left:0.20in!important;}',
-            '#moa_content li{margin-bottom:0!important;}',
-            '#moa_content .mt-12{margin-top:8px!important;}',
-            '#moa_content .mt-16{margin-top:10px!important;}',
-            '#moa_content .mt-24{margin-top:14px!important;}',
-            '#moa_content .mt-40{margin-top:24px!important;}'
+            '#moa_content{font-size:11.15pt!important;}',
+            '#moa_content h5{font-size:12.0pt!important;margin:3px 0 7px!important;}',
+            '#moa_content p,#moa_content li{font-size:11.15pt!important;line-height:1.26!important;margin-top:3px!important;margin-bottom:6px!important;}',
+            '#moa_content .a4-page:first-child p,#moa_content .a4-page:first-child li{font-size:11.15pt!important;line-height:1.26!important;margin-top:3px!important;margin-bottom:6px!important;}',
+            '#moa_content .a4-page:first-child ol{margin-top:8px!important;margin-bottom:8px!important;padding-left:0.27in!important;}',
+            '#moa_content ol{margin-top:3px!important;margin-bottom:4px!important;padding-left:0.23in!important;}',
+            '#moa_content li{margin-bottom:1px!important;}',
+            '#moa_content .mt-12{margin-top:10px!important;}',
+            '#moa_content .mt-16{margin-top:12px!important;}',
+            '#moa_content .mt-24{margin-top:18px!important;}',
+            '#moa_content .mt-40{margin-top:34px!important;}'
         ].join('');
 
-        printWindow.document.open();
-        printWindow.document.write(
+        var printHtml =
             '<!doctype html><html><head><meta charset="utf-8">' +
             '<title>' + (isDau ? 'DAU Memorandum of Agreement' : 'Memorandum of Agreement') + '</title>' +
             '<base href="' + document.baseURI.replace(/"/g, '&quot;') + '">' +
             styles +
             '<style>' + printCss + '</style>' +
-            '</head><body class="application-builder-page moa-builder-page"><div id="moa_content" class="a4-pages-stack">' + editor.innerHTML + '</div>' +
-            '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});<\/script>' +
-            '</body></html>'
-        );
-        printWindow.document.close();
+            '</head><body class="application-builder-page moa-builder-page"><div id="moa_content" class="a4-pages-stack">' + pagesHtml + '</div>' +
+            '</body></html>';
+
+        var printFrame = document.createElement('iframe');
+        printFrame.setAttribute('aria-hidden', 'true');
+        printFrame.style.position = 'fixed';
+        printFrame.style.right = '0';
+        printFrame.style.bottom = '0';
+        printFrame.style.width = '0';
+        printFrame.style.height = '0';
+        printFrame.style.border = '0';
+        printFrame.style.opacity = '0';
+
+        var cleanupFrame = function () {
+            setTimeout(function () {
+                if (printFrame && printFrame.parentNode) {
+                    printFrame.parentNode.removeChild(printFrame);
+                }
+            }, 1000);
+        };
+
+        printFrame.onload = function () {
+            setTimeout(function () {
+                var frameWindow = printFrame.contentWindow;
+                if (!frameWindow) {
+                    window.print();
+                    cleanupFrame();
+                    return;
+                }
+                frameWindow.focus();
+                frameWindow.onafterprint = cleanupFrame;
+                frameWindow.print();
+                setTimeout(cleanupFrame, 2000);
+            }, 250);
+        };
+
+        document.body.appendChild(printFrame);
+        var frameDoc = printFrame.contentDocument || (printFrame.contentWindow && printFrame.contentWindow.document);
+        if (!frameDoc) {
+            window.print();
+            cleanupFrame();
+            return;
+        }
+        frameDoc.open();
+        frameDoc.write(printHtml);
+        frameDoc.close();
     }
 
     function initPrintButtons() {
@@ -630,6 +686,42 @@
                 printCurrent();
             });
         }
+    }
+
+    function initNativePrintCleanup() {
+        var nativePrintContainer = null;
+
+        function cleanupNativePrintClone() {
+            document.body.classList.remove('native-moa-printing');
+            if (nativePrintContainer && nativePrintContainer.parentNode) {
+                nativePrintContainer.parentNode.removeChild(nativePrintContainer);
+            }
+            nativePrintContainer = null;
+        }
+
+        window.addEventListener('beforeprint', function () {
+            ensureA4TemplateStructure();
+            updatePreview();
+
+            cleanupNativePrintClone();
+            var pagesHtml = Array.prototype.slice.call(editor.querySelectorAll('.a4-page')).map(function (page) {
+                return page.outerHTML;
+            }).join('');
+            if (!pagesHtml) {
+                return;
+            }
+
+            nativePrintContainer = document.createElement('div');
+            nativePrintContainer.id = 'native_moa_print_content';
+            nativePrintContainer.className = 'a4-pages-stack';
+            nativePrintContainer.innerHTML = pagesHtml;
+            document.body.appendChild(nativePrintContainer);
+            document.body.classList.add('native-moa-printing');
+        });
+
+        window.addEventListener('afterprint', function () {
+            cleanupNativePrintClone();
+        });
     }
 
     function bindFieldInputs() {
@@ -658,9 +750,11 @@
         bindFieldInputs();
         initEditToggle();
         initPrintButtons();
+        initNativePrintCleanup();
         setEditMode(false);
 
         clearFormFields();
+        ensureA4TemplateStructure();
         updatePreview();
         captureDraftBaseline();
 
@@ -681,8 +775,10 @@
         bindFieldInputs();
         initEditToggle();
         initPrintButtons();
+        initNativePrintCleanup();
         setEditMode(false);
         clearFormFields();
+        ensureA4TemplateStructure();
         updatePreview();
         captureDraftBaseline();
         if (prefillCompanyKey) {

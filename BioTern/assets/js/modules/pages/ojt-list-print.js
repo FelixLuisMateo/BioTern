@@ -134,18 +134,39 @@
         }
     }
 
-    function printSheetNow(printSheet, selectedMode) {
-        if (selectedMode) {
-            document.body.classList.add('app-ojt-print-selected-mode');
-            window.addEventListener('afterprint', function cleanupSelectedPrintMode() {
-                document.body.classList.remove('app-ojt-print-selected-mode');
-                window.removeEventListener('afterprint', cleanupSelectedPrintMode);
-            });
+    function openPrintPreview(printSheet) {
+        var preview = window.open('', '_blank');
+        if (!preview) {
+            alert('Allow pop-ups so the print preview can open in a new tab.');
+            return;
         }
 
-        window.setTimeout(function () {
-            window.print();
-        }, 50);
+        var styles = Array.prototype.slice.call(document.querySelectorAll('link[rel="stylesheet"], style')).map(function (node) {
+            return node.outerHTML;
+        }).join('\n');
+        var sheetHtml = printSheet.outerHTML.replace('aria-hidden="true"', 'aria-hidden="false"');
+
+        preview.document.open();
+        preview.document.write(
+            '<!doctype html><html><head><meta charset="utf-8">' +
+            '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+            '<title>Print Preview</title>' +
+            styles +
+            '<style>' +
+            'body{background:#fff;margin:0;padding:24px;color:#111;font-family:Arial,sans-serif;}' +
+            '.print-preview-toolbar{position:sticky;top:0;z-index:10;display:flex;justify-content:flex-end;gap:8px;padding:10px 0 18px;background:#fff;}' +
+            '.print-preview-toolbar button{border:0;border-radius:6px;padding:9px 14px;font-weight:700;cursor:pointer;}' +
+            '.print-preview-toolbar .primary{background:#0ea5e9;color:#fff;}' +
+            '.print-preview-toolbar .light{background:#eef2f7;color:#172033;}' +
+            '.student-list-print-sheet,.ojt-print-sheet{display:block!important;position:static!important;visibility:visible!important;}' +
+            '@media print{body{padding:0}.print-preview-toolbar{display:none!important}}' +
+            '</style></head><body>' +
+            '<div class="print-preview-toolbar"><button class="light" type="button" onclick="window.close()">Close</button><button class="primary" type="button" onclick="window.print()">Print</button></div>' +
+            sheetHtml +
+            '</body></html>'
+        );
+        preview.document.close();
+        preview.focus();
     }
 
     function initTable(table) {
@@ -174,7 +195,7 @@
 
                 var printRows = buildPrintRows(table, selectedRows, 'No selected rows.');
                 fillPrintSheet(table, printSheet, printRows);
-                printSheetNow(printSheet, true);
+                openPrintPreview(printSheet);
             });
         });
 
@@ -206,7 +227,7 @@
                 var allRows = getPrintableRows(table, false);
                 var printRows = buildPrintRows(table, allRows, 'No rows found.');
                 fillPrintSheet(table, printSheet, printRows);
-                printSheetNow(printSheet, false);
+                openPrintPreview(printSheet);
             });
         });
     }

@@ -12,7 +12,7 @@ require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 $current_user_id = (int)($_SESSION['user_id'] ?? 0);
 $current_user_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
-$can_manage_eval_unlock = in_array($current_user_role, ['admin', 'coordinator'], true);
+$can_manage_eval_unlock = in_array($current_user_role, ['admin', 'coordinator', 'supervisor'], true);
 $eval_flash_message = '';
 $eval_flash_type = 'success';
 
@@ -33,6 +33,25 @@ function student_view_table_exists(mysqli $conn, string $table): bool
         $res->close();
     }
     return $exists;
+}
+
+function student_view_column_exists(mysqli $conn, string $table, string $column): bool
+{
+    static $cache = [];
+    $key = $table . '.' . $column;
+    if (array_key_exists($key, $cache)) {
+        return $cache[$key];
+    }
+
+    $safeTable = str_replace('`', '``', $table);
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    $cache[$key] = ($res instanceof mysqli_result) && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+
+    return $cache[$key];
 }
 
 // Get student ID from URL parameter
@@ -564,6 +583,147 @@ if ($completion_percentage > 100) {
 $evaluation_gate_state = evaluate_and_finalize_student($conn, $student_id, 0);
 $evaluation_unlock_state = get_evaluation_unlock_state($conn, $student_id);
 $is_evaluation_unlocked = (bool)($evaluation_unlock_state['is_unlocked'] ?? false);
+$student_eval_name = trim(implode(' ', array_filter([
+    (string)($student['first_name'] ?? ''),
+    (string)($student['middle_name'] ?? ''),
+    (string)($student['last_name'] ?? ''),
+])));
+$student_eval_appraiser = trim((string)($student_latest_internship['supervisor_name'] ?? ''));
+if ($student_eval_appraiser === '') {
+    $student_eval_appraiser = trim((string)($student['supervisor_name'] ?? ''));
+}
+$student_eval_company = trim((string)($student_latest_internship['company_name'] ?? ''));
+$student_eval_period_start = trim((string)($student_latest_internship['start_date'] ?? $student['internal_start_date'] ?? ''));
+$student_eval_period_end = trim((string)($student_latest_internship['end_date'] ?? ''));
+$student_eval_period = '';
+if ($student_eval_period_start !== '' || $student_eval_period_end !== '') {
+    $student_eval_period = trim(($student_eval_period_start !== '' ? date('M d, Y', strtotime($student_eval_period_start)) : '') . ' - ' . ($student_eval_period_end !== '' ? date('M d, Y', strtotime($student_eval_period_end)) : date('M d, Y')));
+}
+$student_internal_eval_factors = [
+    'Ability and Application' => [
+        ['Work Performance', 10],
+        ['Knowledge of Work (able to grasp assignment)', 10],
+        ['Quantity of Work (can cope with work demand with condition unexpected work load in a limited time)', 10],
+        ['Quality of Work (performs as assigned job effectively as possible)', 10],
+        ['Attendance (follows assigned work schedule)', 10],
+        ['Punctuality (reports to work assignment time)', 10],
+    ],
+    'Personality Traits' => [
+        ['Physical Appearance (personally well-groomed and always wears appropriate dress)', 5],
+        ['Attitude Towards Work (always shows enthusiasm and interest)', 5],
+        ['Courtesy (observes rule and regulation of establishment)', 5],
+        ['Perseverance and Industriousness (shows work over and above what is assigned)', 5],
+        ['Drive and Leadership (inquisitive and aggressive)', 5],
+        ['Mental Maturity (effective and calm under pressure)', 5],
+        ['Sociability (can work harmoniously with other employees)', 5],
+        ['Reliability (trusted to be left alone to use or possess office equipment)', 5],
+        ['Possession of Traits Necessary for Employment in This Kind of Work', 5],
+    ],
+];
+$student_latest_evaluation = null;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_internal_eval_action'])) {
+    if (!$is_evaluation_unlocked) {
+        $eval_flash_type = 'danger';
+        $eval_flash_message = 'Evaluation is still locked. Unlock it before saving a rating.';
+    } elseif (!in_array($current_user_role, ['admin', 'coordinator', 'supervisor'], true)) {
+        $eval_flash_type = 'danger';
+        $eval_flash_message = 'You do not have permission to submit this evaluation.';
+    } else {
+        $posted_ratings = isset($_POST['student_internal_eval_ratings']) && is_array($_POST['student_internal_eval_ratings'])
+            ? $_POST['student_internal_eval_ratings']
+            : [];
+        $rating_lines = [];
+        $rating_total = 0;
+        $factor_number = 0;
+        foreach ($student_internal_eval_factors as $factors) {
+            foreach ($factors as $factor) {
+                $factor_number++;
+                $factor_label = (string)($factor[0] ?? '');
+                $factor_max = (int)($factor[1] ?? 0);
+                $value = isset($posted_ratings[$factor_number]) ? (int)$posted_ratings[$factor_number] : 0;
+                $value = max(0, min($factor_max, $value));
+                $rating_total += $value;
+                $rating_lines[] = $factor_number . '. ' . $factor_label . ': ' . $value . '% / ' . $factor_max . '%';
+            }
+        }
+        $rating_total = max(0, min(100, $rating_total));
+
+        $appraiser_name = trim((string)($_POST['student_internal_eval_appraiser'] ?? ''));
+        if ($appraiser_name === '') {
+            $appraiser_name = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'Supervisor'));
+        }
+        $recommendation = trim((string)($_POST['student_internal_eval_recommendation'] ?? ''));
+        $period = trim((string)($_POST['student_internal_eval_period'] ?? ''));
+        $company = trim((string)($_POST['student_internal_eval_company'] ?? ''));
+
+        $feedback_parts = [];
+        if ($period !== '') {
+            $feedback_parts[] = 'Period of Appraisal: ' . $period;
+        }
+        if ($company !== '') {
+            $feedback_parts[] = 'Company: ' . $company;
+        }
+        if ($recommendation !== '') {
+            $feedback_parts[] = 'Recommendation: ' . $recommendation;
+        }
+        $feedback_parts[] = 'Rating Breakdown:' . PHP_EOL . implode(PHP_EOL, $rating_lines);
+        $feedback = implode(PHP_EOL . PHP_EOL, $feedback_parts);
+
+        if (!student_view_table_exists($conn, 'evaluations')) {
+            $conn->query("
+                CREATE TABLE IF NOT EXISTS evaluations (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    student_id INT NOT NULL,
+                    evaluator_name VARCHAR(255) NOT NULL,
+                    evaluation_date DATE NOT NULL,
+                    score INT NOT NULL DEFAULT 0,
+                    feedback TEXT NULL,
+                    created_at DATETIME NULL,
+                    updated_at DATETIME NULL
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
+        }
+
+        $stmt_insert_eval = $conn->prepare("
+            INSERT INTO evaluations (student_id, evaluator_name, evaluation_date, score, feedback, created_at, updated_at)
+            VALUES (?, ?, CURDATE(), ?, ?, NOW(), NOW())
+        ");
+        if ($stmt_insert_eval) {
+            $stmt_insert_eval->bind_param('isis', $student_id, $appraiser_name, $rating_total, $feedback);
+            if ($stmt_insert_eval->execute()) {
+                $eval_flash_type = 'success';
+                $eval_flash_message = 'Evaluation saved. Student can now view the score.';
+            } else {
+                $eval_flash_type = 'danger';
+                $eval_flash_message = 'Unable to save evaluation.';
+            }
+            $stmt_insert_eval->close();
+        } else {
+            $eval_flash_type = 'danger';
+            $eval_flash_message = 'Unable to prepare evaluation save.';
+        }
+    }
+}
+
+if (student_view_table_exists($conn, 'evaluations')) {
+    $evaluation_deleted_filter = student_view_column_exists($conn, 'evaluations', 'deleted_at')
+        ? ' AND deleted_at IS NULL'
+        : '';
+    $stmt_latest_eval = $conn->prepare("
+        SELECT *
+        FROM evaluations
+        WHERE student_id = ? {$evaluation_deleted_filter}
+        ORDER BY evaluation_date DESC, id DESC
+        LIMIT 1
+    ");
+    if ($stmt_latest_eval) {
+        $stmt_latest_eval->bind_param('i', $student_id);
+        $stmt_latest_eval->execute();
+        $student_latest_evaluation = $stmt_latest_eval->get_result()->fetch_assoc() ?: null;
+        $stmt_latest_eval->close();
+    }
+}
 
 // Fetch Attendance Records for activity
 $activity_query = "
@@ -1221,11 +1381,269 @@ endif; ?>
                                         <?php
 endif; ?>
 
-                                        <div class="text-center py-5">
-                                            <i class="feather-inbox fs-1 text-muted mb-3 d-block"></i>
-                                            <p class="text-muted"><?php
-echo $is_evaluation_unlocked ? 'Waiting for supervisor submission' : 'Waiting for unlock requirements'; ?></p>
-                                        </div>
+                                        <?php
+if ($is_evaluation_unlocked): ?>
+                                            <?php
+if ($student_latest_evaluation): ?>
+                                                <div class="student-internal-eval-saved mb-3">
+                                                    <div>
+                                                        <span>Latest Saved Evaluation</span>
+                                                        <strong><?php
+echo (int)($student_latest_evaluation['score'] ?? 0); ?>%</strong>
+                                                    </div>
+                                                    <div>
+                                                        <span>Evaluator</span>
+                                                        <strong><?php
+echo htmlspecialchars((string)($student_latest_evaluation['evaluator_name'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                                    </div>
+                                                    <div>
+                                                        <span>Date</span>
+                                                        <strong><?php
+echo htmlspecialchars(formatDate((string)($student_latest_evaluation['evaluation_date'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                                    </div>
+                                                </div>
+                                            <?php
+endif; ?>
+                                            <form method="POST" class="student-internal-eval-card" id="studentInternalEval">
+                                                <input type="hidden" name="student_internal_eval_action" value="save">
+                                                <input type="hidden" name="student_internal_eval_total" id="studentInternalEvalHiddenTotal" value="0">
+                                                <div class="student-internal-eval-card-head">
+                                                    <div>
+                                                        <p class="student-internal-eval-eyebrow mb-1">Internal Evaluation Sheet</p>
+                                                        <h6 class="fw-bold mb-1">Student's Performance Evaluation</h6>
+                                                        <p class="text-muted mb-0">Rate each item using whole numbers only. The total updates automatically.</p>
+                                                    </div>
+                                                    <div class="student-internal-eval-score">
+                                                        <span id="studentInternalEvalTotal">0</span><small>%</small>
+                                                    </div>
+                                                </div>
+
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label">Name</label>
+                                                        <input type="text" class="form-control student-internal-eval-meta" data-eval-meta="student" name="student_internal_eval_student" value="<?php
+echo htmlspecialchars($student_eval_name, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Student full name">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label">Appraised By</label>
+                                                        <input type="text" class="form-control student-internal-eval-meta" data-eval-meta="appraiser" name="student_internal_eval_appraiser" value="<?php
+echo htmlspecialchars($student_eval_appraiser, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Supervisor / evaluator name">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label">Period of Appraisal</label>
+                                                        <input type="text" class="form-control student-internal-eval-meta" data-eval-meta="period" name="student_internal_eval_period" value="<?php
+echo htmlspecialchars($student_eval_period, ENT_QUOTES, 'UTF-8'); ?>" placeholder="e.g. April 1 - May 30, 2026">
+                                                    </div>
+                                                    <div class="col-12 col-md-6">
+                                                        <label class="form-label">Company</label>
+                                                        <input type="text" class="form-control student-internal-eval-meta" data-eval-meta="company" name="student_internal_eval_company" value="<?php
+echo htmlspecialchars($student_eval_company, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Company / office name">
+                                                    </div>
+                                                </div>
+
+                                                <div class="student-internal-eval-table-wrap">
+                                                    <table class="table student-internal-eval-table align-middle mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Job Factors</th>
+                                                                <th class="text-center">Max</th>
+                                                                <th class="text-center">Rating</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php
+$evalFactorIndex = 0;
+foreach ($student_internal_eval_factors as $groupTitle => $factors): ?>
+                                                                <tr class="student-internal-eval-group-row">
+                                                                    <td colspan="3"><?php
+echo htmlspecialchars((string)$groupTitle, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                </tr>
+                                                                <?php
+foreach ($factors as $factor):
+    $factorLabel = (string)($factor[0] ?? '');
+    $factorMax = (int)($factor[1] ?? 0);
+    $evalFactorIndex++;
+?>
+                                                                    <tr>
+                                                                        <td>
+                                                                            <span class="student-internal-eval-factor-no"><?php
+echo (int)$evalFactorIndex; ?>.</span>
+                                                                            <?php
+echo htmlspecialchars($factorLabel, ENT_QUOTES, 'UTF-8'); ?>
+                                                                        </td>
+                                                                        <td class="text-center"><?php
+echo (int)$factorMax; ?>%</td>
+                                                                        <td>
+                                                                            <div class="student-internal-eval-rating-control">
+                                                                                <input type="number" min="0" max="<?php
+echo (int)$factorMax; ?>" step="1" inputmode="numeric" class="form-control student-internal-eval-rating" data-eval-index="<?php
+echo (int)$evalFactorIndex; ?>" data-eval-max="<?php
+echo (int)$factorMax; ?>" name="student_internal_eval_ratings[<?php
+echo (int)$evalFactorIndex; ?>]" value="">
+                                                                                <span>%</span>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                <?php
+endforeach; ?>
+                                                            <?php
+endforeach; ?>
+                                                            <tr class="student-internal-eval-total-row">
+                                                                <td>Total Rating</td>
+                                                                <td class="text-center">100%</td>
+                                                                <td class="text-center"><strong><span id="studentInternalEvalTableTotal">0</span>%</strong></td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+
+                                                <div class="mt-3">
+                                                    <label class="form-label">Recommendation for the Trainee's Further Growth</label>
+                                                    <textarea rows="3" class="form-control student-internal-eval-recommendation" name="student_internal_eval_recommendation" placeholder="Add recommendation..."></textarea>
+                                                </div>
+
+                                                <div class="d-flex justify-content-end gap-2 mt-3">
+                                                    <button type="button" class="btn btn-light btn-sm" id="studentInternalEvalReset">Reset</button>
+                                                    <button type="submit" class="btn btn-primary btn-sm">Save Evaluation</button>
+                                                    <button type="button" class="btn btn-success btn-sm" id="studentInternalEvalPrint">Print Evaluation</button>
+                                                </div>
+                                            </form>
+
+                                            <section class="student-internal-eval-print-sheet" id="studentInternalEvalPrintSheet" aria-hidden="true">
+                                                <div class="student-internal-eval-paper student-internal-eval-paper--page-1">
+                                                    <div class="student-internal-eval-print-header">
+                                                        <img src="../assets/images/ccstlogo.png" alt="CCST">
+                                                        <div>
+                                                            <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+                                                            <p>(Formerly Clark International College of Science & Technology)</p>
+                                                            <p>SNS Bldg., Auera St., Samsonville Subd., Dau, Mabalacat City, Pampanga</p>
+                                                            <p>Telefax No.: (045) 624-0215</p>
+                                                        </div>
+                                                    </div>
+                                                    <h3>STUDENT'S PERFORMANCE EVALUATION<br><span>INTERNAL</span></h3>
+                                                    <div class="student-internal-eval-print-meta">
+                                                        <p><strong>Name</strong><span data-eval-output="student"><?php
+echo htmlspecialchars($student_eval_name, ENT_QUOTES, 'UTF-8'); ?></span></p>
+                                                        <p><strong>Appraised By</strong><span data-eval-output="appraiser"><?php
+echo htmlspecialchars($student_eval_appraiser, ENT_QUOTES, 'UTF-8'); ?></span></p>
+                                                        <p><strong>Period of Appraisal</strong><span data-eval-output="period"><?php
+echo htmlspecialchars($student_eval_period, ENT_QUOTES, 'UTF-8'); ?></span></p>
+                                                        <p><strong>Company</strong><span data-eval-output="company"><?php
+echo htmlspecialchars($student_eval_company, ENT_QUOTES, 'UTF-8'); ?></span></p>
+                                                    </div>
+                                                    <p class="student-internal-eval-print-purpose">The purpose of this evaluation is to provide an objective measure of student's performance during the Supervised Field Training.</p>
+                                                    <div class="student-internal-eval-print-scale">
+                                                        <p><span>80 - 100</span>Very Good Performance</p>
+                                                        <p><span>70 - 79</span>Good Performance</p>
+                                                        <p><span>57 - 69</span>Satisfactory Performance</p>
+                                                        <p><span>45 - 56</span>Unsatisfactory Performance</p>
+                                                    </div>
+                                                    <table class="student-internal-eval-print-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Job Factors</th>
+                                                                <th>Maximum Rating To Be Given</th>
+                                                                <th>Rating</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php
+$evalPrintIndex = 0;
+foreach ($student_internal_eval_factors as $groupTitle => $factors): ?>
+                                                                <tr class="student-internal-eval-print-group">
+                                                                    <td colspan="3"><?php
+echo htmlspecialchars((string)$groupTitle, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                </tr>
+                                                                <?php
+foreach ($factors as $factor):
+    $factorLabel = (string)($factor[0] ?? '');
+    $factorMax = (int)($factor[1] ?? 0);
+    $evalPrintIndex++;
+    if ($evalPrintIndex > 8) {
+        continue;
+    }
+?>
+                                                                    <tr>
+                                                                        <td><?php
+echo (int)$evalPrintIndex; ?>. <?php
+echo htmlspecialchars($factorLabel, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                        <td><?php
+echo (int)$factorMax; ?>%</td>
+                                                                        <td><span data-eval-rating-output="<?php
+echo (int)$evalPrintIndex; ?>"></span></td>
+                                                                    </tr>
+                                                                <?php
+endforeach; ?>
+                                                            <?php
+endforeach; ?>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div class="student-internal-eval-paper student-internal-eval-paper--page-2">
+                                                    <div class="student-internal-eval-print-header">
+                                                        <img src="../assets/images/ccstlogo.png" alt="CCST">
+                                                        <div>
+                                                            <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
+                                                            <p>(Formerly Clark International College of Science & Technology)</p>
+                                                            <p>SNS Bldg., Auera St., Samsonville Subd., Dau, Mabalacat City, Pampanga</p>
+                                                            <p>Telefax No.: (045) 624-0215</p>
+                                                        </div>
+                                                    </div>
+                                                    <table class="student-internal-eval-print-table student-internal-eval-print-table--continuation">
+                                                        <tbody>
+                                                            <?php
+$evalPrintIndex = 0;
+foreach ($student_internal_eval_factors as $groupTitle => $factors): ?>
+                                                                <?php
+if ($groupTitle !== 'Personality Traits') {
+    $evalPrintIndex += count($factors);
+    continue;
+}
+?>
+                                                                <?php
+foreach ($factors as $factor):
+    $factorLabel = (string)($factor[0] ?? '');
+    $factorMax = (int)($factor[1] ?? 0);
+    $evalPrintIndex++;
+    if ($evalPrintIndex <= 8) {
+        continue;
+    }
+?>
+                                                                    <tr>
+                                                                        <td><?php
+echo (int)$evalPrintIndex; ?>. <?php
+echo htmlspecialchars($factorLabel, ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                        <td><?php
+echo (int)$factorMax; ?>%</td>
+                                                                        <td><span data-eval-rating-output="<?php
+echo (int)$evalPrintIndex; ?>"></span></td>
+                                                                    </tr>
+                                                                <?php
+endforeach; ?>
+                                                            <?php
+endforeach; ?>
+                                                            <tr>
+                                                                <td><strong>Total Rating</strong></td>
+                                                                <td><strong>100%</strong></td>
+                                                                <td><strong><span data-eval-output="total">0%</span></strong></td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                    <div class="student-internal-eval-print-recommendation">
+                                                        <p>Recommendation for the trainee's Further Growth:</p>
+                                                        <div class="student-internal-eval-print-lines" data-eval-output="recommendation"></div>
+                                                    </div>
+                                                    <div class="student-internal-eval-print-signature">Trainee's Supervisor Signature</div>
+                                                </div>
+                                            </section>
+                                        <?php
+else: ?>
+                                            <div class="text-center py-5">
+                                                <i class="feather-inbox fs-1 text-muted mb-3 d-block"></i>
+                                                <p class="text-muted">Waiting for unlock requirements</p>
+                                            </div>
+                                        <?php
+endif; ?>
                                     </div>
                                 </div>
                             </div>

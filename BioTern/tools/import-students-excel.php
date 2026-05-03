@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
 $studentsExcelVendorAutoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (is_file($studentsExcelVendorAutoload)) {
     require_once $studentsExcelVendorAutoload;
@@ -84,6 +85,34 @@ function students_excel_load_pending_import(string $token, int $userId): ?array
     return $data;
 }
 
+function students_excel_load_latest_pending_import(int $userId): ?array
+{
+    $dir = students_excel_preview_dir();
+    if (!is_dir($dir)) {
+        return null;
+    }
+
+    $latest = null;
+    $latestTime = 0;
+    foreach (glob(rtrim($dir, '/\\') . DIRECTORY_SEPARATOR . 'pending_*.json') ?: [] as $metaPath) {
+        $data = json_decode((string)@file_get_contents($metaPath), true);
+        if (!is_array($data) || (int)($data['user_id'] ?? 0) !== $userId) {
+            continue;
+        }
+        $pendingPath = (string)($data['path'] ?? '');
+        if ($pendingPath === '' || !is_file($pendingPath)) {
+            continue;
+        }
+        $createdAt = strtotime((string)($data['created_at'] ?? '')) ?: (int)@filemtime($metaPath);
+        if ($createdAt >= $latestTime) {
+            $latest = $data;
+            $latestTime = $createdAt;
+        }
+    }
+
+    return $latest;
+}
+
 function students_excel_delete_pending_import_meta(string $token): void
 {
     $metaPath = students_excel_pending_meta_path($token);
@@ -109,6 +138,29 @@ function students_excel_lookup_key(string $value): string
     $value = strtolower(trim($value));
     $value = preg_replace('/[^a-z0-9]+/', '', $value);
     return (string)$value;
+}
+
+function students_excel_section_label(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+    if (function_exists('biotern_format_section_label')) {
+        $formatted = biotern_format_section_label($value, '');
+        if ($formatted !== '') {
+            return $formatted;
+        }
+    }
+    return $value;
+}
+
+function students_excel_section_filter_key(string $value): string
+{
+    if (function_exists('biotern_section_filter_key')) {
+        return biotern_section_filter_key($value);
+    }
+    return students_excel_lookup_key($value);
 }
 
 function students_excel_row_value(array $row, array $keys, string $default = ''): string
@@ -1156,7 +1208,7 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
         }
         $studentName = trim((string)($row['student_name'] ?? ''));
         $contactNo = students_excel_row_value($row, ['contact_no', 'contact_number']);
-        $section = students_excel_row_value($row, ['section']);
+        $section = students_excel_section_label(students_excel_row_value($row, ['section']));
         $status = students_excel_row_value($row, ['status']);
         $companyName = students_excel_row_value($row, ['company_name', 'company']);
         $companyAddress = students_excel_row_value($row, ['company_address', 'address']);
@@ -1999,37 +2051,9 @@ function students_excel_masterlist_review(mysqli $mysqli, string $schoolYear, st
     if ($semesterFilter !== '') {
         $rowsSql .= " AND semester = ?";
     }
-    if ($sectionFilter !== '') {
-        $rowsSql .= " AND section = ?";
-    }
     $rowsSql .= " ORDER BY semester ASC, section ASC, student_name ASC";
 
     $stmt = $mysqli->prepare($rowsSql);
-    if ($stmt) {
-        if ($semesterFilter !== '' && $sectionFilter !== '') {
-            $stmt->bind_param('sss', $schoolYear, $semesterFilter, $sectionFilter);
-        } elseif ($semesterFilter !== '') {
-            $stmt->bind_param('ss', $schoolYear, $semesterFilter);
-        } elseif ($sectionFilter !== '') {
-            $stmt->bind_param('ss', $schoolYear, $sectionFilter);
-        } else {
-            $stmt->bind_param('s', $schoolYear);
-        }
-        $stmt->execute();
-        $res = $stmt->get_result();
-        while ($row = $res->fetch_assoc()) {
-            $result['rows'][] = $row;
-        }
-        $stmt->close();
-    }
-
-    $stmt = $mysqli->prepare("SELECT section, COUNT(*) AS row_count
-        FROM ojt_masterlist
-        WHERE school_year = ?
-        " . ($semesterFilter !== '' ? "AND semester = ?" : "") . "
-        GROUP BY section
-        ORDER BY row_count DESC, section ASC
-        LIMIT 12");
     if ($stmt) {
         if ($semesterFilter !== '') {
             $stmt->bind_param('ss', $schoolYear, $semesterFilter);
@@ -2038,10 +2062,52 @@ function students_excel_masterlist_review(mysqli $mysqli, string $schoolYear, st
         }
         $stmt->execute();
         $res = $stmt->get_result();
+        $selectedSectionKey = $sectionFilter !== '' ? students_excel_section_filter_key($sectionFilter) : '';
         while ($row = $res->fetch_assoc()) {
-            $result['sections'][] = $row;
+            $row['section'] = students_excel_section_label((string)($row['section'] ?? ''));
+            if ($selectedSectionKey !== '' && students_excel_section_filter_key((string)($row['section'] ?? '')) !== $selectedSectionKey) {
+                continue;
+            }
+            $result['rows'][] = $row;
         }
         $stmt->close();
+    }
+
+    $stmt = $mysqli->prepare("SELECT section
+        FROM ojt_masterlist
+        WHERE school_year = ?
+        " . ($semesterFilter !== '' ? "AND semester = ?" : "") . "
+        ORDER BY section ASC");
+    if ($stmt) {
+        if ($semesterFilter !== '') {
+            $stmt->bind_param('ss', $schoolYear, $semesterFilter);
+        } else {
+            $stmt->bind_param('s', $schoolYear);
+        }
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $sectionsByKey = [];
+        while ($row = $res->fetch_assoc()) {
+            $sectionLabel = students_excel_section_label((string)($row['section'] ?? ''));
+            $sectionKey = students_excel_section_filter_key($sectionLabel);
+            if ($sectionKey === '') {
+                continue;
+            }
+            if (!isset($sectionsByKey[$sectionKey])) {
+                $sectionsByKey[$sectionKey] = [
+                    'section' => $sectionLabel,
+                    'row_count' => 0,
+                ];
+            }
+            $sectionsByKey[$sectionKey]['row_count']++;
+        }
+        $stmt->close();
+        $result['sections'] = array_values($sectionsByKey);
+        usort($result['sections'], static function (array $a, array $b): int {
+            $countCompare = (int)($b['row_count'] ?? 0) <=> (int)($a['row_count'] ?? 0);
+            return $countCompare !== 0 ? $countCompare : strcasecmp((string)($a['section'] ?? ''), (string)($b['section'] ?? ''));
+        });
+        $result['sections'] = array_slice($result['sections'], 0, 12);
     }
 
     $stmt = $mysqli->prepare("SELECT company_name, supervisor_name, supervisor_position, COUNT(*) AS student_count
@@ -2268,6 +2334,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pendingPath = (string)($pendingImport['path'] ?? '');
         }
         if ($pendingPath === '' || !is_file($pendingPath)) {
+            $pendingImport = students_excel_load_latest_pending_import($userId);
+            $pendingPath = (string)($pendingImport['path'] ?? '');
+        }
+        if ($pendingPath === '' || !is_file($pendingPath)) {
             $statusType = 'danger';
             $statusMessage = 'No reviewed workbook is waiting to import. Upload and review the workbook again.';
         } else {
@@ -2277,13 +2347,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $originalName = (string)($pendingImport['name'] ?? 'uploaded-workbook.xlsx');
             $overrideSemester = (string)($pendingImport['semester'] ?? '');
             $ok = students_excel_import_workbook($conn, $pendingPath, $originalName, $overrideSemester, $summary, $errors, $message);
-            students_excel_delete_pending_import_meta((string)($pendingImport['token'] ?? $postedPendingToken));
-            @unlink($pendingPath);
-            unset($_SESSION['students_excel_pending_import'], $_SESSION['students_excel_pending_preview']);
-            $pendingImport = null;
-            $pendingPreview = null;
             $statusType = $ok ? 'success' : 'danger';
             $statusMessage = $message !== '' ? $message : ($ok ? 'Excel import completed.' : 'Excel import failed.');
+            if ($ok) {
+                students_excel_delete_pending_import_meta((string)($pendingImport['token'] ?? $postedPendingToken));
+                @unlink($pendingPath);
+                unset($_SESSION['students_excel_pending_import'], $_SESSION['students_excel_pending_preview']);
+                $pendingImport = null;
+                $pendingPreview = null;
+            } else {
+                $_SESSION['students_excel_pending_import'] = $pendingImport;
+            }
             foreach ($summary as $label => $value) {
                 $statusDetails[] = ucwords(str_replace('_', ' ', (string)$label)) . ': ' . (int)$value;
             }
@@ -2385,6 +2459,15 @@ $availableSections = array_values(array_filter(array_map(
     static fn(array $sectionRow): string => trim((string)($sectionRow['section'] ?? '')),
     $masterlistReview['sections']
 )));
+if ($selectedReviewSection !== '') {
+    $selectedReviewSectionKey = students_excel_section_filter_key($selectedReviewSection);
+    foreach ($availableSections as $availableSection) {
+        if ($selectedReviewSectionKey !== '' && students_excel_section_filter_key($availableSection) === $selectedReviewSectionKey) {
+            $selectedReviewSection = $availableSection;
+            break;
+        }
+    }
+}
 if ($selectedReviewSection !== '' && !in_array($selectedReviewSection, $availableSections, true)) {
     $selectedReviewSection = '';
     $masterlistReview = students_excel_masterlist_review($conn, $selectedReviewYear, $selectedReviewSemester);
@@ -2449,11 +2532,11 @@ include dirname(__DIR__) . '/includes/header.php';
                         <h4 class="mt-3 mb-2"><?php echo ((string)$pendingPreview['type'] === 'masterlist') ? 'Masterlist preview' : 'Students workbook preview'; ?></h4>
                         <p class="text-muted mb-0">Duplicates and skipped rows are shown here first. Nothing is saved to the database until you confirm.</p>
                     </div>
-                    <form method="post" class="excel-import-confirm-form">
+                    <form method="post" class="excel-import-confirm-form" data-confirm-import-form>
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="action" value="confirm_import">
                         <input type="hidden" name="pending_token" value="<?php echo htmlspecialchars((string)($pendingImport['token'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                        <button type="submit" class="btn btn-success">Confirm Import to Database</button>
+                        <button type="submit" class="btn btn-success" data-confirm-import-button>Confirm Import to Database</button>
                     </form>
                 </div>
                 <?php if ((string)($pendingPreview['school_year'] ?? '') !== '' || (string)($pendingPreview['semester'] ?? '') !== ''): ?>
@@ -2506,5 +2589,17 @@ include dirname(__DIR__) . '/includes/header.php';
 </div>
 </div>
 </main>
+<script>
+document.querySelectorAll('[data-confirm-import-form]').forEach(function (form) {
+    form.addEventListener('submit', function () {
+        var button = form.querySelector('[data-confirm-import-button]');
+        if (!button) {
+            return;
+        }
+        button.disabled = true;
+        button.textContent = 'Importing...';
+    });
+});
+</script>
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>
 

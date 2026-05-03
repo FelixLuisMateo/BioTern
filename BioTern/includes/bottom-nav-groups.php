@@ -104,11 +104,10 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'items' => [
                             ['label' => 'Students List', 'href' => 'students.php', 'icon' => 'feather-users'],
                             ['label' => 'Applications Review', 'href' => 'applications-review.php', 'icon' => 'feather-clipboard'],
-                            ['label' => 'Internal DTR', 'href' => 'attendance.php', 'icon' => 'feather-clock'],
-                            ['label' => 'External DTR', 'href' => 'external-attendance.php', 'icon' => 'feather-briefcase'],
+                            ['label' => 'Internal Attendance', 'href' => 'attendance.php', 'icon' => 'feather-clock'],
+                            ['label' => 'External Attendance', 'href' => 'external-attendance.php', 'icon' => 'feather-briefcase'],
                             ['label' => 'Fingerprint Mapping', 'href' => 'fingerprint_mapping.php', 'icon' => 'feather-link'],
                             ['label' => 'F20H Machine Manager', 'href' => 'biometric-machine.php', 'icon' => 'feather-cpu'],
-                            ['label' => 'Sync Biometric Machine', 'href' => 'biometric_machine_sync.php?redirect=biometric-machine.php', 'icon' => 'feather-refresh-cw'],
                         ],
                     ],
                     [
