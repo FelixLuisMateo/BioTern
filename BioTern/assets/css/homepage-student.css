@@ -1,16 +1,16 @@
-.dashboard-home {
+body {
     --student-card-bg: var(--dash-card-bg, #ffffff);
     --student-card-border: var(--dash-card-border, rgba(15, 23, 42, 0.08));
     --student-card-shadow: var(--dash-card-shadow, 0 10px 30px rgba(15, 23, 42, 0.06));
     --student-text: var(--dash-text, #0f172a);
     --student-muted: var(--dash-muted, #64748b);
-    --student-soft-bg: color-mix(in srgb, var(--dash-item-bg, #f8fafc) 85%, rgba(var(--bs-primary-rgb), 0.08) 15%);
-    --student-soft-border: color-mix(in srgb, var(--dash-item-border, rgba(15, 23, 42, 0.08)) 82%, rgba(var(--bs-primary-rgb), 0.24) 18%);
-    --student-accent: rgba(var(--bs-primary-rgb), 0.9);
-    --student-accent-strong: rgba(var(--bs-primary-rgb), 1);
-    --student-accent-soft: rgba(var(--bs-primary-rgb), 0.14);
-    --student-accent-soft-2: rgba(var(--bs-primary-rgb), 0.2);
-    --student-accent-darktext: color-mix(in srgb, var(--student-text) 78%, rgba(var(--bs-primary-rgb), 1) 22%);
+    --student-soft-bg: var(--dash-item-bg, #f8fafc);
+    --student-soft-border: var(--dash-item-border, rgba(15, 23, 42, 0.08));
+    --student-accent: var(--student-muted);
+    --student-accent-strong: var(--student-text);
+    --student-accent-soft: var(--student-soft-bg);
+    --student-accent-soft-2: var(--student-soft-bg);
+    --student-accent-darktext: var(--student-text);
 }
 
 .student-page-header {
@@ -20,11 +20,21 @@
 .student-home-shell {
     display: grid;
     gap: 1rem;
-    padding: 0.35rem 0 1rem;
+    padding: 0 0 1rem;
+    margin-top: 0;
 }
 
 .student-home-shell > .row {
     margin-top: 0 !important;
+}
+
+.student-home-shell .dashboard-page-header {
+    margin-top: 0 !important;
+}
+
+.student-home-shell .main-content,
+.nxl-content .main-content .student-home-shell {
+    padding-top: 0 !important;
 }
 
 .student-home-hero {
@@ -155,10 +165,8 @@
     margin-bottom: 1rem;
     padding: 1rem 1.05rem;
     border-radius: 1.1rem;
-    border: 1px solid color-mix(in srgb, var(--student-soft-border) 70%, rgba(var(--bs-primary-rgb), 0.32) 30%);
-    background:
-        radial-gradient(circle at top right, rgba(var(--bs-primary-rgb), 0.14), transparent 40%),
-        linear-gradient(135deg, color-mix(in srgb, var(--student-soft-bg) 92%, rgba(255, 255, 255, 0.65) 8%), var(--student-card-bg));
+    border: 1px solid var(--student-card-border);
+    background: var(--student-card-bg);
 }
 
 .student-hours-timer__header,
@@ -251,7 +259,11 @@
     display: block;
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(90deg, rgba(var(--bs-primary-rgb), 0.82), rgba(var(--bs-primary-rgb), 1));
+    background: var(--student-accent-strong);
+}
+
+.student-hours-timer-card .student-hours-timer {
+    margin-bottom: 0;
 }
 
 .student-hours-timer__sync {
@@ -500,6 +512,39 @@ html.app-skin-dark .student-shortcut-card i {
 }
 
 @media (max-width: 767.98px) {
+    .student-home-shell .dashboard-page-header {
+        padding: 0.5rem 0.75rem !important;
+        min-height: auto !important;
+    }
+
+    .student-home-shell .dashboard-page-header .page-header-left {
+        width: 100%;
+        align-items: flex-start !important;
+    }
+
+    .student-home-shell .dashboard-page-header .page-header-title h5 {
+        margin-right: 0 !important;
+        padding-right: 0 !important;
+        border-right: 0 !important;
+    }
+
+    .student-home-shell .dashboard-page-header .breadcrumb {
+        display: none !important;
+    }
+
+    .student-home-shell .dashboard-page-header .page-header-right {
+        width: 100%;
+        margin-left: 0 !important;
+        margin-top: 0.5rem;
+        justify-content: flex-start;
+    }
+
+    .student-home-shell .dashboard-page-header .page-header-right .btn,
+    .student-home-shell .dashboard-page-header .page-header-right .badge {
+        width: 100%;
+        justify-content: center;
+    }
+
     .student-home-hero .card-body,
     .student-metric-card .card-body,
     .student-panel .card-body {
@@ -507,7 +552,12 @@ html.app-skin-dark .student-shortcut-card i {
     }
 
     .student-home-shell {
-        padding-top: 0.1rem;
+        gap: 0.75rem;
+        padding: 0 0 0.75rem;
+    }
+
+    .student-page-header {
+        margin-bottom: 0.75rem;
     }
 
     .student-quick-grid {
@@ -548,5 +598,79 @@ html.app-skin-dark .student-shortcut-card i {
     .student-detail-list strong,
     .student-attendance-item b {
         text-align: left;
+    }
+
+    .student-metric-card h3 {
+        font-size: 1.4rem;
+    }
+
+    .student-metric-card p,
+    .student-metric-label {
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+    }
+
+    .student-panel .card-body,
+    .student-metric-card .card-body {
+        padding: 0.9rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .student-home-shell .dashboard-page-header {
+        padding: 0.45rem 0.55rem !important;
+    }
+
+    .student-home-shell .dashboard-page-header .page-header-title h5 {
+        font-size: 1.1rem;
+        line-height: 1.2;
+    }
+
+    .student-home-meta {
+        gap: 0.45rem;
+    }
+
+    .student-home-meta span {
+        padding: 0.42rem 0.62rem;
+        font-size: 0.76rem;
+    }
+
+    .student-metric-card h3 {
+        font-size: 1.25rem;
+    }
+
+    .student-hours-timer {
+        padding: 0.82rem 0.78rem;
+        border-radius: 0.9rem;
+    }
+
+    .student-hours-timer__header h6 {
+        font-size: 0.92rem;
+    }
+
+    .student-hours-timer__summary,
+    .student-hours-timer__sync {
+        font-size: 0.78rem;
+    }
+
+    .student-shortcut-card {
+        min-height: 104px;
+        padding: 0.82rem;
+    }
+
+    .student-shortcut-card i {
+        width: 2.15rem;
+        height: 2.15rem;
+        font-size: 0.9rem;
+    }
+
+    .student-detail-list div,
+    .student-attendance-item {
+        padding: 0.78rem 0.82rem;
+        border-radius: 0.8rem;
+    }
+
+    .student-empty-state {
+        padding: 0.82rem;
     }
 }

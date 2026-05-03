@@ -144,28 +144,22 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
+        <div class="page-header dashboard-page-header">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">My Documents</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                    <li class="breadcrumb-item">My Documents</li>
+                </ul>
+            </div>
+            <div class="page-header-right ms-auto">
+                <a href="student-profile.php" class="btn btn-outline-primary">Back to Profile</a>
+            </div>
+        </div>
         <div class="main-content">
             <div class="student-home-shell">
-                <section class="card student-home-hero border-0">
-                    <div class="card-body">
-                        <div class="student-home-hero__content">
-                            <div>
-                                <span class="student-home-eyebrow">Read-Only Documents</span>
-                                <h2><?php echo htmlspecialchars($displayName !== '' ? $displayName : 'Student User', ENT_QUOTES, 'UTF-8'); ?></h2>
-                                <p>This page is view-and-print only. Your authorized personnel prepare the document details, and you can open the finished copy here.</p>
-                                <div class="student-home-meta">
-                                    <span><?php echo htmlspecialchars((string)($student['student_id'] ?? 'No student number'), ENT_QUOTES, 'UTF-8'); ?></span>
-                                    <span><?php echo htmlspecialchars((string)($student['course_name'] ?? 'No course yet'), ENT_QUOTES, 'UTF-8'); ?></span>
-                                    <span><?php echo htmlspecialchars($sectionLabel !== '' ? $sectionLabel : 'No section yet', ENT_QUOTES, 'UTF-8'); ?></span>
-                                </div>
-                            </div>
-                            <div class="student-home-profile">
-                                <img src="<?php echo htmlspecialchars($avatarSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="Profile">
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
                 <section class="card student-panel mt-4">
                     <div class="card-body">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
@@ -174,7 +168,6 @@ include 'includes/header.php';
                                 <h3 class="mb-1">My Generated Documents</h3>
                                 <div class="student-dtr-meta">Editing stays exclusive to admin, coordinator, and supervisor accounts.</div>
                             </div>
-                            <a href="student-profile.php" class="btn btn-outline-primary">Back to Profile</a>
                         </div>
 
                         <div class="row g-3">

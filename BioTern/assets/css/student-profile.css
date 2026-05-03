@@ -3,14 +3,40 @@
     gap: 1rem;
 }
 
+.student-profile-shell > .row {
+    --bs-gutter-x: 1rem;
+    --bs-gutter-y: 1rem;
+}
+
 .student-profile-shell {
-    --profile-text: var(--student-text, var(--dash-text, #0f172a));
-    --profile-muted: var(--student-muted, var(--dash-muted, #64748b));
-    --profile-soft-bg: var(--student-soft-bg, var(--dash-item-bg, #f8fafc));
-    --profile-soft-border: var(--student-soft-border, var(--dash-item-border, rgba(15, 23, 42, 0.08)));
-    --profile-accent: var(--student-accent, rgba(var(--bs-primary-rgb), 0.9));
-    --profile-accent-strong: var(--student-accent-strong, rgba(var(--bs-primary-rgb), 1));
-    --profile-accent-soft: var(--student-accent-soft, rgba(var(--bs-primary-rgb), 0.14));
+    --profile-text: var(--student-text, var(--bs-body-color, #0f172a));
+    --profile-muted: var(--student-muted, var(--bs-secondary-color, #64748b));
+    --profile-soft-bg: var(--student-soft-bg, var(--biotern-surface-muted, #f8fafc));
+    --profile-soft-border: var(--student-soft-border, var(--biotern-border, rgba(15, 23, 42, 0.08)));
+    --profile-accent: var(--profile-muted);
+    --profile-accent-strong: var(--profile-text);
+    --profile-accent-soft: var(--profile-soft-bg);
+}
+
+.student-profile-shell > .row > [class*="col-"] {
+    min-width: 0;
+}
+
+@media (min-width: 1200px) {
+    .student-profile-shell > .row {
+        display: grid;
+        grid-template-columns: minmax(400px, 500px) minmax(0, 1fr);
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .student-profile-shell > .row > .col-12.col-xl-3,
+    .student-profile-shell > .row > .col-12.col-xl-6 {
+        width: 100%;
+        max-width: none;
+        padding-left: 0;
+        padding-right: 0;
+    }
 }
 
 .student-profile-sidebar {
@@ -83,7 +109,7 @@
 }
 
 .student-profile-progress .progress-bar {
-    background: linear-gradient(90deg, var(--profile-accent-strong) 0%, color-mix(in srgb, var(--profile-accent-strong) 78%, #ffffff 22%) 100%);
+    background: var(--profile-text);
 }
 
 .student-profile-progress-card small {
@@ -104,7 +130,7 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
-    margin-top: 1rem;
+    margin-top: 0;
 }
 
 .student-profile-timer-row {
@@ -112,6 +138,10 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
     grid-column: 1 / -1;
+}
+
+.student-profile-shell .student-panel.mt-4 {
+    margin-top: 1rem !important;
 }
 
 .student-profile-timer-card {
@@ -126,7 +156,7 @@
 }
 
 .student-profile-timer-card--primary {
-    background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.12), rgba(255, 255, 255, 0.96));
+    background: var(--profile-soft-bg);
 }
 
 .student-profile-timer-value {
@@ -158,6 +188,14 @@
     text-align: right;
     max-width: 16rem;
     font-size: 0.92rem;
+}
+
+.student-profile-info-row {
+    margin-top: 0.1rem;
+}
+
+.student-profile-info-row .student-panel {
+    margin-top: 0 !important;
 }
 
 .student-profile-field-grid {
@@ -196,19 +234,107 @@
     max-width: 12rem;
 }
 
+.student-profile-detail-list div {
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.student-profile-detail-list span {
+    min-width: 120px;
+}
+
+.student-profile-detail-list strong {
+    flex: 1 1 auto;
+    max-width: none;
+    text-align: right;
+    word-break: break-word;
+}
+
+.student-profile-detail-list--two-col {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+}
+
+.student-profile-sidebar .card-body {
+    padding: 1rem !important;
+}
+
+.student-profile-sidebar .student-profile-copy {
+    max-width: none;
+    font-size: 0.86rem;
+}
+
+.student-profile-sidebar .student-home-meta {
+    margin-top: 0.6rem;
+    gap: 0.45rem;
+}
+
+.student-profile-sidebar .student-home-meta span {
+    font-size: 0.74rem;
+    padding: 0.35rem 0.58rem;
+}
+
+.student-profile-sidebar .student-profile-progress-card {
+    margin-top: 0.75rem;
+    padding: 0.8rem;
+}
+
+.student-profile-sidebar .student-profile-actions {
+    margin-top: 0.75rem;
+    gap: 0.55rem;
+}
+
+.student-profile-sidebar .student-profile-actions .btn {
+    min-height: 34px;
+    font-size: 0.76rem;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+}
+
+.student-profile-sidebar .student-profile-detail-list div {
+    padding: 0.62rem 0.72rem;
+    border-radius: 0.75rem;
+}
+
+.student-profile-sidebar .student-profile-detail-list span {
+    min-width: 110px;
+    font-size: 0.72rem;
+}
+
+.student-profile-sidebar .student-profile-detail-list strong {
+    font-size: 0.78rem;
+}
+
+.student-profile-personal-card .student-profile-field-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.student-profile-personal-card .student-profile-field--full {
+    grid-column: span 1;
+}
+
+.student-profile-personal-card .student-profile-field {
+    padding: 0.82rem 0.9rem;
+}
+
+.student-profile-personal-card .student-profile-field strong {
+    font-size: 0.9rem;
+}
+
 html.app-skin-dark .student-profile-name,
 html.app-skin-dark .student-profile-field strong {
     color: var(--profile-text);
 }
 
 html.app-skin-dark .student-profile-shell {
-    --profile-text: #f5f7ff;
-    --profile-muted: rgba(201, 210, 240, 0.78);
-    --profile-soft-bg: rgba(17, 24, 39, 0.92);
-    --profile-soft-border: rgba(96, 118, 168, 0.34);
-    --profile-accent: rgba(125, 153, 255, 0.96);
-    --profile-accent-strong: #8ea8ff;
-    --profile-accent-soft: rgba(78, 102, 255, 0.18);
+    --profile-text: var(--bs-body-color, #e5e7eb);
+    --profile-muted: var(--bs-secondary-color, #94a3b8);
+    --profile-soft-bg: var(--biotern-surface, #12161f);
+    --profile-soft-border: var(--biotern-border, #2b3340);
+    --profile-accent: var(--profile-muted);
+    --profile-accent-strong: var(--profile-text);
+    --profile-accent-soft: var(--profile-soft-bg);
 }
 
 html.app-skin-dark .student-profile-copy,
@@ -226,14 +352,12 @@ html.app-skin-dark .student-profile-role {
 html.app-skin-dark .student-profile-progress-card,
 html.app-skin-dark .student-profile-field,
 html.app-skin-dark .student-profile-timer-card {
-    background: var(--profile-soft-bg);
-    border-color: var(--profile-soft-border);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    background: var(--biotern-surface, var(--profile-soft-bg)) !important;
+    border-color: var(--biotern-border, var(--profile-soft-border)) !important;
+    box-shadow: none !important;
 }
 
-html.app-skin-dark .student-profile-timer-card--primary {
-    background: linear-gradient(135deg, rgba(78, 102, 255, 0.2), rgba(17, 24, 39, 0.92));
-}
+html.app-skin-dark .student-profile-timer-card--primary { background: var(--profile-soft-bg); }
 
 html.app-skin-dark .student-profile-field-label {
     color: var(--profile-accent);
@@ -250,15 +374,43 @@ html.app-skin-dark .student-profile-progress-row span {
 }
 
 @media (max-width: 1199.98px) {
+    .student-profile-shell > .row {
+        display: block;
+    }
+
     .student-profile-sidebar {
         position: static;
     }
+
+    .student-profile-detail-list--two-col {
+        grid-template-columns: 1fr;
+    }
+
+    .student-profile-personal-card .student-profile-field-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .student-profile-personal-card .student-profile-field--full {
+        grid-column: 1 / -1;
+    }
 }
+
+@media (min-width: 1600px) {
+    .student-profile-sidebar .student-profile-detail-list--two-col {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 
 @media (max-width: 991.98px) {
     .student-profile-timer-row,
     .student-profile-metric-grid {
         grid-template-columns: 1fr;
+    }
+
+    .student-profile-metric-grid {
+        gap: 0.75rem;
+        margin-top: 0.75rem;
     }
 }
 
@@ -279,6 +431,18 @@ html.app-skin-dark .student-profile-progress-row span {
         grid-template-columns: 1fr;
     }
 
+    .student-profile-detail-list--two-col {
+        grid-template-columns: 1fr;
+    }
+
+    .student-profile-personal-card .student-profile-field-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .student-profile-personal-card .student-profile-field--full {
+        grid-column: 1 / -1;
+    }
+
     .student-profile-section-head {
         flex-direction: column;
         align-items: flex-start;
@@ -289,7 +453,192 @@ html.app-skin-dark .student-profile-progress-row span {
         max-width: none;
     }
 
+    .student-profile-info-row {
+        --bs-gutter-y: 0.75rem;
+    }
+
     .student-profile-actions .btn {
         width: 100%;
+    }
+
+    .student-profile-sidebar .card-body,
+    .student-profile-shell .student-panel .card-body,
+    .student-profile-shell .student-metric-card .card-body {
+        padding: 0.95rem;
+    }
+
+    .student-profile-avatar {
+        width: 88px;
+        height: 88px;
+        border-radius: 20px;
+    }
+
+    .student-profile-name {
+        font-size: 1.45rem;
+    }
+
+    .student-profile-role {
+        font-size: 0.72rem;
+        padding: 0.42rem 0.68rem;
+    }
+
+    .student-profile-progress-card,
+    .student-profile-field,
+    .student-profile-timer-card {
+        padding: 0.82rem;
+        border-radius: 0.85rem;
+        min-height: auto;
+    }
+
+    .student-profile-timer-value {
+        font-size: 1.2rem;
+    }
+
+    .student-profile-timer-note {
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+    }
+
+    .student-profile-field-label {
+        font-size: 0.66rem;
+        letter-spacing: 0.08em;
+    }
+
+    .student-profile-field strong {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .student-profile-shell {
+        gap: 0.75rem;
+    }
+
+    .student-profile-copy {
+        font-size: 0.86rem;
+    }
+
+    .student-profile-section-head h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.35rem !important;
+    }
+
+    .student-profile-section-copy {
+        font-size: 0.82rem;
+    }
+}
+
+/* Sidebar profile card reset: readable, stable, and non-compressed */
+@media (min-width: 1200px) {
+    .student-profile-shell > .row {
+        grid-template-columns: minmax(460px, 560px) minmax(0, 1fr);
+    }
+}
+
+.student-profile-sidebar .card-body {
+    padding: 1.25rem !important;
+}
+
+.student-profile-sidebar .student-profile-copy {
+    max-width: 30rem;
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+.student-profile-sidebar .student-profile-progress-card {
+    margin-top: 1rem;
+    padding: 1rem;
+}
+
+.student-profile-sidebar .student-profile-actions {
+    margin-top: 1rem;
+    gap: 0.6rem;
+}
+
+.student-profile-sidebar .student-profile-actions .btn {
+    min-height: 38px;
+    font-size: 0.84rem;
+    padding-top: 0.48rem;
+    padding-bottom: 0.48rem;
+}
+
+.student-profile-block h3 {
+    margin-bottom: 0.75rem !important;
+}
+
+.student-profile-facts {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+}
+
+.student-profile-facts--horizontal {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+}
+
+.student-profile-fact {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.9rem;
+    padding: 0.85rem 0.95rem;
+    border-radius: 0.8rem;
+    border: 1px solid var(--profile-soft-border);
+    background: var(--profile-soft-bg);
+}
+
+.student-profile-fact span {
+    flex: 0 0 auto;
+    min-width: 138px;
+    font-size: 0.76rem;
+    letter-spacing: 0.02em;
+    color: var(--profile-muted);
+}
+
+.student-profile-fact strong {
+    flex: 1 1 auto;
+    text-align: right;
+    font-size: 0.86rem;
+    line-height: 1.35;
+    color: var(--profile-text);
+    word-break: break-word;
+}
+
+.student-profile-card-horizontal .card-body {
+    padding: 1.1rem 1.2rem;
+}
+
+html.app-skin-dark .student-profile-fact {
+    background: var(--biotern-surface, var(--profile-soft-bg));
+    border-color: var(--biotern-border, var(--profile-soft-border));
+}
+
+@media (min-width: 1400px) {
+    .student-profile-facts--horizontal {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767.98px) {
+    .student-profile-sidebar .card-body {
+        padding: 0.95rem !important;
+    }
+
+    .student-profile-fact {
+        padding: 0.75rem 0.8rem;
+    }
+
+    .student-profile-fact span {
+        min-width: 104px;
+        font-size: 0.72rem;
+    }
+
+    .student-profile-fact strong {
+        font-size: 0.8rem;
+    }
+
+    .student-profile-facts--horizontal {
+        grid-template-columns: 1fr;
     }
 }

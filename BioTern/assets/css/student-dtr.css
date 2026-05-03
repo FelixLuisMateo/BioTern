@@ -1,16 +1,16 @@
 .student-dtr-shell {
     display: grid;
     gap: 1rem;
-    --dtr-card-bg: var(--student-card-bg, var(--dash-card-bg, #ffffff));
-    --dtr-card-border: var(--student-card-border, var(--dash-card-border, rgba(15, 23, 42, 0.08)));
-    --dtr-card-shadow: var(--student-card-shadow, var(--dash-card-shadow, 0 10px 30px rgba(15, 23, 42, 0.06)));
-    --dtr-text: var(--student-text, var(--dash-text, #0f172a));
-    --dtr-muted: var(--student-muted, var(--dash-muted, #64748b));
-    --dtr-soft-bg: var(--student-soft-bg, var(--dash-item-bg, #f8fafc));
-    --dtr-soft-border: var(--student-soft-border, var(--dash-item-border, rgba(15, 23, 42, 0.08)));
-    --dtr-accent: var(--student-accent, rgba(var(--bs-primary-rgb), 0.9));
-    --dtr-accent-strong: var(--student-accent-strong, rgba(var(--bs-primary-rgb), 1));
-    --dtr-accent-soft: var(--student-accent-soft, rgba(var(--bs-primary-rgb), 0.14));
+    --dtr-card-bg: var(--student-card-bg, var(--biotern-surface, #ffffff));
+    --dtr-card-border: var(--student-card-border, var(--biotern-border, rgba(15, 23, 42, 0.08)));
+    --dtr-card-shadow: var(--student-card-shadow, 0 10px 30px rgba(15, 23, 42, 0.06));
+    --dtr-text: var(--student-text, var(--bs-body-color, #0f172a));
+    --dtr-muted: var(--student-muted, var(--bs-secondary-color, #64748b));
+    --dtr-soft-bg: var(--student-soft-bg, var(--biotern-surface-muted, #f8fafc));
+    --dtr-soft-border: var(--student-soft-border, var(--biotern-border, rgba(15, 23, 42, 0.08)));
+    --dtr-accent: var(--dtr-muted);
+    --dtr-accent-strong: var(--dtr-text);
+    --dtr-accent-soft: var(--dtr-soft-bg);
 }
 
 .student-dtr-hero-card {
@@ -64,7 +64,7 @@
 .student-dtr-shell .student-home-meta span {
     background: var(--dtr-soft-bg);
     border: 1px solid var(--dtr-soft-border);
-    color: color-mix(in srgb, var(--dtr-text) 76%, rgba(var(--bs-primary-rgb), 1) 24%);
+    color: var(--dtr-text);
 }
 
 .student-dtr-filter {
@@ -100,8 +100,8 @@
 }
 
 .student-dtr-filter .form-select:focus {
-    border-color: color-mix(in srgb, var(--dtr-soft-border) 45%, rgba(var(--bs-primary-rgb), 0.8) 55%);
-    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.16);
+    border-color: var(--dtr-soft-border);
+    box-shadow: none;
     background: var(--dtr-card-bg);
 }
 
@@ -115,8 +115,8 @@
 }
 
 .student-dtr-filter .btn-primary {
-    border: 1px solid rgba(var(--bs-primary-rgb), 0.24);
-    box-shadow: 0 10px 22px rgba(var(--bs-primary-rgb), 0.22);
+    border: 1px solid var(--dtr-soft-border);
+    box-shadow: none;
 }
 
 .student-dtr-metrics {
@@ -125,11 +125,22 @@
     gap: 0.95rem;
 }
 
+.student-dtr-report-export-card {
+    background: var(--dtr-card-bg);
+    border: 1px solid var(--dtr-card-border);
+    box-shadow: var(--dtr-card-shadow);
+}
+
+.student-dtr-report-export-card .card-body {
+    padding: 1.1rem 1.15rem;
+}
+
 .student-dtr-metric {
     padding: 1.1rem 1.15rem;
     border-radius: 1rem;
-    border: 1px solid var(--dtr-card-border);
-    background: var(--dtr-card-bg);
+    border: 1px solid var(--dash-card-border, var(--dtr-card-border)) !important;
+    background: var(--dash-card-bg, var(--dtr-card-bg)) !important;
+    box-shadow: none;
 }
 
 .student-dtr-metric strong {
@@ -224,7 +235,7 @@
     padding: 1rem 1.1rem;
     border-radius: 0.9rem;
     background: var(--dtr-soft-bg);
-    border: 1px dashed color-mix(in srgb, var(--dtr-soft-border) 70%, rgba(var(--bs-primary-rgb), 0.45) 30%);
+    border: 1px dashed var(--dtr-soft-border);
     color: var(--dtr-muted);
 }
 
@@ -277,14 +288,14 @@
 }
 
 .student-dtr-fallback-card .form-control:focus {
-    border-color: color-mix(in srgb, var(--dtr-soft-border) 45%, rgba(var(--bs-primary-rgb), 0.8) 55%);
-    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.16);
+    border-color: var(--dtr-soft-border);
+    box-shadow: none;
     background: var(--dtr-card-bg);
 }
 
 .student-dtr-fallback-card .form-select:focus {
-    border-color: color-mix(in srgb, var(--dtr-soft-border) 45%, rgba(var(--bs-primary-rgb), 0.8) 55%);
-    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.16);
+    border-color: var(--dtr-soft-border);
+    box-shadow: none;
     background-color: var(--dtr-card-bg);
 }
 
@@ -295,7 +306,7 @@
     border: 0;
     border-right: 1px solid var(--dtr-soft-border);
     background: var(--dtr-accent-soft);
-    color: color-mix(in srgb, var(--dtr-text) 76%, rgba(var(--bs-primary-rgb), 1) 24%);
+    color: var(--dtr-text);
     font-weight: 700;
     vertical-align: middle;
 }
@@ -307,7 +318,7 @@
     border: 0;
     border-right: 1px solid var(--dtr-soft-border);
     background: var(--dtr-accent-soft);
-    color: color-mix(in srgb, var(--dtr-text) 76%, rgba(var(--bs-primary-rgb), 1) 24%);
+    color: var(--dtr-text);
     font-weight: 700;
     vertical-align: middle;
 }
@@ -344,16 +355,16 @@ html.app-skin-dark .student-dtr-filter .form-select {
 }
 
 html.app-skin-dark .student-dtr-shell {
-    --dtr-card-bg: #141c31;
-    --dtr-card-border: rgba(90, 110, 158, 0.3);
-    --dtr-card-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
-    --dtr-text: #f5f7ff;
-    --dtr-muted: rgba(201, 210, 240, 0.78);
-    --dtr-soft-bg: rgba(17, 24, 39, 0.92);
-    --dtr-soft-border: rgba(96, 118, 168, 0.34);
-    --dtr-accent: rgba(125, 153, 255, 0.96);
-    --dtr-accent-strong: #8ea8ff;
-    --dtr-accent-soft: rgba(78, 102, 255, 0.18);
+    --dtr-card-bg: var(--biotern-surface, #12161f);
+    --dtr-card-border: var(--biotern-border, #2b3340);
+    --dtr-card-shadow: var(--dash-card-shadow, none);
+    --dtr-text: var(--bs-body-color, #e5e7eb);
+    --dtr-muted: var(--bs-secondary-color, #94a3b8);
+    --dtr-soft-bg: var(--dtr-card-bg);
+    --dtr-soft-border: var(--dtr-card-border);
+    --dtr-accent: var(--dtr-muted);
+    --dtr-accent-strong: var(--dtr-text);
+    --dtr-accent-soft: var(--dtr-soft-bg);
 }
 
 html.app-skin-dark .student-dtr-filter .form-select:focus {
@@ -387,7 +398,7 @@ html.app-skin-dark .student-dtr-shell .student-home-eyebrow {
 html.app-skin-dark .student-dtr-shell .student-home-meta span {
     background: var(--dtr-soft-bg);
     border: 1px solid var(--dtr-soft-border);
-    color: color-mix(in srgb, var(--dtr-text) 76%, rgba(var(--bs-primary-rgb), 1) 24%);
+    color: var(--dtr-text);
 }
 
 html.app-skin-dark .student-dtr-filter .form-label {
@@ -395,11 +406,12 @@ html.app-skin-dark .student-dtr-filter .form-label {
 }
 
 html.app-skin-dark .student-dtr-metric,
+html.app-skin-dark .student-dtr-report-export-card,
 html.app-skin-dark .student-dtr-table td,
 html.app-skin-dark .student-dtr-empty {
-    background: var(--dtr-soft-bg);
-    border-color: var(--dtr-soft-border);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    background: var(--dtr-card-bg) !important;
+    border-color: var(--dtr-card-border) !important;
+    box-shadow: none !important;
 }
 
 html.app-skin-dark .student-dtr-fallback-card .form-label {
@@ -433,13 +445,13 @@ html.app-skin-dark .student-dtr-fallback-card .form-select:focus {
 html.app-skin-dark .student-dtr-fallback-card .form-control[type="file"]::file-selector-button {
     border-right-color: var(--dtr-soft-border);
     background: var(--dtr-accent-soft);
-    color: color-mix(in srgb, var(--dtr-text) 76%, rgba(var(--bs-primary-rgb), 1) 24%);
+    color: var(--dtr-text);
 }
 
 html.app-skin-dark .student-dtr-fallback-card .form-control[type="file"]::-webkit-file-upload-button {
     border-right-color: var(--dtr-soft-border);
     background: var(--dtr-accent-soft);
-    color: color-mix(in srgb, var(--dtr-text) 76%, rgba(var(--bs-primary-rgb), 1) 24%);
+    color: var(--dtr-text);
 }
 
 html.app-skin-dark .student-dtr-proof-clock .text-muted,
@@ -466,12 +478,21 @@ html.app-skin-dark .student-dtr-empty {
     color: var(--dtr-muted);
 }
 
+/* Desktop Layout - 4 columns */
+@media (min-width: 1400px) {
+    .student-dtr-metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+/* Tablet Layout - 2 columns */
 @media (max-width: 1199.98px) {
     .student-dtr-metrics {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
+/* Large tablet - adjust hero layout */
 @media (max-width: 991.98px) {
     .student-dtr-hero {
         flex-direction: column;
@@ -479,9 +500,28 @@ html.app-skin-dark .student-dtr-empty {
     }
 }
 
+/* Mobile optimization - compact layout */
 @media (max-width: 767.98px) {
+    .student-dtr-shell {
+        gap: 0.75rem;
+    }
+
     .student-dtr-metrics {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.65rem;
+    }
+
+    .student-dtr-metric {
+        padding: 0.9rem 0.95rem;
+    }
+
+    .student-dtr-metric strong {
+        margin-top: 0.4rem;
+        font-size: 1.4rem;
+    }
+
+    .student-dtr-metric small {
+        font-size: 0.75rem;
     }
 
     .student-dtr-hero-card .card-body {
@@ -490,18 +530,31 @@ html.app-skin-dark .student-dtr-empty {
 
     .student-dtr-filter {
         width: 100%;
+        flex-direction: column;
+        gap: 0.65rem;
     }
 
-    .student-dtr-filter > div:first-child {
-        flex: 1 1 auto;
+    .student-dtr-filter > div {
+        width: 100%;
     }
 
     .student-dtr-filter .form-select,
     .student-dtr-filter .btn {
         width: 100%;
+        height: 44px;
+        min-width: auto;
     }
 
     .student-dtr-fallback-card .row > [class*="col-"] {
+        width: 100%;
+        margin-bottom: 0.65rem;
+    }
+
+    .student-dtr-report-export-card .row > [class*="col-"] {
+        width: 100%;
+    }
+
+    .student-dtr-report-export-card .btn {
         width: 100%;
     }
 
@@ -509,10 +562,97 @@ html.app-skin-dark .student-dtr-empty {
         width: 100%;
     }
 
+    .student-dtr-report-export-card .card-body,
+    .student-dtr-fallback-card .card-body,
+    .student-dtr-side-card .card-body {
+        padding: 0.95rem;
+    }
+
+    .student-dtr-report-export-card h3,
+    .student-dtr-fallback-card h3 {
+        font-size: 1.35rem;
+    }
+
+    .student-dtr-side-card h3 {
+        font-size: 1.2rem;
+        margin-bottom: 0.65rem !important;
+    }
+
+    .student-dtr-side-list div {
+        padding: 0.75rem 0.8rem;
+        border-radius: 0.8rem;
+    }
+
     .student-dtr-proof-clock {
         gap: 0.75rem;
         flex-wrap: wrap;
         align-items: flex-start !important;
+    }
+}
+
+/* Small mobile - further optimizations */
+@media (max-width: 639px) {
+    .student-dtr-hero {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .student-dtr-title {
+        font-size: 1.4rem;
+    }
+
+    .student-dtr-avatar {
+        width: 60px;
+        height: 60px;
+    }
+
+    .student-dtr-hero-card .card-body {
+        padding: 1rem;
+    }
+
+    .student-dtr-metrics {
+        grid-template-columns: 1fr;
+        gap: 0.6rem;
+    }
+
+    .student-dtr-metric {
+        padding: 0.8rem 0.9rem;
+    }
+
+    .student-dtr-metric strong {
+        font-size: 1.3rem;
+        margin-top: 0.35rem;
+    }
+
+    .student-dtr-filter .form-select,
+    .student-dtr-filter .btn {
+        height: 42px;
+        font-size: 0.9rem;
+    }
+
+    .student-dtr-fallback-card .form-control,
+    .student-dtr-fallback-card .form-select {
+        min-height: 42px;
+        height: 42px;
+        font-size: 0.9rem;
+    }
+
+    .student-dtr-fallback-card .btn-warning {
+        height: 42px;
+        font-size: 0.9rem;
+    }
+
+    .student-dtr-proof-clock {
+        min-height: 42px;
+        height: 42px;
+        padding: 0 0.75rem;
+    }
+
+    .student-dtr-report-export-card .btn,
+    .student-dtr-fallback-card .btn,
+    .student-dtr-side-card .btn {
+        min-height: 42px;
+        font-size: 0.88rem;
     }
 
     .student-dtr-table {
@@ -533,28 +673,31 @@ html.app-skin-dark .student-dtr-empty {
     }
 
     .student-dtr-table tr {
-        margin-bottom: 1rem;
+        margin-bottom: 0.85rem;
+        border-radius: 1rem;
+        overflow: hidden;
     }
 
     .student-dtr-table td {
         position: relative;
-        padding: 0.85rem 1rem 0.85rem 8.2rem;
+        padding: 0.75rem 1rem 0.75rem 7.5rem;
         border-left: 1px solid var(--dtr-soft-border);
         border-right: 1px solid var(--dtr-soft-border);
         border-radius: 0;
-        min-height: 52px;
+        min-height: 48px;
         display: flex;
         align-items: center;
+        font-size: 0.9rem;
     }
 
     .student-dtr-table td::before {
         content: attr(data-label);
         position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 6.25rem;
-        font-size: 0.68rem;
+        left: 0.75rem;
+        top: 0.75rem;
+        transform: none;
+        width: 6rem;
+        font-size: 0.65rem;
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -578,6 +721,11 @@ html.app-skin-dark .student-dtr-empty {
     .student-dtr-table td div {
         position: relative;
         z-index: 1;
+    }
+
+    .student-dtr-table td[data-label="Date"] {
+        align-items: flex-start;
+        padding-top: 1.6rem;
     }
 
     html.app-skin-dark .student-dtr-table td::before {
