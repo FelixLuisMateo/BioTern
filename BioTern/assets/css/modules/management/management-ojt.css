@@ -1979,31 +1979,33 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
                 position: absolute;
                 left: 0;
                 top: 0;
-                width: 100%;
-                max-width: 7.45in;
+                width: 7.45in;
+                max-width: 100%;
+                min-height: 10.4in;
                 background: #fff;
                 color: #111;
                 font-family: Arial, Helvetica, sans-serif;
-                font-size: 12px;
+                font-size: 11.5px;
                 margin: 0 auto;
-                padding: 12px 14px;
+                padding: 0.38in 0.42in;
+                box-sizing: border-box;
             }
             .ojt-print-sheet .header,
             .app-ojt-print-sheet .app-ojt-print-header {
                 position: relative;
-                min-height: 0.9in;
+                min-height: 0.78in;
                 text-align: center;
                 border-bottom: 1px solid #8ab0e6;
-                padding: 0.08in 0 0.06in 0;
-                margin-bottom: 14px;
+                padding: 0.06in 0 0.06in 0.85in;
+                margin-bottom: 18px;
             }
             .ojt-print-sheet .crest,
             .app-ojt-print-sheet .app-ojt-print-crest {
                 position: absolute;
-                top: 0.22in;
-                left: 0.22in;
-                width: 0.77in;
-                height: 0.76in;
+                top: 0.08in;
+                left: 0.12in;
+                width: 0.64in;
+                height: 0.64in;
                 object-fit: contain;
             }
             .ojt-print-sheet .header h2,
@@ -2031,16 +2033,16 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
             .app-ojt-print-sheet .app-ojt-print-title,
             .app-ojt-selected-print-sheet h1 {
                 text-align: center;
-                font-size: 24px;
-                letter-spacing: 1px;
+                font-size: 28px;
+                letter-spacing: 0.5px;
                 font-weight: 700;
-                margin: 18px 0 16px;
+                margin: 18px 0 18px;
             }
             .ojt-print-sheet .print-meta,
             .app-ojt-print-sheet .app-ojt-print-meta-row,
             .app-ojt-selected-print-sheet p {
                 margin-bottom: 14px;
-                font-size: 13px;
+                font-size: 12px;
             }
             .ojt-print-sheet .print-meta strong,
             .app-ojt-print-sheet .app-ojt-print-meta-row strong {
@@ -2053,15 +2055,17 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
                 width: 100%;
                 min-width: 100%;
                 border-collapse: collapse;
-                font-size: 12.5px;
-                table-layout: auto;
+                font-size: 11.5px;
+                table-layout: fixed;
             }
             .ojt-print-sheet th, .ojt-print-sheet td,
             .app-ojt-print-sheet th, .app-ojt-print-sheet td,
             .app-ojt-selected-print-sheet th, .app-ojt-selected-print-sheet td {
                 border: 1px solid #d9d9d9;
-                padding: 9px 8px;
+                padding: 7px 7px;
                 text-align: left;
+                vertical-align: top;
+                overflow-wrap: anywhere;
             }
             .ojt-print-sheet th,
             .app-ojt-print-sheet th,
@@ -2080,18 +2084,18 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
             }
             .app-ojt-selected-print-sheet .header {
                 position: relative;
-                min-height: 0.9in;
+                min-height: 0.78in;
                 text-align: center;
                 border-bottom: 1px solid #8ab0e6;
-                padding: 0.08in 0 0.06in 0;
-                margin-bottom: 14px;
+                padding: 0.06in 0 0.06in 0.85in;
+                margin-bottom: 18px;
             }
             .app-ojt-selected-print-sheet .crest {
                 position: absolute;
-                top: 0.22in;
-                left: 0.22in;
-                width: 0.77in;
-                height: 0.76in;
+                top: 0.08in;
+                left: 0.12in;
+                width: 0.64in;
+                height: 0.64in;
                 object-fit: contain;
             }
             .app-ojt-selected-print-sheet .header h2 {
@@ -2114,14 +2118,14 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
             }
             .app-ojt-selected-print-sheet .print-title {
                 text-align: center;
-                font-size: 24px;
-                letter-spacing: 1px;
+                font-size: 28px;
+                letter-spacing: 0.5px;
                 font-weight: 700;
-                margin: 18px 0 16px;
+                margin: 18px 0 18px;
             }
             .app-ojt-selected-print-sheet .print-meta {
                 margin-bottom: 14px;
-                font-size: 13px;
+                font-size: 12px;
             }
             .app-ojt-selected-print-sheet .print-meta strong {
                 min-width: 76px;

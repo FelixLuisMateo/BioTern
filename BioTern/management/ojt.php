@@ -692,7 +692,7 @@ include 'includes/header.php';
 <main class="nxl-container">
     <div class="nxl-content">
 <section class="ojt-print-sheet app-ojt-print-sheet">
-    <img class="crest app-ojt-print-crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
+    <img class="crest app-ojt-print-crest" src="assets/images/ccstlogo.png" alt="crest" data-hide-onerror="1">
     <div class="header app-ojt-print-header">
         <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
         <div class="meta app-ojt-print-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga &middot;</div>
@@ -705,11 +705,10 @@ include 'includes/header.php';
             <tr>
                 <th class="col-index app-ojt-print-col-index">#</th>
                 <th>Student No.</th>
-                <th>Student Name</th>
-                <th>Course</th>
-                <th>Section</th>
-                <th>Supervisor</th>
-                <th>Coordinator</th>
+                <th>Last Name</th>
+                <th>First Name</th>
+                <th>Middle Name</th>
+                <th>Course / Section</th>
                 <th>Remarks</th>
             </tr>
         </thead>
@@ -724,8 +723,9 @@ include 'includes/header.php';
                         $student_first = normalize_person_name((string)($r['first_name'] ?? ''));
                         $student_name_lf = trim($student_last . ($student_last !== '' && $student_first !== '' ? ', ' : '') . $student_first);
                         ?>
-                        <td><?php echo htmlspecialchars($student_name_lf); ?></td>
-                        <td><?php echo htmlspecialchars((string)($r['course_name'] ?? '')); ?></td>
+                        <td><?php echo htmlspecialchars($student_last); ?></td>
+                        <td><?php echo htmlspecialchars($student_first); ?></td>
+                        <td><?php echo htmlspecialchars(normalize_person_name((string)($r['middle_name'] ?? ''))); ?></td>
                         <?php
                         $printSection = trim((string)($r['section_name'] ?? ''));
                         $printSemester = trim((string)($r['semester'] ?? ''));
@@ -737,16 +737,14 @@ include 'includes/header.php';
                             $printSection .= ' / ' . $printSchoolYear;
                         }
                         ?>
-                        <td><?php echo htmlspecialchars($printSection); ?></td>
-                        <td><?php echo htmlspecialchars(to_last_name_first((string)($r['supervisor_name'] ?? ''))); ?></td>
-                        <td><?php echo htmlspecialchars(to_last_name_first((string)($r['coordinator_name'] ?? ''))); ?></td>
+                        <td><?php echo htmlspecialchars(trim((string)($r['course_name'] ?? '') . ($printSection !== '' ? ' / ' . $printSection : ''))); ?></td>
                         <td></td>
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
                     <td class="col-index app-ojt-print-col-index">1</td>
-                    <td colspan="7">No OJT students found for current filter.</td>
+                    <td colspan="6">No OJT students found for current filter.</td>
                 </tr>
             <?php endif; ?>
         </tbody>
@@ -903,7 +901,7 @@ include 'includes/header.php';
         <div class="card app-ojt-dashboard-card stretch stretch-full app-ojt-table-card app-data-card app-data-toolbar" id="ojtWorklist">
             <div class="card-body p-0">
                 <div class="table-responsive students-table-wrap app-ojt-table-wrap app-data-table-wrap">
-                    <table class="table table-hover mb-0 app-ojt-list-table app-data-table" id="ojtListTable" data-ojt-select-table data-print-title="OJT Student List" data-print-subtitle="<?php echo htmlspecialchars($print_filter_label, ENT_QUOTES, 'UTF-8'); ?>">
+                    <table class="table table-hover mb-0 app-ojt-list-table app-data-table" id="ojtListTable" data-ojt-select-table data-print-mode="ojt-student-list" data-print-title="OJT Student List" data-print-subtitle="<?php echo htmlspecialchars($print_filter_label, ENT_QUOTES, 'UTF-8'); ?>">
                         <thead>
                         <tr>
                             <th class="app-ojt-select-column">
@@ -964,7 +962,12 @@ include 'includes/header.php';
                             $ojt_view_link = $has_student_account ? ('ojt-view.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '')) : '#';
                             $ojt_edit_link = $has_student_account ? ('ojt-edit.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '')) : '#';
                             ?>
-                            <tr class="app-ojt-table-row app-ojt-table-row-<?php echo htmlspecialchars($risk_band); ?>">
+                            <tr class="app-ojt-table-row app-ojt-table-row-<?php echo htmlspecialchars($risk_band); ?>"
+                                data-print-student-no="<?php echo htmlspecialchars((string)($r['student_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-print-last-name="<?php echo htmlspecialchars(normalize_person_name((string)($r['last_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-print-first-name="<?php echo htmlspecialchars(normalize_person_name((string)($r['first_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-print-middle-name="<?php echo htmlspecialchars(normalize_person_name((string)($r['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-print-course-section="<?php echo htmlspecialchars(trim((string)($r['course_name'] ?? '') . ($section_period_label !== '-' ? ' / ' . $section_period_label : '')), ENT_QUOTES, 'UTF-8'); ?>">
                                 <td class="app-ojt-select-column">
                                     <div class="form-check app-ojt-select-check">
                                         <input class="form-check-input" type="checkbox" data-ojt-row-select aria-label="Select student <?php echo htmlspecialchars(trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
@@ -1170,7 +1173,7 @@ include 'includes/header.php';
     </div>
 </main>
 <section class="student-list-print-sheet app-students-print-sheet app-ojt-selected-print-sheet" data-ojt-print-sheet="ojtListTable" aria-hidden="true">
-    <img class="crest" src="assets/images/auth/auth-cover-login-bg.png" alt="crest" data-hide-onerror="1">
+    <img class="crest" src="assets/images/ccstlogo.png" alt="crest" data-hide-onerror="1">
     <div class="header">
         <h2>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</h2>
         <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga &middot;</div>
