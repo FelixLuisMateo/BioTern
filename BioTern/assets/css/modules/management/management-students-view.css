@@ -465,7 +465,7 @@
 }
 
 .student-internal-eval-paper h3 {
-    margin: 8px 0 13px;
+    margin: 9px 0 17px;
     font-size: 13px;
     line-height: 1.15;
     text-align: center;
@@ -473,7 +473,7 @@
 
 .student-internal-eval-print-meta {
     width: 46%;
-    margin-bottom: 15px;
+    margin-bottom: 18px;
 }
 
 .student-internal-eval-print-meta p {
@@ -544,8 +544,8 @@
 }
 
 .student-internal-eval-print-recommendation {
-    width: 74%;
-    margin: 12px 0 0;
+    width: 58%;
+    margin: 12px 0 0 14mm;
 }
 
 .student-internal-eval-print-recommendation p {
