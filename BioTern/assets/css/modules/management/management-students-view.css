@@ -554,30 +554,23 @@
 
 .student-internal-eval-print-lines {
     display: block;
-    min-height: 72px;
+    min-height: 75px;
     background: none;
 }
 
 .student-internal-eval-print-line {
     display: block;
     width: 100%;
-    min-height: 72px;
+    min-height: 15px;
     line-height: 18px;
     padding: 0;
-    border-bottom: 0;
+    border-bottom: 1px solid #111;
     white-space: normal;
     overflow: hidden;
-    background-image: repeating-linear-gradient(
-        to bottom,
-        transparent 0,
-        transparent 17px,
-        #111 17px,
-        #111 18px
-    );
 }
 
-.student-internal-eval-print-line[aria-hidden="true"] {
-    display: none;
+.student-internal-eval-print-line + .student-internal-eval-print-line {
+    margin-top: 5px;
 }
 
 .student-internal-eval-print-line--short {
