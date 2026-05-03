@@ -178,6 +178,19 @@
     margin-top: 0 !important;
 }
 
+.student-dtr-shell--manual .row.g-4 {
+    margin-inline: 0;
+}
+
+.student-dtr-shell--manual .row.g-4 > [class*="col-"] {
+    padding-inline: 0;
+}
+
+.student-dtr-shell--manual .student-dtr-record-entry-card {
+    width: min(100%, 760px);
+    margin-inline: auto;
+}
+
 .student-dtr-hero-card {
     background: var(--dtr-card-bg);
     border: 1px solid var(--dtr-card-border);
@@ -892,9 +905,50 @@ html.app-skin-dark .student-dtr-metric {
         gap: 0.75rem;
     }
 
+    .student-dtr-shell--manual {
+        width: 100%;
+        max-width: 430px;
+        padding-inline: 0;
+    }
+
     .student-dtr-station-hero {
         padding: 1.1rem;
         border-radius: 1rem;
+    }
+
+    .student-dtr-shell--manual .student-dtr-station-hero {
+        padding: 1rem;
+        border-radius: 1rem;
+    }
+
+    .student-dtr-shell--manual .student-dtr-station-chip {
+        margin-bottom: 0;
+        font-size: 0.66rem;
+    }
+
+    .student-dtr-shell--manual .student-dtr-persona {
+        gap: 0.85rem;
+    }
+
+    .student-dtr-shell--manual .student-dtr-station-hero .student-dtr-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 0.8rem;
+    }
+
+    .student-dtr-shell--manual .student-dtr-station-hero .student-dtr-title {
+        font-size: 1.18rem;
+        line-height: 1.25;
+    }
+
+    .student-dtr-shell--manual .student-dtr-hero-copy {
+        margin-top: 0.2rem;
+        font-size: 0.78rem;
+        line-height: 1.45;
+    }
+
+    .student-dtr-shell--manual .student-dtr-hero-pills {
+        display: none;
     }
 
     .student-dtr-station-filter {
@@ -951,8 +1005,31 @@ html.app-skin-dark .student-dtr-metric {
         margin-bottom: 0.65rem;
     }
 
+    .student-dtr-record-entry-card {
+        border-radius: 1rem;
+    }
+
+    .student-dtr-record-entry-card .card-body {
+        padding: 1rem;
+    }
+
+    .student-dtr-record-entry-card .d-flex.mb-3 {
+        margin-bottom: 0.8rem !important;
+    }
+
+    .student-dtr-record-entry-card h3 {
+        font-size: 1.2rem;
+        line-height: 1.3;
+    }
+
+    .student-dtr-record-entry-card .student-dtr-meta {
+        font-size: 0.78rem;
+        line-height: 1.45;
+    }
+
     .student-dtr-record-entry-card form.row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
     }
 
     .student-dtr-record-entry-card .col-md-4,
@@ -964,6 +1041,53 @@ html.app-skin-dark .student-dtr-metric {
     .student-dtr-record-entry-card .student-dtr-clock-wrap,
     .student-dtr-record-entry-card #fallbackGeneratedRowsWrap {
         grid-column: 1 / -1;
+    }
+
+    .student-dtr-record-entry-card .student-dtr-proof-clock {
+        min-height: 78px;
+        border-radius: 0.9rem;
+    }
+
+    .student-dtr-record-entry-card .student-dtr-proof-clock strong {
+        font-size: 1.55rem;
+    }
+
+    .student-dtr-record-entry-card .student-dtr-proof-clock span {
+        font-size: 0.72rem;
+    }
+
+    .student-dtr-record-entry-card .student-dtr-fallback-guide {
+        gap: 0.45rem;
+        padding: 0.8rem;
+        border-radius: 0.9rem;
+    }
+
+    .student-dtr-record-entry-card .student-dtr-fallback-guide strong {
+        font-size: 0.82rem;
+    }
+
+    .student-dtr-record-entry-card .student-dtr-fallback-guide span {
+        font-size: 0.74rem;
+    }
+
+    .student-dtr-record-entry-card .d-flex.flex-wrap.align-items-end.gap-3 {
+        display: grid !important;
+        gap: 0.55rem !important;
+    }
+
+    .student-dtr-record-entry-card #generateFallbackRows {
+        width: 100%;
+        min-height: 44px;
+        border-radius: 0.85rem;
+    }
+
+    .student-dtr-record-entry-card .table-responsive {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .student-dtr-record-entry-card .table {
+        min-width: 680px;
     }
 
     .student-dtr-report-export-card .row > [class*="col-"] {
@@ -1008,6 +1132,14 @@ html.app-skin-dark .student-dtr-metric {
 
 /* Small mobile - further optimizations */
 @media (max-width: 639px) {
+    .student-dtr-shell--manual {
+        max-width: 100%;
+    }
+
+    .student-dtr-shell--manual .student-dtr-station-hero {
+        display: none;
+    }
+
     .student-dtr-station-hero .student-dtr-persona {
         align-items: flex-start;
     }
@@ -1069,6 +1201,7 @@ html.app-skin-dark .student-dtr-metric {
 
     .student-dtr-record-entry-card form.row {
         grid-template-columns: 1fr;
+        gap: 0.7rem;
     }
 
     .student-dtr-record-entry-card .col-md-4,
@@ -1076,15 +1209,39 @@ html.app-skin-dark .student-dtr-metric {
         grid-column: 1 / -1;
     }
 
+    .student-dtr-record-entry-card .form-label {
+        margin-bottom: 0.35rem;
+        font-size: 0.68rem;
+    }
+
     .student-dtr-fallback-card .btn-warning {
-        height: 42px;
+        height: auto;
+        min-height: 46px;
         font-size: 0.9rem;
     }
 
     .student-dtr-proof-clock {
         min-height: 42px;
-        height: 42px;
+        height: auto;
         padding: 0 0.75rem;
+    }
+
+    .student-dtr-record-entry-card .student-dtr-proof-clock {
+        min-height: 82px;
+        padding: 0.8rem;
+    }
+
+    .student-dtr-record-entry-card .student-dtr-proof-clock strong {
+        font-size: 1.7rem;
+    }
+
+    .student-dtr-record-entry-card textarea.form-control {
+        min-height: 96px;
+    }
+
+    .student-dtr-record-entry-card .col-12.d-flex.flex-wrap.gap-2.align-items-center {
+        display: grid !important;
+        gap: 0.55rem !important;
     }
 
     .student-dtr-report-export-card .btn,
