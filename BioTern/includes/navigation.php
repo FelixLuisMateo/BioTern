@@ -115,15 +115,6 @@ if ($nav_current_file === '') {
     $nav_current_file = strtolower(basename((string)$nav_request_path));
 }
 $nav_student_has_external_access = ($nav_student_track === 'external') || ($nav_is_student && $nav_current_file === 'external-biometric.php');
-if ($nav_is_student && !$nav_student_has_external_access && $nav_student_id > 0 && isset($conn) && $conn instanceof mysqli) {
-    $nav_external_stmt = $conn->prepare('SELECT 1 FROM external_attendance WHERE student_id = ? LIMIT 1');
-    if ($nav_external_stmt) {
-        $nav_external_stmt->bind_param('i', $nav_student_id);
-        $nav_external_stmt->execute();
-        $nav_student_has_external_access = (bool)($nav_external_stmt->get_result()->fetch_assoc() ?: null);
-        $nav_external_stmt->close();
-    }
-}
 
 if (!function_exists('biotern_nav_route_key')) {
     function biotern_nav_route_key($href) {
@@ -357,7 +348,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                 <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['student-external-dtr.php', 'external-biometric.php']) ? ' active' : ''; ?>">
                     <a href="external-biometric.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-briefcase"></i></span>
-                        <span class="nxl-mtext">My External DTR</span>
+                        <span class="nxl-mtext">External Biometric</span>
                     </a>
                 </li>
                 <?php endif; ?>
