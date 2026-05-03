@@ -852,7 +852,7 @@ include 'includes/header.php';
                                         $rowStatus = strtolower(trim((string)($row['status'] ?? 'pending')));
                                         ?>
                                         <tr>
-                                            <td class="external-review-student">
+                                            <td class="external-review-student" data-label="Student">
                                                 <div class="d-flex align-items-center gap-3">
                                                     <div class="avatar-image avatar-md"><img src="<?php echo htmlspecialchars($avatar, ENT_QUOTES, 'UTF-8'); ?>" alt="" class="img-fluid"></div>
                                                     <div>
@@ -862,27 +862,27 @@ include 'includes/header.php';
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td><?php echo htmlspecialchars(date('M d, Y', strtotime((string)$row['attendance_date'])), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td class="external-review-schedule">
+                                            <td data-label="Date"><?php echo htmlspecialchars(date('M d, Y', strtotime((string)$row['attendance_date'])), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td class="external-review-schedule" data-label="Schedule">
                                                 <div class="small"><?php echo htmlspecialchars(trim((string)($row['morning_time_in'] ?? '')) !== '' ? (date('g:i A', strtotime((string)$row['morning_time_in'])) . ' - ' . (trim((string)($row['morning_time_out'] ?? '')) !== '' ? date('g:i A', strtotime((string)$row['morning_time_out'])) : '--')) : 'No morning record', ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <div class="small"><?php echo htmlspecialchars(trim((string)($row['break_time_in'] ?? '')) !== '' ? (date('g:i A', strtotime((string)$row['break_time_in'])) . ' - ' . (trim((string)($row['break_time_out'] ?? '')) !== '' ? date('g:i A', strtotime((string)$row['break_time_out'])) : '--')) : 'No break record', ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <div class="small"><?php echo htmlspecialchars(trim((string)($row['afternoon_time_in'] ?? '')) !== '' ? (date('g:i A', strtotime((string)$row['afternoon_time_in'])) . ' - ' . (trim((string)($row['afternoon_time_out'] ?? '')) !== '' ? date('g:i A', strtotime((string)$row['afternoon_time_out'])) : '--')) : 'No afternoon record', ENT_QUOTES, 'UTF-8'); ?></div>
                                             </td>
-                                            <td>
+                                            <td data-label="Total">
                                                 <?php echo number_format((float)($row['total_hours'] ?? 0), 2); ?> hrs
                                                 <?php if ((float)($row['multiplier'] ?? 1) > 1): ?>
                                                     <div class="small text-muted"><?php echo htmlspecialchars((string)($row['multiplier_reason'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <?php endif; ?>
                                             </td>
-                                            <td>
+                                            <td data-label="Status">
                                                 <span class="badge bg-soft-<?php echo $rowStatus === 'approved' ? 'success text-success' : ($rowStatus === 'rejected' ? 'danger text-danger' : 'warning text-warning'); ?>">
                                                     <?php echo htmlspecialchars(ucfirst($rowStatus), ENT_QUOTES, 'UTF-8'); ?>
                                                 </span>
                                             </td>
-                                            <td><?php echo htmlspecialchars((string)($row['source'] ?? 'manual'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td><?php if (trim((string)($row['photo_path'] ?? '')) !== ''): ?><a href="<?php echo htmlspecialchars((string)$row['photo_path'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">Open</a><?php else: ?>-<?php endif; ?></td>
-                                            <td class="small external-review-notes"><?php echo htmlspecialchars((string)($row['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td>
+                                            <td data-label="Source"><?php echo htmlspecialchars((string)($row['source'] ?? 'manual'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td data-label="Photo"><?php if (trim((string)($row['photo_path'] ?? '')) !== ''): ?><a href="<?php echo htmlspecialchars((string)$row['photo_path'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">Open</a><?php else: ?>-<?php endif; ?></td>
+                                            <td class="small external-review-notes" data-label="Notes"><?php echo htmlspecialchars((string)($row['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td data-label="Review">
                                                 <form method="post" class="d-grid gap-2 external-review-form">
                                                     <input type="hidden" name="external_admin_action" value="review">
                                                     <input type="hidden" name="record_id" value="<?php echo (int)$row['id']; ?>">

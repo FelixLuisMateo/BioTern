@@ -273,7 +273,7 @@ html.app-skin-dark {
 
 .nxl-user-dropdown .dropdown-header {
     padding: 16px 18px 14px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    background: var(--header-menu-surface);
 }
 
 .nxl-user-dropdown .dropdown-header h6 {
@@ -716,7 +716,12 @@ html.app-skin-dark .nxl-header .dropdown-menu.nxl-user-dropdown {
 }
 
 html.app-skin-dark .nxl-user-dropdown .dropdown-header {
-    background: linear-gradient(180deg, #111c31 0%, #0f172a 100%);
+    background: var(--header-menu-surface);
+}
+
+.user-dropdown-hero {
+    background: var(--header-menu-surface);
+    border-bottom: 1px solid var(--header-menu-border);
 }
 
 html.app-skin-dark .user-dropdown-logout {

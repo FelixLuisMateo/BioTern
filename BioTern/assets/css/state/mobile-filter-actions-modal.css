@@ -1,0 +1,210 @@
+/* Mobile-only modalized page-header filters + actions */
+@media (max-width: 991.98px) {
+    body.mobile-bottom-nav .mobile-actions-source-hidden {
+        display: none !important;
+    }
+
+    /* Keep exactly one actions trigger on mobile header */
+    body.mobile-bottom-nav .page-header .page-header-actions-toggle,
+    body.mobile-bottom-nav .page-header .app-students-actions-toggle,
+    body.mobile-bottom-nav .page-header .app-ojt-actions-toggle,
+    body.mobile-bottom-nav .page-header .app-applications-actions-toggle,
+    body.mobile-bottom-nav .page-header .page-header-right-open-toggle,
+    body.mobile-bottom-nav .page-header .app-page-header-auto-toggle {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav .page-header .page-header-mobile-actions-toggle {
+        display: inline-flex !important;
+    }
+
+    body.mobile-bottom-nav .page-header-primary-actions {
+        display: none !important;
+    }
+
+    /* Force-hide list filter UI blocks on mobile content area; filters stay in header modal */
+    body.mobile-bottom-nav .bio-console-panel .fingerprint-form,
+    body.mobile-bottom-nav .bio-console-panel .fingerprint-form + .d-flex,
+    body.mobile-bottom-nav .bio-console-panel .fingerprint-form + .d-flex + .d-flex,
+    body.mobile-bottom-nav .filter-form,
+    body.mobile-bottom-nav .app-ojt-filter-card .card-body.border-bottom {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav .page-header .page-header-right {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        flex-wrap: nowrap !important;
+        gap: 0.45rem !important;
+    }
+
+    body.mobile-bottom-nav .page-header-mobile-filter-toggle,
+    body.mobile-bottom-nav .page-header-mobile-actions-toggle,
+    body.mobile-bottom-nav .page-header-mobile-search-toggle {
+        width: 38px !important;
+        min-width: 38px !important;
+        max-width: 38px !important;
+        min-height: 38px !important;
+        border-radius: 10px !important;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: 1px solid var(--biotern-border, rgba(148, 163, 184, 0.25)) !important;
+        background: var(--biotern-surface-muted, rgba(15, 23, 42, 0.07)) !important;
+        box-shadow: none !important;
+    }
+
+    body.mobile-bottom-nav .page-header-mobile-filter-toggle span,
+    body.mobile-bottom-nav .page-header-mobile-actions-toggle span,
+    body.mobile-bottom-nav .page-header-mobile-search-toggle span {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav .page-header-mobile-filter-toggle i,
+    body.mobile-bottom-nav .page-header-mobile-actions-toggle i,
+    body.mobile-bottom-nav .page-header-mobile-search-toggle i {
+        margin: 0 !important;
+        font-size: 1rem;
+    }
+
+    /* Icon-only header controls on mobile */
+    body.mobile-bottom-nav .page-header .page-header-right > .btn,
+    body.mobile-bottom-nav .page-header .page-header-right > form > .btn,
+    body.mobile-bottom-nav .page-header .page-header-right > .dropdown > .btn {
+        width: 38px !important;
+        min-width: 38px !important;
+        max-width: 38px !important;
+        min-height: 38px !important;
+        border-radius: 10px !important;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0 !important;
+        border: 1px solid var(--biotern-border, rgba(148, 163, 184, 0.25)) !important;
+        background: var(--biotern-surface-muted, rgba(15, 23, 42, 0.07)) !important;
+        box-shadow: none !important;
+    }
+
+    body.mobile-bottom-nav .page-header .page-header-right > .btn span,
+    body.mobile-bottom-nav .page-header .page-header-right > form > .btn span,
+    body.mobile-bottom-nav .page-header .page-header-right > .dropdown > .btn span {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav .page-header .page-header-right > .btn i,
+    body.mobile-bottom-nav .page-header .page-header-right > form > .btn i,
+    body.mobile-bottom-nav .page-header .page-header-right > .dropdown > .btn i {
+        margin: 0 !important;
+    }
+
+    body.mobile-bottom-nav .mobile-filters-hidden {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav .mobile-page-header-search-source-hidden {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav .mobile-page-header-search-panel {
+        display: none;
+        width: 100%;
+        padding: 0.6rem 0.85rem 0.75rem;
+        border-bottom: 1px solid var(--biotern-border, rgba(148, 163, 184, 0.25));
+        background: var(--biotern-surface, rgba(15, 23, 42, 0.04));
+    }
+
+    body.mobile-bottom-nav .mobile-page-header-search-panel.is-open {
+        display: block;
+    }
+
+    body.mobile-bottom-nav .mobile-page-header-search-panel .mobile-page-header-search-clone,
+    body.mobile-bottom-nav .mobile-page-header-search-panel form {
+        width: 100%;
+    }
+
+    body.mobile-bottom-nav .mobile-page-header-search-panel input,
+    body.mobile-bottom-nav .mobile-page-header-search-panel .form-control,
+    body.mobile-bottom-nav .mobile-page-header-search-panel .form-select {
+        width: 100%;
+    }
+
+    body.mobile-bottom-nav .mobile-page-header-modal .modal-dialog {
+        margin: 0.75rem auto;
+        max-width: min(560px, calc(100vw - 1rem));
+        min-height: calc(100vh - 1.5rem);
+        display: flex;
+        align-items: center;
+    }
+
+    body.mobile-bottom-nav .mobile-page-header-modal .modal-content {
+        border-radius: 12px;
+        max-height: min(88vh, 720px);
+        overflow: hidden;
+    }
+
+    body.mobile-bottom-nav .mobile-page-header-modal .modal-body {
+        overflow-y: auto;
+    }
+
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-filter-form-clone .row > [class*="col-"] {
+        width: 100%;
+    }
+
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-filter-form-clone .fm-actions,
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-filter-form-clone .btn,
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-filter-form-clone .form-control,
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-filter-form-clone .form-select {
+        width: 100%;
+    }
+
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-filter-form-clone .fm-actions {
+        display: grid;
+        gap: 0.5rem;
+    }
+
+    /* Keep cloned filter forms visible inside modal even if page-level filter forms are hidden. */
+    body.mobile-bottom-nav .mobile-page-header-modal .filter-form,
+    body.mobile-bottom-nav .mobile-page-header-modal .app-ojt-filter-form,
+    body.mobile-bottom-nav .mobile-page-header-modal .login-logs-auto-filter,
+    body.mobile-bottom-nav .mobile-page-header-modal .admin-logs-auto-filter,
+    body.mobile-bottom-nav .mobile-page-header-modal #studentsFilterForm,
+    body.mobile-bottom-nav .mobile-page-header-modal #ojtFilterForm {
+        display: block !important;
+    }
+
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-actions-grid {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        justify-items: center;
+        align-items: stretch;
+    }
+
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-actions-grid .action-tile,
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-actions-grid .btn,
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-actions-grid a,
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-actions-grid button {
+        width: 100%;
+        text-align: center;
+    }
+
+    @media (max-width: 430px) {
+        body.mobile-bottom-nav .mobile-page-header-modal .mobile-actions-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Safety net: never show desktop actions toggles inside mobile actions modal. */
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-actions-grid .page-header-actions-toggle,
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-actions-grid .app-students-actions-toggle,
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-actions-grid .app-ojt-actions-toggle,
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-actions-grid .app-applications-actions-toggle,
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-actions-grid .app-page-header-auto-toggle,
+    body.mobile-bottom-nav .mobile-page-header-modal .mobile-actions-grid .page-header-right-open-toggle {
+        display: none !important;
+    }
+}

@@ -1339,4 +1339,75 @@ html.app-theme-gray.app-skin-dark .dashboard-actions-panel {
     border-color: rgba(255, 255, 255, 0.1);
 }
 
+/* Page-scoped responsive header overrides for homepage on mobile. */
+@media (max-width: 991.98px) {
+    body.mobile-bottom-nav.dashboard-home .nxl-header {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .nxl-container {
+        top: 0 !important;
+        min-height: 100vh !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .page-header {
+        position: relative;
+        border: 1px solid var(--mobile-border) !important;
+        border-bottom: 1px solid var(--mobile-border) !important;
+        background: var(--mobile-surface) !important;
+        border-radius: 18px !important;
+        padding: 12px 14px !important;
+        min-height: 56px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12) !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .page-header-left {
+        width: auto;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .page-header-title h5 {
+        margin: 0 !important;
+        padding-right: 0 !important;
+        border-right: 0 !important;
+        font-size: 1.05rem;
+        text-align: left;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .breadcrumb {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .page-header-right {
+        position: static;
+        transform: none;
+        width: auto !important;
+        margin: 0 !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .page-header-quick {
+        display: none !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .page-header-actions-toggle {
+        width: 38px !important;
+        min-width: 38px !important;
+        max-width: 38px !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        border-radius: 999px !important;
+        background: var(--mobile-accent) !important;
+        border: none !important;
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.18) !important;
+    }
+
+    body.mobile-bottom-nav.dashboard-home .page-header-actions-toggle::after {
+        color: var(--mobile-accent-contrast) !important;
+        letter-spacing: 3px;
+    }
+}
+
 

@@ -325,26 +325,39 @@ body.mobile-bottom-nav {
 @media (max-width: 991.98px) {
     .biotern-bottom-nav {
         position: fixed;
-        left: 0;
-        right: 0;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: min(100vw, 560px);
         bottom: 0;
         z-index: 4500;
         height: var(--bottom-nav-height);
         padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
         display: flex;
         align-items: center;
-        justify-content: space-around;
-        gap: 0.35rem;
+        justify-content: center;
+        gap: 0.4rem;
+        overflow-x: hidden;
+        overflow-y: hidden;
+        white-space: nowrap;
+        scroll-snap-type: none;
+        -webkit-overflow-scrolling: touch;
+        touch-action: auto;
         background: linear-gradient(180deg, var(--mobile-surface) 0%, var(--mobile-surface-muted) 100%);
         border-top: 1px solid var(--mobile-border);
         box-shadow: 0 -12px 30px rgba(0, 0, 0, 0.18);
         backdrop-filter: blur(12px);
+    }
+
+    .biotern-bottom-nav::-webkit-scrollbar {
+        display: none;
     }
 }
 
 /* Bottom nav item interactions + active/open states. */
 .biotern-bottom-link {
     flex: 1 1 0;
+    scroll-snap-align: none;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -356,6 +369,8 @@ body.mobile-bottom-nav {
     color: var(--mobile-text);
     text-decoration: none;
     padding: 10px 6px;
+    min-width: 48px;
+    max-width: 72px;
     border-radius: 14px;
     transition: color 0.2s ease, background 0.2s ease, transform 0.2s ease;
     background: transparent;
@@ -384,6 +399,10 @@ body.mobile-bottom-nav {
 
 .biotern-bottom-link.is-profile {
     gap: 0;
+}
+
+.biotern-bottom-nav.is-dragging .biotern-bottom-link {
+    pointer-events: none;
 }
 
 /* Visually hidden label to preserve accessible naming in icon-only controls. */
@@ -565,77 +584,6 @@ html.app-skin-dark .biotern-bottom-nav {
 
 html.app-skin-dark .biotern-bottom-sheet-panel {
     background: var(--mobile-surface);
-}
-
-/* Homepage-specific mobile header behavior overrides. */
-@media (max-width: 991.98px) {
-    body.mobile-bottom-nav.dashboard-home .nxl-header {
-        display: none !important;
-    }
-
-    body.mobile-bottom-nav.dashboard-home .nxl-container {
-        top: 0 !important;
-        min-height: 100vh !important;
-    }
-
-    body.mobile-bottom-nav.dashboard-home .page-header {
-        position: relative;
-        border: 1px solid var(--mobile-border) !important;
-        border-bottom: 1px solid var(--mobile-border) !important;
-        background: var(--mobile-surface) !important;
-        border-radius: 18px !important;
-        padding: 12px 14px !important;
-        min-height: 56px;
-        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12) !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-    }
-
-    body.mobile-bottom-nav.dashboard-home .page-header-left {
-        width: auto;
-        justify-content: flex-start !important;
-        gap: 6px !important;
-    }
-
-    body.mobile-bottom-nav.dashboard-home .page-header-title h5 {
-        margin: 0 !important;
-        padding-right: 0 !important;
-        border-right: 0 !important;
-        font-size: 1.05rem;
-        text-align: left;
-    }
-
-    body.mobile-bottom-nav.dashboard-home .breadcrumb {
-        display: none !important;
-    }
-
-    body.mobile-bottom-nav.dashboard-home .page-header-right {
-        position: static;
-        transform: none;
-        width: auto !important;
-        margin: 0 !important;
-    }
-
-    body.mobile-bottom-nav.dashboard-home .page-header-quick {
-        display: none !important;
-    }
-
-    body.mobile-bottom-nav.dashboard-home .page-header-actions-toggle {
-        width: 38px !important;
-        min-width: 38px !important;
-        max-width: 38px !important;
-        height: 38px !important;
-        min-height: 38px !important;
-        border-radius: 999px !important;
-        background: var(--mobile-accent) !important;
-        border: none !important;
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.18) !important;
-    }
-
-    body.mobile-bottom-nav.dashboard-home .page-header-actions-toggle::after {
-        color: var(--mobile-accent-contrast) !important;
-        letter-spacing: 3px;
-    }
 }
 
 /* Footer visibility rules by viewport. */

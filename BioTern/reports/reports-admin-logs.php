@@ -207,6 +207,7 @@ $nextUrl = 'reports-admin-logs.php?' . http_build_query(array_merge($queryBase, 
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page admin-logs-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-login-logs-page.css', 'assets/css/modules/reports/reports-shell.css', 'assets/css/modules/reports/reports-admin-logs-page.css']);
+$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-admin-logs-page.js', 'assets/js/modules/reports/reports-shell-runtime.js']);
 $page_title = 'BioTern || Admin Logs';
 include 'includes/header.php';
 ?>
@@ -229,7 +230,7 @@ include 'includes/header.php';
     <?php ob_start(); ?>
         <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
         <a href="reports-login-logs.php" class="btn btn-outline-primary"><i class="feather-log-in me-1"></i>Login Logs</a>
-        <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
+        <button type="button" class="btn btn-light-brand js-print-report"><i class="feather-printer me-1"></i>Print</button>
     <?php
     biotern_render_page_header_actions([
         'menu_id' => 'reportsAdminLogsActionsMenu',
@@ -313,7 +314,7 @@ include 'includes/header.php';
 
     <div class="logs-table-card">
         <div class="table-responsive">
-            <table class="table table-hover align-middle">
+            <table class="table table-hover align-middle logs-mobile-table" data-mobile-collapse="true" data-mobile-visible-cells="3">
                 <thead>
                     <tr>
                         <th class="text-nowrap">Time</th>
@@ -342,25 +343,25 @@ include 'includes/header.php';
                             $targetId = trim((string)($row['target_id'] ?? ''));
                             ?>
                             <tr>
-                                <td class="text-nowrap"><?php echo htmlspecialchars(adminLogsFormatDateTime($row['created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td>
+                                <td class="text-nowrap" data-label="Time"><?php echo htmlspecialchars(adminLogsFormatDateTime($row['created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td data-label="Admin">
                                     <div class="fw-semibold"><?php echo htmlspecialchars($adminName !== '' ? $adminName : ($adminUsername !== '' ? $adminUsername : 'Admin'), ENT_QUOTES, 'UTF-8'); ?></div>
                                     <small class="text-muted"><?php echo htmlspecialchars($adminEmail !== '' ? $adminEmail : ($adminUsername !== '' ? $adminUsername : 'No username'), ENT_QUOTES, 'UTF-8'); ?></small>
                                 </td>
-                                <td>
+                                <td data-label="Activity">
                                     <div class="logs-activity-comment"><?php echo htmlspecialchars($activityComment !== '' ? $activityComment : '-', ENT_QUOTES, 'UTF-8'); ?></div>
                                 </td>
-                                <td class="text-nowrap">
+                                <td class="text-nowrap" data-label="Action">
                                     <span class="logs-pill bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?>">
                                         <?php echo htmlspecialchars((string)($row['action_label'] ?? ucwords($rowAction)), ENT_QUOTES, 'UTF-8'); ?>
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Target">
                                     <div class="fw-semibold text-capitalize"><?php echo htmlspecialchars((string)($row['target_type'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></div>
                                     <small class="text-muted"><?php echo htmlspecialchars($targetName !== '' ? $targetName : ($targetId !== '' ? $targetId : '-'), ENT_QUOTES, 'UTF-8'); ?></small>
                                 </td>
-                                <td><span class="logs-identifier"><?php echo htmlspecialchars((string)($row['page'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></span></td>
-                                <td class="text-nowrap"><?php echo htmlspecialchars(adminLogsDisplayIp($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td data-label="Page"><span class="logs-identifier"><?php echo htmlspecialchars((string)($row['page'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                <td class="text-nowrap" data-label="IP Address"><?php echo htmlspecialchars(adminLogsDisplayIp($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
@@ -412,38 +413,3 @@ include 'includes/header.php';
 </div>
 </main>
 <?php include 'includes/footer.php'; ?>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var form = document.querySelector('.admin-logs-auto-filter');
-    if (!form) {
-        return;
-    }
-
-    var search = form.querySelector('input[name="search"]');
-    var timer = null;
-
-    form.querySelectorAll('select').forEach(function (select) {
-        select.addEventListener('change', function () {
-            form.requestSubmit();
-        });
-    });
-
-    if (search) {
-        search.addEventListener('input', function () {
-            window.clearTimeout(timer);
-            timer = window.setTimeout(function () {
-                form.requestSubmit();
-            }, 450);
-        });
-    }
-
-    var pageJump = document.getElementById('adminLogsPageJump');
-    if (pageJump) {
-        pageJump.addEventListener('change', function () {
-            if (pageJump.form) {
-                pageJump.form.submit();
-            }
-        });
-    }
-});
-</script>

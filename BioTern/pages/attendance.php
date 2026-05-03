@@ -624,9 +624,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             $checkboxId = 'checkBox_' . $attendance['id'] . '_' . $idx;
             echo '<tr class="single-item">';
             if (attendanceCanReview($attendance)) {
-                echo '<td><div class="item-checkbox ms-1"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input checkbox" id="' . $checkboxId . '" data-attendance-id="' . (int)$attendance['id'] . '"><label class="custom-control-label" for="' . $checkboxId . '"></label></div></div></td>';
+            echo '<td data-label="Select"><div class="item-checkbox ms-1"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input checkbox" id="' . $checkboxId . '" data-attendance-id="' . (int)$attendance['id'] . '"><label class="custom-control-label" for="' . $checkboxId . '"></label></div></div></td>';
             } else {
-                echo '<td><span class="text-muted fs-12" title="Biometric records are auto-verified">Auto</span></td>';
+                echo '<td data-label="Select"><span class="text-muted fs-12" title="Biometric records are auto-verified">Auto</span></td>';
             }
             // build avatar (use uploaded profile picture when available)
             $avatar_html = '<a href="students-internal-dtr.php?id=' . (int)$attendance['student_id'] . '" class="hstack gap-3">';
@@ -638,23 +638,23 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 $avatar_html .= '<div class="avatar-image avatar-md"><div class="avatar-text avatar-md bg-light-primary rounded">' . $initials . '</div></div>';
             }
             $avatar_html .= '<div><div class="fw-bold">' . htmlspecialchars(($attendance['first_name'] ?? '') . ' ' . ($attendance['last_name'] ?? '')) . '</div><small class="text-muted">' . htmlspecialchars($attendance['student_number'] ?? '') . '</small></div></a>';
-            echo '<td>' . $avatar_html . '</td>';
-            echo '<td><span class="badge bg-soft-primary text-primary">' . date('Y-m-d', strtotime($attendance['attendance_date'])) . '</span></td>';
-            echo '<td>' . attendanceDisplayTimeHtml($attendance, 'morning_time_in', 'bg-soft-success text-success') . '</td>';
-            echo '<td>' . attendanceDisplayTimeHtml($attendance, 'morning_time_out', 'bg-soft-success text-success') . '</td>';
-            echo '<td>' . attendanceDisplayTimeHtml($attendance, 'afternoon_time_in', 'bg-soft-warning text-warning') . '</td>';
-            echo '<td>' . attendanceDisplayTimeHtml($attendance, 'afternoon_time_out', 'bg-soft-warning text-warning') . '</td>';
-            echo '<td>' . attendance_hours_cell_html($attendance) . '</td>';
-            echo '<td>' . attendance_status_cell_html($attendance) . '</td>';
-            echo '<td>' . getSourceBadge($attendance['source'] ?? 'manual', $attendance) . '</td>';
-            echo '<td>' . attendance_reports_cell_html($attendance) . '</td>';
+            echo '<td data-label="Student Name">' . $avatar_html . '</td>';
+            echo '<td data-label="Attendance Date"><span class="badge bg-soft-primary text-primary">' . date('Y-m-d', strtotime($attendance['attendance_date'])) . '</span></td>';
+            echo '<td data-label="Morning In">' . attendanceDisplayTimeHtml($attendance, 'morning_time_in', 'bg-soft-success text-success') . '</td>';
+            echo '<td data-label="Morning Out">' . attendanceDisplayTimeHtml($attendance, 'morning_time_out', 'bg-soft-success text-success') . '</td>';
+            echo '<td data-label="Afternoon In">' . attendanceDisplayTimeHtml($attendance, 'afternoon_time_in', 'bg-soft-warning text-warning') . '</td>';
+            echo '<td data-label="Afternoon Out">' . attendanceDisplayTimeHtml($attendance, 'afternoon_time_out', 'bg-soft-warning text-warning') . '</td>';
+            echo '<td data-label="Total Hours">' . attendance_hours_cell_html($attendance) . '</td>';
+            echo '<td data-label="Status">' . attendance_status_cell_html($attendance) . '</td>';
+            echo '<td data-label="Source">' . getSourceBadge($attendance['source'] ?? 'manual', $attendance) . '</td>';
+            echo '<td data-label="Reports">' . attendance_reports_cell_html($attendance) . '</td>';
             $student_name = trim((string)($attendance['first_name'] ?? '') . ' ' . (string)($attendance['last_name'] ?? ''));
             $approval_status_label = ucfirst((string)($attendance['status'] ?? 'pending'));
             $morning_in_text = $attendance['morning_time_in'] ? date('h:i A', strtotime($attendance['morning_time_in'])) : '-';
             $morning_out_text = $attendance['morning_time_out'] ? date('h:i A', strtotime($attendance['morning_time_out'])) : '-';
             $afternoon_in_text = $attendance['afternoon_time_in'] ? date('h:i A', strtotime($attendance['afternoon_time_in'])) : '-';
             $afternoon_out_text = $attendance['afternoon_time_out'] ? date('h:i A', strtotime($attendance['afternoon_time_out'])) : '-';
-            echo '<td>' . attendanceActionMenuItems($attendance) . '</td>';
+            echo '<td data-label="Actions">' . attendanceActionMenuItems($attendance) . '</td>';
             echo '</tr>';
         }
     }
@@ -1859,7 +1859,7 @@ if (!empty($attendances)): ?>
                                                 <?php
 foreach ($attendances as $index => $attendance): ?>
                                                     <tr class="single-item">
-                                                        <td>
+                                                        <td data-label="Select">
                                                             <?php if (attendanceCanReview($attendance)): ?>
                                                             <div class="item-checkbox ms-1">
                                                                 <div class="custom-control custom-checkbox">
@@ -1876,7 +1876,7 @@ echo (int)$index; ?>"></label>
                                                             <span class="text-muted fs-12" title="Biometric records are auto-verified">Auto</span>
                                                             <?php endif; ?>
                                                         </td>
-                                                        <td>
+                                                        <td data-label="Student Name">
                                                             <a href="students-internal-dtr.php?id=<?php
 echo $attendance['student_id']; ?>" class="hstack gap-3">
                                                                 <?php
@@ -1896,26 +1896,26 @@ echo $attendance['student_number'] ?? 'N/A'; ?></span>
                                                                 </div>
                                                             </a>
                                                         </td>
-                                                        <td><span class="badge bg-soft-primary text-primary"><?php
+                                                        <td data-label="Attendance Date"><span class="badge bg-soft-primary text-primary"><?php
 echo date('Y-m-d', strtotime($attendance['attendance_date'])); ?></span></td>
-                                                        <td><?php echo attendanceDisplayTimeHtml($attendance, 'morning_time_in', 'bg-soft-success text-success'); ?></td>
-                                                        <td><?php echo attendanceDisplayTimeHtml($attendance, 'morning_time_out', 'bg-soft-success text-success'); ?></td>
-                                                        <td><?php echo attendanceDisplayTimeHtml($attendance, 'afternoon_time_in', 'bg-soft-warning text-warning'); ?></td>
-                                                        <td><?php echo attendanceDisplayTimeHtml($attendance, 'afternoon_time_out', 'bg-soft-warning text-warning'); ?></td>
-                                                        <td>
+                                                        <td data-label="Morning In"><?php echo attendanceDisplayTimeHtml($attendance, 'morning_time_in', 'bg-soft-success text-success'); ?></td>
+                                                        <td data-label="Morning Out"><?php echo attendanceDisplayTimeHtml($attendance, 'morning_time_out', 'bg-soft-success text-success'); ?></td>
+                                                        <td data-label="Afternoon In"><?php echo attendanceDisplayTimeHtml($attendance, 'afternoon_time_in', 'bg-soft-warning text-warning'); ?></td>
+                                                        <td data-label="Afternoon Out"><?php echo attendanceDisplayTimeHtml($attendance, 'afternoon_time_out', 'bg-soft-warning text-warning'); ?></td>
+                                                        <td data-label="Total Hours">
                                                             <?php
 echo attendance_hours_cell_html($attendance); ?>
                                                         </td>
-                                                        <td>
+                                                        <td data-label="Status">
                                                             <?php
 echo attendance_status_cell_html($attendance);
                                                             ?>
                                                         </td>
-                                                        <td><?php
+                                                        <td data-label="Source"><?php
 echo getSourceBadge($attendance['source'] ?? 'manual', $attendance); ?></td>
-                                                        <td><?php
+                                                        <td data-label="Reports"><?php
 echo attendance_reports_cell_html($attendance); ?></td>
-                                                        <td>
+                                                        <td data-label="Actions">
                                                             <?php echo attendanceActionMenuItems($attendance); ?>
                                                         </td>
                                                     </tr>

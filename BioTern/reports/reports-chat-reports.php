@@ -504,6 +504,7 @@ if ($schemaError === '') {
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page reports-chat-reports-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-chat-reports-page.css', 'assets/css/modules/reports/reports-shell.css']);
+$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-chat-reports-page.js', 'assets/js/modules/reports/reports-shell-runtime.js']);
 $page_title = 'BioTern || Reported Chats';
 include 'includes/header.php';
 ?>
@@ -527,7 +528,7 @@ include 'includes/header.php';
             <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
             <a href="reports-chat-logs.php" class="btn btn-outline-primary"><i class="feather-message-circle me-1"></i>Chat Logs</a>
             <a href="reports-chat-penalties.php" class="btn btn-outline-primary"><i class="feather-slash me-1"></i>Chat Penalties</a>
-            <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
+            <button type="button" class="btn btn-light-brand js-print-report"><i class="feather-printer me-1"></i>Print</button>
         <?php
         biotern_render_page_header_actions([
             'menu_id' => 'reportsChatReportsActionsMenu',
@@ -709,48 +710,3 @@ include 'includes/header.php';
 include 'includes/footer.php';
 $conn->close();
 ?>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('.chatreports-auto-filter').forEach(function (form) {
-        var timer = null;
-        form.querySelectorAll('select, input[type="date"], input[type="number"]').forEach(function (field) {
-            field.addEventListener('change', function () {
-                form.requestSubmit();
-            });
-            field.addEventListener('input', function () {
-                if (field.type !== 'number') {
-                    return;
-                }
-                window.clearTimeout(timer);
-                timer = window.setTimeout(function () {
-                    form.requestSubmit();
-                }, 550);
-            });
-        });
-    });
-
-    function syncPunishmentFields(form) {
-        var status = form.querySelector('.chatreports-status-select');
-        var fields = form.querySelector('.chatreports-punishment-fields');
-        if (!status || !fields) {
-            return;
-        }
-
-        var isResolved = status.value === 'resolved';
-        fields.classList.toggle('is-hidden', !isResolved);
-        fields.querySelectorAll('select, input').forEach(function (field) {
-            field.disabled = !isResolved;
-        });
-    }
-
-    document.querySelectorAll('.chatreports-action-form').forEach(function (form) {
-        syncPunishmentFields(form);
-        var status = form.querySelector('.chatreports-status-select');
-        if (status) {
-            status.addEventListener('change', function () {
-                syncPunishmentFields(form);
-            });
-        }
-    });
-});
-</script>

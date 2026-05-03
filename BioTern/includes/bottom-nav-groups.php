@@ -91,6 +91,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'applications-review.php', 'attendance.php', 'external-attendance.php', 'attendance-corrections.php', 'print_attendance.php', 'external-biometric.php',
                     'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
+                    'ojt-internal-list.php', 'ojt-external-list.php', 'companies.php',
                     'import-ojt-internal.php', 'import-ojt-external.php',
                     'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-hours-completion.php',
                     'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
@@ -115,6 +116,9 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'items' => [
                             ['label' => 'OJT List', 'href' => 'ojt.php', 'icon' => 'feather-archive'],
                             ['label' => 'OJT Create', 'href' => 'ojt-create.php', 'icon' => 'feather-plus-circle'],
+                            ['label' => 'Companies', 'href' => 'companies.php', 'icon' => 'feather-briefcase'],
+                            ['label' => 'Internal List', 'href' => 'ojt-internal-list.php', 'icon' => 'feather-list'],
+                            ['label' => 'External List', 'href' => 'ojt-external-list.php', 'icon' => 'feather-list'],
                             ['label' => 'Import OJT Internal', 'href' => 'import-ojt-internal.php', 'icon' => 'feather-upload'],
                             ['label' => 'Import OJT External', 'href' => 'import-ojt-external.php', 'icon' => 'feather-upload-cloud'],
                         ],

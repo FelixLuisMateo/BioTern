@@ -153,6 +153,23 @@ html.app-skin-dark .page-ojt-external-list .bio-console-table tbody tr.is-select
     gap: 1rem;
 }
 
+/* Safe mobile table/list component baseline for biometric + OJT list pages.
+   Keep desktop table rendering intact and prioritize horizontal usability. */
+.page-fingerprint-mapping .table-responsive,
+.page-ojt-internal-list .table-responsive,
+.page-ojt-external-list .table-responsive {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable both-edges;
+}
+
+.page-fingerprint-mapping .bio-console-table,
+.page-ojt-internal-list .bio-console-table,
+.page-ojt-external-list .bio-console-table {
+    min-width: 780px;
+}
+
 .app-ojt-selected-print-sheet {
     display: none;
 }
@@ -899,6 +916,10 @@ html.app-skin-dark .page-biometric-machine .bio-console-hero-side small {
 }
 
 @media (max-width: 991.98px) {
+    body.mobile-bottom-nav.page-ojt-external-list .bio-console-panel > .card-header + .card-body.border-bottom {
+        display: none !important;
+    }
+
     .fingerprint-actions {
         width: 100%;
         display: grid;
@@ -953,8 +974,76 @@ html.app-skin-dark .page-biometric-machine .bio-console-hero-side small {
         font-size: 0.84rem;
     }
 
+    .page-fingerprint-mapping .bio-console-table,
+    .page-ojt-internal-list .bio-console-table,
+    .page-ojt-external-list .bio-console-table {
+        min-width: 640px;
+    }
+
     .bio-console-chip-list,
     .bio-console-pill-list {
         gap: 0.42rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    body.page-ojt-internal-list .bio-console-table,
+    body.page-ojt-internal-list .bio-console-table thead,
+    body.page-ojt-internal-list .bio-console-table tbody,
+    body.page-ojt-internal-list .bio-console-table tr,
+    body.page-ojt-internal-list .bio-console-table td,
+    body.page-ojt-external-list .bio-console-table,
+    body.page-ojt-external-list .bio-console-table thead,
+    body.page-ojt-external-list .bio-console-table tbody,
+    body.page-ojt-external-list .bio-console-table tr,
+    body.page-ojt-external-list .bio-console-table td {
+        display: block;
+        width: 100%;
+    }
+
+    body.page-ojt-internal-list .bio-console-table thead,
+    body.page-ojt-external-list .bio-console-table thead {
+        display: none;
+    }
+
+    body.page-ojt-internal-list .bio-console-table tbody tr,
+    body.page-ojt-external-list .bio-console-table tbody tr {
+        margin: 0 0 0.8rem;
+        padding: 0.85rem 0.9rem;
+        border: 1px solid var(--biotern-border, rgba(148, 163, 184, 0.22));
+        border-radius: 14px;
+        background: var(--biotern-surface, #ffffff);
+    }
+
+    body.page-ojt-internal-list .bio-console-table tbody td,
+    body.page-ojt-external-list .bio-console-table tbody td {
+        border: 0;
+        padding: 0.4rem 0;
+        white-space: normal;
+        text-align: left !important;
+    }
+
+    body.page-ojt-internal-list .bio-console-table tbody td::before,
+    body.page-ojt-external-list .bio-console-table tbody td::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 0.2rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--biotern-text-muted, #64748b);
+    }
+
+    body.page-ojt-internal-list .bio-console-table .app-ojt-select-column::before,
+    body.page-ojt-external-list .bio-console-table .app-ojt-select-column::before {
+        content: "";
+        display: none;
+    }
+
+    body.page-ojt-internal-list .bio-console-table .app-ojt-select-column,
+    body.page-ojt-external-list .bio-console-table .app-ojt-select-column {
+        padding-top: 0.1rem;
+        padding-bottom: 0.15rem;
     }
 }

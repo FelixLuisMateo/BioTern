@@ -241,6 +241,7 @@ if ($summaryResult) {
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page login-logs-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-login-logs-page.css', 'assets/css/modules/reports/reports-shell.css']);
+$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-login-logs-page.js', 'assets/js/modules/reports/reports-shell-runtime.js']);
 $page_title = 'BioTern || Login Logs';
 include 'includes/header.php';
 ?>
@@ -263,7 +264,7 @@ include 'includes/header.php';
     <?php ob_start(); ?>
         <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
         <a href="reports-chat-logs.php" class="btn btn-outline-primary"><i class="feather-message-circle me-1"></i>Chat Logs</a>
-        <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
+        <button type="button" class="btn btn-light-brand js-print-report"><i class="feather-printer me-1"></i>Print</button>
     <?php
     biotern_render_page_header_actions([
         'menu_id' => 'reportsLoginLogsActionsMenu',
@@ -317,7 +318,7 @@ include 'includes/header.php';
 
             <div class="logs-table-card">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
+                    <table class="table table-hover align-middle logs-mobile-table" data-mobile-collapse="true" data-mobile-visible-cells="3">
                             <thead>
                                 <tr>
                                     <th class="text-nowrap">Time</th>
@@ -335,17 +336,17 @@ include 'includes/header.php';
                                     <?php foreach ($rows as $row): ?>
                                         <?php $badge = strtolower((string)$row['status']) === 'success' ? 'success' : 'danger'; ?>
                                         <tr>
-                                            <td class="text-nowrap"><?php echo htmlspecialchars(formatDisplayDateTime($row['created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td>
+                                            <td class="text-nowrap" data-label="Time"><?php echo htmlspecialchars(formatDisplayDateTime($row['created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td data-label="User">
                                                 <div class="fw-semibold"><?php echo htmlspecialchars((string)($row['username'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <small class="text-muted"><?php echo htmlspecialchars((string)($row['email'] ?? 'No email'), ENT_QUOTES, 'UTF-8'); ?></small>
                                             </td>
-                                            <td><span class="logs-identifier" title="<?php echo htmlspecialchars((string)($row['identifier'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)($row['identifier'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
-                                            <td><?php echo htmlspecialchars((string)($row['role'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td class="text-nowrap"><span class="logs-pill bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?> text-capitalize"><?php echo htmlspecialchars((string)($row['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
-                                            <td><?php echo htmlspecialchars((string)($row['reason'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td class="text-nowrap"><?php echo htmlspecialchars(formatDisplayIpAddress($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td><span class="logs-address" title="<?php echo htmlspecialchars(formatDisplayDeviceLocationFromRow($row), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(formatDisplayDeviceLocationFromRow($row), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                            <td data-label="Identifier"><span class="logs-identifier" title="<?php echo htmlspecialchars((string)($row['identifier'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)($row['identifier'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                            <td data-label="Role"><?php echo htmlspecialchars((string)($row['role'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td class="text-nowrap" data-label="Status"><span class="logs-pill bg-soft-<?php echo $badge; ?> text-<?php echo $badge; ?> text-capitalize"><?php echo htmlspecialchars((string)($row['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                            <td data-label="Reason"><?php echo htmlspecialchars((string)($row['reason'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td class="text-nowrap" data-label="IP Address"><?php echo htmlspecialchars(formatDisplayIpAddress($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td data-label="Device Location"><span class="logs-address" title="<?php echo htmlspecialchars(formatDisplayDeviceLocationFromRow($row), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(formatDisplayDeviceLocationFromRow($row), ENT_QUOTES, 'UTF-8'); ?></span></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
@@ -372,21 +373,7 @@ include 'includes/header.php';
                     </ul>
                 </nav>
             </div>
-    </div>
+</div>
 </div> <!-- .nxl-content -->
 </main>
 <?php include 'includes/footer.php'; ?>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var form = document.querySelector('.login-logs-auto-filter');
-    if (!form) {
-        return;
-    }
-
-    form.querySelectorAll('select').forEach(function (select) {
-        select.addEventListener('change', function () {
-            form.requestSubmit();
-        });
-    });
-});
-</script>

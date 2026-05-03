@@ -13,7 +13,7 @@
  */
 
 /* 1) Base */
-@import url("./theme.min.css");
+@import url("./theme-base.css");
 
 /* 2) Core Split (legacy order preserved): utilities + layout */
 @import url("./modules/app-core-utilities.css");
@@ -42,3 +42,4 @@
 @import url("./state/mobile-layout.css");
 @import url("./state/mobile-components.css");
 @import url("./state/mobile-patterns.css");
+@import url("./state/footer-responsive.css");

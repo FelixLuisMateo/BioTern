@@ -311,7 +311,7 @@ $nextUrl = 'reports-chat-logs.php?' . http_build_query(array_merge($queryBase, [
 
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-chat-logs-page.css', 'assets/css/modules/reports/reports-shell.css']);
-$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-chat-logs-page.js']);
+$page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-chat-logs-page.js', 'assets/js/modules/reports/reports-shell-runtime.js']);
 $page_title = 'BioTern || Chat Logs';
 include 'includes/header.php';
 ?>
@@ -335,7 +335,7 @@ include 'includes/header.php';
         <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
         <a href="reports-chat-reports.php" class="btn btn-outline-primary"><i class="feather-alert-triangle me-1"></i>Reported Chats</a>
         <a href="reports-chat-logs.php?<?php echo chatlogs_esc($exportQuery); ?>" class="btn btn-outline-success"><i class="feather-download me-1"></i>Export</a>
-        <button type="button" class="btn btn-light-brand" onclick="window.print();"><i class="feather-printer me-1"></i>Print</button>
+        <button type="button" class="btn btn-light-brand js-print-report"><i class="feather-printer me-1"></i>Print</button>
     <?php
     biotern_render_page_header_actions([
         'menu_id' => 'reportsChatLogsActionsMenu',

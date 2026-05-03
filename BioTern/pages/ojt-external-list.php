@@ -216,7 +216,7 @@ $exportQuery = array_filter([
 $exportUrl = 'export-ojt-list.php?' . http_build_query($exportQuery);
 
 $page_title = 'External Student List';
-$page_body_class = 'page-fingerprint-mapping page-ojt-external-list';
+$page_body_class = 'page-fingerprint-mapping page-ojt-external-list mobile-bottom-nav';
 $page_styles = [
     'assets/css/layout/page_shell.css',
     'assets/css/modules/pages/page-biometric-console.css',
@@ -255,24 +255,32 @@ ob_end_flush();
                             <span class="text-muted fs-12">Quick Actions</span>
                         </div>
                         <div class="dashboard-actions-grid page-header-right-items-wrapper">
-                            <a href="<?php echo htmlspecialchars($exportUrl, ENT_QUOTES, 'UTF-8'); ?>" class="action-tile">
-                                <i class="feather-upload-cloud"></i>
-                                <span>Export External List</span>
-                            </a>
-                            <button type="button" class="action-tile" data-ojt-print-full="ojtExternalListTable">
-                                <i class="feather-printer"></i>
+                            <div class="dropdown">
+                                <a class="btn btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside" role="button" aria-label="Export options">
+                                    <i class="feather-paperclip me-2"></i>
+                                    <span>Export</span>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end">
+                                    <a href="<?php echo htmlspecialchars($exportUrl, ENT_QUOTES, 'UTF-8'); ?>" class="dropdown-item">
+                                        <i class="bi bi-file-earmark-spreadsheet me-3"></i>
+                                        <span>Excel</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-light js-print-page" data-ojt-print-full="ojtExternalListTable">
+                                <i class="feather-printer me-2"></i>
                                 <span>Print List</span>
                             </button>
-                            <button type="button" class="action-tile" data-ojt-print-selected="ojtExternalListTable">
-                                <i class="feather-printer"></i>
+                            <button type="button" class="btn btn-light d-none js-print-selected" data-ojt-print-selected="ojtExternalListTable" aria-hidden="true">
+                                <i class="feather-printer me-2"></i>
                                 <span>Print Selected</span>
                             </button>
-                            <a href="ojt-internal-list.php" class="action-tile">
-                                <i class="feather-list"></i>
+                            <a href="ojt-internal-list.php" class="btn btn-light-brand">
+                                <i class="feather-list me-2"></i>
                                 <span>View Internal List</span>
                             </a>
-                            <a href="fingerprint_mapping.php" class="action-tile">
-                                <i class="feather-hash"></i>
+                            <a href="fingerprint_mapping.php" class="btn btn-outline-secondary">
+                                <i class="feather-hash me-2"></i>
                                 <span>Back To Fingerprints</span>
                             </a>
                         </div>
@@ -361,29 +369,29 @@ ob_end_flush();
                                 <?php foreach ($rows as $row): ?>
                                     <?php $externalViewHref = 'ojt-external-view.php?id=' . (int)($row['student_row_id'] ?? 0) . '&student_no=' . rawurlencode((string)($row['student_no'] ?? '')); ?>
                                     <tr data-ojt-external-row-id="<?php echo (int)($row['student_row_id'] ?? 0); ?>" data-ojt-external-row-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-label="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-course="<?php echo htmlspecialchars((string)($row['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-section="<?php echo htmlspecialchars(biotern_format_section_code((string)($row['section_name'] ?? 'N/A')), ENT_QUOTES, 'UTF-8'); ?>" data-print-student-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-last-name="<?php echo htmlspecialchars((string)($row['last_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-first-name="<?php echo htmlspecialchars((string)($row['first_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-middle-name="<?php echo htmlspecialchars((string)($row['middle_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-row-href="<?php echo htmlspecialchars($externalViewHref, ENT_QUOTES, 'UTF-8'); ?>">
-                                        <td class="app-ojt-select-column" data-print-exclude="1">
+                                        <td class="app-ojt-select-column" data-label="Select" data-print-exclude="1">
                                             <div class="form-check app-ojt-select-check">
                                                 <input class="form-check-input" type="checkbox" data-ojt-row-select aria-label="Select student <?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?>">
                                             </div>
                                         </td>
-                                        <td><?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td>
+                                        <td data-label="Student No"><?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td data-label="Name">
                                             <div class="fw-semibold"><?php echo htmlspecialchars(trim((string)$row['last_name'] . ', ' . (string)$row['first_name'] . ' ' . (string)$row['middle_name']), ENT_QUOTES, 'UTF-8'); ?></div>
                                             <small class="text-muted"><?php echo htmlspecialchars((string)($row['ojt_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></small>
                                         </td>
-                                        <td>
+                                        <td data-label="Course / Section">
                                             <div><?php echo htmlspecialchars((string)($row['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></div>
                                             <small class="text-muted"><?php echo htmlspecialchars(biotern_format_section_code((string)($row['section_name'] ?? 'N/A')), ENT_QUOTES, 'UTF-8'); ?></small>
                                         </td>
-                                        <td>
+                                        <td data-label="Account">
                                             <div class="fw-semibold"><?php echo htmlspecialchars((string)($row['account_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></div>
                                             <?php $externalUserId = (int)($row['student_user_id'] ?: $row['ojt_user_id']); ?>
                                             <small class="text-muted">User ID: <?php echo $externalUserId; ?></small>
                                         </td>
-                                        <td>
+                                        <td data-label="Status">
                                             <span class="badge bg-soft-info text-info"><?php echo htmlspecialchars(ucfirst((string)($row['ojt_status'] ?? 'External')), ENT_QUOTES, 'UTF-8'); ?></span>
                                         </td>
-                                        <td class="text-end" data-print-exclude="1">
+                                        <td class="text-end" data-label="Action" data-print-exclude="1">
                                             <?php if ((int)($row['student_row_id'] ?? 0) > 0): ?>
                                                 <button
                                                     type="button"

@@ -468,8 +468,8 @@ html.app-skin-dark {
     text-align: right;
   }
 
-  /* Mobile list pages: remove outer card shell and keep only list content surfaces. */
-  .app-data-card {
+  /* Mobile list pages (opt-in): remove outer card shell and keep only list content surfaces. */
+  .app-mobile-inline-list-card {
     background: transparent !important;
     border-color: transparent !important;
     box-shadow: none !important;
@@ -477,13 +477,13 @@ html.app-skin-dark {
     overflow: visible !important;
   }
 
-  .app-data-card > .card-body {
+  .app-mobile-inline-list-card > .card-body {
     background: var(--biotern-surface) !important;
     padding: 0 !important;
   }
 
   /* Force mobile list content to span full viewport width inside padded page shells. */
-  .app-data-card .app-mobile-list {
+  .app-mobile-inline-list-card .app-mobile-list {
     width: 100vw;
     max-width: 100vw;
     margin-left: calc(50% - 50vw);
@@ -493,16 +493,16 @@ html.app-skin-dark {
   }
 
   /* Mobile list view should not show the desktop table shell/scroller. */
-  .app-data-card .app-data-table-wrap {
+  .app-mobile-inline-list-card .app-data-table-wrap {
     display: none !important;
     padding-bottom: 0 !important;
     overflow: hidden !important;
   }
 
-  .app-data-card .app-mobile-list .app-mobile-item,
-  .app-data-card .app-mobile-list .app-student-mobile-item,
-  .app-data-card .app-mobile-list .app-ojt-mobile-item,
-  .app-data-card .app-mobile-list details {
+  .app-mobile-inline-list-card .app-mobile-list .app-mobile-item,
+  .app-mobile-inline-list-card .app-mobile-list .app-student-mobile-item,
+  .app-mobile-inline-list-card .app-mobile-list .app-ojt-mobile-item,
+  .app-mobile-inline-list-card .app-mobile-list details {
     width: 100%;
     border-radius: 0 !important;
     border-left-width: 0 !important;
@@ -512,39 +512,39 @@ html.app-skin-dark {
     margin: 0;
   }
 
-  .app-data-card .app-mobile-list .app-mobile-item,
-  .app-data-card .app-mobile-list .app-student-mobile-item,
-  .app-data-card .app-mobile-list .app-ojt-mobile-item {
+  .app-mobile-inline-list-card .app-mobile-list .app-mobile-item,
+  .app-mobile-inline-list-card .app-mobile-list .app-student-mobile-item,
+  .app-mobile-inline-list-card .app-mobile-list .app-ojt-mobile-item {
     border-top-width: 0 !important;
     border-bottom: 1px solid var(--biotern-border) !important;
   }
 
-  .app-data-card .app-mobile-list .app-mobile-summary,
-  .app-data-card .app-mobile-list .app-mobile-details,
-  .app-data-card .app-mobile-list .app-student-mobile-summary,
-  .app-data-card .app-mobile-list .app-student-mobile-details,
-  .app-data-card .app-mobile-list .app-ojt-mobile-summary,
-  .app-data-card .app-mobile-list .app-ojt-mobile-details {
+  .app-mobile-inline-list-card .app-mobile-list .app-mobile-summary,
+  .app-mobile-inline-list-card .app-mobile-list .app-mobile-details,
+  .app-mobile-inline-list-card .app-mobile-list .app-student-mobile-summary,
+  .app-mobile-inline-list-card .app-mobile-list .app-student-mobile-details,
+  .app-mobile-inline-list-card .app-mobile-list .app-ojt-mobile-summary,
+  .app-mobile-inline-list-card .app-mobile-list .app-ojt-mobile-details {
     background: var(--biotern-surface-muted) !important;
   }
 
-  .app-data-card .app-mobile-list .app-mobile-item + .app-mobile-item,
-  .app-data-card .app-mobile-list details + details {
+  .app-mobile-inline-list-card .app-mobile-list .app-mobile-item + .app-mobile-item,
+  .app-mobile-inline-list-card .app-mobile-list details + details {
     margin-top: 0;
   }
 
-  html.app-skin-dark .app-data-card .app-mobile-list .app-mobile-item,
-  html.app-skin-dark .app-data-card .app-mobile-list .app-student-mobile-item,
-  html.app-skin-dark .app-data-card .app-mobile-list .app-ojt-mobile-item {
+  html.app-skin-dark .app-mobile-inline-list-card .app-mobile-list .app-mobile-item,
+  html.app-skin-dark .app-mobile-inline-list-card .app-mobile-list .app-student-mobile-item,
+  html.app-skin-dark .app-mobile-inline-list-card .app-mobile-list .app-ojt-mobile-item {
     border-bottom-color: var(--biotern-border) !important;
   }
 
-  html.app-skin-dark .app-data-card .app-mobile-list .app-mobile-summary,
-  html.app-skin-dark .app-data-card .app-mobile-list .app-mobile-details,
-  html.app-skin-dark .app-data-card .app-mobile-list .app-student-mobile-summary,
-  html.app-skin-dark .app-data-card .app-mobile-list .app-student-mobile-details,
-  html.app-skin-dark .app-data-card .app-mobile-list .app-ojt-mobile-summary,
-  html.app-skin-dark .app-data-card .app-mobile-list .app-ojt-mobile-details {
+  html.app-skin-dark .app-mobile-inline-list-card .app-mobile-list .app-mobile-summary,
+  html.app-skin-dark .app-mobile-inline-list-card .app-mobile-list .app-mobile-details,
+  html.app-skin-dark .app-mobile-inline-list-card .app-mobile-list .app-student-mobile-summary,
+  html.app-skin-dark .app-mobile-inline-list-card .app-mobile-list .app-student-mobile-details,
+  html.app-skin-dark .app-mobile-inline-list-card .app-mobile-list .app-ojt-mobile-summary,
+  html.app-skin-dark .app-mobile-inline-list-card .app-mobile-list .app-ojt-mobile-details {
     background: var(--biotern-surface-muted) !important;
   }
 
