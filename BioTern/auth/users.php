@@ -529,49 +529,6 @@ include __DIR__ . '/../includes/header.php';
 
 </div> <!-- .nxl-content -->
 </main>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var filterForm = document.getElementById('usersFilterForm');
-    if (!filterForm) {
-        return;
-    }
-
-    var searchInput = document.getElementById('usersFilterSearch');
-    var roleSelect = document.getElementById('usersFilterRole');
-    var statusSelect = document.getElementById('usersFilterStatus');
-    var debounceTimer = null;
-
-    function submitFilterForm() {
-        if (typeof filterForm.requestSubmit === 'function') {
-            filterForm.requestSubmit();
-        } else {
-            filterForm.submit();
-        }
-    }
-
-    if (searchInput) {
-        searchInput.addEventListener('input', function () {
-            if (debounceTimer) {
-                window.clearTimeout(debounceTimer);
-            }
-            debounceTimer = window.setTimeout(submitFilterForm, 300);
-        });
-
-        searchInput.addEventListener('keydown', function (event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                submitFilterForm();
-            }
-        });
-    }
-
-    [roleSelect, statusSelect].forEach(function (element) {
-        if (element) {
-            element.addEventListener('change', submitFilterForm);
-        }
-    });
-});
-</script>
 <?php if ($users_toast_message !== ''): ?>
 <script>
 (function () {

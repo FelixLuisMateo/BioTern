@@ -494,5 +494,115 @@ html.app-skin-dark .users-action-menu-portal .dropdown-item:focus {
     }
 }
 
+@media (max-width: 991.98px) {
+    .app-users-table-wrap {
+        overflow: visible;
+        padding-bottom: 0;
+    }
+
+    .app-users-list-table {
+        min-width: 0 !important;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .app-users-list-table thead {
+        display: none;
+    }
+
+    .app-users-list-table tbody,
+    .app-users-list-table tr,
+    .app-users-list-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .app-users-list-table tbody tr {
+        margin: 0 0 0.82rem;
+        border: 1px solid var(--biotern-data-cell-border, rgba(226, 232, 240, 0.95));
+        border-radius: 14px;
+        overflow: hidden;
+        background: var(--biotern-data-card-bg, #ffffff);
+    }
+
+    .app-users-list-table tbody td {
+        position: relative;
+        padding: 0.62rem 0.75rem 0.62rem 6.75rem !important;
+        border-bottom: 1px solid var(--biotern-data-cell-border, rgba(226, 232, 240, 0.95));
+        white-space: normal !important;
+        text-align: left;
+    }
+
+    .app-users-list-table tbody td:last-child {
+        border-bottom: 0;
+    }
+
+    .app-users-list-table tbody td::before {
+        content: attr(data-label);
+        position: absolute;
+        top: 0.62rem;
+        left: 0.75rem;
+        width: 5.4rem;
+        color: var(--biotern-data-muted, #64748b);
+        font-size: 0.64rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        line-height: 1.2;
+    }
+
+    .app-users-list-table tbody tr.app-users-mobile-collapsed td.app-users-mobile-extra-cell {
+        display: none !important;
+    }
+
+    .app-users-mobile-toggle-cell {
+        padding: 0.52rem 0.75rem !important;
+        background: var(--biotern-data-head-bg, rgba(248, 250, 252, 0.98));
+        border-top: 1px solid var(--biotern-data-cell-border, rgba(226, 232, 240, 0.95));
+    }
+
+    .app-users-mobile-toggle-cell::before {
+        content: none !important;
+    }
+
+    .app-users-mobile-toggle-btn {
+        width: 100%;
+        min-height: 34px;
+        border: 1px solid var(--biotern-data-cell-border, rgba(226, 232, 240, 0.95));
+        border-radius: 9px;
+        background: var(--biotern-data-card-bg, #ffffff);
+        color: inherit;
+        font-size: 0.76rem;
+        font-weight: 700;
+    }
+
+    .app-users-row-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .app-users-inline-detail-value {
+        text-align: left;
+    }
+
+    html.app-skin-dark .app-users-list-table tbody tr {
+        border-color: rgba(129, 153, 199, 0.16);
+    }
+
+    html.app-skin-dark .app-users-list-table tbody td {
+        border-bottom-color: rgba(129, 153, 199, 0.16);
+    }
+
+    html.app-skin-dark .app-users-mobile-toggle-cell {
+        border-top-color: rgba(129, 153, 199, 0.16);
+    }
+
+    html.app-skin-dark .app-users-mobile-toggle-btn {
+        border-color: rgba(129, 153, 199, 0.22);
+        background: rgba(15, 23, 42, 0.88);
+        color: #dbe7ff;
+    }
+}
+
 
 

@@ -212,81 +212,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $page_title = 'Create Section';
-$page_styles = ['assets/css/modules/management/management-create-shared.css'];
-$page_scripts = ['assets/js/modules/management/management-sections-create-runtime.js'];
+$page_styles = [
+    'assets/css/modules/management/management-create-shared.css',
+    'assets/css/modules/management/management-sections-schedule.css',
+];
+$page_scripts = [
+    'assets/js/modules/management/management-sections-create-runtime.js',
+    'assets/js/modules/management/management-sections-schedule-runtime.js',
+];
 include 'includes/header.php';
 ?>
-<style>
-    html.app-skin-dark input.form-control[type="time"] {
-        color-scheme: dark;
-    }
-
-    html.app-skin-light input.form-control[type="time"] {
-        color-scheme: light;
-    }
-
-    .create-form-actions {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        flex-wrap: wrap;
-    }
-
-    .create-form-actions .btn {
-        width: auto !important;
-        min-width: 140px;
-        display: inline-flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .weekly-schedule-card {
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        border-radius: 12px;
-        padding: 1rem;
-        margin-top: 1rem;
-    }
-
-    .weekly-schedule-grid {
-        display: grid;
-        gap: 0.75rem;
-    }
-
-    .weekly-schedule-row {
-        display: grid;
-        grid-template-columns: 120px minmax(160px, 1fr) repeat(3, minmax(150px, 1fr));
-        gap: 0.75rem;
-        align-items: end;
-    }
-
-    .weekly-schedule-day {
-        font-weight: 600;
-        padding-bottom: 0.65rem;
-    }
-
-    .weekly-schedule-head {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        opacity: 0.75;
-    }
-
-    @media (max-width: 991.98px) {
-        .weekly-schedule-row {
-            grid-template-columns: 1fr;
-            padding: 0.75rem;
-            border: 1px solid rgba(148, 163, 184, 0.15);
-            border-radius: 10px;
-        }
-
-        .weekly-schedule-head {
-            display: none;
-        }
-
-        .weekly-schedule-day {
-            padding-bottom: 0;
-        }
-    }
-</style>
 <?php
 $defaultSectionSchedule = section_schedule_from_row([
     'attendance_session' => section_schedule_normalize_session((string)($_POST['attendance_session'] ?? 'whole_day')),
@@ -444,38 +379,6 @@ $defaultWeeklySchedule = $defaultSectionSchedule['weekly_schedule'] ?? [];
 </div>
 </div> <!-- .nxl-content -->
 </main>
-<script>
-    (function () {
-        const copyDefaultsButton = document.getElementById('copyDefaultScheduleButton');
-        if (copyDefaultsButton) {
-            copyDefaultsButton.addEventListener('click', function () {
-                const defaultSession = document.querySelector('select[name="attendance_session"]');
-                const defaultTimeIn = document.querySelector('input[name="schedule_time_in"]');
-                const defaultLateAfter = document.querySelector('input[name="late_after_time"]');
-                const defaultTimeOut = document.querySelector('input[name="schedule_time_out"]');
-
-                document.querySelectorAll('.weekly-schedule-row').forEach(function (row) {
-                    const session = row.querySelector('.js-day-session');
-                    const timeIn = row.querySelector('.js-weekly-time-in');
-                    const lateAfter = row.querySelector('.js-weekly-late');
-                    const timeOut = row.querySelector('.js-weekly-time-out');
-                    if (session && defaultSession) {
-                        session.value = defaultSession.value;
-                    }
-                    if (timeIn && defaultTimeIn) {
-                        timeIn.value = defaultTimeIn.value;
-                    }
-                    if (lateAfter && defaultLateAfter) {
-                        lateAfter.value = defaultLateAfter.value;
-                    }
-                    if (timeOut && defaultTimeOut) {
-                        timeOut.value = defaultTimeOut.value;
-                    }
-                });
-            });
-        }
-    })();
-</script>
 <?php
 include 'includes/footer.php';
 $conn->close();
