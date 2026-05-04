@@ -58,6 +58,36 @@ function table_exists(?mysqli $conn, string $table_name): bool
     return $res instanceof mysqli_result && $res->num_rows > 0;
 }
 
+function biotern_table_has_column(?mysqli $conn, string $table_name, string $column_name): bool
+{
+    if (!($conn instanceof mysqli) || $conn->connect_errno || !table_exists($conn, $table_name)) {
+        return false;
+    }
+
+    $safeTable = $conn->real_escape_string($table_name);
+    $safeColumn = $conn->real_escape_string($column_name);
+    $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    return $res instanceof mysqli_result && $res->num_rows > 0;
+}
+
+function biotern_ensure_table_column(?mysqli $conn, string $table_name, string $column_name, string $definition): bool
+{
+    if (!($conn instanceof mysqli) || $conn->connect_errno || !table_exists($conn, $table_name)) {
+        return false;
+    }
+
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table_name) || !preg_match('/^[A-Za-z0-9_]+$/', $column_name)) {
+        return false;
+    }
+
+    if (biotern_table_has_column($conn, $table_name, $column_name)) {
+        return true;
+    }
+
+    $ok = @$conn->query("ALTER TABLE `{$table_name}` ADD COLUMN `{$column_name}` {$definition}");
+    return $ok === true || biotern_table_has_column($conn, $table_name, $column_name);
+}
+
 function insert_audit_log(
     mysqli $conn,
     ?int $user_id,

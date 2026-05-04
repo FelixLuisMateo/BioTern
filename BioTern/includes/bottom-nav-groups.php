@@ -263,7 +263,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'label' => 'System',
                 'icon' => 'feather-settings',
                 'routes' => [
-                    'auth-register.php', 'users.php', 'create_admin.php',
+                    'users.php', 'create_admin.php',
                     'coordinators.php', 'coordinators-create.php', 'coordinators-edit.php',
                     'supervisors.php', 'supervisors-create.php', 'supervisors-edit.php',
                     'settings-general.php', 'settings-email.php', 'settings-ojt.php', 'settings-students.php',
@@ -277,7 +277,6 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'title' => 'Users',
                         'items' => [
                             ['label' => 'Users', 'href' => 'users.php', 'icon' => 'feather-users'],
-                            ['label' => 'User Registration', 'href' => 'auth-register.php', 'icon' => 'feather-user-plus'],
                             ['label' => 'Create Admin', 'href' => 'create_admin.php', 'icon' => 'feather-shield'],
                             ['label' => 'Coordinators', 'href' => 'coordinators.php', 'icon' => 'feather-user-check'],
                             ['label' => 'Supervisors', 'href' => 'supervisors.php', 'icon' => 'feather-user'],

@@ -8,6 +8,8 @@ require_roles_page(['admin']);
 $message = '';
 $message_type = 'success';
 
+biotern_ensure_table_column($conn, 'supervisors', 'office_location', 'VARCHAR(255) DEFAULT NULL');
+
 function h($value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');

@@ -395,7 +395,7 @@ if ($is_logged_in) {
     'apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
   ];
   $system_files = [
-    'auth-register.php', 'users.php', 'create_admin.php',
+    'users.php', 'create_admin.php',
     'import-sql.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php', 'export-ojt-list.php',
   ];
   $settings_files = [

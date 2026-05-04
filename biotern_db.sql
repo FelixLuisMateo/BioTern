@@ -101,6 +101,36 @@ INSERT INTO `app_emails` (`id`, `sender_user_id`, `recipient_user_id`, `subject`
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `admin_activity_logs`
+--
+
+CREATE TABLE `admin_activity_logs` (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `admin_user_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `admin_name` varchar(255) DEFAULT NULL,
+  `admin_username` varchar(191) DEFAULT NULL,
+  `admin_email` varchar(255) DEFAULT NULL,
+  `action` varchar(50) NOT NULL,
+  `action_label` varchar(120) NOT NULL,
+  `target_type` varchar(120) DEFAULT NULL,
+  `target_id` varchar(120) DEFAULT NULL,
+  `target_name` varchar(255) DEFAULT NULL,
+  `activity_comment` varchar(500) DEFAULT NULL,
+  `page` varchar(191) DEFAULT NULL,
+  `request_method` varchar(12) DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` varchar(255) DEFAULT NULL,
+  `details_json` longtext DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_admin_activity_user_created` (`admin_user_id`,`created_at`),
+  KEY `idx_admin_activity_action_created` (`action`,`created_at`),
+  KEY `idx_admin_activity_page_created` (`page`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `attendances`
 --
 
@@ -1044,6 +1074,8 @@ CREATE TABLE `biometric_bridge_profile` (
   `id` int(10) UNSIGNED NOT NULL,
   `profile_name` varchar(100) NOT NULL DEFAULT 'default',
   `selected_bridge_preset` varchar(100) NOT NULL DEFAULT 'laptop_custom',
+  `router_name` varchar(150) NOT NULL DEFAULT '',
+  `bridge_name` varchar(150) NOT NULL DEFAULT '',
   `bridge_enabled` tinyint(1) NOT NULL DEFAULT 1,
   `bridge_token` varchar(255) NOT NULL DEFAULT '',
   `cloud_base_url` varchar(255) NOT NULL DEFAULT '',
@@ -1903,6 +1935,10 @@ CREATE TABLE `calendar_events` (
   `end_at` datetime NOT NULL,
   `color` varchar(20) DEFAULT '#0d6efd',
   `is_all_day` tinyint(1) NOT NULL DEFAULT 0,
+  `attendance_multiplier` decimal(6,2) DEFAULT NULL,
+  `apply_when_not_late` tinyint(1) NOT NULL DEFAULT 0,
+  `late_grace_minutes` int(11) DEFAULT NULL,
+  `applies_to_weekday` varchar(16) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp(),
   `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `deleted_at` datetime DEFAULT NULL
@@ -2077,6 +2113,7 @@ CREATE TABLE `departments` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `name` varchar(255) NOT NULL,
   `code` varchar(255) NOT NULL,
+  `location` varchar(255) DEFAULT NULL,
   `department_head` varchar(255) DEFAULT NULL,
   `contact_email` varchar(255) DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
@@ -2467,6 +2504,8 @@ CREATE TABLE `manual_dtr_attachments` (
   `file_size` bigint(20) DEFAULT NULL,
   `reason` varchar(255) DEFAULT NULL COMMENT 'e.g., Biometric Machine Breakdown',
   `uploaded_by` bigint(20) UNSIGNED DEFAULT NULL,
+  `storage_driver` varchar(30) NOT NULL DEFAULT 'filesystem',
+  `file_blob` longblob DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL
@@ -2591,6 +2630,8 @@ CREATE TABLE `message_reports` (
   `reported_user_id` bigint(20) UNSIGNED NOT NULL,
   `reason` varchar(255) NOT NULL DEFAULT 'Inappropriate message',
   `status` varchar(20) NOT NULL DEFAULT 'open',
+  `resolution_action` varchar(40) NOT NULL DEFAULT 'none',
+  `punishment_until` timestamp NULL DEFAULT NULL,
   `moderator_note` varchar(255) DEFAULT NULL,
   `reviewed_by_user_id` bigint(20) UNSIGNED DEFAULT NULL,
   `reviewed_at` timestamp NULL DEFAULT NULL,
@@ -2722,6 +2763,7 @@ CREATE TABLE `ojt_edit_audit` (
   `editor_user_id` int(11) NOT NULL DEFAULT 0,
   `reason` varchar(500) NOT NULL,
   `changes_text` text NOT NULL,
+  `diff_json` longtext DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -2735,6 +2777,7 @@ CREATE TABLE `ojt_masterlist` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `school_year` varchar(20) NOT NULL,
   `semester` varchar(30) NOT NULL DEFAULT '',
+  `student_no` varchar(100) DEFAULT NULL,
   `source_workbook` varchar(255) DEFAULT NULL,
   `source_sheet` varchar(255) DEFAULT NULL,
   `source_row_number` int(11) NOT NULL DEFAULT 0,
@@ -2748,6 +2791,7 @@ CREATE TABLE `ojt_masterlist` (
   `supervisor_name` varchar(255) DEFAULT NULL,
   `supervisor_position` varchar(255) DEFAULT NULL,
   `company_representative` varchar(255) DEFAULT NULL,
+  `company_representative_position` varchar(255) DEFAULT NULL,
   `status` varchar(100) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
   `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
@@ -3448,6 +3492,7 @@ CREATE TABLE `supervisors` (
   `phone` varchar(20) DEFAULT NULL,
   `department_id` bigint(20) UNSIGNED DEFAULT NULL,
   `specialization` varchar(255) DEFAULT NULL,
+  `office_location` varchar(255) DEFAULT NULL,
   `bio` longtext DEFAULT NULL,
   `profile_picture` varchar(255) DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT 1,
@@ -3460,8 +3505,8 @@ CREATE TABLE `supervisors` (
 -- Dumping data for table `supervisors`
 --
 
-INSERT INTO `supervisors` (`id`, `user_id`, `first_name`, `last_name`, `middle_name`, `email`, `phone`, `department_id`, `specialization`, `bio`, `profile_picture`, `is_active`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(5, 1, 'Julius', 'Gomez', NULL, 'juluisgomez@gmail.com', '09761551465', 1, 'Comlab 2', NULL, NULL, 1, '2026-02-24 02:53:39', '2026-03-02 01:19:42', NULL);
+INSERT INTO `supervisors` (`id`, `user_id`, `first_name`, `last_name`, `middle_name`, `email`, `phone`, `department_id`, `specialization`, `office_location`, `bio`, `profile_picture`, `is_active`, `created_at`, `updated_at`, `deleted_at`) VALUES
+(5, 1, 'Julius', 'Gomez', NULL, 'juluisgomez@gmail.com', '09761551465', 1, NULL, 'Comlab 2', NULL, NULL, 1, '2026-02-24 02:53:39', '2026-03-02 01:19:42', NULL);
 
 -- --------------------------------------------------------
 

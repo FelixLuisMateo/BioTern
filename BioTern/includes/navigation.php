@@ -199,7 +199,7 @@ $nav_active_apps = biotern_nav_any_active($nav_current_file, [
     'apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php', 'announcements.php',
 ]);
 $nav_active_users = biotern_nav_any_active($nav_current_file, [
-    'auth-register.php', 'users.php', 'create_admin.php',
+    'users.php', 'create_admin.php',
     'coordinators.php', 'coordinators-create.php', 'coordinators-edit.php',
     'supervisors.php', 'supervisors-create.php', 'supervisors-edit.php',
 ]);
@@ -465,7 +465,6 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                             <span class="nxl-mtext">User Accounts</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item<?php echo biotern_nav_is_active('auth-register.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="auth-register.php">User Registration</a></li>
                             <li class="nxl-item<?php echo biotern_nav_is_active('users.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="users.php">Users</a></li>
                             <li class="nxl-item<?php echo biotern_nav_is_active('create_admin.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="create_admin.php">Create Admin</a></li>
                             <li class="nxl-item<?php echo biotern_nav_is_active('coordinators.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="coordinators.php">Coordinators</a></li>

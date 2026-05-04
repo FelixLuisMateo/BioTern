@@ -8,6 +8,8 @@ require_roles_page(['admin']);
 $message = '';
 $message_type = 'info';
 
+biotern_ensure_table_column($conn, 'supervisors', 'office_location', 'VARCHAR(255) DEFAULT NULL');
+
 $supervisorColumns = [];
 $supervisorColumnResult = $conn->query("SHOW COLUMNS FROM supervisors");
 if ($supervisorColumnResult) {
