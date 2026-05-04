@@ -480,9 +480,32 @@
         clone.removeAttribute("id");
 
         // Keep parity with desktop actions: use only top-level controls.
-        // For dropdown groups, include only the trigger control (not submenu items).
+        // For dropdown groups, expand menu items into standalone actions.
         var dropdownRoot = clone.matches && clone.matches(".dropdown") ? clone : clone.querySelector(".dropdown");
         if (dropdownRoot) {
+          var dropdownMenuItems = dropdownRoot.querySelectorAll(".dropdown-menu a, .dropdown-menu button");
+          if (dropdownMenuItems && dropdownMenuItems.length) {
+            for (var d = 0; d < dropdownMenuItems.length; d += 1) {
+              var item = dropdownMenuItems[d];
+              if (!item || (item.classList && item.classList.contains("dropdown-divider"))) {
+                continue;
+              }
+              if (item.classList && item.classList.contains("disabled")) {
+                continue;
+              }
+              if (item.getAttribute && item.getAttribute("aria-disabled") === "true") {
+                continue;
+              }
+              var itemClone = item.cloneNode(true);
+              itemClone.classList.add("btn", "btn-light-brand");
+              itemClone.classList.remove("dropdown-item");
+              if (itemClone.matches("button") && !itemClone.getAttribute("type")) {
+                itemClone.setAttribute("type", "button");
+              }
+              cloneWrap.appendChild(itemClone);
+            }
+            return;
+          }
           var dropdownTrigger = dropdownRoot.querySelector("a.btn, button.btn, .action-tile");
           if (dropdownTrigger) {
             var triggerClone = dropdownTrigger.cloneNode(true);
@@ -596,6 +619,15 @@
     }
     if (toggle) {
       toggle.classList.add("mobile-actions-source-hidden");
+    }
+    if (dropdownMenus && dropdownMenus.length) {
+      for (var m = 0; m < dropdownMenus.length; m += 1) {
+        var menuNode = dropdownMenus[m];
+        var menuRoot = menuNode && menuNode.closest ? menuNode.closest(".dropdown") : null;
+        if (menuRoot) {
+          menuRoot.classList.add("mobile-actions-source-hidden");
+        }
+      }
     }
 
     var btn = document.createElement("button");
