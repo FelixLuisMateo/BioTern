@@ -77,22 +77,24 @@ body.admin-logs-page .logs-table-card .table {
     margin-bottom: 0;
 }
 
-body.admin-logs-page .logs-table-card .table > :not(caption) > * > * {
-    padding: 0.5rem 0.64rem !important;
-}
+@media (min-width: 992px) {
+    body.admin-logs-page .logs-table-card .table > :not(caption) > * > * {
+        padding: 0.5rem 0.64rem !important;
+    }
 
-body.admin-logs-page .logs-table-card thead th {
-    padding: 0.52rem 0.64rem;
-    font-size: 0.69rem;
-    line-height: 1.15;
-    letter-spacing: 0.03em;
-}
+    body.admin-logs-page .logs-table-card thead th {
+        padding: 0.52rem 0.64rem;
+        font-size: 0.69rem;
+        line-height: 1.15;
+        letter-spacing: 0.03em;
+    }
 
-body.admin-logs-page .logs-table-card tbody td {
-    padding: 0.5rem 0.64rem;
-    font-size: 0.76rem;
-    line-height: 1.2;
-    vertical-align: middle;
+    body.admin-logs-page .logs-table-card tbody td {
+        padding: 0.5rem 0.64rem;
+        font-size: 0.76rem;
+        line-height: 1.2;
+        vertical-align: middle;
+    }
 }
 
 body.admin-logs-page .logs-activity-comment {
