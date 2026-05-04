@@ -119,6 +119,8 @@ if (!function_exists('footer_asset_versioned_src')) {
             </div>
         </div>
     <?php endif; ?>
+    <!-- Toast container for server-side flash messages (used by external attendance pages) -->
+    <div id="bioternToastContainer" aria-live="polite" aria-atomic="true" style="position:fixed;right:18px;bottom:18px;z-index:200000;max-width:360px;pointer-events:none;"></div>
 <?php endif; ?>
 
     <!--! ================================================================ !-->

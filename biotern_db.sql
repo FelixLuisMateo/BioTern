@@ -3527,7 +3527,8 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-(1, 'JuliusGomez', 'JuliusGomez', 'juluisgomez@gmail.com', NULL, '$2y$10$AKqDmz/P.zDRLFYlKG/eT.kKm5LTX4mHXKBzBfyVdehXixqhZ9pNW', NULL, 'supervisor', 1, '', '2026-02-24 02:53:39', '2026-02-24 02:53:39', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
+INSERT INTO `users` (`id`, `name`, `username`, `email`, `email_verified_at`, `password`, `remember_token`, `role`, `is_active`, `profile_picture`, `created_at`, `updated_at`, `application_status`, `application_submitted_at`, `approved_by`, `approved_at`, `rejected_at`, `approval_notes`, `disciplinary_remark`) VALUES
+(1, 'JuliusGomez', 'JuliusGomez', 'juluisgomez@gmail.com', NULL, '$2y$10$O3c1pTPq4RNJgOdu22ltdO100ICm7slNH7ZsLmMHCY/ZdglUTu/ya', NULL, 'supervisor', 1, '', '2026-02-24 02:53:39', '2026-02-24 02:53:39', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
 (2, 'MarkVerzon', 'MarkVerzon', 'markverzon@gmail.com', NULL, '$2y$10$TdhRjBcTSXzliYCnZyeKbeo35UWgShc3fX7d4Z7WhVl9coGXHxGJ2', NULL, 'coordinator', 1, '', '2026-02-24 02:56:30', '2026-03-03 08:42:36', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
 (3, 'Felix Luis Mateo', 'FelixLuisMateo', 'mateo.felixluis@gmail.com', NULL, '$2y$10$PQtM4YQ0bmhzE8FFT.3CRu1Iuq.tDGQSlK6iQv.Hi/qX4hMhCXKu.', NULL, 'student', 1, '', '2026-02-24 02:57:53', '2026-03-24 15:58:26', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
 (4, 'Jomar', 'Jomar', 'jomarsangil@gmail.com', NULL, '$2y$10$iE4WlTO6Ny3zNcC.v.1Tae04qQtUxcC2f.h9/v7VuKj7q3a4145HO', NULL, 'admin', 1, '', '2026-02-24 03:14:42', '2026-04-09 09:31:37', 'approved', NULL, NULL, NULL, NULL, NULL, NULL),
