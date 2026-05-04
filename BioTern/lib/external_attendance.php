@@ -405,14 +405,10 @@ if (!function_exists('external_attendance_store_photo')) {
     }
 }
 
-if (!function_exists('external_attendance_student_context')) {
-    function external_attendance_student_context(mysqli $conn, int $userId): ?array
+if (!function_exists('external_attendance_student_context_select_sql')) {
+    function external_attendance_student_context_select_sql(): string
     {
-        section_schedule_ensure_columns($conn);
-        external_attendance_ensure_schema($conn);
-        attendance_bonus_rules_ensure_schema($conn);
-
-        $sql = "
+        return "
             SELECT
                 s.id,
                 s.user_id,
@@ -439,6 +435,42 @@ if (!function_exists('external_attendance_student_context')) {
             LEFT JOIN departments d ON d.id = s.department_id
             LEFT JOIN courses c ON c.id = s.course_id
         ";
+    }
+}
+
+if (!function_exists('external_attendance_student_context_by_student_id')) {
+    function external_attendance_student_context_by_student_id(mysqli $conn, int $studentId): ?array
+    {
+        section_schedule_ensure_columns($conn);
+        external_attendance_ensure_schema($conn);
+        attendance_bonus_rules_ensure_schema($conn);
+
+        if ($studentId <= 0) {
+            return null;
+        }
+
+        $stmt = $conn->prepare(external_attendance_student_context_select_sql() . " WHERE s.id = ? LIMIT 1");
+        if (!$stmt) {
+            return null;
+        }
+
+        $stmt->bind_param('i', $studentId);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc() ?: null;
+        $stmt->close();
+
+        return $row ?: null;
+    }
+}
+
+if (!function_exists('external_attendance_student_context')) {
+    function external_attendance_student_context(mysqli $conn, int $userId): ?array
+    {
+        section_schedule_ensure_columns($conn);
+        external_attendance_ensure_schema($conn);
+        attendance_bonus_rules_ensure_schema($conn);
+
+        $sql = external_attendance_student_context_select_sql();
 
         $stmt = $conn->prepare($sql . " WHERE s.user_id = ? LIMIT 1");
         if (!$stmt) {
@@ -455,15 +487,9 @@ if (!function_exists('external_attendance_student_context')) {
         }
 
         // Fallback 1: some deployments map students.id directly to session user_id.
-        $idStmt = $conn->prepare($sql . " WHERE s.id = ? LIMIT 1");
-        if ($idStmt) {
-            $idStmt->bind_param('i', $userId);
-            $idStmt->execute();
-            $idRow = $idStmt->get_result()->fetch_assoc() ?: null;
-            $idStmt->close();
-            if ($idRow) {
-                return $idRow;
-            }
+        $idRow = external_attendance_student_context_by_student_id($conn, $userId);
+        if ($idRow) {
+            return $idRow;
         }
 
         // Fallback 2: match by linked user profile identity (student number/email/name).
