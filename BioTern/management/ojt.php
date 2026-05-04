@@ -705,10 +705,11 @@ include 'includes/header.php';
             <tr>
                 <th class="col-index app-ojt-print-col-index">#</th>
                 <th>Student No.</th>
-                <th>Last Name</th>
-                <th>First Name</th>
-                <th>Middle Name</th>
+                <th>Name</th>
                 <th>Course / Section</th>
+                <th>Stage</th>
+                <th>Documents</th>
+                <th>Hours</th>
                 <th>Remarks</th>
             </tr>
         </thead>
@@ -721,11 +722,20 @@ include 'includes/header.php';
                         <?php
                         $student_last = normalize_person_name((string)($r['last_name'] ?? ''));
                         $student_first = normalize_person_name((string)($r['first_name'] ?? ''));
-                        $student_name_lf = trim($student_last . ($student_last !== '' && $student_first !== '' ? ', ' : '') . $student_first);
+                        $student_middle = normalize_person_name((string)($r['middle_name'] ?? ''));
+                        $student_name_lf = trim($student_last . ($student_last !== '' && $student_first !== '' ? ', ' : '') . $student_first . ($student_middle !== '' ? ' ' . $student_middle : ''));
+                        $student_documents = [];
+                        $student_documents[] = 'Application: ' . (!empty($r['has_application']) ? 'Complete' : 'Draft');
+                        $student_documents[] = 'Endorsement: ' . (!empty($r['has_endorsement']) ? 'Complete' : 'Draft');
+                        $student_documents[] = 'MOA: ' . (!empty($r['has_moa']) ? 'Complete' : 'Draft');
+                        $student_documents[] = 'DAU MOA: ' . (!empty($r['has_dau_moa']) ? 'Complete' : 'Draft');
+                        $student_required = (float)($r['required_hours'] ?? 0);
+                        $student_rendered = (float)($r['rendered_hours'] ?? 0);
+                        if ($student_rendered <= 0) {
+                            $student_rendered = (float)($r['attendance_total_hours'] ?? 0);
+                        }
                         ?>
-                        <td><?php echo htmlspecialchars($student_last); ?></td>
-                        <td><?php echo htmlspecialchars($student_first); ?></td>
-                        <td><?php echo htmlspecialchars(normalize_person_name((string)($r['middle_name'] ?? ''))); ?></td>
+                        <td><?php echo htmlspecialchars($student_name_lf); ?></td>
                         <?php
                         $printSection = trim((string)($r['section_name'] ?? ''));
                         $printSemester = trim((string)($r['semester'] ?? ''));
@@ -738,13 +748,16 @@ include 'includes/header.php';
                         }
                         ?>
                         <td><?php echo htmlspecialchars(trim((string)($r['course_name'] ?? '') . ($printSection !== '' ? ' / ' . $printSection : ''))); ?></td>
+                        <td><?php echo htmlspecialchars((string)($r['stage'] ?? '')); ?></td>
+                        <td><?php echo htmlspecialchars(implode(' | ', $student_documents)); ?></td>
+                        <td><?php echo htmlspecialchars(number_format($student_rendered, 1) . ' / ' . number_format($student_required, 1)); ?></td>
                         <td></td>
                     </tr>
                 <?php endforeach; ?>
             <?php else: ?>
                 <tr>
                     <td class="col-index app-ojt-print-col-index">1</td>
-                    <td colspan="6">No OJT students found for current filter.</td>
+                    <td colspan="7">No OJT students found for current filter.</td>
                 </tr>
             <?php endif; ?>
         </tbody>
@@ -968,10 +981,14 @@ include 'includes/header.php';
                             ?>
                             <tr class="app-ojt-table-row app-ojt-table-row-<?php echo htmlspecialchars($risk_band); ?>"
                                 data-print-student-no="<?php echo htmlspecialchars((string)($r['student_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-print-name="<?php echo htmlspecialchars(trim(normalize_person_name((string)($r['last_name'] ?? '')) . ', ' . normalize_person_name((string)($r['first_name'] ?? '')) . ' ' . normalize_person_name((string)($r['middle_name'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?>"
                                 data-print-last-name="<?php echo htmlspecialchars(normalize_person_name((string)($r['last_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
                                 data-print-first-name="<?php echo htmlspecialchars(normalize_person_name((string)($r['first_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
                                 data-print-middle-name="<?php echo htmlspecialchars(normalize_person_name((string)($r['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
-                                data-print-course-section="<?php echo htmlspecialchars(trim((string)($r['course_name'] ?? '') . ($section_period_label !== '-' ? ' / ' . $section_period_label : '')), ENT_QUOTES, 'UTF-8'); ?>">
+                                data-print-course-section="<?php echo htmlspecialchars(trim((string)($r['course_name'] ?? '') . ($section_period_label !== '-' ? ' / ' . $section_period_label : '')), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-print-stage="<?php echo htmlspecialchars((string)($r['stage'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-print-documents="<?php echo htmlspecialchars('Application: ' . (!empty($r['has_application']) ? 'Complete' : 'Draft') . ' | Endorsement: ' . (!empty($r['has_endorsement']) ? 'Complete' : 'Draft') . ' | MOA: ' . (!empty($r['has_moa']) ? 'Complete' : 'Draft') . ' | DAU MOA: ' . (!empty($r['has_dau_moa']) ? 'Complete' : 'Draft'), ENT_QUOTES, 'UTF-8'); ?>"
+                                data-print-hours="<?php echo htmlspecialchars(number_format($rendered, 1) . ' / ' . number_format($required, 1), ENT_QUOTES, 'UTF-8'); ?>">
                                 <td class="app-ojt-select-column">
                                     <div class="form-check app-ojt-select-check">
                                         <input class="form-check-input" type="checkbox" data-ojt-row-select aria-label="Select student <?php echo htmlspecialchars(trim(($r['first_name'] ?? '') . ' ' . ($r['last_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">

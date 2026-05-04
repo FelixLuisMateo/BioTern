@@ -180,21 +180,22 @@
                     '<tr>' +
                     '<td class="print-index">' + (index + 1) + '</td>' +
                     '<td>' + escapeHtml(row.getAttribute('data-print-student-no') || '') + '</td>' +
-                    '<td>' + escapeHtml(row.getAttribute('data-print-last-name') || '') + '</td>' +
-                    '<td>' + escapeHtml(row.getAttribute('data-print-first-name') || '') + '</td>' +
-                    '<td>' + escapeHtml(row.getAttribute('data-print-middle-name') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-name') || '') + '</td>' +
                     '<td>' + escapeHtml(row.getAttribute('data-print-course-section') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-stage') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-documents') || '') + '</td>' +
+                    '<td>' + escapeHtml(row.getAttribute('data-print-hours') || '') + '</td>' +
                     '<td></td>' +
                     '</tr>'
                 );
             }).join('');
 
             if (!ojtRows) {
-                ojtRows = '<tr><td class="print-index">1</td><td colspan="6">' + escapeHtml(emptyMessage || 'No rows found.') + '</td></tr>';
+                ojtRows = '<tr><td class="print-index">1</td><td colspan="7">' + escapeHtml(emptyMessage || 'No rows found.') + '</td></tr>';
             }
 
             return {
-                headers: '<th>Student No.</th><th>Last Name</th><th>First Name</th><th>Middle Name</th><th>Course / Section</th><th>Remarks</th>',
+                headers: '<th>Student No.</th><th>Name</th><th>Course / Section</th><th>Stage</th><th>Documents</th><th>Hours</th><th>Remarks</th>',
                 rows: ojtRows
             };
         }

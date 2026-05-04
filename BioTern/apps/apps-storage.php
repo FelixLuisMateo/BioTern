@@ -77,12 +77,8 @@ include 'includes/header.php';
 
                     <div class="app-storage-filter-group">
                         <button type="button" class="app-storage-filter-chip is-active" data-scope-filter="all">
-                            <span>All Files</span>
+                            <span>Private Files</span>
                             <strong data-count-all>0</strong>
-                        </button>
-                        <button type="button" class="app-storage-filter-chip" data-scope-filter="my">
-                            <span>My Files</span>
-                            <strong data-count-my>0</strong>
                         </button>
                         <button type="button" class="app-storage-filter-chip" data-scope-filter="starred">
                             <span>Starred</span>
@@ -112,13 +108,8 @@ include 'includes/header.php';
                     <div class="app-storage-helper-card">
                         <span class="app-storage-kicker">Access</span>
                         <p>
-                            This is your personal file hub. Files uploaded here are only visible to your account.
+                            This is your private file hub. Files uploaded here are only visible to your account.
                         </p>
-                        <div class="app-storage-resource-list">
-                            <button type="button" class="app-storage-resource-tag" data-shortcut-category="generated">Forms</button>
-                            <button type="button" class="app-storage-resource-tag" data-shortcut-category="reports">Policies</button>
-                            <button type="button" class="app-storage-resource-tag" data-shortcut-category="generated">Templates</button>
-                        </div>
                     </div>
 
                     <div class="app-storage-activity-card">
@@ -172,7 +163,7 @@ include 'includes/header.php';
                     <div class="app-storage-details-empty" data-details-empty>
                         <span class="app-storage-kicker">Details</span>
                         <h3>Select a file</h3>
-                        <p>Choose any file to see its category, uploader, size, and quick actions.</p>
+                        <p>Choose any private file to see its category, size, and quick actions.</p>
                     </div>
 
                     <div class="app-storage-details" data-details-panel hidden></div>

@@ -2076,7 +2076,7 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
                 min-width: 100%;
                 border-collapse: collapse;
                 font-size: 11.5px;
-                table-layout: fixed;
+                table-layout: auto;
             }
             .ojt-print-sheet th, .ojt-print-sheet td,
             .app-ojt-print-sheet th, .app-ojt-print-sheet td,
@@ -2101,6 +2101,37 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
             .app-ojt-selected-print-sheet .print-index {
                 width: 46px;
                 text-align: center;
+            }
+            .app-ojt-print-sheet th:nth-child(2),
+            .app-ojt-print-sheet td:nth-child(2),
+            .app-ojt-selected-print-sheet th:nth-child(2),
+            .app-ojt-selected-print-sheet td:nth-child(2) {
+                width: 0.78in;
+            }
+            .app-ojt-print-sheet th:nth-child(3),
+            .app-ojt-print-sheet td:nth-child(3),
+            .app-ojt-selected-print-sheet th:nth-child(3),
+            .app-ojt-selected-print-sheet td:nth-child(3) {
+                width: 1.1in;
+            }
+            .app-ojt-print-sheet th:nth-child(4),
+            .app-ojt-print-sheet td:nth-child(4),
+            .app-ojt-selected-print-sheet th:nth-child(4),
+            .app-ojt-selected-print-sheet td:nth-child(4) {
+                width: 1.55in;
+            }
+            .app-ojt-print-sheet th:nth-child(6),
+            .app-ojt-print-sheet td:nth-child(6),
+            .app-ojt-selected-print-sheet th:nth-child(6),
+            .app-ojt-selected-print-sheet td:nth-child(6) {
+                width: 1.35in;
+            }
+            .app-ojt-print-sheet th:nth-child(7),
+            .app-ojt-print-sheet td:nth-child(7),
+            .app-ojt-selected-print-sheet th:nth-child(7),
+            .app-ojt-selected-print-sheet td:nth-child(7) {
+                width: 0.68in;
+                white-space: nowrap;
             }
             .app-ojt-selected-print-sheet .header {
                 position: relative;
