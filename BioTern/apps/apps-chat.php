@@ -85,17 +85,7 @@ function chat_normalize_role(?string $role): string
 function chat_contact_group_meta(string $role, bool $isStudentView): array
 {
     $normalizedRole = chat_normalize_role($role);
-
-    if ($isStudentView) {
-        if ($normalizedRole === 'supervisor') {
-            return ['key' => 'supervisors', 'label' => 'Supervisors', 'order' => 10];
-        }
-        if ($normalizedRole === 'student') {
-            return ['key' => 'same-supervisor', 'label' => 'Same Supervisor', 'order' => 20];
-        }
-
-        return ['key' => '', 'label' => '', 'order' => 99];
-    }
+    unset($isStudentView);
 
     if ($normalizedRole === 'supervisor') {
         return ['key' => 'supervisors', 'label' => 'Supervisors', 'order' => 10];
@@ -186,121 +176,6 @@ function chat_has_table(mysqli $conn, string $table): bool
     $safeTable = $conn->real_escape_string($table);
     $result = $conn->query("SHOW TABLES LIKE '" . $safeTable . "'");
     return $result instanceof mysqli_result && $result->num_rows > 0;
-}
-
-function chat_student_scope(mysqli $conn, int $userId): ?array
-{
-    if ($userId <= 0) {
-        return null;
-    }
-
-    $stmt = $conn->prepare(
-        'SELECT
-            s.id,
-            s.user_id,
-            COALESCE(s.course_id, 0) AS course_id,
-            COALESCE(s.section_id, 0) AS section_id,
-            COALESCE(scope_sup_by_user.user_id, scope_sup_by_id.user_id, student_sup_by_id.user_id, student_sup_by_user.user_id, 0) AS supervisor_user_id
-         FROM students s
-         LEFT JOIN (
-            SELECT i_full.*
-            FROM internships i_full
-            INNER JOIN (
-                SELECT student_id, MAX(id) AS latest_id
-                FROM internships
-                GROUP BY student_id
-            ) i_latest ON i_latest.latest_id = i_full.id
-         ) i_scope ON i_scope.student_id = s.id
-         LEFT JOIN supervisors scope_sup_by_id ON scope_sup_by_id.id = i_scope.supervisor_id
-         LEFT JOIN supervisors scope_sup_by_user ON scope_sup_by_user.user_id = i_scope.supervisor_id
-         LEFT JOIN supervisors student_sup_by_id ON student_sup_by_id.id = s.supervisor_id
-         LEFT JOIN supervisors student_sup_by_user ON student_sup_by_user.user_id = s.supervisor_id
-         LEFT JOIN users u ON u.id = ?
-         WHERE s.user_id = ?
-            OR (u.username <> "" AND LOWER(TRIM(COALESCE(s.student_id, ""))) = LOWER(TRIM(u.username)))
-            OR (u.email <> "" AND LOWER(TRIM(COALESCE(s.email, ""))) = LOWER(TRIM(u.email)))
-            OR (u.name <> "" AND LOWER(TRIM(CONCAT(COALESCE(s.first_name, ""), " ", COALESCE(s.last_name, "")))) = LOWER(TRIM(u.name)))
-         ORDER BY CASE WHEN s.user_id = ? THEN 0 ELSE 1 END, s.id DESC
-         LIMIT 1'
-    );
-    if (!$stmt) {
-        return null;
-    }
-
-    $stmt->bind_param('iii', $userId, $userId, $userId);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-
-    if (!is_array($row)) {
-        return null;
-    }
-
-    return [
-        'student_id' => (int)($row['id'] ?? 0),
-        'user_id' => (int)($row['user_id'] ?? 0),
-        'course_id' => (int)($row['course_id'] ?? 0),
-        'section_id' => (int)($row['section_id'] ?? 0),
-        'supervisor_user_id' => (int)($row['supervisor_user_id'] ?? 0),
-    ];
-}
-
-function chat_student_can_contact_user(mysqli $conn, array $studentScope, int $recipientUserId): bool
-{
-    $recipientUserId = (int)$recipientUserId;
-
-    if ($recipientUserId <= 0) {
-        return false;
-    }
-
-    $stmt = $conn->prepare(
-        'SELECT
-            LOWER(TRIM(COALESCE(u.role, ""))) AS role,
-            COALESCE(contact_sup_by_user.user_id, contact_sup_by_id.user_id, student_sup_by_id.user_id, student_sup_by_user.user_id, 0) AS supervisor_user_id
-         FROM users u
-         LEFT JOIN students s ON s.user_id = u.id
-         LEFT JOIN (
-            SELECT i_full.*
-            FROM internships i_full
-            INNER JOIN (
-                SELECT student_id, MAX(id) AS latest_id
-                FROM internships
-                GROUP BY student_id
-            ) i_latest ON i_latest.latest_id = i_full.id
-         ) i_contact ON i_contact.student_id = s.id
-         LEFT JOIN supervisors contact_sup_by_id ON contact_sup_by_id.id = i_contact.supervisor_id
-         LEFT JOIN supervisors contact_sup_by_user ON contact_sup_by_user.user_id = i_contact.supervisor_id
-         LEFT JOIN supervisors student_sup_by_id ON student_sup_by_id.id = s.supervisor_id
-         LEFT JOIN supervisors student_sup_by_user ON student_sup_by_user.user_id = s.supervisor_id
-         WHERE u.id = ?
-           AND (u.is_active = 1 OR u.is_active IS NULL)
-         LIMIT 1'
-    );
-    if (!$stmt) {
-        return false;
-    }
-
-    $stmt->bind_param('i', $recipientUserId);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-
-    if (!is_array($row)) {
-        return false;
-    }
-
-    $role = chat_normalize_role((string)($row['role'] ?? ''));
-    if ($role === 'supervisor') {
-        return true;
-    }
-
-    if ($role !== 'student') {
-        return false;
-    }
-
-    $currentSupervisorId = (int)($studentScope['supervisor_user_id'] ?? 0);
-    $recipientSupervisorId = (int)($row['supervisor_user_id'] ?? 0);
-    return $currentSupervisorId > 0 && $recipientSupervisorId > 0 && $currentSupervisorId === $recipientSupervisorId;
 }
 
 function chat_fetch_recent_login_user_ids(mysqli $conn): array
@@ -1000,9 +875,6 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentUserName = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? 'BioTern User'));
 $currentUserRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 $isStudentChatUser = ($currentUserRole === 'student');
-$studentScope = $isStudentChatUser ? chat_student_scope($conn, $currentUserId) : null;
-$studentScopeErrorMessage = 'Students can only chat with supervisors and students under the same supervisor.';
-$studentScopeMissingMessage = 'Your student profile needs an assigned supervisor before student chat can appear.';
 
 $page_title = 'BioTern || Chat';
 $requestMethod = (string)($_SERVER['REQUEST_METHOD'] ?? 'GET');
@@ -1493,17 +1365,6 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
             }
         }
 
-        if ($errorMessage === '' && $isStudentChatUser) {
-            if (!$studentScope) {
-                $errorMessage = $studentScopeMissingMessage;
-            } elseif (!chat_student_can_contact_user($conn, $studentScope, $selectedUserId)) {
-                $hasStudentSupervisor = (int)($studentScope['supervisor_user_id'] ?? 0) > 0;
-                $errorMessage = (!$hasStudentSupervisor && $recipientRole === 'student')
-                    ? $studentScopeMissingMessage
-                    : $studentScopeErrorMessage;
-            }
-        }
-
         if ($errorMessage === '') {
             if ($replyToMessageId > 0 && $messageMeta['id_col'] !== '') {
                 $replyCheckSql = 'SELECT ' . $messageMeta['id_col'] . ' AS id FROM messages
@@ -1719,22 +1580,8 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
         $contactParams[] = $currentUserId;
     }
 
-    $studentScopeFilterSql = '';
-    if ($isStudentChatUser) {
-        $studentScopeFilterSql = ' AND u.id <> ? AND (
-            LOWER(TRIM(COALESCE(u.role, ""))) = "supervisor"
-            OR (
-                LOWER(TRIM(COALESCE(u.role, ""))) = "student"
-                AND ? > 0
-                AND COALESCE(contact_sup_by_user.user_id, contact_sup_by_id.user_id, student_sup_by_id.user_id, student_sup_by_user.user_id, 0) = ?
-            )
-        )';
-        $contactTypes .= 'i';
-        $contactParams[] = $currentUserId;
-        $contactTypes .= 'ii';
-        $contactParams[] = (int)($studentScope['supervisor_user_id'] ?? 0);
-        $contactParams[] = (int)($studentScope['supervisor_user_id'] ?? 0);
-    }
+    $contactTypes .= 'i';
+    $contactParams[] = $currentUserId;
 
     $contactsSql = '
         SELECT
@@ -1783,7 +1630,7 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
             LEFT JOIN supervisors contact_sup_by_user ON contact_sup_by_user.user_id = i_contact.supervisor_id
             LEFT JOIN supervisors student_sup_by_id ON student_sup_by_id.id = s_contact.supervisor_id
             LEFT JOIN supervisors student_sup_by_user ON student_sup_by_user.user_id = s_contact.supervisor_id
-            WHERE (u.is_active = 1 OR u.is_active IS NULL)' . $studentScopeFilterSql . '
+            WHERE (u.is_active = 1 OR u.is_active IS NULL) AND u.id <> ?
         ORDER BY
             CASE WHEN last_message_at IS NULL THEN 1 ELSE 0 END,
             last_message_at DESC,
@@ -1846,15 +1693,6 @@ if ($selectedUserId > 0) {
         if ((int)$contact['id'] === $selectedUserId) {
             $selectedContact = $contact;
             break;
-        }
-    }
-
-    if ($isStudentChatUser && $selectedContact === null) {
-        $selectedUserId = 0;
-        if ($errorMessage === '') {
-            $errorMessage = ($studentScope && (int)($studentScope['supervisor_user_id'] ?? 0) > 0)
-                ? $studentScopeErrorMessage
-                : $studentScopeMissingMessage;
         }
     }
 
@@ -2112,9 +1950,6 @@ if ($selectedContact && $messageMeta['ready']) {
 $normalizedContacts = [];
 foreach ($contacts as $contact) {
     $normalizedContact = chat_normalize_contact($contact, $recentLoginUserIds, $isStudentChatUser);
-    if ($isStudentChatUser && (string)($normalizedContact['group_key'] ?? '') === '') {
-        continue;
-    }
     $normalizedContacts[] = $normalizedContact;
 }
 
@@ -2124,11 +1959,8 @@ if ($selectedContact) {
 }
 
 $normalizedMessages = chat_normalize_messages($conversationMessages, $currentUserId);
-$hasStudentSupervisorScope = $isStudentChatUser && $studentScope && (int)($studentScope['supervisor_user_id'] ?? 0) > 0;
-$contactSearchPlaceholder = $isStudentChatUser ? 'Search supervisors or peers' : 'Search contacts';
-$emptyContactsMessage = $isStudentChatUser
-    ? ($hasStudentSupervisorScope ? 'No supervisors or same-supervisor students available for chat.' : $studentScopeMissingMessage)
-    : 'No users available.';
+$contactSearchPlaceholder = 'Search contacts';
+$emptyContactsMessage = 'No users available.';
 
 if ($isAjaxRequest) {
     if ($errorMessage !== '') {
