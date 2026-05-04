@@ -172,9 +172,13 @@ function Get-BridgeConfigRemote {
         ('{0}/api/bridge_profile.php?bridge_token={1}' -f $base, $tokenQuery)
     )
 
+    $headers = Get-BridgeRequestHeaders
     $lastError = $null
     foreach ($uri in $candidates) {
         try {
+            if ($headers.Count -gt 0) {
+                return Invoke-RestMethod -Method Get -Uri $uri -Headers $headers -TimeoutSec 30
+            }
             return Invoke-RestMethod -Method Get -Uri $uri -TimeoutSec 30
         } catch {
             $lastError = $_
@@ -235,6 +239,27 @@ function Get-ApiBaseCandidates {
     }
 
     return $bases | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+}
+
+function Get-BridgeRequestHeaders {
+    $headers = @{}
+
+    if (-not [string]::IsNullOrWhiteSpace($BridgeToken)) {
+        $headers['X-BRIDGE-TOKEN'] = $BridgeToken
+    }
+    if (-not [string]::IsNullOrWhiteSpace($bridgeNodeName)) {
+        $headers['X-BRIDGE-NODE'] = $bridgeNodeName
+    }
+
+    $bypassToken = $env:BIOTERN_VERCEL_BYPASS_TOKEN
+    if ([string]::IsNullOrWhiteSpace($bypassToken)) {
+        $bypassToken = $env:VERCEL_PROTECTION_BYPASS
+    }
+    if (-not [string]::IsNullOrWhiteSpace($bypassToken)) {
+        $headers['X-Vercel-Protection-Bypass'] = $bypassToken
+    }
+
+    return $headers
 }
 
 function Read-TextFileWithRetry {
@@ -515,10 +540,7 @@ function Invoke-BridgeHeartbeat {
     }
     $bodyJson = $bodyObj | ConvertTo-Json -Depth 5 -Compress
 
-    $headers = @{
-        'X-BRIDGE-TOKEN' = $BridgeToken
-        'X-BRIDGE-NODE' = $bridgeNodeName
-    }
+    $headers = Get-BridgeRequestHeaders
 
     $candidates = @()
     foreach ($base in $bases) {
@@ -630,10 +652,7 @@ function Invoke-BridgeCommandResultPublish {
     }
     $bodyJson = $bodyObj | ConvertTo-Json -Depth 5 -Compress
 
-    $headers = @{
-        'X-BRIDGE-TOKEN' = $BridgeToken
-        'X-BRIDGE-NODE' = $bridgeNodeName
-    }
+    $headers = Get-BridgeRequestHeaders
 
     $candidates = @()
     foreach ($base in $bases) {
@@ -669,10 +688,7 @@ function Get-NextBridgeCommand {
         throw 'Bridge profile cloud_base_url is empty.'
     }
 
-    $headers = @{
-        'X-BRIDGE-TOKEN' = $BridgeToken
-        'X-BRIDGE-NODE' = $bridgeNodeName
-    }
+    $headers = Get-BridgeRequestHeaders
 
     $candidates = @()
     foreach ($base in $bases) {
@@ -862,10 +878,7 @@ function Publish-UserCache {
     }
 
     $usersJson = Get-UsersPayloadJson
-    $headers = @{
-        'X-BRIDGE-TOKEN' = $BridgeToken
-        'X-BRIDGE-NODE' = $bridgeNodeName
-    }
+    $headers = Get-BridgeRequestHeaders
 
     $candidates = @()
     foreach ($base in $bases) {
