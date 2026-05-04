@@ -1,6 +1,5 @@
 (() => {
   const studentSelect = document.getElementById("studentSelect");
-  const studentDefaultsSelect = document.getElementById("studentDefaultsSelect");
   const selectedStudentLabel = document.getElementById("selectedStudentLabel");
   const pickerRows = Array.from(document.querySelectorAll("[data-student-picker-row]"));
   const pickerSearch = document.getElementById("studentPickerSearch");
@@ -15,13 +14,13 @@
   const internalHoursInput = document.getElementById("internalHoursInput");
   const externalHoursInput = document.getElementById("externalHoursInput");
 
-  if (!studentSelect || !studentDefaultsSelect || !typeSelect || !requiredHoursInput || !internalHoursInput || !externalHoursInput) {
+  if (!studentSelect || !typeSelect || !requiredHoursInput || !internalHoursInput || !externalHoursInput) {
     return;
   }
 
-  const selectedStudentOption = () => {
+  const selectedStudentRow = () => {
     const value = studentSelect.value || "";
-    return Array.from(studentDefaultsSelect.options).find((option) => option.value === value) || null;
+    return pickerRows.find((row) => row.getAttribute("data-student-id") === value) || null;
   };
 
   const syncRequiredHours = () => {
@@ -37,12 +36,12 @@
   };
 
   const applyStudentDefaults = () => {
-    const option = selectedStudentOption();
-    if (!option) return;
+    const row = selectedStudentRow();
+    if (!row) return;
 
-    const defaultTrack = (option.getAttribute("data-track") || "internal").toLowerCase();
-    const internalDefault = parseInt(option.getAttribute("data-internal-hours") || "140", 10);
-    const externalDefault = parseInt(option.getAttribute("data-external-hours") || "250", 10);
+    const defaultTrack = (row.getAttribute("data-track") || "internal").toLowerCase();
+    const internalDefault = parseInt(row.getAttribute("data-internal-hours") || "140", 10);
+    const externalDefault = parseInt(row.getAttribute("data-external-hours") || "250", 10);
 
     if (!Number.isNaN(internalDefault)) {
       internalHoursInput.value = Math.max(0, internalDefault);

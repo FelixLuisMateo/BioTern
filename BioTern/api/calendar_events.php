@@ -349,7 +349,10 @@ if ($method === 'GET') {
     // Otherwise, fetch events by date range or all events
     $from = normalize_datetime((string)($_GET['from'] ?? ''));
     $to = normalize_datetime((string)($_GET['to'] ?? ''));
-    $includeBirthdays = in_array(strtolower(trim((string)($_GET['include_birthdays'] ?? '0'))), ['1', 'true', 'yes', 'on'], true);
+    $includeBirthdaysRaw = array_key_exists('include_birthdays', $_GET)
+        ? strtolower(trim((string)$_GET['include_birthdays']))
+        : '1';
+    $includeBirthdays = in_array($includeBirthdaysRaw, ['1', 'true', 'yes', 'on'], true);
 
     if ($from !== null && $to !== null) {
                 $stmt = $conn->prepare("SELECT id, title, location, description, start_at, end_at, color, is_all_day, attendance_multiplier, apply_when_not_late, late_grace_minutes, applies_to_weekday

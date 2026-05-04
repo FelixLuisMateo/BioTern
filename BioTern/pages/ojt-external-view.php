@@ -28,7 +28,7 @@ $studentSql = "
         COALESCE(NULLIF(sec.code, ''), sec.name, '-') AS section_name
     FROM students s
     LEFT JOIN courses c ON c.id = s.course_id
-    LEFT JOIN sections sec ON sec.id = s.section_id
+    LEFT JOIN sections sec ON sec.id = s.section_id AND sec.course_id = s.course_id
     WHERE s.id = ?
        OR TRIM(COALESCE(s.student_id, '')) = ?
     LIMIT 1

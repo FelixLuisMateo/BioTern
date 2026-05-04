@@ -475,8 +475,8 @@ $sql = "
     LEFT JOIN users u ON u.id = COALESCE(NULLIF(oi.user_id, 0), s.user_id)
     LEFT JOIN courses c1 ON c1.id = oi.course_id
     LEFT JOIN courses c2 ON c2.id = s.course_id
-    LEFT JOIN sections sec1 ON sec1.id = oi.section_id
-    LEFT JOIN sections sec2 ON sec2.id = s.section_id
+    LEFT JOIN sections sec1 ON sec1.id = oi.section_id AND sec1.course_id = oi.course_id
+    LEFT JOIN sections sec2 ON sec2.id = s.section_id AND sec2.course_id = s.course_id
     {$internshipJoinSql}
     ORDER BY oi.last_name ASC, oi.first_name ASC, oi.student_no ASC
 ";
@@ -523,7 +523,7 @@ $studentsOnlySql = "
     LEFT JOIN ojt_internal oi_match ON TRIM(COALESCE(oi_match.student_no, '')) COLLATE utf8mb4_unicode_ci = TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci
     LEFT JOIN users u ON u.id = s.user_id
     LEFT JOIN courses c ON c.id = s.course_id
-    LEFT JOIN sections sec ON sec.id = s.section_id
+    LEFT JOIN sections sec ON sec.id = s.section_id AND sec.course_id = s.course_id
     {$internshipJoinSql}
     WHERE oi_match.student_no IS NULL
     {$studentTrackFilter}
@@ -791,7 +791,7 @@ ob_end_flush();
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtInternalListTable" data-ojt-select-table data-print-mode="student-section" data-print-title="Internal Student List" data-print-subtitle="<?php echo htmlspecialchars($printFilterLabel, ENT_QUOTES, 'UTF-8'); ?>" data-print-filter-form="#ojtInternalFilterForm">
+                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtInternalListTable" data-ojt-select-table data-print-mode="internal-student-list" data-print-title="Internal Student List" data-print-subtitle="<?php echo htmlspecialchars($printFilterLabel, ENT_QUOTES, 'UTF-8'); ?>" data-print-filter-form="#ojtInternalFilterForm">
                             <thead>
                                 <tr>
                                     <th class="app-ojt-select-column">
@@ -814,7 +814,14 @@ ob_end_flush();
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($rows as $row): ?>
-                                    <tr data-ojt-student-row-id="<?php echo (int)($row['student_row_id'] ?? 0); ?>" data-ojt-student-label="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>" data-print-student-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-last-name="<?php echo htmlspecialchars((string)($row['last_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-first-name="<?php echo htmlspecialchars((string)($row['first_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-middle-name="<?php echo htmlspecialchars((string)($row['middle_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-row-href="ojt-internal-view.php?id=<?php echo (int)($row['student_row_id'] ?? 0); ?>">
+                                    <?php
+                                    $internalPrintName = trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? ''));
+                                    $internalPrintCourse = trim((string)($row['course_name'] ?? 'N/A'));
+                                    $internalPrintSection = biotern_format_section_code((string)($row['section_name'] ?? 'N/A'));
+                                    $internalPrintCourseSection = trim($internalPrintCourse . (($internalPrintSection !== '' && $internalPrintSection !== 'N/A') ? ' / ' . $internalPrintSection : ''));
+                                    $internalPrintStatus = (string)($row['internal_status_label'] ?? 'Not Started');
+                                    ?>
+                                    <tr data-ojt-student-row-id="<?php echo (int)($row['student_row_id'] ?? 0); ?>" data-ojt-student-label="<?php echo htmlspecialchars($internalPrintName, ENT_QUOTES, 'UTF-8'); ?>" data-print-student-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-name="<?php echo htmlspecialchars($internalPrintName, ENT_QUOTES, 'UTF-8'); ?>" data-print-course-section="<?php echo htmlspecialchars($internalPrintCourseSection, ENT_QUOTES, 'UTF-8'); ?>" data-print-status="<?php echo htmlspecialchars($internalPrintStatus, ENT_QUOTES, 'UTF-8'); ?>" data-print-last-name="<?php echo htmlspecialchars((string)($row['last_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-first-name="<?php echo htmlspecialchars((string)($row['first_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-middle-name="<?php echo htmlspecialchars((string)($row['middle_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-row-href="ojt-internal-view.php?id=<?php echo (int)($row['student_row_id'] ?? 0); ?>">
                                         <td class="app-ojt-select-column" data-label="Select" data-print-exclude="1">
                                             <div class="form-check app-ojt-select-check">
                                                 <input class="form-check-input" type="checkbox" data-ojt-row-select aria-label="Select student <?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?>">

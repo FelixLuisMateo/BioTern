@@ -219,7 +219,7 @@ if ($departments_result && $departments_result->num_rows > 0) {
 
 // Fetch sections for dropdown
 $sections = [];
-$sections_result = $conn->query("SELECT id, code, name FROM sections ORDER BY code ASC, name ASC");
+$sections_result = $conn->query("SELECT id, course_id, code, name FROM sections ORDER BY code ASC, name ASC");
 if ($sections_result && $sections_result->num_rows > 0) {
     while ($row = $sections_result->fetch_assoc()) {
         $sections[] = $row;
@@ -480,11 +480,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
+    $section_course_valid = true;
+    if ($course_id > 0 && $section_id > 0) {
+        $section_course_check = $conn->prepare("SELECT 1 FROM sections WHERE id = ? AND course_id = ? LIMIT 1");
+        if ($section_course_check) {
+            $section_course_check->bind_param("ii", $section_id, $course_id);
+            $section_course_check->execute();
+            $section_course_valid = $section_course_check->get_result()->num_rows > 0;
+            $section_course_check->close();
+        }
+    }
+
     // Validation
     if (empty($first_name) || empty($last_name) || empty($email)) {
         $error_message = "First Name, Last Name, and Email are required fields!";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = "Invalid email format!";
+    } elseif (!$section_course_valid) {
+        $error_message = "Selected section does not belong to the selected course.";
     } elseif ($requested_password_reset && !$can_admin_reset_student_password) {
         $error_message = "Only admin accounts can reset a student's account password.";
     } elseif ($requested_password_reset && empty($student['user_id'])) {
@@ -1047,7 +1060,7 @@ include 'includes/header.php';
                                                 <select class="form-control" id="section_id" name="section_id">
                                                     <option value="0">-- Select Section --</option>
                                                     <?php foreach ($sections as $section): ?>
-                                                        <option value="<?php echo (int)$section['id']; ?>"
+                                                        <option value="<?php echo (int)$section['id']; ?>" data-course-id="<?php echo (int)($section['course_id'] ?? 0); ?>"
                                                             <?php echo ((int)($student['section_id'] ?? 0) === (int)$section['id']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars(biotern_format_section_label((string)($section['code'] ?? ''), (string)($section['name'] ?? ''))); ?>
                                                         </option>
@@ -1157,6 +1170,35 @@ include 'includes/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    var courseSelect = document.getElementById('course_id');
+    var sectionSelect = document.getElementById('section_id');
+    if (courseSelect && sectionSelect) {
+        var filterSections = function () {
+            var courseId = courseSelect.value || '';
+            var selectedOption = sectionSelect.options[sectionSelect.selectedIndex];
+            var selectedHidden = false;
+
+            Array.prototype.forEach.call(sectionSelect.options, function (option) {
+                if (!option.value || option.value === '0') {
+                    option.hidden = false;
+                    return;
+                }
+                var matches = option.getAttribute('data-course-id') === courseId;
+                option.hidden = !matches;
+                if (option.selected && !matches) {
+                    selectedHidden = true;
+                }
+            });
+
+            if (selectedHidden || (selectedOption && selectedOption.hidden)) {
+                sectionSelect.value = '0';
+            }
+        };
+
+        courseSelect.addEventListener('change', filterSections);
+        filterSections();
+    }
+
     var toggle = document.getElementById('toggle_admin_reset_password');
     if (!toggle) {
         return;

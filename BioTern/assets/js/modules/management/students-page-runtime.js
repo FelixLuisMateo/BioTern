@@ -92,9 +92,21 @@
 
     function buildPrintRowMarkup(row, index) {
       var studentId = (row.dataset.printStudentId || "").trim();
-      var lastName = (row.dataset.printLastName || "").trim();
-      var firstName = (row.dataset.printFirstName || "").trim();
-      var middleName = (row.dataset.printMiddleName || "").trim();
+      var studentName = (row.dataset.printStudentName || "").trim();
+      var academic = (row.dataset.printAcademic || "").trim();
+      var section = (row.dataset.printSection || "").trim();
+      var mentors = (row.dataset.printMentors || "").trim();
+
+      if (!studentName) {
+        studentName = [
+          row.dataset.printFirstName || "",
+          row.dataset.printMiddleName || "",
+          row.dataset.printLastName || "",
+        ]
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
 
       return (
         "<tr>" +
@@ -105,15 +117,17 @@
         escapeHtml(studentId) +
         "</td>" +
         "<td>" +
-        escapeHtml(lastName) +
+        escapeHtml(studentName || "-") +
         "</td>" +
         "<td>" +
-        escapeHtml(firstName) +
+        escapeHtml(academic || "-") +
         "</td>" +
         "<td>" +
-        escapeHtml(middleName) +
+        escapeHtml(section || "-") +
         "</td>" +
-        "<td></td>" +
+        "<td>" +
+        escapeHtml(mentors || "-") +
+        "</td>" +
         "</tr>"
       );
     }
@@ -130,9 +144,60 @@
       });
     }
 
+    function selectedText(selectEl) {
+      if (!selectEl || selectEl.selectedIndex < 0) return "";
+      var option = selectEl.options[selectEl.selectedIndex];
+      return option ? (option.textContent || "").trim() : "";
+    }
+
+    function normalizeFilterText(value) {
+      return String(value || "")
+        .replace(/^--\s*/g, "")
+        .replace(/\s*--$/g, "")
+        .trim();
+    }
+
+    function currentPrintFilterLabel() {
+      var form = document.getElementById("studentsFilterForm");
+      if (!form) return "All students";
+
+      var parts = [];
+      var fields = [
+        { id: "filter-school-year", label: "School Year", empty: "All School Years" },
+        { id: "filter-semester", label: "Semester", empty: "All Semesters" },
+        { id: "filter-date", label: "Date", input: true },
+        { id: "filter-course", label: "Course", empty: "All Courses" },
+        { id: "filter-department", label: "Department", empty: "All Departments" },
+        { id: "filter-section", label: "Section", empty: "All Sections" },
+        { id: "filter-supervisor", label: "Supervisor", empty: "Any Supervisor" },
+        { id: "filter-coordinator", label: "Coordinator", empty: "Any Coordinator" },
+        { id: "filter-status", label: "Status", empty: "All Statuses" },
+      ];
+
+      fields.forEach(function (field) {
+        var el = document.getElementById(field.id);
+        if (!el) return;
+        var text = field.input ? (el.value || "").trim() : selectedText(el);
+        text = normalizeFilterText(text);
+        if (!text || text === field.empty || text === "0" || text === "-1") return;
+        parts.push(field.label + ": " + text);
+      });
+
+      return parts.length ? parts.join(" | ") : "All students";
+    }
+
+    function syncPrintFilterLabel() {
+      var target = document.querySelector("[data-students-print-filter]");
+      if (target) {
+        target.textContent = currentPrintFilterLabel();
+      }
+    }
+
     function syncPrintSheetRows(forceSelectedOnly) {
       var printSheetBody = document.querySelector(".student-list-print-sheet tbody");
       if (!printSheetBody) return true;
+
+      syncPrintFilterLabel();
 
       var selectedRows = getSelectedRows();
       var sourceRows = forceSelectedOnly

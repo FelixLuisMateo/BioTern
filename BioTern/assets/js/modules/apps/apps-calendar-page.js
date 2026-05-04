@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
         selectedDateKey: formatDateKey(new Date()),
         events: [],
         editingEventId: 0,
-        includeBirthdays: false
+        includeBirthdays: true
     };
 
     var monthLabel = root.querySelector('[data-month-label]');

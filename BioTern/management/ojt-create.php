@@ -547,30 +547,6 @@ include 'includes/header.php';
                                     <span id="selectedStudentLabel">Select student</span>
                                 </button>
                             </div>
-                            <select id="studentDefaultsSelect" class="d-none" aria-hidden="true" tabindex="-1">
-                                <option value="">Select student</option>
-                                <?php foreach ($studentOptions as $student): ?>
-                                    <?php
-                                    $studentPk = (int)($student['id'] ?? 0);
-                                    $schoolId = trim((string)($student['student_id'] ?? ''));
-                                    $fullName = trim((string)($student['last_name'] ?? '') . ', ' . (string)($student['first_name'] ?? ''));
-                                    $course = trim((string)($student['course_name'] ?? '-'));
-                                    $section = biotern_format_section_code((string)($student['section_name'] ?? '-'));
-                                    $track = trim((string)($student['assignment_track'] ?? 'internal'));
-                                    $internalDefault = (int)($student['internal_total_hours'] ?? 140);
-                                    $externalDefault = (int)($student['external_total_hours'] ?? 250);
-                                    ?>
-                                    <option
-                                        value="<?php echo $studentPk; ?>"
-                                        data-track="<?php echo htmlspecialchars($track, ENT_QUOTES, 'UTF-8'); ?>"
-                                        data-internal-hours="<?php echo $internalDefault; ?>"
-                                        data-external-hours="<?php echo $externalDefault; ?>"
-                                        data-label="<?php echo htmlspecialchars($schoolId . ' | ' . $fullName . ' | ' . $course . ' - ' . $section, ENT_QUOTES, 'UTF-8'); ?>"
-                                    >
-                                        <?php echo htmlspecialchars($schoolId . ' | ' . $fullName . ' | ' . $course . ' - ' . $section, ENT_QUOTES, 'UTF-8'); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
                         </div>
 
                         <div class="row g-2">
@@ -802,9 +778,11 @@ include 'includes/header.php';
                             $schoolYear = trim((string)($student['school_year'] ?? ''));
                             $semester = trim((string)($student['semester'] ?? ''));
                             $company = trim((string)($student['current_company_name'] ?? ''));
+                            $internalDefault = (int)($student['internal_total_hours'] ?? 140);
+                            $externalDefault = (int)($student['external_total_hours'] ?? 250);
                             $label = $schoolId . ' | ' . $displayName . ' | ' . $course . ' - ' . $section;
                             ?>
-                            <tr data-student-picker-row data-student-id="<?php echo $studentPk; ?>" data-label="<?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>" data-search="<?php echo htmlspecialchars(strtolower($schoolId . ' ' . $displayName . ' ' . $course . ' ' . $section), ENT_QUOTES, 'UTF-8'); ?>" data-school-year="<?php echo htmlspecialchars($schoolYear, ENT_QUOTES, 'UTF-8'); ?>" data-semester="<?php echo htmlspecialchars($semester, ENT_QUOTES, 'UTF-8'); ?>" data-course-id="<?php echo (int)($student['course_id'] ?? 0); ?>" data-section-id="<?php echo (int)($student['section_id'] ?? 0); ?>">
+                            <tr data-student-picker-row data-student-id="<?php echo $studentPk; ?>" data-label="<?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>" data-search="<?php echo htmlspecialchars(strtolower($schoolId . ' ' . $displayName . ' ' . $course . ' ' . $section), ENT_QUOTES, 'UTF-8'); ?>" data-school-year="<?php echo htmlspecialchars($schoolYear, ENT_QUOTES, 'UTF-8'); ?>" data-semester="<?php echo htmlspecialchars($semester, ENT_QUOTES, 'UTF-8'); ?>" data-course-id="<?php echo (int)($student['course_id'] ?? 0); ?>" data-section-id="<?php echo (int)($student['section_id'] ?? 0); ?>" data-track="<?php echo htmlspecialchars(strtolower($track), ENT_QUOTES, 'UTF-8'); ?>" data-internal-hours="<?php echo $internalDefault; ?>" data-external-hours="<?php echo $externalDefault; ?>">
                                 <td><input class="form-check-input" type="radio" name="student_picker_choice" value="<?php echo $studentPk; ?>"></td>
                                 <td><?php echo htmlspecialchars($schoolId !== '' ? $schoolId : '-', ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td><?php echo htmlspecialchars($displayName !== '' ? $displayName : '-', ENT_QUOTES, 'UTF-8'); ?></td>

@@ -43,7 +43,7 @@ if ($courseRes instanceof mysqli_result) {
 }
 
 $sections = [];
-$sectionRes = $conn->query("SELECT id, code, name FROM sections ORDER BY COALESCE(NULLIF(code, ''), name) ASC");
+$sectionRes = $conn->query("SELECT id, course_id, code, name FROM sections ORDER BY COALESCE(NULLIF(code, ''), name) ASC");
 if ($sectionRes instanceof mysqli_result) {
     while ($row = $sectionRes->fetch_assoc()) {
         $row['section_label'] = biotern_format_section_label((string)($row['code'] ?? ''), (string)($row['name'] ?? ''));
@@ -85,6 +85,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($courseId <= 0) $errors[] = 'Course is required.';
     if ($sectionId <= 0) $errors[] = 'Section is required.';
     if ($password === '') $errors[] = 'Password is required.';
+
+    if ($courseId > 0 && $sectionId > 0) {
+        $sectionCourseStmt = $conn->prepare("SELECT 1 FROM sections WHERE id = ? AND course_id = ? LIMIT 1");
+        if ($sectionCourseStmt) {
+            $sectionCourseStmt->bind_param('ii', $sectionId, $courseId);
+            $sectionCourseStmt->execute();
+            if ($sectionCourseStmt->get_result()->num_rows === 0) {
+                $errors[] = 'Selected section does not belong to the selected course.';
+            }
+            $sectionCourseStmt->close();
+        }
+    }
 
     if ($errors === []) {
         $dupStmt = $conn->prepare("SELECT 1 FROM students WHERE student_id = ? OR email = ? LIMIT 1");
@@ -274,7 +286,7 @@ include 'includes/header.php';
                         <select class="form-select" id="section_id" name="section_id" required>
                             <option value="">Select section</option>
                             <?php foreach ($sections as $section): ?>
-                                <option value="<?php echo (int)$section['id']; ?>" <?php echo (int)$old['section_id'] === (int)$section['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)$section['section_label'], ENT_QUOTES, 'UTF-8'); ?></option>
+                                <option value="<?php echo (int)$section['id']; ?>" data-course-id="<?php echo (int)($section['course_id'] ?? 0); ?>" <?php echo (int)$old['section_id'] === (int)$section['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)$section['section_label'], ENT_QUOTES, 'UTF-8'); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -287,4 +299,38 @@ include 'includes/header.php';
         </div>
     </div>
 </main>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var courseSelect = document.getElementById('course_id');
+    var sectionSelect = document.getElementById('section_id');
+    if (!courseSelect || !sectionSelect) {
+        return;
+    }
+
+    function filterSections() {
+        var courseId = courseSelect.value || '';
+        var selectedOption = sectionSelect.options[sectionSelect.selectedIndex];
+        var selectedHidden = false;
+
+        Array.prototype.forEach.call(sectionSelect.options, function (option) {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+            var matches = option.getAttribute('data-course-id') === courseId;
+            option.hidden = !matches;
+            if (option.selected && !matches) {
+                selectedHidden = true;
+            }
+        });
+
+        if (selectedHidden || (selectedOption && selectedOption.hidden)) {
+            sectionSelect.value = '';
+        }
+    }
+
+    courseSelect.addEventListener('change', filterSections);
+    filterSections();
+});
+</script>
 <?php include 'includes/footer.php'; ?>

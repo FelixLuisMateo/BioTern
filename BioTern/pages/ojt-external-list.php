@@ -109,8 +109,8 @@ $sql = "
     LEFT JOIN users u ON u.id = COALESCE(NULLIF(oe.user_id, 0), s.user_id)
     LEFT JOIN courses c1 ON c1.id = oe.course_id
     LEFT JOIN courses c2 ON c2.id = s.course_id
-    LEFT JOIN sections sec1 ON sec1.id = oe.section_id
-    LEFT JOIN sections sec2 ON sec2.id = s.section_id
+    LEFT JOIN sections sec1 ON sec1.id = oe.section_id AND sec1.course_id = oe.course_id
+    LEFT JOIN sections sec2 ON sec2.id = s.section_id AND sec2.course_id = s.course_id
     ORDER BY oe.last_name ASC, oe.first_name ASC, oe.student_no ASC
 ";
 $res = $conn->query($sql);
@@ -148,7 +148,7 @@ $studentsOnlySql = "
     LEFT JOIN ojt_external oe_match ON TRIM(COALESCE(oe_match.student_no, '')) COLLATE utf8mb4_unicode_ci = TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci
     LEFT JOIN users u ON u.id = s.user_id
     LEFT JOIN courses c ON c.id = s.course_id
-    LEFT JOIN sections sec ON sec.id = s.section_id
+    LEFT JOIN sections sec ON sec.id = s.section_id AND sec.course_id = s.course_id
     WHERE oe_match.student_no IS NULL
       AND LOWER(TRIM(COALESCE(s.assignment_track, 'internal'))) = 'external'
     ORDER BY s.last_name ASC, s.first_name ASC, s.student_id ASC

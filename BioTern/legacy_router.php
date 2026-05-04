@@ -423,7 +423,7 @@ if ($is_logged_in) {
     $deny = true;
   }
   if (in_array($file, $workspace_files, true)) {
-    $workspace_allowed_roles = ['admin', 'coordinator'];
+    $workspace_allowed_roles = ['admin', 'coordinator', 'supervisor'];
     $student_workspace_allowed = ($current_role === 'student' && in_array($file, $student_workspace_files, true));
     if (!in_array($current_role, $workspace_allowed_roles, true) && !$student_workspace_allowed) {
       $deny = true;

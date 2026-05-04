@@ -1056,39 +1056,16 @@
             return;
         }
 
-        var printWindow = window.open('', '_blank');
-        if (!printWindow) {
-            window.print();
-            return;
-        }
+        document.body.classList.add('application-native-printing');
 
-        printWindow.document.open();
-        var printFallbackCss = [
-            'html,body{background:#fff!important;margin:0!important;padding:0!important;}',
-            '.no-print,.page-header,.nxl-navigation,.nxl-header{display:none!important;}',
-            '#editor,.builder-editor-surface{box-shadow:none!important;border:0!important;padding:0!important;margin:0 auto!important;max-width:none!important;background:#fff!important;}',
-            '#editor .a4-pages-stack,.a4-pages-stack{margin:0 auto!important;padding:0!important;}',
-            '#editor .a4-page,.a4-page{width:210mm!important;min-height:297mm!important;box-sizing:border-box!important;background:#fff!important;padding:0.22in 0.5in 0.24in!important;}',
-            '#editor .app-application-container,.app-application-container{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;}',
-            '#editor .app-application-header,.app-application-header{border-bottom:1px solid #c8ccd3!important;margin:0 0 8px!important;padding:0 0 0.08in!important;overflow:visible!important;}',
-            '#editor .app-application-header-inner,.app-application-header-inner{display:grid!important;grid-template-columns:0.92in minmax(0,1fr)!important;align-items:center!important;column-gap:0.12in!important;}',
-            '#editor .app-application-header-copy,.app-application-header-copy{text-align:center!important;padding-right:0.16in!important;}',
-            '#editor .crest,#editor .app-application-crest,.crest,.app-application-crest{position:static!important;width:0.92in!important;max-width:0.92in!important;height:0.92in!important;max-height:0.92in!important;display:block!important;object-fit:contain!important;margin:0!important;}',
-            '#editor #ap_hours.app-fill-line,#ap_hours.app-fill-line{min-width:44px!important;text-align:center!important;}',
-            '#editor img,img{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;}'
-        ].join('');
-        printWindow.document.write(
-            '<!doctype html><html><head><meta charset="utf-8">' +
-            '<title>Application Letter</title>' +
-            '<base href="' + document.baseURI.replace(/"/g, '&quot;') + '">' +
-            collectPrintStyles() +
-            '<style>' + printFallbackCss + '</style>' +
-            '</head><body class="application-builder-page application-document-builder-page">' +
-            '<div id="editor" class="builder-editor-surface">' + editor.innerHTML + '</div>' +
-            '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},250);});<\/script>' +
-            '</body></html>'
-        );
-        printWindow.document.close();
+        var cleanup = function () {
+            document.body.classList.remove('application-native-printing');
+            window.removeEventListener('afterprint', cleanup);
+        };
+
+        window.addEventListener('afterprint', cleanup);
+        window.print();
+        window.setTimeout(cleanup, 1200);
     }
 
     function initPrintButton() {

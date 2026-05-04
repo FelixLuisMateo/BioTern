@@ -815,29 +815,43 @@ include 'includes/header.php';
             <div class="meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga &middot;</div>
             <div class="tel">Telefax No.: (045) 624-0215</div>
         </div>
-        <div class="print-title">STUDENT SECTION LIST</div>
-        <div class="print-meta"><strong>SECTION:</strong> <?php echo htmlspecialchars($selected_section_label); ?></div>
+        <div class="print-title">STUDENT LIST</div>
+        <div class="print-meta"><strong>FILTER:</strong> <span data-students-print-filter><?php echo htmlspecialchars($selected_section_label); ?></span></div>
         <table>
             <thead>
                 <tr>
                     <th class="col-index">#</th>
-                    <th>Student No.</th>
-                    <th>Last Name</th>
-                    <th>First Name</th>
-                    <th>Middle Name</th>
-                    <th>Remarks</th>
+                    <th>School ID</th>
+                    <th>Student Name</th>
+                    <th>Academic</th>
+                    <th>Section</th>
+                    <th>Mentors</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (!empty($print_students)): ?>
                     <?php foreach ($print_students as $i => $student): ?>
+                        <?php
+                        $print_student_name = trim((string)($student['first_name'] ?? '') . ' ' . (string)($student['middle_name'] ?? '') . ' ' . (string)($student['last_name'] ?? ''));
+                        $print_academic_parts = array_filter([
+                            (string)($student['course_name'] ?? 'N/A'),
+                            (string)($student['school_year'] ?? ''),
+                            (string)($student['semester'] ?? ''),
+                        ], static function ($value) {
+                            $value = trim((string)$value);
+                            return $value !== '' && $value !== '-';
+                        });
+                        $print_section = biotern_format_section_code((string)($student['section_name'] ?? '-'));
+                        $print_supervisor = trim((string)($student['supervisor_name'] ?? '-'));
+                        $print_coordinator = trim((string)($student['coordinator_name'] ?? '-'));
+                        ?>
                         <tr>
                             <td class="col-index"><?php echo (int)$i + 1; ?></td>
                             <td><?php echo htmlspecialchars((string)($student['student_id'] ?? '')); ?></td>
-                            <td><?php echo htmlspecialchars((string)($student['last_name'] ?? '')); ?></td>
-                            <td><?php echo htmlspecialchars((string)($student['first_name'] ?? '')); ?></td>
-                            <td><?php echo htmlspecialchars((string)($student['middle_name'] ?? '')); ?></td>
-                            <td></td>
+                            <td><?php echo htmlspecialchars($print_student_name !== '' ? $print_student_name : '-'); ?></td>
+                            <td><?php echo htmlspecialchars(!empty($print_academic_parts) ? implode(' / ', $print_academic_parts) : '-'); ?></td>
+                            <td><?php echo htmlspecialchars($print_section); ?></td>
+                            <td><?php echo htmlspecialchars('Supervisor: ' . ($print_supervisor !== '' ? $print_supervisor : '-') . ' | Coordinator: ' . ($print_coordinator !== '' ? $print_coordinator : '-')); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
@@ -1152,6 +1166,21 @@ include 'includes/header.php';
                                                         $track_key = 'internal';
                                                     }
                                                     $track_label = ucfirst($track_key);
+                                                    $print_full_name = trim(implode(' ', array_filter([
+                                                        (string)($student['first_name'] ?? ''),
+                                                        (string)($student['middle_name'] ?? ''),
+                                                        (string)($student['last_name'] ?? ''),
+                                                    ], static function ($value) {
+                                                        return trim((string)$value) !== '';
+                                                    })));
+                                                    $print_academic_label = implode(' / ', array_filter([
+                                                        $course_name,
+                                                        (string)($student['school_year'] ?? ''),
+                                                        (string)($student['semester'] ?? ''),
+                                                    ], static function ($value) {
+                                                        $value = trim((string)$value);
+                                                        return $value !== '' && $value !== '-';
+                                                    }));
                                                     ?>
                                                     <tr
                                                         class="single-item app-students-table-row"
@@ -1164,6 +1193,10 @@ include 'includes/header.php';
                                                         data-export-last-logged="<?php echo htmlspecialchars($last_logged, ENT_QUOTES, 'UTF-8'); ?>"
                                                         data-export-status="<?php echo ((int)($student['live_clock_status'] ?? 0) === 1) ? 'Active' : 'Inactive'; ?>"
                                                         data-print-student-id="<?php echo htmlspecialchars($student_id_label, ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-print-student-name="<?php echo htmlspecialchars($print_full_name !== '' ? $print_full_name : $student_name, ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-print-academic="<?php echo htmlspecialchars($print_academic_label !== '' ? $print_academic_label : '-', ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-print-section="<?php echo htmlspecialchars($section_name, ENT_QUOTES, 'UTF-8'); ?>"
+                                                        data-print-mentors="<?php echo htmlspecialchars('Supervisor: ' . ($supervisor_name !== '' ? $supervisor_name : '-') . ' | Coordinator: ' . ($coordinator_name !== '' ? $coordinator_name : '-'), ENT_QUOTES, 'UTF-8'); ?>"
                                                         data-print-last-name="<?php echo htmlspecialchars((string)($student['last_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                         data-print-first-name="<?php echo htmlspecialchars((string)($student['first_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                         data-print-middle-name="<?php echo htmlspecialchars((string)($student['middle_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"

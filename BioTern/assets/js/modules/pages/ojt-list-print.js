@@ -148,7 +148,9 @@
     }
 
     function buildPrintRows(table, rows, emptyMessage) {
-        if (table.getAttribute('data-print-mode') === 'student-section') {
+        var printMode = table.getAttribute('data-print-mode') || '';
+
+        if (printMode === 'student-section') {
             var studentRows = rows.map(function (row, index) {
                 return (
                     '<tr>' +
@@ -172,7 +174,7 @@
             };
         }
 
-        if (table.getAttribute('data-print-mode') === 'ojt-student-list') {
+        if (printMode === 'ojt-student-list') {
             var ojtRows = rows.map(function (row, index) {
                 return (
                     '<tr>' +
@@ -197,7 +199,7 @@
             };
         }
 
-        if (table.getAttribute('data-print-mode') === 'external-student-list') {
+        if (printMode === 'external-student-list' || printMode === 'internal-student-list') {
             var externalRows = rows.map(function (row, index) {
                 return (
                     '<tr>' +
