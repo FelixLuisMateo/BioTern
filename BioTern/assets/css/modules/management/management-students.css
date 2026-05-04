@@ -405,7 +405,7 @@ html.app-skin-dark .students-table-wrap::-webkit-scrollbar-thumb {
 
 .students-table-wrap #customerList,
 .students-table-wrap .dataTables_wrapper {
-    min-width: 1180px;
+    min-width: 980px;
 }
 
 .students-table-wrap th,
@@ -575,44 +575,45 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 
 .app-students-list-table thead th:nth-child(1),
 .app-students-list-table tbody td:nth-child(1) {
-    width: 52px;
+    width: 44px;
 }
 
 .app-students-list-table thead th:nth-child(2),
 .app-students-list-table tbody td:nth-child(2) {
-    width: 30%;
+    width: 24%;
 }
 
 .app-students-list-table thead th:nth-child(3),
 .app-students-list-table tbody td:nth-child(3),
 .app-students-list-table thead th:nth-child(4),
 .app-students-list-table tbody td:nth-child(4) {
-    width: 18%;
+    width: 16%;
 }
 
 .app-students-list-table thead th:nth-child(5),
 .app-students-list-table tbody td:nth-child(5) {
-    width: 16%;
+    width: 15%;
 }
 
 .app-students-list-table thead th:nth-child(6),
 .app-students-list-table tbody td:nth-child(6) {
-    width: 11%;
+    width: 12%;
 }
 
 .app-students-list-table thead th:nth-child(7),
 .app-students-list-table tbody td:nth-child(7) {
-    width: 14%;
+    width: 140px;
+    min-width: 140px;
 }
 
 .app-students-list-table tbody td {
-    padding-top: 1rem;
-    padding-bottom: 1rem;
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
     vertical-align: top;
 }
 
 .app-students-table-row > td {
-    min-height: 76px;
+    min-height: 48px;
 }
 
 .app-students-list-table tbody td:first-child,
@@ -621,37 +622,50 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 }
 
 .app-students-list-table tbody td:last-child,
+.app-students-list-table {
+    table-layout: fixed;
+    width: 100%;
+}
 .app-students-list-table thead th:last-child {
     padding-right: 1.15rem;
 }
 
 .app-students-student-block {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     display: flex;
     align-items: center;
-    gap: 0.85rem;
+    gap: 0.5rem;
     min-width: 0;
 }
 
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 .app-students-student-block .avatar-image.avatar-md {
-    width: 42px;
-    height: 42px;
-    max-width: 42px;
-    max-height: 42px;
-    min-width: 42px;
-    min-height: 42px;
+    width: 32px;
+    height: 32px;
+    max-width: 32px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 32px;
+    min-width: 32px;
+    min-height: 32px;
 }
 
 .app-students-student-copy {
     display: grid;
-    gap: 0.15rem;
+    gap: 0.05rem;
     min-width: 0;
 }
 
 .app-students-student-name {
-    font-size: 0.94rem;
+    font-size: 0.82rem;
     font-weight: 700;
     color: inherit;
-    line-height: 1.2;
+    line-height: 1.1;
 }
 
 .app-students-student-meta,
@@ -665,8 +679,8 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 .app-students-student-meta,
 .app-students-student-submeta,
 .app-students-cell-meta {
-    font-size: 0.76rem;
-    line-height: 1.3;
+    font-size: 0.66rem;
+    line-height: 1.15;
 }
 
 .app-students-inline-collapse {
@@ -691,15 +705,12 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 
 .app-students-inline-detail-label,
 .app-students-cell-title {
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    display: none;
 }
 
 .app-students-inline-detail-value,
 .app-students-cell-value {
-    font-size: 0.86rem;
+    font-size: 0.74rem;
     font-weight: 600;
     color: inherit;
 }
@@ -710,7 +721,7 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 
 .app-students-cell-stack {
     display: grid;
-    gap: 0.3rem;
+    gap: 0.08rem;
 }
 
 .app-students-section-pill {
@@ -728,22 +739,23 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 }
 
 .app-students-status-block {
-    display: grid;
-    gap: 0.45rem;
-    justify-items: start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: flex-start;
 }
 
 .app-students-status-pill,
 .app-students-biometric-pill {
     display: inline-flex;
     align-items: center;
-    min-height: 30px;
-    padding: 0.34rem 0.7rem;
+    min-height: 22px;
+    padding: 0.2rem 0.46rem;
     border-radius: 999px;
     border: 1px solid #d8e1ea;
     background: #ffffff;
     color: #334155;
-    font-size: 0.75rem;
+    font-size: 0.62rem;
     font-weight: 700;
 }
 
@@ -771,8 +783,8 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 }
 
 .app-students-row-actions .btn-sm {
-    min-height: 34px;
-    padding: 0.42rem 0.7rem;
+    min-height: 28px;
+    padding: 0.26rem 0.52rem;
     border-radius: 10px;
     white-space: nowrap;
 }
@@ -787,8 +799,14 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 
 .app-students-menu-toggle {
     min-width: 38px !important;
-    padding-left: 0.55rem !important;
-    padding-right: 0.55rem !important;
+    padding-left: 0.38rem !important;
+    padding-right: 0.38rem !important;
+}
+
+@media (max-width: 991.98px) {
+    #studentsFiltersCollapse {
+        display: none !important;
+    }
 }
 
 .app-students-menu-toggle i {

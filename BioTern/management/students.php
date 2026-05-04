@@ -886,6 +886,10 @@ include 'includes/header.php';
                         <i class="feather-rotate-ccw me-1"></i>
                         <span>Reset</span>
                     </a>
+                    <button type="button" class="btn btn-sm filter-toggle-btn mobile-actions-source-hidden" data-bs-toggle="collapse" data-bs-target="#studentsFiltersCollapse" aria-expanded="false" aria-controls="studentsFiltersCollapse">
+                        <i class="feather-filter me-1"></i>
+                        <span>Filters</span>
+                    </button>
                     <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="studentsActionsMenu">
                         <i class="feather-grid me-1"></i>
                         <span>Actions</span>
@@ -958,7 +962,7 @@ include 'includes/header.php';
             <?php endif; ?>
 
             <!-- Filters -->
-            <div>
+            <div id="studentsFiltersCollapse" class="collapse">
                 <div class="row mb-3 px-3">
                     <div class="col-12">
                         <div class="filter-panel">
@@ -1124,8 +1128,7 @@ include 'includes/header.php';
             <div class="main-content app-students-main-content">
                 <div class="row">
                     <div class="col-lg-12">
-                        <div class="card stretch stretch-full app-students-table-card app-data-card app-data-toolbar">
-                            <div class="card-body p-0">
+                        <div class="app-students-table-card app-data-card app-data-toolbar">
                                 <div class="table-responsive students-table-wrap app-data-table-wrap">
                                     <table class="table table-hover app-students-list-table app-data-table" id="customerList">
                                         <thead>
@@ -1225,7 +1228,6 @@ include 'includes/header.php';
                                                                 <div class="app-students-student-copy">
                                                                     <span class="app-students-student-name"><?php echo htmlspecialchars($student_name); ?></span>
                                                                     <span class="app-students-student-meta"><?php echo htmlspecialchars($student_id_label); ?></span>
-                                                                    <span class="app-students-student-submeta"><?php echo htmlspecialchars($course_name); ?><?php echo $department_name !== '' ? ' | ' . htmlspecialchars($department_name) : ''; ?></span>
                                                                 </div>
                                                             </a>
                                                             <div class="collapse app-students-inline-collapse" id="studentRowDetails<?php echo (int)$student['id']; ?>">
@@ -1414,7 +1416,6 @@ include 'includes/header.php';
                                         <div class="app-students-mobile-empty text-muted">No students found.</div>
                                     <?php endif; ?>
                                 </div>
-                            </div>
                         </div>
                     </div>
                 </div>
