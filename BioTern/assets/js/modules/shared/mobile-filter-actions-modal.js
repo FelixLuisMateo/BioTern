@@ -248,6 +248,9 @@
   }
 
   function buildFilterModal(header, right, index) {
+    if (!isMobile()) {
+      return;
+    }
     var contentRoot =
       document.querySelector(".nxl-content .main-content") ||
       document.querySelector(".main-content") ||
@@ -273,10 +276,6 @@
 
     for (var c = 0; c < filterCards.length; c += 1) {
       filterCards[c].classList.add("mobile-filters-hidden");
-    }
-
-    if (right.querySelector(".page-header-mobile-filter-toggle")) {
-      return;
     }
 
     var modalId = "mobileFiltersModal" + index;
@@ -316,14 +315,24 @@
     rebuildFilterBody();
     modal.addEventListener("show.bs.modal", rebuildFilterBody);
 
-    var btn = document.createElement("button");
+    var existingToggle = right.querySelector(".filter-toggle-btn");
+    var btn = existingToggle || document.createElement("button");
     btn.type = "button";
-    btn.className = "btn btn-sm btn-light-brand page-header-mobile-filter-toggle";
+    btn.classList.add("page-header-mobile-filter-toggle");
+    btn.classList.remove("mobile-actions-source-hidden");
+    btn.removeAttribute("data-bs-target");
+    btn.removeAttribute("data-bs-toggle");
     btn.setAttribute("data-bs-toggle", "modal");
     btn.setAttribute("data-bs-target", "#" + modalId);
     btn.setAttribute("aria-label", "Open filters");
-    btn.innerHTML = '<i class="feather-filter"></i><span>Filters</span>';
-    right.insertBefore(btn, right.firstChild || null);
+    btn.setAttribute("aria-controls", modalId);
+    if (!btn.innerHTML || btn.innerHTML.indexOf("feather-filter") === -1) {
+      btn.innerHTML = '<i class="feather-filter"></i><span>Filters</span>';
+    }
+    if (!existingToggle) {
+      btn.className = "btn btn-sm btn-light-brand page-header-mobile-filter-toggle";
+      right.insertBefore(btn, right.firstChild || null);
+    }
   }
 
   function buildSearchToggle(header, right, index) {
@@ -440,7 +449,8 @@
 
       // Hard fallback: always expose Filters inside Actions modal when a filter form exists.
       var filterSourceForm = findFilterSourceForm();
-      if (filterSourceForm) {
+      var hasHeaderFilterToggle = !!right.querySelector(".page-header-mobile-filter-toggle, .filter-toggle-btn");
+      if (filterSourceForm && !hasHeaderFilterToggle) {
         var filterBtn = document.createElement("button");
         filterBtn.type = "button";
         filterBtn.className = "btn btn-light-brand";

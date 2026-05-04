@@ -771,6 +771,10 @@ include 'includes/header.php';
                     <i class="feather-rotate-ccw me-1"></i>
                     <span>Reset</span>
                 </a>
+                <button type="button" class="btn btn-sm filter-toggle-btn mobile-actions-source-hidden" data-bs-toggle="collapse" data-bs-target="#ojtFilters" aria-expanded="false" aria-controls="ojtFilters">
+                    <i class="feather-filter me-1"></i>
+                    <span>Filters</span>
+                </button>
                 <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="ojtActionsMenu">
                     <i class="feather-grid me-1"></i>
                     <span>Actions</span>
@@ -828,7 +832,7 @@ include 'includes/header.php';
             <div class="alert alert-success py-2">Reminders queued successfully for flagged students.</div>
         <?php endif; ?>
 
-        <section class="app-ojt-filters-section" id="ojtFilters">
+        <section class="app-ojt-filters-section collapse" id="ojtFilters">
             <div id="ojtFiltersPanel">
             <div class="filter-panel filter-card app-ojt-filter-card">
                 <form method="get" class="filter-form row g-2 align-items-end app-ojt-filter-form" id="ojtFilterForm">

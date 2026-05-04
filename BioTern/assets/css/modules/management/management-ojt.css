@@ -428,12 +428,32 @@ html.app-skin-dark .app-page-ojt-dashboard {
     font-size: 0.82rem;
 }
 
+.app-ojt-print-sheet {
+    display: none;
+}
+
+@media print {
+    .app-ojt-print-sheet {
+        display: block;
+    }
+
+    .app-page-ojt-dashboard .nxl-content > :not(.app-ojt-print-sheet) {
+        display: none !important;
+    }
+}
+
 .app-page-ojt-dashboard .app-ojt-overview {
     display: none;
 }
 
 .app-page-ojt-dashboard .app-ojt-filters-section {
     margin-bottom: 1rem;
+}
+
+@media (max-width: 991.98px) {
+    #ojtFilters {
+        display: none !important;
+    }
 }
 
 .app-page-ojt-dashboard .filter-card,
