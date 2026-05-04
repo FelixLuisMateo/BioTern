@@ -21,7 +21,7 @@ if ($studentMode) {
 	$allowExternal = ($track === 'external');
 
 	if (!$studentContext || !$allowExternal) {
-		header('Location: homepage.php');
+		header('Location: student-external-dtr.php');
 		exit;
 	}
 }

@@ -184,7 +184,7 @@ include __DIR__ . '/../includes/header.php';
             ?>
         </div>
 
-        <div class="application-document-builder" data-prefill-student-id="<?php echo (int)$prefill_student_id; ?>" data-prefill-company="<?php echo htmlspecialchars($prefill_company_key, ENT_QUOTES, 'UTF-8'); ?>">
+        <div class="application-document-builder" data-prefill-student-id="<?php echo (int)$prefill_student_id; ?>" data-prefill-company="<?php echo htmlspecialchars($prefill_company_key, ENT_QUOTES, 'UTF-8'); ?>" data-view-only="<?php echo $documentsIsStudentViewOnly ? '1' : '0'; ?>">
             <style>
                 .app-fill-line {
                     display: inline-block;
@@ -208,7 +208,7 @@ include __DIR__ . '/../includes/header.php';
 
                             <div class="builder-field">
                                 <label for="student_select" class="form-label">Student Name</label>
-                                <select id="student_select" class="student-select-full" data-placeholder="Search by name or student id" <?php echo $documentsIsStudentViewOnly ? 'disabled' : ''; ?>></select>
+                                <select id="student_select" class="student-select-full" data-placeholder="Search by name or student id" data-ui-select="<?php echo $documentsIsStudentViewOnly ? 'native' : 'custom'; ?>" <?php echo $documentsIsStudentViewOnly ? 'disabled' : ''; ?>></select>
                                 <?php if (!$documentsIsStudentViewOnly): ?>
                                     <small class="text-muted application-source-hint">Search and select from student records.</small>
                                 <?php endif; ?>
@@ -216,7 +216,7 @@ include __DIR__ . '/../includes/header.php';
 
                             <div class="builder-field">
                                 <label for="company_select" class="form-label">Company / Training Site</label>
-                                <select id="company_select" class="company-select-full" data-placeholder="Search company, address, or representative" <?php echo $documentsIsStudentViewOnly ? 'disabled' : ''; ?>></select>
+                                <select id="company_select" class="company-select-full" data-placeholder="Search company, address, or representative" data-ui-select="<?php echo $documentsIsStudentViewOnly ? 'native' : 'custom'; ?>" <?php echo $documentsIsStudentViewOnly ? 'disabled' : ''; ?>></select>
                                 <?php if (!$documentsIsStudentViewOnly): ?>
                                     <small class="text-muted application-source-hint">Pick a company to auto-fill recipient, position, company, and address.</small>
                                 <?php endif; ?>

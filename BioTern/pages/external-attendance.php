@@ -32,7 +32,7 @@ function external_attendance_flash_redirect(string $message, string $type, strin
     exit;
 }
 
-function external_attendance_student_target(string $fallback = 'student-external-dtr.php'): string
+function external_attendance_student_target(string $fallback = 'external-biometric.php'): string
 {
     $requested = trim((string)($_POST['return_to'] ?? $_GET['return_to'] ?? ''));
     $candidate = strtolower(basename($requested));
@@ -177,7 +177,7 @@ function external_attendance_admin_filter_target(array $filters): string
 if ($currentRole === 'student') {
     $student = external_attendance_student_context($conn, $currentUserId);
     if (!$student) {
-        external_attendance_flash_redirect('Student profile not found for external attendance.', 'danger', 'homepage.php');
+        external_attendance_flash_redirect('Student profile not found for external attendance.', 'danger', 'student-external-dtr.php');
     }
 
     $studentTarget = external_attendance_student_target();
@@ -580,7 +580,7 @@ if ($currentRole === 'student') {
 
 $canManage = in_array($currentRole, ['admin', 'coordinator', 'supervisor'], true);
 if (!$canManage) {
-    external_attendance_flash_redirect('You do not have access to external attendance.', 'danger', 'homepage.php');
+    external_attendance_flash_redirect('You do not have access to external attendance.', 'danger', 'student-external-dtr.php');
 }
 
 $adminFilters = external_attendance_admin_filters($_GET);
