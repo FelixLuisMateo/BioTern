@@ -1284,6 +1284,8 @@ echo formatDate($student['biometric_registered_at']); ?></div>
 echo intval($student['id']); ?>" class="btn btn-sm btn-light-brand">Open Internal DTR</a>
                                                 <a href="students-external-dtr.php?id=<?php
 echo intval($student['id']); ?>" class="btn btn-sm btn-outline-secondary">Open External DTR</a>
+                                                <a href="external-biometric.php?student_id=<?php
+echo intval($student['id']); ?>" class="btn btn-sm btn-outline-primary">Open External Biometric</a>
                                             </div>
                                         </div>
                                         <ul class="list-unstyled activity-feed">

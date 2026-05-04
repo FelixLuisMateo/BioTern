@@ -180,6 +180,10 @@ include 'includes/header.php';
                         <i class="feather-arrow-left me-2"></i>
                         <span>Back to Profile</span>
                     </a>
+                    <a href="external-biometric.php?student_id=<?php echo intval($student_id); ?>" class="btn btn-outline-primary">
+                        <i class="feather-activity me-2"></i>
+                        <span>Open External Biometric</span>
+                    </a>
                     <a href="document_dtr.php?track=external&student_id=<?php echo intval($student_id); ?>&start_date=<?php echo h($start_date_input); ?>&end_date=<?php echo h($end_date_input); ?>" target="_blank" rel="noopener" class="btn btn-primary">
                         <i class="feather-printer me-2"></i>
                         <span>Print External DTR</span>

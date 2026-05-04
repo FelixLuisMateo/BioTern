@@ -639,7 +639,6 @@ if ($currentRole === 'student') {
     return;
 }
 
-$canManage = in_array($currentRole, ['admin', 'coordinator', 'supervisor'], true);
 if (!$canManage) {
     external_attendance_flash_redirect('You do not have access to external attendance.', 'danger', 'student-external-dtr.php');
 }
@@ -920,6 +919,7 @@ include 'includes/header.php';
                                                         <div class="fw-bold"><?php echo htmlspecialchars(trim((string)($row['first_name'] . ' ' . $row['last_name'])), ENT_QUOTES, 'UTF-8'); ?></div>
                                                         <div class="small text-muted"><?php echo htmlspecialchars((string)($row['student_number'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
                                                         <div class="small text-muted"><?php echo htmlspecialchars((string)($row['course_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                                        <div class="small mt-1"><a href="external-biometric.php?student_id=<?php echo (int)($row['student_id'] ?? 0); ?>">Open biometric</a></div>
                                                     </div>
                                                 </div>
                                             </td>
