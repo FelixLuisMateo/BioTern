@@ -501,6 +501,45 @@ function Get-ConnectorUserListRaw {
     return ($output -join "`n")
 }
 
+function Invoke-BridgeHeartbeat {
+    param($BridgeConfig, [string]$Status = 'running')
+
+    $bases = Get-ApiBaseCandidates -BridgeConfig $BridgeConfig
+    if (-not $bases -or $bases.Count -eq 0) {
+        return $false
+    }
+
+    $bodyObj = @{
+        node_name = $bridgeNodeName
+        status_text = $Status
+    }
+    $bodyJson = $bodyObj | ConvertTo-Json -Depth 5 -Compress
+
+    $headers = @{
+        'X-BRIDGE-TOKEN' = $BridgeToken
+        'X-BRIDGE-NODE' = $bridgeNodeName
+    }
+
+    $candidates = @()
+    foreach ($base in $bases) {
+        $candidates += ('{0}/bridge_heartbeat.php' -f $base)
+        $candidates += ('{0}/api/bridge_heartbeat.php' -f $base)
+    }
+
+    foreach ($uri in $candidates) {
+        try {
+            $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType 'application/json' -Body $bodyJson -TimeoutSec 30
+            if ($response.success) {
+                return $true
+            }
+        } catch {
+            # Try the next endpoint candidate.
+        }
+    }
+
+    return $false
+}
+
 function ConvertFrom-BridgeRawJsonPayload {
     param(
         [Parameter(Mandatory = $true)]
@@ -1360,6 +1399,7 @@ try {
             }
 
             Update-ConnectorConfig -BridgeConfig $bridgeConfig
+            Invoke-BridgeHeartbeat -BridgeConfig $bridgeConfig | Out-Null
             Invoke-BridgeCommandQueue -BridgeConfig $bridgeConfig
             $connectorOutput = Invoke-ConnectorSyncWithFallback -BridgeConfig $bridgeConfig
             Write-BridgeLog (($connectorOutput -join ' ') -replace '\s+', ' ')
