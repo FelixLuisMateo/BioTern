@@ -204,7 +204,7 @@ if ($studentMode) {
 					<form method="post" action="external-attendance.php" id="externalBiometricForm">
 						<input type="hidden" name="external_action" value="quick_clock">
 						<input type="hidden" name="clock_date" value="<?php echo htmlspecialchars($today, ENT_QUOTES, 'UTF-8'); ?>">
-						<input type="hidden" id="externalBiometricClockType" value="">
+						<input type="hidden" name="clock_type" id="externalBiometricClockType" value="">
 						<input type="hidden" name="return_to" value="external-biometric.php">
 						<div class="form-group-custom">
 							<label>Clock Type</label>
@@ -212,7 +212,7 @@ if ($studentMode) {
 								<?php foreach ($clockTypes as $type => [$label, $iconClass]): ?>
 								<?php $isLocked = external_biometric_action_locked($todayRecord, $type); ?>
 								<button
-									type="submit"
+									type="button"
 									name="clock_type"
 									class="clock-btn external-clock-btn<?php echo $isLocked ? ' is-complete' : ''; ?>"
 									data-clock-type="<?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?>"
@@ -359,9 +359,14 @@ if (externalBiometricForm && externalBiometricClockType) {
 		button.addEventListener('click', function() {
 			if (button.disabled) return;
 			externalBiometricClockType.value = button.getAttribute('data-clock-type') || button.value || '';
-			window.setTimeout(function() {
-				button.disabled = true;
-			}, 0);
+							if (typeof externalBiometricForm.requestSubmit === 'function') {
+								externalBiometricForm.requestSubmit();
+							} else {
+								externalBiometricForm.submit();
+							}
+							window.setTimeout(function() {
+								button.disabled = true;
+							}, 0);
 		});
 	});
 	externalBiometricForm.addEventListener('submit', function(event) {
