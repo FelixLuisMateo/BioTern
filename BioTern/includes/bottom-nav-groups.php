@@ -79,6 +79,21 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     ],
                 ],
             ];
+
+            $navGroups[] = [
+                'key' => 'student-documents',
+                'label' => 'Documents',
+                'icon' => 'feather-file-text',
+                'routes' => ['student-documents.php', 'document_application.php', 'document_endorsement.php', 'document_moa.php', 'document_dau_moa.php', 'document_parent_consent.php', 'generate_resume.php'],
+                'sections' => [
+                    [
+                        'title' => 'Documents',
+                        'items' => [
+                            ['label' => 'My Documents', 'href' => 'student-documents.php', 'icon' => 'feather-file-text'],
+                        ],
+                    ],
+                ],
+            ];
         }
 
         if ($canInternship) {
