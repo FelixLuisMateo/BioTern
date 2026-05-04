@@ -259,6 +259,14 @@ function Get-BridgeRequestHeaders {
         $headers['X-Vercel-Protection-Bypass'] = $bypassToken
     }
 
+    # Some edge protections block requests without a basic user-agent.
+    if (-not $headers.ContainsKey('User-Agent')) {
+        $headers['User-Agent'] = 'BioTernBridgeWorker/1.0'
+    }
+    if (-not $headers.ContainsKey('Accept')) {
+        $headers['Accept'] = 'application/json'
+    }
+
     return $headers
 }
 
