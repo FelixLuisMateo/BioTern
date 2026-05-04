@@ -264,53 +264,22 @@
     }
 
     function openPrintPreview(printSheet) {
-        var preview = window.open('', '_blank');
-        if (!preview) {
-            alert('Allow pop-ups so the print preview can open in a new tab.');
+        if (!printSheet) {
             return;
         }
-        var baseHref = document.baseURI || window.location.href;
 
-        var styles = Array.prototype.slice.call(document.querySelectorAll('link[rel="stylesheet"], style')).map(function (node) {
-            return node.outerHTML;
-        }).join('\n');
-        var sheetHtml = printSheet.outerHTML.replace('aria-hidden="true"', 'aria-hidden="false"');
+        document.body.classList.add('app-ojt-print-selected-mode');
+        printSheet.setAttribute('aria-hidden', 'false');
 
-        preview.document.open();
-        preview.document.write(
-            '<!doctype html><html><head><meta charset="utf-8">' +
-            '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-            '<base href="' + escapeHtml(baseHref) + '">' +
-            '<title>Print Preview</title>' +
-            styles +
-            '<style>' +
-            'body{background:#fff;margin:0;padding:24px;color:#111;font-family:Arial,sans-serif;}' +
-            '.print-preview-toolbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:10px 0 14px;background:#fff;}' +
-            '.print-preview-toolbar button{appearance:none;border:0;border-radius:8px;padding:10px 16px;font:700 16px/1.2 Arial,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-height:0!important;height:auto!important;min-width:0!important;width:auto!important;max-width:none!important;}' +
-            '.print-preview-toolbar .primary{background:#0ea5e9;color:#fff;}' +
-            '.print-preview-toolbar .light{background:#eef2f7;color:#172033;}' +
-            '.student-list-print-sheet,.ojt-print-sheet{display:block!important;position:static!important;visibility:visible!important;width:7.45in!important;max-width:100%!important;min-height:10.4in!important;margin:0 auto!important;background:#fff!important;color:#111!important;font-family:Arial,Helvetica,sans-serif!important;font-size:11.5px!important;padding:.38in .42in!important;box-sizing:border-box!important;}' +
-            '.student-list-print-sheet .header,.ojt-print-sheet .header{position:relative!important;overflow:visible!important;height:auto!important;min-height:.78in!important;text-align:center!important;border-bottom:1px solid #8ab0e6;padding:.06in 0 .06in .85in!important;margin-bottom:18px;z-index:2;}' +
-            '.student-list-print-sheet .crest,.ojt-print-sheet .crest{position:absolute!important;display:block!important;top:.08in!important;left:.12in!important;width:.64in!important;height:.64in!important;max-width:.64in!important;max-height:.64in!important;object-fit:contain!important;z-index:5!important;opacity:1!important;visibility:visible!important;}' +
-            '.student-list-print-sheet .header h2,.ojt-print-sheet .header h2{font-family:Calibri,Arial,sans-serif;color:#1b4f9c;font-size:14pt;margin:6px 0 2px;font-weight:700;text-transform:uppercase;}' +
-            '.student-list-print-sheet .header .meta,.student-list-print-sheet .header .tel,.ojt-print-sheet .header .meta,.ojt-print-sheet .header .tel{font-family:Calibri,Arial,sans-serif;color:#1b4f9c;}' +
-            '.student-list-print-sheet .header .meta,.ojt-print-sheet .header .meta{font-size:10pt;}' +
-            '.student-list-print-sheet .header .tel,.ojt-print-sheet .header .tel{font-size:12pt;}' +
-            '.student-list-print-sheet .print-title,.ojt-print-sheet .print-title{text-align:center;font-size:28px;letter-spacing:.5px;font-weight:700;margin:18px 0 18px;}' +
-            '.student-list-print-sheet .print-meta,.ojt-print-sheet .print-meta{margin-bottom:14px;font-size:12px;}' +
-            '.student-list-print-sheet .print-meta strong,.ojt-print-sheet .print-meta strong{min-width:76px;display:inline-block;}' +
-            '.student-list-print-sheet table,.ojt-print-sheet table{width:100%;border-collapse:collapse;font-size:11.5px;table-layout:fixed;}' +
-            '.student-list-print-sheet th,.student-list-print-sheet td,.ojt-print-sheet th,.ojt-print-sheet td{border:1px solid #d9d9d9;padding:7px 7px;text-align:left;vertical-align:top;word-break:normal;overflow-wrap:anywhere;}' +
-            '.student-list-print-sheet th,.ojt-print-sheet th{text-transform:uppercase;font-weight:700;background:#f8f8f8;}' +
-            '.student-list-print-sheet .print-index,.ojt-print-sheet .print-index,.student-list-print-sheet td.col-index,.student-list-print-sheet th.col-index,.ojt-print-sheet td.col-index,.ojt-print-sheet th.col-index{width:46px;text-align:center;white-space:nowrap;}' +
-            '@media print{body{padding:0}.print-preview-toolbar{display:none!important}}' +
-            '</style></head><body>' +
-            '<div class="print-preview-toolbar"><button class="light" type="button" onclick="window.close()">Close</button><button class="primary" type="button" onclick="window.print()">Print</button></div>' +
-            sheetHtml +
-            '</body></html>'
-        );
-        preview.document.close();
-        preview.focus();
+        var cleanup = function () {
+            document.body.classList.remove('app-ojt-print-selected-mode');
+            printSheet.setAttribute('aria-hidden', 'true');
+            window.removeEventListener('afterprint', cleanup);
+        };
+
+        window.addEventListener('afterprint', cleanup);
+        window.print();
+        window.setTimeout(cleanup, 1200);
     }
 
     function initTable(table) {
