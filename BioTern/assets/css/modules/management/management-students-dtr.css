@@ -498,6 +498,10 @@ html.app-skin-dark .dtr-day-card .badge.bg-soft-secondary {
         gap: 0.45rem !important;
     }
 
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right .d-flex > .btn:nth-child(3) {
+        grid-column: 1 / -1;
+    }
+
     body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right .btn {
         min-height: 34px;
         width: 100%;
@@ -635,7 +639,7 @@ html.app-skin-dark .dtr-day-card .badge.bg-soft-secondary {
         gap: 0.75rem;
         height: auto;
         min-height: 0;
-        padding: 1rem;
+        padding: 0.62rem 0.68rem;
         margin: 0 0 1rem;
         overflow: visible;
     }
@@ -673,6 +677,10 @@ html.app-skin-dark .dtr-day-card .badge.bg-soft-secondary {
         grid-template-columns: 1fr;
         width: 100%;
         gap: 0.5rem !important;
+    }
+
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right .d-flex > .btn:first-child {
+        display: none;
     }
 
     body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right .btn {
