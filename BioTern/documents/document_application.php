@@ -144,7 +144,7 @@ if (isset($_GET['action'])) {
     exit;
 }
 
-$page_title = 'Application Letter';
+$page_title = 'Application';
 $base_href = '../';
 $page_body_class = 'application-builder-page application-document-builder-page';
 $page_styles = [
@@ -161,19 +161,16 @@ include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header dashboard-page-header page-header-with-middle">
+        <div class="page-header dashboard-page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">Application Letter</h5>
+                    <h5 class="m-b-10">Application</h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                     <li class="breadcrumb-item"><a href="index.php">Documents</a></li>
-                    <li class="breadcrumb-item">Application Builder</li>
+                    <li class="breadcrumb-item">Application</li>
                 </ul>
-            </div>
-            <div class="page-header-middle">
-                <p class="page-header-statement"><?php echo $documentsIsStudentViewOnly ? 'Preview your application document in read-only mode.' : 'Use one workspace to fill application data, preview the letter, and generate a print-ready copy.'; ?></p>
             </div>
             <?php ob_start(); ?>
                 <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>

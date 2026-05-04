@@ -254,7 +254,7 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
 <div class="nxl-content">
-    <div class="page-header page-header-with-middle">
+    <div class="page-header">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title">
                 <h5 class="m-b-10">Manual DTR Input</h5>
@@ -264,9 +264,6 @@ include 'includes/header.php';
                 <li class="breadcrumb-item"><a href="index.php">Reports</a></li>
                 <li class="breadcrumb-item">Manual DTR Input</li>
             </ul>
-        </div>
-        <div class="page-header-middle">
-            <p class="page-header-statement">Create and review manually-entered DTR records for correction workflows and exceptional cases.</p>
         </div>
     </div>
 

@@ -147,7 +147,7 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
 <div class="nxl-content">
-    <div class="page-header page-header-with-middle">
+    <div class="page-header">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title">
                 <h5 class="m-b-10">Disciplinary Acts</h5>
@@ -157,9 +157,6 @@ include 'includes/header.php';
                 <li class="breadcrumb-item"><a href="index.php">Reports</a></li>
                 <li class="breadcrumb-item">Disciplinary Acts</li>
             </ul>
-        </div>
-        <div class="page-header-middle">
-            <p class="page-header-statement">Centralized view of students with recorded disciplinary remarks from reviewed applications.</p>
         </div>
         <div class="page-header-right ms-auto">
             <div class="page-header-right-items d-flex">

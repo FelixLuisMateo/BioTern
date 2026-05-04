@@ -342,7 +342,7 @@ if ($currentRole === 'student') {
         'afternoon_in' => ['Afternoon In', 'feather-sun'],
         'afternoon_out' => ['Afternoon Out', 'feather-sunset'],
     ];
-    $page_title = 'BioTern || External DTR';
+    $page_title = 'BioTern || External Attendance';
     $page_styles = [
         'assets/css/homepage-student.css',
         'assets/css/student-dtr.css',
@@ -733,26 +733,16 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header dashboard-page-header page-header-with-middle external-attendance-page-header">
+        <div class="page-header dashboard-page-header external-attendance-page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">External Attendance DTR</h5>
+                    <h5 class="m-b-10">External Attendance</h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                    <li class="breadcrumb-item"><a href="attendance.php">Internal DTR</a></li>
-                    <li class="breadcrumb-item">External DTR</li>
+                    <li class="breadcrumb-item"><a href="attendance.php">Internal Attendance</a></li>
+                    <li class="breadcrumb-item">External Attendance</li>
                 </ul>
-            </div>
-            <div class="page-header-middle">
-                <p class="page-header-statement">Review submitted external DTR entries, inspect proof quickly, and update approvals without jumping between cards.</p>
-                <?php if ($externalHasActiveFilters): ?>
-                    <div class="external-attendance-active-filters" aria-label="Active filters">
-                        <?php foreach ($externalActiveFilters as $externalFilterLabel): ?>
-                            <span class="external-attendance-filter-pill"><?php echo htmlspecialchars($externalFilterLabel, ENT_QUOTES, 'UTF-8'); ?></span>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
             </div>
             <div class="page-header-right ms-auto">
                 <div class="d-md-none d-flex align-items-center">

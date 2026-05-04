@@ -674,7 +674,7 @@ if ($account_filter !== 'all') {
 }
 $print_filter_label = $print_filter_parts !== [] ? implode(' / ', $print_filter_parts) : 'Current filtered OJT list';
 
-$page_title = 'BioTern || OJT Dashboard';
+$page_title = 'BioTern || OJT List';
 $page_body_class = 'app-page-ojt-dashboard mobile-bottom-nav';
 $page_styles = [
     'assets/css/modules/management/management-filters.css',
@@ -754,11 +754,11 @@ include 'includes/header.php';
         <div class="page-header app-ojt-page-header">
             <div class="page-header-left app-ojt-page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">OJT Dashboard</h5>
+                    <h5 class="m-b-10">OJT List</h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                    <li class="breadcrumb-item">OJT Dashboard</li>
+                    <li class="breadcrumb-item">OJT List</li>
                 </ul>
             </div>
             <div class="page-header-right app-ojt-page-header-right ms-auto app-ojt-header-actions">

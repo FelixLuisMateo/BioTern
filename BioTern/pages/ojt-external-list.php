@@ -247,7 +247,7 @@ if ($search !== '') {
 }
 $printFilterLabel = $printFilterParts !== [] ? implode(' / ', $printFilterParts) : 'All external students';
 
-$page_title = 'External Student List';
+$page_title = 'External List';
 $page_body_class = 'page-fingerprint-mapping page-ojt-external-list mobile-bottom-nav';
 $page_styles = [
     'assets/css/layout/page_shell.css',
@@ -269,11 +269,11 @@ ob_end_flush();
         <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">External Students</h5>
+                    <h5 class="m-b-10">External List</h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                    <li class="breadcrumb-item">External Students</li>
+                    <li class="breadcrumb-item">External List</li>
                 </ul>
             </div>
             <div class="page-header-right ms-auto bio-console-header-actions">

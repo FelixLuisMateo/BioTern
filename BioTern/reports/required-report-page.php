@@ -721,7 +721,7 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
 <div class="nxl-content">
-    <div class="page-header page-header-with-middle">
+    <div class="page-header">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title logs-page-title"><h5 class="m-b-10"><?php echo rr_esc($report['title']); ?></h5></div>
             <ul class="breadcrumb">
@@ -729,9 +729,6 @@ include 'includes/header.php';
                 <li class="breadcrumb-item"><a href="index.php">Reports</a></li>
                 <li class="breadcrumb-item"><?php echo rr_esc($report['title']); ?></li>
             </ul>
-        </div>
-        <div class="page-header-middle">
-            <p class="page-header-statement"><?php echo rr_esc($report['statement']); ?></p>
         </div>
         <?php ob_start(); ?>
             <a href="reports-admin-logs.php" class="btn btn-outline-primary"><i class="feather-shield me-1"></i>Admin Logs</a>

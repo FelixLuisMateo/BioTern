@@ -794,7 +794,7 @@ if ($filter_section > 0) {
     }
 }
 
-$page_title = 'Students';
+$page_title = 'Students List';
 $page_body_class = 'students-page mobile-bottom-nav';
 $page_styles = array(
     'assets/css/modules/management/management-students-shared.css',
@@ -855,11 +855,11 @@ include 'includes/header.php';
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
-                        <h5 class="m-b-10">Students</h5>
+                        <h5 class="m-b-10">Students List</h5>
                     </div>
                     <ul class="breadcrumb">
                         <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                        <li class="breadcrumb-item">Students</li>
+                        <li class="breadcrumb-item">Students List</li>
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto app-students-header-actions">

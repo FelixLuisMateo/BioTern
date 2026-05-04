@@ -317,7 +317,7 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
 <div class="nxl-content">
-<div class="page-header page-header-with-middle">
+<div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title logs-page-title">
             <h5 class="m-b-10">Chat Logs</h5>
@@ -327,9 +327,6 @@ include 'includes/header.php';
             <li class="breadcrumb-item"><a href="index.php">Reports</a></li>
             <li class="breadcrumb-item">Chat Logs</li>
         </ul>
-    </div>
-    <div class="page-header-middle">
-        <p class="page-header-statement">Real-time visibility into conversations, delivery status, and user message activity.</p>
     </div>
     <?php ob_start(); ?>
         <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
