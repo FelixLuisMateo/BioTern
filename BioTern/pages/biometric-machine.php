@@ -318,6 +318,15 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
     machine_ensure_bridge_user_cache_table($conn);
     machine_ensure_ingest_events_table($conn);
     machine_ensure_bridge_command_queue_table($conn);
+    machine_ensure_bridge_heartbeat_table($conn);
+
+    $latestHeartbeatAt = '';
+    $heartbeatRes = $conn->query("SELECT updated_at FROM biometric_bridge_heartbeat ORDER BY updated_at DESC, id DESC LIMIT 1");
+    if ($heartbeatRes instanceof mysqli_result) {
+        $row = $heartbeatRes->fetch_assoc() ?: [];
+        $latestHeartbeatAt = (string)($row['updated_at'] ?? '');
+        $heartbeatRes->close();
+    }
 
     $latestCacheAt = '';
     $cacheRes = $conn->query("SELECT created_at FROM biometric_bridge_user_cache ORDER BY id DESC LIMIT 1");
@@ -355,7 +364,7 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
         $workerHeartbeatAt = date('Y-m-d H:i:s', (int)$workerLogMtime);
     }
 
-    $candidates = array_values(array_filter([$latestCacheAt, $latestIngestAt, $latestCommandAt, $workerHeartbeatAt], static function ($value): bool {
+    $candidates = array_values(array_filter([$latestHeartbeatAt, $latestCacheAt, $latestIngestAt, $latestCommandAt, $workerHeartbeatAt], static function ($value): bool {
         return trim((string)$value) !== '' && trim((string)$value) !== '1970-01-01 00:00:00';
     }));
 
@@ -402,6 +411,20 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
 function machine_bridge_cache_max_age_seconds(int $pollSeconds): int
 {
     return max(90, $pollSeconds * 4);
+}
+
+function machine_ensure_bridge_heartbeat_table(mysqli $conn): void
+{
+    $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_heartbeat (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        node_name VARCHAR(120) NOT NULL DEFAULT '',
+        status_text VARCHAR(255) NOT NULL DEFAULT '',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_node_name (node_name),
+        KEY idx_updated_at (updated_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
 function machine_require_bridge_online_for_user_reads(mysqli $conn, int $pollSeconds): array

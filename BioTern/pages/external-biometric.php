@@ -14,6 +14,8 @@ external_attendance_ensure_schema($conn);
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 $studentMode = ($currentRole === 'student');
+$canManage = in_array($currentRole, ['admin', 'coordinator', 'supervisor'], true);
+$selectedStudentId = (int)($_GET['student_id'] ?? $_POST['student_id'] ?? 0);
 $studentContext = null;
 if ($studentMode) {
 	$studentContext = external_attendance_student_context($conn, $currentUserId);
@@ -21,8 +23,20 @@ if ($studentMode) {
 	$allowExternal = ($track === 'external');
 
 	if (!$studentContext || !$allowExternal) {
-		header('Location: homepage.php');
+		header('Location: student-external-dtr.php');
 		exit;
+	}
+} elseif ($canManage && $selectedStudentId > 0) {
+	$studentContext = external_attendance_student_context_by_student_id($conn, $selectedStudentId);
+	if ($studentContext) {
+		$track = strtolower(trim((string)($studentContext['assignment_track'] ?? 'internal')));
+		if ($track !== 'external') {
+			$_SESSION['external_attendance_flash'] = [
+				'message' => 'Selected student is not assigned to external track.',
+				'type' => 'warning',
+			];
+			$studentContext = null;
+		}
 	}
 }
 
@@ -97,6 +111,7 @@ include 'includes/header.php';
 $monthHours = 0.0;
 $approvedCount = 0;
 $pendingCount = 0;
+$monthRows = [];
 $clockTypes = [
 	'morning_in' => ['Morning In', 'feather-sunrise'],
 	'morning_out' => ['Morning Out', 'feather-arrow-up-right'],
@@ -104,7 +119,7 @@ $clockTypes = [
 	'afternoon_out' => ['Afternoon Out', 'feather-sunset'],
 ];
 
-if ($studentMode) {
+if ($studentContext) {
 	$selectedMonth = date('Y-m');
 	$monthStart = $selectedMonth . '-01';
 	$monthEnd = date('Y-m-t', strtotime($monthStart));
@@ -128,7 +143,7 @@ $todayRecord = [
 	'afternoon_time_in' => null,
 	'afternoon_time_out' => null,
 ];
-if ($studentMode) {
+if ($studentContext) {
 	$stmt = $conn->prepare("SELECT morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out FROM external_attendance WHERE student_id = ? AND attendance_date = ? LIMIT 1");
 	if ($stmt) {
 		$studentId = (int)$studentContext['id'];
@@ -147,15 +162,41 @@ if ($studentMode) {
 				<div class="alert alert-<?php echo htmlspecialchars((string)($externalFlash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?>">
 					<?php echo htmlspecialchars((string)$externalFlash['message'], ENT_QUOTES, 'UTF-8'); ?>
 				</div>
+				<script>
+				(function () {
+					var flash = <?php echo json_encode($externalFlash); ?>;
+					function showExternalFlash() {
+						var container = document.getElementById('bioternToastContainer');
+						if (!container || !flash || !flash.message) return;
+						var type = (flash.type || 'info');
+						var title = flash.title || '';
+						var message = flash.message || '';
+						var bg = type === 'success' ? '#155724' : (type === 'danger' ? '#721c24' : (type === 'warning' ? '#856404' : '#0c5460'));
+						var toast = document.createElement('div');
+						toast.className = 'biotern-toast';
+						toast.setAttribute('style', 'pointer-events:auto;background:' + bg + ';color:#fff;padding:12px;border-radius:8px;margin-top:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12)');
+						toast.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px">'
+							+ '<div style="flex:1"><div style="font-weight:600;margin-bottom:2px">' + (title ? String(title) : '') + '</div>'
+							+ '<div style="font-size:0.95rem">' + String(message) + '</div></div>'
+							+ '<button type="button" class="biotern-toast-close" aria-label="Close" style="background:transparent;border:0;color:inherit;font-size:18px;line-height:1;padding:0 6px;">&times;</button>'
+							+ '</div>';
+						container.appendChild(toast);
+						var btn = toast.querySelector('.biotern-toast-close');
+						if (btn) btn.addEventListener('click', function () { toast.remove(); });
+						setTimeout(function () { try { toast.remove(); } catch (e) {} }, 6000);
+					}
+					document.addEventListener('DOMContentLoaded', showExternalFlash);
+				}());
+				</script>
 			<?php endif; ?>
-			<?php if ($studentMode && $studentContext): ?>
+			<?php if ($studentContext): ?>
 			<section class="bio-hero">
 				<div class="bio-hero-chip">
 					<i class="feather-shield"></i>
-					<span>Account-Linked External Biometric</span>
+					<span><?php echo $studentMode ? 'Account-Linked External Biometric' : 'Managed External Biometric'; ?></span>
 				</div>
 				<h2><?php echo htmlspecialchars(trim((string)($studentContext['first_name'] . ' ' . $studentContext['last_name'])), ENT_QUOTES, 'UTF-8'); ?></h2>
-				<p>This scanner-style page is tied to your student account, so no student selector is needed. Each punch goes to your own external DTR.</p>
+				<p><?php echo $studentMode ? 'This scanner-style page is tied to your student account, so no student selector is needed. Each punch goes to your own external DTR.' : 'You are managing external biometric punches for this student from an admin account.'; ?></p>
 				<div class="student-home-meta mt-3">
 					<span><?php echo htmlspecialchars((string)($studentContext['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></span>
 					<span><?php echo htmlspecialchars((string)($studentContext['section_code'] ?? 'No section'), ENT_QUOTES, 'UTF-8'); ?></span>
@@ -186,6 +227,7 @@ if ($studentMode) {
 			</div>
 			<?php endif; ?>
 
+			<?php if ($studentContext): ?>
 			<div class="bio-layout mb-4">
 				<aside class="scanner-card">
 					<figure class="fingerprint-image">
@@ -206,13 +248,16 @@ if ($studentMode) {
 						<input type="hidden" name="clock_date" value="<?php echo htmlspecialchars($today, ENT_QUOTES, 'UTF-8'); ?>">
 						<input type="hidden" name="clock_type" id="externalBiometricClockType" value="">
 						<input type="hidden" name="return_to" value="external-biometric.php">
+						<input type="hidden" name="student_id" value="<?php echo (int)($studentContext['id'] ?? 0); ?>">
+						<input type="hidden" name="return_student_id" value="<?php echo (int)($studentContext['id'] ?? 0); ?>">
 						<div class="form-group-custom">
 							<label>Clock Type</label>
 							<div class="clock-type-grid">
 								<?php foreach ($clockTypes as $type => [$label, $iconClass]): ?>
 								<?php $isLocked = external_biometric_action_locked($todayRecord, $type); ?>
 								<button
-									type="submit"
+									type="button"
+									name="clock_type"
 									class="clock-btn external-clock-btn<?php echo $isLocked ? ' is-complete' : ''; ?>"
 									data-clock-type="<?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?>"
 									value="<?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?>"
@@ -261,6 +306,8 @@ if ($studentMode) {
 			<form method="post" action="external-attendance.php" id="manualDtrTableForm" style="display:none;overflow-x:auto;">
 				<input type="hidden" name="external_action" value="manual_range">
 				<input type="hidden" name="return_to" value="external-biometric.php">
+				<input type="hidden" name="student_id" value="<?php echo (int)($studentContext['id'] ?? 0); ?>">
+				<input type="hidden" name="return_student_id" value="<?php echo (int)($studentContext['id'] ?? 0); ?>">
 				<div class="mb-3">
 					<label for="manualDtrNotes" class="form-label">Reason / Details (Optional)</label>
 					<input type="text" class="form-control" name="notes" id="manualDtrNotes" maxlength="255" placeholder="Optional note for the reviewer.">
@@ -272,6 +319,11 @@ if ($studentMode) {
 			</form>
 				</div>
 			</section>
+			<?php else: ?>
+			<div class="alert alert-info">
+				Select a student first from the Students module, then open the student's External DTR page and launch External Biometric from there.
+			</div>
+			<?php endif; ?>
 		</div>
 	</div>
 </main>
@@ -357,12 +409,80 @@ if (externalBiometricForm && externalBiometricClockType) {
 	Array.prototype.forEach.call(externalBiometricForm.querySelectorAll('.external-clock-btn'), function(button) {
 		button.addEventListener('click', function() {
 			if (button.disabled) return;
-			externalBiometricClockType.value = button.getAttribute('data-clock-type') || button.value || '';
-			window.setTimeout(function() {
-				button.disabled = true;
-			}, 0);
+			var clockType = button.getAttribute('data-clock-type') || button.value || '';
+			externalBiometricClockType.value = clockType;
+			<?php if ($studentMode): ?>
+			(function(btn, clkType){
+				btn.disabled = true;
+				var fd = new FormData();
+				fd.append('action', 'clock');
+				fd.append('clock_type', clkType);
+				fd.append('attendance_date', '<?php echo htmlspecialchars($today, ENT_QUOTES, 'UTF-8'); ?>');
+				var now = new Date();
+				var hh = String(now.getHours()).padStart(2,'0');
+				var mm = String(now.getMinutes()).padStart(2,'0');
+				var ss = String(now.getSeconds()).padStart(2,'0');
+				fd.append('time', hh + ':' + mm + ':' + ss);
+				var notesInput = externalBiometricForm.querySelector('input[name="notes"]');
+				if (notesInput) fd.append('notes', notesInput.value || '');
+				fd.append('student_id', '<?php echo (int)($studentContext['id'] ?? 0); ?>');
+				fd.append('return_to', 'external-biometric.php');
+				fetch('api/external-attendance.php', { method: 'POST', credentials: 'same-origin', body: fd })
+				.then(function(res){ return res.json().catch(function(){ return null; }); })
+				.then(function(json){
+					function showBioternToast(type, title, message){
+						var container = document.getElementById('bioternToastContainer');
+						if (!container) return;
+						var bg = type === 'success' ? '#155724' : (type === 'danger' ? '#721c24' : (type === 'warning' ? '#856404' : '#0c5460'));
+						var toast = document.createElement('div');
+						toast.className = 'biotern-toast';
+						toast.setAttribute('style', 'pointer-events:auto;background:' + bg + ';color:#fff;padding:12px;border-radius:8px;margin-top:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12)');
+						toast.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px">' +
+							'<div style="flex:1"><div style="font-weight:600;margin-bottom:2px">' + (title ? String(title) : '') + '</div>' +
+							'<div style="font-size:0.95rem">' + String(message || '') + '</div></div>' +
+							'<button type="button" class="biotern-toast-close" aria-label="Close" style="background:transparent;border:0;color:inherit;font-size:18px;line-height:1;padding:0 6px;">&times;</button>' +
+							'</div>';
+						container.appendChild(toast);
+						var btnClose = toast.querySelector('.biotern-toast-close');
+						if (btnClose) btnClose.addEventListener('click', function(){ toast.remove(); });
+						setTimeout(function(){ try { toast.remove(); } catch(e){} }, 5000);
+					}
+
+					if (json && (json.success || json.ok)) {
+						var msg = json.message || json.msg || 'Punch saved.';
+						showBioternToast('success', '', msg);
+						setTimeout(function(){ window.location.reload(); }, 800);
+					} else {
+						var emsg = (json && (json.message || json.error || json.msg)) || 'Failed to save punch.';
+						showBioternToast('danger', '', emsg);
+						btn.disabled = false;
+					}
+				}).catch(function(){
+					var container = document.getElementById('bioternToastContainer');
+					if (container) {
+						var toast = document.createElement('div');
+						toast.className = 'biotern-toast';
+						toast.setAttribute('style', 'pointer-events:auto;background:#721c24;color:#fff;padding:12px;border-radius:8px;margin-top:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12)');
+						toast.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1"><div style="font-weight:600;margin-bottom:2px">Error</div><div style="font-size:0.95rem">Network error while saving punch.</div></div><button type="button" class="biotern-toast-close" aria-label="Close" style="background:transparent;border:0;color:inherit;font-size:18px;line-height:1;padding:0 6px;">&times;</button></div>';
+						container.appendChild(toast);
+						var btnClose = toast.querySelector('.biotern-toast-close');
+						if (btnClose) btnClose.addEventListener('click', function(){ toast.remove(); });
+						setTimeout(function(){ try { toast.remove(); } catch(e){} }, 5000);
+					}
+					btn.disabled = false;
+				});
+			})(button, clockType);
+			<?php else: ?>
+			if (typeof externalBiometricForm.requestSubmit === 'function') {
+				externalBiometricForm.requestSubmit();
+			} else {
+				externalBiometricForm.submit();
+			}
+			window.setTimeout(function() { button.disabled = true; }, 0);
+			<?php endif; ?>
 		});
 	});
+
 	externalBiometricForm.addEventListener('submit', function(event) {
 		if (!externalBiometricClockType.value) {
 			event.preventDefault();

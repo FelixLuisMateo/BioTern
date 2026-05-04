@@ -165,7 +165,7 @@ if (isset($_GET['action'])) {
     echo json_encode(new stdClass());
     exit;
 }
-$page_title = 'Endorsement Letter';
+$page_title = 'Endorsement';
 $base_href = '../';
 $page_body_class = 'application-builder-page endorsement-builder-page';
 $page_styles = [
@@ -181,19 +181,16 @@ include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header dashboard-page-header page-header-with-middle">
+        <div class="page-header dashboard-page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">Endorsement Letter</h5>
+                    <h5 class="m-b-10">Endorsement</h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                     <li class="breadcrumb-item"><a href="index.php">Documents</a></li>
-                    <li class="breadcrumb-item">Endorsement Builder</li>
+                    <li class="breadcrumb-item">Endorsement</li>
                 </ul>
-            </div>
-            <div class="page-header-middle">
-                <p class="page-header-statement"><?php echo $documentsIsStudentViewOnly ? 'Preview your endorsement document in read-only mode.' : 'Use one workspace to select students, pull company data, and generate a print-ready endorsement letter.'; ?></p>
             </div>
             <?php ob_start(); ?>
                 <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>

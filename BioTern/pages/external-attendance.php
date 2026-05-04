@@ -12,6 +12,7 @@ section_schedule_ensure_columns($conn);
 
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+$canManage = in_array($currentRole, ['admin', 'coordinator', 'supervisor'], true);
 if ($currentUserId <= 0) {
     header('Location: auth/auth-login.php');
     exit;
@@ -32,21 +33,40 @@ function external_attendance_flash_redirect(string $message, string $type, strin
     exit;
 }
 
-function external_attendance_student_target(string $fallback = 'student-external-dtr.php'): string
+function external_attendance_selected_student_id(): int
+{
+    return (int)($_POST['student_id'] ?? $_GET['student_id'] ?? $_POST['return_student_id'] ?? $_GET['return_student_id'] ?? 0);
+}
+
+function external_attendance_return_target(string $fallback = 'external-biometric.php', int $studentId = 0): string
 {
     $requested = trim((string)($_POST['return_to'] ?? $_GET['return_to'] ?? ''));
-    $candidate = strtolower(basename($requested));
+    $requestPath = $requested !== '' ? (string)(parse_url($requested, PHP_URL_PATH) ?? '') : '';
+    $candidate = strtolower(basename($requestPath !== '' ? $requestPath : $requested));
     $allowed = [
         'student-external-dtr.php',
         'external-biometric.php',
         'external-attendance-manual.php',
+        'students-external-dtr.php',
+        'students-view.php',
+        'external-attendance.php',
     ];
 
-    if ($candidate !== '' && in_array($candidate, $allowed, true)) {
-        return $candidate;
+    if ($candidate === '' || !in_array($candidate, $allowed, true)) {
+        $candidate = $fallback;
     }
 
-    return $fallback;
+    $returnStudentId = (int)($_POST['return_student_id'] ?? $_GET['return_student_id'] ?? $studentId);
+    if ($returnStudentId > 0) {
+        if ($candidate === 'external-biometric.php') {
+            return $candidate . '?' . http_build_query(['student_id' => $returnStudentId]);
+        }
+        if ($candidate === 'students-external-dtr.php' || $candidate === 'students-view.php') {
+            return $candidate . '?' . http_build_query(['id' => $returnStudentId]);
+        }
+    }
+
+    return $candidate;
 }
 
 function external_attendance_month_rows(mysqli $conn, int $studentId, string $monthStart, string $monthEnd): array
@@ -174,16 +194,42 @@ function external_attendance_admin_filter_target(array $filters): string
     return 'external-attendance.php' . ($query !== '' ? ('?' . $query) : '');
 }
 
-if ($currentRole === 'student') {
-    $student = external_attendance_student_context($conn, $currentUserId);
-    if (!$student) {
-        external_attendance_flash_redirect('Student profile not found for external attendance.', 'danger', 'homepage.php');
-    }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = strtolower(trim((string)($_POST['external_action'] ?? '')));
+    if ($action !== '') {
+        $targetStudentId = external_attendance_selected_student_id();
+        $targetStudent = null;
 
-    $studentTarget = external_attendance_student_target();
+        if ($currentRole === 'student') {
+            $targetStudent = external_attendance_student_context($conn, $currentUserId);
+            if (!$targetStudent) {
+                external_attendance_flash_redirect('Student profile not found for external attendance.', 'danger', 'student-external-dtr.php');
+            }
+        } elseif ($canManage) {
+            $targetStudent = external_attendance_student_context_by_student_id($conn, $targetStudentId);
+            if (!$targetStudent) {
+                external_attendance_flash_redirect(
+                    'Select an external student first before opening the biometric page.',
+                    'danger',
+                    external_attendance_return_target('external-biometric.php', $targetStudentId)
+                );
+            }
+        } else {
+            external_attendance_flash_redirect('You do not have access to external attendance.', 'danger', 'external-attendance.php');
+        }
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $action = strtolower(trim((string)($_POST['external_action'] ?? '')));
+        $targetStudentId = (int)($targetStudent['id'] ?? 0);
+        $redirectTarget = external_attendance_return_target('external-biometric.php', $targetStudentId);
+        $targetTrack = strtolower(trim((string)($targetStudent['assignment_track'] ?? 'internal')));
+        if ($targetTrack !== 'external') {
+            external_attendance_flash_redirect('This student is not assigned to the external track.', 'warning', $redirectTarget);
+        }
+
+        $targetStudentName = trim((string)($targetStudent['first_name'] ?? '') . ' ' . (string)($targetStudent['last_name'] ?? ''));
+        if ($targetStudentName === '') {
+            $targetStudentName = 'Student #' . $targetStudentId;
+        }
+
         if ($action === 'quick_clock') {
             $clockDate = trim((string)($_POST['clock_date'] ?? date('Y-m-d')));
             $clockType = strtolower(trim((string)($_POST['clock_type'] ?? '')));
@@ -191,10 +237,10 @@ if ($currentRole === 'student') {
             $notes = trim((string)($_POST['notes'] ?? ''));
 
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $clockDate)) {
-                external_attendance_flash_redirect('A valid clock date is required.', 'danger', $studentTarget);
+                external_attendance_flash_redirect('A valid clock date is required.', 'danger', $redirectTarget);
             }
 
-            $existing = external_attendance_student_record($conn, (int)$student['id'], $clockDate) ?: [
+            $existing = external_attendance_student_record($conn, $targetStudentId, $clockDate) ?: [
                 'morning_time_in' => null,
                 'morning_time_out' => null,
                 'afternoon_time_in' => null,
@@ -203,12 +249,12 @@ if ($currentRole === 'student') {
 
             $validation = external_attendance_validate_transition($existing, $clockType, $clockTime);
             if (!($validation['ok'] ?? false)) {
-                external_attendance_flash_redirect((string)($validation['message'] ?? 'Invalid external DTR punch.'), 'warning', $studentTarget);
+                external_attendance_flash_redirect((string)($validation['message'] ?? 'Invalid external DTR punch.'), 'warning', $redirectTarget);
             }
 
             $column = attendance_action_to_column($clockType);
             if ($column === null) {
-                external_attendance_flash_redirect('Invalid external DTR punch.', 'danger', $studentTarget);
+                external_attendance_flash_redirect('Invalid external DTR punch.', 'danger', $redirectTarget);
             }
 
             $payload = [
@@ -221,7 +267,7 @@ if ($currentRole === 'student') {
 
             $save = external_attendance_upsert_day(
                 $conn,
-                $student,
+                $targetStudent,
                 $clockDate,
                 $payload,
                 null,
@@ -232,14 +278,14 @@ if ($currentRole === 'student') {
             );
 
             if (!empty($save['ok'])) {
-                external_attendance_flash_redirect(
-                    ucfirst(str_replace('_', ' ', $clockType)) . ' recorded at ' . date('h:i A', strtotime($clockTime)) . '.',
-                    'success',
-                    $studentTarget
-                );
+                $message = ucfirst(str_replace('_', ' ', $clockType)) . ' recorded at ' . date('h:i A', strtotime($clockTime)) . '.';
+                if ($currentRole !== 'student') {
+                    $message .= ' Updated for ' . $targetStudentName . '.';
+                }
+                external_attendance_flash_redirect($message, 'success', $redirectTarget);
             }
 
-            external_attendance_flash_redirect((string)($save['message'] ?? 'Could not save the external DTR punch.'), 'danger', $studentTarget);
+            external_attendance_flash_redirect((string)($save['message'] ?? 'Could not save the external DTR punch.'), 'danger', $redirectTarget);
         }
 
         if ($action === 'manual_range') {
@@ -278,7 +324,7 @@ if ($currentRole === 'student') {
 
                 $save = external_attendance_upsert_day(
                     $conn,
-                    $student,
+                    $targetStudent,
                     $dateValue,
                     $payload,
                     null,
@@ -296,16 +342,26 @@ if ($currentRole === 'student') {
             }
 
             if ($savedCount > 0) {
-                external_attendance_flash_redirect('Manual external DTR saved for ' . $savedCount . ' day(s).', 'success', $studentTarget);
+                $message = 'Manual external DTR saved for ' . $savedCount . ' day(s).';
+                if ($currentRole !== 'student') {
+                    $message .= ' Updated for ' . $targetStudentName . '.';
+                }
+                external_attendance_flash_redirect($message, 'success', $redirectTarget);
             }
 
             external_attendance_flash_redirect(
                 $lastError !== '' ? $lastError : 'No manual external DTR rows were saved. Fill at least one row first.',
                 'warning',
-                $studentTarget
+                $redirectTarget
             );
         }
+    }
+}
 
+if ($currentRole === 'student') {
+    $student = external_attendance_student_context($conn, $currentUserId);
+    if (!$student) {
+        external_attendance_flash_redirect('Student profile not found for external attendance.', 'danger', 'student-external-dtr.php');
     }
 
     $selectedMonth = trim((string)($_GET['month'] ?? date('Y-m')));
@@ -342,7 +398,7 @@ if ($currentRole === 'student') {
         'afternoon_in' => ['Afternoon In', 'feather-sun'],
         'afternoon_out' => ['Afternoon Out', 'feather-sunset'],
     ];
-    $page_title = 'BioTern || External DTR';
+    $page_title = 'BioTern || External Attendance';
     $page_styles = [
         'assets/css/homepage-student.css',
         'assets/css/student-dtr.css',
@@ -422,7 +478,7 @@ if ($currentRole === 'student') {
                                         <?php foreach ($clockTypes as $type => [$label, $iconClass]): ?>
                                             <?php $isLocked = external_attendance_action_locked($todayRecord, $type); ?>
                                             <button
-                                                type="submit"
+                                                type="button"
                                                 class="clock-btn external-clock-btn<?php echo $isLocked ? ' is-complete' : ''; ?>"
                                                 data-clock-type="<?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?>"
                                                 value="<?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?>"
@@ -560,6 +616,11 @@ if ($currentRole === 'student') {
                         return;
                     }
                     clockTypeInput.value = button.getAttribute('data-clock-type') || button.value || '';
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
                     window.setTimeout(function () {
                         button.disabled = true;
                     }, 0);
@@ -578,9 +639,8 @@ if ($currentRole === 'student') {
     return;
 }
 
-$canManage = in_array($currentRole, ['admin', 'coordinator', 'supervisor'], true);
 if (!$canManage) {
-    external_attendance_flash_redirect('You do not have access to external attendance.', 'danger', 'homepage.php');
+    external_attendance_flash_redirect('You do not have access to external attendance.', 'danger', 'student-external-dtr.php');
 }
 
 $adminFilters = external_attendance_admin_filters($_GET);
@@ -733,26 +793,16 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header dashboard-page-header page-header-with-middle external-attendance-page-header">
+        <div class="page-header dashboard-page-header external-attendance-page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">External Attendance DTR</h5>
+                    <h5 class="m-b-10">External Attendance</h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                    <li class="breadcrumb-item"><a href="attendance.php">Internal DTR</a></li>
-                    <li class="breadcrumb-item">External DTR</li>
+                    <li class="breadcrumb-item"><a href="attendance.php">Internal Attendance</a></li>
+                    <li class="breadcrumb-item">External Attendance</li>
                 </ul>
-            </div>
-            <div class="page-header-middle">
-                <p class="page-header-statement">Review submitted external DTR entries, inspect proof quickly, and update approvals without jumping between cards.</p>
-                <?php if ($externalHasActiveFilters): ?>
-                    <div class="external-attendance-active-filters" aria-label="Active filters">
-                        <?php foreach ($externalActiveFilters as $externalFilterLabel): ?>
-                            <span class="external-attendance-filter-pill"><?php echo htmlspecialchars($externalFilterLabel, ENT_QUOTES, 'UTF-8'); ?></span>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
             </div>
             <div class="page-header-right ms-auto">
                 <div class="d-md-none d-flex align-items-center">
@@ -782,6 +832,32 @@ include 'includes/header.php';
                 <div class="alert alert-<?php echo htmlspecialchars((string)($externalFlash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?>">
                     <?php echo htmlspecialchars((string)$externalFlash['message'], ENT_QUOTES, 'UTF-8'); ?>
                 </div>
+                <script>
+                (function () {
+                    var flash = <?php echo json_encode($externalFlash); ?>;
+                    function showExternalFlash() {
+                        var container = document.getElementById('bioternToastContainer');
+                        if (!container || !flash || !flash.message) return;
+                        var type = (flash.type || 'info');
+                        var title = flash.title || '';
+                        var message = flash.message || '';
+                        var bg = type === 'success' ? '#155724' : (type === 'danger' ? '#721c24' : (type === 'warning' ? '#856404' : '#0c5460'));
+                        var toast = document.createElement('div');
+                        toast.className = 'biotern-toast';
+                        toast.setAttribute('style', 'pointer-events:auto;background:' + bg + ';color:#fff;padding:12px;border-radius:8px;margin-top:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12)');
+                        toast.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px">'
+                            + '<div style="flex:1"><div style="font-weight:600;margin-bottom:2px">' + (title ? String(title) : '') + '</div>'
+                            + '<div style="font-size:0.95rem">' + String(message) + '</div></div>'
+                            + '<button type="button" class="biotern-toast-close" aria-label="Close" style="background:transparent;border:0;color:inherit;font-size:18px;line-height:1;padding:0 6px;">&times;</button>'
+                            + '</div>';
+                        container.appendChild(toast);
+                        var btn = toast.querySelector('.biotern-toast-close');
+                        if (btn) btn.addEventListener('click', function () { toast.remove(); });
+                        setTimeout(function () { try { toast.remove(); } catch (e) {} }, 6000);
+                    }
+                    document.addEventListener('DOMContentLoaded', showExternalFlash);
+                }());
+                </script>
             <?php endif; ?>
 
             <div class="card stretch stretch-full mb-4 external-attendance-filter-card">
@@ -869,6 +945,7 @@ include 'includes/header.php';
                                                         <div class="fw-bold"><?php echo htmlspecialchars(trim((string)($row['first_name'] . ' ' . $row['last_name'])), ENT_QUOTES, 'UTF-8'); ?></div>
                                                         <div class="small text-muted"><?php echo htmlspecialchars((string)($row['student_number'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
                                                         <div class="small text-muted"><?php echo htmlspecialchars((string)($row['course_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                                        <div class="small mt-1"><a href="external-biometric.php?student_id=<?php echo (int)($row['student_id'] ?? 0); ?>">Open biometric</a></div>
                                                     </div>
                                                 </div>
                                             </td>

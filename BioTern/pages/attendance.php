@@ -1612,7 +1612,7 @@ if (trim((string)($_GET['print'] ?? '')) === 'list') {
 }
 ?>
 <?php
-$page_title = 'BioTern || Student Attendance';
+$page_title = 'BioTern || Internal Attendance';
 $page_body_class = 'attendance-page';
 $page_styles = ['assets/css/modules/pages/page-attendance.css?v=20260422d'];
 $page_scripts = [
@@ -1627,12 +1627,12 @@ include 'includes/header.php';
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
-                        <h5 class="m-b-10">Student Attendance DTR</h5>
+                        <h5 class="m-b-10">Internal Attendance</h5>
                     </div>
                     <ul class="breadcrumb">
                         <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                         <li class="breadcrumb-item"><a href="students.php">Students</a></li>
-                        <li class="breadcrumb-item">Attendance DTR</li>
+                        <li class="breadcrumb-item">Internal Attendance</li>
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">

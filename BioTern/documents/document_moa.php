@@ -148,7 +148,7 @@ if (isset($_GET['action'])) {
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
 $asset_prefix = (strpos($script_name, '/documents/') !== false) ? '../' : '';
 
-$page_title = 'Memorandum of Agreement';
+$page_title = 'MOA';
 $base_href = $asset_prefix;
 $page_body_class = 'application-builder-page document-builder-page moa-builder-page';
 $page_styles = [
@@ -163,19 +163,16 @@ include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header dashboard-page-header page-header-with-middle">
+        <div class="page-header dashboard-page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">Memorandum of Agreement</h5>
+                    <h5 class="m-b-10">MOA</h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                     <li class="breadcrumb-item"><a href="index.php">Documents</a></li>
-                    <li class="breadcrumb-item">MOA Builder</li>
+                    <li class="breadcrumb-item">MOA</li>
                 </ul>
-            </div>
-            <div class="page-header-middle">
-                <p class="page-header-statement"><?php echo $documentsIsStudentViewOnly ? 'Preview your Memorandum of Agreement in read-only mode.' : 'Use the template builder flow to update and generate the printable Memorandum of Agreement.'; ?></p>
             </div>
             <?php ob_start(); ?>
                 <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>

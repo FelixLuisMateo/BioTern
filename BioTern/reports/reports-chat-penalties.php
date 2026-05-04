@@ -239,7 +239,7 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
 <div class="nxl-content">
-<div class="page-header page-header-with-middle">
+<div class="page-header">
     <div class="page-header-left d-flex align-items-center">
         <div class="page-header-title logs-page-title">
             <h5 class="m-b-10">Chat Penalties</h5>
@@ -249,9 +249,6 @@ include 'includes/header.php';
             <li class="breadcrumb-item"><a href="reports-chat-reports.php">Reported Chats</a></li>
             <li class="breadcrumb-item">Chat Penalties</li>
         </ul>
-    </div>
-    <div class="page-header-middle">
-        <p class="page-header-statement">Review and revoke active chat punishments from resolved reports.</p>
     </div>
     <?php ob_start(); ?>
         <a href="reports-chat-reports.php" class="btn btn-outline-primary"><i class="feather-flag me-1"></i>Reported Chats</a>

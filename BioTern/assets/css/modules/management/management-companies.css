@@ -114,13 +114,33 @@ body.companies-page .companies-filter-field .form-select-sm {
 }
 
 body.companies-page .companies-page-header-actions {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-end;
     width: auto;
     min-width: 0;
+}
+
+body.companies-page .page-header .page-header-right {
+    flex-wrap: nowrap;
+}
+
+body.companies-page .companies-page-header-actions .page-header-actions {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    left: auto;
+    width: min(280px, 90vw);
+    z-index: 1210;
+    display: none;
+}
+
+body.companies-page .companies-page-header-actions .page-header-actions.is-open,
+body.companies-page .companies-page-header-actions .page-header-actions.show {
+    display: block;
 }
 
 body.companies-page .companies-shell {

@@ -149,7 +149,7 @@ include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header dashboard-page-header page-header-with-middle">
+        <div class="page-header dashboard-page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Parent Consent</h5>
@@ -159,9 +159,6 @@ include __DIR__ . '/../includes/header.php';
                     <li class="breadcrumb-item"><a href="index.php">Documents</a></li>
                     <li class="breadcrumb-item">Parent Consent</li>
                 </ul>
-            </div>
-            <div class="page-header-middle">
-                <p class="page-header-statement">Fill consent details, preview the waiver, and print a clean parent-ready copy.</p>
             </div>
             <?php ob_start(); ?>
                 <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>

@@ -172,9 +172,13 @@ function Get-BridgeConfigRemote {
         ('{0}/api/bridge_profile.php?bridge_token={1}' -f $base, $tokenQuery)
     )
 
+    $headers = Get-BridgeRequestHeaders
     $lastError = $null
     foreach ($uri in $candidates) {
         try {
+            if ($headers.Count -gt 0) {
+                return Invoke-RestMethod -Method Get -Uri $uri -Headers $headers -TimeoutSec 30
+            }
             return Invoke-RestMethod -Method Get -Uri $uri -TimeoutSec 30
         } catch {
             $lastError = $_
@@ -235,6 +239,35 @@ function Get-ApiBaseCandidates {
     }
 
     return $bases | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+}
+
+function Get-BridgeRequestHeaders {
+    $headers = @{}
+
+    if (-not [string]::IsNullOrWhiteSpace($BridgeToken)) {
+        $headers['X-BRIDGE-TOKEN'] = $BridgeToken
+    }
+    if (-not [string]::IsNullOrWhiteSpace($bridgeNodeName)) {
+        $headers['X-BRIDGE-NODE'] = $bridgeNodeName
+    }
+
+    $bypassToken = $env:BIOTERN_VERCEL_BYPASS_TOKEN
+    if ([string]::IsNullOrWhiteSpace($bypassToken)) {
+        $bypassToken = $env:VERCEL_PROTECTION_BYPASS
+    }
+    if (-not [string]::IsNullOrWhiteSpace($bypassToken)) {
+        $headers['X-Vercel-Protection-Bypass'] = $bypassToken
+    }
+
+    # Some edge protections block requests without a basic user-agent.
+    if (-not $headers.ContainsKey('User-Agent')) {
+        $headers['User-Agent'] = 'BioTernBridgeWorker/1.0'
+    }
+    if (-not $headers.ContainsKey('Accept')) {
+        $headers['Accept'] = 'application/json'
+    }
+
+    return $headers
 }
 
 function Read-TextFileWithRetry {
@@ -501,6 +534,42 @@ function Get-ConnectorUserListRaw {
     return ($output -join "`n")
 }
 
+function Invoke-BridgeHeartbeat {
+    param($BridgeConfig, [string]$Status = 'running')
+
+    $bases = Get-ApiBaseCandidates -BridgeConfig $BridgeConfig
+    if (-not $bases -or $bases.Count -eq 0) {
+        return $false
+    }
+
+    $bodyObj = @{
+        node_name = $bridgeNodeName
+        status_text = $Status
+    }
+    $bodyJson = $bodyObj | ConvertTo-Json -Depth 5 -Compress
+
+    $headers = Get-BridgeRequestHeaders
+
+    $candidates = @()
+    foreach ($base in $bases) {
+        $candidates += ('{0}/bridge_heartbeat.php' -f $base)
+        $candidates += ('{0}/api/bridge_heartbeat.php' -f $base)
+    }
+
+    foreach ($uri in $candidates) {
+        try {
+            $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType 'application/json' -Body $bodyJson -TimeoutSec 30
+            if ($response.success) {
+                return $true
+            }
+        } catch {
+            # Try the next endpoint candidate.
+        }
+    }
+
+    return $false
+}
+
 function ConvertFrom-BridgeRawJsonPayload {
     param(
         [Parameter(Mandatory = $true)]
@@ -591,10 +660,7 @@ function Invoke-BridgeCommandResultPublish {
     }
     $bodyJson = $bodyObj | ConvertTo-Json -Depth 5 -Compress
 
-    $headers = @{
-        'X-BRIDGE-TOKEN' = $BridgeToken
-        'X-BRIDGE-NODE' = $bridgeNodeName
-    }
+    $headers = Get-BridgeRequestHeaders
 
     $candidates = @()
     foreach ($base in $bases) {
@@ -630,10 +696,7 @@ function Get-NextBridgeCommand {
         throw 'Bridge profile cloud_base_url is empty.'
     }
 
-    $headers = @{
-        'X-BRIDGE-TOKEN' = $BridgeToken
-        'X-BRIDGE-NODE' = $bridgeNodeName
-    }
+    $headers = Get-BridgeRequestHeaders
 
     $candidates = @()
     foreach ($base in $bases) {
@@ -823,10 +886,7 @@ function Publish-UserCache {
     }
 
     $usersJson = Get-UsersPayloadJson
-    $headers = @{
-        'X-BRIDGE-TOKEN' = $BridgeToken
-        'X-BRIDGE-NODE' = $bridgeNodeName
-    }
+    $headers = Get-BridgeRequestHeaders
 
     $candidates = @()
     foreach ($base in $bases) {
@@ -1360,6 +1420,7 @@ try {
             }
 
             Update-ConnectorConfig -BridgeConfig $bridgeConfig
+            Invoke-BridgeHeartbeat -BridgeConfig $bridgeConfig | Out-Null
             Invoke-BridgeCommandQueue -BridgeConfig $bridgeConfig
             $connectorOutput = Invoke-ConnectorSyncWithFallback -BridgeConfig $bridgeConfig
             Write-BridgeLog (($connectorOutput -join ' ') -replace '\s+', ' ')

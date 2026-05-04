@@ -356,11 +356,17 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <span class="nxl-mtext">Manual DTR</span>
                     </a>
                 </li>
-                <li class="nxl-item<?php echo biotern_nav_is_active('student-documents.php', $nav_current_file) ? ' active' : ''; ?>">
-                    <a href="student-documents.php" class="nxl-link">
+                <li class="nxl-item nxl-caption">
+                    <span>Documents</span>
+                </li>
+                <li class="nxl-item nxl-hasmenu<?php echo biotern_nav_is_active('student-documents.php', $nav_current_file) ? ' active nxl-trigger' : ''; ?>">
+                    <a href="javascript:void(0);" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-file-text"></i></span>
-                        <span class="nxl-mtext">My Documents</span>
+                        <span class="nxl-mtext">My Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
+                    <ul class="nxl-submenu">
+                        <li class="nxl-item<?php echo biotern_nav_is_active('student-documents.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="student-documents.php">Document Hub</a></li>
+                    </ul>
                 </li>
                 <?php endif; ?>
 

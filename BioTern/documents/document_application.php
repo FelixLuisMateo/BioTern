@@ -144,7 +144,7 @@ if (isset($_GET['action'])) {
     exit;
 }
 
-$page_title = 'Application Letter';
+$page_title = 'Application';
 $base_href = '../';
 $page_body_class = 'application-builder-page application-document-builder-page';
 $page_styles = [
@@ -161,19 +161,16 @@ include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header dashboard-page-header page-header-with-middle">
+        <div class="page-header dashboard-page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">Application Letter</h5>
+                    <h5 class="m-b-10">Application</h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                     <li class="breadcrumb-item"><a href="index.php">Documents</a></li>
-                    <li class="breadcrumb-item">Application Builder</li>
+                    <li class="breadcrumb-item">Application</li>
                 </ul>
-            </div>
-            <div class="page-header-middle">
-                <p class="page-header-statement"><?php echo $documentsIsStudentViewOnly ? 'Preview your application document in read-only mode.' : 'Use one workspace to fill application data, preview the letter, and generate a print-ready copy.'; ?></p>
             </div>
             <?php ob_start(); ?>
                 <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
@@ -187,7 +184,7 @@ include __DIR__ . '/../includes/header.php';
             ?>
         </div>
 
-        <div class="application-document-builder" data-prefill-student-id="<?php echo (int)$prefill_student_id; ?>" data-prefill-company="<?php echo htmlspecialchars($prefill_company_key, ENT_QUOTES, 'UTF-8'); ?>">
+        <div class="application-document-builder" data-prefill-student-id="<?php echo (int)$prefill_student_id; ?>" data-prefill-company="<?php echo htmlspecialchars($prefill_company_key, ENT_QUOTES, 'UTF-8'); ?>" data-view-only="<?php echo $documentsIsStudentViewOnly ? '1' : '0'; ?>">
             <style>
                 .app-fill-line {
                     display: inline-block;
@@ -211,7 +208,7 @@ include __DIR__ . '/../includes/header.php';
 
                             <div class="builder-field">
                                 <label for="student_select" class="form-label">Student Name</label>
-                                <select id="student_select" class="student-select-full" data-placeholder="Search by name or student id" <?php echo $documentsIsStudentViewOnly ? 'disabled' : ''; ?>></select>
+                                <select id="student_select" class="student-select-full" data-placeholder="Search by name or student id" data-ui-select="<?php echo $documentsIsStudentViewOnly ? 'native' : 'custom'; ?>" <?php echo $documentsIsStudentViewOnly ? 'disabled' : ''; ?>></select>
                                 <?php if (!$documentsIsStudentViewOnly): ?>
                                     <small class="text-muted application-source-hint">Search and select from student records.</small>
                                 <?php endif; ?>
@@ -219,7 +216,7 @@ include __DIR__ . '/../includes/header.php';
 
                             <div class="builder-field">
                                 <label for="company_select" class="form-label">Company / Training Site</label>
-                                <select id="company_select" class="company-select-full" data-placeholder="Search company, address, or representative" <?php echo $documentsIsStudentViewOnly ? 'disabled' : ''; ?>></select>
+                                <select id="company_select" class="company-select-full" data-placeholder="Search company, address, or representative" data-ui-select="<?php echo $documentsIsStudentViewOnly ? 'native' : 'custom'; ?>" <?php echo $documentsIsStudentViewOnly ? 'disabled' : ''; ?>></select>
                                 <?php if (!$documentsIsStudentViewOnly): ?>
                                     <small class="text-muted application-source-hint">Pick a company to auto-fill recipient, position, company, and address.</small>
                                 <?php endif; ?>

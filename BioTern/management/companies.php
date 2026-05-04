@@ -1679,7 +1679,7 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header">
+        <div class="page-header" data-phc-condensed="1">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Companies</h5>
@@ -1720,39 +1720,58 @@ include 'includes/header.php';
                     <i class="feather-printer me-2"></i>
                     <span>Print Companies</span>
                 </a>
-                <a href="<?php echo h($externalTemplateExportUrl); ?>" class="btn btn-outline-primary">
-                    <i class="feather-download me-2"></i>
-                    <span>Export External Template</span>
-                </a>
-                <?php if (in_array($role, ['admin', 'coordinator'], true)): ?>
-                    <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importExternalTemplateModal">
-                        <i class="feather-upload-cloud me-2"></i>
-                        <span>Import External Template</span>
-                    </button>
-                    <form method="post" action="companies.php" onsubmit="return confirm('Clean company directory records that are no longer linked to a masterlist or internship?');">
-                        <input type="hidden" name="action" value="cleanup_company_directory">
-                        <button type="submit" class="btn btn-outline-danger">
-                            <i class="feather-trash-2 me-2"></i>
-                            <span>Clean Empty Companies</span>
-                        </button>
-                    </form>
-                <?php endif; ?>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCompanyModal">
                     <i class="feather-plus me-2"></i>
                     <span>Add Company</span>
                 </button>
-                <a href="companies.php" class="btn btn-outline-primary">
-                    <i class="feather-refresh-cw me-2"></i>
-                    <span>Refresh</span>
-                </a>
-                <a href="<?php echo h('companies.php?' . http_build_query([
-                    'q' => $search,
-                    'sort' => $sort,
-                    'company' => $selectedCompanyKey,
-                ])); ?>" class="btn btn-outline-secondary">
-                    <i class="feather-rotate-ccw me-2"></i>
-                    <span>Reset Filters</span>
-                </a>
+                <button
+                    type="button"
+                    class="btn btn-sm btn-light-brand page-header-actions-toggle"
+                    aria-label="Header actions"
+                    aria-expanded="false"
+                    aria-controls="companiesHeaderActionsMenu"
+                >
+                    <i class="feather-grid me-1"></i>
+                    <span>Actions</span>
+                </button>
+                <div class="page-header-actions" id="companiesHeaderActionsMenu">
+                    <div class="dashboard-actions-panel biotern-backdrop-glass">
+                        <div class="dashboard-actions-meta">
+                            <span class="text-muted fs-12">Quick Actions</span>
+                        </div>
+                        <div class="dashboard-actions-grid page-header-right-items-wrapper">
+                            <a href="<?php echo h($externalTemplateExportUrl); ?>" class="btn btn-light-brand">
+                                <i class="feather-download me-2"></i>
+                                <span>Export External Template</span>
+                            </a>
+                            <?php if (in_array($role, ['admin', 'coordinator'], true)): ?>
+                                <button type="button" class="btn btn-light-brand" data-bs-toggle="modal" data-bs-target="#importExternalTemplateModal">
+                                    <i class="feather-upload-cloud me-2"></i>
+                                    <span>Import External Template</span>
+                                </button>
+                                <form method="post" action="companies.php" onsubmit="return confirm('Clean company directory records that are no longer linked to a masterlist or internship?');">
+                                    <input type="hidden" name="action" value="cleanup_company_directory">
+                                    <button type="submit" class="btn btn-light-brand">
+                                        <i class="feather-trash-2 me-2"></i>
+                                        <span>Clean Empty Companies</span>
+                                    </button>
+                                </form>
+                            <?php endif; ?>
+                            <a href="companies.php" class="btn btn-light-brand">
+                                <i class="feather-refresh-cw me-2"></i>
+                                <span>Refresh</span>
+                            </a>
+                            <a href="<?php echo h('companies.php?' . http_build_query([
+                                'q' => $search,
+                                'sort' => $sort,
+                                'company' => $selectedCompanyKey,
+                            ])); ?>" class="btn btn-light-brand">
+                                <i class="feather-rotate-ccw me-2"></i>
+                                <span>Reset Filters</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 

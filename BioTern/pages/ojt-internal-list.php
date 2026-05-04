@@ -638,7 +638,7 @@ if ($search !== '') {
 }
 $printFilterLabel = $mapFingerId > 0 ? 'Fingerprint mapping mode' : ($printFilterParts !== [] ? implode(' / ', $printFilterParts) : 'All internal students');
 
-$page_title = 'Internal Student List';
+$page_title = 'Internal List';
 $page_body_class = 'page-fingerprint-mapping page-ojt-internal-list mobile-bottom-nav';
 $page_styles = [
     'assets/css/layout/page_shell.css',
@@ -661,11 +661,11 @@ ob_end_flush();
         <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">Internal Students</h5>
+                    <h5 class="m-b-10">Internal List</h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                    <li class="breadcrumb-item">Internal Students</li>
+                    <li class="breadcrumb-item">Internal List</li>
                 </ul>
             </div>
             <div class="page-header-right ms-auto bio-console-header-actions">

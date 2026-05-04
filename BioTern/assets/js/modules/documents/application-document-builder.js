@@ -12,6 +12,7 @@
     var endpoint = 'documents/document_application.php';
     var prefillStudentId = parseInt(root.getAttribute('data-prefill-student-id') || '0', 10) || 0;
     var prefillCompanyKey = (root.getAttribute('data-prefill-company') || '').trim();
+    var isViewOnly = root.getAttribute('data-view-only') === '1';
 
     var editor = document.getElementById('editor');
     var selectElement = document.getElementById('student_select');
@@ -485,6 +486,11 @@
             return;
         }
 
+        if (isViewOnly) {
+            selectElement.setAttribute('data-ui-select', 'native');
+            return;
+        }
+
         // Prevent global select enhancers from rendering a second "Select" UI for this field.
         selectElement.setAttribute('data-ui-select', 'native');
 
@@ -754,6 +760,11 @@
             return;
         }
 
+        if (isViewOnly) {
+            companySelectElement.setAttribute('data-ui-select', 'native');
+            return;
+        }
+
         companySelectElement.setAttribute('data-ui-select', 'native');
 
         if (window.jQuery && window.jQuery.fn && typeof window.jQuery.fn.select2 === 'function') {
@@ -997,6 +1008,10 @@
     }
 
     function bindFieldUpdates() {
+        if (isViewOnly) {
+            return;
+        }
+
         [inputName, inputPosition, inputCompany, inputCompanyAddress, inputHours, inputDate].forEach(function (field) {
             if (!field) {
                 return;
@@ -1084,7 +1099,7 @@
     }
 
     function initEditToggle() {
-        if (!toggleEditButton) {
+        if (!toggleEditButton || isViewOnly) {
             return;
         }
 
