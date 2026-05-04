@@ -167,42 +167,23 @@ if ($studentContext) {
 					var flash = <?php echo json_encode($externalFlash); ?>;
 					function showExternalFlash() {
 						var container = document.getElementById('bioternToastContainer');
-						if (!container) return;
+						if (!container || !flash || !flash.message) return;
 						var type = (flash.type || 'info');
 						var title = flash.title || '';
 						var message = flash.message || '';
 						var bg = type === 'success' ? '#155724' : (type === 'danger' ? '#721c24' : (type === 'warning' ? '#856404' : '#0c5460'));
-						var html = '<div class="biotern-toast" style="pointer-events:auto;background:' + bg + ';color:#fff;padding:12px;border-radius:8px;margin-top:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12)">'
-							+ '<div style="display:flex;align-items:flex-start;gap:10px">'
+						var toast = document.createElement('div');
+						toast.className = 'biotern-toast';
+						toast.setAttribute('style', 'pointer-events:auto;background:' + bg + ';color:#fff;padding:12px;border-radius:8px;margin-top:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12)');
+						toast.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px">'
 							+ '<div style="flex:1"><div style="font-weight:600;margin-bottom:2px">' + (title ? String(title) : '') + '</div>'
 							+ '<div style="font-size:0.95rem">' + String(message) + '</div></div>'
 							+ '<button type="button" class="biotern-toast-close" aria-label="Close" style="background:transparent;border:0;color:inherit;font-size:18px;line-height:1;padding:0 6px;">&times;</button>'
-							+ '</div></div>';
-
-						function inject() {
-							if (typeof showToast === 'function') {
-								showToast(container, html, 6000);
-								setTimeout(function () {
-									var last = container.lastElementChild;
-									if (last) {
-										var btn = last.querySelector('.biotern-toast-close');
-										if (btn) btn.addEventListener('click', function () { last.remove(); });
-									}
-								}, 50);
-								return true;
-							}
-							return false;
-						}
-
-						if (!inject()) {
-							var retries = 0;
-							var iv = setInterval(function () {
-								retries++;
-								if (inject() || retries > 60) {
-									clearInterval(iv);
-								}
-							}, 100);
-						}
+							+ '</div>';
+						container.appendChild(toast);
+						var btn = toast.querySelector('.biotern-toast-close');
+						if (btn) btn.addEventListener('click', function () { toast.remove(); });
+						setTimeout(function () { try { toast.remove(); } catch (e) {} }, 6000);
 					}
 					document.addEventListener('DOMContentLoaded', showExternalFlash);
 				}());
@@ -428,17 +409,80 @@ if (externalBiometricForm && externalBiometricClockType) {
 	Array.prototype.forEach.call(externalBiometricForm.querySelectorAll('.external-clock-btn'), function(button) {
 		button.addEventListener('click', function() {
 			if (button.disabled) return;
-			externalBiometricClockType.value = button.getAttribute('data-clock-type') || button.value || '';
-							if (typeof externalBiometricForm.requestSubmit === 'function') {
-								externalBiometricForm.requestSubmit();
-							} else {
-								externalBiometricForm.submit();
-							}
-							window.setTimeout(function() {
-								button.disabled = true;
-							}, 0);
+			var clockType = button.getAttribute('data-clock-type') || button.value || '';
+			externalBiometricClockType.value = clockType;
+			<?php if ($studentMode): ?>
+			(function(btn, clkType){
+				btn.disabled = true;
+				var fd = new FormData();
+				fd.append('action', 'clock');
+				fd.append('clock_type', clkType);
+				fd.append('attendance_date', '<?php echo htmlspecialchars($today, ENT_QUOTES, 'UTF-8'); ?>');
+				var now = new Date();
+				var hh = String(now.getHours()).padStart(2,'0');
+				var mm = String(now.getMinutes()).padStart(2,'0');
+				var ss = String(now.getSeconds()).padStart(2,'0');
+				fd.append('time', hh + ':' + mm + ':' + ss);
+				var notesInput = externalBiometricForm.querySelector('input[name="notes"]');
+				if (notesInput) fd.append('notes', notesInput.value || '');
+				fd.append('student_id', '<?php echo (int)($studentContext['id'] ?? 0); ?>');
+				fd.append('return_to', 'external-biometric.php');
+				fetch('api/external-attendance.php', { method: 'POST', credentials: 'same-origin', body: fd })
+				.then(function(res){ return res.json().catch(function(){ return null; }); })
+				.then(function(json){
+					function showBioternToast(type, title, message){
+						var container = document.getElementById('bioternToastContainer');
+						if (!container) return;
+						var bg = type === 'success' ? '#155724' : (type === 'danger' ? '#721c24' : (type === 'warning' ? '#856404' : '#0c5460'));
+						var toast = document.createElement('div');
+						toast.className = 'biotern-toast';
+						toast.setAttribute('style', 'pointer-events:auto;background:' + bg + ';color:#fff;padding:12px;border-radius:8px;margin-top:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12)');
+						toast.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px">' +
+							'<div style="flex:1"><div style="font-weight:600;margin-bottom:2px">' + (title ? String(title) : '') + '</div>' +
+							'<div style="font-size:0.95rem">' + String(message || '') + '</div></div>' +
+							'<button type="button" class="biotern-toast-close" aria-label="Close" style="background:transparent;border:0;color:inherit;font-size:18px;line-height:1;padding:0 6px;">&times;</button>' +
+							'</div>';
+						container.appendChild(toast);
+						var btnClose = toast.querySelector('.biotern-toast-close');
+						if (btnClose) btnClose.addEventListener('click', function(){ toast.remove(); });
+						setTimeout(function(){ try { toast.remove(); } catch(e){} }, 5000);
+					}
+
+					if (json && (json.success || json.ok)) {
+						var msg = json.message || json.msg || 'Punch saved.';
+						showBioternToast('success', '', msg);
+						setTimeout(function(){ window.location.reload(); }, 800);
+					} else {
+						var emsg = (json && (json.message || json.error || json.msg)) || 'Failed to save punch.';
+						showBioternToast('danger', '', emsg);
+						btn.disabled = false;
+					}
+				}).catch(function(){
+					var container = document.getElementById('bioternToastContainer');
+					if (container) {
+						var toast = document.createElement('div');
+						toast.className = 'biotern-toast';
+						toast.setAttribute('style', 'pointer-events:auto;background:#721c24;color:#fff;padding:12px;border-radius:8px;margin-top:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12)');
+						toast.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1"><div style="font-weight:600;margin-bottom:2px">Error</div><div style="font-size:0.95rem">Network error while saving punch.</div></div><button type="button" class="biotern-toast-close" aria-label="Close" style="background:transparent;border:0;color:inherit;font-size:18px;line-height:1;padding:0 6px;">&times;</button></div>';
+						container.appendChild(toast);
+						var btnClose = toast.querySelector('.biotern-toast-close');
+						if (btnClose) btnClose.addEventListener('click', function(){ toast.remove(); });
+						setTimeout(function(){ try { toast.remove(); } catch(e){} }, 5000);
+					}
+					btn.disabled = false;
+				});
+			})(button, clockType);
+			<?php else: ?>
+			if (typeof externalBiometricForm.requestSubmit === 'function') {
+				externalBiometricForm.requestSubmit();
+			} else {
+				externalBiometricForm.submit();
+			}
+			window.setTimeout(function() { button.disabled = true; }, 0);
+			<?php endif; ?>
 		});
 	});
+
 	externalBiometricForm.addEventListener('submit', function(event) {
 		if (!externalBiometricClockType.value) {
 			event.preventDefault();

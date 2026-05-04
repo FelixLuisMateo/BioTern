@@ -837,42 +837,23 @@ include 'includes/header.php';
                     var flash = <?php echo json_encode($externalFlash); ?>;
                     function showExternalFlash() {
                         var container = document.getElementById('bioternToastContainer');
-                        if (!container) return;
+                        if (!container || !flash || !flash.message) return;
                         var type = (flash.type || 'info');
                         var title = flash.title || '';
                         var message = flash.message || '';
                         var bg = type === 'success' ? '#155724' : (type === 'danger' ? '#721c24' : (type === 'warning' ? '#856404' : '#0c5460'));
-                        var html = '<div class="biotern-toast" style="pointer-events:auto;background:' + bg + ';color:#fff;padding:12px;border-radius:8px;margin-top:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12)">'
-                            + '<div style="display:flex;align-items:flex-start;gap:10px">'
+                        var toast = document.createElement('div');
+                        toast.className = 'biotern-toast';
+                        toast.setAttribute('style', 'pointer-events:auto;background:' + bg + ';color:#fff;padding:12px;border-radius:8px;margin-top:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12)');
+                        toast.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px">'
                             + '<div style="flex:1"><div style="font-weight:600;margin-bottom:2px">' + (title ? String(title) : '') + '</div>'
                             + '<div style="font-size:0.95rem">' + String(message) + '</div></div>'
                             + '<button type="button" class="biotern-toast-close" aria-label="Close" style="background:transparent;border:0;color:inherit;font-size:18px;line-height:1;padding:0 6px;">&times;</button>'
-                            + '</div></div>';
-
-                        function inject() {
-                            if (typeof showToast === 'function') {
-                                showToast(container, html, 6000);
-                                setTimeout(function () {
-                                    var last = container.lastElementChild;
-                                    if (last) {
-                                        var btn = last.querySelector('.biotern-toast-close');
-                                        if (btn) btn.addEventListener('click', function () { last.remove(); });
-                                    }
-                                }, 50);
-                                return true;
-                            }
-                            return false;
-                        }
-
-                        if (!inject()) {
-                            var retries = 0;
-                            var iv = setInterval(function () {
-                                retries++;
-                                if (inject() || retries > 60) {
-                                    clearInterval(iv);
-                                }
-                            }, 100);
-                        }
+                            + '</div>';
+                        container.appendChild(toast);
+                        var btn = toast.querySelector('.biotern-toast-close');
+                        if (btn) btn.addEventListener('click', function () { toast.remove(); });
+                        setTimeout(function () { try { toast.remove(); } catch (e) {} }, 6000);
                     }
                     document.addEventListener('DOMContentLoaded', showExternalFlash);
                 }());
