@@ -171,16 +171,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             aflash('warning', 'Students can only edit personal details such as birthday, address, gender, and emergency contact.');
             aredirect();
         }
-        $name = trim((string)($_POST['name'] ?? '')); $username = trim((string)($_POST['username'] ?? '')); $email = trim((string)($_POST['email'] ?? ''));
-        if ($name === '' || $username === '' || $email === '') { aflash('danger', 'Name, username, and email are required.'); aredirect(); }
+        $name = trim((string)($_POST['name'] ?? '')); $email = trim((string)($_POST['email'] ?? ''));
+        if ($name === '' || $email === '') { aflash('danger', 'Name and email are required.'); aredirect(); }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { aflash('danger', 'Please provide a valid email address.'); aredirect(); }
-        $dup = $conn->prepare("SELECT id FROM users WHERE (username = ? OR email = ?) AND id <> ? LIMIT 1");
-        if ($dup) { $dup->bind_param('ssi', $username, $email, $userId); $dup->execute(); if ($dup->get_result()->fetch_assoc()) { $dup->close(); aflash('danger', 'That username or email is already used by another account.'); aredirect(); } $dup->close(); }
-        $stmt = $conn->prepare("UPDATE users SET name = ?, username = ?, email = ? WHERE id = ? LIMIT 1");
+        $dup = $conn->prepare("SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1");
+        if ($dup) { $dup->bind_param('si', $email, $userId); $dup->execute(); if ($dup->get_result()->fetch_assoc()) { $dup->close(); aflash('danger', 'That email is already used by another account.'); aredirect(); } $dup->close(); }
+        $stmt = $conn->prepare("UPDATE users SET name = ?, email = ? WHERE id = ? LIMIT 1");
         if (!$stmt) { aflash('danger', 'Unable to save profile.'); aredirect(); }
-        $stmt->bind_param('sssi', $name, $username, $email, $userId); $ok = $stmt->execute(); $err = (string)$stmt->error; $stmt->close();
+        $stmt->bind_param('ssi', $name, $email, $userId); $ok = $stmt->execute(); $err = (string)$stmt->error; $stmt->close();
         if (!$ok) { aflash('danger', $err !== '' ? 'Failed to save profile: ' . $err : 'Failed to save profile.'); aredirect(); }
-        $_SESSION['name'] = $name; $_SESSION['username'] = $username; $_SESSION['email'] = $email; aflash('success', 'Profile updated successfully.'); aredirect();
+        $_SESSION['name'] = $name; $_SESSION['username'] = (string)($user['username'] ?? ($_SESSION['username'] ?? '')); $_SESSION['email'] = $email; aflash('success', 'Profile updated successfully.'); aredirect();
     }
     if ($action === 'upload_avatar') {
         $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
@@ -240,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $finfo = function_exists('finfo_open') ? finfo_open(FILEINFO_MIME_TYPE) : null;
             $mime = $finfo ? (string)finfo_file($finfo, $tmpUpload) : '';
             if ($finfo) {
-                finfo_close($finfo);
+                unset($finfo);
             }
 
             if ($size <= 0 || $size > $maxImageBytes) {
@@ -504,7 +504,7 @@ include dirname(__DIR__) . '/includes/header.php';
                                             <input type="hidden" name="action" value="save_profile">
                                             <div class="account-form-grid">
                                                 <div><label class="form-label" for="name">Full Name</label><input type="text" id="name" name="name" class="form-control" value="<?php echo ash((string)($user['name'] ?? '')); ?>" required></div>
-                                                <div><label class="form-label" for="username">Username</label><input type="text" id="username" name="username" class="form-control" value="<?php echo ash((string)($user['username'] ?? '')); ?>" required></div>
+                                                <div><label class="form-label" for="username">Username</label><input type="text" id="username" class="form-control" value="<?php echo ash((string)($user['username'] ?? '')); ?>" readonly aria-readonly="true"><small class="text-muted">Username is unique and cannot be changed.</small></div>
                                                 <div class="full"><label class="form-label" for="email">Email Address</label><input type="email" id="email" name="email" class="form-control" value="<?php echo ash((string)($user['email'] ?? '')); ?>" required></div>
                                             </div>
                                             <div class="account-form-actions"><button type="submit" class="btn btn-primary">Save Profile</button><a href="homepage.php" class="btn btn-light">Back to Dashboard</a></div>

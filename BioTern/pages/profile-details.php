@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $finfo = function_exists('finfo_open') ? finfo_open(FILEINFO_MIME_TYPE) : null;
                 $mime = $finfo ? (string)finfo_file($finfo, $tmp) : '';
                 if ($finfo) {
-                    finfo_close($finfo);
+                    unset($finfo);
                 }
 
                 if ($size <= 0 || $size > (3 * 1024 * 1024)) {

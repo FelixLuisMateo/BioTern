@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $allowed_ext = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
                 $finfo = function_exists('finfo_open') ? finfo_open(FILEINFO_MIME_TYPE) : null;
                 $mime = $finfo ? (string)finfo_file($finfo, $tmp) : '';
-                if ($finfo) finfo_close($finfo);
+                if ($finfo) unset($finfo);
                 $allowed_mime = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
                 if ($size <= 0 || $size > 3 * 1024 * 1024) {

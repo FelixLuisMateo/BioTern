@@ -289,6 +289,29 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $message = $isActive === 1 ? 'Announcement reactivated.' : 'Announcement hidden.';
             }
         }
+    } elseif ($action === 'delete') {
+        $announcementId = (int)($_POST['announcement_id'] ?? 0);
+        if ($announcementId > 0) {
+            $readStmt = $conn->prepare('DELETE FROM announcement_reads WHERE announcement_id = ?');
+            if ($readStmt) {
+                $readStmt->bind_param('i', $announcementId);
+                $readStmt->execute();
+                $readStmt->close();
+            }
+
+            $stmt = $conn->prepare('DELETE FROM announcements WHERE id = ? LIMIT 1');
+            if ($stmt) {
+                $stmt->bind_param('i', $announcementId);
+                if ($stmt->execute()) {
+                    $message = 'Announcement deleted permanently.';
+                } else {
+                    $error = 'Unable to delete announcement right now.';
+                }
+                $stmt->close();
+            } else {
+                $error = 'Unable to prepare announcement delete.';
+            }
+        }
     }
 }
 
@@ -435,7 +458,7 @@ require_once dirname(__DIR__) . '/includes/header.php';
                             <div class="settings-form-header">
                                 <div>
                                     <h4>Recent Announcements</h4>
-                                    <p>Hide an announcement when it should stop appearing for users.</p>
+                                    <p>Hide an announcement to pause it, or delete it when it should be removed permanently.</p>
                                 </div>
                             </div>
 
@@ -490,6 +513,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                                             <button type="submit" class="btn btn-sm <?php echo $active ? 'btn-outline-danger' : 'btn-outline-primary'; ?>">
                                                                 <?php echo $active ? 'Hide' : 'Reactivate'; ?>
                                                             </button>
+                                                        </form>
+                                                        <form method="post" class="d-inline" data-confirm-message="Delete this announcement permanently?">
+                                                            <input type="hidden" name="announcement_action" value="delete">
+                                                            <input type="hidden" name="announcement_id" value="<?php echo (int)($item['id'] ?? 0); ?>">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger ms-1">Delete</button>
                                                         </form>
                                                     </td>
                                                 </tr>

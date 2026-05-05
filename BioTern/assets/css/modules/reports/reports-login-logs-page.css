@@ -12,9 +12,9 @@ body.login-logs-page .logs-hero {
     margin-bottom: 0.9rem;
     padding: 0.7rem 0.9rem;
     min-height: 44px;
-    border: 1px solid rgba(132, 156, 214, 0.12);
+    border: 1px solid var(--report-border);
     border-radius: 12px 12px 0 0;
-    background: rgba(19, 31, 54, 0.9);
+    background: var(--report-hero-bg);
 }
 
 .logs-summary-grid {
@@ -27,8 +27,8 @@ body.login-logs-page .logs-hero {
 body.login-logs-page .logs-kpi {
     min-height: 72px;
     padding: 0.9rem 1rem;
-    border: 1px solid rgba(132, 156, 214, 0.12);
-    background: rgba(19, 31, 54, 0.86);
+    border: 1px solid var(--report-border);
+    background: var(--report-surface);
 }
 
 body.login-logs-page .logs-kpi-label,
@@ -59,8 +59,8 @@ body.login-logs-page .logs-table-card thead th {
 body.login-logs-page .logs-filter-wrap {
     padding: 0.72rem 0.82rem;
     margin-bottom: 1rem;
-    border: 1px solid rgba(132, 156, 214, 0.12);
-    background: rgba(19, 31, 54, 0.86);
+    border: 1px solid var(--report-border);
+    background: var(--report-surface);
 }
 
 body.login-logs-page .logs-filter-wrap .form-control,
@@ -73,8 +73,8 @@ body.login-logs-page .logs-filter-wrap .btn {
 
 body.login-logs-page .logs-table-card {
     min-height: 280px;
-    border: 1px solid rgba(132, 156, 214, 0.12);
-    background: rgba(19, 31, 54, 0.86);
+    border: 1px solid var(--report-border);
+    background: var(--report-surface);
 }
 
 body.login-logs-page .logs-table-card thead th {
@@ -86,9 +86,9 @@ body.login-logs-page .logs-table-card thead th {
 body.login-logs-page .logs-pagination {
     padding: 0.75rem 0.9rem;
     margin-top: 0.9rem;
-    border: 1px solid rgba(132, 156, 214, 0.12);
+    border: 1px solid var(--report-border);
     border-radius: 12px;
-    background: rgba(19, 31, 54, 0.86);
+    background: var(--report-surface);
 }
 
 body.login-logs-page .logs-pagination .page-link {
@@ -120,11 +120,11 @@ body.login-logs-page .logs-table-card tbody td {
     padding: 0.58rem 0.72rem;
     font-size: 0.79rem;
     line-height: 1.3;
-    color: #dbe7ff !important;
+    color: var(--report-text) !important;
 }
 
 body.login-logs-page .logs-table-card .text-muted {
-    color: #b8c7ea !important;
+    color: var(--report-muted) !important;
 }
 
 .logs-identifier {
@@ -144,7 +144,7 @@ body.login-logs-page .logs-table-card .text-muted {
     line-height: 1.45;
     display: inline-block;
     vertical-align: middle;
-    color: #dbe7ff !important;
+    color: var(--report-text) !important;
     font-weight: 500;
 }
 

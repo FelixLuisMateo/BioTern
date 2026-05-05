@@ -93,7 +93,7 @@ while ($row = $res->fetch_assoc()) {
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         if ($finfo) {
             $detected = finfo_file($finfo, $abs);
-            finfo_close($finfo);
+            unset($finfo);
             $mime = strtolower((string)$detected);
         }
     }
