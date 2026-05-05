@@ -213,17 +213,32 @@ function attendance_bridge_runtime_status(mysqli $conn): array
         $ingestRes->close();
     }
 
-    $candidates = array_values(array_filter([$latestHeartbeatAt, $latestCacheAt, $latestIngestAt], static function ($value): bool {
-        return trim((string)$value) !== '';
-    }));
+    $workerLogAt = '';
+    $workerLogPath = dirname(__DIR__) . '/tools/bridge-worker.log';
+    $workerLogMtime = @filemtime($workerLogPath);
+    if ($workerLogMtime !== false && $workerLogMtime > 0) {
+        $workerLogAt = date('Y-m-d H:i:s', (int)$workerLogMtime);
+    }
+
+    $candidates = [
+        'cloud heartbeat' => $latestHeartbeatAt,
+        'bridge user cache' => $latestCacheAt,
+        'ingest event' => $latestIngestAt,
+        'local worker log' => $workerLogAt,
+    ];
 
     $lastSeenAt = '';
+    $lastSeenSource = '';
     $lastSeenTs = 0;
-    foreach ($candidates as $candidate) {
+    foreach ($candidates as $source => $candidate) {
+        if (trim((string)$candidate) === '') {
+            continue;
+        }
         $ts = strtotime((string)$candidate);
         if ($ts !== false && $ts > $lastSeenTs) {
             $lastSeenTs = $ts;
             $lastSeenAt = (string)$candidate;
+            $lastSeenSource = (string)$source;
         }
     }
 
@@ -242,7 +257,7 @@ function attendance_bridge_runtime_status(mysqli $conn): array
             'label' => 'Bridge Unknown',
             'class' => 'secondary',
             'icon' => 'feather-help-circle',
-            'detail' => 'No bridge heartbeat, user cache, or ingest activity has been seen yet.',
+            'detail' => 'No bridge heartbeat, user cache, ingest activity, or local worker log has been seen yet.',
             'age_seconds' => null,
         ];
     }
@@ -256,10 +271,12 @@ function attendance_bridge_runtime_status(mysqli $conn): array
         'class' => $isOnline ? 'success' : 'danger',
         'icon' => $isOnline ? 'feather-wifi' : 'feather-wifi-off',
         'detail' => ($isOnline ? 'Last activity ' : 'Last activity stale: ') . $lastSeenAt
+            . ($lastSeenSource !== '' ? ' via ' . $lastSeenSource : '')
             . ' (age ' . $ageSeconds . 's, poll ' . $pollSeconds . 's)'
             . ($heartbeatStatusText !== '' ? '. Heartbeat: ' . $heartbeatStatusText : ''),
         'age_seconds' => $ageSeconds,
         'last_seen_at' => $lastSeenAt,
+        'last_seen_source' => $lastSeenSource,
     ];
 }
 
