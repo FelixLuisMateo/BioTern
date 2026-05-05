@@ -539,7 +539,10 @@ html.app-skin-dark .dtr-day-card .badge.bg-soft-secondary {
     }
 
     body.mobile-bottom-nav .app-students-dtr-page-header {
-        display: block !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.55rem !important;
         min-height: 0 !important;
         padding: 0.72rem 0.82rem !important;
         margin-bottom: 0.65rem !important;
@@ -547,8 +550,26 @@ html.app-skin-dark .dtr-day-card .badge.bg-soft-secondary {
 
     body.mobile-bottom-nav .app-students-dtr-page-header .page-header-left {
         width: 100% !important;
-        margin-bottom: 0.55rem !important;
+        margin-bottom: 0 !important;
         padding: 0 !important;
+        display: block !important;
+    }
+
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-title {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-right: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-title h5 {
+        margin: 0 !important;
+        white-space: normal !important;
+        line-height: 1.2 !important;
+    }
+
+    body.mobile-bottom-nav .app-students-dtr-page-header .breadcrumb {
+        display: none !important;
     }
 
     body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right {
@@ -594,6 +615,20 @@ html.app-skin-dark .dtr-day-card .badge.bg-soft-secondary {
 
     .app-students-dtr-copy-note {
         max-width: none;
+    }
+}
+
+@media (max-width: 575.98px) {
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right > div,
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right .d-flex,
+    .app-students-dtr-page-header .page-header-right > div,
+    .app-students-dtr-page-header .page-header-right .d-flex {
+        grid-template-columns: 1fr !important;
+    }
+
+    body.mobile-bottom-nav .app-students-dtr-page-header .page-header-right .d-flex > .btn,
+    .app-students-dtr-page-header .page-header-right .btn {
+        grid-column: 1 / -1 !important;
     }
 }
 
