@@ -823,6 +823,7 @@ $page_title = 'BioTern || ' . $studentDtrPageHeading;
 $page_styles = [
     'assets/css/homepage-student.css',
     'assets/css/student-dtr.css',
+    'assets/css/modules/pages/page-external-attendance-student.css',
 ];
 $page_scripts = [
     'assets/js/modules/pages/student-dtr-proof-clock.js',
@@ -972,8 +973,12 @@ include 'includes/header.php';
         <div class="row g-4 align-items-start mt-0">
             <div class="<?php echo $studentDtrManualOnly ? 'col-12 col-xl-8 mx-auto' : 'col-12 col-xl-8'; ?>">
                 <?php if ($studentDtrManualOnly): ?>
-                <section class="card student-panel student-dtr-fallback-card student-dtr-record-entry-card mb-4" id="manual-dtr">
-                    <div class="card-body">
+                <section class="card student-panel student-dtr-fallback-card student-dtr-record-entry-card record-section mb-4" id="manual-dtr">
+                    <div class="card-header border-0 bg-transparent px-4 pt-4">
+                        <h5 class="mb-1">Submit Missed Internal Time</h5>
+                        <p class="text-muted mb-0">Use this when your internal biometric DTR was not captured or the machine was unavailable.</p>
+                    </div>
+                    <div class="card-body pt-3">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                             <div>
                                 <span class="student-metric-label">Manual DTR</span>
@@ -984,27 +989,16 @@ include 'includes/header.php';
                         <form method="post" enctype="multipart/form-data" class="row g-3">
                             <input type="hidden" name="student_action" value="submit_machine_down">
                             <input type="hidden" name="proof_clock_time" id="proofClockTime" value="">
-                            <div class="col-12 student-dtr-clock-wrap">
-                                <label class="form-label">Current Clock</label>
-                                <div class="form-control d-flex align-items-center justify-content-between student-dtr-proof-clock">
-                                    <strong id="proofClockDisplay">--:--:--</strong>
-                                    <span class="text-muted small" id="proofClockDate">--</span>
-                                </div>
-                            </div>
+                            <input type="hidden" id="proofClockDisplay" value="">
+                            <input type="hidden" id="proofClockDate" value="">
+                            <input type="hidden" id="fallbackMode" name="fallback_mode" value="weekly">
                             <div class="col-12">
-                                <div class="student-dtr-fallback-guide">
-                                    <strong>Before submitting, follow this flow:</strong>
+                                <div class="external-manual-guide">
+                                    <strong>How to submit internal manual DTR:</strong>
                                     <span>1. Choose one date or multiple missed dates, then click Generate Date Rows.</span>
                                     <span>2. Pick the closest time from each dropdown, like 8:00 AM, 12:00 PM, 1:00 PM, and 5:00 PM.</span>
                                     <span>3. Upload proof and explain what happened. The entry stays pending until school review.</span>
                                 </div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="fallbackMode">Submission Type</label>
-                                <select class="form-select" id="fallbackMode" name="fallback_mode">
-                                    <option value="weekly" selected>Multiple dates</option>
-                                    <option value="daily">One date only</option>
-                                </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="fallbackAttendanceDate">Start Date</label>
@@ -1015,20 +1009,11 @@ include 'includes/header.php';
                                 <input type="date" class="form-control" id="fallbackAttendanceEndDate" name="attendance_end_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label" for="proofImage">Proof Image</label>
-                                <input type="file" class="form-control" id="proofImage" name="proof_image" accept="image/png,image/jpeg,image/webp" capture="environment" required>
-                            </div>
-                            <div class="col-12">
-                                <div class="d-flex flex-wrap align-items-end gap-3">
-                                    <div>
-                                        <button type="button" class="btn btn-outline-primary" id="generateFallbackRows">Generate Date Rows</button>
-                                    </div>
-                                    <small class="text-muted">If you choose one date only, this can still generate a single row. If you leave rows hidden, the time boxes below will be used.</small>
-                                </div>
+                                <button type="button" class="btn btn-success w-100" id="generateFallbackRows">Generate Date Rows</button>
                             </div>
                             <div class="col-12" id="fallbackGeneratedRowsWrap" style="display:none;">
                                 <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0">
+                                    <table class="table table-hover align-middle mb-0 external-manual-table">
                                         <thead>
                                             <tr>
                                                 <th>Date</th>
@@ -1044,35 +1029,38 @@ include 'includes/header.php';
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackMorningIn">Morning In</label>
-                                <select class="form-select student-dtr-time-select" id="fallbackMorningIn" name="morning_time_in">
+                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackMorningIn" name="morning_time_in">
                                     <?php echo student_dtr_time_select_options_html('', 5, 11); ?>
                                 </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackMorningOut">Morning Out</label>
-                                <select class="form-select student-dtr-time-select" id="fallbackMorningOut" name="morning_time_out">
+                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackMorningOut" name="morning_time_out">
                                     <?php echo student_dtr_time_select_options_html('', 5, 11); ?>
                                 </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
-                                <select class="form-select student-dtr-time-select" id="fallbackAfternoonIn" name="afternoon_time_in">
+                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackAfternoonIn" name="afternoon_time_in">
                                     <?php echo student_dtr_time_select_options_html('', 12, 23); ?>
                                 </select>
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
-                                <select class="form-select student-dtr-time-select" id="fallbackAfternoonOut" name="afternoon_time_out">
+                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackAfternoonOut" name="afternoon_time_out">
                                     <?php echo student_dtr_time_select_options_html('', 12, 23); ?>
                                 </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="proofImage">Proof Image</label>
+                                <input type="file" class="form-control" id="proofImage" name="proof_image" accept="image/png,image/jpeg,image/webp" capture="environment" required>
                             </div>
                             <div class="col-12">
                                 <label class="form-label" for="fallbackReason">Reason / Details (Optional)</label>
                                 <textarea class="form-control" id="fallbackReason" name="fallback_reason" rows="3" placeholder="Optional note for the reviewer."></textarea>
                             </div>
                             <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
-                                <button type="submit" class="btn btn-warning" <?php echo max(0, $remainingHours) <= 0 ? 'disabled' : ''; ?>>Submit Manual DTR for Review</button>
-                                <small class="text-muted">Each generated row becomes one pending DTR entry. Lunch is auto-deducted when needed, and overtime is noted in remarks.</small>
+                                <button type="submit" class="btn btn-primary w-100" <?php echo max(0, $remainingHours) <= 0 ? 'disabled' : ''; ?>>Submit Internal DTR for Review</button>
                             </div>
                         </form>
                     </div>
@@ -1290,7 +1278,7 @@ include 'includes/header.php';
     };
 
     var buildTimeSelect = function (name, selected, startHour, endHour) {
-        return '<select class="form-select student-dtr-time-select" name="' + name + '">' + buildTimeOptions(selected || '', startHour, endHour) + '</select>';
+        return '<select class="form-select student-dtr-time-select external-manual-time-select" name="' + name + '">' + buildTimeOptions(selected || '', startHour, endHour) + '</select>';
     };
 
     var formatLabel = function (dateValue) {
@@ -1324,11 +1312,11 @@ include 'includes/header.php';
             var safeDate = escapeHtml(isoDate);
             rows.push(
                 '<tr>' +
-                    '<td><strong>' + escapeHtml(formatLabel(isoDate)) + '</strong></td>' +
-                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_in]', '', 5, 11) + '</td>' +
-                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_out]', '', 5, 11) + '</td>' +
-                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_in]', '', 12, 23) + '</td>' +
-                    '<td>' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_out]', '', 12, 23) + '</td>' +
+                    '<td data-label="Date"><strong>' + escapeHtml(formatLabel(isoDate)) + '</strong></td>' +
+                    '<td data-label="Morning In">' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_in]', '', 5, 11) + '</td>' +
+                    '<td data-label="Morning Out">' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_out]', '', 5, 11) + '</td>' +
+                    '<td data-label="Afternoon In">' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_in]', '', 12, 23) + '</td>' +
+                    '<td data-label="Afternoon Out">' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_out]', '', 12, 23) + '</td>' +
                 '</tr>'
             );
         }
