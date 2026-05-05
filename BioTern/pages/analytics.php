@@ -270,9 +270,9 @@ include 'includes/header.php';
                                     ?>
                                     <div class="analytics-bars-group">
                                         <div class="analytics-bars-stack">
-                                            <span class="analytics-bar analytics-bar--students" style="height: <?php echo max(4, round(($studentValue / $growthMax) * 100, 2)); ?>%"></span>
-                                            <span class="analytics-bar analytics-bar--attendance" style="height: <?php echo max(4, round(($attendanceValue / $growthMax) * 100, 2)); ?>%"></span>
-                                            <span class="analytics-bar analytics-bar--internships" style="height: <?php echo max(4, round(($internshipValue / $growthMax) * 100, 2)); ?>%"></span>
+                                            <span class="analytics-bar analytics-bar--students" style="height: <?php echo min(100, round(($studentValue / max($growthMax, 1)) * 100, 2)); ?>%"></span>
+                                            <span class="analytics-bar analytics-bar--attendance" style="height: <?php echo min(100, round(($attendanceValue / max($growthMax, 1)) * 100, 2)); ?>%"></span>
+                                            <span class="analytics-bar analytics-bar--internships" style="height: <?php echo min(100, round(($internshipValue / max($growthMax, 1)) * 100, 2)); ?>%"></span>
                                         </div>
                                         <div class="analytics-bars-label"><?php echo htmlspecialchars(date('M y', strtotime($monthKeys[$index] . '-01')), ENT_QUOTES, 'UTF-8'); ?></div>
                                     </div>
@@ -288,7 +288,7 @@ include 'includes/header.php';
                                         <span><?php echo number_format($combined); ?> total activity</span>
                                     </div>
                                     <div class="analytics-fallback-track">
-                                        <div class="analytics-fallback-fill" style="width: <?php echo max(6, min(100, round(($combined / max($growthMax, 1)) * 100, 2))); ?>%"></div>
+                                        <div class="analytics-fallback-fill" style="width: <?php echo min(100, round(($combined / max($growthMax, 1)) * 100, 2)); ?>%"></div>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -316,15 +316,15 @@ include 'includes/header.php';
                         <div class="analytics-chart-fallback">
                             <div class="analytics-fallback-row">
                                 <div class="analytics-fallback-head"><span>Approved</span><span><?php echo number_format($attendanceStatus['Approved']); ?></span></div>
-                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--success" style="width: <?php echo max(6, min(100, $attendanceApprovalRate)); ?>%"></div></div>
+                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--success" style="width: <?php echo min(100, $attendanceApprovalRate); ?>%"></div></div>
                             </div>
                             <div class="analytics-fallback-row">
                                 <div class="analytics-fallback-head"><span>Pending</span><span><?php echo number_format($attendanceStatus['Pending']); ?></span></div>
-                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--warning" style="width: <?php echo max(6, min(100, a_pct($attendanceStatus['Pending'], $attendanceTotal))); ?>%"></div></div>
+                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--warning" style="width: <?php echo min(100, a_pct($attendanceStatus['Pending'], $attendanceTotal)); ?>%"></div></div>
                             </div>
                             <div class="analytics-fallback-row">
                                 <div class="analytics-fallback-head"><span>Rejected</span><span><?php echo number_format($attendanceStatus['Rejected']); ?></span></div>
-                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--danger" style="width: <?php echo max(6, min(100, a_pct($attendanceStatus['Rejected'], $attendanceTotal))); ?>%"></div></div>
+                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--danger" style="width: <?php echo min(100, a_pct($attendanceStatus['Rejected'], $attendanceTotal)); ?>%"></div></div>
                             </div>
                         </div>
                     </div>
@@ -339,7 +339,7 @@ include 'includes/header.php';
                                 <?php foreach ($internshipStatus as $label => $value): ?>
                                     <?php
                                     $segmentClass = strtolower($label);
-                                    $segmentWidth = max($value > 0 ? 8 : 0, round(a_pct($value, $internshipsTotal), 2));
+                                    $segmentWidth = min(100, round(a_pct($value, $internshipsTotal), 2));
                                     ?>
                                     <span class="analytics-segment analytics-segment--<?php echo htmlspecialchars($segmentClass, ENT_QUOTES, 'UTF-8'); ?>" style="width: <?php echo $segmentWidth; ?>%"></span>
                                 <?php endforeach; ?>
@@ -349,7 +349,7 @@ include 'includes/header.php';
                             <?php foreach ($internshipStatus as $label => $value): ?>
                                 <div class="analytics-fallback-row">
                                     <div class="analytics-fallback-head"><span><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></span><span><?php echo number_format($value); ?></span></div>
-                                    <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--info" style="width: <?php echo max(6, min(100, a_pct($value, $internshipsTotal))); ?>%"></div></div>
+                                    <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--info" style="width: <?php echo min(100, a_pct($value, $internshipsTotal)); ?>%"></div></div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -371,11 +371,12 @@ include 'includes/header.php';
                         <div class="analytics-chart-fallback">
                             <div class="analytics-fallback-row">
                                 <div class="analytics-fallback-head"><span>Registered</span><span><?php echo number_format($studentsBiometric); ?></span></div>
-                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill" style="width: <?php echo max(6, min(100, $biometricCoverageRate)); ?>%"></div></div>
+                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill" style="width: <?php echo min(100, $biometricCoverageRate); ?>%"></div></div>
                             </div>
                             <div class="analytics-fallback-row">
-                                <div class="analytics-fallback-head"><span>Pending</span><span><?php echo number_format(max(0, $studentsTotal - $studentsBiometric)); ?></span></div>
-                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--warning" style="width: <?php echo max(6, min(100, 100 - $biometricCoverageRate)); ?>%"></div></div>
+                                <?php $studentsBiometricPending = max(0, $studentsTotal - $studentsBiometric); ?>
+                                <div class="analytics-fallback-head"><span>Pending</span><span><?php echo number_format($studentsBiometricPending); ?></span></div>
+                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--warning" style="width: <?php echo min(100, a_pct($studentsBiometricPending, $studentsTotal)); ?>%"></div></div>
                             </div>
                         </div>
                     </div>
@@ -397,7 +398,7 @@ include 'includes/header.php';
                             <?php foreach ($internshipTypes as $label => $value): ?>
                                 <div class="analytics-fallback-row">
                                     <div class="analytics-fallback-head"><span><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></span><span><?php echo number_format($value); ?></span></div>
-                                    <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--violet" style="width: <?php echo max(6, min(100, a_pct($value, $internshipsTotal))); ?>%"></div></div>
+                                    <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--violet" style="width: <?php echo min(100, a_pct($value, $internshipsTotal)); ?>%"></div></div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -413,7 +414,7 @@ include 'includes/header.php';
                                 <?php foreach (array_values($weekMap) as $index => $value): ?>
                                     <div class="analytics-week-day">
                                         <div class="analytics-week-bar-wrap">
-                                            <span class="analytics-week-bar" style="height: <?php echo max(6, min(100, round(($value / max($weekMax, 1)) * 100, 2))); ?>%"></span>
+                                            <span class="analytics-week-bar" style="height: <?php echo min(100, round(($value / max($weekMax, 1)) * 100, 2)); ?>%"></span>
                                         </div>
                                         <div class="analytics-week-meta">
                                             <strong><?php echo number_format($value); ?></strong>

@@ -653,14 +653,18 @@ if (!empty($filter_supervisor)) {
     $esc_sup = $db->real_escape_string($filter_supervisor);
     $where[] = "(
         TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)) LIKE '%{$esc_sup}%'
+        OR sup_user.name LIKE '%{$esc_sup}%'
         OR s.supervisor_name LIKE '%{$esc_sup}%'
     )";
 }
 if (!empty($filter_coordinator)) {
     $esc_coor = $db->real_escape_string($filter_coordinator);
+    $coordinator_course_filter_sql = $hasCoordinatorCourses ? " OR course_coor.coordinator_name LIKE '%{$esc_coor}%'" : '';
     $where[] = "(
         TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)) LIKE '%{$esc_coor}%'
+        OR coor_user.name LIKE '%{$esc_coor}%'
         OR s.coordinator_name LIKE '%{$esc_coor}%'
+        {$coordinator_course_filter_sql}
     )";
 }
 if ($filter_status >= 0) {
@@ -688,6 +692,27 @@ if ($filter_status >= 0) {
 }
 
 // Fetch Students with Related Information
+$coordinator_course_join_sql = $hasCoordinatorCourses ? "
+    LEFT JOIN (
+        SELECT
+            cc.course_id,
+            cc.coordinator_user_id,
+            ccf.id AS coordinator_profile_id,
+            COALESCE(
+                NULLIF(TRIM(CONCAT_WS(' ', ccf.first_name, ccf.middle_name, ccf.last_name)), ''),
+                NULLIF(TRIM(ucf.name), '')
+            ) AS coordinator_name
+        FROM coordinator_courses cc
+        INNER JOIN (
+            SELECT course_id, MAX(id) AS latest_id
+            FROM coordinator_courses
+            GROUP BY course_id
+        ) latest_cc ON latest_cc.latest_id = cc.id
+        LEFT JOIN coordinators ccf ON ccf.user_id = cc.coordinator_user_id
+        LEFT JOIN users ucf ON ucf.id = cc.coordinator_user_id
+    ) course_coor ON course_coor.course_id = s.course_id
+" : '';
+
 $students_query = "
     SELECT 
         s.id,
@@ -732,12 +757,15 @@ $students_query = "
         i.coordinator_id,
         COALESCE(
             NULLIF(TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)), ''),
-            NULLIF(TRIM(s.supervisor_name), ''),
+            NULLIF(TRIM(sup_user.name), ''),
+            NULLIF(NULLIF(TRIM(s.supervisor_name), ''), '-'),
             '-'
         ) AS supervisor_name,
         COALESCE(
             NULLIF(TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)), ''),
-            NULLIF(TRIM(s.coordinator_name), ''),
+            NULLIF(TRIM(coor_user.name), ''),
+            NULLIF(NULLIF(TRIM(s.coordinator_name), ''), '-'),
+            " . ($hasCoordinatorCourses ? "NULLIF(TRIM(course_coor.coordinator_name), '')," : "") . "
             '-'
         ) AS coordinator_name
     FROM students s
@@ -745,8 +773,11 @@ $students_query = "
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN sections sec ON s.section_id = sec.id
     LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
-    LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
-    LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
+    LEFT JOIN supervisors sup ON sup.id = COALESCE(i.supervisor_id, s.supervisor_id)
+    LEFT JOIN users sup_user ON sup_user.id = sup.user_id
+    LEFT JOIN coordinators coor ON coor.id = COALESCE(i.coordinator_id, s.coordinator_id)
+    LEFT JOIN users coor_user ON coor_user.id = coor.user_id
+    {$coordinator_course_join_sql}
     LEFT JOIN departments d ON d.id = COALESCE(i.department_id, s.department_id)
     " . (count($where) > 0 ? "WHERE " . implode(' AND ', $where) : "") . "
     ORDER BY s.first_name ASC
