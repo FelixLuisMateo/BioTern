@@ -531,6 +531,7 @@ if (!function_exists('biotern_admin_activity_auto_log')) {
             'auth-login.php',
             'auth-two-factor.php',
             'reports-admin-logs.php',
+            'theme-customizer.php',
             'notifications-feed.php',
             'notifications-actions.php',
         ];
@@ -540,35 +541,6 @@ if (!function_exists('biotern_admin_activity_auto_log')) {
         }
 
         $request = $method === 'POST' ? $_POST : $_GET;
-        $loggableViewPrefixes = [
-            'students',
-            'applications-review',
-            'attendance',
-            'external-attendance',
-            'fingerprint_mapping',
-            'biometric-machine',
-            'ojt',
-            'courses',
-            'departments',
-            'sections',
-            'companies',
-            'coordinators',
-            'supervisors',
-            'users',
-            'create_admin',
-            'settings-',
-            'auth-register',
-            'theme-customizer',
-        ];
-
-        $isAdminWorkPage = false;
-        foreach ($loggableViewPrefixes as $prefix) {
-            if (strpos($page, $prefix) === 0) {
-                $isAdminWorkPage = true;
-                break;
-            }
-        }
-
         $shouldLog = $method === 'POST'
             || strpos($page, 'export') !== false
             || strpos($page, 'download') !== false
@@ -580,14 +552,18 @@ if (!function_exists('biotern_admin_activity_auto_log')) {
             || isset($request['reject'])
             || isset($request['export'])
             || isset($request['download'])
-            || isset($request['action'])
-            || ($method === 'GET' && $isAdminWorkPage);
+            || isset($request['action']);
 
         if (!$shouldLog) {
             return;
         }
 
         $action = biotern_admin_activity_infer_action($page, $method, $request);
+        $importantActions = ['create', 'add', 'edit', 'update', 'delete', 'import', 'export', 'approve', 'reject', 'archive', 'restore'];
+        if (!in_array($action, $importantActions, true)) {
+            return;
+        }
+
         $targetType = biotern_admin_activity_target_type($page);
         $targetId = null;
         foreach (['id', 'student_id', 'user_id', 'course_id', 'section_id', 'department_id', 'coordinator_id', 'supervisor_id', 'company_id', 'internship_id', 'ojt_id', 'delete_id'] as $idKey) {

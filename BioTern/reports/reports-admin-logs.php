@@ -84,7 +84,8 @@ function adminLogsDetailsSummary(?string $json): string
 }
 
 $action = strtolower(trim((string)($_GET['action'] ?? 'all')));
-$allowedActions = ['all', 'create', 'edit', 'update', 'delete', 'import', 'export'];
+$importantActions = ['create', 'add', 'edit', 'update', 'delete', 'import', 'export', 'approve', 'reject', 'archive', 'restore'];
+$allowedActions = array_merge(['all'], $importantActions);
 if (!in_array($action, $allowedActions, true)) {
     $action = 'all';
 }
@@ -102,9 +103,16 @@ $where = [];
 $types = '';
 $params = [];
 
+$importantPlaceholders = implode(',', array_fill(0, count($importantActions), '?'));
+$where[] = 'action IN (' . $importantPlaceholders . ')';
+$types .= str_repeat('s', count($importantActions));
+array_push($params, ...$importantActions);
+
 if ($action !== 'all') {
     if ($action === 'edit') {
         $where[] = 'action IN ("edit", "update")';
+    } elseif ($action === 'create') {
+        $where[] = 'action IN ("create", "add")';
     } else {
         $where[] = 'action = ?';
         $types .= 's';
@@ -169,8 +177,13 @@ $summary = [
     'delete' => 0,
     'import' => 0,
     'export' => 0,
+    'approve' => 0,
+    'reject' => 0,
+    'archive' => 0,
+    'restore' => 0,
 ];
-$summaryRes = $conn->query('SELECT action, COUNT(*) AS total FROM admin_activity_logs GROUP BY action');
+$summarySql = "SELECT action, COUNT(*) AS total FROM admin_activity_logs WHERE action IN ('" . implode("','", array_map([$conn, 'real_escape_string'], $importantActions)) . "') GROUP BY action";
+$summaryRes = $conn->query($summarySql);
 if ($summaryRes instanceof mysqli_result) {
     while ($row = $summaryRes->fetch_assoc()) {
         $key = strtolower(trim((string)($row['action'] ?? '')));
@@ -178,6 +191,8 @@ if ($summaryRes instanceof mysqli_result) {
         $summary['all'] += $count;
         if ($key === 'update') {
             $summary['edit'] += $count;
+        } elseif ($key === 'add') {
+            $summary['create'] += $count;
         } elseif (isset($summary[$key])) {
             $summary[$key] += $count;
         }
@@ -185,7 +200,7 @@ if ($summaryRes instanceof mysqli_result) {
 }
 
 $admins = [];
-$adminRes = $conn->query('SELECT DISTINCT admin_user_id, admin_name, admin_username FROM admin_activity_logs WHERE admin_user_id IS NOT NULL ORDER BY admin_name ASC, admin_username ASC');
+$adminRes = $conn->query("SELECT DISTINCT admin_user_id, admin_name, admin_username FROM admin_activity_logs WHERE admin_user_id IS NOT NULL AND action IN ('" . implode("','", array_map([$conn, 'real_escape_string'], $importantActions)) . "') ORDER BY admin_name ASC, admin_username ASC");
 if ($adminRes instanceof mysqli_result) {
     while ($row = $adminRes->fetch_assoc()) {
         $admins[] = $row;
@@ -273,6 +288,10 @@ include 'includes/header.php';
                     <option value="delete" <?php echo $action === 'delete' ? 'selected' : ''; ?>>Delete</option>
                     <option value="import" <?php echo $action === 'import' ? 'selected' : ''; ?>>Import</option>
                     <option value="export" <?php echo $action === 'export' ? 'selected' : ''; ?>>Export</option>
+                    <option value="approve" <?php echo $action === 'approve' ? 'selected' : ''; ?>>Approve</option>
+                    <option value="reject" <?php echo $action === 'reject' ? 'selected' : ''; ?>>Reject</option>
+                    <option value="archive" <?php echo $action === 'archive' ? 'selected' : ''; ?>>Archive</option>
+                    <option value="restore" <?php echo $action === 'restore' ? 'selected' : ''; ?>>Restore</option>
                 </select>
                 <input type="hidden" name="page" value="1">
             </div>

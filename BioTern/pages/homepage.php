@@ -376,6 +376,7 @@ $active_students = $dashboard_stats['active_students'];
 $active_internships = $dashboard_stats['active_internships'];
 $completed_internships = $dashboard_stats['completed_internships'];
 $today_attendance = $dashboard_stats['today_attendance'];
+$today_attendance_progress = min(100, max(0, $today_attendance));
 $pending_biometrics = $dashboard_stats['pending_biometrics'];
 $attendance_approval_rate = $dashboard_stats['attendance_approval_rate'];
 $attendance_pending_rate = $dashboard_stats['attendance_pending_rate'];
@@ -762,9 +763,9 @@ include 'includes/header.php';
                     <span class="mobile-summary-meta"><?php echo $active_student_rate; ?>% of <?php echo $student_count; ?></span>
                 </div>
                 <div class="mobile-summary-card">
-                    <span class="mobile-summary-label">Attendance Today</span>
+                    <span class="mobile-summary-label">Today's Logs</span>
                     <span class="mobile-summary-value"><?php echo $today_attendance; ?></span>
-                    <span class="mobile-summary-meta"><?php echo $attendance_pending_rate; ?>% pending</span>
+                    <span class="mobile-summary-meta"><?php echo $today_attendance > 0 ? $today_attendance . ' logged today' : 'No logs today'; ?></span>
                 </div>
                 <div class="mobile-summary-card">
                     <span class="mobile-summary-label">Pending Attendance</span>
@@ -829,11 +830,11 @@ include 'includes/header.php';
                                         </div>
                                         <div class="col-sm-6 col-xl-3">
                                             <div class="kpi-card kpi-tile">
-                                                <div class="kpi-title">Attendance Today</div>
+                                                <div class="kpi-title">Today's Logs</div>
                                                 <div class="kpi-value"><?php echo $today_attendance; ?></div>
-                                                <div class="kpi-subtext"><?php echo $attendance_pending_rate; ?>% pending approvals</div>
+                                                <div class="kpi-subtext"><?php echo $today_attendance > 0 ? $today_attendance . ' attendance log' . ($today_attendance === 1 ? '' : 's') . ' today' : 'No attendance logs today'; ?></div>
                                                 <div class="progress kpi-progress">
-                                                    <div class="progress-bar bg-warning" role="progressbar" data-progress-width="<?php echo $attendance_pending_rate; ?>"></div>
+                                                    <div class="progress-bar bg-warning" role="progressbar" data-progress-width="<?php echo $today_attendance_progress; ?>"></div>
                                                 </div>
                                             </div>
                                         </div>
