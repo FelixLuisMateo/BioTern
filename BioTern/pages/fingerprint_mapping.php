@@ -80,6 +80,40 @@ if (!in_array($printMode, ['mapped', 'unmapped_students'], true)) {
 }
 $authorizedRoles = ['admin', 'coordinator', 'supervisor'];
 
+function fingerprint_mapping_requeue_raw_logs(mysqli $conn, int $fingerId): int
+{
+    if ($fingerId <= 0) {
+        return 0;
+    }
+
+    $res = $conn->query('SELECT id, raw_data FROM biometric_raw_logs ORDER BY id DESC LIMIT 1000');
+    if (!($res instanceof mysqli_result)) {
+        return 0;
+    }
+
+    $ids = [];
+    while ($row = $res->fetch_assoc()) {
+        $entry = json_decode((string)($row['raw_data'] ?? ''), true);
+        if (!is_array($entry)) {
+            continue;
+        }
+
+        $entryFingerId = isset($entry['finger_id']) ? (int)$entry['finger_id'] : (isset($entry['id']) ? (int)$entry['id'] : 0);
+        if ($entryFingerId === $fingerId) {
+            $ids[] = (int)$row['id'];
+        }
+    }
+    $res->close();
+
+    if ($ids === []) {
+        return 0;
+    }
+
+    $idList = implode(',', array_map('intval', array_unique($ids)));
+    $conn->query("UPDATE biometric_raw_logs SET processed = 0 WHERE id IN ({$idList})");
+    return max(0, (int)$conn->affected_rows);
+}
+
 if (isset($_SESSION['fingerprint_mapping_flash']) && is_array($_SESSION['fingerprint_mapping_flash'])) {
     $flashType = (string)($_SESSION['fingerprint_mapping_flash']['type'] ?? 'success');
     $msg = (string)($_SESSION['fingerprint_mapping_flash']['message'] ?? '');
@@ -171,6 +205,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $stmt->close();
 
+        $requeuedLogs = fingerprint_mapping_requeue_raw_logs($conn, $fingerId);
+
         biometric_ops_log_audit(
             $conn,
             (int)($_SESSION['user_id'] ?? 0),
@@ -181,7 +217,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ['finger_id' => $fingerId, 'user_id' => $userId, 'mapping_action' => $action]
         );
 
-        $_SESSION['fingerprint_mapping_flash'] = ['type' => 'success', 'message' => 'Mapping updated.'];
+        $_SESSION['fingerprint_mapping_flash'] = [
+            'type' => 'success',
+            'message' => 'Mapping updated.' . ($requeuedLogs > 0 ? ' Requeued ' . $requeuedLogs . ' raw log(s) for attendance import.' : ''),
+        ];
         header('Location: fingerprint_mapping.php');
         exit;
     } catch (Throwable $e) {
@@ -775,7 +814,7 @@ ob_end_flush();
             <div class="card-header"><strong>Unmapped Fingerprints (Priority Queue)</strong></div>
             <div class="card-body border-bottom">
                 <div class="d-flex flex-wrap gap-2 mb-3">
-                    <a href="ojt-internal-list.php" class="btn btn-sm btn-light-brand">Open Internal List</a>
+                    <a href="fingerprint-unmapped-internal.php" class="btn btn-sm btn-light-brand">Open Unmapped Internal Students</a>
                     <a href="ojt-external-list.php" class="btn btn-sm btn-outline-secondary">Open External List</a>
                     <a href="import-ojt-internal.php" class="btn btn-sm btn-outline-secondary">Import OJT Internal</a>
                     <a href="import-ojt-external.php" class="btn btn-sm btn-outline-secondary">Import OJT External</a>
@@ -844,7 +883,7 @@ ob_end_flush();
                                     </td>
                                     <td><span class="badge bg-soft-warning text-warning">Needs Mapping</span></td>
                                     <td class="text-end">
-                                        <a href="ojt-internal-list.php?map_finger_id=<?php echo (int)$fingerprint['finger_id']; ?>" class="btn btn-sm btn-outline-primary">Map To Student</a>
+                                        <a href="fingerprint-unmapped-internal.php?map_finger_id=<?php echo (int)$fingerprint['finger_id']; ?>" class="btn btn-sm btn-outline-primary">Map To Student</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

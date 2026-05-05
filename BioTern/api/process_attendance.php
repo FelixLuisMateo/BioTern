@@ -221,6 +221,17 @@ function deleteAttendance($conn, $ids) {
     }
 
     $id_list = implode(',', array_map('intval', $ids));
+
+    $biometricRows = [];
+    $lookup = $conn->query("SELECT id, student_id, attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out, source FROM attendances WHERE id IN ($id_list)");
+    if ($lookup instanceof mysqli_result) {
+        while ($row = $lookup->fetch_assoc()) {
+            if (strtolower(trim((string)($row['source'] ?? ''))) === 'biometric') {
+                $biometricRows[] = $row;
+            }
+        }
+        $lookup->close();
+    }
     
     $delete_query = "DELETE FROM attendances WHERE id IN ($id_list)";
     
@@ -229,6 +240,11 @@ function deleteAttendance($conn, $ids) {
     }
     
     $affected_rows = $conn->affected_rows;
+
+    if ($affected_rows > 0 && $biometricRows !== []) {
+        requeueRawLogsForDeletedBiometricAttendance($conn, $biometricRows);
+    }
+
     insert_audit_log(
         $conn,
         get_current_user_id_or_zero(),
@@ -448,6 +464,96 @@ function reviewCorrection($conn, $ids, $decision, $remarks, $current_user_id) {
             : ($errors !== [] ? implode(' ', $errors) : 'No correction request was updated.'),
         'updated_count' => $count
     ];
+}
+
+function requeueRawLogsForDeletedBiometricAttendance($conn, array $attendanceRows) {
+    if ($attendanceRows === []) {
+        return 0;
+    }
+
+    $studentIds = [];
+    $dates = [];
+    foreach ($attendanceRows as $row) {
+        $studentId = (int)($row['student_id'] ?? 0);
+        $date = substr((string)($row['attendance_date'] ?? ''), 0, 10);
+        if ($studentId > 0 && preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            $studentIds[$studentId] = $studentId;
+            $dates[$date] = $date;
+        }
+    }
+    if ($studentIds === [] || $dates === []) {
+        return 0;
+    }
+
+    $studentIdList = implode(',', array_map('intval', $studentIds));
+    $fingerByStudent = [];
+    $mapSql = "
+        SELECT s.id AS student_id, m.finger_id
+        FROM students s
+        INNER JOIN fingerprint_user_map m ON m.user_id = s.user_id
+        WHERE s.id IN ({$studentIdList})
+    ";
+    $mapRes = $conn->query($mapSql);
+    if ($mapRes instanceof mysqli_result) {
+        while ($row = $mapRes->fetch_assoc()) {
+            $studentId = (int)($row['student_id'] ?? 0);
+            $fingerId = (int)($row['finger_id'] ?? 0);
+            if ($studentId > 0 && $fingerId > 0) {
+                $fingerByStudent[$studentId][] = $fingerId;
+            }
+        }
+        $mapRes->close();
+    }
+    if ($fingerByStudent === []) {
+        return 0;
+    }
+
+    $idsToRequeue = [];
+    $rawRes = $conn->query('SELECT id, raw_data FROM biometric_raw_logs ORDER BY id DESC LIMIT 2000');
+    if (!($rawRes instanceof mysqli_result)) {
+        return 0;
+    }
+
+    $studentDateLookup = [];
+    foreach ($attendanceRows as $row) {
+        $studentId = (int)($row['student_id'] ?? 0);
+        $date = substr((string)($row['attendance_date'] ?? ''), 0, 10);
+        if ($studentId > 0 && $date !== '') {
+            $studentDateLookup[$studentId . '|' . $date] = true;
+        }
+    }
+
+    while ($row = $rawRes->fetch_assoc()) {
+        $entry = json_decode((string)($row['raw_data'] ?? ''), true);
+        if (!is_array($entry)) {
+            continue;
+        }
+        $fingerId = isset($entry['finger_id']) ? (int)$entry['finger_id'] : (isset($entry['id']) ? (int)$entry['id'] : 0);
+        $datetime = trim((string)($entry['time'] ?? ''));
+        $date = substr($datetime, 0, 10);
+        if ($fingerId <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            continue;
+        }
+
+        foreach ($fingerByStudent as $studentId => $fingerIds) {
+            if (!isset($studentDateLookup[$studentId . '|' . $date])) {
+                continue;
+            }
+            if (in_array($fingerId, $fingerIds, true)) {
+                $idsToRequeue[] = (int)$row['id'];
+                break;
+            }
+        }
+    }
+    $rawRes->close();
+
+    if ($idsToRequeue === []) {
+        return 0;
+    }
+
+    $idList = implode(',', array_map('intval', array_unique($idsToRequeue)));
+    $conn->query("UPDATE biometric_raw_logs SET processed = 0 WHERE id IN ({$idList})");
+    return max(0, (int)$conn->affected_rows);
 }
 
 function notifyAttendanceOwners(mysqli $conn, array $attendance_ids, string $title, string $message): void {
