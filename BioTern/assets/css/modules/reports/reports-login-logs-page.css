@@ -83,7 +83,8 @@ body.login-logs-page .logs-table-card thead th {
     line-height: 1.2;
 }
 
-body.login-logs-page .logs-pagination {
+body.login-logs-page .logs-pagination,
+body.admin-logs-page .logs-pagination {
     padding: 0.75rem 0.9rem;
     margin-top: 0.9rem;
     border: 1px solid var(--report-border);
@@ -91,7 +92,8 @@ body.login-logs-page .logs-pagination {
     background: var(--report-surface);
 }
 
-body.login-logs-page .logs-pagination .page-link {
+body.login-logs-page .logs-pagination .page-link,
+body.admin-logs-page .logs-pagination .page-link {
     background: var(--report-surface-soft);
     border-color: var(--report-border);
     color: var(--report-text);
@@ -105,12 +107,14 @@ body.admin-logs-page .logs-pagination .logs-page-jump {
     color: var(--report-text) !important;
 }
 
-body.login-logs-page .logs-pagination .page-link:hover {
+body.login-logs-page .logs-pagination .page-link:hover,
+body.admin-logs-page .logs-pagination .page-link:hover {
     background: var(--report-hover);
     color: var(--report-text);
 }
 
-body.login-logs-page .logs-pagination .page-item.disabled .page-link {
+body.login-logs-page .logs-pagination .page-item.disabled .page-link,
+body.admin-logs-page .logs-pagination .page-item.disabled .page-link {
     color: var(--report-muted);
     background: var(--report-surface-soft);
     border-color: var(--report-border);
