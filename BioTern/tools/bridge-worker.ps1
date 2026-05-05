@@ -1392,25 +1392,40 @@ if (-not (Enter-BridgeWorkerSingleInstance)) {
 try {
     Write-BridgeLog 'Bridge worker started.'
 
+    $bridgeConfig = Read-BridgeProfileCache
+    $lastProfileRefreshAt = [datetime]::MinValue
+    $lastHeartbeatAt = [datetime]::MinValue
+    $lastCommandQueueAt = [datetime]::MinValue
+    $lastHistoricalBackfillAt = [datetime]::MinValue
+    $lastUserCacheAt = [datetime]::MinValue
+    $profileRefreshSeconds = 60
+    $heartbeatSeconds = 30
+    $commandQueueSeconds = 30
+    $historicalBackfillSeconds = 300
+    $userCacheSeconds = 120
+
     while ($true) {
         try {
-            $bridgeConfig = $null
-            try {
-                $apiResult = Get-BridgeConfigRemote
-                if (-not $apiResult.success) {
-                    throw "Bridge profile fetch failed: $($apiResult.message)"
-                }
+            $now = Get-Date
+            if ($null -eq $bridgeConfig -or (($now - $lastProfileRefreshAt).TotalSeconds -ge $profileRefreshSeconds)) {
+                $lastProfileRefreshAt = $now
+                try {
+                    $apiResult = Get-BridgeConfigRemote
+                    if (-not $apiResult.success) {
+                        throw "Bridge profile fetch failed: $($apiResult.message)"
+                    }
 
-                $bridgeConfig = $apiResult.PSObject.Properties['profile'].Value
-                Save-BridgeProfileCache -Profile $bridgeConfig
-            } catch {
-                $cachedProfile = Read-BridgeProfileCache
-                if ($null -eq $cachedProfile) {
-                    throw
-                }
+                    $bridgeConfig = $apiResult.PSObject.Properties['profile'].Value
+                    Save-BridgeProfileCache -Profile $bridgeConfig
+                } catch {
+                    $cachedProfile = Read-BridgeProfileCache
+                    if ($null -eq $cachedProfile) {
+                        throw
+                    }
 
-                $bridgeConfig = $cachedProfile
-                Write-BridgeLog ("Bridge profile fetch failed; using cached profile. " + $_.Exception.Message)
+                    $bridgeConfig = $cachedProfile
+                    Write-BridgeLog ("Bridge profile fetch failed; using cached profile. " + $_.Exception.Message)
+                }
             }
 
             if (-not $bridgeConfig.bridge_enabled) {
@@ -1420,22 +1435,38 @@ try {
             }
 
             Update-ConnectorConfig -BridgeConfig $bridgeConfig
-            Invoke-BridgeHeartbeat -BridgeConfig $bridgeConfig | Out-Null
-            Invoke-BridgeCommandQueue -BridgeConfig $bridgeConfig
+            if (($now - $lastHeartbeatAt).TotalSeconds -ge $heartbeatSeconds) {
+                if (Invoke-BridgeHeartbeat -BridgeConfig $bridgeConfig) {
+                    $lastHeartbeatAt = $now
+                }
+            }
+            if (($now - $lastCommandQueueAt).TotalSeconds -ge $commandQueueSeconds) {
+                Invoke-BridgeCommandQueue -BridgeConfig $bridgeConfig
+                $lastCommandQueueAt = $now
+            }
             $connectorOutput = Invoke-ConnectorSyncWithFallback -BridgeConfig $bridgeConfig
             Write-BridgeLog (($connectorOutput -join ' ') -replace '\s+', ' ')
             Save-BridgeRecoverySnapshot -BridgeConfig $bridgeConfig
-            Invoke-BridgeHistoricalBackfill -BridgeConfig $bridgeConfig
+            if (($now - $lastHistoricalBackfillAt).TotalSeconds -ge $historicalBackfillSeconds) {
+                Invoke-BridgeHistoricalBackfill -BridgeConfig $bridgeConfig
+                $lastHistoricalBackfillAt = $now
+            }
             Publish-Ingest -BridgeConfig $bridgeConfig
-            try {
-                Publish-UserCache -BridgeConfig $bridgeConfig
-            } catch {
-                Write-BridgeLog ("User cache sync skipped: " + $_.Exception.Message)
+            if (($now - $lastUserCacheAt).TotalSeconds -ge $userCacheSeconds) {
+                try {
+                    Publish-UserCache -BridgeConfig $bridgeConfig
+                    $lastUserCacheAt = $now
+                } catch {
+                    Write-BridgeLog ("User cache sync skipped: " + $_.Exception.Message)
+                }
             }
 
             $pollSeconds = [int]($bridgeConfig.poll_seconds)
             if ($pollSeconds -lt $MinPollSeconds) {
                 $pollSeconds = $MinPollSeconds
+            }
+            if ($pollSeconds -lt 10) {
+                $pollSeconds = 10
             }
             Start-Sleep -Seconds $pollSeconds
         }

@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var presetSelect = document.getElementById('routerPresetSelect');
     var bridgePresetSelect = document.getElementById('bridgePresetSelect');
+    var bridgeEnabledField = document.getElementById('bridgeEnabled');
     var copyButton = document.getElementById('copyConnectorToMachineBtn');
     var bridgeWorkerCommandField = document.getElementById('bridgeWorkerCommandField');
     var bridgeTaskInstallCommandField = document.getElementById('bridgeTaskInstallCommandField');
@@ -146,6 +147,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (bridgeFields.outputPath) {
             bridgeFields.outputPath.value = option.dataset.outputPath || '';
+        }
+        if (bridgeEnabledField && bridgePresetSelect.value !== 'laptop_custom') {
+            bridgeEnabledField.checked = true;
         }
 
         refreshBridgeWorkerCommand();
