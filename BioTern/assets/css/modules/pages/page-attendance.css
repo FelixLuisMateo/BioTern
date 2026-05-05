@@ -48,6 +48,69 @@ body.attendance-page .page-header .page-header-actions {
     z-index: 5000 !important;
 }
 
+body.attendance-page .attendance-bridge-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 34px;
+    padding: 0.45rem 0.75rem;
+    margin-right: 0.5rem;
+    border: 1px solid rgba(100, 116, 139, 0.24);
+    border-radius: 6px;
+    background: rgba(100, 116, 139, 0.08);
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1;
+    text-decoration: none;
+    vertical-align: middle;
+}
+
+body.attendance-page .attendance-bridge-status:hover,
+body.attendance-page .attendance-bridge-status:focus {
+    text-decoration: none;
+}
+
+body.attendance-page .attendance-bridge-status i {
+    font-size: 0.95rem;
+}
+
+body.attendance-page .attendance-bridge-status small {
+    font-size: 0.68rem;
+    font-weight: 700;
+    opacity: 0.78;
+}
+
+body.attendance-page .attendance-bridge-status-success {
+    border-color: rgba(23, 198, 102, 0.32);
+    background: rgba(23, 198, 102, 0.12);
+    color: #17c666;
+}
+
+body.attendance-page .attendance-bridge-status-danger {
+    border-color: rgba(234, 77, 77, 0.34);
+    background: rgba(234, 77, 77, 0.12);
+    color: #ea4d4d;
+}
+
+body.attendance-page .attendance-bridge-status-warning {
+    border-color: rgba(255, 162, 29, 0.36);
+    background: rgba(255, 162, 29, 0.14);
+    color: #ffa21d;
+}
+
+@media (max-width: 575.98px) {
+    body.attendance-page .attendance-bridge-status {
+        min-height: 32px;
+        padding: 0.42rem 0.6rem;
+        margin-right: 0.35rem;
+    }
+
+    body.attendance-page .attendance-bridge-status small {
+        display: none;
+    }
+}
+
 body.attendance-page #attendanceFilterCollapse,
 body.attendance-page #collapseAttendanceStats,
 body.attendance-page .filter-panel {

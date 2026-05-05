@@ -3,7 +3,7 @@
     "cloud_base_url":  "https://biotern.vercel.app",
     "ingest_path":  "/api/f20h_ingest.php",
     "ingest_api_token":  "eDeYGNLhVBHePxAxObSRZuwyDzHaQIZK",
-    "poll_seconds":  5,
+    "poll_seconds":  10,
     "ip_address":  "192.168.100.201",
     "gateway":  "192.168.100.1",
     "mask":  "255.255.255.0",
@@ -11,5 +11,5 @@
     "device_number":  1,
     "communication_password":  "0",
     "output_path":  "/var/task/user/attendance.txt",
-    "updated_at":  "2026-05-05 08:18:32"
+    "updated_at":  "2026-05-05 08:32:37"
 }

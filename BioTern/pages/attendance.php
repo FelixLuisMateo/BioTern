@@ -102,6 +102,167 @@ function attendance_write_machine_config(array $config): void
     file_put_contents(attendance_machine_config_path(), $json . PHP_EOL);
 }
 
+function attendance_ensure_bridge_status_tables(mysqli $conn): void
+{
+    $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_profile (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        profile_name VARCHAR(100) NOT NULL DEFAULT 'default',
+        bridge_enabled TINYINT(1) NOT NULL DEFAULT 1,
+        bridge_token VARCHAR(255) NOT NULL DEFAULT '',
+        cloud_base_url VARCHAR(255) NOT NULL DEFAULT '',
+        ingest_path VARCHAR(255) NOT NULL DEFAULT '/api/f20h_ingest.php',
+        ingest_api_token VARCHAR(255) NOT NULL DEFAULT '',
+        poll_seconds INT NOT NULL DEFAULT 30,
+        ip_address VARCHAR(100) NOT NULL DEFAULT '',
+        gateway VARCHAR(100) NOT NULL DEFAULT '',
+        mask VARCHAR(100) NOT NULL DEFAULT '255.255.255.0',
+        port INT NOT NULL DEFAULT 5001,
+        device_number INT NOT NULL DEFAULT 1,
+        communication_password VARCHAR(255) NOT NULL DEFAULT '0',
+        output_path VARCHAR(255) NOT NULL DEFAULT '',
+        updated_by INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_profile_name (profile_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_heartbeat (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        node_name VARCHAR(120) NOT NULL DEFAULT '',
+        status_text VARCHAR(255) NOT NULL DEFAULT '',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_node_name (node_name),
+        KEY idx_updated_at (updated_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_user_cache (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        source_node VARCHAR(120) NOT NULL DEFAULT '',
+        users_json LONGTEXT NOT NULL,
+        users_count INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY idx_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $conn->query("CREATE TABLE IF NOT EXISTS biometric_ingest_events (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        received_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        source_ip VARCHAR(64) NOT NULL DEFAULT '',
+        source_node VARCHAR(120) NOT NULL DEFAULT '',
+        token_status VARCHAR(40) NOT NULL DEFAULT '',
+        http_status INT NOT NULL DEFAULT 0,
+        events_received INT NOT NULL DEFAULT 0,
+        events_accepted INT NOT NULL DEFAULT 0,
+        note VARCHAR(255) NOT NULL DEFAULT '',
+        PRIMARY KEY (id),
+        KEY idx_received_at (received_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function attendance_bridge_runtime_status(mysqli $conn): array
+{
+    try {
+        attendance_ensure_bridge_status_tables($conn);
+    } catch (Throwable $ignored) {
+        return [
+            'label' => 'Bridge Unknown',
+            'class' => 'secondary',
+            'icon' => 'feather-help-circle',
+            'detail' => 'Bridge status tables are not available yet.',
+            'age_seconds' => null,
+        ];
+    }
+
+    $profile = [];
+    $profileRes = $conn->query("SELECT bridge_enabled, poll_seconds FROM biometric_bridge_profile WHERE profile_name = 'default' LIMIT 1");
+    if ($profileRes instanceof mysqli_result) {
+        $profile = $profileRes->fetch_assoc() ?: [];
+        $profileRes->close();
+    }
+
+    $bridgeEnabled = empty($profile) || !empty($profile['bridge_enabled']);
+    $pollSeconds = max(10, (int)($profile['poll_seconds'] ?? 30));
+
+    $latestHeartbeatAt = '';
+    $heartbeatStatusText = '';
+    $heartbeatRes = $conn->query("SELECT updated_at, status_text FROM biometric_bridge_heartbeat ORDER BY updated_at DESC, id DESC LIMIT 1");
+    if ($heartbeatRes instanceof mysqli_result) {
+        $row = $heartbeatRes->fetch_assoc() ?: [];
+        $latestHeartbeatAt = (string)($row['updated_at'] ?? '');
+        $heartbeatStatusText = (string)($row['status_text'] ?? '');
+        $heartbeatRes->close();
+    }
+
+    $latestCacheAt = '';
+    $cacheRes = $conn->query("SELECT created_at FROM biometric_bridge_user_cache ORDER BY id DESC LIMIT 1");
+    if ($cacheRes instanceof mysqli_result) {
+        $row = $cacheRes->fetch_assoc() ?: [];
+        $latestCacheAt = (string)($row['created_at'] ?? '');
+        $cacheRes->close();
+    }
+
+    $latestIngestAt = '';
+    $ingestRes = $conn->query("SELECT received_at FROM biometric_ingest_events ORDER BY id DESC LIMIT 1");
+    if ($ingestRes instanceof mysqli_result) {
+        $row = $ingestRes->fetch_assoc() ?: [];
+        $latestIngestAt = (string)($row['received_at'] ?? '');
+        $ingestRes->close();
+    }
+
+    $candidates = array_values(array_filter([$latestHeartbeatAt, $latestCacheAt, $latestIngestAt], static function ($value): bool {
+        return trim((string)$value) !== '';
+    }));
+
+    $lastSeenAt = '';
+    $lastSeenTs = 0;
+    foreach ($candidates as $candidate) {
+        $ts = strtotime((string)$candidate);
+        if ($ts !== false && $ts > $lastSeenTs) {
+            $lastSeenTs = $ts;
+            $lastSeenAt = (string)$candidate;
+        }
+    }
+
+    if (!$bridgeEnabled) {
+        return [
+            'label' => 'Bridge Paused',
+            'class' => 'warning',
+            'icon' => 'feather-pause-circle',
+            'detail' => 'Bridge profile is paused. Resume or revive it in Machine Manager.',
+            'age_seconds' => null,
+        ];
+    }
+
+    if ($lastSeenTs <= 0) {
+        return [
+            'label' => 'Bridge Unknown',
+            'class' => 'secondary',
+            'icon' => 'feather-help-circle',
+            'detail' => 'No bridge heartbeat, user cache, or ingest activity has been seen yet.',
+            'age_seconds' => null,
+        ];
+    }
+
+    $ageSeconds = max(0, time() - $lastSeenTs);
+    $onlineThreshold = max(600, $pollSeconds * 12);
+    $isOnline = $ageSeconds <= $onlineThreshold;
+
+    return [
+        'label' => $isOnline ? 'Bridge Online' : 'Bridge Offline',
+        'class' => $isOnline ? 'success' : 'danger',
+        'icon' => $isOnline ? 'feather-wifi' : 'feather-wifi-off',
+        'detail' => ($isOnline ? 'Last activity ' : 'Last activity stale: ') . $lastSeenAt
+            . ' (age ' . $ageSeconds . 's, poll ' . $pollSeconds . 's)'
+            . ($heartbeatStatusText !== '' ? '. Heartbeat: ' . $heartbeatStatusText : ''),
+        'age_seconds' => $ageSeconds,
+        'last_seen_at' => $lastSeenAt,
+    ];
+}
+
 function attendance_redirect_self(): void
 {
     $target = 'attendance.php';
@@ -637,6 +798,8 @@ foreach ($attendances as $attendance) {
         $missingScheduleAttendances[] = $attendance;
     }
 }
+
+$attendanceBridgeStatus = attendance_bridge_runtime_status($conn);
 
 // If requested via AJAX, return only the table rows HTML so frontend can replace tbody
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
@@ -1614,7 +1777,7 @@ if (trim((string)($_GET['print'] ?? '')) === 'list') {
 <?php
 $page_title = 'BioTern || Internal Attendance';
 $page_body_class = 'attendance-page';
-$page_styles = ['assets/css/modules/pages/page-attendance.css?v=20260422d'];
+$page_styles = ['assets/css/modules/pages/page-attendance.css?v=20260505a'];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',
     'assets/js/modules/pages/pages-attendance-runtime.js?v=20260422d',
@@ -1636,6 +1799,13 @@ include 'includes/header.php';
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
+                    <a href="legacy_router.php?file=biometric-machine.php" class="attendance-bridge-status attendance-bridge-status-<?php echo htmlspecialchars((string)($attendanceBridgeStatus['class'] ?? 'secondary'), ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo htmlspecialchars((string)($attendanceBridgeStatus['detail'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                        <i class="<?php echo htmlspecialchars((string)($attendanceBridgeStatus['icon'] ?? 'feather-help-circle'), ENT_QUOTES, 'UTF-8'); ?>"></i>
+                        <span><?php echo htmlspecialchars((string)($attendanceBridgeStatus['label'] ?? 'Bridge Unknown'), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php if (isset($attendanceBridgeStatus['age_seconds']) && $attendanceBridgeStatus['age_seconds'] !== null): ?>
+                            <small><?php echo (int)$attendanceBridgeStatus['age_seconds']; ?>s</small>
+                        <?php endif; ?>
+                    </a>
                     <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="attendanceActionsMenu">
                         <i class="feather-grid me-1"></i>
                         <span>Actions</span>

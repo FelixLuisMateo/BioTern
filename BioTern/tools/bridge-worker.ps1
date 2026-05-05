@@ -376,6 +376,72 @@ function Update-ConnectorConfig {
     Write-TextFileWithRetry -Path $connectorConfigPath -Content $json
 }
 
+function Quote-BridgeArgument {
+    param([string]$Value)
+
+    if ($null -eq $Value) {
+        return '""'
+    }
+
+    return '"' + ([string]$Value).Replace('"', '\"') + '"'
+}
+
+function Invoke-BridgeProcessWithTimeout {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FileName,
+        [string[]]$ProcessArguments = @(),
+        [int]$TimeoutSeconds = 45
+    )
+
+    $stdoutPath = [System.IO.Path]::GetTempFileName()
+    $stderrPath = [System.IO.Path]::GetTempFileName()
+    $process = $null
+
+    try {
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = $FileName
+        $psi.Arguments = (($ProcessArguments | ForEach-Object { Quote-BridgeArgument -Value ([string]$_) }) -join ' ')
+        $psi.UseShellExecute = $false
+        $psi.CreateNoWindow = $true
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+
+        $process = New-Object System.Diagnostics.Process
+        $process.StartInfo = $psi
+        [void]$process.Start()
+
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+        if (-not $process.WaitForExit([Math]::Max(5, $TimeoutSeconds) * 1000)) {
+            try { $process.Kill() } catch {}
+            throw "Process timed out after $TimeoutSeconds seconds."
+        }
+
+        $stdoutTask.Wait()
+        $stderrTask.Wait()
+        $combined = @()
+        if (-not [string]::IsNullOrWhiteSpace($stdoutTask.Result)) {
+            $combined += ($stdoutTask.Result -split "`r?`n" | Where-Object { $_ -ne '' })
+        }
+        if (-not [string]::IsNullOrWhiteSpace($stderrTask.Result)) {
+            $combined += ($stderrTask.Result -split "`r?`n" | Where-Object { $_ -ne '' })
+        }
+
+        return [pscustomobject]@{
+            ExitCode = [int]$process.ExitCode
+            Output = $combined
+        }
+    } finally {
+        if ($process -ne $null) {
+            try { $process.Dispose() } catch {}
+        }
+        foreach ($path in @($stdoutPath, $stderrPath)) {
+            try { Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue } catch {}
+        }
+    }
+}
+
 function Invoke-ConnectorCommand {
     param(
         [Parameter(Mandatory = $true)]
@@ -384,19 +450,21 @@ function Invoke-ConnectorCommand {
     )
 
     if (Test-Path $connectorExePath) {
-        $output = & $connectorExePath $connectorConfigPath $Command @Arguments 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            throw "Connector command '$Command' failed: $($output -join ' ')"
+        $connectorArgs = @($connectorConfigPath, $Command) + $Arguments
+        $result = Invoke-BridgeProcessWithTimeout -FileName $connectorExePath -ProcessArguments $connectorArgs -TimeoutSeconds 45
+        if ($result.ExitCode -ne 0) {
+            throw "Connector command '$Command' failed: $($result.Output -join ' ')"
         }
-        return $output
+        return $result.Output
     }
 
     if (Test-Path $connectorDllPath) {
-        $output = & dotnet $connectorDllPath $connectorConfigPath $Command @Arguments 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            throw "Connector command '$Command' failed: $($output -join ' ')"
+        $dotnetArgs = @($connectorDllPath, $connectorConfigPath, $Command) + $Arguments
+        $result = Invoke-BridgeProcessWithTimeout -FileName 'dotnet' -ProcessArguments $dotnetArgs -TimeoutSeconds 45
+        if ($result.ExitCode -ne 0) {
+            throw "Connector command '$Command' failed: $($result.Output -join ' ')"
         }
-        return $output
+        return $result.Output
     }
 
     throw "Connector binary not found. Expected at $connectorExePath or $connectorDllPath"
@@ -1436,28 +1504,46 @@ try {
 
             Update-ConnectorConfig -BridgeConfig $bridgeConfig
             if (($now - $lastHeartbeatAt).TotalSeconds -ge $heartbeatSeconds) {
-                if (Invoke-BridgeHeartbeat -BridgeConfig $bridgeConfig) {
-                    $lastHeartbeatAt = $now
-                }
+                Invoke-BridgeHeartbeat -BridgeConfig $bridgeConfig | Out-Null
+                $lastHeartbeatAt = $now
             }
             if (($now - $lastCommandQueueAt).TotalSeconds -ge $commandQueueSeconds) {
-                Invoke-BridgeCommandQueue -BridgeConfig $bridgeConfig
-                $lastCommandQueueAt = $now
+                try {
+                    Invoke-BridgeCommandQueue -BridgeConfig $bridgeConfig
+                    $lastCommandQueueAt = $now
+                } catch {
+                    Write-BridgeLog ("Bridge command queue skipped: " + $_.Exception.Message)
+                    $lastCommandQueueAt = $now
+                }
             }
-            $connectorOutput = Invoke-ConnectorSyncWithFallback -BridgeConfig $bridgeConfig
-            Write-BridgeLog (($connectorOutput -join ' ') -replace '\s+', ' ')
-            Save-BridgeRecoverySnapshot -BridgeConfig $bridgeConfig
+            try {
+                $connectorOutput = Invoke-ConnectorSyncWithFallback -BridgeConfig $bridgeConfig
+                Write-BridgeLog (($connectorOutput -join ' ') -replace '\s+', ' ')
+                Save-BridgeRecoverySnapshot -BridgeConfig $bridgeConfig
+            } catch {
+                Write-BridgeLog ("F20H sync skipped: " + $_.Exception.Message)
+            }
             if (($now - $lastHistoricalBackfillAt).TotalSeconds -ge $historicalBackfillSeconds) {
-                Invoke-BridgeHistoricalBackfill -BridgeConfig $bridgeConfig
-                $lastHistoricalBackfillAt = $now
+                try {
+                    Invoke-BridgeHistoricalBackfill -BridgeConfig $bridgeConfig
+                    $lastHistoricalBackfillAt = $now
+                } catch {
+                    Write-BridgeLog ("Historical backfill skipped: " + $_.Exception.Message)
+                    $lastHistoricalBackfillAt = $now
+                }
             }
-            Publish-Ingest -BridgeConfig $bridgeConfig
+            try {
+                Publish-Ingest -BridgeConfig $bridgeConfig
+            } catch {
+                Write-BridgeLog ("Ingest upload skipped; pending logs retained. " + $_.Exception.Message)
+            }
             if (($now - $lastUserCacheAt).TotalSeconds -ge $userCacheSeconds) {
                 try {
                     Publish-UserCache -BridgeConfig $bridgeConfig
                     $lastUserCacheAt = $now
                 } catch {
                     Write-BridgeLog ("User cache sync skipped: " + $_.Exception.Message)
+                    $lastUserCacheAt = $now
                 }
             }
 
