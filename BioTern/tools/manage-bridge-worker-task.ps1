@@ -22,6 +22,30 @@ function Invoke-Install {
     & $installer -SiteBaseUrl $baseUrl -BridgeToken $token -TaskName $taskName -PreferLocalConnectorNetwork:$preferLocal
 }
 
+function Stop-BridgeWorkerProcesses {
+    $workspaceNeedle = $workspaceRoot.ToLowerInvariant()
+    $processes = Get-CimInstance Win32_Process | Where-Object {
+        $cmd = [string]$_.CommandLine
+        $normalized = $cmd.ToLowerInvariant()
+        (
+            $normalized -like '*bridge-worker.ps1*' -or
+            $normalized -like '*bridge-worker-autostart.ps1*'
+        ) -and (
+            [string]::IsNullOrWhiteSpace($workspaceNeedle) -or
+            $normalized.Contains($workspaceNeedle)
+        )
+    }
+
+    foreach ($proc in $processes) {
+        try {
+            Stop-Process -Id ([int]$proc.ProcessId) -Force -ErrorAction Stop
+            Write-Host "Stopped bridge worker process $($proc.ProcessId)."
+        } catch {
+            Write-Host "Could not stop bridge worker process $($proc.ProcessId): $($_.Exception.Message)"
+        }
+    }
+}
+
 switch ($Action) {
     'install' {
         Invoke-Install -taskName $TaskName -baseUrl $SiteBaseUrl -token $BridgeToken -preferLocal $PreferLocalConnectorNetwork
@@ -32,10 +56,12 @@ switch ($Action) {
     }
     'stop' {
         Stop-ScheduledTask -TaskName $TaskName
+        Stop-BridgeWorkerProcesses
         Write-Host "Stopped task '$TaskName'."
     }
     'restart' {
         try { Stop-ScheduledTask -TaskName $TaskName } catch {}
+        Stop-BridgeWorkerProcesses
         Start-Sleep -Seconds 1
         Start-ScheduledTask -TaskName $TaskName
         Write-Host "Restarted task '$TaskName'."

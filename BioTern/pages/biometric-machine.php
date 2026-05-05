@@ -379,7 +379,7 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
     }
 
     $pollSeconds = max(3, $pollSeconds);
-    $onlineThreshold = max(45, $pollSeconds * 3);
+    $onlineThreshold = max(120, $pollSeconds * 6);
     $ageSeconds = null;
     $isOnline = false;
 
@@ -410,7 +410,7 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
 
 function machine_bridge_cache_max_age_seconds(int $pollSeconds): int
 {
-    return max(90, $pollSeconds * 4);
+    return max(180, $pollSeconds * 12);
 }
 
 function machine_ensure_bridge_heartbeat_table(mysqli $conn): void
@@ -1290,6 +1290,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'quick_fill_bridge_router_1',
             'pause_bridge_for_enrollment',
             'resume_bridge_after_enrollment',
+            'revive_bridge_connection',
             'retry_fingerprint_cleanup',
             'retry_all_fingerprint_cleanup',
             'quick_fill_bridge_router_2',
@@ -1346,6 +1347,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         switch ($action) {
+            case 'revive_bridge_connection':
+                $bridgeProfile = machine_fetch_bridge_profile($conn);
+                $bridgeProfile['bridge_enabled'] = 1;
+                $bridgeProfile['poll_seconds'] = max(10, (int)($bridgeProfile['poll_seconds'] ?? 30));
+                machine_save_bridge_profile($conn, $bridgeProfile, (int)($_SESSION['user_id'] ?? 0));
+
+                if (machine_is_cloud_runtime()) {
+                    $_SESSION['machine_manager_flash'] = [
+                        'type' => 'warning',
+                        'message' => 'Bridge profile revived and left enabled. If the worker is stale, open this page on the Windows bridge PC and click Revive Bridge Connection there so BioTern can restart the local scheduled task.',
+                    ];
+                    machine_redirect_after_post([]);
+                }
+
+                $bridgeToken = trim((string)($bridgeProfile['bridge_token'] ?? ''));
+                if ($bridgeToken === '') {
+                    $envBridgeToken = getenv('BIOTERN_BRIDGE_TOKEN');
+                    if (is_string($envBridgeToken) && trim($envBridgeToken) !== '') {
+                        $bridgeToken = trim($envBridgeToken);
+                    }
+                }
+                if ($bridgeToken === '') {
+                    $bridgeToken = trim((string)($bridgeProfile['ingest_api_token'] ?? ''));
+                }
+                if ($bridgeToken === '') {
+                    throw new RuntimeException('Bridge token is missing. Save the Bridge Profile first, then try revive again.');
+                }
+
+                $baseUrl = trim((string)($bridgeProfile['cloud_base_url'] ?? ''));
+                if ($baseUrl === '') {
+                    $baseUrl = machine_bridge_default_cloud_base_url();
+                }
+                if ($baseUrl === '') {
+                    throw new RuntimeException('Cloud base URL is missing. Save the Bridge Profile first, then try revive again.');
+                }
+
+                $workspaceRoot = dirname(__DIR__);
+                $repairResult = machine_run_local_powershell([
+                    '-NoProfile',
+                    '-ExecutionPolicy',
+                    'Bypass',
+                    '-File',
+                    $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'install-bridge-worker-task.ps1',
+                    '-SiteBaseUrl',
+                    $baseUrl,
+                    '-BridgeToken',
+                    $bridgeToken,
+                    '-TaskName',
+                    'BioTernBridgeWorker',
+                    '-PreferLocalConnectorNetwork',
+                    '0',
+                ]);
+                if ((int)$repairResult['exit_code'] !== 0) {
+                    throw new RuntimeException($repairResult['output'] !== '' ? $repairResult['output'] : 'Bridge revive repair command failed.');
+                }
+
+                $restartResult = machine_run_local_powershell([
+                    '-NoProfile',
+                    '-ExecutionPolicy',
+                    'Bypass',
+                    '-File',
+                    $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'manage-bridge-worker-task.ps1',
+                    '-Action',
+                    'restart',
+                    '-TaskName',
+                    'BioTernBridgeWorker',
+                ]);
+                if ((int)$restartResult['exit_code'] !== 0) {
+                    throw new RuntimeException($restartResult['output'] !== '' ? $restartResult['output'] : 'Bridge revive restart command failed.');
+                }
+
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => trim("Bridge connection revived. Profile enabled, auto-start task repaired, and BioTernBridgeWorker restarted.\n"
+                        . trim((string)$repairResult['output']) . "\n"
+                        . trim((string)$restartResult['output'])),
+                ];
+                machine_redirect_after_post([]);
+
             case 'repair_bridge_task_now':
                 $bridgeProfile = machine_fetch_bridge_profile($conn);
                 $bridgeToken = trim((string)($bridgeProfile['bridge_token'] ?? ''));
@@ -2617,6 +2697,10 @@ include __DIR__ . '/../includes/header.php';
                         <p><?php echo machine_h((string)($bridgeRuntimeStatus['detail'] ?? '')); ?></p>
                         <?php if ($isAdmin): ?>
                             <div class="d-flex flex-wrap gap-2 mb-2">
+                                <form method="post" class="d-inline" data-confirm="Revive the bridge connection? On the bridge PC this repairs and restarts BioTernBridgeWorker.">
+                                    <input type="hidden" name="machine_action" value="revive_bridge_connection">
+                                    <button type="submit" class="btn btn-success btn-sm">Revive Bridge Connection</button>
+                                </form>
                                 <?php if ($bridgeEnabled): ?>
                                     <form method="post" class="d-inline">
                                         <input type="hidden" name="machine_action" value="pause_bridge_for_enrollment">
@@ -2745,6 +2829,10 @@ include __DIR__ . '/../includes/header.php';
                             <button type="submit" class="btn btn-primary w-100"><?php echo $cloudRuntime || $syncMode === 'direct_ingest' ? 'Process Ingest Queue' : 'Sync Now'; ?></button>
                         </form>
                         <?php if ($isAdmin && !$cloudRuntime): ?>
+                            <form method="post" class="mt-2" data-confirm="Revive the bridge connection now? This enables the bridge profile, repairs auto-start, and restarts BioTernBridgeWorker.">
+                                <input type="hidden" name="machine_action" value="revive_bridge_connection">
+                                <button type="submit" class="btn btn-success w-100">Revive Bridge Connection</button>
+                            </form>
                             <form method="post" class="mt-2" data-confirm="Repair and start the BioTern bridge task on this Windows computer?">
                                 <input type="hidden" name="machine_action" value="repair_bridge_task_now">
                                 <button type="submit" class="btn btn-success w-100">Repair Bridge Now</button>
@@ -2766,7 +2854,11 @@ include __DIR__ . '/../includes/header.php';
                                 <button type="submit" class="btn btn-outline-secondary w-100">Open PowerShell: Bridge Log Tail</button>
                             </form>
                         <?php elseif ($isAdmin && $cloudRuntime): ?>
-                            <div class="alert alert-info mt-2 mb-0 fs-12">Windows shell launchers are hidden in cloud runtime. Run restart/log tail from your local bridge PC.</div>
+                            <form method="post" class="mt-2" data-confirm="Revive the shared bridge profile? To restart the Windows task itself, use this same button from the bridge PC.">
+                                <input type="hidden" name="machine_action" value="revive_bridge_connection">
+                                <button type="submit" class="btn btn-success w-100">Revive Bridge Profile</button>
+                            </form>
+                            <div class="alert alert-info mt-2 mb-0 fs-12">Cloud can keep the bridge profile enabled, but only the local Windows bridge PC can restart BioTernBridgeWorker.</div>
                         <?php endif; ?>
                     </div>
                 </div>
