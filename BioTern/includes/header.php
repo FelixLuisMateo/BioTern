@@ -908,6 +908,15 @@ if ($header_db instanceof mysqli) {
                                     <?php if ($index > 0 && (int)($announcement['show_title'] ?? 1) === 1): ?>
                                         <h6 class="mb-2"><?php echo htmlspecialchars((string)($announcement['title'] ?? 'Announcement'), ENT_QUOTES, 'UTF-8'); ?></h6>
                                     <?php endif; ?>
+                                    <?php
+                                    $header_announcement_author = trim((string)($announcement['author_name'] ?? ''));
+                                    $header_announcement_show_author = (int)($announcement['show_author'] ?? 0) === 1 && $header_announcement_author !== '';
+                                    ?>
+                                    <?php if ($header_announcement_show_author): ?>
+                                        <div class="small text-muted mb-2">
+                                            Posted by <?php echo htmlspecialchars($header_announcement_author, ENT_QUOTES, 'UTF-8'); ?>
+                                        </div>
+                                    <?php endif; ?>
                                     <?php if (trim((string)($announcement['media_path'] ?? '')) !== ''): ?>
                                         <?php if (function_exists('biotern_announcements_normalize_media_type') && biotern_announcements_normalize_media_type((string)($announcement['media_type'] ?? 'image')) === 'video'): ?>
                                             <video src="<?php echo htmlspecialchars((string)$announcement['media_path'], ENT_QUOTES, 'UTF-8'); ?>" controls playsinline preload="metadata" style="display:block;width:100%;max-height:<?php echo $header_announcement_size === 'full' ? '76vh' : '62vh'; ?>;object-fit:contain;border-radius:8px;background:#0f172a;"></video>

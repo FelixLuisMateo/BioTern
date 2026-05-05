@@ -17,6 +17,7 @@ if (!function_exists('biotern_announcements_ensure_tables')) {
             accent_color VARCHAR(20) NOT NULL DEFAULT '#3454d1',
             button_label VARCHAR(80) NOT NULL DEFAULT 'Got It',
             show_title TINYINT(1) NOT NULL DEFAULT 1,
+            show_author TINYINT(1) NOT NULL DEFAULT 0,
             display_mode VARCHAR(20) NOT NULL DEFAULT 'popup',
             target_role VARCHAR(30) NOT NULL DEFAULT 'all',
             starts_at DATETIME NULL,
@@ -66,8 +67,11 @@ if (!function_exists('biotern_announcements_ensure_tables')) {
         if (!isset($columns['show_title'])) {
             $conn->query("ALTER TABLE announcements ADD COLUMN show_title TINYINT(1) NOT NULL DEFAULT 1 AFTER button_label");
         }
+        if (!isset($columns['show_author'])) {
+            $conn->query("ALTER TABLE announcements ADD COLUMN show_author TINYINT(1) NOT NULL DEFAULT 0 AFTER show_title");
+        }
         if (!isset($columns['display_mode'])) {
-            $conn->query("ALTER TABLE announcements ADD COLUMN display_mode VARCHAR(20) NOT NULL DEFAULT 'popup' AFTER show_title");
+            $conn->query("ALTER TABLE announcements ADD COLUMN display_mode VARCHAR(20) NOT NULL DEFAULT 'popup' AFTER show_author");
         }
 
         $conn->query("CREATE TABLE IF NOT EXISTS announcement_reads (
@@ -181,8 +185,10 @@ if (!function_exists('biotern_announcements_pending_for_user')) {
         $role = strtolower(trim($role));
         $safeLimit = max(1, min(10, $limit));
 
-        $sql = "SELECT a.id, a.title, a.body, a.media_path, a.media_type, a.popup_size, a.accent_color, a.button_label, a.show_title, a.target_role, a.created_at
+        $sql = "SELECT a.id, a.title, a.body, a.media_path, a.media_type, a.popup_size, a.accent_color, a.button_label, a.show_title, a.show_author, a.target_role, a.created_at,
+                COALESCE(NULLIF(u.name, ''), NULLIF(u.username, ''), NULLIF(u.email, ''), 'BioTern Admin') AS author_name
             FROM announcements a
+            LEFT JOIN users u ON u.id = a.created_by
             LEFT JOIN announcement_reads ar ON ar.announcement_id = a.id AND ar.user_id = ?
             WHERE a.is_active = 1
                 AND COALESCE(a.display_mode, 'popup') IN ('popup', 'both')

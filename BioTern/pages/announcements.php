@@ -198,6 +198,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $buttonLabel = substr($buttonLabel, 0, 80);
         }
         $showTitle = isset($_POST['show_title']) ? 1 : 0;
+        $showAuthor = isset($_POST['show_author']) ? 1 : 0;
         $displayMode = biotern_announcements_normalize_display_mode((string)($_POST['display_mode'] ?? 'popup'));
         $target = biotern_announcements_normalize_target((string)($_POST['target_role'] ?? 'all'));
         $startsAt = biotern_announcements_datetime_or_null($_POST['starts_at'] ?? null);
@@ -218,11 +219,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         } else {
             $mediaForInsert = $mediaPath === '__announcement_media_pending__' ? '' : $mediaPath;
             $stmt = $conn->prepare(
-                "INSERT INTO announcements (title, body, media_path, media_type, popup_size, accent_color, button_label, show_title, display_mode, target_role, starts_at, ends_at, is_active, created_by, created_at, updated_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())"
+                "INSERT INTO announcements (title, body, media_path, media_type, popup_size, accent_color, button_label, show_title, show_author, display_mode, target_role, starts_at, ends_at, is_active, created_by, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())"
             );
             if ($stmt) {
-                $stmt->bind_param('sssssssissssi', $title, $body, $mediaForInsert, $mediaType, $popupSize, $accentColor, $buttonLabel, $showTitle, $displayMode, $target, $startsAt, $endsAt, $userId);
+                $stmt->bind_param('sssssssiissssi', $title, $body, $mediaForInsert, $mediaType, $popupSize, $accentColor, $buttonLabel, $showTitle, $showAuthor, $displayMode, $target, $startsAt, $endsAt, $userId);
                 if ($stmt->execute()) {
                     $announcementId = (int)$stmt->insert_id;
                     $pendingMedia = is_array($GLOBALS['announcement_pending_media'] ?? null) ? $GLOBALS['announcement_pending_media'] : null;
@@ -427,6 +428,15 @@ require_once dirname(__DIR__) . '/includes/header.php';
                                 </div>
                                 <div class="form-check form-switch m-0">
                                     <input class="form-check-input" id="show_title" name="show_title" type="checkbox" value="1" checked>
+                                </div>
+                            </div>
+                            <div class="settings-field-card settings-toggle">
+                                <div class="settings-toggle-copy">
+                                    <label class="form-label mb-0" for="show_author">Show My Name</label>
+                                    <small class="form-text mt-0">Optional. Leave off if the announcement should not show who posted it.</small>
+                                </div>
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input" id="show_author" name="show_author" type="checkbox" value="1">
                                 </div>
                             </div>
                             <div class="settings-field-card">

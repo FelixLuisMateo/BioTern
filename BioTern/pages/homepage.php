@@ -4,6 +4,7 @@ include_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 include_once dirname(__DIR__) . '/includes/dashboard_data.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 
 if (!function_exists('dashboard_fetch_count')) {
@@ -99,6 +100,53 @@ if (!function_exists('dashboard_format_duration_clock')) {
         $remainingSeconds = $totalSeconds % 60;
 
         return sprintf('%03d:%02d:%02d', $hours, $minutes, $remainingSeconds);
+    }
+}
+
+if (!function_exists('dashboard_avatar_html')) {
+    function dashboard_avatar_html(string $name, string $profilePath = '', int $userId = 0, string $className = 'dash-avatar'): string
+    {
+        $name = trim($name);
+        $profilePath = trim($profilePath);
+        $src = '';
+
+        if ($profilePath !== '') {
+            $normalized = strtolower(trim($profilePath));
+            if (preg_match('#^https?://#i', $profilePath) === 1) {
+                $src = $profilePath;
+            } elseif ($normalized === 'db-avatar' || $normalized === 'db_avatar') {
+                $src = biotern_avatar_db_src('db-avatar', $userId);
+            } else {
+                $resolved = biotern_avatar_resolve_existing_path($profilePath);
+                if ($resolved !== '') {
+                    $src = $resolved;
+                }
+            }
+        }
+
+        if ($src === '' && $userId > 0 && biotern_avatar_has_db_picture($userId)) {
+            $src = biotern_avatar_db_src('db-avatar', $userId);
+        }
+
+        if ($src !== '') {
+            return '<div class="' . htmlspecialchars($className, ENT_QUOTES, 'UTF-8') . ' dash-avatar--image"><img src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars($name !== '' ? $name : 'Profile', ENT_QUOTES, 'UTF-8') . '"></div>';
+        }
+
+        $parts = preg_split('/\s+/', $name);
+        $initials = '';
+        if (is_array($parts)) {
+            foreach ($parts as $part) {
+                if ($part === '') {
+                    continue;
+                }
+                $initials .= strtoupper(substr($part, 0, 1));
+                if (strlen($initials) >= 2) {
+                    break;
+                }
+            }
+        }
+
+        return '<div class="' . htmlspecialchars($className, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($initials !== '' ? $initials : 'BT', ENT_QUOTES, 'UTF-8') . '</div>';
     }
 }
 
@@ -212,9 +260,11 @@ try {
     $recent_attendance = dashboard_fetch_all(
         $conn,
         "SELECT a.id, a.student_id, a.attendance_date, a.morning_time_in, a.morning_time_out, a.status, a.created_at,
-                s.first_name, s.last_name, s.email, s.student_id AS student_num
+                s.first_name, s.last_name, s.email, s.student_id AS student_num, s.user_id,
+                COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture
          FROM attendances a
          LEFT JOIN students s ON a.student_id = s.id
+         LEFT JOIN users u ON u.id = s.user_id
          ORDER BY (DATE(a.attendance_date) = CURDATE()) DESC, a.attendance_date DESC, a.created_at DESC
          LIMIT 10"
     );
@@ -223,11 +273,12 @@ try {
         $conn,
         "SELECT
             s.id,
+            s.user_id,
             s.student_id,
             s.first_name,
             s.last_name,
             s.email,
-            s.profile_picture,
+            COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
             s.biometric_registered,
             i.type AS internship_type,
             i.status AS internship_status,
@@ -236,6 +287,7 @@ try {
             a.morning_time_in,
             a.status AS attendance_status
          FROM students s
+         LEFT JOIN users u ON u.id = s.user_id
          INNER JOIN internships i
             ON i.student_id = s.id
            AND i.deleted_at IS NULL
@@ -255,7 +307,7 @@ try {
 
     $coordinators = dashboard_fetch_all(
         $conn,
-        "SELECT u.id, u.name, u.email, c.department_id, c.phone, c.created_at
+        "SELECT u.id, u.name, u.email, u.profile_picture, c.department_id, c.phone, c.created_at
          FROM users u
          LEFT JOIN coordinators c ON u.id = c.user_id
          WHERE u.role = 'coordinator' AND u.is_active = 1
@@ -270,6 +322,7 @@ try {
             s.user_id,
             COALESCE(NULLIF(u.name, ''), TRIM(CONCAT(s.first_name, ' ', s.last_name))) AS name,
             COALESCE(NULLIF(u.email, ''), s.email) AS email,
+            u.profile_picture,
             s.phone,
             s.department_id,
             s.specialization,
@@ -878,7 +931,7 @@ include 'includes/header.php';
                                             <?php
                                             $firstName = (string)($student['first_name'] ?? '');
                                             $lastName = (string)($student['last_name'] ?? '');
-                                            $initials = strtoupper(substr($firstName, 0, 1) . substr($lastName, 0, 1));
+                                            $studentName = trim($firstName . ' ' . $lastName);
                                             $attendanceDate = $student['attendance_date'] ? date('M d, Y', strtotime($student['attendance_date'])) : 'No attendance yet';
                                             $attendanceTime = $student['morning_time_in'] ? date('h:i a', strtotime($student['morning_time_in'])) : '';
                                             $attendanceStatus = (string)($student['attendance_status'] ?? '');
@@ -886,12 +939,10 @@ include 'includes/header.php';
                                             ?>
                                             <div class="dash-list-item">
                                                 <div class="dash-list-main">
-                                                    <div class="dash-avatar">
-                                                        <?php echo $initials !== '' ? $initials : 'ST'; ?>
-                                                    </div>
+                                                    <?php echo dashboard_avatar_html($studentName, (string)($student['profile_picture'] ?? ''), (int)($student['user_id'] ?? 0)); ?>
                                                     <div class="dash-list-text">
                                                         <a href="students-view.php?id=<?php echo (int)$student['id']; ?>" class="dash-list-title">
-                                                            <?php echo htmlspecialchars(trim($firstName . ' ' . $lastName)); ?>
+                                                            <?php echo htmlspecialchars($studentName); ?>
                                                         </a>
                                                         <div class="dash-list-sub">
                                                             <?php echo htmlspecialchars((string)($student['student_id'] ?? '')); ?> | <?php echo htmlspecialchars($internshipType); ?>
@@ -1026,9 +1077,7 @@ include 'includes/header.php';
                                             <tr>
                                                 <td>
                                                     <div class="d-flex align-items-center gap-3">
-                                                        <div class="avatar-text avatar-sm bg-soft-primary text-primary">
-                                                            <?php echo strtoupper(substr($attendance['first_name'], 0, 1) . substr($attendance['last_name'], 0, 1)); ?>
-                                                        </div>
+                                                        <?php echo dashboard_avatar_html(trim((string)($attendance['first_name'] ?? '') . ' ' . (string)($attendance['last_name'] ?? '')), (string)($attendance['profile_picture'] ?? ''), (int)($attendance['user_id'] ?? 0), 'avatar-text avatar-sm bg-soft-primary text-primary'); ?>
                                                         <a href="students-view.php?id=<?php echo $attendance['student_id']; ?>">
                                                             <span class="d-block fw-semibold"><?php echo htmlspecialchars($attendance['first_name'] . ' ' . $attendance['last_name']); ?></span>
                                                             <span class="fs-12 d-block fw-normal text-muted"><?php echo htmlspecialchars($attendance['student_num']); ?></span>
@@ -1080,9 +1129,7 @@ include 'includes/header.php';
                                         <?php foreach ($coordinators as $coordinator): ?>
                                         <div class="dash-list-item">
                                             <div class="dash-list-main">
-                                                <div class="dash-avatar dash-avatar--primary">
-                                                    <?php echo strtoupper(substr($coordinator['name'], 0, 1)); ?>
-                                                </div>
+                                                <?php echo dashboard_avatar_html((string)($coordinator['name'] ?? ''), (string)($coordinator['profile_picture'] ?? ''), (int)($coordinator['id'] ?? 0), 'dash-avatar dash-avatar--primary'); ?>
                                                 <div class="dash-list-text">
                                                     <div class="dash-list-title"><?php echo htmlspecialchars($coordinator['name']); ?></div>
                                                     <div class="dash-list-sub"><?php echo htmlspecialchars($coordinator['email']); ?></div>
@@ -1114,9 +1161,7 @@ include 'includes/header.php';
                                         <?php foreach ($supervisors as $supervisor): ?>
                                         <div class="dash-list-item">
                                             <div class="dash-list-main">
-                                                <div class="dash-avatar dash-avatar--success">
-                                                    <?php echo strtoupper(substr($supervisor['name'], 0, 1)); ?>
-                                                </div>
+                                                <?php echo dashboard_avatar_html((string)($supervisor['name'] ?? ''), (string)($supervisor['profile_picture'] ?? ''), (int)($supervisor['user_id'] ?? 0), 'dash-avatar dash-avatar--success'); ?>
                                                 <div class="dash-list-text">
                                                     <div class="dash-list-title"><?php echo htmlspecialchars($supervisor['name']); ?></div>
                                                     <div class="dash-list-sub"><?php echo htmlspecialchars($supervisor['email']); ?></div>
