@@ -248,15 +248,15 @@ if (!function_exists('biometricInsertRawLogEntries')) {
                 continue;
             }
 
-            $stmt = $conn->prepare("SELECT id FROM biometric_raw_logs WHERE raw_data = ?");
+            $stmt = $conn->prepare("SELECT id, processed FROM biometric_raw_logs WHERE raw_data = ? LIMIT 1");
             if ($stmt === false) {
                 throw new RuntimeException('Database error: failed to prepare raw log lookup. Error: ' . $conn->error);
             }
             $stmt->bind_param('s', $raw);
             $stmt->execute();
-            $stmt->store_result();
+            $existingRaw = $stmt->get_result()->fetch_assoc() ?: null;
 
-            if ($stmt->num_rows === 0) {
+            if (!$existingRaw) {
                 $stmt->close();
                 $ins = $conn->prepare("INSERT INTO biometric_raw_logs (raw_data, processed) VALUES (?, 0)");
                 if ($ins === false) {
@@ -268,6 +268,17 @@ if (!function_exists('biometricInsertRawLogEntries')) {
                 $inserted++;
                 rememberAcceptedRawBiometricEvent($incomingSeen, $fingerId, $datetime);
             } else {
+                if ($fingerId > 0 && $datetime !== '' && !biometricAttendanceExistsForFingerDate($conn, $fingerId, substr($datetime, 0, 10))) {
+                    $rawId = (int)($existingRaw['id'] ?? 0);
+                    if ($rawId > 0) {
+                        $reset = $conn->prepare("UPDATE biometric_raw_logs SET processed = 0 WHERE id = ?");
+                        if ($reset) {
+                            $reset->bind_param('i', $rawId);
+                            $reset->execute();
+                            $reset->close();
+                        }
+                    }
+                }
                 $stmt->close();
             }
         }
@@ -737,13 +748,44 @@ if (!function_exists('isDuplicateRawBiometricEvent')) {
 
             $minutesApart = minutesBetweenPunches($existingTime, $time);
             if ($minutesApart !== null && $minutesApart <= $windowMinutes) {
-                $res->close();
-                return true;
+                if (biometricAttendanceExistsForFingerDate($conn, $fingerId, $date)) {
+                    $res->close();
+                    return true;
+                }
             }
         }
 
         $res->close();
         return false;
+    }
+}
+
+if (!function_exists('biometricAttendanceExistsForFingerDate')) {
+    function biometricAttendanceExistsForFingerDate(mysqli $conn, int $fingerId, string $date): bool
+    {
+        if ($fingerId <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return true;
+        }
+
+        $stmt = $conn->prepare("
+            SELECT a.id
+            FROM fingerprint_user_map m
+            INNER JOIN students s ON s.user_id = m.user_id
+            INNER JOIN attendances a ON a.student_id = s.id AND a.attendance_date = ?
+            WHERE m.finger_id = ?
+            LIMIT 1
+        ");
+        if (!$stmt) {
+            return true;
+        }
+
+        $stmt->bind_param('si', $date, $fingerId);
+        $stmt->execute();
+        $stmt->store_result();
+        $exists = $stmt->num_rows > 0;
+        $stmt->close();
+
+        return $exists;
     }
 }
 

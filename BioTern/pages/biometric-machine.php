@@ -379,7 +379,7 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
     }
 
     $pollSeconds = max(3, $pollSeconds);
-    $onlineThreshold = max(120, $pollSeconds * 6);
+    $onlineThreshold = max(600, $pollSeconds * 12);
     $ageSeconds = null;
     $isOnline = false;
 
@@ -410,7 +410,7 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
 
 function machine_bridge_cache_max_age_seconds(int $pollSeconds): int
 {
-    return max(180, $pollSeconds * 12);
+    return max(600, $pollSeconds * 12);
 }
 
 function machine_ensure_bridge_heartbeat_table(mysqli $conn): void
