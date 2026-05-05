@@ -106,6 +106,7 @@ $map = [
   'demo-biometric.php' => 'pages/demo-biometric.php',
   'external-biometric.php' => 'pages/external-biometric.php',
   'fingerprint_mapping.php' => 'pages/fingerprint_mapping.php',
+  'fingerprint-unmapped-internal.php' => 'pages/fingerprint-unmapped-internal.php',
   'ojt-internal-list.php' => 'pages/ojt-internal-list.php',
   'ojt-external-list.php' => 'pages/ojt-external-list.php',
   'ojt-external-view.php' => 'pages/ojt-external-view.php',
