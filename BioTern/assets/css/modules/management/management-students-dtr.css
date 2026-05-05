@@ -469,6 +469,75 @@ html.app-skin-dark .dtr-day-card .badge.bg-soft-secondary {
 
 
 @media (max-width: 991.98px) {
+    .app-students-dtr-page-header {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.65rem !important;
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    .app-students-dtr-page-header .page-header-left,
+    .app-students-dtr-page-header .page-header-right {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        position: static !important;
+        inset: auto !important;
+        transform: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .app-students-dtr-page-header .page-header-left {
+        display: flex !important;
+        align-items: flex-start !important;
+        flex-wrap: wrap !important;
+        gap: 0.4rem !important;
+    }
+
+    .app-students-dtr-page-header .page-header-title {
+        min-width: 0 !important;
+        flex: 1 1 100% !important;
+    }
+
+    .app-students-dtr-page-header .breadcrumb {
+        min-width: 0 !important;
+        flex-wrap: wrap !important;
+        margin: 0 !important;
+    }
+
+    .app-students-dtr-page-header .page-header-right > div,
+    .app-students-dtr-page-header .page-header-right .d-flex {
+        width: 100% !important;
+        min-width: 0 !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.5rem !important;
+        justify-content: stretch !important;
+    }
+
+    .app-students-dtr-page-header .page-header-right .btn {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 38px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0.45rem 0.58rem !important;
+        border-radius: 10px !important;
+        font-size: 0.76rem !important;
+        line-height: 1.15 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    .app-students-dtr-page-header .page-header-right .btn:nth-child(3) {
+        grid-column: 1 / -1 !important;
+    }
+
     body.mobile-bottom-nav .app-students-dtr-page-header {
         display: block !important;
         min-height: 0 !important;
