@@ -348,6 +348,64 @@
     height: 100%;
 }
 
+.student-dtr-shell--manual {
+    gap: 1.25rem;
+}
+
+.student-dtr-shell--manual .bio-hero,
+.student-dtr-shell--manual .bio-layout,
+.student-dtr-shell--manual .record-section {
+    width: 100%;
+}
+
+.student-dtr-shell--manual .student-dtr-record-entry-card {
+    max-width: none;
+    margin-inline: 0;
+}
+
+.student-dtr-manual-hero .student-home-meta {
+    align-items: center;
+}
+
+.student-dtr-manual-clock-date {
+    color: var(--dtr-muted);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.student-dtr-manual-punch.is-selected {
+    border-color: rgba(96, 165, 250, 0.95);
+    background: rgba(96, 165, 250, 0.22);
+    color: var(--dtr-text);
+}
+
+.student-dtr-shell--manual .external-manual-guide {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.student-dtr-shell--manual .clock-section,
+.student-dtr-shell--manual .scanner-card,
+.student-dtr-shell--manual .record-section {
+    background: var(--dtr-card-bg);
+    border-color: var(--dtr-card-border);
+    color: var(--dtr-text);
+}
+
+.student-dtr-shell--manual .clock-section h3,
+.student-dtr-shell--manual .record-section h3,
+.student-dtr-shell--manual .record-section h5 {
+    color: var(--dtr-text);
+}
+
+.student-dtr-shell--manual .clock-section p,
+.student-dtr-shell--manual .record-section p,
+.student-dtr-shell--manual .external-manual-guide,
+.student-dtr-shell--manual .scanner-stat {
+    color: var(--dtr-muted);
+}
+
 html.app-skin-dark .student-dtr-filter .form-select {
     background: var(--dtr-soft-bg);
     border-color: var(--dtr-soft-border);
@@ -473,9 +531,16 @@ html.app-skin-dark .student-dtr-fallback-card .form-control[type="file"] {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
-html.app-skin-dark .student-dtr-cell-note,
+    html.app-skin-dark .student-dtr-cell-note,
 html.app-skin-dark .student-dtr-empty {
     color: var(--dtr-muted);
+}
+
+html.app-skin-dark .student-dtr-shell--manual .clock-section,
+html.app-skin-dark .student-dtr-shell--manual .scanner-card,
+html.app-skin-dark .student-dtr-shell--manual .record-section {
+    background: var(--dtr-card-bg);
+    border-color: var(--dtr-card-border);
 }
 
 /* Desktop Layout - 4 columns */

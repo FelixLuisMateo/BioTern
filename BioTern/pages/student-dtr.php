@@ -851,6 +851,77 @@ include 'includes/header.php';
         </div>
         <?php endif; ?>
 
+        <?php if ($studentDtrManualOnly): ?>
+        <section class="bio-hero student-dtr-manual-hero">
+            <div class="bio-hero-chip">
+                <i class="feather-shield"></i>
+                <span>Account-Linked Internal Biometric</span>
+            </div>
+            <h2><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></h2>
+            <p>This scanner-style page is tied to your student account, so no student selector is needed. Each manual entry goes to your own internal DTR for review.</p>
+            <div class="student-home-meta mt-3">
+                <?php if (trim((string)($student['course_name'] ?? '')) !== ''): ?>
+                <span><?php echo htmlspecialchars((string)$student['course_name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                <?php endif; ?>
+                <span><?php echo htmlspecialchars(biotern_format_section_code((string)($student['section_code'] ?? 'No section')), ENT_QUOTES, 'UTF-8'); ?></span>
+                <span>Internal target: <?php echo number_format($requiredHours > 0 ? $requiredHours : 140, 0); ?> hrs</span>
+                <span>Remaining: <?php echo number_format(max(0, $remainingHours), 0); ?> hrs</span>
+            </div>
+        </section>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="dtr-summary-card">
+                    <div class="dtr-summary-label">Month Hours</div>
+                    <div class="dtr-summary-value"><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?> hrs</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="dtr-summary-card">
+                    <div class="dtr-summary-label">Approved Entries</div>
+                    <div class="dtr-summary-value"><?php echo (int)$attendanceSummary['approved_logs']; ?></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="dtr-summary-card">
+                    <div class="dtr-summary-label">Pending Review</div>
+                    <div class="dtr-summary-value"><?php echo (int)$attendanceSummary['pending_logs']; ?></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bio-layout mb-4">
+            <aside class="scanner-card">
+                <figure class="fingerprint-image">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 250'%3E%3Ccircle cx='100' cy='120' r='80' fill='none' stroke='%2395b6d4' stroke-width='2'/%3E%3Ccircle cx='100' cy='120' r='70' fill='none' stroke='%23aac6df' stroke-width='1.2'/%3E%3Ccircle cx='100' cy='120' r='60' fill='none' stroke='%23bed4e7' stroke-width='1'/%3E%3Cpath d='M 100 50 Q 120 70 140 100 T 150 150' fill='none' stroke='%235b7da2' stroke-width='1.6'/%3E%3Cpath d='M 100 50 Q 80 70 60 100 T 50 150' fill='none' stroke='%235b7da2' stroke-width='1.6'/%3E%3Cpath d='M 100 50 Q 100 75 100 100 L 100 150' fill='none' stroke='%236e8fb1' stroke-width='2'/%3E%3C/svg%3E" alt="Fingerprint">
+                    <p class="scan-label">INTERNAL FINGERPRINT DEMO</p>
+                </figure>
+                <div class="scanner-stat">
+                    <div><?php echo htmlspecialchars((string)($student['student_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                    <div>Internal DTR for <?php echo htmlspecialchars(date('F d, Y'), ENT_QUOTES, 'UTF-8'); ?></div>
+                </div>
+            </aside>
+
+            <section class="clock-section">
+                <h3>Quick Internal DTR Entry</h3>
+                <div class="time-display mb-3" id="proofClockDisplay"><?php echo htmlspecialchars(date('h:i:s A'), ENT_QUOTES, 'UTF-8'); ?></div>
+                <div class="student-dtr-manual-clock-date mb-3" id="proofClockDate"><?php echo htmlspecialchars(date('M d, Y'), ENT_QUOTES, 'UTF-8'); ?></div>
+                <div class="form-group-custom">
+                    <label>Clock Type</label>
+                    <div class="clock-type-grid">
+                        <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackMorningIn"><i class="feather-log-in"></i><br>Morning In</button>
+                        <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackMorningOut"><i class="feather-log-out"></i><br>Morning Out</button>
+                        <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonIn"><i class="feather-sun"></i><br>Afternoon In</button>
+                        <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonOut"><i class="feather-log-out"></i><br>Afternoon Out</button>
+                    </div>
+                </div>
+                <div class="form-group-custom">
+                    <label for="quickInternalPunchNote">Notes</label>
+                    <input type="text" id="quickInternalPunchNote" placeholder="Optional note for this entry">
+                </div>
+            </section>
+        </div>
+        <?php else: ?>
         <section class="student-dtr-station-hero">
             <div class="student-dtr-hero-main">
                 <span class="student-dtr-station-chip"><?php echo $studentDtrManualOnly ? 'Manual Attendance Entry' : 'Internal Attendance Station'; ?></span>
@@ -897,6 +968,7 @@ include 'includes/header.php';
             </form>
             <?php endif; ?>
         </section>
+        <?php endif; ?>
 
         <?php if (!$studentDtrManualOnly): ?>
         <div class="student-dtr-metrics">
@@ -971,7 +1043,7 @@ include 'includes/header.php';
         <?php endif; ?>
 
         <div class="row g-4 align-items-start mt-0">
-            <div class="<?php echo $studentDtrManualOnly ? 'col-12 col-xl-8 mx-auto' : 'col-12 col-xl-8'; ?>">
+            <div class="<?php echo $studentDtrManualOnly ? 'col-12' : 'col-12 col-xl-8'; ?>">
                 <?php if ($studentDtrManualOnly): ?>
                 <section class="card student-panel student-dtr-fallback-card student-dtr-record-entry-card record-section mb-4" id="manual-dtr">
                     <div class="card-header border-0 bg-transparent px-4 pt-4">
@@ -989,8 +1061,6 @@ include 'includes/header.php';
                         <form method="post" enctype="multipart/form-data" class="row g-3">
                             <input type="hidden" name="student_action" value="submit_machine_down">
                             <input type="hidden" name="proof_clock_time" id="proofClockTime" value="">
-                            <input type="hidden" id="proofClockDisplay" value="">
-                            <input type="hidden" id="proofClockDate" value="">
                             <input type="hidden" id="fallbackMode" name="fallback_mode" value="weekly">
                             <div class="col-12">
                                 <div class="external-manual-guide">
@@ -1362,6 +1432,68 @@ include 'includes/header.php';
     }
 
     enhanceTimeFields(document);
+}());
+
+(function () {
+    var punchButtons = document.querySelectorAll('.student-dtr-manual-punch');
+    if (!punchButtons.length) {
+        return;
+    }
+
+    function nearestThirtyMinuteValue() {
+        var now = new Date();
+        var minutes = now.getMinutes();
+        var rounded = minutes < 15 ? 0 : (minutes < 45 ? 30 : 60);
+        var hour = now.getHours();
+        if (rounded === 60) {
+            hour += 1;
+            rounded = 0;
+        }
+        hour = Math.max(0, Math.min(23, hour));
+        return String(hour).padStart(2, '0') + ':' + String(rounded).padStart(2, '0');
+    }
+
+    function chooseClosestOption(select, value) {
+        if (!select) {
+            return;
+        }
+        var options = Array.prototype.slice.call(select.options || []);
+        var match = options.find(function (option) {
+            return option.value === value;
+        });
+        if (!match) {
+            match = options.find(function (option) {
+                return option.value !== '';
+            });
+        }
+        if (match) {
+            select.value = match.value;
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
+    Array.prototype.forEach.call(punchButtons, function (button) {
+        button.addEventListener('click', function () {
+            Array.prototype.forEach.call(punchButtons, function (otherButton) {
+                otherButton.classList.remove('is-selected');
+            });
+            button.classList.add('is-selected');
+
+            var selectId = button.getAttribute('data-target-select') || '';
+            chooseClosestOption(document.getElementById(selectId), nearestThirtyMinuteValue());
+
+            var noteInput = document.getElementById('quickInternalPunchNote');
+            var reasonBox = document.getElementById('fallbackReason');
+            if (noteInput && reasonBox && noteInput.value.trim() !== '' && reasonBox.value.trim() === '') {
+                reasonBox.value = noteInput.value.trim();
+            }
+
+            var manualSection = document.getElementById('manual-dtr');
+            if (manualSection && typeof manualSection.scrollIntoView === 'function') {
+                manualSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
 }());
 </script>
 <?php include 'includes/footer.php'; ?>
