@@ -1291,9 +1291,8 @@ include 'includes/header.php';
                                                         </td>
                                                         <td data-label="Mentors">
                                                             <div class="app-students-cell-stack">
-                                                                <span class="app-students-cell-title">Supervisor</span>
-                                                                <span class="app-students-cell-value"><?php echo htmlspecialchars($supervisor_name); ?></span>
-                                                                <span class="app-students-cell-meta">Coordinator <?php echo htmlspecialchars($coordinator_name !== '' ? $coordinator_name : 'Not Assigned'); ?></span>
+                                                                <span class="app-students-mentor-name">Supervisor: <?php echo htmlspecialchars($supervisor_name !== '' ? $supervisor_name : 'Not Assigned'); ?></span>
+                                                                <span class="app-students-mentor-name">Coordinator: <?php echo htmlspecialchars($coordinator_name !== '' ? $coordinator_name : 'Not Assigned'); ?></span>
                                                             </div>
                                                         </td>
                                                         <td data-label="Activity">
