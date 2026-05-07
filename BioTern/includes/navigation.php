@@ -160,13 +160,14 @@ $nav_active_dashboard = biotern_nav_any_active($nav_current_file, ['homepage.php
 $nav_active_students = biotern_nav_any_active($nav_current_file, [
     'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php', 'students-internal-dtr.php',
     'applications-review.php', 'attendance.php', 'external-attendance.php', 'attendance-corrections.php', 'print_attendance.php',
+    'student-assistance.php',
 ]);
 $nav_active_ojt = biotern_nav_any_active($nav_current_file, [
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
     'ojt-internal-list.php', 'ojt-external-list.php', 'companies.php',
 ]);
 $nav_active_machine = biotern_nav_any_active($nav_current_file, [
-    'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
+    'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric-fleet.php', 'biometric_machine_sync.php',
 ]);
 $nav_active_documents = biotern_nav_any_active($nav_current_file, [
     'document_application.php',
@@ -266,6 +267,9 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item<?php echo biotern_nav_is_active('students.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="students.php">Students List</a></li>
+                        <?php if ($nav_is_admin): ?>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('student-assistance.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="student-assistance.php">SA Program</a></li>
+                        <?php endif; ?>
                         <li class="nxl-item<?php echo biotern_nav_is_active('applications-review.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="applications-review.php">Applications Review</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('attendance.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="attendance.php">Internal Attendance</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('external-attendance.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="external-attendance.php">External Attendance</a></li>
@@ -291,6 +295,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                     </a>
                     <ul class="nxl-submenu">
                         <li class="nxl-item<?php echo biotern_nav_is_active('fingerprint_mapping.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="fingerprint_mapping.php">Fingerprint Mapping</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('biometric-fleet.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="biometric-fleet.php">Machine Fleet</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('biometric-machine.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="biometric-machine.php">F20H Machine Manager</a></li>
                     </ul>
                 </li>

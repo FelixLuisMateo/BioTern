@@ -574,6 +574,16 @@ if ($hasManualDtrAttachments) {
     )";
 }
 
+$hasStudentAssistancePrograms = false;
+$saTableRes = $conn->query("SHOW TABLES LIKE 'student_assistance_programs'");
+if ($saTableRes instanceof mysqli_result) {
+    $hasStudentAssistancePrograms = $saTableRes->num_rows > 0;
+    $saTableRes->close();
+}
+$saStudentSelect = $hasStudentAssistancePrograms
+    ? "CASE WHEN EXISTS (SELECT 1 FROM student_assistance_programs sap WHERE sap.student_id = s.id AND sap.deleted_at IS NULL AND sap.status = 'active') THEN 1 ELSE 0 END AS is_sa_student,"
+    : "0 AS is_sa_student,";
+
 $include_internal_records = in_array($filter_reports, ['all', 'internal_dtr', 'proof'], true);
 $include_external_records = in_array($filter_reports, ['all', 'external_queue', 'proof'], true);
 
@@ -598,6 +608,7 @@ $attendance_query = "
         s.id as student_id,
         s.user_id,
         s.department_id,
+        {$saStudentSelect}
         COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
         s.student_id as student_number,
         s.first_name,
@@ -727,6 +738,7 @@ $externalAttendanceQuery = "
          s.id AS student_id,
          s.user_id,
          COALESCE(s.department_id, i.department_id) AS department_id,
+         {$saStudentSelect}
          COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
          s.student_id AS student_number,
          s.first_name,
@@ -844,7 +856,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
                 $initials = strtoupper(substr($attendance['first_name'] ?? 'N', 0, 1) . substr($attendance['last_name'] ?? 'A', 0, 1));
                 $avatar_html .= '<div class="avatar-image avatar-md"><div class="avatar-text avatar-md bg-light-primary rounded">' . $initials . '</div></div>';
             }
-            $avatar_html .= '<div><div class="fw-bold">' . htmlspecialchars(($attendance['first_name'] ?? '') . ' ' . ($attendance['last_name'] ?? '')) . '</div><small class="text-muted">' . htmlspecialchars($attendance['student_number'] ?? '') . '</small></div></a>';
+            $saBadge = ((int)($attendance['is_sa_student'] ?? 0) === 1) ? ' <span class="badge bg-soft-primary text-primary ms-1">SA</span>' : '';
+            $avatar_html .= '<div><div class="fw-bold">' . htmlspecialchars(($attendance['first_name'] ?? '') . ' ' . ($attendance['last_name'] ?? '')) . $saBadge . '</div><small class="text-muted">' . htmlspecialchars($attendance['student_number'] ?? '') . '</small></div></a>';
             echo '<td data-label="Student Name">' . $avatar_html . '</td>';
             echo '<td data-label="Attendance Date"><span class="badge bg-soft-primary text-primary">' . date('Y-m-d', strtotime($attendance['attendance_date'])) . '</span></td>';
             echo '<td data-label="Morning In">' . attendanceDisplayTimeHtml($attendance, 'morning_time_in', 'bg-soft-success text-success') . '</td>';
@@ -906,6 +919,9 @@ function attendanceScheduleDisplayFallback(array $attendance, string $column): ?
         if ($column === 'morning_time_in') {
             return $scheduleIn;
         }
+        if ($column === 'morning_time_out') {
+            return $scheduleOut;
+        }
         return null;
     }
 
@@ -913,13 +929,17 @@ function attendanceScheduleDisplayFallback(array $attendance, string $column): ?
         if ($column === 'afternoon_time_in') {
             return $scheduleIn;
         }
+        if ($column === 'afternoon_time_out') {
+            return $scheduleOut;
+        }
         return null;
     }
 
-    // For whole-day schedules, show fallback only on first time-in.
-    // Timeout columns should stay empty unless an actual biometric timeout exists.
     if ($column === 'morning_time_in') {
         return $scheduleIn;
+    }
+    if ($column === 'afternoon_time_out') {
+        return $scheduleOut;
     }
 
     return null;
@@ -980,14 +1000,48 @@ function attendanceScheduledClassLabel(array $attendance): string
     return 'Scheduled class: ' . $from . ' to ' . $to;
 }
 
+function attendanceExpectedEndLabel(array $attendance, string $column): string
+{
+    if (!in_array($column, ['morning_time_out', 'afternoon_time_out'], true)) {
+        return '';
+    }
+
+    $schedule = attendance_effective_schedule($attendance);
+    if (($schedule['window_source'] ?? 'none') === 'none') {
+        return '';
+    }
+
+    $scheduleOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
+    if ($scheduleOut === '') {
+        return '';
+    }
+
+    $session = section_schedule_inferred_session($schedule);
+    if ($session === 'morning_only' && $column !== 'morning_time_out') {
+        return '';
+    }
+    if ($session === 'afternoon_only' && $column !== 'afternoon_time_out') {
+        return '';
+    }
+    if ($session === 'whole_day' && $column !== 'afternoon_time_out') {
+        return '';
+    }
+
+    return 'Expected end: ' . date('g:i A', strtotime($scheduleOut));
+}
+
 function attendanceDisplayTimeHtml(array $attendance, string $column, string $badgeClass): string {
-    if (($column === 'morning_time_in' || $column === 'morning_time_out') && attendanceIsMorningAbsentForWholeDay($attendance)) {
+    if ($column === 'morning_time_in' && attendanceIsMorningAbsentForWholeDay($attendance)) {
         return '<span class="badge bg-soft-danger text-danger">Absent</span>';
     }
 
     $resolved = attendanceResolvedTime($attendance, $column);
     if ($resolved['time'] === null) {
-        return '<span class="badge ' . $badgeClass . '">-</span>';
+        $expectedEnd = attendanceExpectedEndLabel($attendance, $column);
+        return '<span class="badge ' . $badgeClass . '">-</span>'
+            . ($expectedEnd !== ''
+                ? '<div class="fs-11 text-muted mt-1">' . htmlspecialchars($expectedEnd, ENT_QUOTES, 'UTF-8') . '</div>'
+                : '');
     }
 
     $timeLabel = date('h:i A', strtotime((string)$resolved['time']));
@@ -2204,7 +2258,7 @@ $pp = $attendance['profile_picture'] ?? '';
                                                                 ?>
                                                                 <div>
                                                                     <span class="text-truncate-1-line fw-bold"><?php
-echo ($attendance['first_name'] ?? 'N/A') . ' ' . ($attendance['last_name'] ?? 'N/A'); ?></span>
+echo ($attendance['first_name'] ?? 'N/A') . ' ' . ($attendance['last_name'] ?? 'N/A'); ?><?php if ((int)($attendance['is_sa_student'] ?? 0) === 1): ?> <span class="badge bg-soft-primary text-primary ms-1">SA</span><?php endif; ?></span>
                                                                     <span class="fs-12 text-muted d-block"><?php
 echo $attendance['student_number'] ?? 'N/A'; ?></span>
                                                                 </div>

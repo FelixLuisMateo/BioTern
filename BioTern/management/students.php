@@ -118,6 +118,12 @@ if ($map_tbl && $map_tbl->num_rows > 0) {
     $has_fingerprint_user_map = true;
 }
 
+$has_student_assistance_programs = false;
+$sa_tbl = $db->query("SHOW TABLES LIKE 'student_assistance_programs'");
+if ($sa_tbl && $sa_tbl->num_rows > 0) {
+    $has_student_assistance_programs = true;
+}
+
 $biometric_ready_condition = "s.biometric_registered = 1";
 if ($has_fingerprint_user_map) {
     $biometric_ready_condition = "(s.biometric_registered = 1 OR EXISTS (SELECT 1 FROM fingerprint_user_map fum WHERE fum.user_id = s.user_id))";
@@ -728,6 +734,7 @@ $students_query = "
         COALESCE(i.coordinator_id, s.coordinator_id) AS student_coordinator_ref_id,
         s.status,
         COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'internal') AS assignment_track,
+        " . ($has_student_assistance_programs ? "CASE WHEN EXISTS (SELECT 1 FROM student_assistance_programs sap WHERE sap.student_id = s.id AND sap.deleted_at IS NULL AND sap.status = 'active') THEN 1 ELSE 0 END AS is_sa_student," : "0 AS is_sa_student,") . "
         " . ($has_school_year_column ? "COALESCE(NULLIF(TRIM(s.school_year), ''), '-') AS school_year," : "'-' AS school_year,") . "
         " . ($has_semester_column ? "COALESCE(NULLIF(TRIM(s.semester), ''), '-') AS semester," : "'-' AS semester,") . "
         CASE
@@ -1257,7 +1264,7 @@ include 'includes/header.php';
                                                                     ?>
                                                                 </div>
                                                                 <div class="app-students-student-copy">
-                                                                    <span class="app-students-student-name"><?php echo htmlspecialchars($student_name); ?></span>
+                                                                    <span class="app-students-student-name"><?php echo htmlspecialchars($student_name); ?><?php if ((int)($student['is_sa_student'] ?? 0) === 1): ?> <span class="badge bg-soft-primary text-primary ms-1">SA</span><?php endif; ?></span>
                                                                     <span class="app-students-student-meta"><?php echo htmlspecialchars($student_id_label); ?></span>
                                                                 </div>
                                                             </a>

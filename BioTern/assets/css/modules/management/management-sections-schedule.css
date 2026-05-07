@@ -8,9 +8,123 @@ html.app-skin-light input.form-control[type="time"] {
 
 .weekly-schedule-card {
     border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 1rem;
     margin-top: 1rem;
+}
+
+.section-schedule-editor .card-header {
+    align-items: flex-start;
+}
+
+.section-schedule-guide {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.8fr);
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid rgba(52, 84, 209, 0.24);
+    border-radius: 8px;
+    background: rgba(52, 84, 209, 0.06);
+}
+
+.section-schedule-guide-kicker {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #3454d1;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0;
+}
+
+.section-schedule-guide h6 {
+    margin-bottom: 0.35rem;
+}
+
+.section-schedule-guide p {
+    margin-bottom: 0;
+    color: #64748b;
+    max-width: 760px;
+}
+
+.section-schedule-summary {
+    display: grid;
+    gap: 0.4rem;
+    align-content: start;
+}
+
+.section-schedule-summary span {
+    display: block;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.66);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.section-form-block {
+    padding: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+}
+
+.section-form-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+    gap: 1rem;
+}
+
+.section-form-block-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.section-form-block-title h6 {
+    margin-bottom: 0;
+}
+
+.section-form-block-title span {
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+.section-default-hours {
+    background: linear-gradient(180deg, rgba(52, 84, 209, 0.08), rgba(52, 84, 209, 0.02));
+}
+
+.default-hours-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid rgba(52, 84, 209, 0.18);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.default-hours-preview span {
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0;
+}
+
+.default-hours-preview strong {
+    color: #3454d1;
+    font-size: 0.95rem;
+}
+
+.section-schedule-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .weekly-schedule-grid {
@@ -23,6 +137,12 @@ html.app-skin-light input.form-control[type="time"] {
     grid-template-columns: 120px minmax(160px, 1fr) repeat(3, minmax(150px, 1fr));
     gap: 0.75rem;
     align-items: end;
+}
+
+.weekly-schedule-row:not(.weekly-schedule-head) {
+    padding: 0.55rem;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 8px;
 }
 
 .weekly-schedule-day {
@@ -52,6 +172,18 @@ html.app-skin-light input.form-control[type="time"] {
 }
 
 @media (max-width: 991.98px) {
+    .section-schedule-guide {
+        grid-template-columns: 1fr;
+    }
+
+    .section-form-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .section-form-block-title {
+        display: block;
+    }
+
     .weekly-schedule-row {
         grid-template-columns: 1fr;
         padding: 0.75rem;
@@ -66,4 +198,28 @@ html.app-skin-light input.form-control[type="time"] {
     .weekly-schedule-day {
         padding-bottom: 0;
     }
+}
+
+html.app-skin-dark .section-schedule-guide {
+    background: rgba(52, 84, 209, 0.12);
+    border-color: rgba(99, 123, 255, 0.25);
+}
+
+html.app-skin-dark .section-schedule-guide p,
+html.app-skin-dark .section-form-block-title span {
+    color: #94a3b8;
+}
+
+html.app-skin-dark .section-schedule-summary span {
+    background: rgba(15, 23, 42, 0.65);
+    border-color: rgba(148, 163, 184, 0.18);
+}
+
+html.app-skin-dark .section-default-hours {
+    background: rgba(52, 84, 209, 0.1);
+}
+
+html.app-skin-dark .default-hours-preview {
+    background: rgba(15, 23, 42, 0.55);
+    border-color: rgba(99, 123, 255, 0.22);
 }

@@ -57,6 +57,7 @@ biotern_boot_session($conn);
 
 $map = [
   'students.php' => 'management/students.php',
+  'student-assistance.php' => 'management/student-assistance.php',
   'applications-review.php' => 'management/applications-review.php',
   'students-create.php' => 'management/students-create.php',
   'students-edit.php' => 'management/students-edit.php',
@@ -111,6 +112,7 @@ $map = [
   'ojt-external-list.php' => 'pages/ojt-external-list.php',
   'ojt-external-view.php' => 'pages/ojt-external-view.php',
   'biometric-machine.php' => 'pages/biometric-machine.php',
+  'biometric-fleet.php' => 'pages/biometric-fleet.php',
   'bridge-setup-manual.php' => 'pages/bridge-setup-manual.php',
   'biometric_machine_sync.php' => 'tools/biometric_machine_sync.php',
   'f20h_offline_excel_import.php' => 'tools/f20h_offline_excel_import.php',
@@ -375,10 +377,10 @@ if ($is_logged_in) {
 
   $internship_files = [
     'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php',
-    'applications-review.php',
+    'applications-review.php', 'student-assistance.php',
     'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php',
     'external-attendance.php', 'external-attendance-manual.php',
-    'demo-biometric.php', 'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'bridge-setup-manual.php', 'biometric_machine_sync.php', 'f20h_offline_excel_import.php',
+    'demo-biometric.php', 'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric-fleet.php', 'bridge-setup-manual.php', 'biometric_machine_sync.php', 'f20h_offline_excel_import.php',
     'ojt-internal-list.php', 'ojt-external-list.php', 'ojt-external-view.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
     'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',

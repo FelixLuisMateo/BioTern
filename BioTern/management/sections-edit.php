@@ -241,6 +241,7 @@ $activeValue = $hasSectionStatus
     : (string)($section['is_active'] ?? '1');
 $sectionSchedule = section_schedule_from_row($section);
 $weeklySchedule = $sectionSchedule['weekly_schedule'] ?? [];
+$scheduleSummaryLines = section_schedule_summary_lines($sectionSchedule);
 
 $page_title = 'Edit Section';
 $page_styles = array_merge($page_styles ?? [], [
@@ -270,9 +271,12 @@ include 'includes/header.php';
 </div>
 
 <div class="main-content">
-    <div class="card stretch stretch-full">
+    <div class="card stretch stretch-full section-schedule-editor">
         <div class="card-header">
-            <h5 class="card-title mb-0">Section Form</h5>
+            <div>
+                <h5 class="card-title mb-1">Section Schedule Setup</h5>
+                <div class="text-muted fs-12">Set the official class hours BioTern uses for biometric slotting, late status, and attendance display.</div>
+            </div>
         </div>
         <div class="card-body">
             <?php if ($message !== ''): ?>
@@ -282,12 +286,30 @@ include 'includes/header.php';
             <?php endif; ?>
             <form method="post" action="">
                 <input type="hidden" name="id" value="<?php echo (int)$section['id']; ?>">
+                <div class="section-schedule-guide mb-3">
+                    <div>
+                        <span class="section-schedule-guide-kicker">How this schedule is used</span>
+                        <h6>Attendance reads each weekday row first, then falls back to the default hours.</h6>
+                        <p>Start with the normal class pattern. Only change the weekday rows that are different. Time In is the expected first punch, Late After decides the late badge, and Time Out is the end time shown in Attendance.</p>
+                    </div>
+                    <div class="section-schedule-summary" id="sectionScheduleSummary">
+                        <?php foreach (array_slice($scheduleSummaryLines, 0, 3) as $summaryLine): ?>
+                            <span><?php echo htmlspecialchars($summaryLine, ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <div class="section-form-layout mb-3">
+                <div class="section-form-block">
+                    <div class="section-form-block-title">
+                        <h6>Section Identity</h6>
+                        <span>Shown on students, reports, and attendance filters.</span>
+                    </div>
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label">Section Code *</label>
                         <input type="text" name="code" class="form-control" value="<?php echo htmlspecialchars((string)$section['code']); ?>" required>
                     </div>
-                    <div class="col-md-8">
+                    <div class="col-md-6">
                         <label class="form-label">Section Name *</label>
                         <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars((string)$section['name']); ?>" required>
                     </div>
@@ -315,41 +337,59 @@ include 'includes/header.php';
                             </select>
                         </div>
                     <?php endif; ?>
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="form-label">Status</label>
                         <select name="status" class="form-select">
                             <option value="active" <?php echo $activeValue === '1' ? 'selected' : ''; ?>>Active</option>
                             <option value="inactive" <?php echo $activeValue === '0' ? 'selected' : ''; ?>>Inactive</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Attendance Session</label>
-                        <select name="attendance_session" class="form-select">
-                            <option value="whole_day" <?php echo $sectionSchedule['attendance_session'] === 'whole_day' ? 'selected' : ''; ?>>Whole day</option>
-                            <option value="morning_only" <?php echo $sectionSchedule['attendance_session'] === 'morning_only' ? 'selected' : ''; ?>>Morning only</option>
-                            <option value="afternoon_only" <?php echo $sectionSchedule['attendance_session'] === 'afternoon_only' ? 'selected' : ''; ?>>Afternoon only</option>
-                        </select>
+                </div>
+                </div>
+                <div class="section-form-block section-default-hours">
+                    <div class="section-form-block-title">
+                        <h6>Default Class Hours</h6>
+                        <span>Used unless a weekday row overrides it.</span>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Scheduled Time In</label>
-                        <input type="time" name="schedule_time_in" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['schedule_time_in']); ?>" step="60">
+                    <div class="default-hours-preview" id="defaultHoursPreview">
+                        <span>Default window</span>
+                        <strong>--:-- to --:--</strong>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Scheduled Time Out</label>
-                        <input type="time" name="schedule_time_out" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['schedule_time_out']); ?>" step="60">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label">Attendance Session</label>
+                            <select name="attendance_session" class="form-select">
+                                <option value="whole_day" <?php echo $sectionSchedule['attendance_session'] === 'whole_day' ? 'selected' : ''; ?>>Whole day</option>
+                                <option value="morning_only" <?php echo $sectionSchedule['attendance_session'] === 'morning_only' ? 'selected' : ''; ?>>Morning only</option>
+                                <option value="afternoon_only" <?php echo $sectionSchedule['attendance_session'] === 'afternoon_only' ? 'selected' : ''; ?>>Afternoon only</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Time In</label>
+                            <input type="time" name="schedule_time_in" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['schedule_time_in']); ?>" step="60">
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Late After</label>
+                            <input type="time" name="late_after_time" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['late_after_time']); ?>" step="60">
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label">Time Out</label>
+                            <input type="time" name="schedule_time_out" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['schedule_time_out']); ?>" step="60">
+                        </div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Late After</label>
-                        <input type="time" name="late_after_time" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['late_after_time']); ?>" step="60">
-                    </div>
+                </div>
                 </div>
                 <div class="weekly-schedule-card">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                         <div>
-                            <h6 class="mb-1">Monday to Saturday Schedule</h6>
-                            <small class="text-muted">Attendance status and biometric time slotting will follow the saved weekday schedule.</small>
+                            <h6 class="mb-1">Weekly Class Hours</h6>
+                            <small class="text-muted">These rows override the default schedule for each weekday.</small>
                         </div>
-                        <button type="button" class="btn btn-outline-secondary btn-sm" id="copyDefaultScheduleButton">Copy Default To All Days</button>
+                        <div class="section-schedule-actions">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-schedule-preset="morning">Morning 8-12</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-schedule-preset="whole">Whole Day 8-5</button>
+                            <button type="button" class="btn btn-primary btn-sm" id="copyDefaultScheduleButton">Copy Default To All Days</button>
+                        </div>
                     </div>
                     <div class="weekly-schedule-grid">
                         <div class="weekly-schedule-row weekly-schedule-head">
@@ -361,7 +401,7 @@ include 'includes/header.php';
                         </div>
                         <?php foreach (section_schedule_weekday_order() as $dayKey): ?>
                             <?php $daySchedule = $weeklySchedule[$dayKey] ?? section_schedule_empty_day($sectionSchedule); ?>
-                            <div class="weekly-schedule-row">
+                            <div class="weekly-schedule-row" data-weekday-row="<?php echo htmlspecialchars($dayKey); ?>">
                                 <div class="weekly-schedule-day"><?php echo htmlspecialchars(section_schedule_weekday_label($dayKey)); ?></div>
                                 <div>
                                     <label class="form-label d-lg-none">Session</label>
