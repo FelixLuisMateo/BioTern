@@ -1545,10 +1545,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $bridgeProfile = machine_fetch_bridge_profile($conn);
                     $bridgePollSeconds = max(5, (int)($bridgeProfile['poll_seconds'] ?? 30));
                     $bridgeStatus = machine_fetch_bridge_runtime_status($conn, $bridgePollSeconds);
-                    $flashLevel = !empty($bridgeStatus['is_online']) ? 'warning' : 'danger';
-                    $importMessage .= "\n" . (!empty($bridgeStatus['is_online'])
-                        ? 'No new ingest logs were available. Make sure the bridge worker can still read users/logs from the F20H.'
-                        : 'Bridge appears offline/stale. Start bridge worker on the bridge PC and verify router/F20H connectivity.');
+                    if (empty($bridgeStatus['is_online'])) {
+                        $flashLevel = 'danger';
+                        $importMessage .= "\nBridge appears offline/stale. Start bridge worker on the bridge PC and verify router/F20H connectivity.";
+                    } else {
+                        $importMessage .= "\nBridge is online; no new biometric logs were waiting to import.";
+                    }
                 }
                 $_SESSION['machine_manager_flash'] = [
                     'type' => $flashLevel,

@@ -1853,6 +1853,13 @@ include 'includes/header.php';
                                 <i class="feather-refresh-cw me-2"></i>
                                 <span>Sync Machine</span>
                             </button>
+                            <form method="post" action="legacy_router.php?file=f20h_offline_excel_import.php" enctype="multipart/form-data" class="d-inline-flex align-items-center gap-2">
+                                <label class="btn btn-light-brand mb-0" for="f20hOfflineReportFile">
+                                    <i class="feather-upload-cloud me-2"></i>
+                                    <span>Import F20H Excel</span>
+                                </label>
+                                <input type="file" id="f20hOfflineReportFile" name="f20h_report_file" class="d-none" accept=".xls,application/vnd.ms-excel" onchange="if (this.files && this.files.length) { this.form.submit(); }">
+                            </form>
                             <div class="dropdown">
                                 <a class="btn btn-light-brand" data-bs-toggle="dropdown" data-bs-offset="0, 10" data-bs-auto-close="outside">
                                     <i class="feather-sliders me-2"></i>

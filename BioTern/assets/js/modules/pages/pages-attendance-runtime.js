@@ -73,11 +73,6 @@
             var manual = !!options.manual;
             var showToastOnError = !!options.showToastOnError;
 
-            // Allow manual sync even if the document is hidden.
-            if (!manual && document.hidden) {
-                return;
-            }
-
             if (biometricAutoSyncInFlight && biometricAutoSyncRequest) {
                 var elapsed = Date.now() - biometricAutoSyncStartedAt;
                 if (elapsed > biometricAutoSyncRequestTimeoutMs) {
@@ -112,7 +107,7 @@
                 if (response && response.success) {
                     refreshAttendanceTable();
                     if (manual) {
-                        showAttendanceSyncAlert('Machine sync complete.', 'success');
+                        showAttendanceSyncAlert(response.message || 'Machine sync complete.', 'success');
                     }
                 } else if (showToastOnError) {
                     showToast((response && response.message) ? response.message : 'Machine sync failed.', 'danger');

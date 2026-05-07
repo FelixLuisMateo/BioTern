@@ -109,10 +109,15 @@ if ($opsDb instanceof mysqli && !$opsDb->connect_error) {
 }
 
 if ($jsonMode) {
+    $notice = '';
+    if ($syncMode === 'direct_ingest' && (int)($importStats['raw_inserted'] ?? 0) === 0 && (int)($importStats['processed_logs'] ?? 0) === 0) {
+        $notice = 'No new biometric logs were waiting to import.';
+    }
+
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'success' => true,
-        'message' => 'Machine sync complete.',
+        'message' => $notice !== '' ? ('Machine sync complete. ' . $notice) : 'Machine sync complete.',
         'mode' => $syncMode,
         'connector_output' => $connector['output'] ?? [],
         'import_output' => [$importMessage],
