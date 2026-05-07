@@ -257,6 +257,7 @@ SELECT
     s.student_id,
     s.first_name,
     s.last_name,
+    s.user_id,
     s.email,
     s.phone,
     s.status AS student_status,

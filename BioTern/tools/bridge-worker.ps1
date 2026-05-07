@@ -58,6 +58,7 @@ if ([string]::IsNullOrWhiteSpace($bridgeNodeName)) {
 $script:BridgeWorkerMutex = $null
 $script:BridgeWorkerMutexAcquired = $false
 $script:PreferredNetworkOverride = $null
+$script:LastF20hPullStatus = 'starting'
 
 function Set-PreferredNetworkOverride {
     param(
@@ -832,7 +833,7 @@ function Invoke-BridgeRenameUser {
 }
 
 function Invoke-BridgeQueuedCommand {
-    param($Command)
+    param($Command, $BridgeConfig)
 
     $commandName = [string]($Command.command_name)
     $payloadRaw = [string]($Command.command_payload)
@@ -881,6 +882,18 @@ function Invoke-BridgeQueuedCommand {
             $out = Invoke-ConnectorCommand -Command 'restart'
             return ($out -join "`n")
         }
+        'sync_now' {
+            $connectorOutput = Invoke-ConnectorSyncWithFallback -BridgeConfig $BridgeConfig
+            $script:LastF20hPullStatus = 'F20H pull ok: ' + ((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))
+            Save-BridgeRecoverySnapshot -BridgeConfig $BridgeConfig
+            try {
+                Invoke-BridgeHistoricalBackfill -BridgeConfig $BridgeConfig -Force
+            } catch {
+                Write-BridgeLog ("Forced historical backfill skipped: " + $_.Exception.Message)
+            }
+            Publish-Ingest -BridgeConfig $BridgeConfig
+            return (($connectorOutput -join ' ') -replace '\s+', ' ')
+        }
         'save_device_identity' {
             $messages = @()
             $deviceNo = [string]($payload.device_number)
@@ -923,7 +936,7 @@ function Invoke-BridgeCommandQueue {
 
         try {
             Write-BridgeLog ("Executing bridge command #{0}: {1}" -f $commandId, [string]$command.command_name)
-            $execResult = Invoke-BridgeQueuedCommand -Command $command
+            $execResult = Invoke-BridgeQueuedCommand -Command $command -BridgeConfig $BridgeConfig
             $resultText = [string]$execResult
             if ([string]::IsNullOrWhiteSpace($resultText)) {
                 $resultText = 'Command completed successfully.'
@@ -1162,7 +1175,7 @@ function Save-BridgeBackfillState {
 }
 
 function Invoke-BridgeHistoricalBackfill {
-    param($BridgeConfig)
+    param($BridgeConfig, [switch]$Force)
 
     $state = Read-BridgeBackfillState
 
@@ -1170,15 +1183,15 @@ function Invoke-BridgeHistoricalBackfill {
     if ($BridgeConfig.PSObject -and $BridgeConfig.PSObject.Properties['backfill_scan_interval_minutes']) {
         $scanIntervalMinutes = [int]$BridgeConfig.backfill_scan_interval_minutes
     }
-    if ($scanIntervalMinutes -lt 5) {
-        $scanIntervalMinutes = 5
+    if ($scanIntervalMinutes -lt 1) {
+        $scanIntervalMinutes = 1
     }
 
     $lastScanText = ''
     if ($state -and $state.ContainsKey('last_scan_utc') -and $null -ne $state['last_scan_utc']) {
         $lastScanText = [string]$state['last_scan_utc']
     }
-    if (-not [string]::IsNullOrWhiteSpace($lastScanText)) {
+    if (-not $Force -and -not [string]::IsNullOrWhiteSpace($lastScanText)) {
         try {
             $lastScanUtc = [DateTime]::Parse($lastScanText, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AssumeUniversal)
             $elapsedMinutes = ((Get-Date).ToUniversalTime() - $lastScanUtc.ToUniversalTime()).TotalMinutes
@@ -1468,8 +1481,8 @@ try {
     $lastUserCacheAt = [datetime]::MinValue
     $profileRefreshSeconds = 60
     $heartbeatSeconds = 30
-    $commandQueueSeconds = 30
-    $historicalBackfillSeconds = 300
+    $commandQueueSeconds = 10
+    $historicalBackfillSeconds = 60
     $userCacheSeconds = 120
 
     while ($true) {
@@ -1504,7 +1517,7 @@ try {
 
             Update-ConnectorConfig -BridgeConfig $bridgeConfig
             if (($now - $lastHeartbeatAt).TotalSeconds -ge $heartbeatSeconds) {
-                Invoke-BridgeHeartbeat -BridgeConfig $bridgeConfig | Out-Null
+                Invoke-BridgeHeartbeat -BridgeConfig $bridgeConfig -Status $script:LastF20hPullStatus | Out-Null
                 $lastHeartbeatAt = $now
             }
             if (($now - $lastCommandQueueAt).TotalSeconds -ge $commandQueueSeconds) {
@@ -1519,8 +1532,10 @@ try {
             try {
                 $connectorOutput = Invoke-ConnectorSyncWithFallback -BridgeConfig $bridgeConfig
                 Write-BridgeLog (($connectorOutput -join ' ') -replace '\s+', ' ')
+                $script:LastF20hPullStatus = 'F20H pull ok: ' + ((Get-Date).ToString('yyyy-MM-dd HH:mm:ss'))
                 Save-BridgeRecoverySnapshot -BridgeConfig $bridgeConfig
             } catch {
+                $script:LastF20hPullStatus = 'F20H pull failed: ' + $_.Exception.Message
                 Write-BridgeLog ("F20H sync skipped: " + $_.Exception.Message)
             }
             if (($now - $lastHistoricalBackfillAt).TotalSeconds -ge $historicalBackfillSeconds) {

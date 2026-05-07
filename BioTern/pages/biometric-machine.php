@@ -321,10 +321,12 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
     machine_ensure_bridge_heartbeat_table($conn);
 
     $latestHeartbeatAt = '';
-    $heartbeatRes = $conn->query("SELECT updated_at FROM biometric_bridge_heartbeat ORDER BY updated_at DESC, id DESC LIMIT 1");
+    $heartbeatStatusText = '';
+    $heartbeatRes = $conn->query("SELECT updated_at, status_text FROM biometric_bridge_heartbeat ORDER BY updated_at DESC, id DESC LIMIT 1");
     if ($heartbeatRes instanceof mysqli_result) {
         $row = $heartbeatRes->fetch_assoc() ?: [];
         $latestHeartbeatAt = (string)($row['updated_at'] ?? '');
+        $heartbeatStatusText = (string)($row['status_text'] ?? '');
         $heartbeatRes->close();
     }
 
@@ -398,11 +400,19 @@ function machine_fetch_bridge_runtime_status(mysqli $conn, int $pollSeconds): ar
         ];
     }
 
+    $pullStatus = strtolower($heartbeatStatusText);
+    $pullFailing = $isOnline && (
+        strpos($pullStatus, 'f20h pull failed') !== false
+        || strpos($pullStatus, 'device connection failed') !== false
+        || strpos($pullStatus, 'failed') !== false
+    );
+
     return [
-        'label' => $isOnline ? 'Bridge Online' : 'Bridge Offline',
-        'badge_class' => $isOnline ? 'success' : 'danger',
+        'label' => $pullFailing ? 'Bridge Online / F20H Pull Failing' : ($isOnline ? 'Bridge Online' : 'Bridge Offline'),
+        'badge_class' => $pullFailing ? 'warning' : ($isOnline ? 'success' : 'danger'),
         'detail' => ($isOnline ? 'Last activity ' : 'Last activity stale: ') . $lastSeenAt
-            . ' (poll ' . $pollSeconds . 's, age ' . (int)$ageSeconds . 's).',
+            . ' (poll ' . $pollSeconds . 's, age ' . (int)$ageSeconds . 's).'
+            . ($heartbeatStatusText !== '' ? ' F20H: ' . $heartbeatStatusText : ''),
         'last_seen_at' => $lastSeenAt,
         'is_online' => $isOnline,
     ];

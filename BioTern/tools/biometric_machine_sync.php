@@ -24,6 +24,54 @@ if (!in_array($syncMode, ['direct_ingest', 'connector_fallback'], true)) {
     $syncMode = 'direct_ingest';
 }
 
+function biometric_sync_request_bridge_pull(mysqli $conn, int $requestedByUserId): bool
+{
+    $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_command_queue (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        command_name VARCHAR(80) NOT NULL,
+        command_payload LONGTEXT NULL,
+        status VARCHAR(32) NOT NULL DEFAULT 'queued',
+        requested_by INT NOT NULL DEFAULT 0,
+        source VARCHAR(80) NOT NULL DEFAULT 'machine_manager',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        claimed_at TIMESTAMP NULL DEFAULT NULL,
+        claimed_by VARCHAR(120) NOT NULL DEFAULT '',
+        completed_at TIMESTAMP NULL DEFAULT NULL,
+        result_text TEXT NULL,
+        attempts INT NOT NULL DEFAULT 0,
+        PRIMARY KEY (id),
+        KEY idx_status_created (status, created_at),
+        KEY idx_claimed_by (claimed_by)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $pending = 0;
+    $res = $conn->query("SELECT COUNT(*) AS total
+        FROM biometric_bridge_command_queue
+        WHERE command_name = 'sync_now'
+          AND status IN ('queued', 'claimed')
+          AND created_at >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)");
+    if ($res instanceof mysqli_result) {
+        $row = $res->fetch_assoc() ?: [];
+        $pending = (int)($row['total'] ?? 0);
+        $res->close();
+    }
+    if ($pending > 0) {
+        return false;
+    }
+
+    $payload = '{}';
+    $source = 'attendance_auto_sync';
+    $stmt = $conn->prepare("INSERT INTO biometric_bridge_command_queue (command_name, command_payload, status, requested_by, source) VALUES ('sync_now', ?, 'queued', ?, ?)");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('sis', $payload, $requestedByUserId, $source);
+    $stmt->execute();
+    $queued = $stmt->affected_rows > 0;
+    $stmt->close();
+    return $queued;
+}
+
 $opsDb = biometric_shared_db();
 $syncRunId = 0;
 if (!$opsDb->connect_error) {
@@ -57,11 +105,19 @@ if ($syncMode === 'connector_fallback') {
         exit;
     }
 } else {
+    $bridgePullQueued = false;
+    if ($opsDb instanceof mysqli && !$opsDb->connect_error) {
+        $bridgePullQueued = biometric_sync_request_bridge_pull($opsDb, (int)($_SESSION['user_id'] ?? 0));
+    }
     $connector = [
         'success' => true,
         'stage' => 'import',
-        'output' => ['Connector sync skipped because direct ingest mode is enabled.'],
-        'text' => 'Connector sync skipped because direct ingest mode is enabled.',
+        'output' => [$bridgePullQueued
+            ? 'Bridge log pull requested. Processing direct-ingest queue from database.'
+            : 'Bridge log pull already pending. Processing direct-ingest queue from database.'],
+        'text' => $bridgePullQueued
+            ? 'Bridge log pull requested. Processing direct-ingest queue from database.'
+            : 'Bridge log pull already pending. Processing direct-ingest queue from database.',
     ];
 }
 

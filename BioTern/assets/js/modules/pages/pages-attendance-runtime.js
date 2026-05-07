@@ -25,7 +25,7 @@
         }
 
         var biometricAutoSyncInFlight = false;
-        var biometricAutoSyncIntervalMs = 60000;
+        var biometricAutoSyncIntervalMs = 10000;
         var biometricAutoSyncRequest = null;
         var biometricAutoSyncStartedAt = 0;
         var biometricAutoSyncRequestTimeoutMs = 20000;
@@ -72,6 +72,7 @@
             options = options || {};
             var manual = !!options.manual;
             var showToastOnError = !!options.showToastOnError;
+            var reloadPage = options.reloadPage !== false;
 
             if (biometricAutoSyncInFlight && biometricAutoSyncRequest) {
                 var elapsed = Date.now() - biometricAutoSyncStartedAt;
@@ -105,6 +106,10 @@
                 }
             }).done(function(response) {
                 if (response && response.success) {
+                    if (reloadPage && !manual) {
+                        window.location.reload();
+                        return;
+                    }
                     refreshAttendanceTable();
                     if (manual) {
                         showAttendanceSyncAlert(response.message || 'Machine sync complete.', 'success');
@@ -310,28 +315,28 @@
             });
 
             setTimeout(function() {
-                runBiometricAutoSync({ showToastOnError: false });
+                runBiometricAutoSync({ showToastOnError: false, reloadPage: true });
             }, 1500);
 
             setInterval(function() {
-                runBiometricAutoSync({ showToastOnError: false });
+                runBiometricAutoSync({ showToastOnError: false, reloadPage: true });
             }, biometricAutoSyncIntervalMs);
 
             document.addEventListener('visibilitychange', function() {
                 if (!document.hidden) {
-                    runBiometricAutoSync({ showToastOnError: false });
+                    runBiometricAutoSync({ showToastOnError: false, reloadPage: true });
                 }
             });
 
             // Resume sync immediately when the device wakes or network returns.
             window.addEventListener('focus', function() {
-                runBiometricAutoSync({ showToastOnError: false });
+                runBiometricAutoSync({ showToastOnError: false, reloadPage: true });
             });
             window.addEventListener('pageshow', function() {
-                runBiometricAutoSync({ showToastOnError: false });
+                runBiometricAutoSync({ showToastOnError: false, reloadPage: true });
             });
             window.addEventListener('online', function() {
-                runBiometricAutoSync({ showToastOnError: false });
+                runBiometricAutoSync({ showToastOnError: false, reloadPage: true });
             });
 
             $('#manualSyncMachineButton').on('click', function() {

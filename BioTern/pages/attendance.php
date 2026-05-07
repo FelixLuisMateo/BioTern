@@ -265,11 +265,17 @@ function attendance_bridge_runtime_status(mysqli $conn): array
     $ageSeconds = max(0, time() - $lastSeenTs);
     $onlineThreshold = max(600, $pollSeconds * 12);
     $isOnline = $ageSeconds <= $onlineThreshold;
+    $pullStatus = strtolower($heartbeatStatusText);
+    $pullFailing = $isOnline && (
+        strpos($pullStatus, 'f20h pull failed') !== false
+        || strpos($pullStatus, 'device connection failed') !== false
+        || strpos($pullStatus, 'failed') !== false
+    );
 
     return [
-        'label' => $isOnline ? 'Bridge Online' : 'Bridge Offline',
-        'class' => $isOnline ? 'success' : 'danger',
-        'icon' => $isOnline ? 'feather-wifi' : 'feather-wifi-off',
+        'label' => $pullFailing ? 'Bridge Online / F20H Pull Failing' : ($isOnline ? 'Bridge Online' : 'Bridge Offline'),
+        'class' => $pullFailing ? 'warning' : ($isOnline ? 'success' : 'danger'),
+        'icon' => $pullFailing ? 'feather-alert-triangle' : ($isOnline ? 'feather-wifi' : 'feather-wifi-off'),
         'detail' => ($isOnline ? 'Last activity ' : 'Last activity stale: ') . $lastSeenAt
             . ($lastSeenSource !== '' ? ' via ' . $lastSeenSource : '')
             . ' (age ' . $ageSeconds . 's, poll ' . $pollSeconds . 's)'
@@ -2189,7 +2195,7 @@ echo (int)$index; ?>"></label>
 echo $attendance['student_id']; ?>" class="hstack gap-3">
                                                                 <?php
 $pp = $attendance['profile_picture'] ?? '';
-                                                                $pp_url = resolve_attendance_profile_image_url((string)$pp);
+                                                                $pp_url = resolve_attendance_profile_image_url((string)$pp, (int)($attendance['user_id'] ?? 0));
                                                                 if ($pp_url !== null) {
                                                                     echo '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid"></div>';
                                                                 } else {
