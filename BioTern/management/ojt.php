@@ -1031,8 +1031,12 @@ include 'includes/header.php';
                                 </td>
                                 <td data-label="Hours">
                                     <div class="app-ojt-cell-stack app-ojt-hours-block">
-                                        <div class="app-ojt-hours-total"><?php echo number_format($rendered, 1); ?> / <?php echo number_format($required, 1); ?></div>
-                                        <div class="progress app-progress-6"><div class="progress-bar" style="width:<?php echo (float)$r['progress_pct']; ?>%"></div></div>
+                                        <div class="app-ojt-hours-pill" style="--app-ojt-progress: <?php echo (float)$r['progress_pct']; ?>%;">
+                                            <span class="app-ojt-hours-pill-value"><?php echo number_format($rendered, 1); ?> / <?php echo number_format($required, 1); ?></span>
+                                            <span class="app-ojt-hours-pill-track" aria-hidden="true">
+                                                <span class="app-ojt-hours-pill-fill"></span>
+                                            </span>
+                                        </div>
                                         <span class="app-ojt-cell-meta"><?php echo (float)$r['progress_pct']; ?>%</span>
                                     </div>
                                 </td>

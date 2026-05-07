@@ -575,19 +575,19 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 
 .app-students-list-table thead th:nth-child(1),
 .app-students-list-table tbody td:nth-child(1) {
-    width: 44px;
+    width: 24px;
 }
 
 .app-students-list-table thead th:nth-child(2),
 .app-students-list-table tbody td:nth-child(2) {
-    width: 24%;
+    width: 12%;
 }
 
 .app-students-list-table thead th:nth-child(3),
 .app-students-list-table tbody td:nth-child(3),
 .app-students-list-table thead th:nth-child(4),
 .app-students-list-table tbody td:nth-child(4) {
-    width: 16%;
+    width: 20%;
 }
 
 .app-students-list-table thead th:nth-child(5),
