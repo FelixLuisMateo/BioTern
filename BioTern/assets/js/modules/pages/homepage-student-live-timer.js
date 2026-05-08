@@ -14,8 +14,8 @@
         };
     }
 
-    function renderTimer(root) {
-        var parts = formatClock(root.getAttribute('data-remaining-seconds'));
+    function renderTimer(root, totalSeconds) {
+        var parts = formatClock(totalSeconds);
         var hoursNode = root.querySelector('[data-student-hours-part="hours"]');
         var minutesNode = root.querySelector('[data-student-hours-part="minutes"]');
         var secondsNode = root.querySelector('[data-student-hours-part="seconds"]');
@@ -49,10 +49,19 @@
     });
 
     document.querySelectorAll('[data-student-hours-timer]').forEach(function (root) {
-        renderTimer(root);
+        var remainingSeconds = Math.max(0, Math.round(Number(root.getAttribute('data-remaining-seconds')) || 0));
+        var isLive = String(root.getAttribute('data-live-countdown') || '0') === '1';
+
+        renderTimer(root, remainingSeconds);
         updateSyncStamp(root, formatter);
 
         window.setInterval(function () {
+            if (isLive && remainingSeconds > 0) {
+                remainingSeconds -= 1;
+                root.setAttribute('data-remaining-seconds', String(remainingSeconds));
+                renderTimer(root, remainingSeconds);
+            }
+
             updateSyncStamp(root, formatter);
         }, 1000);
     });
