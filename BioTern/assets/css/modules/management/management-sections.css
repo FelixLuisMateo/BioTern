@@ -13,3 +13,28 @@
         color: #ffffff !important;
         opacity: 0.95;
     }
+
+.section-actions-menu {
+    display: inline-flex;
+    justify-content: flex-end;
+}
+
+.section-actions-toggle {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 8px;
+}
+
+.section-actions-menu .dropdown-menu {
+    min-width: 170px;
+}
+
+html.app-skin-dark .section-actions-toggle {
+    color: #e2e8f0;
+    background: rgba(15, 23, 42, 0.72);
+    border-color: rgba(148, 163, 184, 0.2);
+}
