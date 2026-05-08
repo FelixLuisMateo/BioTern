@@ -244,7 +244,19 @@ if (!function_exists('biotern_send_mail')) {
         $encryption = strtolower(trim((string)($settings['smtp_encryption'] ?? 'tls')));
 
         if ($host === '' || $user === '' || $pass === '') {
-            $errorRef = biotern_mail_log_error('SMTP configuration incomplete for outgoing mail.');
+            $missing = [];
+            if ($host === '') {
+                $missing[] = 'smtp_host';
+            }
+            if ($user === '') {
+                $missing[] = 'smtp_username';
+            }
+            if ($pass === '') {
+                $missing[] = 'smtp_password';
+            }
+            $errorRef = biotern_mail_log_error(
+                'SMTP configuration incomplete for outgoing mail. Missing: ' . implode(', ', $missing)
+            );
             return false;
         }
 

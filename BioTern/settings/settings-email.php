@@ -123,11 +123,15 @@ $errors = [];
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $existingPassword = $settings['smtp_password'];
     $settings['smtp_host'] = trim((string) ($_POST['smtp_host'] ?? ''));
     $settings['smtp_port'] = trim((string) ($_POST['smtp_port'] ?? ''));
     $settings['smtp_encryption'] = trim((string) ($_POST['smtp_encryption'] ?? 'tls'));
     $settings['smtp_username'] = trim((string) ($_POST['smtp_username'] ?? ''));
     $settings['smtp_password'] = trim((string) ($_POST['smtp_password'] ?? ''));
+    if ($settings['smtp_password'] === '') {
+        $settings['smtp_password'] = $existingPassword;
+    }
     $settings['mail_from_name'] = trim((string) ($_POST['mail_from_name'] ?? ''));
     $settings['mail_from_email'] = trim((string) ($_POST['mail_from_email'] ?? ''));
     $settings['reply_to_email'] = trim((string) ($_POST['reply_to_email'] ?? ''));
