@@ -2,6 +2,13 @@
 
 require_once __DIR__ . '/ops_helpers.php';
 
+function documents_ensure_external_start_allowed_column(mysqli $conn): void
+{
+    if (table_exists($conn, 'students')) {
+        $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
+    }
+}
+
 function documents_setting_allows_early_generation(mysqli $conn): bool
 {
     if (!table_exists($conn, 'system_settings')) {
@@ -23,6 +30,8 @@ function documents_setting_allows_early_generation(mysqli $conn): bool
 
 function documents_students_search_gate_sql(mysqli $conn, string $studentAlias = 's'): string
 {
+    documents_ensure_external_start_allowed_column($conn);
+
     if (documents_setting_allows_early_generation($conn)) {
         return '1 = 1';
     }
@@ -43,7 +52,7 @@ function documents_students_search_gate_sql(mysqli $conn, string $studentAlias =
         )";
     }
 
-    $pieces[] = "(COALESCE({$safeAlias}.assignment_track, 'internal') = 'external' AND COALESCE({$safeAlias}.internal_total_hours_remaining, 0) <= 0)";
+    $pieces[] = "((COALESCE({$safeAlias}.assignment_track, 'internal') = 'external' AND COALESCE({$safeAlias}.internal_total_hours_remaining, 0) <= 0) OR COALESCE({$safeAlias}.external_start_allowed, 0) = 1)";
 
     if (table_exists($conn, 'evaluation_unlocks')) {
         $pieces[] = "EXISTS (
@@ -63,6 +72,8 @@ function documents_students_search_gate_sql(mysqli $conn, string $studentAlias =
 
 function documents_student_can_generate(mysqli $conn, int $studentId): array
 {
+    documents_ensure_external_start_allowed_column($conn);
+
     if ($studentId <= 0) {
         return ['allowed' => false, 'reason' => 'Student not specified.'];
     }
@@ -72,6 +83,7 @@ function documents_student_can_generate(mysqli $conn, int $studentId): array
     }
 
     $stmt = $conn->prepare("SELECT s.id, s.user_id, s.assignment_track, s.internal_total_hours_remaining,
+            COALESCE(s.external_start_allowed, 0) AS external_start_allowed,
             COALESCE(u.application_status, 'approved') AS application_status
         FROM students s
         LEFT JOIN users u ON u.id = s.user_id
@@ -110,7 +122,7 @@ function documents_student_can_generate(mysqli $conn, int $studentId): array
 
     $track = strtolower(trim((string)($student['assignment_track'] ?? 'internal')));
     $internalRemaining = (int)($student['internal_total_hours_remaining'] ?? 0);
-    if ($track === 'external' && $internalRemaining <= 0) {
+    if (($track === 'external' && $internalRemaining <= 0) || (int)($student['external_start_allowed'] ?? 0) === 1) {
         return ['allowed' => true, 'reason' => ''];
     }
 

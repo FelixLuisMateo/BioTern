@@ -3607,6 +3607,7 @@ CREATE TABLE `students` (
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `deleted_at` timestamp NULL DEFAULT NULL,
   `assignment_track` varchar(20) NOT NULL DEFAULT 'internal',
+  `external_start_allowed` tinyint(1) NOT NULL DEFAULT 0,
   `emergency_contact_phone` varchar(50) DEFAULT NULL,
   `semester` varchar(30) DEFAULT NULL,
   `application_status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending'

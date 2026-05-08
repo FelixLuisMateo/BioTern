@@ -69,6 +69,16 @@ if (!function_exists('external_attendance_ensure_schema')) {
                 $conn->query($sql);
             }
         }
+
+        $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
+    }
+}
+
+if (!function_exists('external_attendance_can_compute_hours')) {
+    function external_attendance_can_compute_hours(array $student): bool
+    {
+        $track = strtolower(trim((string)($student['assignment_track'] ?? 'internal')));
+        return $track === 'external' || (int)($student['external_start_allowed'] ?? 0) === 1;
     }
 }
 
@@ -419,6 +429,7 @@ if (!function_exists('external_attendance_student_context_select_sql')) {
                 s.department_id,
                 s.section_id,
                 s.assignment_track,
+                COALESCE(s.external_start_allowed, 0) AS external_start_allowed,
                 s.external_total_hours,
                 s.external_total_hours_remaining,
                 s.internal_total_hours,
@@ -736,7 +747,7 @@ if (!function_exists('external_attendance_sync_student_hours')) {
 
         $rendered = (float)($row['rendered'] ?? 0);
         $studentStmt = $conn->prepare("
-            SELECT external_total_hours
+            SELECT assignment_track, COALESCE(external_start_allowed, 0) AS external_start_allowed, external_total_hours
             FROM students
             WHERE id = ?
             LIMIT 1
@@ -752,7 +763,10 @@ if (!function_exists('external_attendance_sync_student_hours')) {
             return;
         }
 
-        $remaining = max(0, (int)($student['external_total_hours'] ?? 0) - (int)floor($rendered));
+        $externalTotalHours = max(0, (int)($student['external_total_hours'] ?? 0));
+        $remaining = external_attendance_can_compute_hours($student)
+            ? max(0, $externalTotalHours - (int)floor($rendered))
+            : $externalTotalHours;
         $updateStmt = $conn->prepare("
             UPDATE students
             SET external_total_hours_remaining = ?, updated_at = NOW()

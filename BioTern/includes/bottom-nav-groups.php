@@ -8,7 +8,6 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         $canWorkspace = !empty($context['can_workspace']);
         $canSystem = !empty($context['can_system']);
         $isStudent = !empty($context['is_student']);
-        $studentHasExternal = !empty($context['student_external']);
 
         $profileAvatar = isset($context['profile_avatar']) && is_string($context['profile_avatar']) && trim($context['profile_avatar']) !== ''
             ? trim($context['profile_avatar'])
@@ -41,11 +40,8 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
             $studentDtrItems = [
                 ['label' => 'My Internal DTR', 'href' => 'student-internal-dtr.php', 'icon' => 'feather-clock'],
                 ['label' => 'Manual Internal DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'],
+                ['label' => 'My External DTR', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'],
             ];
-
-            if ($studentHasExternal) {
-                $studentDtrItems[] = ['label' => 'My External DTR', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'];
-            }
 
             $navGroups[] = [
                 'key' => 'student',

@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
@@ -73,6 +74,8 @@ function biotern_students_redirect_self(): void
     header('Location: ' . $target);
     exit;
 }
+
+$db->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
 
 $studentColumns = [];
 $studentColumnsRes = $db->query("SHOW COLUMNS FROM students");
@@ -391,6 +394,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
             $studentTypes .= 's';
             $studentValues[] = $assignmentTrack;
         }
+        if (isset($studentColumns['external_start_allowed']) && $assignmentTrack === 'external') {
+            $studentSets[] = 'external_start_allowed = 1';
+        }
         if (isset($studentColumns['department_id'])) {
             $studentSets[] = 'department_id = NULLIF(?, 0)';
             $studentTypes .= 'i';
@@ -598,6 +604,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                 $internshipInsert->close();
             }
 
+            external_attendance_sync_student_hours($db, $studentId);
             $db->commit();
             $saveOk = true;
         } catch (Throwable $e) {

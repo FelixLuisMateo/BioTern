@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
+require_once dirname(__DIR__) . '/lib/external_attendance.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
@@ -73,6 +74,7 @@ if (empty($_SESSION['ojt_edit_csrf'])) {
 $csrf = $_SESSION['ojt_edit_csrf'];
 $current_role = strtolower((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? ''));
 $can_edit_controls = in_array($current_role, ['admin', 'coordinator'], true);
+$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
 
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : intval($_POST['student_id'] ?? 0);
 $message = '';
@@ -130,6 +132,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
         $internal_remaining = max(0, intval($_POST['internal_total_hours_remaining'] ?? 0));
         $external_total = max(0, intval($_POST['external_total_hours'] ?? 0));
         $external_remaining = max(0, intval($_POST['external_total_hours_remaining'] ?? 0));
+        if (strtolower(trim((string)($_POST['assignment_track'] ?? 'internal'))) === 'external') {
+            $_POST['external_start_allowed'] = '1';
+        } else {
+            $_POST['external_start_allowed'] = isset($_POST['external_start_allowed']) ? '1' : '0';
+        }
         $i_required = max(0, intval($_POST['required_hours'] ?? 0));
         $i_start_chk = trim((string)($_POST['start_date'] ?? ''));
         $i_end_chk = trim((string)($_POST['end_date'] ?? ''));
@@ -159,13 +166,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                     'external_total_hours',
                     'internal_total_hours_remaining',
                     'external_total_hours_remaining',
+                    'external_start_allowed',
                     'status'
                 ];
 
                 foreach ($editable_student_fields as $field) {
                     if (!in_array($field, $student_cols, true)) continue;
                     $new = trim((string)($_POST[$field] ?? ''));
-                    if (in_array($field, ['internal_total_hours','external_total_hours','internal_total_hours_remaining','external_total_hours_remaining','status'], true)) {
+                    if (in_array($field, ['internal_total_hours','external_total_hours','internal_total_hours_remaining','external_total_hours_remaining','external_start_allowed','status'], true)) {
                         $new_val = ($new === '') ? 0 : max(0, intval($new));
                         $old_val = intval($student[$field] ?? 0);
                         if ($new_val !== $old_val) {
@@ -193,6 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                     $stmt->bind_param($types, ...$values);
                     $stmt->execute();
                     $stmt->close();
+                    external_attendance_sync_student_hours($conn, $student_id);
                 }
 
                 if (ojt_edit_table_exists($conn, 'internships')) {
@@ -484,6 +493,13 @@ include 'includes/header.php';
                             <option value="internal" <?php echo (($student['assignment_track'] ?? 'internal') === 'internal') ? 'selected' : ''; ?>>Internal</option>
                             <option value="external" <?php echo (($student['assignment_track'] ?? '') === 'external') ? 'selected' : ''; ?>>External</option>
                         </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">External Start Override</label>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="external_start_allowed" name="external_start_allowed" value="1" <?php echo ((int)($student['external_start_allowed'] ?? 0) === 1 || ($student['assignment_track'] ?? 'internal') === 'external') ? 'checked' : ''; ?> <?php echo $can_edit_controls ? '' : 'disabled'; ?>>
+                            <label class="form-check-label" for="external_start_allowed">Compute external hours early</label>
+                        </div>
                     </div>
                     <?php $current_sup_id = intval($internship['supervisor_id'] ?? 0); ?>
                     <?php $current_co_id = intval($internship['coordinator_id'] ?? 0); ?>

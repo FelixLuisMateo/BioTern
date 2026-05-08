@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 /** @var mysqli $conn */
 
@@ -101,6 +102,7 @@ $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours INT(11) DEFAULT NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours_remaining INT(11) DEFAULT NULL");
 $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'");
+$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
 
 // Get student ID from URL parameter
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -143,6 +145,7 @@ $student_query = "
         s.external_total_hours,
         s.external_total_hours_remaining,
         s.assignment_track,
+        COALESCE(s.external_start_allowed, 0) AS external_start_allowed,
         s.status,
         s.biometric_registered,
         s.biometric_registered_at,
@@ -373,6 +376,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $external_total_hours = isset($_POST['external_total_hours']) && $_POST['external_total_hours'] !== '' ? intval($_POST['external_total_hours']) : null;
     $external_total_hours_remaining = isset($_POST['external_total_hours_remaining']) && $_POST['external_total_hours_remaining'] !== '' ? intval($_POST['external_total_hours_remaining']) : null;
     $assignment_track = isset($_POST['assignment_track']) ? trim($_POST['assignment_track']) : 'internal';
+    $external_start_allowed = isset($_POST['external_start_allowed']) ? 1 : 0;
     $admin_reset_password = isset($_POST['admin_reset_password']) ? (string)$_POST['admin_reset_password'] : '';
     $admin_reset_password_confirm = isset($_POST['admin_reset_password_confirm']) ? (string)$_POST['admin_reset_password_confirm'] : '';
     $requested_password_reset = ($admin_reset_password !== '' || $admin_reset_password_confirm !== '');
@@ -381,10 +385,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!$can_edit_sensitive_hours) {
         $student_id_code = (string)($student['student_id'] ?? '');
         $assignment_track = (string)($student['assignment_track'] ?? 'internal');
+        $external_start_allowed = (int)($student['external_start_allowed'] ?? 0);
     }
 
     if (!in_array($assignment_track, ['internal', 'external'], true)) {
         $assignment_track = 'internal';
+    }
+    if ($assignment_track === 'external') {
+        $external_start_allowed = 1;
     }
 
     $selected_supervisor_name = null;
@@ -508,8 +516,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error_message = "New password and confirmation do not match.";
     } elseif ($requested_password_reset && (strlen($admin_reset_password) < 8 || !preg_match('/[A-Z]/', $admin_reset_password) || !preg_match('/[a-z]/', $admin_reset_password) || !preg_match('/\d/', $admin_reset_password))) {
         $error_message = "Password must be at least 8 characters and include uppercase, lowercase, and a number.";
-    } elseif ($assignment_track === 'external' && ($internal_total_hours_remaining === null || $internal_total_hours_remaining > 0)) {
-        $error_message = "Cannot assign student to External unless Internal is completed (Internal Total Hours Remaining must be 0).";
     } else {
         // Check if email already exists (excluding current student)
         $email_check = $conn->prepare("SELECT id FROM students WHERE email = ? AND id != ?");
@@ -539,6 +545,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     external_total_hours = ?,
                     external_total_hours_remaining = ?,
                     assignment_track = ?,
+                    external_start_allowed = ?,
                     course_id = NULLIF(?, 0),
                     department_id = NULLIF(?, ''),
                     section_id = NULLIF(?, 0),
@@ -555,7 +562,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $error_message = "Prepare failed: " . $conn->error;
             } else {
                 $update_stmt->bind_param(
-                    "ssssssssssiiiisisiisssi",
+                    "ssssssssssiiiisiisiisssi",
                     $student_id_code,
                     $first_name,
                     $last_name,
@@ -571,6 +578,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $external_total_hours,
                     $external_total_hours_remaining,
                     $assignment_track,
+                    $external_start_allowed,
                     $course_id,
                     $department_id,
                     $section_id,
@@ -735,6 +743,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             }
                         }
                     }
+
+                    external_attendance_sync_student_hours($conn, $student_id);
 
                     $success_message = "Student information updated successfully!";
                     if ($password_reset_applied) {
@@ -1086,7 +1096,15 @@ include 'includes/header.php';
                                                     <option value="internal" <?php echo (($student['assignment_track'] ?? 'internal') === 'internal') ? 'selected' : ''; ?>>Internal</option>
                                                     <option value="external" <?php echo (($student['assignment_track'] ?? '') === 'external') ? 'selected' : ''; ?>>External</option>
                                                 </select>
-                                                <small class="form-text text-muted">Rule: External is allowed only when Internal Hours Remaining is 0.</small>
+                                                <small class="form-text text-muted">Students may open External DTR, but external hours compute only when this track is External or the override is enabled.</small>
+                                            </div>
+                                            <div class="col-md-6 mb-4">
+                                                <label class="form-label fw-semibold" for="external_start_allowed">External Start Override</label>
+                                                <div class="form-check mt-2">
+                                                    <input class="form-check-input" type="checkbox" id="external_start_allowed" name="external_start_allowed" value="1" <?php echo ((int)($student['external_start_allowed'] ?? 0) === 1 || ($student['assignment_track'] ?? 'internal') === 'external') ? 'checked' : ''; ?> <?php echo $can_edit_sensitive_hours ? '' : 'disabled'; ?>>
+                                                    <label class="form-check-label" for="external_start_allowed">Allow external hours to compute before internal completion</label>
+                                                </div>
+                                                <small class="form-text text-muted">Use this only when a higher role approves the student to start external early.</small>
                                             </div>
                                         </div>
 

@@ -19,25 +19,13 @@ $selectedStudentId = (int)($_GET['student_id'] ?? $_POST['student_id'] ?? 0);
 $studentContext = null;
 if ($studentMode) {
 	$studentContext = external_attendance_student_context($conn, $currentUserId);
-	$track = strtolower(trim((string)($studentContext['assignment_track'] ?? 'internal')));
-	$allowExternal = ($track === 'external');
 
-	if (!$studentContext || !$allowExternal) {
+	if (!$studentContext) {
 		header('Location: student-external-dtr.php');
 		exit;
 	}
 } elseif ($canManage && $selectedStudentId > 0) {
 	$studentContext = external_attendance_student_context_by_student_id($conn, $selectedStudentId);
-	if ($studentContext) {
-		$track = strtolower(trim((string)($studentContext['assignment_track'] ?? 'internal')));
-		if ($track !== 'external') {
-			$_SESSION['external_attendance_flash'] = [
-				'message' => 'Selected student is not assigned to external track.',
-				'type' => 'warning',
-			];
-			$studentContext = null;
-		}
-	}
 }
 
 function external_biometric_action_locked(array $record, string $clockType): bool {
@@ -112,6 +100,7 @@ $monthHours = 0.0;
 $approvedCount = 0;
 $pendingCount = 0;
 $monthRows = [];
+$externalHoursCounting = $studentContext ? external_attendance_can_compute_hours($studentContext) : false;
 $clockTypes = [
 	'morning_in' => ['Morning In', 'feather-sunrise'],
 	'morning_out' => ['Morning Out', 'feather-arrow-up-right'],
@@ -125,7 +114,9 @@ if ($studentContext) {
 	$monthEnd = date('Y-m-t', strtotime($monthStart));
 	$monthRows = external_biometric_month_rows($conn, (int)$studentContext['id'], $monthStart, $monthEnd);
 	foreach ($monthRows as $monthRow) {
-		$monthHours += (float)($monthRow['total_hours'] ?? 0);
+		if ($externalHoursCounting) {
+			$monthHours += (float)($monthRow['total_hours'] ?? 0);
+		}
 		$status = strtolower(trim((string)($monthRow['status'] ?? 'pending')));
 		if ($status === 'approved') {
 			$approvedCount++;
@@ -202,6 +193,7 @@ if ($studentContext) {
 					<span><?php echo htmlspecialchars((string)($studentContext['section_code'] ?? 'No section'), ENT_QUOTES, 'UTF-8'); ?></span>
 					<span>External target: <?php echo (int)($studentContext['external_total_hours'] ?? 0); ?> hrs</span>
 					<span>Remaining: <?php echo (int)($studentContext['external_total_hours_remaining'] ?? 0); ?> hrs</span>
+					<span><?php echo $externalHoursCounting ? 'External hours counting' : 'External hours not counting yet'; ?></span>
 				</div>
 			</section>
 

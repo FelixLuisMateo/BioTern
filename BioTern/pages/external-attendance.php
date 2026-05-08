@@ -220,10 +220,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $targetStudentId = (int)($targetStudent['id'] ?? 0);
         $redirectTarget = external_attendance_return_target('external-biometric.php', $targetStudentId);
-        $targetTrack = strtolower(trim((string)($targetStudent['assignment_track'] ?? 'internal')));
-        if ($targetTrack !== 'external') {
-            external_attendance_flash_redirect('This student is not assigned to the external track.', 'warning', $redirectTarget);
-        }
 
         $targetStudentName = trim((string)($targetStudent['first_name'] ?? '') . ' ' . (string)($targetStudent['last_name'] ?? ''));
         if ($targetStudentName === '') {
