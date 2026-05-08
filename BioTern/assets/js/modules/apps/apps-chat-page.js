@@ -76,6 +76,8 @@
         var lastContactsData = [];
         var lastHeaderSignature = '';
         var lastMessagesSignature = '';
+        var chatIncomingReady = false;
+        var lastIncomingMessageId = 0;
         var lastRenderedUserId = 0;
         var contactModalUserId = 0;
         var suppressHeaderToggleUntil = 0;
@@ -269,6 +271,21 @@
                     alertEl.innerHTML = '';
                 }
             }, 2500);
+        }
+
+        function showIncomingMessagePopup(message) {
+            if (!message || message.is_own || !chatIncomingReady) {
+                return;
+            }
+
+            var messageId = parseInt(message.message_id || '0', 10) || 0;
+            if (messageId <= 0 || messageId <= lastIncomingMessageId) {
+                return;
+            }
+
+            lastIncomingMessageId = messageId;
+            var text = String(message.message || '').trim();
+            showAlert('success', text !== '' ? ('New message: ' + text) : 'New message received.');
         }
 
         function clearComposeWarning() {
@@ -1543,6 +1560,13 @@
             var contacts = state.contacts || [];
             lastContactsData = contacts;
             var messages = state.messages || [];
+            var newestIncoming = null;
+            messages.forEach(function (message) {
+                var messageId = parseInt(message && message.message_id || '0', 10) || 0;
+                if (message && !message.is_own && messageId > (newestIncoming ? (parseInt(newestIncoming.message_id || '0', 10) || 0) : 0)) {
+                    newestIncoming = message;
+                }
+            });
             var contactsSignature = buildContactsSignature(contacts);
             var messagesSignature = buildMessagesSignature(messages);
             var forceScroll = !!(options && options.forceScroll);
@@ -1567,6 +1591,9 @@
                     renderMessages(messages, state.selectedContact, forceScroll);
                     lastMessagesSignature = messagesSignature;
                     lastRenderedUserId = selectedUserId;
+                    if (newestIncoming) {
+                        showIncomingMessagePopup(newestIncoming);
+                    }
                 }
             } else {
                 selectedContactRef = null;
@@ -2359,7 +2386,9 @@
         autoGrowInput();
         scrollThreadToBottom(true);
         updateScrollBtn();
-        fetchState(false, { forceScroll: true });
+        fetchState(false, { forceScroll: true }).then(function () {
+            chatIncomingReady = true;
+        });
 
         pollHandle = window.setInterval(function () {
             fetchState(false);

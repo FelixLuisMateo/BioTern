@@ -247,6 +247,27 @@ if ($tokenRequired) {
     }
 }
 
+if (!$authorized && $providedToken !== '') {
+    try {
+        $db = biometric_shared_db();
+        $sourceNode = f20h_request_node();
+        $stmt = $db->prepare("SELECT ingest_token_hash FROM biometric_machines WHERE bridge_node = ? AND deleted_at IS NULL AND status <> 'retired' LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param('s', $sourceNode);
+            $stmt->execute();
+            $machine = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+            $hash = trim((string)($machine['ingest_token_hash'] ?? ''));
+            if ($hash !== '' && password_verify($providedToken, $hash)) {
+                $authorized = true;
+            }
+        }
+        $db->close();
+    } catch (Throwable $ignored) {
+        // Keep the endpoint resilient; invalid tokens still fail below.
+    }
+}
+
 if (!$authorized) {
     f20h_log_ingest_event([
         'source_ip' => f20h_request_ip(),
@@ -298,6 +319,15 @@ if ($normalized === []) {
 try {
     $db = biometric_shared_db();
     $inserted = biometricInsertRawLogEntries($db, $normalized, $machineConfig);
+    $sourceNode = f20h_request_node();
+    if ($sourceNode !== '') {
+        $stmtSeen = $db->prepare("UPDATE biometric_machines SET last_seen_at = NOW(), last_sync_at = NOW() WHERE bridge_node = ? AND deleted_at IS NULL");
+        if ($stmtSeen) {
+            $stmtSeen->bind_param('s', $sourceNode);
+            $stmtSeen->execute();
+            $stmtSeen->close();
+        }
+    }
     $db->close();
 
     $autoImport = f20h_auto_import_enabled($machineConfig);

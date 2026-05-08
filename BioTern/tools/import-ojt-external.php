@@ -4,6 +4,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/ojt_masterlist_import.php';
+require_once dirname(__DIR__) . '/lib/pending_student_accounts.php';
 require_once __DIR__ . '/excel-workbook-reader.php';
 $vendorAutoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (is_file($vendorAutoload)) {
@@ -228,6 +229,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $updated++;
             }
             $processed++;
+            biotern_pending_accounts_record($conn, [
+                'source_type' => 'ojt_external_excel',
+                'source_workbook' => $originalName,
+                'source_row_number' => $lineNumber,
+                'student_no' => $studentNo,
+                'student_name' => trim($firstName . ' ' . ($middleName !== '' ? $middleName . ' ' : '') . $lastName),
+                'email' => $email,
+                'assignment_track' => 'external',
+                'course_id' => $courseId,
+                'section_id' => $sectionId,
+                'status' => $userId !== null && $userId > 0 ? 'linked' : 'pending',
+                'matched_student_id' => $userId !== null && $userId > 0 ? (int)$userId : null,
+                'raw_payload' => $row,
+            ]);
         }
 
         $stmt->close();

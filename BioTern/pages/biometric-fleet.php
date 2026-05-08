@@ -71,9 +71,37 @@ function fleet_ensure_schema(mysqli $conn): void
         KEY idx_machine_status (status),
         KEY idx_bridge_node (bridge_node)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $columns = [];
+    $res = $conn->query("SHOW COLUMNS FROM biometric_machines");
+    if ($res instanceof mysqli_result) {
+        while ($row = $res->fetch_assoc()) {
+            $columns[strtolower((string)($row['Field'] ?? ''))] = true;
+        }
+        $res->close();
+    }
+    if (!isset($columns['ingest_token_hash'])) {
+        $conn->query("ALTER TABLE biometric_machines ADD COLUMN ingest_token_hash VARCHAR(255) NOT NULL DEFAULT '' AFTER bridge_node");
+    }
+    if (!isset($columns['last_seen_at'])) {
+        $conn->query("ALTER TABLE biometric_machines ADD COLUMN last_seen_at DATETIME NULL AFTER status");
+    }
+    if (!isset($columns['last_sync_at'])) {
+        $conn->query("ALTER TABLE biometric_machines ADD COLUMN last_sync_at DATETIME NULL AFTER last_seen_at");
+    }
 }
 
 fleet_ensure_schema($conn);
+$fleetTokenNotice = '';
+
+function fleet_generate_ingest_token(): string
+{
+    try {
+        return 'btm_' . bin2hex(random_bytes(24));
+    } catch (Throwable $e) {
+        return 'btm_' . hash('sha256', uniqid('machine-token-', true));
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isAdmin) {
     $action = strtolower(trim((string)($_POST['fleet_action'] ?? '')));
@@ -105,27 +133,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $isAdmin) {
         $allowedStatuses = ['active', 'not_working', 'not_syncing', 'not_configured', 'maintenance', 'retired'];
         $status = in_array($status, $allowedStatuses, true) ? $status : 'not_configured';
         $syncMode = in_array($syncMode, ['bridge', 'api', 'manual_import'], true) ? $syncMode : 'bridge';
+        $rotateToken = !empty($_POST['rotate_ingest_token']);
+        $newToken = $rotateToken ? fleet_generate_ingest_token() : '';
+        $newTokenHash = $newToken !== '' ? password_hash($newToken, PASSWORD_DEFAULT) : '';
 
         if ($machineCode !== '' && $machineName !== '') {
             if ($id > 0) {
-                $stmt = $conn->prepare("UPDATE biometric_machines SET machine_code = ?, machine_name = ?, floor_label = ?, machine_model = ?, firmware_version = ?, ip_address = ?, port = ?, device_number = ?, bridge_node = ?, sync_mode = ?, status = ?, notes = ? WHERE id = ? LIMIT 1");
+                $tokenSql = $newTokenHash !== '' ? ", ingest_token_hash = ?" : "";
+                $stmt = $conn->prepare("UPDATE biometric_machines SET machine_code = ?, machine_name = ?, floor_label = ?, machine_model = ?, firmware_version = ?, ip_address = ?, port = ?, device_number = ?, bridge_node = ?, sync_mode = ?, status = ?, notes = ?{$tokenSql} WHERE id = ? LIMIT 1");
                 if ($stmt) {
-                    $stmt->bind_param('ssssssiissssi', $machineCode, $machineName, $floorLabel, $machineModel, $firmwareVersion, $ipAddress, $port, $deviceNumber, $bridgeNode, $syncMode, $status, $notes, $id);
+                    if ($newTokenHash !== '') {
+                        $stmt->bind_param('ssssssiisssssi', $machineCode, $machineName, $floorLabel, $machineModel, $firmwareVersion, $ipAddress, $port, $deviceNumber, $bridgeNode, $syncMode, $status, $notes, $newTokenHash, $id);
+                    } else {
+                        $stmt->bind_param('ssssssiissssi', $machineCode, $machineName, $floorLabel, $machineModel, $firmwareVersion, $ipAddress, $port, $deviceNumber, $bridgeNode, $syncMode, $status, $notes, $id);
+                    }
                     $stmt->execute();
                     $stmt->close();
                 }
             } else {
-                $stmt = $conn->prepare("INSERT INTO biometric_machines (machine_code, machine_name, floor_label, machine_model, firmware_version, ip_address, port, device_number, bridge_node, sync_mode, status, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                if ($newTokenHash === '') {
+                    $newToken = fleet_generate_ingest_token();
+                    $newTokenHash = password_hash($newToken, PASSWORD_DEFAULT);
+                }
+                $stmt = $conn->prepare("INSERT INTO biometric_machines (machine_code, machine_name, floor_label, machine_model, firmware_version, ip_address, port, device_number, bridge_node, sync_mode, status, notes, ingest_token_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
                 if ($stmt) {
-                    $stmt->bind_param('ssssssiissss', $machineCode, $machineName, $floorLabel, $machineModel, $firmwareVersion, $ipAddress, $port, $deviceNumber, $bridgeNode, $syncMode, $status, $notes);
+                    $stmt->bind_param('ssssssiisssss', $machineCode, $machineName, $floorLabel, $machineModel, $firmwareVersion, $ipAddress, $port, $deviceNumber, $bridgeNode, $syncMode, $status, $notes, $newTokenHash);
                     $stmt->execute();
                     $stmt->close();
                 }
+            }
+            if ($newToken !== '') {
+                $_SESSION['fleet_token_notice'] = 'New ingest token for ' . $machineCode . ': ' . $newToken . ' Save it in that floor bridge only; BioTern stores only the hash.';
             }
         }
         fleet_redirect();
     }
 }
+
+$fleetTokenNotice = (string)($_SESSION['fleet_token_notice'] ?? '');
+unset($_SESSION['fleet_token_notice']);
 
 $machines = [];
 $res = $conn->query("SELECT bm.*,
@@ -164,6 +210,11 @@ include __DIR__ . '/../includes/header.php';
             <div class="page-header-right ms-auto"><a href="biometric-machine.php" class="btn btn-outline-secondary">F20H Manager</a></div>
         </div>
         <div class="main-content">
+            <?php if ($fleetTokenNotice !== ''): ?>
+                <div class="alert alert-warning">
+                    <?php echo fleet_h($fleetTokenNotice); ?>
+                </div>
+            <?php endif; ?>
             <div class="row g-3 mb-3">
                 <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted fs-12">Active</div><div class="h4 mb-0"><?php echo (int)$counts['active']; ?></div></div></div></div>
                 <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted fs-12">Not Syncing</div><div class="h4 mb-0"><?php echo (int)$counts['not_syncing']; ?></div></div></div></div>
@@ -188,6 +239,13 @@ include __DIR__ . '/../includes/header.php';
                                 <div class="col-sm-3"><label class="form-label">Port</label><input type="number" name="port" id="fleet_port" class="form-control" value="5001"></div>
                                 <div class="col-sm-3"><label class="form-label">Device #</label><input type="number" name="device_number" id="fleet_device_number" class="form-control" value="1"></div>
                                 <div class="col-12"><label class="form-label">Bridge Node</label><input name="bridge_node" id="fleet_bridge_node" class="form-control" placeholder="floor-1-bridge"></div>
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="rotate_ingest_token" id="fleet_rotate_ingest_token">
+                                        <label class="form-check-label" for="fleet_rotate_ingest_token">Generate new ingest token</label>
+                                    </div>
+                                    <small class="text-muted">New machines get a token automatically. Existing tokens are shown only once when regenerated.</small>
+                                </div>
                                 <div class="col-sm-6"><label class="form-label">Sync Mode</label><select name="sync_mode" id="fleet_sync_mode" class="form-select"><option value="bridge">Bridge</option><option value="api">API</option><option value="manual_import">Manual Import</option></select></div>
                                 <div class="col-sm-6"><label class="form-label">Status</label><select name="status" id="fleet_status" class="form-select"><option value="active">Active</option><option value="not_syncing">Not Syncing</option><option value="not_working">Not Working</option><option value="not_configured">Not Configured</option><option value="maintenance">Maintenance</option><option value="retired">Retired</option></select></div>
                                 <div class="col-12"><label class="form-label">Notes</label><textarea name="notes" id="fleet_notes" class="form-control" rows="3"></textarea></div>
@@ -270,6 +328,8 @@ include __DIR__ . '/../includes/header.php';
             setValue('fleet_id', '0');
             setValue('fleet_port', '5001');
             setValue('fleet_device_number', '1');
+            var rotate = document.getElementById('fleet_rotate_ingest_token');
+            if (rotate) rotate.checked = false;
         });
     }
 })();

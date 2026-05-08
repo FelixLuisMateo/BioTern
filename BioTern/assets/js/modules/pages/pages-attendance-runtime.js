@@ -15,7 +15,7 @@
                 "autoWidth": false,
                 "order": [[2, "desc"]],
                 "columnDefs": [
-                    { "orderable": false, "targets": [0, 11] }
+                    { "orderable": false, "targets": [0, 12] }
                 ],
                 "language": {
                     "emptyTable": "No attendance records found",
@@ -314,35 +314,11 @@
                 new bootstrap.Tooltip(this);
             });
 
-            setTimeout(function() {
-                runBiometricAutoSync({ showToastOnError: false, reloadPage: true });
-            }, 1500);
-
-            setInterval(function() {
-                runBiometricAutoSync({ showToastOnError: false, reloadPage: true });
-            }, biometricAutoSyncIntervalMs);
-
-            document.addEventListener('visibilitychange', function() {
-                if (!document.hidden) {
-                    runBiometricAutoSync({ showToastOnError: false, reloadPage: true });
-                }
-            });
-
-            // Resume sync immediately when the device wakes or network returns.
-            window.addEventListener('focus', function() {
-                runBiometricAutoSync({ showToastOnError: false, reloadPage: true });
-            });
-            window.addEventListener('pageshow', function() {
-                runBiometricAutoSync({ showToastOnError: false, reloadPage: true });
-            });
-            window.addEventListener('online', function() {
-                runBiometricAutoSync({ showToastOnError: false, reloadPage: true });
-            });
-
             $('#manualSyncMachineButton').on('click', function() {
                 runBiometricAutoSync({
                     manual: true,
-                    showToastOnError: true
+                    showToastOnError: true,
+                    reloadPage: false
                 });
             });
         });

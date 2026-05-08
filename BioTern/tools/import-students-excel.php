@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/pending_student_accounts.php';
 $studentsExcelVendorAutoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (is_file($studentsExcelVendorAutoload)) {
     require_once $studentsExcelVendorAutoload;
@@ -1306,6 +1307,20 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
 
         if ($stmt->execute()) {
             $summary['masterlist_rows_upserted']++;
+            biotern_pending_accounts_record($mysqli, [
+                'source_type' => 'masterlist',
+                'source_workbook' => $sourceWorkbook,
+                'source_sheet' => $sheetName,
+                'source_row_number' => $rowNumber,
+                'student_no' => $studentNo,
+                'student_name' => $studentName,
+                'school_year' => $rowSchoolYear,
+                'semester' => $rowSemester,
+                'assignment_track' => 'ojt',
+                'section_label' => $section,
+                'status' => 'pending',
+                'raw_payload' => $row,
+            ]);
             if ($companyId > 0) {
                 $summary['masterlist_rows_linked_to_company']++;
             }

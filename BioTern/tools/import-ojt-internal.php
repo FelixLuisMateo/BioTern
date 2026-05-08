@@ -4,6 +4,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/ojt_masterlist_import.php';
+require_once dirname(__DIR__) . '/lib/pending_student_accounts.php';
 require_once __DIR__ . '/excel-workbook-reader.php';
 $vendorAutoload = dirname(__DIR__) . '/vendor/autoload.php';
 if (is_file($vendorAutoload)) {
@@ -491,6 +492,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_import']) && 
                 $updated++;
             }
             $processed++;
+            biotern_pending_accounts_record($conn, [
+                'source_type' => 'ojt_internal_excel',
+                'source_workbook' => $originalName,
+                'source_row_number' => $lineNumber,
+                'student_no' => $studentNo,
+                'student_name' => trim($firstName . ' ' . ($middleName !== '' ? $middleName . ' ' : '') . $lastName),
+                'email' => $email,
+                'assignment_track' => 'internal',
+                'course_id' => $courseId,
+                'section_id' => $sectionId,
+                'status' => 'created_or_linked',
+                'raw_payload' => $row,
+            ]);
 
             $accountRow = [
                 'student_no' => $studentNo,

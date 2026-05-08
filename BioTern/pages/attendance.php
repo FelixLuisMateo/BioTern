@@ -2210,6 +2210,7 @@ echo $stats['total_count'] ?? 0; ?></span>
                                                 </th>
                                                 <th>Student Name</th>
                                                 <th>Attendance Date</th>
+                                                <th>Class Schedule</th>
                                                 <th>Morning In</th>
                                                 <th>Morning Out</th>
                                                 <th>Afternoon In</th>
@@ -2266,6 +2267,7 @@ echo $attendance['student_number'] ?? 'N/A'; ?></span>
                                                         </td>
                                                         <td data-label="Attendance Date"><span class="badge bg-soft-primary text-primary"><?php
 echo date('Y-m-d', strtotime($attendance['attendance_date'])); ?></span></td>
+                                                        <td data-label="Class Schedule"><span class="badge bg-soft-info text-info"><?php echo htmlspecialchars(attendanceScheduledClassLabel($attendance), ENT_QUOTES, 'UTF-8'); ?></span></td>
                                                         <td data-label="Morning In"><?php echo attendanceDisplayTimeHtml($attendance, 'morning_time_in', 'bg-soft-success text-success'); ?></td>
                                                         <td data-label="Morning Out"><?php echo attendanceDisplayTimeHtml($attendance, 'morning_time_out', 'bg-soft-success text-success'); ?></td>
                                                         <td data-label="Afternoon In"><?php echo attendanceDisplayTimeHtml($attendance, 'afternoon_time_in', 'bg-soft-warning text-warning'); ?></td>
