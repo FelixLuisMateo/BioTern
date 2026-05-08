@@ -905,10 +905,10 @@ include 'includes/header.php';
                 <button type="button" class="external-clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonIn"><i class="feather-sun"></i><span>Afternoon In</span></button>
                 <button type="button" class="external-clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonOut"><i class="feather-log-out"></i><span>Afternoon Out</span></button>
             </div>
-            <label class="external-note-field" for="quickInternalPunchNote">
-                <span>Quick Note</span>
-                <input type="text" id="quickInternalPunchNote" placeholder="Optional note copied to the reason field">
-            </label>
+            <div class="external-note-field">
+                <label for="quickInternalPunchNote">Notes</label>
+                <input type="text" id="quickInternalPunchNote" maxlength="255" placeholder="Optional note copied to the reason field">
+            </div>
             <div class="student-dtr-quick-status" id="quickTimePickerStatus" aria-live="polite"></div>
         </section>
         <?php else: ?>
@@ -1073,7 +1073,11 @@ include 'includes/header.php';
                                 <div class="external-manual-extra">
                                     <div>
                                         <label class="form-label" for="proofImage">Proof Image</label>
-                                        <input type="file" class="form-control" id="proofImage" name="proof_image" accept="image/png,image/jpeg,image/webp" capture="environment" required>
+                                        <div class="external-file-upload">
+                                            <input type="file" id="proofImage" name="proof_image" accept="image/png,image/jpeg,image/webp" capture="environment" required data-file-name-target="proofImageName">
+                                            <label for="proofImage"><i class="feather-upload"></i><span>Upload proof</span></label>
+                                            <span id="proofImageName">No file selected</span>
+                                        </div>
                                         <div class="form-text">Upload JPG, PNG, or WEBP proof.</div>
                                     </div>
                                     <div>
@@ -1287,6 +1291,16 @@ include 'includes/header.php';
     </div>
 </main>
 <script>
+Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-file-name-target]')).forEach(function(input) {
+    input.addEventListener('change', function() {
+        var target = document.getElementById(input.getAttribute('data-file-name-target'));
+        if (!target) {
+            return;
+        }
+        target.textContent = input.files && input.files.length ? input.files[0].name : 'No file selected';
+    });
+});
+
 (function () {
     var generateButton = document.getElementById('generateFallbackRows');
     var startInput = document.getElementById('fallbackAttendanceDate');
@@ -1542,11 +1556,18 @@ include 'includes/header.php';
             var selectId = button.getAttribute('data-target-select') || '';
             var generatedSelect = document.querySelector('#fallbackGeneratedRowsWrap select[data-time-slot="' + selectId + '"]');
             if (!generatedSelect) {
-                var missingRowsStatus = document.getElementById('quickTimePickerStatus');
-                if (missingRowsStatus) {
-                    missingRowsStatus.textContent = 'Create time rows first, then tap a quick time button.';
+                var generateRowsButton = document.getElementById('generateFallbackRows');
+                if (generateRowsButton) {
+                    generateRowsButton.click();
                 }
-                return;
+                generatedSelect = document.querySelector('#fallbackGeneratedRowsWrap select[data-time-slot="' + selectId + '"]');
+                if (!generatedSelect) {
+                    var missingRowsStatus = document.getElementById('quickTimePickerStatus');
+                    if (missingRowsStatus) {
+                        missingRowsStatus.textContent = 'Choose a date first, then tap a quick time button.';
+                    }
+                    return;
+                }
             }
             var chosenValue = chooseClosestOption(generatedSelect, nearestThirtyMinuteValue());
 

@@ -349,7 +349,7 @@
 }
 
 .student-dtr-shell--manual {
-    gap: 1rem;
+    gap: 0;
 }
 
 .student-dtr-shell--manual .bio-hero,
@@ -380,6 +380,10 @@
     min-height: 48px;
     border-radius: 12px;
     font-weight: 800;
+}
+
+.student-dtr-shell--manual > .row.g-4 {
+    --bs-gutter-y: 0;
 }
 
 .student-dtr-manual-hero .student-home-meta {

@@ -299,7 +299,11 @@ if ($studentContext) {
 				<div class="external-manual-extra">
 					<div>
 						<label for="externalProofImage" class="form-label">Proof Image (Optional)</label>
-						<input type="file" class="form-control" name="proof_image" id="externalProofImage" accept="image/jpeg,image/png,image/webp">
+						<div class="external-file-upload">
+							<input type="file" name="proof_image" id="externalProofImage" accept="image/jpeg,image/png,image/webp" data-file-name-target="externalProofImageName">
+							<label for="externalProofImage"><i class="feather-upload"></i><span>Upload proof</span></label>
+							<span id="externalProofImageName">No file selected</span>
+						</div>
 						<div class="form-text">Upload JPG, PNG, or WEBP proof up to 6MB.</div>
 					</div>
 					<div>
@@ -334,6 +338,14 @@ function updateExternalBiometricClock() {
 }
 setInterval(updateExternalBiometricClock, 1000);
 updateExternalBiometricClock();
+
+Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-file-name-target]')).forEach(function(input) {
+	input.addEventListener('change', function() {
+		var target = document.getElementById(input.getAttribute('data-file-name-target'));
+		if (!target) return;
+		target.textContent = input.files && input.files.length ? input.files[0].name : 'No file selected';
+	});
+});
 
 // Manual DTR range table generation
 function buildExternalTimeOptions(selected) {

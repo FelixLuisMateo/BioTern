@@ -253,6 +253,55 @@
     font-size: 0.78rem;
 }
 
+.external-file-upload {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    min-height: 44px;
+    border: 1px solid #c7d6e5;
+    border-radius: 8px;
+    background: #f8fbff;
+    overflow: hidden;
+}
+
+.external-file-upload input[type="file"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.external-file-upload label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 42px;
+    margin: 0;
+    padding: 0.55rem 0.8rem;
+    border-right: 1px solid #c7d6e5;
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 0.82rem;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.external-file-upload label i {
+    font-size: 0.98rem;
+}
+
+.external-file-upload > span {
+    min-width: 0;
+    padding: 0 0.75rem;
+    color: #456887;
+    font-size: 0.82rem;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .external-manual-card {
     overflow: hidden;
 }
@@ -518,6 +567,21 @@ html.app-skin-dark .external-note-field input {
 
 html.app-skin-dark .external-manual-card .form-text {
     color: #9fb7d1;
+}
+
+html.app-skin-dark .external-file-upload {
+    background: #122d49;
+    border-color: #365a7f;
+}
+
+html.app-skin-dark .external-file-upload label {
+    background: #0c1728;
+    border-color: #365a7f;
+    color: #f6fbff;
+}
+
+html.app-skin-dark .external-file-upload > span {
+    color: #cfe6ff;
 }
 
 html.app-skin-dark .external-manual-rows-placeholder {
