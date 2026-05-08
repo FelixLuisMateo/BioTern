@@ -702,7 +702,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($email !== '') {
                         $subject = 'Your BioTern application was approved';
                         $appBaseUrl = biotern_mail_public_base($conn);
-                        $studentManualUrl = $appBaseUrl !== '' ? $appBaseUrl . '/uploads/manuals/student-manual.pdf' : '';
+                        $studentManualUrl = $appBaseUrl !== '' ? $appBaseUrl . '/user-manual.php?role=student' : '';
                         $manualText = $studentManualUrl !== ''
                             ? "\n\nStudent User Manual:\n{$studentManualUrl}"
                             : "\n\nAfter logging in, open Help > User Manual to view the student guide.";

@@ -50,7 +50,26 @@ if ($storageDriver !== 'database') {
         exit('Not found');
     }
 
-    header('Location: ../uploads/manual_dtr/' . $filePath);
+    $absolutePath = dirname(__DIR__) . '/uploads/manual_dtr/' . $filePath;
+    if (!is_file($absolutePath) || !is_readable($absolutePath)) {
+        http_response_code(404);
+        exit('Not found');
+    }
+
+    $mime = trim((string)($row['file_type'] ?? ''));
+    if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+        $mime = 'application/octet-stream';
+    }
+
+    $fileName = trim((string)($row['file_name'] ?? 'manual-dtr-proof'));
+    if ($fileName === '') {
+        $fileName = 'manual-dtr-proof';
+    }
+
+    header('Content-Type: ' . $mime);
+    header('Content-Length: ' . (string)filesize($absolutePath));
+    header('Content-Disposition: inline; filename="' . str_replace('"', '', $fileName) . '"');
+    readfile($absolutePath);
     exit;
 }
 

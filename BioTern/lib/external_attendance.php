@@ -559,7 +559,12 @@ if (!function_exists('external_attendance_proof_url_sql')) {
                 ORDER BY eda.id DESC
                 LIMIT 1
             ),
-            NULLIF({$safeAlias}.photo_path, '')
+            CASE
+                WHEN NULLIF({$safeAlias}.photo_path, '') IS NULL THEN NULL
+                WHEN {$safeAlias}.photo_path REGEXP '^https?://' THEN {$safeAlias}.photo_path
+                WHEN {$safeAlias}.photo_path LIKE '../%' THEN {$safeAlias}.photo_path
+                ELSE CONCAT('../', TRIM(LEADING '/' FROM {$safeAlias}.photo_path))
+            END
         )";
     }
 }

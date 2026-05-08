@@ -557,6 +557,69 @@ html.app-skin-dark .filter-toggle-btn:focus {
             margin-top: 5px;
         }
 
+        .attendance-proof-thumb {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border: 1px solid var(--biotern-border, rgba(148, 163, 184, 0.35));
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(15, 23, 42, 0.04);
+        }
+
+        .attendance-proof-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .attendance-review-form {
+            display: grid;
+            gap: 6px;
+            min-width: 190px;
+            max-width: 220px;
+        }
+
+        .attendance-notes-cell {
+            min-width: 150px;
+            max-width: 260px;
+            color: var(--bs-body-color, #0f172a);
+            font-size: 12px;
+            line-height: 1.35;
+            white-space: normal;
+        }
+
+        .attendance-review-form .form-select,
+        .attendance-review-form .form-control,
+        .attendance-review-form .btn {
+            min-height: 32px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .attendance-review-form .btn {
+            width: 100%;
+        }
+
+        html.app-skin-dark .attendance-proof-thumb {
+            border-color: rgba(129, 153, 199, 0.28);
+            background: rgba(13, 23, 42, 0.72);
+        }
+
+        html.app-skin-dark .attendance-review-form .form-select,
+        html.app-skin-dark .attendance-review-form .form-control {
+            border-color: rgba(129, 153, 199, 0.32);
+            background-color: #111a2e;
+            color: #eef5ff;
+        }
+
+        html.app-skin-dark .attendance-notes-cell {
+            color: #dbeafe;
+        }
+
         /* Section: DataTable toolbar/footer spacing */
         /* Used by pages/attendance.php: #attendanceList DataTable wrapper */
         .attendanceList_wrapper .row:first-child {

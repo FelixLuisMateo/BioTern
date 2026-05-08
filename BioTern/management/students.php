@@ -1506,23 +1506,6 @@ include 'includes/header.php';
                     <small class="text-muted">Coordinator follows the student's course automatically.</small>
                     <small class="text-muted" data-student-action-selected>Assigned department, supervisor, and coordinator will appear here.</small>
                 </form>
-                <div class="list-group">
-                    <a class="list-group-item list-group-item-action" data-action-edit href="#">
-                        <i class="feather feather-edit-3 me-3"></i><span>Edit</span>
-                    </a>
-                    <a class="list-group-item list-group-item-action" data-action-print href="#" target="_blank" rel="noopener noreferrer">
-                        <i class="feather feather-printer me-3"></i><span>Print</span>
-                    </a>
-                    <a class="list-group-item list-group-item-action" data-action-remind href="#">
-                        <i class="feather feather-clock me-3"></i><span>Remind</span>
-                    </a>
-                    <a class="list-group-item list-group-item-action" href="javascript:void(0)">
-                        <i class="feather feather-archive me-3"></i><span>Archive</span>
-                    </a>
-                    <a class="list-group-item list-group-item-action" href="javascript:void(0)">
-                        <i class="feather feather-alert-octagon me-3"></i><span>Report Spam</span>
-                    </a>
-                </div>
             </div>
         </div>
     </div>

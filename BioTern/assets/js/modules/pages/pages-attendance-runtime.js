@@ -15,7 +15,7 @@
                 "autoWidth": false,
                 "order": [[2, "desc"]],
                 "columnDefs": [
-                    { "orderable": false, "targets": [0, 11] }
+                    { "orderable": false, "targets": [0, 10, 11, 12, 13] }
                 ],
                 "language": {
                     "emptyTable": "No attendance records found",
@@ -207,11 +207,11 @@
                 form.submit();
             }
 
-            $('#attendanceFilterForm').on('change', 'input[name="date"], select[name="school_year"], select[name="course_id"], select[name="department_id"], select[name="section_id"], select[name="supervisor"], select[name="coordinator"]', function() {
+            $('#attendanceFilterForm').on('change', 'input[name="date"], select[name="status"], select[name="source"], select[name="reports"], select[name="school_year"], select[name="course_id"], select[name="department_id"], select[name="section_id"], select[name="supervisor"], select[name="coordinator"]', function() {
                 submitAttendanceFilters();
             });
 
-            $('#filter-course, #filter-department, #filter-section, #filter-school-year, #filter-supervisor, #filter-coordinator').on('select2:select select2:clear', function() {
+            $('#filter-status, #filter-source, #filter-reports, #filter-course, #filter-department, #filter-section, #filter-school-year, #filter-supervisor, #filter-coordinator').on('select2:select select2:clear', function() {
                 submitAttendanceFilters();
             });
 
@@ -402,8 +402,22 @@
                 type: 'POST',
                 url: 'process_attendance.php',
                 data: payload,
-                dataType: 'json',
+                dataType: 'text',
                 success: function(response) {
+                    if (typeof response === 'string') {
+                        try {
+                            response = JSON.parse(response);
+                        } catch (e) {
+                            var jsonStart = response.indexOf('{');
+                            var jsonEnd = response.lastIndexOf('}');
+                            if (jsonStart !== -1 && jsonEnd > jsonStart) {
+                                try {
+                                    response = JSON.parse(response.slice(jsonStart, jsonEnd + 1));
+                                } catch (ignored) {}
+                            }
+                        }
+                    }
+
                     if (response && response.success) {
                         showToast(response.message || 'Action completed successfully.', 'success');
                         refreshAttendanceTable();
@@ -411,11 +425,41 @@
                         showToast((response && response.message) ? response.message : 'Unable to complete the action.', 'danger');
                     }
                 },
-                error: function() {
-                    showToast('Error processing request', 'danger');
+                error: function(xhr) {
+                    var message = 'Error processing request';
+                    if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    } else if (xhr && xhr.responseText) {
+                        try {
+                            var parsed = JSON.parse(xhr.responseText);
+                            if (parsed && parsed.message) {
+                                message = parsed.message;
+                            }
+                        } catch (e) {}
+                    }
+                    showToast(message, 'danger');
                 }
             });
         }
+
+        $(document).on('click', '[data-attendance-review-save]', function() {
+            var form = $(this).closest('[data-attendance-review-form]');
+            var id = parseInt(form.data('attendance-id'), 10);
+            var action = String(form.find('[name="review_action"]').val() || 'approve');
+            var note = String(form.find('[name="review_note"]').val() || '').trim();
+
+            if (!id || isNaN(id)) {
+                showToast('Invalid attendance record', 'danger');
+                return;
+            }
+
+            if (action === 'reject' && !note) {
+                showToast('Review note is required when rejecting.', 'warning');
+                return;
+            }
+
+            submitAttendanceAction(action, [id], note);
+        });
 
         function showConfirmModal(options) {
             var modalEl = document.getElementById('confirmModal');
@@ -651,8 +695,22 @@
                         id: [id],
                         status: newStatus
                     },
-                    dataType: 'json',
+                    dataType: 'text',
                     success: function(response) {
+                        if (typeof response === 'string') {
+                            try {
+                                response = JSON.parse(response);
+                            } catch (e) {
+                                var jsonStart = response.indexOf('{');
+                                var jsonEnd = response.lastIndexOf('}');
+                                if (jsonStart !== -1 && jsonEnd > jsonStart) {
+                                    try {
+                                        response = JSON.parse(response.slice(jsonStart, jsonEnd + 1));
+                                    } catch (ignored) {}
+                                }
+                            }
+                        }
+
                         if (response.success) {
                             showToast(response.message, 'success');
                             refreshAttendanceTable();
@@ -660,8 +718,19 @@
                             showToast(response.message, 'danger');
                         }
                     },
-                    error: function() {
-                        showToast('Error processing request', 'danger');
+                    error: function(xhr) {
+                        var message = 'Error processing request';
+                        if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        } else if (xhr && xhr.responseText) {
+                            try {
+                                var parsed = JSON.parse(xhr.responseText);
+                                if (parsed && parsed.message) {
+                                    message = parsed.message;
+                                }
+                            } catch (e) {}
+                        }
+                        showToast(message, 'danger');
                     }
                 });
             }

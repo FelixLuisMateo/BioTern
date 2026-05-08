@@ -137,6 +137,14 @@ $studentName = trim((string)($studentMeta['first_name'] ?? '') . ' ' . (string)(
 $trackLabel = $track === 'external' ? 'External' : 'Internal';
 $sectionLabel = biotern_format_section_label((string)($studentMeta['section_label'] ?? ''), '');
 $sectionLabel = str_replace(' | ', ' - ', $sectionLabel);
+$schoolLogoPath = dirname(__DIR__) . '/assets/images/ccstlogo.png';
+$schoolLogoSrc = '../assets/images/ccstlogo.png';
+if (is_file($schoolLogoPath) && is_readable($schoolLogoPath)) {
+    $logoData = file_get_contents($schoolLogoPath);
+    if ($logoData !== false) {
+        $schoolLogoSrc = 'data:image/png;base64,' . base64_encode($logoData);
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -294,7 +302,7 @@ $sectionLabel = str_replace(' | ', ' - ', $sectionLabel);
     </div>
     <div class="paper">
         <div class="print-header">
-            <img src="../assets/images/ccstlogo.png" alt="CCST Logo" onerror="this.style.visibility='hidden'">
+            <img src="<?php echo dtr_h($schoolLogoSrc); ?>" alt="CCST Logo">
             <div class="print-header-copy">
                 <p class="print-school">CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</p>
                 <p class="print-meta">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</p>

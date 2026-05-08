@@ -44,7 +44,7 @@ try {
     switch ($action) {
         case 'approve':
             require_roles_json(['admin', 'coordinator', 'supervisor']);
-            $response = approveAttendance($conn, $ids, $current_user_id);
+            $response = approveAttendance($conn, $ids, $current_user_id, $remarks);
             break;
             
         case 'reject':
@@ -92,7 +92,8 @@ $conn->close();
 /**
  * Approve attendance records
  */
-function approveAttendance($conn, $ids, $current_user_id) {
+function approveAttendance($conn, $ids, $current_user_id, $remarks = '') {
+    $ids = attendanceRequestValidIds($ids);
     if (empty($ids)) {
         return [
             'success' => false,
@@ -103,12 +104,15 @@ function approveAttendance($conn, $ids, $current_user_id) {
 
     $id_list = implode(',', array_map('intval', $ids));
     $now = date('Y-m-d H:i:s');
+    $reviewerId = attendanceReviewerIdOrNull($conn, $current_user_id);
+    $remarks = trim((string)$remarks);
     
     $update_query = "
         UPDATE attendances
         SET status = 'approved', 
             approved_by = ?,
-            approved_at = ?
+            approved_at = ?,
+            remarks = CASE WHEN ? <> '' THEN ? ELSE remarks END
         WHERE id IN ($id_list)
     ";
     
@@ -117,7 +121,7 @@ function approveAttendance($conn, $ids, $current_user_id) {
         throw new Exception("Prepare failed: " . $conn->error);
     }
     
-    $stmt->bind_param('is', $current_user_id, $now);
+    $stmt->bind_param('isss', $reviewerId, $now, $remarks, $remarks);
     if (!$stmt->execute()) {
         throw new Exception("Execute failed: " . $stmt->error);
     }
@@ -148,6 +152,7 @@ function approveAttendance($conn, $ids, $current_user_id) {
  * Reject attendance records
  */
 function rejectAttendance($conn, $ids, $remarks, $current_user_id) {
+    $ids = attendanceRequestValidIds($ids);
     if (empty($ids)) {
         return [
             'success' => false,
@@ -166,6 +171,7 @@ function rejectAttendance($conn, $ids, $remarks, $current_user_id) {
 
     $id_list = implode(',', array_map('intval', $ids));
     $now = date('Y-m-d H:i:s');
+    $reviewerId = attendanceReviewerIdOrNull($conn, $current_user_id);
     
     $update_query = "
         UPDATE attendances
@@ -181,7 +187,7 @@ function rejectAttendance($conn, $ids, $remarks, $current_user_id) {
         throw new Exception("Prepare failed: " . $conn->error);
     }
     
-    $stmt->bind_param('sis', $remarks, $current_user_id, $now);
+    $stmt->bind_param('sis', $remarks, $reviewerId, $now);
     if (!$stmt->execute()) {
         throw new Exception("Execute failed: " . $stmt->error);
     }
@@ -212,6 +218,7 @@ function rejectAttendance($conn, $ids, $remarks, $current_user_id) {
  * Delete attendance records
  */
 function deleteAttendance($conn, $ids) {
+    $ids = attendanceRequestValidIds($ids);
     if (empty($ids)) {
         return [
             'success' => false,
@@ -268,6 +275,7 @@ function deleteAttendance($conn, $ids) {
  * Edit status of attendance records
  */
 function editStatus($conn, $ids, $new_status, $current_user_id) {
+    $ids = attendanceRequestValidIds($ids);
     if (empty($ids)) {
         return [
             'success' => false,
@@ -288,6 +296,7 @@ function editStatus($conn, $ids, $new_status, $current_user_id) {
 
     $id_list = implode(',', array_map('intval', $ids));
     $now = date('Y-m-d H:i:s');
+    $reviewerId = attendanceReviewerIdOrNull($conn, $current_user_id);
     
     // Update status and audit trail
     if ($new_status === 'approved') {
@@ -299,7 +308,10 @@ function editStatus($conn, $ids, $new_status, $current_user_id) {
             WHERE id IN ($id_list)
         ";
         $stmt = $conn->prepare($update_query);
-        $stmt->bind_param('sis', $new_status, $current_user_id, $now);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $conn->error);
+        }
+        $stmt->bind_param('sis', $new_status, $reviewerId, $now);
     } elseif ($new_status === 'rejected') {
         $update_query = "
             UPDATE attendances
@@ -309,11 +321,17 @@ function editStatus($conn, $ids, $new_status, $current_user_id) {
             WHERE id IN ($id_list)
         ";
         $stmt = $conn->prepare($update_query);
-        $stmt->bind_param('sis', $new_status, $current_user_id, $now);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $conn->error);
+        }
+        $stmt->bind_param('sis', $new_status, $reviewerId, $now);
     } else {
         // pending status - just update status
         $update_query = "UPDATE attendances SET status = ? WHERE id IN ($id_list)";
         $stmt = $conn->prepare($update_query);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $conn->error);
+        }
         $stmt->bind_param('s', $new_status);
     }
     
@@ -342,7 +360,39 @@ function editStatus($conn, $ids, $new_status, $current_user_id) {
     ];
 }
 
+function attendanceRequestValidIds($ids): array
+{
+    $valid = [];
+    foreach ((array)$ids as $id) {
+        $id = (int)$id;
+        if ($id > 0) {
+            $valid[$id] = $id;
+        }
+    }
+    return array_values($valid);
+}
+
+function attendanceReviewerIdOrNull(mysqli $conn, int $current_user_id): ?int
+{
+    $current_user_id = (int)$current_user_id;
+    if ($current_user_id <= 0) {
+        return null;
+    }
+
+    $stmt = $conn->prepare('SELECT id FROM users WHERE id = ? LIMIT 1');
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('i', $current_user_id);
+    $stmt->execute();
+    $exists = (bool)$stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    return $exists ? $current_user_id : null;
+}
+
 function requestCorrection($conn, $ids, $remarks, $current_user_id, $current_role) {
+    $ids = attendanceRequestValidIds($ids);
     if (empty($ids)) {
         return ['success' => false, 'message' => 'No attendance records selected', 'updated_count' => 0];
     }

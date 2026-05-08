@@ -10,10 +10,10 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         $isStudent = !empty($context['is_student']);
         $role = strtolower(trim((string)($context['role'] ?? ($isStudent ? 'student' : ''))));
         $manualFiles = [
-            'admin' => 'uploads/manuals/admin-manual.pdf',
-            'coordinator' => 'uploads/manuals/coordinator-manual.pdf',
-            'supervisor' => 'uploads/manuals/supervisor-manual.pdf',
-            'student' => 'uploads/manuals/student-manual.pdf',
+            'admin' => 'user-manual.php?role=admin',
+            'coordinator' => 'user-manual.php?role=coordinator',
+            'supervisor' => 'user-manual.php?role=supervisor',
+            'student' => 'user-manual.php?role=student',
         ];
         $manualHref = $manualFiles[$role] ?? '';
 

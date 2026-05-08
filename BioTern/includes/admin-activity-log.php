@@ -567,8 +567,21 @@ if (!function_exists('biotern_admin_activity_auto_log')) {
         $targetType = biotern_admin_activity_target_type($page);
         $targetId = null;
         foreach (['id', 'student_id', 'user_id', 'course_id', 'section_id', 'department_id', 'coordinator_id', 'supervisor_id', 'company_id', 'internship_id', 'ojt_id', 'delete_id'] as $idKey) {
-            if (isset($request[$idKey]) && trim((string)$request[$idKey]) !== '') {
-                $targetId = (string)$request[$idKey];
+            if (!isset($request[$idKey])) {
+                continue;
+            }
+
+            $rawTargetId = $request[$idKey];
+            if (is_array($rawTargetId)) {
+                $rawTargetId = implode(',', array_filter(array_map(static function ($value) {
+                    return trim((string)$value);
+                }, $rawTargetId), static function ($value) {
+                    return $value !== '';
+                }));
+            }
+
+            if (trim((string)$rawTargetId) !== '') {
+                $targetId = (string)$rawTargetId;
                 break;
             }
         }

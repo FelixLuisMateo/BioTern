@@ -1,3 +1,143 @@
+body.external-attendance-page .external-attendance-proof-thumb {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--biotern-border, rgba(148, 163, 184, 0.35));
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(15, 23, 42, 0.04);
+}
+
+body.external-attendance-page .external-attendance-proof-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+body.external-attendance-page .external-attendance-no-proof {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 999px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+body.external-attendance-page .external-review-table th,
+body.external-attendance-page .external-review-table td {
+    vertical-align: middle;
+}
+
+body.external-attendance-page .external-attendance-table-card .dataTables_wrapper .row:first-child {
+    align-items: center;
+    margin-bottom: 0;
+    padding: 0.85rem 1rem 0.35rem;
+    min-height: 0;
+}
+
+body.external-attendance-page .external-attendance-table-card .dataTables_wrapper .row:first-child > [class*="col-"] {
+    display: flex;
+    align-items: center;
+}
+
+body.external-attendance-page .external-attendance-table-card .dataTables_length,
+body.external-attendance-page .external-attendance-table-card .dataTables_filter {
+    display: flex;
+    align-items: center;
+    margin: 0;
+}
+
+body.external-attendance-page .external-attendance-table-card .dataTables_filter {
+    margin-left: auto;
+}
+
+body.external-attendance-page .external-attendance-table-card .dataTables_length label,
+body.external-attendance-page .external-attendance-table-card .dataTables_filter label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: #9fb7da;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+body.external-attendance-page .external-attendance-table-card .dataTables_length select,
+body.external-attendance-page .external-attendance-table-card .dataTables_filter input {
+    min-height: 34px;
+    border: 1px solid rgba(129, 153, 199, 0.35);
+    border-radius: 8px;
+    background-color: #0f1b2d;
+    color: #eef5ff;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+body.external-attendance-page .external-attendance-table-card .dataTables_length select {
+    width: 72px;
+    padding: 0 10px;
+}
+
+body.external-attendance-page .external-attendance-table-card .dataTables_filter input {
+    width: 180px;
+    margin-left: 8px;
+    padding: 0 12px;
+}
+
+body.external-attendance-page .external-attendance-table-card .dataTables_wrapper .row:last-child {
+    align-items: center;
+    padding: 0.65rem 1rem 0.95rem;
+}
+
+body.external-attendance-page .external-attendance-table-card .dataTables_info {
+    color: #9fb7da;
+    font-size: 12px;
+}
+
+body.external-attendance-page .external-attendance-table-card .page-link {
+    border-color: rgba(129, 153, 199, 0.25);
+    background-color: #111a2e;
+    color: #dbeafe;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+body.external-attendance-page .external-attendance-table-card .page-item.active .page-link {
+    border-color: #5b7cfa;
+    background-color: #5b7cfa;
+    color: #fff;
+}
+
+body.external-attendance-page .external-review-notes-text {
+    min-width: 150px;
+    max-width: 260px;
+    color: var(--bs-body-color, #0f172a);
+    font-size: 12px;
+    line-height: 1.35;
+    white-space: normal;
+}
+
+html.app-skin-dark body.external-attendance-page .external-attendance-proof-thumb {
+    border-color: rgba(129, 153, 199, 0.28);
+    background: rgba(13, 23, 42, 0.72);
+}
+
+html.app-skin-dark body.external-attendance-page .external-attendance-no-proof {
+    border-color: rgba(129, 153, 199, 0.28);
+    color: #9fb7da;
+    background: rgba(13, 23, 42, 0.5);
+}
+
+html.app-skin-dark body.external-attendance-page .external-review-notes-text {
+    color: #dbeafe;
+}
+
 @media (max-width: 767.98px) {
     body.external-attendance-page .external-review-table,
     body.external-attendance-page .external-review-table thead,

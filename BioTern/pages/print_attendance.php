@@ -37,8 +37,6 @@ if ($attendance_id > 0) {
     $stmt->close();
 }
 
-$conn->close();
-
 function formatTime($time) {
     if ($time) {
         return date('h:i A', strtotime($time));

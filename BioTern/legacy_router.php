@@ -129,6 +129,7 @@ $map = [
   'external-dtr-proof.php' => 'pages/external-dtr-proof.php',
   'student-external-dtr.php' => 'pages/student-external-dtr.php',
   'student-manual-dtr.php' => 'pages/student-manual-dtr.php',
+  'user-manual.php' => 'pages/user-manual.php',
 
   'document_application.php' => 'documents/document_application.php',
   'document_endorsement.php' => 'documents/document_endorsement.php',
@@ -299,6 +300,7 @@ $public_files = [
   'auth-404-minimal.php',
   'idnotfound-404.php',
   'create_admin.php',
+  'user-manual.php',
 ];
 $is_public = in_array($file, $public_files, true);
 $current_user_id = (int)($_SESSION['user_id'] ?? 0);

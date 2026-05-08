@@ -819,6 +819,21 @@ html.app-skin-dark .app-page-ojt-dashboard {
     text-align: center;
 }
 
+html.app-skin-dark .app-page-ojt-dashboard .app-ojt-hours-pill {
+    border-color: var(--app-ojt-border);
+    background: var(--app-ojt-surface-muted);
+    color: var(--app-ojt-text);
+    box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.1);
+}
+
+html.app-skin-dark .app-page-ojt-dashboard .app-ojt-hours-pill-track {
+    background: rgba(148, 163, 184, 0.22);
+}
+
+html.app-skin-dark .app-page-ojt-dashboard .app-ojt-hours-pill-fill {
+    background: linear-gradient(90deg, var(--biotern-primary, #3454d1), #6aa7de);
+}
+
 .app-page-ojt-dashboard .app-ojt-documents-block .app-ojt-chip-stack,
 .app-page-ojt-dashboard .app-ojt-risk-flags-block .app-ojt-risk-stack {
     grid-template-columns: repeat(2, minmax(90px, 1fr));

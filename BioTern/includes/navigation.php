@@ -106,10 +106,10 @@ $nav_can_workspace = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor
 $nav_can_system = $nav_is_admin;
 $nav_can_user_accounts = $nav_is_admin;
 $nav_manual_files = [
-    'admin' => 'uploads/manuals/admin-manual.pdf',
-    'coordinator' => 'uploads/manuals/coordinator-manual.pdf',
-    'supervisor' => 'uploads/manuals/supervisor-manual.pdf',
-    'student' => 'uploads/manuals/student-manual.pdf',
+    'admin' => 'user-manual.php?role=admin',
+    'coordinator' => 'user-manual.php?role=coordinator',
+    'supervisor' => 'user-manual.php?role=supervisor',
+    'student' => 'user-manual.php?role=student',
 ];
 $nav_manual_href = $nav_manual_files[$nav_role] ?? '';
 

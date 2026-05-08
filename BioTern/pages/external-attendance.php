@@ -295,6 +295,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $lastError = '';
             $photoPath = null;
             $proofUpload = null;
+            $hasProofUpload = isset($_FILES['proof_image'])
+                && is_array($_FILES['proof_image'])
+                && (int)($_FILES['proof_image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
             $hasSubmittableRow = false;
 
             $firstValidDate = '';
@@ -315,15 +318,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            if (!$hasSubmittableRow) {
-                external_attendance_flash_redirect('No manual external DTR rows were saved. Fill at least one row first.', 'warning', $redirectTarget);
-            }
-
             if ($firstValidDate === '') {
                 external_attendance_flash_redirect('Choose at least one valid date before submitting external DTR.', 'warning', $redirectTarget);
             }
 
-            if (isset($_FILES['proof_image']) && is_array($_FILES['proof_image']) && (int)($_FILES['proof_image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+            if (!$hasSubmittableRow && !$hasProofUpload) {
+                external_attendance_flash_redirect('No manual external DTR rows were saved. Fill at least one row or upload proof for an existing row first.', 'warning', $redirectTarget);
+            }
+
+            if ($hasProofUpload) {
                 $upload = external_attendance_store_photo($_FILES['proof_image'], $targetStudentId, $firstValidDate);
                 if (empty($upload['ok'])) {
                     external_attendance_flash_redirect((string)($upload['message'] ?? 'Could not upload proof image.'), 'warning', $redirectTarget);
@@ -353,6 +356,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 if (!$hasPunch) {
+                    if (is_array($proofUpload)) {
+                        $existingExternalRecord = external_attendance_student_record($conn, $targetStudentId, $dateValue);
+                        if ($existingExternalRecord && (int)($existingExternalRecord['id'] ?? 0) > 0) {
+                            $proofNotes = $notes !== '' ? $notes : (string)($existingExternalRecord['notes'] ?? '');
+                            $updateProof = $conn->prepare("
+                                UPDATE external_attendance
+                                SET photo_path = ?,
+                                    notes = CASE WHEN ? <> '' THEN ? ELSE notes END,
+                                    updated_at = NOW()
+                                WHERE id = ?
+                            ");
+                            if ($updateProof) {
+                                $existingAttendanceId = (int)$existingExternalRecord['id'];
+                                $updateProof->bind_param('sssi', $photoPath, $proofNotes, $proofNotes, $existingAttendanceId);
+                                $updateProof->execute();
+                                $updateProof->close();
+                                external_attendance_insert_attachment(
+                                    $conn,
+                                    $targetStudentId,
+                                    $existingAttendanceId,
+                                    $dateValue,
+                                    $proofUpload,
+                                    $notes !== '' ? $notes : 'External manual DTR proof',
+                                    $currentUserId
+                                );
+                                $savedCount++;
+                            }
+                        }
+                    }
                     continue;
                 }
 
@@ -738,6 +770,14 @@ $sql = "
     SELECT
         ea.*,
         " . external_attendance_proof_url_sql('ea') . " AS proof_photo_path,
+        (
+            SELECT eda_reason.reason
+            FROM external_dtr_attachments eda_reason
+            WHERE eda_reason.external_attendance_id = ea.id
+              AND eda_reason.deleted_at IS NULL
+            ORDER BY eda_reason.id DESC
+            LIMIT 1
+        ) AS proof_reason,
         s.student_id AS student_number,
         s.user_id,
         s.first_name,
@@ -829,11 +869,76 @@ if ($studentFilter !== '') {
 }
 $externalHasActiveFilters = $externalActiveFilters !== [];
 
+function external_attendance_time_cell($time): string
+{
+    $value = trim((string)$time);
+    if ($value === '' || $value === '00:00:00') {
+        return '<span class="text-muted">-</span>';
+    }
+
+    $timestamp = strtotime($value);
+    if ($timestamp === false) {
+        return '<span class="text-muted">-</span>';
+    }
+
+    return '<span class="badge bg-soft-primary text-primary">' . htmlspecialchars(date('h:i A', $timestamp), ENT_QUOTES, 'UTF-8') . '</span>';
+}
+
+function external_attendance_photo_cell(array $row): string
+{
+    $proofPath = trim((string)($row['proof_photo_path'] ?? ''));
+    if ($proofPath === '') {
+        return '<span class="external-attendance-no-proof">No proof</span>';
+    }
+
+    return '<a class="external-attendance-proof-thumb" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener" title="Open proof image">'
+        . '<img src="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" alt="Proof image">'
+        . '</a>';
+}
+
+function external_attendance_reports_cell(array $row): string
+{
+    $studentId = (int)($row['student_id'] ?? 0);
+    $proofPath = trim((string)($row['proof_photo_path'] ?? ''));
+    $links = [];
+
+    if ($studentId > 0) {
+        $links[] = '<a class="badge bg-soft-primary text-primary" href="external-biometric.php?student_id=' . $studentId . '">External DTR</a>';
+    }
+
+    if ($proofPath !== '') {
+        $links[] = '<a class="badge bg-soft-info text-info" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener">Proof</a>';
+    }
+
+    if ($links === []) {
+        return '<span class="text-muted">N/A</span>';
+    }
+
+    return '<div class="d-flex flex-wrap gap-1">' . implode('', $links) . '</div>';
+}
+
+function external_attendance_notes_cell(array $row): string
+{
+    $parts = [];
+    foreach (['notes', 'proof_reason'] as $key) {
+        $value = trim((string)($row[$key] ?? ''));
+        if ($value !== '' && !in_array($value, $parts, true)) {
+            $parts[] = $value;
+        }
+    }
+
+    if ($parts === []) {
+        return '<span class="external-attendance-no-proof">No notes</span>';
+    }
+
+    return '<div class="external-review-notes-text">' . htmlspecialchars(implode(' | ', $parts), ENT_QUOTES, 'UTF-8') . '</div>';
+}
+
 $page_title = 'BioTern || External Attendance';
 $page_body_class = 'external-attendance-page';
 $page_styles = [
     'assets/css/modules/management/management-students.css',
-    'assets/css/modules/pages/page-external-attendance.css?v=20260422f',
+    'assets/css/modules/pages/page-external-attendance.css?v=20260509d',
 ];
 include 'includes/header.php';
 ?>
@@ -951,7 +1056,7 @@ include 'includes/header.php';
                 </div>
             </div>
 
-            <div class="card stretch stretch-full">
+            <div class="card stretch stretch-full external-attendance-table-card app-data-card app-data-toolbar">
                 <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
                     <div>
                         <h5 class="mb-0">External Attendance Review Queue</h5>
@@ -960,23 +1065,27 @@ include 'includes/header.php';
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive external-review-table-wrap">
-                        <table class="table table-hover mb-0 external-review-table">
+                        <table class="table table-hover mb-0 external-review-table app-data-table" id="externalAttendanceReviewTable">
                             <thead>
                                 <tr>
                                     <th>Student</th>
                                     <th>Date</th>
-                                    <th>Schedule</th>
+                                    <th>Morning In</th>
+                                    <th>Morning Out</th>
+                                    <th>Afternoon In</th>
+                                    <th>Afternoon Out</th>
                                     <th>Total</th>
                                     <th>Status</th>
                                     <th>Source</th>
                                     <th>Photo</th>
+                                    <th>Reports</th>
                                     <th>Notes</th>
                                     <th>Review</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if ($rows === []): ?>
-                                    <tr><td colspan="9" class="text-center text-muted py-4">No external attendance records found.</td></tr>
+                                    <tr><td colspan="13" class="text-center text-muted py-4">No external attendance records found.</td></tr>
                                 <?php else: ?>
                                     <?php foreach ($rows as $row): ?>
                                         <?php
@@ -995,13 +1104,12 @@ include 'includes/header.php';
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td data-label="Date"><?php echo htmlspecialchars(date('M d, Y', strtotime((string)$row['attendance_date'])), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td class="external-review-schedule" data-label="Schedule">
-                                                <div class="small"><?php echo htmlspecialchars(trim((string)($row['morning_time_in'] ?? '')) !== '' ? (date('g:i A', strtotime((string)$row['morning_time_in'])) . ' - ' . (trim((string)($row['morning_time_out'] ?? '')) !== '' ? date('g:i A', strtotime((string)$row['morning_time_out'])) : '--')) : 'No morning record', ENT_QUOTES, 'UTF-8'); ?></div>
-                                                <div class="small"><?php echo htmlspecialchars(trim((string)($row['break_time_in'] ?? '')) !== '' ? (date('g:i A', strtotime((string)$row['break_time_in'])) . ' - ' . (trim((string)($row['break_time_out'] ?? '')) !== '' ? date('g:i A', strtotime((string)$row['break_time_out'])) : '--')) : 'No break record', ENT_QUOTES, 'UTF-8'); ?></div>
-                                                <div class="small"><?php echo htmlspecialchars(trim((string)($row['afternoon_time_in'] ?? '')) !== '' ? (date('g:i A', strtotime((string)$row['afternoon_time_in'])) . ' - ' . (trim((string)($row['afternoon_time_out'] ?? '')) !== '' ? date('g:i A', strtotime((string)$row['afternoon_time_out'])) : '--')) : 'No afternoon record', ENT_QUOTES, 'UTF-8'); ?></div>
-                                            </td>
-                                            <td data-label="Total">
+                                            <td data-label="Date" data-order="<?php echo htmlspecialchars((string)$row['attendance_date'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(date('M d, Y', strtotime((string)$row['attendance_date'])), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td data-label="Morning In"><?php echo external_attendance_time_cell($row['morning_time_in'] ?? ''); ?></td>
+                                            <td data-label="Morning Out"><?php echo external_attendance_time_cell($row['morning_time_out'] ?? ''); ?></td>
+                                            <td data-label="Afternoon In"><?php echo external_attendance_time_cell($row['afternoon_time_in'] ?? ''); ?></td>
+                                            <td data-label="Afternoon Out"><?php echo external_attendance_time_cell($row['afternoon_time_out'] ?? ''); ?></td>
+                                            <td data-label="Total" data-order="<?php echo htmlspecialchars((string)((float)($row['total_hours'] ?? 0)), ENT_QUOTES, 'UTF-8'); ?>">
                                                 <?php echo number_format((float)($row['total_hours'] ?? 0), 2); ?> hrs
                                                 <?php if ((float)($row['multiplier'] ?? 1) > 1): ?>
                                                     <div class="small text-muted"><?php echo htmlspecialchars((string)($row['multiplier_reason'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
@@ -1013,8 +1121,9 @@ include 'includes/header.php';
                                                 </span>
                                             </td>
                                             <td data-label="Source"><?php echo htmlspecialchars((string)($row['source'] ?? 'manual'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td data-label="Photo"><?php if (trim((string)($row['proof_photo_path'] ?? '')) !== ''): ?><a href="<?php echo htmlspecialchars((string)$row['proof_photo_path'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">Open</a><?php else: ?>-<?php endif; ?></td>
-                                            <td class="small external-review-notes" data-label="Notes"><?php echo htmlspecialchars((string)($row['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td data-label="Photo"><?php echo external_attendance_photo_cell($row); ?></td>
+                                            <td data-label="Reports"><?php echo external_attendance_reports_cell($row); ?></td>
+                                            <td class="small external-review-notes" data-label="Notes"><?php echo external_attendance_notes_cell($row); ?></td>
                                             <td data-label="Review">
                                                 <form method="post" class="d-grid gap-2 external-review-form">
                                                     <input type="hidden" name="external_admin_action" value="review">
@@ -1045,3 +1154,61 @@ include 'includes/header.php';
     </div>
 </main>
 <?php include 'includes/footer.php'; ?>
+<script>
+(function () {
+    if (window.jQuery && jQuery.fn && jQuery.fn.DataTable && document.getElementById('externalAttendanceReviewTable')) {
+        jQuery('#externalAttendanceReviewTable').DataTable({
+            pageLength: 10,
+            ordering: true,
+            searching: true,
+            bLengthChange: true,
+            info: true,
+            paging: true,
+            autoWidth: false,
+            order: [[1, 'desc']],
+            columnDefs: [
+                { orderable: false, targets: [9, 10, 11, 12] }
+            ],
+            language: {
+                emptyTable: 'No external attendance records found',
+                lengthMenu: '<span class="attendance-length-prefix">Show</span> _MENU_ <span class="attendance-length-suffix">entries</span>'
+            }
+        });
+    }
+
+    var form = document.getElementById('externalAttendanceFilterForm');
+    if (!form) {
+        return;
+    }
+
+    var submitTimer = null;
+    var isSubmitting = false;
+
+    function submitFilters(delay) {
+        window.clearTimeout(submitTimer);
+        submitTimer = window.setTimeout(function () {
+            if (isSubmitting) {
+                return;
+            }
+            isSubmitting = true;
+            form.submit();
+        }, delay || 0);
+    }
+
+    form.addEventListener('change', function (event) {
+        var target = event.target;
+        if (!target || !target.matches('select, input[type="date"]')) {
+            return;
+        }
+        submitFilters(0);
+    });
+
+    form.addEventListener('input', function (event) {
+        var target = event.target;
+        if (!target || target.name !== 'student') {
+            return;
+        }
+        submitFilters(450);
+    });
+}());
+</script>
