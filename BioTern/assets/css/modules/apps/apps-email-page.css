@@ -401,6 +401,64 @@ body.apps-email-page .email-body-content {
     line-height: 1.7;
 }
 
+body.apps-email-page .email-attachment-list {
+    display: grid;
+    gap: 0.65rem;
+}
+
+body.apps-email-page .email-attachment-title {
+    color: var(--email-text);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+body.apps-email-page .email-attachment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.6rem;
+}
+
+body.apps-email-page .email-attachment-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+    padding: 0.75rem;
+    border: 1px solid var(--email-border);
+    border-radius: 8px;
+    background: var(--email-panel-soft);
+    color: var(--email-text);
+    text-decoration: none;
+}
+
+body.apps-email-page .email-attachment-chip:hover {
+    border-color: var(--email-border-strong);
+    background: var(--email-primary-soft);
+}
+
+body.apps-email-page .email-attachment-chip i {
+    color: var(--email-primary);
+    font-size: 1.05rem;
+}
+
+body.apps-email-page .email-attachment-chip span {
+    display: grid;
+    min-width: 0;
+}
+
+body.apps-email-page .email-attachment-chip strong,
+body.apps-email-page .email-attachment-chip small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.apps-email-page .email-attachment-chip small {
+    color: var(--email-muted);
+}
+
 body.apps-email-page .email-detail-pane hr {
     border-color: var(--email-border);
     opacity: 1;
@@ -424,6 +482,139 @@ body.apps-email-page #composeMail .modal-content {
 body.apps-email-page #composeMail .modal-header,
 body.apps-email-page #composeMail .modal-footer {
     border-color: var(--email-border);
+}
+
+body.apps-email-page .email-recipient-combobox {
+    position: relative;
+}
+
+body.apps-email-page .email-recipient-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    min-height: 42px;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--email-border);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--email-surface) 92%, var(--email-surface-muted) 8%);
+    color: var(--email-text);
+    text-align: left;
+}
+
+body.apps-email-page .email-recipient-trigger:focus-visible,
+body.apps-email-page .email-recipient-combobox.is-open .email-recipient-trigger {
+    border-color: var(--email-border-strong);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--email-primary-soft) 75%, transparent);
+    outline: 0;
+}
+
+body.apps-email-page .email-recipient-trigger i {
+    color: var(--email-muted);
+}
+
+body.apps-email-page .email-recipient-menu {
+    position: absolute;
+    z-index: 12100;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    right: 0;
+    display: none;
+    max-height: 320px;
+    padding: 0.6rem;
+    border: 1px solid var(--email-border-strong);
+    border-radius: 10px;
+    background: var(--email-surface);
+    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.16);
+}
+
+body.apps-email-page .email-recipient-combobox.is-open .email-recipient-menu {
+    display: grid;
+    gap: 0.55rem;
+}
+
+body.apps-email-page .email-recipient-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--email-border);
+    border-radius: 8px;
+    background: var(--email-panel-soft);
+}
+
+body.apps-email-page .email-recipient-search-wrap i {
+    color: var(--email-muted);
+}
+
+body.apps-email-page .email-recipient-search {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--email-text);
+}
+
+body.apps-email-page .email-recipient-options {
+    display: grid;
+    gap: 0.45rem;
+    max-height: 240px;
+    overflow: auto;
+}
+
+body.apps-email-page .email-recipient-group-label {
+    padding: 0.35rem 0.35rem 0.15rem;
+    color: var(--email-primary);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+body.apps-email-page .email-recipient-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--email-text);
+    text-align: left;
+}
+
+body.apps-email-page .email-recipient-option:hover,
+body.apps-email-page .email-recipient-option.is-selected {
+    border-color: var(--email-border-strong);
+    background: var(--email-primary-soft);
+}
+
+body.apps-email-page .email-recipient-option span {
+    display: grid;
+    min-width: 0;
+}
+
+body.apps-email-page .email-recipient-option strong,
+body.apps-email-page .email-recipient-option small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.apps-email-page .email-recipient-option small,
+body.apps-email-page .email-recipient-option em {
+    color: var(--email-muted);
+    font-size: 0.74rem;
+    font-style: normal;
+}
+
+body.apps-email-page .email-recipient-empty {
+    padding: 0.8rem;
+    color: var(--email-muted);
+    text-align: center;
 }
 
 @media (max-width: 1199.98px) {

@@ -102,6 +102,25 @@ INSERT INTO `app_emails` (`id`, `sender_user_id`, `recipient_user_id`, `subject`
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `app_email_attachments`
+--
+
+CREATE TABLE `app_email_attachments` (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `email_id` bigint(20) UNSIGNED NOT NULL,
+  `file_path` varchar(255) NOT NULL DEFAULT '',
+  `file_name` varchar(255) NOT NULL DEFAULT '',
+  `file_type` varchar(100) NOT NULL DEFAULT '',
+  `file_size` bigint(20) UNSIGNED NOT NULL DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_email_attachment_email` (`email_id`),
+  KEY `idx_email_attachment_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `attendances`
 --
 

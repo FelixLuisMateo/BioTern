@@ -58,6 +58,29 @@ function email_column_exists(mysqli $conn, string $table, string $column): bool
     return $result instanceof mysqli_result && $result->num_rows > 0;
 }
 
+function email_attachment_upload_dir(): string
+{
+    return dirname(__DIR__) . '/uploads/app_email_attachments';
+}
+
+function email_ensure_upload_dir(string $path): bool
+{
+    $ready = is_dir($path) || @mkdir($path, 0755, true) || is_dir($path);
+    if ($ready) {
+        $htaccess = rtrim($path, '/\\') . DIRECTORY_SEPARATOR . '.htaccess';
+        if (!is_file($htaccess)) {
+            @file_put_contents($htaccess, "Options -ExecCGI\nRemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8\nRemoveType .php .phtml .php3 .php4 .php5 .php7 .php8\n");
+        }
+    }
+    return $ready;
+}
+
+function email_attachment_web_path(string $filePath): string
+{
+    $filePath = ltrim(str_replace('\\', '/', $filePath), '/');
+    return 'uploads/app_email_attachments/' . basename($filePath);
+}
+
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentUserName = trim((string)($_SESSION['name'] ?? $_SESSION['username'] ?? ''));
 $currentUserEmail = trim((string)($_SESSION['email'] ?? ''));
@@ -84,6 +107,20 @@ $conn->query(
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
 );
 
+$conn->query(
+    "CREATE TABLE IF NOT EXISTS app_email_attachments (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        email_id BIGINT UNSIGNED NOT NULL,
+        file_path VARCHAR(255) NOT NULL DEFAULT '',
+        file_name VARCHAR(255) NOT NULL DEFAULT '',
+        file_type VARCHAR(100) NOT NULL DEFAULT '',
+        file_size BIGINT UNSIGNED NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_email_attachment_email (email_id),
+        INDEX idx_email_attachment_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
+);
+
 if (!email_column_exists($conn, 'app_emails', 'message_uid')) {
     @mysqli_query(
         $conn,
@@ -106,6 +143,7 @@ if ((string)($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (string)($_POST['ac
     $recipientUserId = (int)($_POST['recipient_user_id'] ?? 0);
     $subject = trim((string)($_POST['subject'] ?? ''));
     $body = trim((string)($_POST['body'] ?? ''));
+    $attachmentFiles = $_FILES['attachments'] ?? null;
 
     if ($recipientUserId <= 0) {
         $_SESSION['email_flash'] = ['error' => 'Please select a recipient.'];
@@ -157,6 +195,63 @@ if ((string)($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && (string)($_POST['ac
                 $sendStmt->close();
 
                 if ($ok) {
+                    if ($newId > 0 && is_array($attachmentFiles) && isset($attachmentFiles['name']) && is_array($attachmentFiles['name'])) {
+                        $uploadDir = email_attachment_upload_dir();
+                        $maxFiles = 5;
+                        $maxFileSize = 10 * 1024 * 1024;
+                        $savedFiles = 0;
+
+                        if (email_ensure_upload_dir($uploadDir)) {
+                            $attachmentStmt = $conn->prepare(
+                                'INSERT INTO app_email_attachments (email_id, file_path, file_name, file_type, file_size, created_at) VALUES (?, ?, ?, ?, ?, NOW())'
+                            );
+                            if ($attachmentStmt) {
+                                foreach ($attachmentFiles['name'] as $index => $originalName) {
+                                    if ($savedFiles >= $maxFiles) {
+                                        break;
+                                    }
+
+                                    $error = (int)($attachmentFiles['error'][$index] ?? UPLOAD_ERR_NO_FILE);
+                                    if ($error === UPLOAD_ERR_NO_FILE) {
+                                        continue;
+                                    }
+                                    if ($error !== UPLOAD_ERR_OK) {
+                                        continue;
+                                    }
+
+                                    $tmpPath = (string)($attachmentFiles['tmp_name'][$index] ?? '');
+                                    $fileSize = (int)($attachmentFiles['size'][$index] ?? 0);
+                                    if ($tmpPath === '' || $fileSize <= 0 || $fileSize > $maxFileSize) {
+                                        continue;
+                                    }
+
+                                    $safeOriginalName = trim((string)$originalName) !== '' ? basename((string)$originalName) : 'attachment';
+                                    $extension = strtolower(pathinfo($safeOriginalName, PATHINFO_EXTENSION));
+                                    $extension = preg_match('/^[a-z0-9]{1,12}$/', $extension) ? $extension : 'bin';
+                                    if (in_array($extension, ['php', 'phtml', 'php3', 'php4', 'php5', 'php7', 'php8', 'phar', 'cgi', 'pl', 'asp', 'aspx', 'jsp', 'js', 'html', 'htm'], true)) {
+                                        $extension = 'bin';
+                                    }
+                                    $storedName = sprintf('email_%d_%s_%d.%s', $newId, bin2hex(random_bytes(8)), $index, $extension);
+                                    $storedPath = rtrim($uploadDir, '/\\') . DIRECTORY_SEPARATOR . $storedName;
+                                    if (!@move_uploaded_file($tmpPath, $storedPath)) {
+                                        continue;
+                                    }
+
+                                    $relativePath = $storedName;
+                                    $fileType = function_exists('mime_content_type') ? (string)@mime_content_type($storedPath) : '';
+                                    if ($fileType === '') {
+                                        $fileType = 'application/octet-stream';
+                                    }
+
+                                    $attachmentStmt->bind_param('isssi', $newId, $relativePath, $safeOriginalName, $fileType, $fileSize);
+                                    $attachmentStmt->execute();
+                                    $savedFiles++;
+                                }
+                                $attachmentStmt->close();
+                            }
+                        }
+                    }
+
                     $_SESSION['email_flash'] = ['success' => 'Email sent successfully.'];
                     header('Location: apps-email.php?mailbox=sent' . ($newId > 0 ? ('&view=' . $newId) : ''));
                     exit;
@@ -412,6 +507,7 @@ if ($listStmt) {
 }
 
 $selected = null;
+$selectedAttachments = [];
 if ($viewId > 0) {
     $viewSql = $mailbox === 'inbox'
         ? 'SELECT
@@ -469,6 +565,29 @@ if ($viewId > 0) {
                     $markReadStmt->close();
                 }
                 $selected['is_read'] = true;
+            }
+
+            $attachmentStmt = $conn->prepare(
+                'SELECT id, file_path, file_name, file_type, file_size
+                 FROM app_email_attachments
+                 WHERE email_id = ?
+                 ORDER BY id ASC'
+            );
+            if ($attachmentStmt) {
+                $selectedEmailId = (int)($row['id'] ?? $selected['id']);
+                $attachmentStmt->bind_param('i', $selectedEmailId);
+                $attachmentStmt->execute();
+                $attachmentRes = $attachmentStmt->get_result();
+                while ($attachment = $attachmentRes->fetch_assoc()) {
+                    $selectedAttachments[] = [
+                        'id' => (int)($attachment['id'] ?? 0),
+                        'file_path' => (string)($attachment['file_path'] ?? ''),
+                        'file_name' => (string)($attachment['file_name'] ?? 'Attachment'),
+                        'file_type' => (string)($attachment['file_type'] ?? ''),
+                        'file_size' => (int)($attachment['file_size'] ?? 0),
+                    ];
+                }
+                $attachmentStmt->close();
             }
         }
     }
@@ -658,6 +777,22 @@ include 'includes/header.php';
                             </div>
                             <hr>
                             <div class="mb-0 email-body email-body-content"><?php echo nl2br(email_esc($selected['body'])); ?></div>
+                            <?php if (!empty($selectedAttachments)): ?>
+                                <div class="email-attachment-list mt-4">
+                                    <div class="email-attachment-title"><i class="feather-paperclip me-1"></i>Attachments</div>
+                                    <div class="email-attachment-grid">
+                                        <?php foreach ($selectedAttachments as $attachment): ?>
+                                            <a class="email-attachment-chip" href="<?php echo email_esc(email_attachment_web_path($attachment['file_path'])); ?>" target="_blank" rel="noopener" download="<?php echo email_esc($attachment['file_name']); ?>">
+                                                <i class="feather-file-text"></i>
+                                                <span>
+                                                    <strong><?php echo email_esc($attachment['file_name']); ?></strong>
+                                                    <small><?php echo number_format(max(0, (int)$attachment['file_size']) / 1024, 1); ?> KB</small>
+                                                </span>
+                                            </a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -675,7 +810,7 @@ include 'includes/header.php';
                 <h5 class="modal-title"><?php echo email_esc($mailboxComposeLabel); ?></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" action="apps-email.php?mailbox=inbox">
+            <form method="post" action="apps-email.php?mailbox=inbox" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="send-email">
                 <div class="modal-body">
                     <div class="mb-3">
@@ -684,22 +819,62 @@ include 'includes/header.php';
                     </div>
                     <div class="mb-3">
                         <label class="form-label">To</label>
-                        <select name="recipient_user_id" class="form-select" required>
-                            <option value=""><?php echo email_esc($recipientPlaceholder); ?></option>
-                            <?php
-                            $usersByRole = [];
-                            foreach ($users as $u) {
-                                $usersByRole[$u['role_label']][] = $u;
+                        <?php
+                        $selectedRecipientLabel = '';
+                        foreach ($users as $u) {
+                            if ($composeRecipientId === (int)$u['id']) {
+                                $selectedRecipientLabel = trim((string)$u['display_name'] . ($u['email'] !== '' ? ' (' . $u['email'] . ')' : ''));
+                                break;
                             }
-                            foreach ($usersByRole as $roleLabel => $roleUsers):
-                            ?>
-                                <optgroup label="<?php echo email_esc($roleLabel); ?>">
-                                    <?php foreach ($roleUsers as $u): ?>
-                                        <option value="<?php echo (int)$u['id']; ?>" <?php echo $composeRecipientId === (int)$u['id'] ? 'selected' : ''; ?>><?php echo email_esc($u['display_name']); ?><?php echo $u['email'] !== '' ? ' (' . email_esc($u['email']) . ')' : ''; ?></option>
+                        }
+                        ?>
+                        <div class="email-recipient-combobox" data-email-recipient-combobox>
+                            <input type="hidden" name="recipient_user_id" value="<?php echo $composeRecipientId > 0 ? (int)$composeRecipientId : ''; ?>" data-email-recipient-value required>
+                            <button type="button" class="email-recipient-trigger" data-email-recipient-trigger aria-expanded="false">
+                                <span data-email-recipient-label><?php echo email_esc($selectedRecipientLabel !== '' ? $selectedRecipientLabel : $recipientPlaceholder); ?></span>
+                                <i class="feather-chevron-down"></i>
+                            </button>
+                            <div class="email-recipient-menu" data-email-recipient-menu>
+                                <div class="email-recipient-search-wrap">
+                                    <i class="feather-search"></i>
+                                    <input type="search" class="email-recipient-search" placeholder="Search recipient..." data-email-recipient-search autocomplete="off">
+                                </div>
+                                <div class="email-recipient-options" data-email-recipient-options>
+                                    <?php
+                                    $usersByRole = [];
+                                    foreach ($users as $u) {
+                                        $usersByRole[$u['role_label']][] = $u;
+                                    }
+                                    foreach ($usersByRole as $roleLabel => $roleUsers):
+                                    ?>
+                                        <div class="email-recipient-group" data-recipient-group>
+                                            <div class="email-recipient-group-label"><?php echo email_esc($roleLabel); ?></div>
+                                            <?php foreach ($roleUsers as $u): ?>
+                                                <?php $optionLabel = trim((string)$u['display_name'] . ($u['email'] !== '' ? ' (' . $u['email'] . ')' : '')); ?>
+                                                <button
+                                                    type="button"
+                                                    class="email-recipient-option<?php echo $composeRecipientId === (int)$u['id'] ? ' is-selected' : ''; ?>"
+                                                    data-email-recipient-option
+                                                    data-recipient-id="<?php echo (int)$u['id']; ?>"
+                                                    data-recipient-label="<?php echo email_esc($optionLabel); ?>"
+                                                    data-recipient-search="<?php echo email_esc(strtolower($optionLabel . ' ' . $u['role_label'])); ?>"
+                                                >
+                                                    <span>
+                                                        <strong><?php echo email_esc($u['display_name']); ?></strong>
+                                                        <small><?php echo email_esc($u['email'] !== '' ? $u['email'] : $u['role_label']); ?></small>
+                                                    </span>
+                                                    <em><?php echo email_esc($u['role_label']); ?></em>
+                                                </button>
+                                            <?php endforeach; ?>
+                                        </div>
                                     <?php endforeach; ?>
-                                </optgroup>
-                            <?php endforeach; ?>
-                        </select>
+                                    <div class="email-recipient-empty" data-email-recipient-empty>No recipients found.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php if (empty($users)): ?>
+                            <div class="alert alert-warning py-2 px-3 mt-2 mb-0">No active recipients found.</div>
+                        <?php endif; ?>
                         <div class="form-text"><?php echo email_esc($recipientHelpText); ?></div>
                     </div>
                     <div class="mb-3">
@@ -709,6 +884,11 @@ include 'includes/header.php';
                     <div class="mb-0">
                         <label class="form-label">Message</label>
                         <textarea name="body" class="form-control" rows="7" placeholder="Write your message..."><?php echo email_esc($composeBody); ?></textarea>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label" for="emailAttachments">Attach files</label>
+                        <input type="file" name="attachments[]" id="emailAttachments" class="form-control" multiple>
+                        <div class="form-text">You can attach up to 5 files, 10MB each.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
