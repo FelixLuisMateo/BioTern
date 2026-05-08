@@ -5020,6 +5020,47 @@ ALTER TABLE `students`
 ALTER TABLE `supervisors`
   ADD CONSTRAINT `supervisors_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `supervisors_ibfk_2` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL;
+
+--
+-- Runtime tables required by system code
+--
+
+CREATE TABLE IF NOT EXISTS `audit_logs` (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) DEFAULT NULL,
+  `action` varchar(100) NOT NULL,
+  `entity_type` varchar(100) NOT NULL,
+  `entity_id` int(11) DEFAULT NULL,
+  `before_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`before_data`)),
+  `after_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`after_data`)),
+  `ip_address` varchar(64) DEFAULT NULL,
+  `user_agent` text DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_logs_user` (`user_id`),
+  KEY `idx_audit_logs_action` (`action`),
+  KEY `idx_audit_logs_entity` (`entity_type`,`entity_id`),
+  KEY `idx_audit_logs_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `biometric_event_queue` (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `student_id` int(11) NOT NULL,
+  `attendance_date` date NOT NULL,
+  `clock_type` varchar(50) NOT NULL,
+  `clock_time` time NOT NULL,
+  `event_source` varchar(100) NOT NULL DEFAULT 'biometric-machine',
+  `status` varchar(20) NOT NULL DEFAULT 'pending',
+  `retries` int(11) NOT NULL DEFAULT 0,
+  `last_error` text DEFAULT NULL,
+  `processed_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_biometric_event_status` (`status`,`retries`),
+  KEY `idx_biometric_event_student_date` (`student_id`,`attendance_date`),
+  KEY `idx_biometric_event_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

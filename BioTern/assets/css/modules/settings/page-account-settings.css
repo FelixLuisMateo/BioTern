@@ -455,6 +455,53 @@ body.account-settings-page .settings-hub.account-settings-shell {
     gap: 10px;
     cursor: pointer;
     font-weight: 600;
+    user-select: none;
+}
+
+.account-password-toggle-input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+}
+
+.account-password-toggle-switch {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 20px;
+    border-radius: 999px;
+    border: 1px solid rgba(113, 128, 150, 0.42);
+    background: rgba(148, 163, 184, 0.18);
+    transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.account-password-toggle-switch::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.22);
+    transition: transform 0.18s ease;
+}
+
+.account-password-toggle-input:checked + .account-password-toggle-switch {
+    border-color: rgba(52, 84, 209, 0.78);
+    background: #3454d1;
+}
+
+.account-password-toggle-input:checked + .account-password-toggle-switch::after {
+    transform: translateX(16px);
+}
+
+.account-password-toggle-input:focus-visible + .account-password-toggle-switch {
+    box-shadow: 0 0 0 3px rgba(52, 84, 209, 0.2);
 }
 
 .account-form-grid .form-control {
@@ -544,6 +591,16 @@ body.account-settings-page .account-form-actions .btn {
 
 body.account-settings-page .account-password-toggle {
     font-size: 0.72rem;
+}
+
+html.app-skin-dark .account-password-toggle-switch {
+    border-color: rgba(148, 163, 184, 0.32);
+    background: rgba(15, 23, 42, 0.72);
+}
+
+html.app-skin-dark .account-password-toggle-input:checked + .account-password-toggle-switch {
+    border-color: rgba(96, 125, 255, 0.85);
+    background: #4f6df5;
 }
 
 body.account-settings-page .account-note {

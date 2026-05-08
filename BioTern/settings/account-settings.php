@@ -527,7 +527,11 @@ include dirname(__DIR__) . '/includes/header.php';
                                                 <div><label class="form-label" for="new_password">New Password</label><input type="password" id="new_password" name="new_password" class="form-control" minlength="8" data-account-password-field required></div>
                                                 <div><label class="form-label" for="confirm_password">Confirm Password</label><input type="password" id="confirm_password" name="confirm_password" class="form-control" minlength="8" data-account-password-field required></div>
                                             </div>
-                                            <label class="account-password-toggle mt-3"><input type="checkbox" data-account-password-toggle><span data-account-password-toggle-label>Show passwords</span></label>
+                                            <label class="account-password-toggle mt-3">
+                                                <input type="checkbox" class="account-password-toggle-input" data-account-password-toggle>
+                                                <span class="account-password-toggle-switch" aria-hidden="true"></span>
+                                                <span data-account-password-toggle-label>Show passwords</span>
+                                            </label>
                                             <div class="account-form-actions mt-3"><button type="submit" class="btn btn-outline-primary">Update Password</button></div>
                                             <p class="account-note mb-0 mt-3">Use at least 8 characters, including uppercase, lowercase, and a number.</p>
                                         </form>
