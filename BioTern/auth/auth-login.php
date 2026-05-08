@@ -271,7 +271,7 @@ function biotern_send_login_verification_email(mysqli $mysqli, int $userId, stri
         return ['ok' => false, 'reference' => '', 'error' => 'Invalid email verification request.'];
     }
 
-    $appBaseUrl = biotern_mail_asset_base();
+    $appBaseUrl = biotern_mail_public_base($mysqli);
     $verifyPath = 'auth/auth-register-verify.php?login_token=' . rawurlencode($verifyToken) . '&approve=1';
     $verifyUrl = $appBaseUrl !== '' ? ($appBaseUrl . '/' . ltrim($verifyPath, '/')) : $verifyPath;
     $safeEmail = htmlspecialchars($targetEmail, ENT_QUOTES, 'UTF-8');

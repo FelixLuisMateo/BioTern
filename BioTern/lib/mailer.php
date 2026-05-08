@@ -59,6 +59,16 @@ if (!function_exists('biotern_mail_asset_base')) {
     }
 }
 
+if (!function_exists('biotern_mail_public_base')) {
+    function biotern_mail_public_base(mysqli $conn): string
+    {
+        $settings = biotern_mail_settings($conn);
+        $base = trim((string)($settings['mail_asset_base_url'] ?? ''));
+
+        return $base !== '' ? rtrim($base, '/') : biotern_mail_asset_base();
+    }
+}
+
 if (!function_exists('biotern_mail_log_error')) {
     function biotern_mail_log_error(string $reason): string
     {
@@ -93,6 +103,7 @@ if (!function_exists('biotern_mail_settings')) {
             'mail_from_name' => biotern_mail_env_value('MAIL_FROM_NAME', 'BioTern'),
             'mail_from_email' => biotern_mail_env_value('MAIL_FROM_ADDRESS', ''),
             'reply_to_email' => '',
+            'mail_asset_base_url' => biotern_mail_env_value('MAIL_ASSET_BASE_URL', biotern_mail_env_value('APP_URL', '')),
             'mail_http_endpoint' => biotern_mail_env_value('MAIL_HTTP_ENDPOINT', ''),
             'mail_http_token' => biotern_mail_env_value('MAIL_HTTP_TOKEN', ''),
             'enable_email_notifications' => '1',

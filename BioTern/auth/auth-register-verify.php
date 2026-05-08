@@ -37,7 +37,7 @@ function biotern_send_login_verify_page_email(mysqli $conn, int $userId, string 
         return ['ok' => false, 'reference' => '', 'error' => 'Invalid verification request.'];
     }
 
-    $appBaseUrl = biotern_mail_asset_base();
+    $appBaseUrl = biotern_mail_public_base($conn);
     $verifyPath = 'auth/auth-register-verify.php?login_token=' . rawurlencode($verifyToken) . '&approve=1';
     $verifyUrl = $appBaseUrl !== '' ? ($appBaseUrl . '/' . ltrim($verifyPath, '/')) : $verifyPath;
     $safeEmail = htmlspecialchars($targetEmail, ENT_QUOTES, 'UTF-8');
@@ -190,6 +190,17 @@ if ($approvedFromEmail && $_SERVER['REQUEST_METHOD'] !== 'POST') {
             backdrop-filter: blur(6px);
         }
         .verify-card .btn { min-height: 50px; font-weight: 600; }
+        .verify-card .verify-back-btn {
+            background: #eef4ff;
+            border-color: #c7d7fe;
+            color: #10203f;
+        }
+        .verify-card .verify-back-btn:hover,
+        .verify-card .verify-back-btn:focus {
+            background: #ffffff;
+            border-color: #dbe7ff;
+            color: #0b1220;
+        }
         .verify-meta { color: #b2bfd5; font-size: .98rem; }
         .verify-email-pill {
             display: inline-flex;
@@ -227,7 +238,7 @@ if ($approvedFromEmail && $_SERVER['REQUEST_METHOD'] !== 'POST') {
             <input type="hidden" name="action" value="resend">
             <input type="hidden" name="login_token" value="<?php echo htmlspecialchars($loginToken, ENT_QUOTES, 'UTF-8'); ?>">
             <button type="submit" class="btn btn-primary">Resend Verification Email</button>
-            <a href="<?php echo htmlspecialchars($route_prefix . 'auth-login.php', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-light">Back to Login</a>
+            <a href="<?php echo htmlspecialchars($route_prefix . 'auth-login.php', ENT_QUOTES, 'UTF-8'); ?>" class="btn verify-back-btn">Back to Login</a>
         </form>
         <div class="verify-helper">
             This verification link expires in <?php echo max(1, (int)ceil(max(0, $expiresAt - time()) / 60)); ?> minute(s). After you verify your email, come back and log in with your Student ID and password.

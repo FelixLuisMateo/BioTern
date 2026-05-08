@@ -101,6 +101,7 @@ $defaults = [
     'mail_from_name' => 'BioTern',
     'mail_from_email' => 'noreply@biotern.local',
     'reply_to_email' => 'support@biotern.local',
+    'mail_asset_base_url' => '',
     'enable_email_notifications' => '1',
     'send_application_updates' => '1',
 ];
@@ -114,6 +115,7 @@ $field_meta = [
     'mail_from_name' => 'Default sender name for outgoing emails.',
     'mail_from_email' => 'Default sender email address for outgoing emails.',
     'reply_to_email' => 'Reply-to address used in outgoing emails.',
+    'mail_asset_base_url' => 'Public app URL used for email verification links.',
     'enable_email_notifications' => 'Global toggle for BioTern email notifications.',
     'send_application_updates' => 'Send application status updates through email.',
 ];
@@ -135,6 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $settings['mail_from_name'] = trim((string) ($_POST['mail_from_name'] ?? ''));
     $settings['mail_from_email'] = trim((string) ($_POST['mail_from_email'] ?? ''));
     $settings['reply_to_email'] = trim((string) ($_POST['reply_to_email'] ?? ''));
+    $settings['mail_asset_base_url'] = rtrim(trim((string) ($_POST['mail_asset_base_url'] ?? '')), '/');
     $settings['enable_email_notifications'] = isset($_POST['enable_email_notifications']) ? '1' : '0';
     $settings['send_application_updates'] = isset($_POST['send_application_updates']) ? '1' : '0';
 
@@ -155,6 +158,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($settings['reply_to_email'] !== '' && !filter_var($settings['reply_to_email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Reply-to email must be a valid email address.';
+    }
+    if ($settings['mail_asset_base_url'] !== '' && !filter_var($settings['mail_asset_base_url'], FILTER_VALIDATE_URL)) {
+        $errors[] = 'Public app URL must be a valid URL.';
     }
 
     if (!$errors) {
@@ -249,6 +255,11 @@ require_once dirname(__DIR__) . '/includes/header.php';
                         <div class="settings-field">
                             <label for="reply_to_email">Reply-To Email</label>
                             <input type="email" class="form-control" id="reply_to_email" name="reply_to_email" value="<?= se_h($settings['reply_to_email']) ?>">
+                        </div>
+                        <div class="settings-field full">
+                            <label for="mail_asset_base_url">Public App URL</label>
+                            <input type="url" class="form-control" id="mail_asset_base_url" name="mail_asset_base_url" value="<?= se_h($settings['mail_asset_base_url']) ?>" placeholder="https://your-domain.com/BioTern">
+                            <small class="text-muted">Use a URL that can be opened from the device receiving the email. For phone testing, do not use localhost.</small>
                         </div>
                         <div class="settings-field full">
                             <div class="settings-switches">
