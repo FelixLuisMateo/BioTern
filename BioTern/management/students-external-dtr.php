@@ -216,12 +216,18 @@ include 'includes/header.php';
                         <div class="app-students-dtr-toolbar-side">
                             <form method="get" action="" class="d-flex gap-2 align-items-center app-students-dtr-filter-form">
                                 <input type="hidden" name="id" value="<?php echo intval($student_id); ?>">
-                                <label class="app-students-dtr-filter-label" for="students-dtr-month">Month</label>
-                                <input id="students-dtr-month" type="month" name="month" class="form-control" value="<?php echo h($month_input); ?>">
-                                <label class="app-students-dtr-filter-label" for="students-dtr-start">Start</label>
-                                <input id="students-dtr-start" type="date" name="start_date" class="form-control" value="<?php echo h($start_date_input); ?>">
-                                <label class="app-students-dtr-filter-label" for="students-dtr-end">End</label>
-                                <input id="students-dtr-end" type="date" name="end_date" class="form-control" value="<?php echo h($end_date_input); ?>">
+                                <div class="app-students-dtr-filter-field">
+                                    <label class="app-students-dtr-filter-label" for="students-dtr-month">Month</label>
+                                    <input id="students-dtr-month" type="month" name="month" class="form-control" value="<?php echo h($month_input); ?>">
+                                </div>
+                                <div class="app-students-dtr-filter-field">
+                                    <label class="app-students-dtr-filter-label" for="students-dtr-start">Start</label>
+                                    <input id="students-dtr-start" type="date" name="start_date" class="form-control" value="<?php echo h($start_date_input); ?>">
+                                </div>
+                                <div class="app-students-dtr-filter-field">
+                                    <label class="app-students-dtr-filter-label" for="students-dtr-end">End</label>
+                                    <input id="students-dtr-end" type="date" name="end_date" class="form-control" value="<?php echo h($end_date_input); ?>">
+                                </div>
                                 <button type="submit" class="btn btn-light-brand">Load</button>
                             </form>
                             <div class="app-students-dtr-hours-chip">

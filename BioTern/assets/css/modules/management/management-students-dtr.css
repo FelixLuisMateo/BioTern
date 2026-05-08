@@ -66,13 +66,19 @@
 
 .app-students-dtr-filter-form {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(150px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.65rem;
-    align-items: center;
+    align-items: end;
     padding: 0.82rem 0.95rem;
     border: 1px solid #dbe7f6;
     border-radius: 12px;
     background: #ffffff;
+}
+
+.app-students-dtr-filter-field {
+    display: grid;
+    gap: 0.38rem;
+    min-width: 0;
 }
 
 .app-students-dtr-filter-label {
@@ -84,8 +90,18 @@
     color: #64748b;
 }
 
+.app-students-dtr-filter-form .btn {
+    min-height: 40px;
+    width: 100%;
+}
+
+.app-students-dtr-filter-form .app-students-dtr-filter-field:first-of-type {
+    grid-column: 1 / -1;
+}
+
 .app-students-dtr-filter-form .form-control {
     min-height: 40px;
+    width: 100%;
     color: #172033;
     background-color: #ffffff;
     border-color: #d6e2f1;
@@ -643,6 +659,10 @@ html.app-skin-dark .dtr-day-card .badge.bg-soft-secondary {
 
     .app-students-dtr-filter-form {
         grid-template-columns: 1fr;
+    }
+
+    .app-students-dtr-filter-form .app-students-dtr-filter-field:first-of-type {
+        grid-column: auto;
     }
 
     .app-students-dtr-filter-form .btn,
