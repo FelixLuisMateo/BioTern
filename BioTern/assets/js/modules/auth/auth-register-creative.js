@@ -758,7 +758,6 @@ function setupFloatingTextFields() {
                     ['Last Name', getFieldDisplay('last_name')],
                     ['Address', String((document.getElementById('studentAddress') || {}).value || '-').trim() || '-'],
                     ['Course', getFieldDisplay('course_id')],
-                    ['Department', getFieldDisplay('department_id')],
                     ['Section', getFieldDisplay('section')],
                     ['Coordinator', getFieldDisplay('coordinator_id')],
                     ['Supervisor', getFieldDisplay('supervisor_id')],
@@ -1224,6 +1223,7 @@ function setupFloatingTextFields() {
                 const option = document.createElement('option');
                 option.value = code || String(rec.id);
                 option.textContent = label;
+                option.setAttribute('data-department-id', String(rec.department_id || ''));
                 sectionSelect.appendChild(option);
                 inserted++;
             });
@@ -1276,7 +1276,29 @@ function setupFloatingTextFields() {
         function setupAcademicFilters() {
             const courseSelect = document.getElementById('studentCourseSelect');
             const deptSelect = document.getElementById('studentDepartmentSelect');
+            const sectionSelect = document.getElementById('studentSectionSelect');
             if (!courseSelect) return;
+
+            function syncDepartmentFromSection() {
+                if (!deptSelect || !sectionSelect || typeof sectionSelect.options === 'undefined') return;
+                const selectedSection = sectionSelect.options[sectionSelect.selectedIndex] || null;
+                const sectionDepartmentId = selectedSection ? String(selectedSection.getAttribute('data-department-id') || '').trim() : '';
+                if (sectionDepartmentId !== '') {
+                    deptSelect.value = sectionDepartmentId;
+                }
+            }
+
+            function refreshRoleFilters() {
+                const selectedCourse = courseSelect.options[courseSelect.selectedIndex] || null;
+                const courseId = selectedCourse ? selectedCourse.value : '';
+                const courseCode = selectedCourse ? ((selectedCourse.getAttribute('data-course-code') || '').trim().toUpperCase()) : '';
+                const isAct = courseCode === 'ACT';
+                const selectedDeptId = deptSelect ? (deptSelect.value || '') : '';
+                const allowedDeptIds = getCourseAllowedDepartmentIds(courseId);
+
+                filterRoleOptionsByDept('studentCoordinatorSelect', allowedDeptIds, selectedDeptId, isAct);
+                filterRoleOptionsByDept('studentSupervisorSelect', allowedDeptIds, selectedDeptId, isAct);
+            }
 
             function applyFilters() {
                 const selectedCourse = courseSelect.options[courseSelect.selectedIndex] || null;
@@ -1288,14 +1310,21 @@ function setupFloatingTextFields() {
                 const selectedDeptId = deptSelect ? (deptSelect.value || '') : '';
 
                 filterSectionOptions(courseId, selectedDeptId);
-                filterRoleOptionsByDept('studentCoordinatorSelect', allowedDeptIds, selectedDeptId, isAct);
-                filterRoleOptionsByDept('studentSupervisorSelect', allowedDeptIds, selectedDeptId, isAct);
+                syncDepartmentFromSection();
+                filterRoleOptionsByDept('studentCoordinatorSelect', allowedDeptIds, deptSelect ? (deptSelect.value || '') : selectedDeptId, isAct);
+                filterRoleOptionsByDept('studentSupervisorSelect', allowedDeptIds, deptSelect ? (deptSelect.value || '') : selectedDeptId, isAct);
             }
 
             if (courseSelect.dataset.academicBound !== '1') {
                 courseSelect.addEventListener('change', applyFilters);
                 if (deptSelect && typeof deptSelect.addEventListener === 'function' && typeof deptSelect.options !== 'undefined') {
                     deptSelect.addEventListener('change', applyFilters);
+                }
+                if (sectionSelect && typeof sectionSelect.addEventListener === 'function') {
+                    sectionSelect.addEventListener('change', function() {
+                        syncDepartmentFromSection();
+                        refreshRoleFilters();
+                    });
                 }
                 courseSelect.dataset.academicBound = '1';
             }

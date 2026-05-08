@@ -41,7 +41,18 @@ if (!function_exists('biotern_mail_asset_base')) {
 
         if ($base === '' && !empty($_SERVER['HTTP_HOST'])) {
             $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-            $base = $scheme . '://' . $_SERVER['HTTP_HOST'];
+            $scriptName = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+            $scriptDir = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+            $appPath = $scriptDir;
+
+            foreach (['/auth', '/api', '/apps', '/management', '/pages', '/reports', '/settings', '/tools'] as $suffix) {
+                if (substr($appPath, -strlen($suffix)) === $suffix) {
+                    $appPath = substr($appPath, 0, -strlen($suffix));
+                    break;
+                }
+            }
+
+            $base = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($appPath !== '' && $appPath !== '/' ? $appPath : '');
         }
 
         return rtrim($base, '/');

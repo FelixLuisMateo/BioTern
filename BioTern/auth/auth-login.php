@@ -272,7 +272,7 @@ function biotern_send_login_verification_email(mysqli $mysqli, int $userId, stri
     }
 
     $appBaseUrl = biotern_mail_asset_base();
-    $verifyPath = 'auth-register-verify.php?login_token=' . rawurlencode($verifyToken) . '&approve=1';
+    $verifyPath = 'auth/auth-register-verify.php?login_token=' . rawurlencode($verifyToken) . '&approve=1';
     $verifyUrl = $appBaseUrl !== '' ? ($appBaseUrl . '/' . ltrim($verifyPath, '/')) : $verifyPath;
     $safeEmail = htmlspecialchars($targetEmail, ENT_QUOTES, 'UTF-8');
     $safeVerifyUrl = htmlspecialchars($verifyUrl, ENT_QUOTES, 'UTF-8');
