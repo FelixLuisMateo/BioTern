@@ -308,23 +308,7 @@ if (!function_exists('loadBiometricMachineConfig')) {
 if (!function_exists('isWithinConfiguredAttendanceWindow')) {
     function isWithinConfiguredAttendanceWindow(string $time, array $machineConfig): bool
     {
-        $enabled = !empty($machineConfig['attendanceWindowEnabled']);
-        if (!$enabled) {
-            return true;
-        }
-
-        $start = trim((string)($machineConfig['attendanceStartTime'] ?? '08:00:00'));
-        $end = trim((string)($machineConfig['attendanceEndTime'] ?? '20:00:00'));
-
-        if (!preg_match('/^\d{2}:\d{2}:\d{2}$/', $time) || !preg_match('/^\d{2}:\d{2}:\d{2}$/', $start) || !preg_match('/^\d{2}:\d{2}:\d{2}$/', $end)) {
-            return true;
-        }
-
-        if ($start <= $end) {
-            return $time >= $start && $time <= $end;
-        }
-
-        return $time >= $start || $time <= $end;
+        return preg_match('/^\d{2}:\d{2}:\d{2}$/', $time) === 1;
     }
 }
 
@@ -377,9 +361,7 @@ if (!function_exists('biometricMachineIsWithinHardWindow')) {
     function biometricMachineIsWithinHardWindow(string $time, array $machineConfig, array $effectiveSchedule = []): bool
     {
         $time = section_schedule_normalize_time_input($time);
-        // Keep every valid punch for audit/reporting.
-        // Credited attendance time is clamped later against the official schedule,
-        // while early arrivals and late departures are surfaced in reports.
+        // Keep every valid punch so early arrivals and late departures are credited.
         return $time !== null;
     }
 }

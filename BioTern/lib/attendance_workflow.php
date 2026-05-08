@@ -195,15 +195,7 @@ if (!function_exists('attendance_workflow_clamped_duration_seconds')) {
             return 0;
         }
 
-        $windowStartTs = strtotime($windowStart);
-        $windowEndTs = strtotime($windowEnd);
-        if ($windowStartTs === false || $windowEndTs === false) {
-            return max(0, $endTs - $startTs);
-        }
-
-        $clampedStart = max($startTs, $windowStartTs);
-        $clampedEnd = min($endTs, $windowEndTs);
-        return max(0, $clampedEnd - $clampedStart);
+        return max(0, $endTs - $startTs);
     }
 }
 
