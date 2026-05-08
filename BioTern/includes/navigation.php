@@ -206,7 +206,7 @@ $nav_active_users = biotern_nav_any_active($nav_current_file, [
 ]);
 $nav_active_settings = biotern_nav_any_active($nav_current_file, [
     'settings-general.php', 'settings-email.php', 'settings-ojt.php', 'settings-students.php',
-    'settings-support.php',
+    'settings-attendance.php', 'settings-support.php',
     'notifications.php', 'account-settings.php',
 ]);
 $nav_active_system_logs = biotern_nav_any_active($nav_current_file, [
@@ -487,6 +487,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('settings-email.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-email.php">Email</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('settings-ojt.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-ojt.php">OJT Settings</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('settings-students.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-students.php">Student Settings</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('settings-attendance.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-attendance.php">Attendance Settings</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('settings-support.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="settings-support.php">Support</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('notifications.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="notifications.php">Notifications</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('account-settings.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="account-settings.php">Account Settings</a></li>

@@ -26,6 +26,7 @@
       remainingSeconds
     );
     var isClockedIn = String((cfg && cfg.dataset.isClockedIn) || "0") === "1";
+    var useScheduleCutoff = String((cfg && cfg.dataset.useScheduleCutoff) || "0") === "1";
     var openClockInRaw = (cfg && cfg.dataset.openClockInRaw) || "";
     var sessionCutoffRaw = (cfg && cfg.dataset.sessionCutoffRaw) || "";
 
@@ -131,6 +132,7 @@
     }
 
     function maxPreviewSeconds() {
+      if (!useScheduleCutoff) return Number.POSITIVE_INFINITY;
       if (!isClockedIn || !openClockInRaw || !sessionCutoffRaw) return 0;
       var now = new Date();
       var startParts = String(openClockInRaw).split(":");
@@ -184,7 +186,11 @@
       updateInternalHoursFromSeconds();
       updateCompletionFromSeconds();
 
-      if (isClockedIn && remainingSeconds > 0 && secondsUntilCutoff() > 0) {
+      if (
+        isClockedIn &&
+        remainingSeconds > 0 &&
+        (!useScheduleCutoff || secondsUntilCutoff() > 0)
+      ) {
         remainingSeconds--;
       }
 

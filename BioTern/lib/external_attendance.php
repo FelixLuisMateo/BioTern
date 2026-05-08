@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/section_schedule.php';
 require_once __DIR__ . '/attendance_bonus_rules.php';
+require_once __DIR__ . '/attendance_settings.php';
 
 if (!function_exists('external_attendance_ensure_schema')) {
     function external_attendance_ensure_schema(mysqli $conn): void
@@ -595,22 +596,39 @@ if (!function_exists('external_attendance_clamped_duration_seconds')) {
     }
 }
 
+if (!function_exists('external_attendance_actual_duration_seconds')) {
+    function external_attendance_actual_duration_seconds(?int $startTs, ?int $endTs): int
+    {
+        if ($startTs === null || $endTs === null || $endTs <= $startTs) {
+            return 0;
+        }
+
+        return max(0, $endTs - $startTs);
+    }
+}
+
 if (!function_exists('external_attendance_credited_seconds')) {
     function external_attendance_credited_seconds(array $record, array $bounds): int
     {
+        global $conn;
         $officialStart = (string)($bounds['official_start'] ?? '08:00:00');
         $officialEnd = (string)($bounds['official_end'] ?? '17:00:00');
+        $useScheduleCredit = ($conn instanceof mysqli) && biotern_attendance_uses_schedule_credit($conn, 'external');
         $totalSeconds = 0;
 
         foreach ([['morning_time_in', 'morning_time_out'], ['afternoon_time_in', 'afternoon_time_out']] as $pair) {
             $startTs = external_attendance_parse_time($record[$pair[0]] ?? null);
             $endTs = external_attendance_parse_time($record[$pair[1]] ?? null);
-            $totalSeconds += external_attendance_clamped_duration_seconds($startTs, $endTs, $officialStart, $officialEnd);
+            $totalSeconds += $useScheduleCredit
+                ? external_attendance_clamped_duration_seconds($startTs, $endTs, $officialStart, $officialEnd)
+                : external_attendance_actual_duration_seconds($startTs, $endTs);
         }
 
         $breakStart = external_attendance_parse_time($record['break_time_in'] ?? null);
         $breakEnd = external_attendance_parse_time($record['break_time_out'] ?? null);
-        $totalSeconds -= external_attendance_clamped_duration_seconds($breakStart, $breakEnd, $officialStart, $officialEnd);
+        $totalSeconds -= $useScheduleCredit
+            ? external_attendance_clamped_duration_seconds($breakStart, $breakEnd, $officialStart, $officialEnd)
+            : external_attendance_actual_duration_seconds($breakStart, $breakEnd);
 
         return max(0, $totalSeconds);
     }

@@ -902,6 +902,15 @@ function attendanceDateWeekdayKey(?string $date): string {
 }
 
 function attendanceScheduleDisplayFallback(array $attendance, string $column): ?string {
+    global $conn;
+
+    if ($conn instanceof mysqli) {
+        $settings = biotern_attendance_settings($conn);
+        if ((string)($settings['scheduled_slot_display'] ?? '1') !== '1') {
+            return null;
+        }
+    }
+
     if (strtolower(trim((string)($attendance['source'] ?? ''))) !== 'biometric') {
         return null;
     }
@@ -992,42 +1001,17 @@ function attendanceScheduledClassLabel(array $attendance): string
     $scheduleOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
 
     if ($scheduleIn === '' || $scheduleOut === '') {
-        return 'Scheduled class time';
+        return 'Class';
     }
 
     $from = date('g:i A', strtotime($scheduleIn));
     $to = date('g:i A', strtotime($scheduleOut));
-    return 'Scheduled class: ' . $from . ' to ' . $to;
+    return $from . ' to ' . $to;
 }
 
 function attendanceExpectedEndLabel(array $attendance, string $column): string
 {
-    if (!in_array($column, ['morning_time_out', 'afternoon_time_out'], true)) {
-        return '';
-    }
-
-    $schedule = attendance_effective_schedule($attendance);
-    if (($schedule['window_source'] ?? 'none') === 'none') {
-        return '';
-    }
-
-    $scheduleOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
-    if ($scheduleOut === '') {
-        return '';
-    }
-
-    $session = section_schedule_inferred_session($schedule);
-    if ($session === 'morning_only' && $column !== 'morning_time_out') {
-        return '';
-    }
-    if ($session === 'afternoon_only' && $column !== 'afternoon_time_out') {
-        return '';
-    }
-    if ($session === 'whole_day' && $column !== 'afternoon_time_out') {
-        return '';
-    }
-
-    return 'Expected end: ' . date('g:i A', strtotime($scheduleOut));
+    return '';
 }
 
 function attendanceDisplayTimeHtml(array $attendance, string $column, string $badgeClass): string {
@@ -1049,9 +1033,8 @@ function attendanceDisplayTimeHtml(array $attendance, string $column, string $ba
         return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8') . '</span>';
     }
 
-    $scheduledLabel = attendanceScheduledClassLabel($attendance);
-    return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($timeLabel, ENT_QUOTES, 'UTF-8') . '</span>'
-        . '<div class="fs-11 text-muted mt-1">' . htmlspecialchars($scheduledLabel, ENT_QUOTES, 'UTF-8') . '</div>';
+    $classTimeLabel = date('g:i A', strtotime((string)$resolved['time']));
+    return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($classTimeLabel . ' Class', ENT_QUOTES, 'UTF-8') . '</span>';
 }
 
 function resolve_attendance_profile_image_url(string $profilePath, int $userId = 0): ?string {
@@ -1218,11 +1201,26 @@ function attendance_clamped_duration_seconds(?int $startTs, ?int $endTs, string 
     return max(0, $clampedEnd - $clampedStart);
 }
 
+function attendance_actual_duration_seconds(?int $startTs, ?int $endTs): int
+{
+    if ($startTs === null || $endTs === null || $endTs <= $startTs) {
+        return 0;
+    }
+
+    return max(0, $endTs - $startTs);
+}
+
 function attendance_credited_seconds(array $attendance, ?array $bounds = null): int
 {
     $bounds = is_array($bounds) ? $bounds : attendance_schedule_bounds($attendance);
     $officialStart = (string)($bounds['official_start'] ?? '08:00:00');
     $officialEnd = (string)($bounds['official_end'] ?? '19:00:00');
+    $useScheduleCredit = false;
+    global $conn;
+    if ($conn instanceof mysqli) {
+        $track = strtolower(trim((string)($attendance['record_origin'] ?? 'internal')));
+        $useScheduleCredit = biotern_attendance_uses_schedule_credit($conn, $track === 'external' ? 'external' : 'internal');
+    }
 
     $totalSeconds = 0;
     $pairs = [
@@ -1233,12 +1231,16 @@ function attendance_credited_seconds(array $attendance, ?array $bounds = null): 
     foreach ($pairs as $pair) {
         $startTs = parseAttendanceTime($attendance[$pair[0]] ?? null);
         $endTs = parseAttendanceTime($attendance[$pair[1]] ?? null);
-        $totalSeconds += attendance_clamped_duration_seconds($startTs, $endTs, $officialStart, $officialEnd);
+        $totalSeconds += $useScheduleCredit
+            ? attendance_clamped_duration_seconds($startTs, $endTs, $officialStart, $officialEnd)
+            : attendance_actual_duration_seconds($startTs, $endTs);
     }
 
     $breakInTs = parseAttendanceTime($attendance['break_time_in'] ?? null);
     $breakOutTs = parseAttendanceTime($attendance['break_time_out'] ?? null);
-    $totalSeconds -= attendance_clamped_duration_seconds($breakInTs, $breakOutTs, $officialStart, $officialEnd);
+    $totalSeconds -= $useScheduleCredit
+        ? attendance_clamped_duration_seconds($breakInTs, $breakOutTs, $officialStart, $officialEnd)
+        : attendance_actual_duration_seconds($breakInTs, $breakOutTs);
 
     return max(0, $totalSeconds);
 }
@@ -2210,7 +2212,6 @@ echo $stats['total_count'] ?? 0; ?></span>
                                                 </th>
                                                 <th>Student Name</th>
                                                 <th>Attendance Date</th>
-                                                <th>Class Schedule</th>
                                                 <th>Morning In</th>
                                                 <th>Morning Out</th>
                                                 <th>Afternoon In</th>
@@ -2267,7 +2268,6 @@ echo $attendance['student_number'] ?? 'N/A'; ?></span>
                                                         </td>
                                                         <td data-label="Attendance Date"><span class="badge bg-soft-primary text-primary"><?php
 echo date('Y-m-d', strtotime($attendance['attendance_date'])); ?></span></td>
-                                                        <td data-label="Class Schedule"><span class="badge bg-soft-info text-info"><?php echo htmlspecialchars(attendanceScheduledClassLabel($attendance), ENT_QUOTES, 'UTF-8'); ?></span></td>
                                                         <td data-label="Morning In"><?php echo attendanceDisplayTimeHtml($attendance, 'morning_time_in', 'bg-soft-success text-success'); ?></td>
                                                         <td data-label="Morning Out"><?php echo attendanceDisplayTimeHtml($attendance, 'morning_time_out', 'bg-soft-success text-success'); ?></td>
                                                         <td data-label="Afternoon In"><?php echo attendanceDisplayTimeHtml($attendance, 'afternoon_time_in', 'bg-soft-warning text-warning'); ?></td>

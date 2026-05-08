@@ -3,6 +3,7 @@
 require_once __DIR__ . '/biometric_ops.php';
 require_once __DIR__ . '/biometric_db.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
+require_once dirname(__DIR__) . '/lib/attendance_settings.php';
 
 if (!function_exists('run_biometric_auto_import')) {
     function run_biometric_auto_import(?string $attendanceFile = null): string
@@ -138,7 +139,9 @@ if (!function_exists('run_biometric_auto_import_stats')) {
                     continue;
                 }
 
-                if (!isWithinConfiguredAttendanceWindow($time, $machineConfig)) {
+                $attendanceSettings = biotern_attendance_settings($conn);
+                $useConfiguredAttendanceWindow = (string)($attendanceSettings['biometric_window_enabled'] ?? '0') === '1';
+                if ($useConfiguredAttendanceWindow && !isWithinConfiguredAttendanceWindow($time, $machineConfig)) {
                     $anomaliesFound++;
                     biometric_ops_record_anomaly(
                         $conn,
@@ -308,11 +311,6 @@ if (!function_exists('loadBiometricMachineConfig')) {
 if (!function_exists('isWithinConfiguredAttendanceWindow')) {
     function isWithinConfiguredAttendanceWindow(string $time, array $machineConfig): bool
     {
-        $enabled = !empty($machineConfig['attendanceWindowEnabled']);
-        if (!$enabled) {
-            return true;
-        }
-
         $start = trim((string)($machineConfig['attendanceStartTime'] ?? '08:00:00'));
         $end = trim((string)($machineConfig['attendanceEndTime'] ?? '20:00:00'));
 
@@ -377,9 +375,7 @@ if (!function_exists('biometricMachineIsWithinHardWindow')) {
     function biometricMachineIsWithinHardWindow(string $time, array $machineConfig, array $effectiveSchedule = []): bool
     {
         $time = section_schedule_normalize_time_input($time);
-        // Keep every valid punch for audit/reporting.
-        // Credited attendance time is clamped later against the official schedule,
-        // while early arrivals and late departures are surfaced in reports.
+        // Keep every valid punch so early arrivals and late departures are credited.
         return $time !== null;
     }
 }

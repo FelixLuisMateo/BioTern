@@ -6,6 +6,7 @@ biotern_boot_session(isset($conn) ? $conn : null);
 include_once dirname(__DIR__) . '/includes/dashboard_data.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 
 if (!function_exists('dashboard_fetch_count')) {
     function dashboard_fetch_count(?mysqli $conn, string $sql, string $key = 'count'): int
@@ -446,6 +447,7 @@ $student_dashboard = [
     'attendance_approved' => 0,
     'latest_internship' => null,
     'recent_attendance' => [],
+    'timer' => [],
 ];
 
 if ($dashboard_role === 'student' && isset($conn) && $dashboard_user_id > 0) {
@@ -525,6 +527,106 @@ if ($dashboard_role === 'student' && isset($conn) && $dashboard_user_id > 0) {
             }
             $recent_attendance_stmt->close();
         }
+
+        $student_row = is_array($student_dashboard['student']) ? $student_dashboard['student'] : [];
+        $assignment_track = strtolower(trim((string)($student_row['assignment_track'] ?? 'internal')));
+        if (!in_array($assignment_track, ['internal', 'external'], true)) {
+            $assignment_track = 'internal';
+        }
+
+        $open_session = ['clocked_in_now' => false, 'is_open' => false, 'elapsed_preview_seconds' => 0, 'cutoff_time' => null];
+        $attendance_record = null;
+        $today_attendance_stmt = $conn->prepare(
+            "SELECT
+                a.id,
+                a.student_id,
+                a.attendance_date,
+                a.status,
+                a.remarks,
+                a.morning_time_in,
+                a.morning_time_out,
+                a.afternoon_time_in,
+                a.afternoon_time_out,
+                sec.attendance_session,
+                sec.schedule_time_in,
+                sec.schedule_time_out,
+                sec.late_after_time,
+                sec.weekly_schedule_json
+             FROM attendances a
+             LEFT JOIN students s2 ON a.student_id = s2.id
+             LEFT JOIN sections sec ON s2.section_id = sec.id
+             WHERE a.student_id = ? AND a.attendance_date = ?
+             ORDER BY a.id DESC
+             LIMIT 1"
+        );
+        if ($today_attendance_stmt) {
+            $today = date('Y-m-d');
+            $today_attendance_stmt->bind_param('is', $student_id, $today);
+            $today_attendance_stmt->execute();
+            $attendance_record = $today_attendance_stmt->get_result()->fetch_assoc() ?: null;
+            $today_attendance_stmt->close();
+        }
+
+        if ($assignment_track === 'internal' && $attendance_record) {
+            $open_session = attendance_workflow_mark_incomplete_if_needed($conn, $attendance_record);
+        }
+
+        $internal_hours_rendered = 0.0;
+        $internal_sum_stmt = $conn->prepare(
+            "SELECT COALESCE(SUM(total_hours), 0) AS rendered
+             FROM attendances
+             WHERE student_id = ? AND (status IS NULL OR status <> 'rejected')"
+        );
+        if ($internal_sum_stmt) {
+            $internal_sum_stmt->bind_param('i', $student_id);
+            $internal_sum_stmt->execute();
+            $internal_sum_row = $internal_sum_stmt->get_result()->fetch_assoc() ?: [];
+            $internal_sum_stmt->close();
+            $internal_hours_rendered = isset($internal_sum_row['rendered']) ? (float)$internal_sum_row['rendered'] : 0.0;
+        }
+
+        $internal_total_hours = isset($student_row['internal_total_hours']) ? (int)$student_row['internal_total_hours'] : 140;
+        if ($internal_total_hours <= 0) {
+            $internal_total_hours = 140;
+        }
+
+        $stored_internal_remaining = isset($student_row['internal_total_hours_remaining']) && $student_row['internal_total_hours_remaining'] !== null
+            ? (int)$student_row['internal_total_hours_remaining']
+            : null;
+        $internal_remaining_hours_live = max(0, $internal_total_hours - $internal_hours_rendered);
+        $internal_remaining_hours_effective = $stored_internal_remaining !== null
+            ? max(0, $stored_internal_remaining)
+            : $internal_remaining_hours_live;
+
+        if ($internal_hours_rendered > 0) {
+            $internal_remaining_hours_effective = $internal_remaining_hours_live;
+        }
+        if ($internal_hours_rendered <= 0 && $stored_internal_remaining !== null && $stored_internal_remaining <= 0) {
+            $internal_remaining_hours_effective = $internal_total_hours;
+        }
+        if ($internal_hours_rendered > 0 && $internal_remaining_hours_effective <= 0 && $internal_remaining_hours_live > 0) {
+            $internal_remaining_hours_effective = $internal_remaining_hours_live;
+        }
+        if ($assignment_track === 'internal' && $internal_remaining_hours_effective >= $internal_total_hours && $internal_hours_rendered > 0) {
+            $internal_remaining_hours_effective = $internal_remaining_hours_live;
+        }
+
+        $remaining_seconds_without_open = (int)max(0, round($internal_remaining_hours_effective * 3600));
+        $open_session_seconds = ($assignment_track === 'internal' && $attendance_record && !empty($open_session['is_open']))
+            ? (int)($open_session['elapsed_preview_seconds'] ?? 0)
+            : 0;
+        $preview_remaining_seconds = (int)max(0, $remaining_seconds_without_open - $open_session_seconds);
+
+        $student_dashboard['timer'] = [
+            'assignment_track' => $assignment_track,
+            'internal_total_hours' => $internal_total_hours,
+            'internal_rendered_hours' => $internal_hours_rendered,
+            'internal_remaining_hours' => $internal_remaining_hours_effective,
+            'preview_remaining_hours' => $preview_remaining_seconds / 3600,
+            'preview_remaining_seconds' => $preview_remaining_seconds,
+            'remaining_seconds_without_open' => $remaining_seconds_without_open,
+            'is_clocked_in' => $assignment_track === 'internal' && !empty($open_session['clocked_in_now']),
+        ];
     }
 }
 
@@ -569,20 +671,29 @@ include 'includes/header.php';
                 $student_rendered_hours = (float)($student_internship['rendered_hours'] ?? 0);
                 $student_assignment_track = strtolower(trim((string)($student_dashboard['student']['assignment_track'] ?? 'internal')));
                 $student_has_external_track = $student_assignment_track === 'external';
+                $student_timer_data = is_array($student_dashboard['timer'] ?? null) ? $student_dashboard['timer'] : [];
                 $student_timer_total_hours = (float)($student_has_external_track
                     ? ($student_dashboard['student']['external_total_hours'] ?? 0)
-                    : ($student_dashboard['student']['internal_total_hours'] ?? 0));
-                $student_timer_remaining_value = $student_has_external_track
-                    ? ($student_dashboard['student']['external_total_hours_remaining'] ?? null)
-                    : ($student_dashboard['student']['internal_total_hours_remaining'] ?? null);
-                $student_timer_remaining_hours = is_numeric($student_timer_remaining_value)
-                    ? max(0, (float)$student_timer_remaining_value)
-                    : max(0, $student_timer_total_hours - $student_rendered_hours);
-                $student_timer_rendered_hours = max(0, $student_timer_total_hours - $student_timer_remaining_hours);
+                    : ($student_timer_data['internal_total_hours'] ?? $student_dashboard['student']['internal_total_hours'] ?? 0));
+                if (!$student_has_external_track && $student_timer_data !== []) {
+                    $student_timer_remaining_hours = max(0, (float)($student_timer_data['preview_remaining_hours'] ?? 0));
+                    $student_timer_rendered_hours = max(0, $student_timer_total_hours - $student_timer_remaining_hours);
+                    $student_timer_seconds = (int)($student_timer_data['preview_remaining_seconds'] ?? round($student_timer_remaining_hours * 3600));
+                    $student_timer_is_live = !empty($student_timer_data['is_clocked_in']);
+                } else {
+                    $student_timer_remaining_value = $student_has_external_track
+                        ? ($student_dashboard['student']['external_total_hours_remaining'] ?? null)
+                        : ($student_dashboard['student']['internal_total_hours_remaining'] ?? null);
+                    $student_timer_remaining_hours = is_numeric($student_timer_remaining_value)
+                        ? max(0, (float)$student_timer_remaining_value)
+                        : max(0, $student_timer_total_hours - $student_rendered_hours);
+                    $student_timer_rendered_hours = max(0, $student_timer_total_hours - $student_timer_remaining_hours);
+                    $student_timer_seconds = (int)round($student_timer_remaining_hours * 3600);
+                    $student_timer_is_live = false;
+                }
                 $student_timer_progress = $student_timer_total_hours > 0
                     ? min(100, max(0, ($student_timer_rendered_hours / $student_timer_total_hours) * 100))
                     : 0;
-                $student_timer_seconds = (int)round($student_timer_remaining_hours * 3600);
                 $student_timer_clock = explode(':', dashboard_format_duration_clock($student_timer_seconds));
                 $student_timer_label = $student_has_external_track ? 'External Hours Remaining' : 'Internal Hours Remaining';
                 $student_timer_track_label = $student_has_external_track ? 'External Track' : 'Internal Track';
@@ -627,6 +738,7 @@ include 'includes/header.php';
                             class="student-hours-timer"
                             data-student-hours-timer
                             data-remaining-seconds="<?php echo (int)$student_timer_seconds; ?>"
+                            data-live-countdown="<?php echo $student_timer_is_live ? '1' : '0'; ?>"
                         >
                             <div class="student-hours-timer__header">
                                 <div>
