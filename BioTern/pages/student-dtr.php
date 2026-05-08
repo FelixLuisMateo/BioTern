@@ -813,7 +813,7 @@ $lastRecordedDateText = $attendanceInsights['last_recorded_date'] !== ''
     : 'No entries yet';
 
 $studentDtrManualOnly = defined('BIOTERN_STUDENT_MANUAL_DTR_PAGE') && BIOTERN_STUDENT_MANUAL_DTR_PAGE;
-$studentDtrPageHeading = $studentDtrManualOnly ? 'Manual DTR' : 'My Internal DTR';
+$studentDtrPageHeading = $studentDtrManualOnly ? 'Manual Internal DTR' : 'My Internal DTR';
 $studentDtrHeroTitle = $studentDtrManualOnly ? 'Record Time Entry' : 'My Internal DTR';
 $studentDtrHeroCopy = $studentDtrManualOnly
     ? 'Submit a missed internal attendance entry when the biometric machine was unavailable or your time was not captured.'
@@ -852,75 +852,67 @@ include 'includes/header.php';
         <?php endif; ?>
 
         <?php if ($studentDtrManualOnly): ?>
-        <section class="bio-hero student-dtr-manual-hero">
-            <div class="bio-hero-chip">
-                <i class="feather-shield"></i>
-                <span>Account-Linked Internal Biometric</span>
+        <section class="student-dtr-manual-dashboard">
+            <div class="student-dtr-manual-intro">
+                <span class="student-dtr-manual-kicker"><i class="feather-edit-3"></i> Manual Internal DTR</span>
+                <h2><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></h2>
+                <p>Submit missed internal attendance only when the biometric machine was unavailable or your time was not captured. Your entry will stay pending until school review.</p>
+                <div class="student-dtr-manual-meta">
+                    <span><?php echo htmlspecialchars((string)($student['student_id'] ?? 'No student ID'), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php if (trim((string)($student['course_name'] ?? '')) !== ''): ?>
+                    <span><?php echo htmlspecialchars((string)$student['course_name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php endif; ?>
+                    <span><?php echo htmlspecialchars(biotern_format_section_code((string)($student['section_code'] ?? 'No section')), ENT_QUOTES, 'UTF-8'); ?></span>
+                </div>
             </div>
-            <h2><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></h2>
-            <p>This scanner-style page is tied to your student account, so no student selector is needed. Each manual entry goes to your own internal DTR for review.</p>
-            <div class="student-home-meta mt-3">
-                <?php if (trim((string)($student['course_name'] ?? '')) !== ''): ?>
-                <span><?php echo htmlspecialchars((string)$student['course_name'], ENT_QUOTES, 'UTF-8'); ?></span>
-                <?php endif; ?>
-                <span><?php echo htmlspecialchars(biotern_format_section_code((string)($student['section_code'] ?? 'No section')), ENT_QUOTES, 'UTF-8'); ?></span>
-                <span>Internal target: <?php echo number_format($requiredHours > 0 ? $requiredHours : 140, 0); ?> hrs</span>
-                <span>Remaining: <?php echo number_format(max(0, $remainingHours), 0); ?> hrs</span>
+            <div class="student-dtr-manual-stats">
+                <div>
+                    <span>Month Hours</span>
+                    <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?></strong>
+                    <small>hours</small>
+                </div>
+                <div>
+                    <span>Approved</span>
+                    <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
+                    <small>entries</small>
+                </div>
+                <div>
+                    <span>Pending</span>
+                    <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
+                    <small>review</small>
+                </div>
+                <div>
+                    <span>Remaining</span>
+                    <strong><?php echo number_format(max(0, $remainingHours), 0); ?></strong>
+                    <small>hours</small>
+                </div>
             </div>
         </section>
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <div class="dtr-summary-card">
-                    <div class="dtr-summary-label">Month Hours</div>
-                    <div class="dtr-summary-value"><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?> hrs</div>
-                </div>
+        <section class="student-dtr-quick-time-card">
+            <div class="student-dtr-quick-clock">
+                <span>Today</span>
+                <strong id="proofClockDisplay"><?php echo htmlspecialchars(date('h:i:s A'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                <small id="proofClockDate"><?php echo htmlspecialchars(date('M d, Y'), ENT_QUOTES, 'UTF-8'); ?></small>
             </div>
-            <div class="col-md-4">
-                <div class="dtr-summary-card">
-                    <div class="dtr-summary-label">Approved Entries</div>
-                    <div class="dtr-summary-value"><?php echo (int)$attendanceSummary['approved_logs']; ?></div>
+            <div class="student-dtr-quick-actions">
+                <div class="student-dtr-quick-copy">
+                    <h3>Quick Time Picker</h3>
+                    <p>Click one slot to copy the current clock time into that field when it fits the slot.</p>
                 </div>
+                <div class="clock-type-grid">
+                    <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackMorningIn"><i class="feather-log-in"></i><span>Morning In</span></button>
+                    <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackMorningOut"><i class="feather-log-out"></i><span>Morning Out</span></button>
+                    <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonIn"><i class="feather-sun"></i><span>Afternoon In</span></button>
+                    <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonOut"><i class="feather-log-out"></i><span>Afternoon Out</span></button>
+                </div>
+                <label class="student-dtr-quick-note" for="quickInternalPunchNote">
+                    <span>Quick note</span>
+                    <input type="text" id="quickInternalPunchNote" placeholder="Optional note copied to the reason field">
+                </label>
+                <div class="student-dtr-quick-status" id="quickTimePickerStatus" aria-live="polite"></div>
             </div>
-            <div class="col-md-4">
-                <div class="dtr-summary-card">
-                    <div class="dtr-summary-label">Pending Review</div>
-                    <div class="dtr-summary-value"><?php echo (int)$attendanceSummary['pending_logs']; ?></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="bio-layout mb-4">
-            <aside class="scanner-card">
-                <figure class="fingerprint-image">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 250'%3E%3Ccircle cx='100' cy='120' r='80' fill='none' stroke='%2395b6d4' stroke-width='2'/%3E%3Ccircle cx='100' cy='120' r='70' fill='none' stroke='%23aac6df' stroke-width='1.2'/%3E%3Ccircle cx='100' cy='120' r='60' fill='none' stroke='%23bed4e7' stroke-width='1'/%3E%3Cpath d='M 100 50 Q 120 70 140 100 T 150 150' fill='none' stroke='%235b7da2' stroke-width='1.6'/%3E%3Cpath d='M 100 50 Q 80 70 60 100 T 50 150' fill='none' stroke='%235b7da2' stroke-width='1.6'/%3E%3Cpath d='M 100 50 Q 100 75 100 100 L 100 150' fill='none' stroke='%236e8fb1' stroke-width='2'/%3E%3C/svg%3E" alt="Fingerprint">
-                    <p class="scan-label">INTERNAL FINGERPRINT DEMO</p>
-                </figure>
-                <div class="scanner-stat">
-                    <div><?php echo htmlspecialchars((string)($student['student_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
-                    <div>Internal DTR for <?php echo htmlspecialchars(date('F d, Y'), ENT_QUOTES, 'UTF-8'); ?></div>
-                </div>
-            </aside>
-
-            <section class="clock-section">
-                <h3>Quick Internal DTR Entry</h3>
-                <div class="time-display mb-3" id="proofClockDisplay"><?php echo htmlspecialchars(date('h:i:s A'), ENT_QUOTES, 'UTF-8'); ?></div>
-                <div class="student-dtr-manual-clock-date mb-3" id="proofClockDate"><?php echo htmlspecialchars(date('M d, Y'), ENT_QUOTES, 'UTF-8'); ?></div>
-                <div class="form-group-custom">
-                    <label>Clock Type</label>
-                    <div class="clock-type-grid">
-                        <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackMorningIn"><i class="feather-log-in"></i><br>Morning In</button>
-                        <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackMorningOut"><i class="feather-log-out"></i><br>Morning Out</button>
-                        <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonIn"><i class="feather-sun"></i><br>Afternoon In</button>
-                        <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonOut"><i class="feather-log-out"></i><br>Afternoon Out</button>
-                    </div>
-                </div>
-                <div class="form-group-custom">
-                    <label for="quickInternalPunchNote">Notes</label>
-                    <input type="text" id="quickInternalPunchNote" placeholder="Optional note for this entry">
-                </div>
-            </section>
-        </div>
+        </section>
         <?php else: ?>
         <section class="student-dtr-station-hero">
             <div class="student-dtr-hero-main">
@@ -1053,7 +1045,7 @@ include 'includes/header.php';
                     <div class="card-body pt-3">
                         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                             <div>
-                                <span class="student-metric-label">Manual DTR</span>
+                                <span class="student-metric-label">Manual Internal DTR</span>
                                 <h3 class="mb-1"><i class="feather-log-in me-1"></i> Record Time Entry</h3>
                                 <div class="student-dtr-meta">Use this only when the biometric machine was unavailable or your time was not captured.</div>
                             </div>
@@ -1455,21 +1447,34 @@ include 'includes/header.php';
 
     function chooseClosestOption(select, value) {
         if (!select) {
-            return;
+            return '';
         }
         var options = Array.prototype.slice.call(select.options || []);
         var match = options.find(function (option) {
             return option.value === value;
         });
-        if (!match) {
-            match = options.find(function (option) {
-                return option.value !== '';
-            });
-        }
         if (match) {
             select.value = match.value;
             select.dispatchEvent(new Event('change', { bubbles: true }));
+            return match.value;
         }
+
+        return '';
+    }
+
+    function formatTimeLabel(value) {
+        var parts = String(value || '').split(':');
+        var hour = parseInt(parts[0], 10);
+        var minute = parseInt(parts[1], 10);
+        if (Number.isNaN(hour) || Number.isNaN(minute)) {
+            return '';
+        }
+        var suffix = hour >= 12 ? 'PM' : 'AM';
+        var displayHour = hour % 12;
+        if (displayHour === 0) {
+            displayHour = 12;
+        }
+        return String(displayHour) + ':' + String(minute).padStart(2, '0') + ' ' + suffix;
     }
 
     Array.prototype.forEach.call(punchButtons, function (button) {
@@ -1480,7 +1485,7 @@ include 'includes/header.php';
             button.classList.add('is-selected');
 
             var selectId = button.getAttribute('data-target-select') || '';
-            chooseClosestOption(document.getElementById(selectId), nearestThirtyMinuteValue());
+            var chosenValue = chooseClosestOption(document.getElementById(selectId), nearestThirtyMinuteValue());
 
             var noteInput = document.getElementById('quickInternalPunchNote');
             var reasonBox = document.getElementById('fallbackReason');
@@ -1488,9 +1493,13 @@ include 'includes/header.php';
                 reasonBox.value = noteInput.value.trim();
             }
 
-            var manualSection = document.getElementById('manual-dtr');
-            if (manualSection && typeof manualSection.scrollIntoView === 'function') {
-                manualSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            var status = document.getElementById('quickTimePickerStatus');
+            if (status) {
+                var slotName = (button.textContent || '').replace(/\s+/g, ' ').trim();
+                var timeLabel = formatTimeLabel(chosenValue);
+                status.textContent = timeLabel
+                    ? slotName + ' filled with ' + timeLabel + ' in the form below.'
+                    : slotName + ' was not changed because the current time is outside that slot. Use the dropdown below.';
             }
         });
     });
