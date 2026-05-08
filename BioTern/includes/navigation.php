@@ -105,6 +105,13 @@ $nav_can_academic = $nav_is_admin;
 $nav_can_workspace = ($nav_is_admin || $nav_is_coordinator || $nav_is_supervisor || $nav_is_student);
 $nav_can_system = $nav_is_admin;
 $nav_can_user_accounts = $nav_is_admin;
+$nav_manual_files = [
+    'admin' => 'uploads/manuals/admin-manual.pdf',
+    'coordinator' => 'uploads/manuals/coordinator-manual.pdf',
+    'supervisor' => 'uploads/manuals/supervisor-manual.pdf',
+    'student' => 'uploads/manuals/student-manual.pdf',
+];
+$nav_manual_href = $nav_manual_files[$nav_role] ?? '';
 
 $nav_current_file = '';
 if (isset($_GET['file'])) {
@@ -425,6 +432,18 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                     </ul>
                 </li>
                 <?php endif; ?>
+                <?php endif; ?>
+
+                <?php if ($nav_manual_href !== ''): ?>
+                <li class="nxl-item nxl-caption">
+                    <span>Help</span>
+                </li>
+                <li class="nxl-item">
+                    <a href="<?php echo htmlspecialchars($nav_manual_href, ENT_QUOTES, 'UTF-8'); ?>" class="nxl-link" target="_blank" rel="noopener">
+                        <span class="nxl-micon"><i class="feather-book-open"></i></span>
+                        <span class="nxl-mtext">User Manual</span>
+                    </a>
+                </li>
                 <?php endif; ?>
 
                 <?php if ($nav_is_student): ?>

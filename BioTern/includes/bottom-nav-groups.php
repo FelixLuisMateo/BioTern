@@ -8,6 +8,14 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         $canWorkspace = !empty($context['can_workspace']);
         $canSystem = !empty($context['can_system']);
         $isStudent = !empty($context['is_student']);
+        $role = strtolower(trim((string)($context['role'] ?? ($isStudent ? 'student' : ''))));
+        $manualFiles = [
+            'admin' => 'uploads/manuals/admin-manual.pdf',
+            'coordinator' => 'uploads/manuals/coordinator-manual.pdf',
+            'supervisor' => 'uploads/manuals/supervisor-manual.pdf',
+            'student' => 'uploads/manuals/student-manual.pdf',
+        ];
+        $manualHref = $manualFiles[$role] ?? '';
 
         $profileAvatar = isset($context['profile_avatar']) && is_string($context['profile_avatar']) && trim($context['profile_avatar']) !== ''
             ? trim($context['profile_avatar'])
@@ -306,6 +314,29 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Manual DTR Input', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit'],
                             ['label' => 'Data Transfer', 'href' => 'import-sql.php', 'icon' => 'feather-database'],
                             ['label' => 'Appearance', 'href' => 'theme-customizer.php', 'icon' => 'feather-droplet'],
+                        ],
+                    ],
+                ],
+            ];
+        }
+
+        if ($manualHref !== '') {
+            $navGroups[] = [
+                'key' => 'help',
+                'label' => 'Help',
+                'icon' => 'feather-book-open',
+                'routes' => [],
+                'sections' => [
+                    [
+                        'title' => 'Manual',
+                        'items' => [
+                            [
+                                'label' => 'User Manual',
+                                'href' => $manualHref,
+                                'icon' => 'feather-book-open',
+                                'target' => '_blank',
+                                'rel' => 'noopener',
+                            ],
                         ],
                     ],
                 ],

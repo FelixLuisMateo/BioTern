@@ -1,0 +1,237 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 2818 >>
+stream
+BT
+/F1 16 Tf
+50 750 Td
+(Student Manual) Tj
+/F1 10 Tf
+0 -15 Td
+(BioTern User Manual) Tj
+/F1 10 Tf
+0 -15 Td
+(Updated: May 08, 2026) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Purpose:) Tj
+/F1 10 Tf
+0 -15 Td
+(This manual explains the main BioTern tasks for students. Student accounts can manage profile) Tj
+/F1 10 Tf
+0 -15 Td
+(details, internal DTR, external DTR, documents, chat, email, and account settings.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Login And Dashboard:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Sign in using your student account.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Open Dashboard to see your current status and quick links.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Keep your account email active because BioTern may send verification and notices.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(My Profile:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Open My Profile to check your personal, course, section, coordinator, supervisor, and OJT) Tj
+/F1 10 Tf
+0 -15 Td
+(information.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Review your internal and external hour requirements.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Contact your coordinator or admin if any personal or academic information is wrong.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Internal DTR:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Open My Internal DTR to review internal attendance records.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Use Manual Internal DTR when the biometric machine was unavailable or your time was not) Tj
+/F1 10 Tf
+0 -15 Td
+(captured.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Choose the date range, create time rows, select the correct times, upload proof, and submit) Tj
+/F1 10 Tf
+0 -15 Td
+(for review.) Tj
+/F1 10 Tf
+0 -15 Td
+(4. Entries remain pending until reviewed by school staff.) Tj
+/F1 10 Tf
+0 -15 Td
+(5. Approved internal hours reduce your remaining internal hour total.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(External DTR:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Open My External DTR to record or submit external attendance.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Use Quick External DTR for same-day external punches when available.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Use Submit Missed External Time when you need to encode attendance from a physical DTR.) Tj
+/F1 10 Tf
+0 -15 Td
+(4. Choose the date range, create time rows, select the correct times, upload proof if needed,) Tj
+/F1 10 Tf
+0 -15 Td
+(and submit.) Tj
+/F1 10 Tf
+0 -15 Td
+(5. External hours count only when your external start is approved or allowed by school staff.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Proof Upload Tips:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Upload clear JPG, PNG, or WEBP images.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Make sure the date and time are readable.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Do not upload unrelated images.) Tj
+/F1 10 Tf
+0 -15 Td
+(4. If your entry is rejected, check the reason and submit a corrected request if allowed.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 1356 >>
+stream
+BT
+/F1 16 Tf
+50 750 Td
+(Documents:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Open My Documents to view or generate available student documents.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Check your profile information before generating documents.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Ask your coordinator if a document has wrong details.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Workspace:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Use Chat to communicate with school staff or assigned contacts.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Use Email for system messages inside BioTern.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Keep messages professional and related to OJT or school work.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Account Settings:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Open Account Settings to change your password or security details.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Use Notifications to review system alerts.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Keep your password private.) Tj
+/F1 10 Tf
+0 -15 Td
+(4. Sign out when using a shared computer.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Good Practice:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Submit attendance as soon as possible.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Always attach proof when required.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Check pending and approved entries regularly.) Tj
+/F1 10 Tf
+0 -15 Td
+(4. Contact your coordinator or supervisor for attendance or OJT concerns.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000003117 00000 n 
+0000003243 00000 n 
+0000004651 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+4721
+%%EOF

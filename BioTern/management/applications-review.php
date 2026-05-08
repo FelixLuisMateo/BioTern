@@ -701,9 +701,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     [$email, $displayName] = review_application_recipient($conn, $stagedApplication, $userId);
                     if ($email !== '') {
                         $subject = 'Your BioTern application was approved';
-                        $textBody = "Hi {$displayName},\n\nYour BioTern student application has been approved. You can now log in using your Student ID Number and password.\n\nThank you.";
+                        $appBaseUrl = biotern_mail_public_base($conn);
+                        $studentManualUrl = $appBaseUrl !== '' ? $appBaseUrl . '/uploads/manuals/student-manual.pdf' : '';
+                        $manualText = $studentManualUrl !== ''
+                            ? "\n\nStudent User Manual:\n{$studentManualUrl}"
+                            : "\n\nAfter logging in, open Help > User Manual to view the student guide.";
+                        $textBody = "Hi {$displayName},\n\nYour BioTern student application has been approved. You can now log in using your Student ID Number and password.{$manualText}\n\nThank you.";
                         $safeName = htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8');
-                        $appBaseUrl = biotern_mail_asset_base();
+                        $safeManualUrl = htmlspecialchars($studentManualUrl, ENT_QUOTES, 'UTF-8');
                         $logoHtml = '';
                         if ($appBaseUrl !== '') {
                             $logoUrl = $appBaseUrl . '/assets/images/ccstlogo.png';
@@ -733,6 +738,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                                 <div style="font-size:14px;color:#94a3b8;margin-bottom:16px;">Hi ' . $safeName . ',</div>
                                                 <div style="font-size:14px;color:#e5e7eb;line-height:1.5;">
                                                     Your BioTern student application has been approved. You can now log in using your Student ID Number and password.
+                                                </div>
+                                                <div style="margin:18px 0 0;padding:14px;border:1px solid #263653;border-radius:12px;background:#0f172a;">
+                                                    <div style="font-size:14px;font-weight:700;color:#ffffff;margin-bottom:6px;">Start here</div>
+                                                    <div style="font-size:13px;color:#a3b3cc;line-height:1.5;margin-bottom:12px;">
+                                                        Read the student user manual to learn how to use My Profile, Internal DTR, External DTR, documents, chat, email, and account settings.
+                                                    </div>
+                                                    ' . ($studentManualUrl !== '' ? '<a href="' . $safeManualUrl . '" style="display:inline-block;background:#3454d1;color:#ffffff;text-decoration:none;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;">Open Student User Manual</a>' : '<div style="font-size:13px;color:#e5e7eb;">After logging in, open <strong>Help &gt; User Manual</strong> from the BioTern menu.</div>') . '
                                                 </div>
                                                 <div style="margin:20px 0 4px;color:#94a3b8;font-size:13px;">
                                                     If you have questions, reply to this email and our team will help.

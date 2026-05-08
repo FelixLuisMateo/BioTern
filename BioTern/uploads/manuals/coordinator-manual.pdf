@@ -1,0 +1,213 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R >> >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 2791 >>
+stream
+BT
+/F1 16 Tf
+50 750 Td
+(Coordinator Manual) Tj
+/F1 10 Tf
+0 -15 Td
+(BioTern User Manual) Tj
+/F1 10 Tf
+0 -15 Td
+(Updated: May 08, 2026) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Purpose:) Tj
+/F1 10 Tf
+0 -15 Td
+(This manual explains the main BioTern tasks for coordinators. Coordinator accounts help manage) Tj
+/F1 10 Tf
+0 -15 Td
+(students, OJT records, attendance review, communication, documents, and reports.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Login And Dashboard:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Sign in using your coordinator account.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Open Dashboard to review current student and OJT activity.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Use the search bar to find pages quickly.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Student Management:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Open Student Management > Students List to review student records.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Check profile details, course, section, contact information, and assignment track.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Use Applications Review to review submitted applications.) Tj
+/F1 10 Tf
+0 -15 Td
+(4. Coordinate with admin if a student record needs account or system-level correction.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(OJT Management:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Open OJT Management > OJT List to monitor internal and external OJT records.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Use Internal List for internal OJT students.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Use External List for external OJT students.) Tj
+/F1 10 Tf
+0 -15 Td
+(4. Use Companies to verify company information for external OJT.) Tj
+/F1 10 Tf
+0 -15 Td
+(5. Confirm start dates and required hours before attendance computation.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Attendance Review:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Open Internal Attendance to review internal DTR entries.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Open External Attendance to review external DTR entries.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Check the date, time, proof image, reason, and student identity before making a decision.) Tj
+/F1 10 Tf
+0 -15 Td
+(4. Approve only valid entries.) Tj
+/F1 10 Tf
+0 -15 Td
+(5. Decline entries that have missing proof, wrong dates, wrong time ranges, or unclear) Tj
+/F1 10 Tf
+0 -15 Td
+(explanations.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Documents:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Use the Documents menu to prepare application, endorsement, MOA, DAU MOA, and parent) Tj
+/F1 10 Tf
+0 -15 Td
+(consent forms.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Verify student information before generating or printing documents.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Ask admin to update templates or system settings if document content is incorrect.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Workspace:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Use Chat for direct communication inside BioTern.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 925 >>
+stream
+BT
+/F1 16 Tf
+50 750 Td
+(2. Use Email for system messages to BioTern accounts.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Use Notes, Storage, and Calendar for workspace organization if enabled.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Reports:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Use reports to monitor student progress, attendance, and completion.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Export reports when needed for coordinator review or school records.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Check filters before exporting to avoid wrong date ranges or sections.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+/F1 12 Tf
+0 -20 Td
+(Good Practice:) Tj
+/F1 10 Tf
+0 -15 Td
+(1. Review pending DTR requests daily.) Tj
+/F1 10 Tf
+0 -15 Td
+(2. Keep student information updated.) Tj
+/F1 10 Tf
+0 -15 Td
+(3. Do not approve attendance without proof when proof is required.) Tj
+/F1 10 Tf
+0 -15 Td
+(4. Escalate account, email, or system setting issues to the admin.) Tj
+/F1 10 Tf
+0 -15 Td
+() Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000247 00000 n 
+0000003090 00000 n 
+0000003216 00000 n 
+0000004192 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+4262
+%%EOF

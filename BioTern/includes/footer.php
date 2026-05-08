@@ -63,6 +63,7 @@ if (!function_exists('footer_asset_versioned_src')) {
         'can_workspace' => !empty($nav_can_workspace),
         'can_system' => !empty($nav_can_system),
         'is_student' => !empty($nav_is_student),
+        'role' => isset($nav_role) ? (string)$nav_role : '',
         'student_external' => !empty($nav_student_has_external_access),
         'profile_avatar' => $profile_avatar,
     ]);
@@ -105,7 +106,10 @@ if (!function_exists('footer_asset_versioned_src')) {
                                     <div class="biotern-bottom-sheet-section-title"><?php echo htmlspecialchars((string)$section['title'], ENT_QUOTES, 'UTF-8'); ?></div>
                                     <div class="biotern-bottom-sheet-links">
                                         <?php foreach ((array)$section['items'] as $item): ?>
-                                            <a class="biotern-bottom-sheet-link" href="<?php echo htmlspecialchars((string)$item['href'], ENT_QUOTES, 'UTF-8'); ?>">
+                                            <a class="biotern-bottom-sheet-link"
+                                               href="<?php echo htmlspecialchars((string)$item['href'], ENT_QUOTES, 'UTF-8'); ?>"
+                                               <?php echo !empty($item['target']) ? 'target="' . htmlspecialchars((string)$item['target'], ENT_QUOTES, 'UTF-8') . '"' : ''; ?>
+                                               <?php echo !empty($item['rel']) ? 'rel="' . htmlspecialchars((string)$item['rel'], ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
                                                 <i class="<?php echo htmlspecialchars((string)$item['icon'], ENT_QUOTES, 'UTF-8'); ?>"></i>
                                                 <span><?php echo htmlspecialchars((string)$item['label'], ENT_QUOTES, 'UTF-8'); ?></span>
                                             </a>

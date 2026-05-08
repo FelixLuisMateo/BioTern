@@ -20,6 +20,8 @@ node_modules/
 # User-generated files
 uploads/*
 !uploads/.gitkeep
+!uploads/manuals/
+!uploads/manuals/*.pdf
 
 # IDE / OS
 .vscode/
