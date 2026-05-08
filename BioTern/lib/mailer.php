@@ -104,9 +104,30 @@ if (!function_exists('biotern_mail_settings')) {
             $result = $stmt->get_result();
             while ($row = $result->fetch_assoc()) {
                 $key = (string)($row['key'] ?? '');
-                if ($key !== '' && array_key_exists($key, $settings)) {
-                    $settings[$key] = (string)($row['value'] ?? '');
+                if ($key === '' || !array_key_exists($key, $settings)) {
+                    continue;
                 }
+
+                $value = (string)($row['value'] ?? '');
+                $skipEmpty = in_array(
+                    $key,
+                    [
+                        'smtp_host',
+                        'smtp_port',
+                        'smtp_encryption',
+                        'smtp_username',
+                        'smtp_password',
+                        'mail_from_name',
+                        'mail_from_email'
+                    ],
+                    true
+                );
+
+                if ($skipEmpty && $value === '') {
+                    continue;
+                }
+
+                $settings[$key] = $value;
             }
             $stmt->close();
         }
