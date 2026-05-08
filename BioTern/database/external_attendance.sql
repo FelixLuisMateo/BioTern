@@ -26,3 +26,24 @@ CREATE TABLE IF NOT EXISTS external_attendance (
     KEY idx_external_attendance_status (status),
     KEY idx_external_attendance_student_date (student_id, attendance_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS external_dtr_attachments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    external_attendance_id BIGINT UNSIGNED NOT NULL,
+    attendance_date DATE NULL,
+    file_path VARCHAR(255) NOT NULL DEFAULT '',
+    file_name VARCHAR(255) NOT NULL DEFAULT '',
+    file_type VARCHAR(100) NOT NULL DEFAULT '',
+    file_size INT NOT NULL DEFAULT 0,
+    reason TEXT NULL,
+    uploaded_by INT NULL,
+    storage_driver VARCHAR(30) NOT NULL DEFAULT 'filesystem',
+    file_blob LONGBLOB NULL,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    deleted_at DATETIME NULL,
+    INDEX idx_external_dtr_student (student_id),
+    INDEX idx_external_dtr_attendance (external_attendance_id),
+    INDEX idx_external_dtr_deleted (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

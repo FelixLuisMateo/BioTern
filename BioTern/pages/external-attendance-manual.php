@@ -22,6 +22,11 @@ if (!$student) {
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: external-biometric.php#manual-dtr');
+    exit;
+}
+
 $externalFlash = $_SESSION['external_attendance_flash'] ?? null;
 unset($_SESSION['external_attendance_flash']);
 
@@ -120,6 +125,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'manual'
         );
         if (!empty($save['ok'])) {
+            if (is_array($upload ?? null) && (int)($save['attendance_id'] ?? 0) > 0) {
+                external_attendance_insert_attachment(
+                    $conn,
+                    (int)$student['id'],
+                    (int)$save['attendance_id'],
+                    $day,
+                    $upload,
+                    $notes !== '' ? $notes : 'External manual DTR proof',
+                    $currentUserId
+                );
+            }
             $savedCount++;
         }
     }

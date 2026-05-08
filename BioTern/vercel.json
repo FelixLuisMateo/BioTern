@@ -88,6 +88,10 @@
       "dest": "/legacy_router.php?file=external-attendance-manual.php"
     },
     {
+      "src": "^/external-dtr-proof(?:\\.php)?$",
+      "dest": "/legacy_router.php?file=external-dtr-proof.php"
+    },
+    {
       "src": "^/student-internal-dtr(?:\\.php)?$",
       "dest": "/legacy_router.php?file=student-internal-dtr.php"
     },

@@ -852,12 +852,12 @@ include 'includes/header.php';
         <?php endif; ?>
 
         <?php if ($studentDtrManualOnly): ?>
-        <section class="student-dtr-manual-dashboard">
-            <div class="student-dtr-manual-intro">
-                <span class="student-dtr-manual-kicker"><i class="feather-edit-3"></i> Manual Internal DTR</span>
+        <section class="external-dtr-hero">
+            <div class="external-dtr-hero-main">
+                <div class="external-dtr-eyebrow"><i class="feather-edit-3"></i><span>My Internal DTR</span></div>
                 <h2><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></h2>
                 <p>Submit missed internal attendance only when the biometric machine was unavailable or your time was not captured. Your entry will stay pending until school review.</p>
-                <div class="student-dtr-manual-meta">
+                <div class="external-dtr-meta">
                     <span><?php echo htmlspecialchars((string)($student['student_id'] ?? 'No student ID'), ENT_QUOTES, 'UTF-8'); ?></span>
                     <?php if (trim((string)($student['course_name'] ?? '')) !== ''): ?>
                     <span><?php echo htmlspecialchars((string)$student['course_name'], ENT_QUOTES, 'UTF-8'); ?></span>
@@ -865,53 +865,51 @@ include 'includes/header.php';
                     <span><?php echo htmlspecialchars(biotern_format_section_code((string)($student['section_code'] ?? 'No section')), ENT_QUOTES, 'UTF-8'); ?></span>
                 </div>
             </div>
-            <div class="student-dtr-manual-stats">
-                <div>
-                    <span>Month Hours</span>
-                    <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?></strong>
-                    <small>hours</small>
-                </div>
-                <div>
-                    <span>Approved</span>
-                    <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
-                    <small>entries</small>
-                </div>
-                <div>
-                    <span>Pending</span>
-                    <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
-                    <small>review</small>
-                </div>
-                <div>
-                    <span>Remaining</span>
-                    <strong><?php echo number_format(max(0, $remainingHours), 0); ?></strong>
-                    <small>hours</small>
-                </div>
+            <div class="external-dtr-clock-card">
+                <div class="external-dtr-clock-label">Today</div>
+                <div class="external-dtr-clock" id="proofClockDisplay"><?php echo htmlspecialchars(date('h:i:s A'), ENT_QUOTES, 'UTF-8'); ?></div>
+                <div class="external-dtr-clock-date" id="proofClockDate"><?php echo htmlspecialchars(date('M d, Y'), ENT_QUOTES, 'UTF-8'); ?></div>
             </div>
         </section>
 
-        <section class="student-dtr-quick-time-card">
-            <div class="student-dtr-quick-clock">
-                <span>Today</span>
-                <strong id="proofClockDisplay"><?php echo htmlspecialchars(date('h:i:s A'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                <small id="proofClockDate"><?php echo htmlspecialchars(date('M d, Y'), ENT_QUOTES, 'UTF-8'); ?></small>
+        <div class="external-dtr-stats">
+            <div class="external-dtr-stat">
+                <span>Month Hours</span>
+                <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?> hrs</strong>
             </div>
-            <div class="student-dtr-quick-actions">
-                <div class="student-dtr-quick-copy">
+            <div class="external-dtr-stat">
+                <span>Remaining</span>
+                <strong><?php echo number_format(max(0, $remainingHours), 0); ?> hrs</strong>
+            </div>
+            <div class="external-dtr-stat">
+                <span>Approved</span>
+                <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
+            </div>
+            <div class="external-dtr-stat">
+                <span>Pending</span>
+                <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
+            </div>
+        </div>
+
+        <section class="external-quick-card mb-4">
+            <div class="external-quick-heading">
+                <div>
                     <h3>Quick Time Picker</h3>
-                    <p>Click one slot to copy the current clock time into that field when it fits the slot.</p>
+                    <p>Tap one slot to copy the nearest 30-minute time into the matching field below.</p>
                 </div>
-                <div class="clock-type-grid">
-                    <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackMorningIn"><i class="feather-log-in"></i><span>Morning In</span></button>
-                    <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackMorningOut"><i class="feather-log-out"></i><span>Morning Out</span></button>
-                    <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonIn"><i class="feather-sun"></i><span>Afternoon In</span></button>
-                    <button type="button" class="clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonOut"><i class="feather-log-out"></i><span>Afternoon Out</span></button>
-                </div>
-                <label class="student-dtr-quick-note" for="quickInternalPunchNote">
-                    <span>Quick note</span>
-                    <input type="text" id="quickInternalPunchNote" placeholder="Optional note copied to the reason field">
-                </label>
-                <div class="student-dtr-quick-status" id="quickTimePickerStatus" aria-live="polite"></div>
+                <span><?php echo htmlspecialchars(date('F d, Y'), ENT_QUOTES, 'UTF-8'); ?></span>
             </div>
+            <div class="external-clock-grid">
+                <button type="button" class="external-clock-btn student-dtr-manual-punch" data-target-select="fallbackMorningIn"><i class="feather-log-in"></i><span>Morning In</span></button>
+                <button type="button" class="external-clock-btn student-dtr-manual-punch" data-target-select="fallbackMorningOut"><i class="feather-log-out"></i><span>Morning Out</span></button>
+                <button type="button" class="external-clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonIn"><i class="feather-sun"></i><span>Afternoon In</span></button>
+                <button type="button" class="external-clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonOut"><i class="feather-log-out"></i><span>Afternoon Out</span></button>
+            </div>
+            <label class="external-note-field" for="quickInternalPunchNote">
+                <span>Quick Note</span>
+                <input type="text" id="quickInternalPunchNote" placeholder="Optional note copied to the reason field">
+            </label>
+            <div class="student-dtr-quick-status" id="quickTimePickerStatus" aria-live="polite"></div>
         </section>
         <?php else: ?>
         <section class="student-dtr-station-hero">
@@ -1037,19 +1035,12 @@ include 'includes/header.php';
         <div class="row g-4 align-items-start mt-0">
             <div class="<?php echo $studentDtrManualOnly ? 'col-12' : 'col-12 col-xl-8'; ?>">
                 <?php if ($studentDtrManualOnly): ?>
-                <section class="card student-panel student-dtr-fallback-card student-dtr-record-entry-card record-section mb-4" id="manual-dtr">
-                    <div class="card-header border-0 bg-transparent px-4 pt-4">
+                <section class="record-section external-manual-card student-dtr-fallback-card student-dtr-record-entry-card mb-4" id="manual-dtr">
+                    <div class="external-manual-header">
                         <h5 class="mb-1">Submit Missed Internal Time</h5>
                         <p class="text-muted mb-0">Use this when your internal biometric DTR was not captured or the machine was unavailable.</p>
                     </div>
-                    <div class="card-body pt-3">
-                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-                            <div>
-                                <span class="student-metric-label">Manual Internal DTR</span>
-                                <h3 class="mb-1"><i class="feather-log-in me-1"></i> Record Time Entry</h3>
-                                <div class="student-dtr-meta">Use this only when the biometric machine was unavailable or your time was not captured.</div>
-                            </div>
-                        </div>
+                    <div class="external-manual-body">
                         <form method="post" enctype="multipart/form-data" class="row g-3">
                             <input type="hidden" name="student_action" value="submit_machine_down">
                             <input type="hidden" name="proof_clock_time" id="proofClockTime" value="">
@@ -1057,7 +1048,7 @@ include 'includes/header.php';
                             <div class="col-12">
                                 <div class="external-manual-guide">
                                     <strong>How to submit internal manual DTR:</strong>
-                                    <span>1. Choose one date or multiple missed dates, then click Generate Date Rows.</span>
+                                    <span>1. Choose one missed date or a date range, then click Create Time Rows.</span>
                                     <span>2. Pick the closest time from each dropdown, like 8:00 AM, 12:00 PM, 1:00 PM, and 5:00 PM.</span>
                                     <span>3. Upload proof and explain what happened. The entry stays pending until school review.</span>
                                 </div>
@@ -1070,58 +1061,51 @@ include 'includes/header.php';
                                 <label class="form-label" for="fallbackAttendanceEndDate">End Date</label>
                                 <input type="date" class="form-control" id="fallbackAttendanceEndDate" name="attendance_end_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
-                            <div class="col-md-4">
-                                <button type="button" class="btn btn-success w-100" id="generateFallbackRows">Generate Date Rows</button>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="button" class="btn btn-success w-100" id="generateFallbackRows">Create Time Rows</button>
                             </div>
-                            <div class="col-12" id="fallbackGeneratedRowsWrap" style="display:none;">
-                                <div class="table-responsive">
-                                    <table class="table table-hover align-middle mb-0 external-manual-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>Morning In</th>
-                                                <th>Morning Out</th>
-                                                <th>Afternoon In</th>
-                                                <th>Afternoon Out</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="fallbackGeneratedRows"></tbody>
-                                    </table>
+                            <div class="col-12">
+                                <div class="external-date-range-hint" id="fallbackDateRangeHint">
+                                    Start and end are both today, so this will create 1 row. Choose a wider date range to create more rows.
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-12">
+                                <div class="external-manual-extra">
+                                    <div>
+                                        <label class="form-label" for="proofImage">Proof Image</label>
+                                        <input type="file" class="form-control" id="proofImage" name="proof_image" accept="image/png,image/jpeg,image/webp" capture="environment" required>
+                                        <div class="form-text">Upload JPG, PNG, or WEBP proof.</div>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="fallbackReason">Reason / Details (Optional)</label>
+                                        <input type="text" class="form-control" id="fallbackReason" name="fallback_reason" maxlength="255" placeholder="Optional note for the reviewer.">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div id="fallbackGeneratedRowsWrap" class="external-manual-rows-placeholder">
+                                    Choose the date range, then create time rows to enter missed times.
+                                </div>
+                            </div>
+                            <div class="d-none" aria-hidden="true">
                                 <label class="form-label" for="fallbackMorningIn">Morning In</label>
                                 <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackMorningIn" name="morning_time_in">
                                     <?php echo student_dtr_time_select_options_html('', 5, 11); ?>
                                 </select>
-                            </div>
-                            <div class="col-md-3">
                                 <label class="form-label" for="fallbackMorningOut">Morning Out</label>
                                 <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackMorningOut" name="morning_time_out">
                                     <?php echo student_dtr_time_select_options_html('', 5, 11); ?>
                                 </select>
-                            </div>
-                            <div class="col-md-3">
                                 <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
                                 <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackAfternoonIn" name="afternoon_time_in">
                                     <?php echo student_dtr_time_select_options_html('', 12, 23); ?>
                                 </select>
-                            </div>
-                            <div class="col-md-3">
                                 <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
                                 <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackAfternoonOut" name="afternoon_time_out">
                                     <?php echo student_dtr_time_select_options_html('', 12, 23); ?>
                                 </select>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="proofImage">Proof Image</label>
-                                <input type="file" class="form-control" id="proofImage" name="proof_image" accept="image/png,image/jpeg,image/webp" capture="environment" required>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label" for="fallbackReason">Reason / Details (Optional)</label>
-                                <textarea class="form-control" id="fallbackReason" name="fallback_reason" rows="3" placeholder="Optional note for the reviewer."></textarea>
-                            </div>
-                            <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+                            <div class="col-12" id="fallbackSubmitWrap" hidden>
                                 <button type="submit" class="btn btn-primary w-100" <?php echo max(0, $remainingHours) <= 0 ? 'disabled' : ''; ?>>Submit Internal DTR for Review</button>
                             </div>
                         </form>
@@ -1308,10 +1292,11 @@ include 'includes/header.php';
     var startInput = document.getElementById('fallbackAttendanceDate');
     var endInput = document.getElementById('fallbackAttendanceEndDate');
     var rowsWrap = document.getElementById('fallbackGeneratedRowsWrap');
-    var rowsBody = document.getElementById('fallbackGeneratedRows');
     var modeSelect = document.getElementById('fallbackMode');
+    var rangeHint = document.getElementById('fallbackDateRangeHint');
+    var submitWrap = document.getElementById('fallbackSubmitWrap');
 
-    if (!generateButton || !startInput || !endInput || !rowsWrap || !rowsBody) {
+    if (!generateButton || !startInput || !endInput || !rowsWrap) {
         return;
     }
 
@@ -1339,8 +1324,9 @@ include 'includes/header.php';
         return options.join('');
     };
 
-    var buildTimeSelect = function (name, selected, startHour, endHour) {
-        return '<select class="form-select student-dtr-time-select external-manual-time-select" name="' + name + '">' + buildTimeOptions(selected || '', startHour, endHour) + '</select>';
+    var buildTimeSelect = function (name, selected, startHour, endHour, slotName) {
+        var slotAttr = slotName ? ' data-time-slot="' + escapeHtml(slotName) + '"' : '';
+        return '<select class="form-select student-dtr-time-select external-manual-time-select" name="' + name + '"' + slotAttr + '>' + buildTimeOptions(selected || '', startHour, endHour) + '</select>';
     };
 
     var formatLabel = function (dateValue) {
@@ -1355,36 +1341,105 @@ include 'includes/header.php';
         return dateObj.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric', weekday: 'short' });
     };
 
+    var parseLocalDate = function (value) {
+        var match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!match) {
+            return null;
+        }
+        return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    };
+
+    var formatLocalDate = function (date) {
+        return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+    };
+
+    var diffDays = function (startDate, endDate) {
+        return Math.round((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)) + 1;
+    };
+
+    var updateRangeHint = function () {
+        if (!rangeHint) {
+            return;
+        }
+        rangeHint.classList.remove('is-success', 'is-warning');
+        endInput.min = startInput.value || '';
+        var startDate = parseLocalDate(startInput.value);
+        var endDate = parseLocalDate(endInput.value || startInput.value);
+        if (!startDate || !endDate) {
+            rangeHint.textContent = 'Choose both dates first. Same start and end date creates 1 row.';
+            return;
+        }
+        if (endDate < startDate) {
+            endInput.value = startInput.value;
+            endDate = parseLocalDate(endInput.value);
+        }
+        var count = diffDays(startDate, endDate);
+        rangeHint.textContent = count === 1
+            ? 'This will create 1 row for ' + startInput.value + '. Pick an earlier Start Date or wider range if you need more days.'
+            : 'This will create ' + count + ' rows, one for each date from ' + startInput.value + ' to ' + endInput.value + '.';
+    };
+
+    startInput.addEventListener('input', updateRangeHint);
+    startInput.addEventListener('change', updateRangeHint);
+    endInput.addEventListener('input', updateRangeHint);
+    endInput.addEventListener('change', updateRangeHint);
+    updateRangeHint();
+
     generateButton.addEventListener('click', function () {
         var startValue = startInput.value;
         var endValue = endInput.value || startValue;
-        if (!startValue || !endValue) {
+        var startDate = parseLocalDate(startValue);
+        var endDate = parseLocalDate(endValue);
+        if (!startDate || !endDate) {
+            updateRangeHint();
             return;
         }
-
-        var startDate = new Date(startValue + 'T00:00:00');
-        var endDate = new Date(endValue + 'T00:00:00');
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || endDate < startDate) {
+        if (endDate < startDate) {
+            endInput.value = startValue;
+            endDate = parseLocalDate(startValue);
+            updateRangeHint();
+        }
+        var rowCount = diffDays(startDate, endDate);
+        if (rowCount > 31) {
+            if (rangeHint) {
+                rangeHint.classList.remove('is-success');
+                rangeHint.classList.add('is-warning');
+                rangeHint.textContent = 'Please create rows for 31 days or fewer at a time.';
+            }
             return;
         }
 
         var rows = [];
         for (var cursor = new Date(startDate); cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
-            var isoDate = new Date(cursor.getTime() - (cursor.getTimezoneOffset() * 60000)).toISOString().slice(0, 10);
+            var isoDate = formatLocalDate(cursor);
             var safeDate = escapeHtml(isoDate);
             rows.push(
                 '<tr>' +
                     '<td data-label="Date"><strong>' + escapeHtml(formatLabel(isoDate)) + '</strong></td>' +
-                    '<td data-label="Morning In">' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_in]', '', 5, 11) + '</td>' +
-                    '<td data-label="Morning Out">' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_out]', '', 5, 11) + '</td>' +
-                    '<td data-label="Afternoon In">' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_in]', '', 12, 23) + '</td>' +
-                    '<td data-label="Afternoon Out">' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_out]', '', 12, 23) + '</td>' +
+                    '<td data-label="Morning In">' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_in]', '', 5, 11, 'fallbackMorningIn') + '</td>' +
+                    '<td data-label="Morning Out">' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_out]', '', 5, 11, 'fallbackMorningOut') + '</td>' +
+                    '<td data-label="Afternoon In">' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_in]', '', 12, 23, 'fallbackAfternoonIn') + '</td>' +
+                    '<td data-label="Afternoon Out">' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_out]', '', 12, 23, 'fallbackAfternoonOut') + '</td>' +
                 '</tr>'
             );
         }
 
-        rowsBody.innerHTML = rows.join('');
-        rowsWrap.style.display = rows.length ? '' : 'none';
+        rowsWrap.className = 'external-manual-rows-generated';
+        rowsWrap.innerHTML =
+            '<div class="table-responsive">' +
+                '<table class="table table-hover align-middle mb-0 external-manual-table">' +
+                    '<thead><tr><th>Date</th><th>Morning In</th><th>Morning Out</th><th>Afternoon In</th><th>Afternoon Out</th></tr></thead>' +
+                    '<tbody>' + rows.join('') + '</tbody>' +
+                '</table>' +
+            '</div>';
+        if (rangeHint) {
+            rangeHint.classList.remove('is-warning');
+            rangeHint.classList.add('is-success');
+            rangeHint.textContent = 'Created ' + rows.length + ' time row' + (rows.length === 1 ? '' : 's') + '. Fill the missing times below, then submit for review.';
+        }
+        if (submitWrap) {
+            submitWrap.hidden = false;
+        }
         if (modeSelect) {
             modeSelect.value = 'weekly';
         }
@@ -1485,7 +1540,15 @@ include 'includes/header.php';
             button.classList.add('is-selected');
 
             var selectId = button.getAttribute('data-target-select') || '';
-            var chosenValue = chooseClosestOption(document.getElementById(selectId), nearestThirtyMinuteValue());
+            var generatedSelect = document.querySelector('#fallbackGeneratedRowsWrap select[data-time-slot="' + selectId + '"]');
+            if (!generatedSelect) {
+                var missingRowsStatus = document.getElementById('quickTimePickerStatus');
+                if (missingRowsStatus) {
+                    missingRowsStatus.textContent = 'Create time rows first, then tap a quick time button.';
+                }
+                return;
+            }
+            var chosenValue = chooseClosestOption(generatedSelect, nearestThirtyMinuteValue());
 
             var noteInput = document.getElementById('quickInternalPunchNote');
             var reasonBox = document.getElementById('fallbackReason');
@@ -1498,7 +1561,7 @@ include 'includes/header.php';
                 var slotName = (button.textContent || '').replace(/\s+/g, ' ').trim();
                 var timeLabel = formatTimeLabel(chosenValue);
                 status.textContent = timeLabel
-                    ? slotName + ' filled with ' + timeLabel + ' in the form below.'
+                    ? slotName + ' filled with ' + timeLabel + ' in the generated row.'
                     : slotName + ' was not changed because the current time is outside that slot. Use the dropdown below.';
             }
         });

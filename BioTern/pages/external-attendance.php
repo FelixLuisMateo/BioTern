@@ -293,6 +293,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $notes = trim((string)($_POST['notes'] ?? ''));
             $savedCount = 0;
             $lastError = '';
+            $photoPath = null;
+            $proofUpload = null;
+            $hasSubmittableRow = false;
+
+            $firstValidDate = '';
+            foreach ($dates as $index => $dateCandidate) {
+                $dateCandidate = trim((string)$dateCandidate);
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateCandidate)) {
+                    continue;
+                }
+                if ($firstValidDate === '') {
+                    $firstValidDate = $dateCandidate;
+                }
+
+                foreach ([$morningIn, $morningOut, $afternoonIn, $afternoonOut] as $timeGroup) {
+                    if (external_attendance_normalize_time((string)($timeGroup[$index] ?? '')) !== null) {
+                        $hasSubmittableRow = true;
+                        break 2;
+                    }
+                }
+            }
+
+            if (!$hasSubmittableRow) {
+                external_attendance_flash_redirect('No manual external DTR rows were saved. Fill at least one row first.', 'warning', $redirectTarget);
+            }
+
+            if ($firstValidDate === '') {
+                external_attendance_flash_redirect('Choose at least one valid date before submitting external DTR.', 'warning', $redirectTarget);
+            }
+
+            if (isset($_FILES['proof_image']) && is_array($_FILES['proof_image']) && (int)($_FILES['proof_image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                $upload = external_attendance_store_photo($_FILES['proof_image'], $targetStudentId, $firstValidDate);
+                if (empty($upload['ok'])) {
+                    external_attendance_flash_redirect((string)($upload['message'] ?? 'Could not upload proof image.'), 'warning', $redirectTarget);
+                }
+                $photoPath = (string)($upload['path'] ?? '');
+                $proofUpload = $upload;
+            }
 
             foreach ($dates as $index => $dateValue) {
                 $dateValue = trim((string)$dateValue);
@@ -323,7 +361,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $targetStudent,
                     $dateValue,
                     $payload,
-                    null,
+                    $photoPath,
                     $notes,
                     $currentUserId,
                     false,
@@ -331,6 +369,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
 
                 if (!empty($save['ok'])) {
+                    if (is_array($proofUpload) && (int)($save['attendance_id'] ?? 0) > 0) {
+                        external_attendance_insert_attachment(
+                            $conn,
+                            $targetStudentId,
+                            (int)$save['attendance_id'],
+                            $dateValue,
+                            $proofUpload,
+                            $notes !== '' ? $notes : 'External manual DTR proof',
+                            $currentUserId
+                        );
+                    }
                     $savedCount++;
                 } else {
                     $lastError = trim((string)($save['message'] ?? ''));
@@ -688,6 +737,7 @@ $rows = [];
 $sql = "
     SELECT
         ea.*,
+        " . external_attendance_proof_url_sql('ea') . " AS proof_photo_path,
         s.student_id AS student_number,
         s.user_id,
         s.first_name,
@@ -717,9 +767,9 @@ if ($sourceFilter !== 'all') {
 }
 
 if ($photoFilter === 'with') {
-    $whereClauses[] = "TRIM(COALESCE(ea.photo_path, '')) <> ''";
+    $whereClauses[] = "(TRIM(COALESCE(ea.photo_path, '')) <> '' OR EXISTS (SELECT 1 FROM external_dtr_attachments eda_filter WHERE eda_filter.external_attendance_id = ea.id AND eda_filter.deleted_at IS NULL))";
 } elseif ($photoFilter === 'without') {
-    $whereClauses[] = "TRIM(COALESCE(ea.photo_path, '')) = ''";
+    $whereClauses[] = "(TRIM(COALESCE(ea.photo_path, '')) = '' AND NOT EXISTS (SELECT 1 FROM external_dtr_attachments eda_filter WHERE eda_filter.external_attendance_id = ea.id AND eda_filter.deleted_at IS NULL))";
 }
 
 if ($studentFilter !== '') {
@@ -963,7 +1013,7 @@ include 'includes/header.php';
                                                 </span>
                                             </td>
                                             <td data-label="Source"><?php echo htmlspecialchars((string)($row['source'] ?? 'manual'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td data-label="Photo"><?php if (trim((string)($row['photo_path'] ?? '')) !== ''): ?><a href="<?php echo htmlspecialchars((string)$row['photo_path'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">Open</a><?php else: ?>-<?php endif; ?></td>
+                                            <td data-label="Photo"><?php if (trim((string)($row['proof_photo_path'] ?? '')) !== ''): ?><a href="<?php echo htmlspecialchars((string)$row['proof_photo_path'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">Open</a><?php else: ?>-<?php endif; ?></td>
                                             <td class="small external-review-notes" data-label="Notes"><?php echo htmlspecialchars((string)($row['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                             <td data-label="Review">
                                                 <form method="post" class="d-grid gap-2 external-review-form">

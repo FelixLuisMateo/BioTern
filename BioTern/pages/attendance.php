@@ -673,7 +673,7 @@ if ($filter_source !== 'all') {
     }
 }
 if ($filter_reports === 'proof') {
-    $externalWhere[] = "TRIM(COALESCE(ea.photo_path, '')) <> ''";
+    $externalWhere[] = "(TRIM(COALESCE(ea.photo_path, '')) <> '' OR EXISTS (SELECT 1 FROM external_dtr_attachments eda_filter WHERE eda_filter.external_attendance_id = ea.id AND eda_filter.deleted_at IS NULL))";
 }
 if ($start_date !== '' && $end_date !== '') {
     $safeStartDate = $conn->real_escape_string($start_date);
@@ -734,7 +734,7 @@ $externalAttendanceQuery = "
          ea.reviewed_at AS approved_at,
          ea.notes AS remarks,
          'external' AS record_origin,
-         ea.photo_path AS proof_photo_path,
+         " . external_attendance_proof_url_sql('ea') . " AS proof_photo_path,
          s.id AS student_id,
          s.user_id,
          COALESCE(s.department_id, i.department_id) AS department_id,

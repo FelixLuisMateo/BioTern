@@ -47,6 +47,7 @@ if ($action === 'clock') {
 
     $existing = external_attendance_student_record($conn, (int)$student['id'], $clockDate);
     $photoPath = '';
+    $photoUpload = null;
     if (isset($_FILES['photo']) && (int)($_FILES['photo']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
         $upload = external_attendance_store_photo($_FILES['photo'], (int)$student['id'], $clockDate);
         if (!($upload['ok'] ?? false)) {
@@ -54,9 +55,7 @@ if ($action === 'clock') {
             exit;
         }
         $photoPath = (string)$upload['path'];
-    } elseif (!$existing || trim((string)($existing['photo_path'] ?? '')) === '') {
-        echo json_encode(['ok' => false, 'message' => 'A verification photo is required the first time you submit for this day.']);
-        exit;
+        $photoUpload = $upload;
     }
 
     $payload = [
@@ -70,6 +69,17 @@ if ($action === 'clock') {
     $payload[$column] = $clockTime;
 
     $saved = external_attendance_upsert_day($conn, $student, $clockDate, $payload, $photoPath, $notes, $userId);
+    if (!empty($saved['ok']) && is_array($photoUpload) && (int)($saved['attendance_id'] ?? 0) > 0) {
+        external_attendance_insert_attachment(
+            $conn,
+            (int)$student['id'],
+            (int)$saved['attendance_id'],
+            $clockDate,
+            $photoUpload,
+            $notes !== '' ? $notes : 'External quick DTR proof',
+            $userId
+        );
+    }
     echo json_encode($saved);
     exit;
 }
@@ -119,6 +129,17 @@ for ($cursor = $startTs; $cursor <= $endTs; $cursor += 86400) {
     $targetDate = date('Y-m-d', $cursor);
     $saved = external_attendance_upsert_day($conn, $student, $targetDate, $payload, (string)$upload['path'], $notes, $userId, true);
     if (!empty($saved['ok'])) {
+        if ((int)($saved['attendance_id'] ?? 0) > 0) {
+            external_attendance_insert_attachment(
+                $conn,
+                (int)$student['id'],
+                (int)$saved['attendance_id'],
+                $targetDate,
+                $upload,
+                $notes !== '' ? $notes : 'External range DTR proof',
+                $userId
+            );
+        }
         $savedCount++;
     }
 }

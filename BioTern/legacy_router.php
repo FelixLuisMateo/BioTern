@@ -126,6 +126,7 @@ $map = [
   'print_attendance.php' => 'pages/print_attendance.php',
   'external-attendance.php' => 'pages/external-attendance.php',
   'external-attendance-manual.php' => 'pages/external-attendance-manual.php',
+  'external-dtr-proof.php' => 'pages/external-dtr-proof.php',
   'student-external-dtr.php' => 'pages/student-external-dtr.php',
   'student-manual-dtr.php' => 'pages/student-manual-dtr.php',
 

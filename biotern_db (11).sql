@@ -2391,11 +2391,52 @@ CREATE TABLE `external_attendance` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `student_id` int(10) UNSIGNED NOT NULL,
   `attendance_date` date NOT NULL,
-  `time_in` time NOT NULL,
-  `time_out` time NOT NULL,
-  `photo_path` varchar(255) NOT NULL,
-  `notes` varchar(255) DEFAULT NULL,
-  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+  `morning_time_in` time DEFAULT NULL,
+  `morning_time_out` time DEFAULT NULL,
+  `break_time_in` time DEFAULT NULL,
+  `break_time_out` time DEFAULT NULL,
+  `afternoon_time_in` time DEFAULT NULL,
+  `afternoon_time_out` time DEFAULT NULL,
+  `total_hours` decimal(8,2) NOT NULL DEFAULT 0.00,
+  `multiplier` decimal(6,2) NOT NULL DEFAULT 1.00,
+  `multiplier_reason` varchar(255) DEFAULT NULL,
+  `photo_path` varchar(255) DEFAULT NULL,
+  `notes` varchar(500) DEFAULT NULL,
+  `source` varchar(20) NOT NULL DEFAULT 'manual',
+  `status` varchar(20) NOT NULL DEFAULT 'pending',
+  `created_by_user_id` int(10) UNSIGNED DEFAULT NULL,
+  `reviewed_by` int(10) UNSIGNED DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `external_dtr_attachments`
+--
+
+CREATE TABLE `external_dtr_attachments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `student_id` int(11) NOT NULL,
+  `external_attendance_id` bigint(20) UNSIGNED NOT NULL,
+  `attendance_date` date DEFAULT NULL,
+  `file_path` varchar(255) NOT NULL DEFAULT '',
+  `file_name` varchar(255) NOT NULL DEFAULT '',
+  `file_type` varchar(100) NOT NULL DEFAULT '',
+  `file_size` int(11) NOT NULL DEFAULT 0,
+  `reason` text DEFAULT NULL,
+  `uploaded_by` int(11) DEFAULT NULL,
+  `storage_driver` varchar(30) NOT NULL DEFAULT 'filesystem',
+  `file_blob` longblob DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `deleted_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_external_dtr_student` (`student_id`),
+  KEY `idx_external_dtr_attendance` (`external_attendance_id`),
+  KEY `idx_external_dtr_deleted` (`deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -4251,7 +4292,9 @@ ALTER TABLE `evaluation_unlocks`
 --
 ALTER TABLE `external_attendance`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_student_date` (`student_id`,`attendance_date`);
+  ADD UNIQUE KEY `uq_external_attendance_student_date` (`student_id`,`attendance_date`),
+  ADD KEY `idx_external_attendance_status` (`status`),
+  ADD KEY `idx_external_attendance_student_date` (`student_id`,`attendance_date`);
 
 --
 -- Indexes for table `fingerprint_user_map`

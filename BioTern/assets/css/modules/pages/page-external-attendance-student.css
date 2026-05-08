@@ -1,3 +1,337 @@
+.external-dtr-hero,
+.external-quick-card,
+.external-manual-card {
+    border: 1px solid #dbe7f3;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 12px 30px rgba(31, 56, 88, 0.08);
+}
+
+.external-dtr-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 1rem;
+    align-items: stretch;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.external-dtr-hero-main {
+    min-width: 0;
+    padding: 0.35rem 0.25rem;
+}
+
+.external-dtr-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.75rem;
+    color: #315bdc;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.external-dtr-hero h2 {
+    margin: 0 0 0.45rem;
+    color: #12233d;
+    font-size: clamp(1.35rem, 2vw, 2rem);
+    line-height: 1.15;
+}
+
+.external-dtr-hero p {
+    max-width: 860px;
+    margin: 0;
+    color: #5f728c;
+    font-size: 0.92rem;
+    line-height: 1.55;
+}
+
+.external-dtr-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+}
+
+.external-dtr-meta span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0.32rem 0.65rem;
+    border: 1px solid #d8e4f0;
+    border-radius: 999px;
+    background: #f7fbff;
+    color: #31506f;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.external-dtr-meta .is-counting {
+    border-color: rgba(34, 197, 94, 0.35);
+    background: rgba(34, 197, 94, 0.1);
+    color: #13733a;
+}
+
+.external-dtr-meta .is-paused {
+    border-color: rgba(245, 158, 11, 0.36);
+    background: rgba(245, 158, 11, 0.12);
+    color: #925d08;
+}
+
+.external-dtr-clock-card {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 0.3rem;
+    min-height: 150px;
+    padding: 1rem;
+    border: 1px solid #dbe7f3;
+    border-radius: 8px;
+    background: #f7fbff;
+    text-align: center;
+}
+
+.external-dtr-clock-label,
+.external-dtr-clock-date {
+    color: #69809a;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.external-dtr-clock {
+    color: #123455;
+    font-size: 1.55rem;
+    font-weight: 900;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.external-dtr-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.external-dtr-stat {
+    min-height: 86px;
+    padding: 0.9rem 1rem;
+    border: 1px solid #dbe7f3;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(31, 56, 88, 0.06);
+}
+
+.external-dtr-stat span {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #69809a;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.external-dtr-stat strong {
+    color: #102f51;
+    font-size: 1.28rem;
+    font-weight: 900;
+}
+
+.external-quick-card {
+    padding: 1rem;
+}
+
+.external-quick-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.9rem;
+}
+
+.external-quick-heading h3 {
+    margin: 0 0 0.25rem;
+    color: #102f51;
+    font-size: 1.1rem;
+    font-weight: 900;
+}
+
+.external-quick-heading p {
+    margin: 0;
+    color: #6a7f97;
+    font-size: 0.86rem;
+}
+
+.external-quick-heading > span {
+    flex: 0 0 auto;
+    color: #31506f;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.external-clock-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+.external-clock-btn {
+    display: grid;
+    place-items: center;
+    gap: 0.35rem;
+    min-height: 76px;
+    padding: 0.75rem;
+    border: 1px solid #d8e4f0;
+    border-radius: 8px;
+    background: #f8fbff;
+    color: #173b5f;
+    font-weight: 850;
+    transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+
+.external-clock-btn i {
+    font-size: 1.15rem;
+}
+
+.external-clock-btn span {
+    font-size: 0.82rem;
+}
+
+.external-clock-btn:hover:not(:disabled),
+.external-clock-btn.is-selected {
+    border-color: #315bdc;
+    background: #eef4ff;
+    color: #2348c8;
+    transform: translateY(-1px);
+}
+
+.external-clock-btn.is-complete,
+.external-clock-btn:disabled {
+    opacity: 0.62;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.external-note-field {
+    margin-top: 0.9rem;
+}
+
+.external-note-field > span,
+.external-note-field label {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #31506f;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.external-note-field input {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid #c7d6e5;
+    border-radius: 8px;
+    background: #f8fbff;
+    color: #0f3154;
+    font-weight: 650;
+    padding: 0.65rem 0.8rem;
+}
+
+.external-manual-card input[type="file"].form-control {
+    min-height: 44px;
+    padding: 0.5rem;
+}
+
+.external-manual-card .form-text {
+    color: #6a7f97;
+    font-size: 0.78rem;
+}
+
+.external-manual-card {
+    overflow: hidden;
+}
+
+.external-manual-header {
+    padding: 1rem 1rem 0.4rem;
+}
+
+.external-manual-header h5 {
+    color: #102f51;
+    font-weight: 900;
+}
+
+.external-manual-body {
+    padding: 0.8rem 1rem 1rem;
+}
+
+.external-manual-extra {
+    display: grid;
+    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    gap: 0.8rem;
+    margin-bottom: 0.9rem;
+}
+
+.external-manual-rows-placeholder {
+    display: grid;
+    place-items: center;
+    min-height: 82px;
+    padding: 1rem;
+    border: 1px dashed #b8cbe0;
+    border-radius: 8px;
+    background: #f8fbff;
+    color: #6a7f97;
+    font-size: 0.86rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.external-manual-rows-generated {
+    width: 100%;
+    margin-top: 0.95rem;
+    overflow-x: auto;
+    border: 1px solid #d6e3f1;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.external-manual-rows-generated .table-responsive {
+    width: 100%;
+}
+
+.external-manual-rows-generated table {
+    width: 100%;
+}
+
+.external-date-range-hint {
+    margin-top: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid #c7d6e5;
+    border-radius: 8px;
+    background: #f8fbff;
+    color: #496b8d;
+    font-size: 0.83rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.external-date-range-hint.is-success {
+    border-color: rgba(34, 197, 94, 0.35);
+    background: rgba(34, 197, 94, 0.1);
+    color: #166534;
+}
+
+.external-date-range-hint.is-warning {
+    border-color: rgba(245, 158, 11, 0.42);
+    background: rgba(245, 158, 11, 0.12);
+    color: #92400e;
+}
+
 .external-manual-guide {
     display: grid;
     gap: 0.55rem;
@@ -123,6 +457,131 @@ html.app-skin-dark .external-history-table tr {
     border-color: rgba(160, 195, 230, 0.18);
 }
 
+html.app-skin-dark .external-dtr-hero,
+html.app-skin-dark .external-quick-card,
+html.app-skin-dark .external-manual-card,
+html.app-skin-dark .external-dtr-stat {
+    background: #101b2e;
+    border-color: #22334d;
+    box-shadow: none;
+}
+
+html.app-skin-dark .external-dtr-clock-card,
+html.app-skin-dark .external-clock-btn {
+    background: #0c1728;
+    border-color: #243751;
+}
+
+html.app-skin-dark .external-dtr-hero h2,
+html.app-skin-dark .external-quick-heading h3,
+html.app-skin-dark .external-dtr-stat strong,
+html.app-skin-dark .external-manual-header h5 {
+    color: #f7fbff;
+}
+
+html.app-skin-dark .external-dtr-hero p,
+html.app-skin-dark .external-quick-heading p {
+    color: #a9bdd3;
+}
+
+html.app-skin-dark .external-dtr-meta span {
+    background: #0c1728;
+    border-color: #2c405f;
+    color: #d7e8fb;
+}
+
+html.app-skin-dark .external-dtr-clock,
+html.app-skin-dark .external-clock-btn,
+html.app-skin-dark .external-quick-heading > span {
+    color: #eaf4ff;
+}
+
+html.app-skin-dark .external-dtr-clock-label,
+html.app-skin-dark .external-dtr-clock-date,
+html.app-skin-dark .external-dtr-stat span,
+html.app-skin-dark .external-note-field label {
+    color: #9fb7d1;
+}
+
+html.app-skin-dark .external-clock-btn:hover:not(:disabled),
+html.app-skin-dark .external-clock-btn.is-selected {
+    background: #152746;
+    border-color: #6d8cff;
+    color: #ffffff;
+}
+
+html.app-skin-dark .external-note-field input {
+    background: #122d49;
+    border-color: #365a7f;
+    color: #f6fbff;
+}
+
+html.app-skin-dark .external-manual-card .form-text {
+    color: #9fb7d1;
+}
+
+html.app-skin-dark .external-manual-rows-placeholder {
+    background: #0c1728;
+    border-color: #365a7f;
+    color: #9fb7d1;
+}
+
+html.app-skin-dark .external-manual-rows-generated {
+    background: #0c1728;
+    border-color: #365a7f;
+}
+
+html.app-skin-dark .external-date-range-hint {
+    background: #0c1728;
+    border-color: #365a7f;
+    color: #b7d2ed;
+}
+
+html.app-skin-dark .external-date-range-hint.is-success {
+    background: rgba(34, 197, 94, 0.13);
+    border-color: rgba(74, 222, 128, 0.35);
+    color: #bbf7d0;
+}
+
+html.app-skin-dark .external-date-range-hint.is-warning {
+    background: rgba(245, 158, 11, 0.13);
+    border-color: rgba(251, 191, 36, 0.36);
+    color: #fde68a;
+}
+
+@media (max-width: 991.98px) {
+    .external-dtr-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .external-dtr-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767.98px) {
+    .external-dtr-hero,
+    .external-quick-card,
+    .external-manual-card {
+        border-radius: 8px;
+    }
+
+    .external-dtr-stats,
+    .external-clock-grid,
+    .external-manual-extra {
+        grid-template-columns: 1fr;
+    }
+
+    .external-quick-heading {
+        display: block;
+    }
+
+    .external-quick-heading > span {
+        display: block;
+        margin-top: 0.35rem;
+    }
+}
+
 html.app-skin-dark .external-manual-guide {
     background: rgba(91, 132, 255, 0.11);
     border-color: rgba(145, 190, 230, 0.28);
@@ -173,4 +632,56 @@ html.app-skin-dark .external-history-table td {
 html.app-skin-dark .external-manual-table td::before,
 html.app-skin-dark .external-history-table td::before {
     color: #9fc3e7;
+}
+
+.external-manual-card.student-dtr-fallback-card .external-manual-extra {
+    grid-template-columns: minmax(0, 240px) minmax(0, 1fr);
+    align-items: start;
+}
+
+.external-manual-card.student-dtr-fallback-card .form-control,
+.external-manual-card.student-dtr-fallback-card input[type="file"].form-control {
+    min-height: 44px;
+    height: 44px;
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+    box-shadow: none;
+}
+
+.external-manual-card.student-dtr-fallback-card input[type="file"].form-control {
+    line-height: 1.2;
+}
+
+.external-manual-card.student-dtr-fallback-card input[type="file"].form-control::file-selector-button,
+.external-manual-card.student-dtr-fallback-card input[type="file"].form-control::-webkit-file-upload-button {
+    height: 32px;
+    margin: 0 0.65rem 0 0;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid rgba(145, 190, 230, 0.35);
+    border-radius: 6px;
+    background: #0f172a;
+    color: #ffffff;
+    font-weight: 800;
+}
+
+.external-manual-card.student-dtr-fallback-card .form-text {
+    margin-top: 0.35rem;
+}
+
+.external-manual-card.student-dtr-fallback-card #generateFallbackRows {
+    min-height: 44px;
+    height: 44px;
+    border-radius: 8px;
+}
+
+.external-manual-card #generateManualDtrRows {
+    min-height: 44px;
+    height: 44px;
+    border-radius: 8px;
+}
+
+@media (max-width: 767.98px) {
+    .external-manual-card.student-dtr-fallback-card .external-manual-extra {
+        grid-template-columns: 1fr;
+    }
 }

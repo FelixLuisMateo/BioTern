@@ -70,7 +70,78 @@ if (!function_exists('external_attendance_ensure_schema')) {
             }
         }
 
+        if (isset($columns['time_in'])) {
+            $conn->query("ALTER TABLE external_attendance MODIFY COLUMN time_in TIME NULL DEFAULT NULL");
+        }
+        if (isset($columns['time_out'])) {
+            $conn->query("ALTER TABLE external_attendance MODIFY COLUMN time_out TIME NULL DEFAULT NULL");
+        }
+        if (isset($columns['photo_path'])) {
+            $conn->query("ALTER TABLE external_attendance MODIFY COLUMN photo_path VARCHAR(255) NULL DEFAULT NULL");
+        }
+        if (isset($columns['notes'])) {
+            $conn->query("ALTER TABLE external_attendance MODIFY COLUMN notes VARCHAR(500) NULL DEFAULT NULL");
+        }
+        if (isset($columns['time_in']) && isset($columns['time_out'])) {
+            $conn->query("
+                UPDATE external_attendance
+                SET morning_time_in = COALESCE(morning_time_in, time_in),
+                    afternoon_time_out = COALESCE(afternoon_time_out, time_out)
+                WHERE (morning_time_in IS NULL AND time_in IS NOT NULL)
+                   OR (afternoon_time_out IS NULL AND time_out IS NOT NULL)
+            ");
+        }
+
         $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
+        external_attendance_ensure_attachment_schema($conn);
+    }
+}
+
+if (!function_exists('external_attendance_ensure_attachment_schema')) {
+    function external_attendance_ensure_attachment_schema(mysqli $conn): void
+    {
+        $conn->query("
+            CREATE TABLE IF NOT EXISTS external_dtr_attachments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                student_id INT NOT NULL,
+                external_attendance_id BIGINT UNSIGNED NOT NULL,
+                attendance_date DATE NULL,
+                file_path VARCHAR(255) NOT NULL DEFAULT '',
+                file_name VARCHAR(255) NOT NULL DEFAULT '',
+                file_type VARCHAR(100) NOT NULL DEFAULT '',
+                file_size INT NOT NULL DEFAULT 0,
+                reason TEXT NULL,
+                uploaded_by INT NULL,
+                storage_driver VARCHAR(30) NOT NULL DEFAULT 'filesystem',
+                file_blob LONGBLOB NULL,
+                created_at DATETIME NULL,
+                updated_at DATETIME NULL,
+                deleted_at DATETIME NULL,
+                INDEX idx_external_dtr_student (student_id),
+                INDEX idx_external_dtr_attendance (external_attendance_id),
+                INDEX idx_external_dtr_deleted (deleted_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+        ");
+
+        $columns = [];
+        if ($result = $conn->query('SHOW COLUMNS FROM external_dtr_attachments')) {
+            while ($row = $result->fetch_assoc()) {
+                $columns[strtolower((string)($row['Field'] ?? ''))] = true;
+            }
+            $result->free();
+        }
+
+        $required = [
+            'storage_driver' => "ALTER TABLE external_dtr_attachments ADD COLUMN storage_driver VARCHAR(30) NOT NULL DEFAULT 'filesystem' AFTER uploaded_by",
+            'file_blob' => "ALTER TABLE external_dtr_attachments ADD COLUMN file_blob LONGBLOB NULL AFTER storage_driver",
+            'deleted_at' => "ALTER TABLE external_dtr_attachments ADD COLUMN deleted_at DATETIME NULL AFTER updated_at",
+        ];
+
+        foreach ($required as $column => $sql) {
+            if (!isset($columns[$column])) {
+                $conn->query($sql);
+            }
+        }
     }
 }
 
@@ -354,7 +425,16 @@ if (!function_exists('external_attendance_cloudinary_upload')) {
 
             $decoded = json_decode($response, true);
             if ($httpCode >= 200 && $httpCode < 300 && is_array($decoded) && !empty($decoded['secure_url'])) {
-                return ['ok' => true, 'message' => 'OK', 'path' => (string)$decoded['secure_url']];
+                return [
+                    'ok' => true,
+                    'message' => 'OK',
+                    'path' => (string)$decoded['secure_url'],
+                    'file_name' => basename((string)($decoded['public_id'] ?? 'external-proof')),
+                    'file_type' => $mime,
+                    'file_size' => 0,
+                    'storage_driver' => 'cloudinary',
+                    'file_blob' => null,
+                ];
             }
 
             $errorMessage = is_array($decoded) && isset($decoded['error']['message']) ? (string)$decoded['error']['message'] : 'Cloud upload failed.';
@@ -412,7 +492,75 @@ if (!function_exists('external_attendance_store_photo')) {
             'ok' => true,
             'message' => 'OK',
             'path' => 'uploads/external_attendance/' . $fileName,
+            'file_name' => (string)($file['name'] ?? $fileName),
+            'file_type' => $mime,
+            'file_size' => $size,
+            'storage_driver' => 'filesystem',
+            'file_blob' => null,
         ];
+    }
+}
+
+if (!function_exists('external_attendance_insert_attachment')) {
+    function external_attendance_insert_attachment(mysqli $conn, int $studentId, int $attendanceId, string $dateValue, array $upload, string $reason, int $uploadedBy): void
+    {
+        external_attendance_ensure_attachment_schema($conn);
+
+        $filePath = trim((string)($upload['path'] ?? ''));
+        if ($filePath === '') {
+            return;
+        }
+
+        $fileName = trim((string)($upload['file_name'] ?? basename($filePath)));
+        $fileType = trim((string)($upload['file_type'] ?? ''));
+        $fileSize = max(0, (int)($upload['file_size'] ?? 0));
+        $storageDriver = trim((string)($upload['storage_driver'] ?? 'filesystem'));
+        $fileBlob = $upload['file_blob'] ?? null;
+
+        $stmt = $conn->prepare("
+            INSERT INTO external_dtr_attachments (
+                student_id, external_attendance_id, attendance_date, file_path, file_name, file_type, file_size,
+                reason, uploaded_by, storage_driver, file_blob, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ");
+        if (!$stmt) {
+            return;
+        }
+
+        $stmt->bind_param(
+            'iissssisiss',
+            $studentId,
+            $attendanceId,
+            $dateValue,
+            $filePath,
+            $fileName,
+            $fileType,
+            $fileSize,
+            $reason,
+            $uploadedBy,
+            $storageDriver,
+            $fileBlob
+        );
+        $stmt->execute();
+        $stmt->close();
+    }
+}
+
+if (!function_exists('external_attendance_proof_url_sql')) {
+    function external_attendance_proof_url_sql(string $attendanceAlias = 'ea'): string
+    {
+        $safeAlias = preg_replace('/[^a-z0-9_]/i', '', $attendanceAlias) ?: 'ea';
+        return "COALESCE(
+            (
+                SELECT CONCAT('external-dtr-proof.php?id=', eda.id)
+                FROM external_dtr_attachments eda
+                WHERE eda.external_attendance_id = {$safeAlias}.id
+                  AND eda.deleted_at IS NULL
+                ORDER BY eda.id DESC
+                LIMIT 1
+            ),
+            NULLIF({$safeAlias}.photo_path, '')
+        )";
     }
 }
 
@@ -871,6 +1019,7 @@ if (!function_exists('external_attendance_upsert_day')) {
                 $existing['id']
             );
             $ok = $stmt->execute();
+            $attendanceId = (int)($existing['id'] ?? 0);
             $stmt->close();
         } else {
             $stmt = $conn->prepare("
@@ -902,6 +1051,7 @@ if (!function_exists('external_attendance_upsert_day')) {
                 $createdByUserId
             );
             $ok = $stmt->execute();
+            $attendanceId = (int)$stmt->insert_id;
             $stmt->close();
         }
 
@@ -916,6 +1066,7 @@ if (!function_exists('external_attendance_upsert_day')) {
             'total_hours' => (float)$totals['total_hours'],
             'multiplier' => (float)$totals['multiplier'],
             'reason' => (string)$totals['multiplier_reason'],
+            'attendance_id' => $attendanceId,
         ];
     }
 }
