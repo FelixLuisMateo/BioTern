@@ -457,6 +457,8 @@ $assignment_track = strtolower((string)($student['assignment_track'] ?? 'interna
 if (!in_array($assignment_track, ['internal', 'external'], true)) {
     $assignment_track = 'internal';
 }
+$attendance_settings = biotern_attendance_settings($conn);
+$live_timer_uses_schedule_cutoff = (string)($attendance_settings['live_timer_uses_schedule_cutoff'] ?? '0') === '1';
 $open_session = ['clocked_in_now' => false, 'is_open' => false, 'elapsed_preview_seconds' => 0, 'cutoff_time' => null];
 if ($assignment_track === 'internal') {
     $open_session = $attendance_record ? attendance_workflow_mark_incomplete_if_needed($conn, $attendance_record) : $open_session;
@@ -1709,6 +1711,7 @@ endif; ?>
          data-remaining-seconds="<?php echo (int)$preview_remaining_seconds; ?>"
          data-remaining-seconds-without-open="<?php echo (int)$remaining_seconds_without_open; ?>"
          data-is-clocked-in="<?php echo $is_clocked_in ? '1' : '0'; ?>"
+         data-use-schedule-cutoff="<?php echo $live_timer_uses_schedule_cutoff ? '1' : '0'; ?>"
           data-open-clock-in-raw="<?php echo htmlspecialchars((string)($open_clock_in_time ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
          data-session-cutoff-raw="<?php echo htmlspecialchars((string)($open_session['cutoff_time'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
           hidden></div>

@@ -15,7 +15,7 @@
                 "autoWidth": false,
                 "order": [[2, "desc"]],
                 "columnDefs": [
-                    { "orderable": false, "targets": [0, 12] }
+                    { "orderable": false, "targets": [0, 11] }
                 ],
                 "language": {
                     "emptyTable": "No attendance records found",

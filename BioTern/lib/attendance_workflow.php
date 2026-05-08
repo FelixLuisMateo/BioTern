@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/section_schedule.php';
 require_once __DIR__ . '/attendance_rules.php';
+require_once __DIR__ . '/attendance_settings.php';
 
 if (!function_exists('attendance_workflow_now')) {
     function attendance_workflow_now(): DateTimeImmutable
@@ -195,6 +196,25 @@ if (!function_exists('attendance_workflow_clamped_duration_seconds')) {
             return 0;
         }
 
+        $windowStartTs = strtotime($windowStart);
+        $windowEndTs = strtotime($windowEnd);
+        if ($windowStartTs === false || $windowEndTs === false) {
+            return max(0, $endTs - $startTs);
+        }
+
+        $clampedStart = max($startTs, $windowStartTs);
+        $clampedEnd = min($endTs, $windowEndTs);
+        return max(0, $clampedEnd - $clampedStart);
+    }
+}
+
+if (!function_exists('attendance_workflow_actual_duration_seconds')) {
+    function attendance_workflow_actual_duration_seconds(?int $startTs, ?int $endTs): int
+    {
+        if ($startTs === null || $endTs === null || $endTs <= $startTs) {
+            return 0;
+        }
+
         return max(0, $endTs - $startTs);
     }
 }
@@ -205,17 +225,22 @@ if (!function_exists('attendance_workflow_calculate_internal_hours')) {
         $bounds = attendance_workflow_schedule_bounds($conn, $attendance);
         $officialStart = (string)($bounds['official_start'] ?? '08:00:00');
         $officialEnd = (string)($bounds['official_end'] ?? '19:00:00');
+        $useScheduleCredit = biotern_attendance_uses_schedule_credit($conn, 'internal');
 
         $totalSeconds = 0;
         foreach ([['morning_time_in', 'morning_time_out'], ['afternoon_time_in', 'afternoon_time_out']] as $pair) {
             $startTs = attendance_workflow_parse_time($attendance[$pair[0]] ?? null);
             $endTs = attendance_workflow_parse_time($attendance[$pair[1]] ?? null);
-            $totalSeconds += attendance_workflow_clamped_duration_seconds($startTs, $endTs, $officialStart, $officialEnd);
+            $totalSeconds += $useScheduleCredit
+                ? attendance_workflow_clamped_duration_seconds($startTs, $endTs, $officialStart, $officialEnd)
+                : attendance_workflow_actual_duration_seconds($startTs, $endTs);
         }
 
         $breakInTs = attendance_workflow_parse_time($attendance['break_time_in'] ?? null);
         $breakOutTs = attendance_workflow_parse_time($attendance['break_time_out'] ?? null);
-        $totalSeconds -= attendance_workflow_clamped_duration_seconds($breakInTs, $breakOutTs, $officialStart, $officialEnd);
+        $totalSeconds -= $useScheduleCredit
+            ? attendance_workflow_clamped_duration_seconds($breakInTs, $breakOutTs, $officialStart, $officialEnd)
+            : attendance_workflow_actual_duration_seconds($breakInTs, $breakOutTs);
 
         return round(max(0, $totalSeconds) / 3600, 2);
     }
@@ -256,6 +281,8 @@ if (!function_exists('attendance_workflow_open_session_info')) {
         }
 
         $bounds = attendance_workflow_schedule_bounds($conn, $attendance);
+        $attendanceSettings = biotern_attendance_settings($conn);
+        $useScheduleCutoff = (string)($attendanceSettings['live_timer_uses_schedule_cutoff'] ?? '0') === '1';
         $cutoffTime = (string)($bounds['official_end'] ?? '19:00:00');
         $inTime = trim((string)($attendance[$openSession['in_column']] ?? ''));
         $now = attendance_workflow_now();
@@ -278,12 +305,12 @@ if (!function_exists('attendance_workflow_open_session_info')) {
             $inAt = $cutoffAt;
         }
 
-        $cutoffReached = $attendanceDate < $today || $now >= $cutoffAt;
+        $cutoffReached = $useScheduleCutoff && ($attendanceDate < $today || $now >= $cutoffAt);
         $previewEnd = $cutoffReached ? $cutoffAt : $now;
         $previewSeconds = max(0, $previewEnd->getTimestamp() - $inAt->getTimestamp());
 
         $info['is_open'] = true;
-        $info['clocked_in_now'] = ($attendanceDate === $today) && !$cutoffReached;
+        $info['clocked_in_now'] = ($attendanceDate === $today) && (!$useScheduleCutoff || !$cutoffReached);
         $info['session_key'] = $openSession['session_key'];
         $info['in_column'] = $openSession['in_column'];
         $info['out_column'] = $openSession['out_column'];
