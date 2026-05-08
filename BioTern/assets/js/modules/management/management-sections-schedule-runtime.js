@@ -3,6 +3,7 @@
 
     function initCopyDefaultSchedule() {
         var copyDefaultsButton = document.getElementById("copyDefaultScheduleButton");
+        var printButton = document.getElementById("printSectionScheduleButton");
         var defaultSession = document.querySelector('select[name="attendance_session"]');
         var defaultTimeIn = document.querySelector('input[name="schedule_time_in"]');
         var defaultLateAfter = document.querySelector('input[name="late_after_time"]');
@@ -27,7 +28,9 @@
                     timeOut.value = defaultTimeOut.value;
                 }
             });
+            updateDefaultPreview();
             updateScheduleSummary();
+            updateScheduleBoard();
         }
 
         function updateDefaultPreview() {
@@ -48,6 +51,13 @@
 
         if (copyDefaultsButton) {
             copyDefaultsButton.addEventListener("click", copyDefaultsToRows);
+        }
+
+        if (printButton) {
+            printButton.addEventListener("click", function () {
+                updateScheduleBoard();
+                window.print();
+            });
         }
 
         document.querySelectorAll("[data-schedule-preset]").forEach(function (button) {
@@ -72,15 +82,18 @@
             input.addEventListener("change", function () {
                 updateDefaultPreview();
                 updateScheduleSummary();
+                updateScheduleBoard();
             });
             input.addEventListener("input", function () {
                 updateDefaultPreview();
                 updateScheduleSummary();
+                updateScheduleBoard();
             });
         });
 
         updateDefaultPreview();
         updateScheduleSummary();
+        updateScheduleBoard();
     }
 
     function labelSession(value) {
@@ -103,6 +116,16 @@
         var displayHour = hour % 12;
         if (displayHour === 0) displayHour = 12;
         return displayHour + ":" + minute + " " + suffix;
+    }
+
+    function parseMinutes(value) {
+        if (!value) return null;
+        var parts = value.split(":");
+        var hour = parseInt(parts[0], 10);
+        var minute = parseInt(parts[1] || "0", 10);
+        if (isNaN(hour) || isNaN(minute)) return null;
+        if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+        return (hour * 60) + minute;
     }
 
     function updateScheduleSummary() {
@@ -130,6 +153,69 @@
                 + " | Late " + formatTime(lateAfter ? lateAfter.value : "");
             summary.appendChild(item);
         });
+    }
+
+    function updateScheduleBoard() {
+        var board = document.querySelector("[data-schedule-board]");
+        if (!board) return;
+
+        var boardStart = parseInt(board.getAttribute("data-board-start") || "420", 10);
+        var boardEnd = parseInt(board.getAttribute("data-board-end") || "1260", 10);
+        var boardSlot = parseInt(board.getAttribute("data-board-slot") || "30", 10);
+
+        document.querySelectorAll("[data-weekday-row]").forEach(function (row) {
+            var day = row.getAttribute("data-weekday-row");
+            var block = board.querySelector('[data-schedule-block="' + day + '"]');
+            var printBlock = document.querySelector('[data-print-schedule-block="' + day + '"]');
+            if (!block && !printBlock) return;
+
+            var session = row.querySelector(".js-day-session");
+            var timeIn = row.querySelector(".js-weekly-time-in");
+            var timeOut = row.querySelector(".js-weekly-time-out");
+            var startMinutes = parseMinutes(timeIn ? timeIn.value : "");
+            var endMinutes = parseMinutes(timeOut ? timeOut.value : "");
+
+            if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+                setScheduleBlockVisibility(block, false);
+                setScheduleBlockVisibility(printBlock, false);
+                return;
+            }
+
+            var clampedStart = Math.max(boardStart, Math.min(startMinutes, boardEnd));
+            var clampedEnd = Math.max(boardStart, Math.min(endMinutes, boardEnd));
+            if (clampedEnd <= clampedStart) {
+                setScheduleBlockVisibility(block, false);
+                setScheduleBlockVisibility(printBlock, false);
+                return;
+            }
+
+            var rowStart = Math.floor((clampedStart - boardStart) / boardSlot) + 2;
+            var rowSpan = Math.max(1, Math.ceil((clampedEnd - clampedStart) / boardSlot));
+            updateScheduleBlockElement(block, rowStart, rowSpan, session, timeIn, timeOut, "[data-schedule-block-session]", "[data-schedule-block-time]");
+            updateScheduleBlockElement(printBlock, rowStart, rowSpan, session, timeIn, timeOut, "[data-print-schedule-session]", "[data-print-schedule-time]");
+        });
+    }
+
+    function setScheduleBlockVisibility(block, visible) {
+        if (!block) return;
+        block.style.display = visible ? "" : "none";
+    }
+
+    function updateScheduleBlockElement(block, rowStart, rowSpan, session, timeIn, timeOut, sessionSelector, timeSelector) {
+        if (!block) return;
+
+        setScheduleBlockVisibility(block, true);
+        block.style.setProperty("--schedule-row-start", rowStart);
+        block.style.setProperty("--schedule-row-span", rowSpan);
+
+        var sessionLabel = block.querySelector(sessionSelector);
+        var timeLabel = block.querySelector(timeSelector);
+        if (sessionLabel) {
+            sessionLabel.textContent = labelSession(session ? session.value : "whole_day");
+        }
+        if (timeLabel) {
+            timeLabel.textContent = formatTime(timeIn ? timeIn.value : "") + " - " + formatTime(timeOut ? timeOut.value : "");
+        }
     }
 
     if (document.readyState === "loading") {

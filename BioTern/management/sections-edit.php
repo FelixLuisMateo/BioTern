@@ -242,6 +242,68 @@ $activeValue = $hasSectionStatus
 $sectionSchedule = section_schedule_from_row($section);
 $weeklySchedule = $sectionSchedule['weekly_schedule'] ?? [];
 $scheduleSummaryLines = section_schedule_summary_lines($sectionSchedule);
+$scheduleBoardStartMinutes = 7 * 60;
+$scheduleBoardEndMinutes = 21 * 60;
+$scheduleBoardSlotMinutes = 30;
+
+function section_edit_time_minutes(?string $time): ?int {
+    $time = trim((string)$time);
+    if (!preg_match('/^(\d{2}):(\d{2})/', $time, $matches)) {
+        return null;
+    }
+
+    $hour = (int)$matches[1];
+    $minute = (int)$matches[2];
+    if ($hour < 0 || $hour > 23 || $minute < 0 || $minute > 59) {
+        return null;
+    }
+
+    return ($hour * 60) + $minute;
+}
+
+function section_edit_time_label(?string $time): string {
+    $minutes = section_edit_time_minutes($time);
+    if ($minutes === null) {
+        return '--:--';
+    }
+
+    $hour = intdiv($minutes, 60);
+    $minute = $minutes % 60;
+    $suffix = $hour >= 12 ? 'PM' : 'AM';
+    $displayHour = $hour % 12;
+    if ($displayHour === 0) {
+        $displayHour = 12;
+    }
+
+    return sprintf('%d:%02d %s', $displayHour, $minute, $suffix);
+}
+
+function section_edit_session_label(?string $session): string {
+    return match (section_schedule_normalize_session($session)) {
+        'morning_only' => 'Morning',
+        'afternoon_only' => 'Afternoon',
+        default => 'Whole day',
+    };
+}
+
+function section_edit_timetable_style(array $daySchedule, int $startMinutes, int $endMinutes, int $slotMinutes): string {
+    $timeIn = section_edit_time_minutes((string)($daySchedule['schedule_time_in'] ?? ''));
+    $timeOut = section_edit_time_minutes((string)($daySchedule['schedule_time_out'] ?? ''));
+    if ($timeIn === null || $timeOut === null || $timeOut <= $timeIn) {
+        return 'display: none;';
+    }
+
+    $clampedStart = max($startMinutes, min($timeIn, $endMinutes));
+    $clampedEnd = max($startMinutes, min($timeOut, $endMinutes));
+    if ($clampedEnd <= $clampedStart) {
+        return 'display: none;';
+    }
+
+    $rowStart = intdiv($clampedStart - $startMinutes, $slotMinutes) + 2;
+    $rowSpan = max(1, (int)ceil(($clampedEnd - $clampedStart) / $slotMinutes));
+
+    return '--schedule-row-start: ' . $rowStart . '; --schedule-row-span: ' . $rowSpan . ';';
+}
 
 $page_title = 'Edit Section';
 $page_styles = array_merge($page_styles ?? [], [
@@ -277,6 +339,10 @@ include 'includes/header.php';
                 <h5 class="card-title mb-1">Section Schedule Setup</h5>
                 <div class="text-muted fs-12">Set the official class hours BioTern uses for biometric slotting, late status, and attendance display.</div>
             </div>
+            <button type="button" class="btn btn-outline-primary btn-sm section-print-button ms-auto" id="printSectionScheduleButton">
+                <i class="feather-printer me-2"></i>
+                Print Schedule
+            </button>
         </div>
         <div class="card-body">
             <?php if ($message !== ''): ?>
@@ -348,8 +414,8 @@ include 'includes/header.php';
                 </div>
                 <div class="section-form-block section-default-hours">
                     <div class="section-form-block-title">
-                        <h6>Default Class Hours</h6>
-                        <span>Used unless a weekday row overrides it.</span>
+                        <h6>Default Time Template</h6>
+                        <span>Used only when a weekday has no custom time.</span>
                     </div>
                     <div class="default-hours-preview" id="defaultHoursPreview">
                         <span>Default window</span>
@@ -379,16 +445,69 @@ include 'includes/header.php';
                     </div>
                 </div>
                 </div>
-                <div class="weekly-schedule-card">
+                <div class="weekly-schedule-card" id="sectionScheduleEditor">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                         <div>
-                            <h6 class="mb-1">Weekly Class Hours</h6>
-                            <small class="text-muted">These rows override the default schedule for each weekday.</small>
+                            <h6 class="mb-1">Weekly Class Schedule</h6>
+                            <small class="text-muted">The board below is a live preview of the exact weekday times saved for this section.</small>
                         </div>
                         <div class="section-schedule-actions">
                             <button type="button" class="btn btn-outline-secondary btn-sm" data-schedule-preset="morning">Morning 8-12</button>
                             <button type="button" class="btn btn-outline-secondary btn-sm" data-schedule-preset="whole">Whole Day 8-5</button>
                             <button type="button" class="btn btn-primary btn-sm" id="copyDefaultScheduleButton">Copy Default To All Days</button>
+                        </div>
+                    </div>
+                    <?php
+                    $sectionBoardCode = trim((string)($section['code'] ?? ''));
+                    $sectionBoardName = trim((string)($section['name'] ?? ''));
+                    $sectionBoardTitle = $sectionBoardCode !== '' ? $sectionBoardCode : $sectionBoardName;
+                    if ($sectionBoardTitle === '') {
+                        $sectionBoardTitle = 'Section';
+                    }
+                    ?>
+                    <div class="class-schedule-board mb-3"
+                         data-schedule-board
+                         data-board-start="<?php echo (int)$scheduleBoardStartMinutes; ?>"
+                         data-board-end="<?php echo (int)$scheduleBoardEndMinutes; ?>"
+                         data-board-slot="<?php echo (int)$scheduleBoardSlotMinutes; ?>">
+                        <div class="class-schedule-board-header">
+                            <span>Class Schedule</span>
+                            <strong><?php echo htmlspecialchars($sectionBoardTitle, ENT_QUOTES, 'UTF-8'); ?></strong>
+                        </div>
+                        <div class="class-schedule-scroll">
+                            <div class="class-schedule-grid">
+                                <div class="class-schedule-corner">Time</div>
+                                <?php $weekdayIndex = 0; ?>
+                                <?php foreach (section_schedule_weekday_order() as $dayKey): ?>
+                                    <div class="class-schedule-day-head" style="grid-column: <?php echo $weekdayIndex + 2; ?>;">
+                                        <?php echo htmlspecialchars(substr(section_schedule_weekday_label($dayKey), 0, 3), ENT_QUOTES, 'UTF-8'); ?>
+                                    </div>
+                                    <?php $weekdayIndex++; ?>
+                                <?php endforeach; ?>
+                                <?php for ($slotStart = $scheduleBoardStartMinutes; $slotStart < $scheduleBoardEndMinutes; $slotStart += 60): ?>
+                                    <div class="class-schedule-time-label" style="grid-row: <?php echo intdiv($slotStart - $scheduleBoardStartMinutes, $scheduleBoardSlotMinutes) + 2; ?> / span 2;">
+                                        <span><?php echo htmlspecialchars(section_edit_time_label(sprintf('%02d:%02d', intdiv($slotStart, 60), $slotStart % 60)), ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </div>
+                                <?php endfor; ?>
+                                <?php foreach (section_schedule_weekday_order() as $dayOffset => $dayKey): ?>
+                                    <?php for ($slotStart = $scheduleBoardStartMinutes; $slotStart < $scheduleBoardEndMinutes; $slotStart += $scheduleBoardSlotMinutes): ?>
+                                        <div class="class-schedule-cell" style="grid-column: <?php echo $dayOffset + 2; ?>; grid-row: <?php echo intdiv($slotStart - $scheduleBoardStartMinutes, $scheduleBoardSlotMinutes) + 2; ?>;"></div>
+                                    <?php endfor; ?>
+                                <?php endforeach; ?>
+                                <?php foreach (section_schedule_weekday_order() as $dayOffset => $dayKey): ?>
+                                    <?php
+                                    $daySchedule = $weeklySchedule[$dayKey] ?? section_schedule_empty_day($sectionSchedule);
+                                    $blockStyle = section_edit_timetable_style($daySchedule, $scheduleBoardStartMinutes, $scheduleBoardEndMinutes, $scheduleBoardSlotMinutes);
+                                    ?>
+                                    <div class="class-schedule-block"
+                                         data-schedule-block="<?php echo htmlspecialchars($dayKey, ENT_QUOTES, 'UTF-8'); ?>"
+                                         style="grid-column: <?php echo $dayOffset + 2; ?>; <?php echo htmlspecialchars($blockStyle, ENT_QUOTES, 'UTF-8'); ?>">
+                                        <span class="class-schedule-block-title"><?php echo htmlspecialchars($sectionBoardTitle, ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <span class="class-schedule-block-session" data-schedule-block-session><?php echo htmlspecialchars(section_edit_session_label((string)($daySchedule['attendance_session'] ?? 'whole_day')), ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <span class="class-schedule-block-time" data-schedule-block-time><?php echo htmlspecialchars(section_edit_time_label((string)($daySchedule['schedule_time_in'] ?? '')) . ' - ' . section_edit_time_label((string)($daySchedule['schedule_time_out'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
                     </div>
                     <div class="weekly-schedule-grid">
@@ -432,6 +551,68 @@ include 'includes/header.php';
                     <a href="sections.php" class="btn btn-outline-secondary ms-2">Cancel</a>
                 </div>
             </form>
+            <div class="section-print-schedule" aria-hidden="true">
+                <div class="section-print-decor section-print-decor-left">✦</div>
+                <div class="section-print-decor section-print-decor-right">✧</div>
+                <div class="section-print-header">
+                    <img src="../assets/images/ccstlogo.png" alt="" class="section-print-logo">
+                    <div>
+                        <div class="section-print-school">Clark College</div>
+                        <div class="section-print-school-sub">of Science and Technology</div>
+                    </div>
+                </div>
+                <div class="section-print-title">Class Schedule</div>
+                <div class="section-print-term">First Semester SY 2025-2026</div>
+                <div class="section-print-section"><?php echo htmlspecialchars($sectionBoardTitle, ENT_QUOTES, 'UTF-8'); ?></div>
+                <div class="section-print-table-wrap">
+                    <div class="section-print-course-row">
+                        <span>Course &amp; Sec :</span>
+                        <strong><?php echo htmlspecialchars($sectionBoardTitle, ENT_QUOTES, 'UTF-8'); ?></strong>
+                    </div>
+                    <div class="section-print-grid">
+                        <div class="section-print-corner">Time</div>
+                        <?php $printDayLabels = ['M', 'T', 'W', 'TH', 'F', 'S']; ?>
+                        <?php foreach (section_schedule_weekday_order() as $dayOffset => $dayKey): ?>
+                            <div class="section-print-day-head" style="grid-column: <?php echo $dayOffset + 2; ?>;">
+                                <?php echo htmlspecialchars($printDayLabels[$dayOffset] ?? strtoupper(substr(section_schedule_weekday_label($dayKey), 0, 1)), ENT_QUOTES, 'UTF-8'); ?>
+                            </div>
+                        <?php endforeach; ?>
+                        <?php for ($slotStart = $scheduleBoardStartMinutes; $slotStart < $scheduleBoardEndMinutes; $slotStart += 60): ?>
+                            <div class="section-print-time-label" style="grid-row: <?php echo intdiv($slotStart - $scheduleBoardStartMinutes, $scheduleBoardSlotMinutes) + 2; ?> / span 2;">
+                                <?php
+                                $slotEnd = $slotStart + 60;
+                                echo htmlspecialchars(
+                                    strtolower(str_replace(' ', '', section_edit_time_label(sprintf('%02d:%02d', intdiv($slotStart, 60), $slotStart % 60))))
+                                    . '-'
+                                    . strtolower(str_replace(' ', '', section_edit_time_label(sprintf('%02d:%02d', intdiv($slotEnd, 60), $slotEnd % 60)))),
+                                    ENT_QUOTES,
+                                    'UTF-8'
+                                );
+                                ?>
+                            </div>
+                        <?php endfor; ?>
+                        <?php foreach (section_schedule_weekday_order() as $dayOffset => $dayKey): ?>
+                            <?php for ($slotStart = $scheduleBoardStartMinutes; $slotStart < $scheduleBoardEndMinutes; $slotStart += $scheduleBoardSlotMinutes): ?>
+                                <div class="section-print-cell" style="grid-column: <?php echo $dayOffset + 2; ?>; grid-row: <?php echo intdiv($slotStart - $scheduleBoardStartMinutes, $scheduleBoardSlotMinutes) + 2; ?>;"></div>
+                            <?php endfor; ?>
+                        <?php endforeach; ?>
+                        <?php foreach (section_schedule_weekday_order() as $dayOffset => $dayKey): ?>
+                            <?php
+                            $daySchedule = $weeklySchedule[$dayKey] ?? section_schedule_empty_day($sectionSchedule);
+                            $blockStyle = section_edit_timetable_style($daySchedule, $scheduleBoardStartMinutes, $scheduleBoardEndMinutes, $scheduleBoardSlotMinutes);
+                            ?>
+                            <div class="section-print-block <?php echo $dayOffset % 2 === 0 ? 'is-green' : 'is-blue'; ?>"
+                                 data-print-schedule-block="<?php echo htmlspecialchars($dayKey, ENT_QUOTES, 'UTF-8'); ?>"
+                                 style="grid-column: <?php echo $dayOffset + 2; ?>; <?php echo htmlspecialchars($blockStyle, ENT_QUOTES, 'UTF-8'); ?>">
+                                <span><?php echo htmlspecialchars($sectionBoardTitle, ENT_QUOTES, 'UTF-8'); ?></span>
+                                <span data-print-schedule-session><?php echo htmlspecialchars(section_edit_session_label((string)($daySchedule['attendance_session'] ?? 'whole_day')), ENT_QUOTES, 'UTF-8'); ?></span>
+                                <span data-print-schedule-time><?php echo htmlspecialchars(section_edit_time_label((string)($daySchedule['schedule_time_in'] ?? '')) . ' - ' . section_edit_time_label((string)($daySchedule['schedule_time_out'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <div class="section-print-mode">Face To Face</div>
+            </div>
         </div>
     </div>
 </div>

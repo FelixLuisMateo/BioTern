@@ -305,7 +305,15 @@ include 'includes/header.php';
                                 <?php endif; ?>
                                 <?php if ($hasSectionCreatedAt): ?><td><span class="app-academic-created"><?php echo htmlspecialchars((string)($sec['created_at'] ?? '-')); ?></span></td><?php endif; ?>
                                 <td class="action-cell">
-                                    <a href="sections-edit.php?id=<?php echo (int)$sec['id']; ?>" class="btn btn-sm btn-outline-primary app-academic-edit-btn">Edit</a>
+                                    <div class="dropdown section-actions-menu">
+                                        <button class="btn btn-sm btn-light section-actions-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Section actions">
+                                            <i class="feather-more-horizontal"></i>
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-end">
+                                            <a href="sections-edit.php?id=<?php echo (int)$sec['id']; ?>" class="dropdown-item">Edit Section</a>
+                                            <a href="sections-edit.php?id=<?php echo (int)$sec['id']; ?>#sectionScheduleEditor" class="dropdown-item">Section Schedule</a>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -379,6 +387,7 @@ include 'includes/header.php';
                                     <span class="app-mobile-label app-ojt-mobile-label">Actions</span>
                                     <div class="app-ojt-mobile-actions">
                                         <a href="sections-edit.php?id=<?php echo (int)$sec['id']; ?>" class="btn btn-sm btn-outline-primary app-academic-edit-btn">Edit</a>
+                                        <a href="sections-edit.php?id=<?php echo (int)$sec['id']; ?>#sectionScheduleEditor" class="btn btn-sm btn-outline-secondary app-academic-edit-btn">Section Schedule</a>
                                     </div>
                                 </div>
                             </div>

@@ -127,6 +127,141 @@ html.app-skin-light input.form-control[type="time"] {
     gap: 0.5rem;
 }
 
+.section-print-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.class-schedule-board {
+    overflow: hidden;
+    border: 1px solid rgba(52, 84, 209, 0.24);
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(52, 84, 209, 0.08), rgba(20, 184, 166, 0.05));
+}
+
+.class-schedule-board-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.class-schedule-board-header span {
+    color: #64748b;
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0;
+}
+
+.class-schedule-board-header strong {
+    color: #1e293b;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.class-schedule-scroll {
+    overflow-x: auto;
+    padding: 0.75rem;
+}
+
+.class-schedule-grid {
+    display: grid;
+    grid-template-columns: 92px repeat(6, minmax(126px, 1fr));
+    grid-template-rows: 40px repeat(28, 26px);
+    min-width: 860px;
+    border: 1px solid rgba(15, 23, 42, 0.22);
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.class-schedule-corner,
+.class-schedule-day-head,
+.class-schedule-time-label,
+.class-schedule-cell {
+    border-right: 1px solid rgba(15, 23, 42, 0.18);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.18);
+}
+
+.class-schedule-corner,
+.class-schedule-day-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.06);
+    color: #334155;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0;
+}
+
+.class-schedule-corner {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.class-schedule-day-head {
+    grid-row: 1;
+}
+
+.class-schedule-time-label {
+    grid-column: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 0.35rem;
+    background: rgba(15, 23, 42, 0.035);
+    color: #475569;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.class-schedule-cell {
+    min-width: 0;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.class-schedule-block {
+    grid-row: var(--schedule-row-start) / span var(--schedule-row-span);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+    min-width: 0;
+    margin: 3px;
+    padding: 0.4rem 0.45rem;
+    border: 1px solid rgba(22, 101, 52, 0.55);
+    border-radius: 6px;
+    background: linear-gradient(180deg, #7fbf4d, #5f9f3f);
+    color: #102a12;
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+    text-align: center;
+}
+
+.class-schedule-block-title,
+.class-schedule-block-session,
+.class-schedule-block-time {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.class-schedule-block-title {
+    font-size: 0.72rem;
+    font-weight: 900;
+}
+
+.class-schedule-block-session,
+.class-schedule-block-time {
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
 .weekly-schedule-grid {
     display: grid;
     gap: 0.75rem;
@@ -198,6 +333,15 @@ html.app-skin-light input.form-control[type="time"] {
     .weekly-schedule-day {
         padding-bottom: 0;
     }
+
+    .class-schedule-board-header {
+        display: block;
+    }
+
+    .class-schedule-board-header strong {
+        display: block;
+        margin-top: 0.2rem;
+    }
 }
 
 html.app-skin-dark .section-schedule-guide {
@@ -222,4 +366,321 @@ html.app-skin-dark .section-default-hours {
 html.app-skin-dark .default-hours-preview {
     background: rgba(15, 23, 42, 0.55);
     border-color: rgba(99, 123, 255, 0.22);
+}
+
+html.app-skin-dark .class-schedule-board {
+    background: linear-gradient(180deg, rgba(52, 84, 209, 0.14), rgba(20, 184, 166, 0.08));
+    border-color: rgba(99, 123, 255, 0.26);
+}
+
+html.app-skin-dark .class-schedule-board-header {
+    border-bottom-color: rgba(148, 163, 184, 0.18);
+}
+
+html.app-skin-dark .class-schedule-board-header span,
+html.app-skin-dark .class-schedule-time-label {
+    color: #94a3b8;
+}
+
+html.app-skin-dark .class-schedule-board-header strong {
+    color: #e2e8f0;
+}
+
+html.app-skin-dark .class-schedule-grid {
+    border-color: rgba(148, 163, 184, 0.28);
+    background: rgba(15, 23, 42, 0.62);
+}
+
+html.app-skin-dark .class-schedule-corner,
+html.app-skin-dark .class-schedule-day-head,
+html.app-skin-dark .class-schedule-time-label,
+html.app-skin-dark .class-schedule-cell {
+    border-color: rgba(148, 163, 184, 0.2);
+}
+
+html.app-skin-dark .class-schedule-corner,
+html.app-skin-dark .class-schedule-day-head {
+    background: rgba(148, 163, 184, 0.08);
+    color: #e2e8f0;
+}
+
+html.app-skin-dark .class-schedule-time-label {
+    background: rgba(15, 23, 42, 0.35);
+}
+
+html.app-skin-dark .class-schedule-cell {
+    background: rgba(15, 23, 42, 0.22);
+}
+
+.section-print-schedule {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: portrait;
+        margin: 0;
+    }
+
+    body * {
+        visibility: hidden !important;
+    }
+
+    .section-print-schedule,
+    .section-print-schedule * {
+        visibility: visible !important;
+    }
+
+    .section-print-schedule {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: block !important;
+        width: 100%;
+        min-height: 100vh;
+        padding: 0.36in 0.38in 0.42in;
+        overflow: hidden;
+        background:
+            linear-gradient(rgba(255, 255, 255, 0.11) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.11) 1px, transparent 1px),
+            #6b82df;
+        background-size: 0.55in 0.55in;
+        color: #ffffff;
+        font-family: Arial, Helvetica, sans-serif;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .section-print-decor {
+        position: absolute;
+        z-index: 0;
+        color: #fff7bf;
+        font-size: 34pt;
+        font-weight: 900;
+        text-shadow: 2px 2px 0 rgba(70, 89, 185, 0.55);
+    }
+
+    .section-print-decor-left {
+        top: 0.42in;
+        left: 0.42in;
+    }
+
+    .section-print-decor-right {
+        top: 1.02in;
+        right: 0.55in;
+    }
+
+    .section-print-header {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.16in;
+        margin-top: 0.06in;
+        text-transform: uppercase;
+        text-align: left;
+    }
+
+    .section-print-logo {
+        width: 0.76in;
+        height: 0.76in;
+        object-fit: contain;
+    }
+
+    .section-print-school {
+        color: #ffffff;
+        font-size: 29pt;
+        font-weight: 900;
+        line-height: 0.98;
+        letter-spacing: 0.08em;
+    }
+
+    .section-print-school-sub {
+        color: #ffffff;
+        font-size: 13pt;
+        font-weight: 800;
+        line-height: 1.05;
+        letter-spacing: 0.26em;
+    }
+
+    .section-print-title {
+        position: relative;
+        z-index: 1;
+        margin-top: 0.18in;
+        color: #ffffff;
+        font-size: 47pt;
+        font-weight: 900;
+        line-height: 0.95;
+        text-align: center;
+        text-shadow: 4px 5px 0 rgba(70, 89, 185, 0.45);
+    }
+
+    .section-print-term {
+        position: relative;
+        z-index: 1;
+        width: max-content;
+        max-width: 100%;
+        margin: 0.26in auto 0;
+        padding: 0.08in 0.28in;
+        border-radius: 0.04in;
+        background: #ffffff;
+        color: #5e72c6;
+        font-size: 15pt;
+        font-weight: 900;
+        text-align: center;
+        text-transform: uppercase;
+    }
+
+    .section-print-section {
+        position: relative;
+        z-index: 1;
+        margin: 0.18in auto 0.22in;
+        color: #ffffff;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 42pt;
+        font-weight: 900;
+        line-height: 0.95;
+        text-align: center;
+        text-transform: uppercase;
+        text-shadow: 4px 5px 0 rgba(70, 89, 185, 0.45);
+    }
+
+    .section-print-table-wrap {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        max-width: 7.45in;
+        margin: 0 auto;
+        background: #ffffff;
+        color: #111827;
+    }
+
+    .section-print-course-row {
+        display: grid;
+        grid-template-columns: 1.5in 1fr;
+        border: 2px solid #111827;
+        border-bottom: 0;
+        color: #a91f1f;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 12pt;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .section-print-course-row span,
+    .section-print-course-row strong {
+        padding: 0.03in 0.08in;
+        border-right: 2px solid #111827;
+    }
+
+    .section-print-course-row strong {
+        border-right: 0;
+    }
+
+    .section-print-grid {
+        display: grid;
+        grid-template-columns: 0.82in repeat(6, 1fr);
+        grid-template-rows: 0.25in repeat(28, 0.205in);
+        border: 2px solid #111827;
+        background: #ffffff;
+    }
+
+    .section-print-corner,
+    .section-print-day-head,
+    .section-print-time-label,
+    .section-print-cell {
+        border-right: 1.5px solid #111827;
+        border-bottom: 1.5px solid #111827;
+    }
+
+    .section-print-corner,
+    .section-print-day-head {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #111827;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 11pt;
+        font-weight: 900;
+        text-transform: uppercase;
+    }
+
+    .section-print-corner {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .section-print-day-head {
+        grid-row: 1;
+    }
+
+    .section-print-time-label {
+        grid-column: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 0.03in;
+        color: #111827;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 8.4pt;
+        font-weight: 700;
+        line-height: 1.05;
+        text-align: center;
+    }
+
+    .section-print-cell {
+        background: #ffffff;
+    }
+
+    .section-print-block {
+        grid-row: var(--schedule-row-start) / span var(--schedule-row-span);
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+        padding: 0.02in 0.04in;
+        border: 1.5px solid #111827;
+        color: #111827;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 8pt;
+        font-weight: 900;
+        line-height: 1.2;
+        text-align: center;
+        text-transform: uppercase;
+    }
+
+    .section-print-block.is-green {
+        background: #6daf45;
+    }
+
+    .section-print-block.is-blue {
+        background: #5da0d8;
+    }
+
+    .section-print-block span {
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .section-print-mode {
+        position: relative;
+        z-index: 1;
+        width: 2.35in;
+        margin: 0.86in auto 0;
+        padding: 0.09in 0.12in;
+        border: 3px solid #111827;
+        background: #75b84a;
+        color: #111827;
+        font-size: 17pt;
+        font-weight: 900;
+        line-height: 1;
+        text-align: center;
+        text-transform: uppercase;
+    }
 }
