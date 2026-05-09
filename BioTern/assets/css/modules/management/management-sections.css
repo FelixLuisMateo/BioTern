@@ -33,6 +33,18 @@
     min-width: 170px;
 }
 
+.app-section-name-hero {
+    display: block;
+    color: #eaf1ff;
+    font-size: 1.18rem;
+    font-weight: 900;
+    line-height: 1.15;
+}
+
+html.app-skin-light .app-section-name-hero {
+    color: #1e293b;
+}
+
 html.app-skin-dark .section-actions-toggle {
     color: #e2e8f0;
     background: rgba(15, 23, 42, 0.72);

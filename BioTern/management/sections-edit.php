@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $attendance_session = section_schedule_normalize_session((string)($_POST['attendance_session'] ?? 'whole_day'));
     $schedule_time_in = section_schedule_normalize_time_input((string)($_POST['schedule_time_in'] ?? ''));
     $schedule_time_out = section_schedule_normalize_time_input((string)($_POST['schedule_time_out'] ?? ''));
-    $late_after_time = section_schedule_normalize_time_input((string)($_POST['late_after_time'] ?? ''));
+    $late_after_time = section_schedule_normalize_time_input((string)($_POST['late_after_time'] ?? ($_POST['schedule_time_in'] ?? '')));
     $weekly_schedule = section_schedule_normalize_weekly_input(
         $_POST['weekly_schedule'] ?? [],
         [
@@ -137,6 +137,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'late_after_time' => $late_after_time ?? '',
         ]
     );
+    foreach ($weekly_schedule as $dayKey => $daySchedule) {
+        $weekly_schedule[$dayKey]['late_after_time'] = $daySchedule['schedule_time_in'] ?: ($late_after_time ?? '');
+    }
     $weekly_schedule_json = section_schedule_encode_weekly($weekly_schedule);
 
     if ($name === '' || $code === '' || $course_id <= 0) {
@@ -356,7 +359,7 @@ include 'includes/header.php';
                     <div>
                         <span class="section-schedule-guide-kicker">How this schedule is used</span>
                         <h6>Attendance reads each weekday row first, then falls back to the default hours.</h6>
-                        <p>Start with the normal class pattern. Only change the weekday rows that are different. Time In is the expected first punch, Late After decides the late badge, and Time Out is the end time shown in Attendance.</p>
+                        <p>Use First Period for when attendance should begin and Last Period for when the day should end. Attendance still treats the first period as the on-time cutoff, so students who punch after that time can be marked late.</p>
                     </div>
                     <div class="section-schedule-summary" id="sectionScheduleSummary">
                         <?php foreach (array_slice($scheduleSummaryLines, 0, 3) as $summaryLine): ?>
@@ -412,17 +415,17 @@ include 'includes/header.php';
                     </div>
                 </div>
                 </div>
-                <div class="section-form-block section-default-hours">
+                <div class="section-form-block section-default-hours section-default-hours-compact">
                     <div class="section-form-block-title">
-                        <h6>Default Time Template</h6>
-                        <span>Used only when a weekday has no custom time.</span>
+                        <h6>Default Periods</h6>
+                        <span>Optional fallback for blank weekdays.</span>
                     </div>
                     <div class="default-hours-preview" id="defaultHoursPreview">
                         <span>Default window</span>
                         <strong>--:-- to --:--</strong>
                     </div>
                     <div class="row g-3">
-                        <div class="col-sm-6">
+                        <div class="col-sm-6 d-none">
                             <label class="form-label">Attendance Session</label>
                             <select name="attendance_session" class="form-select">
                                 <option value="whole_day" <?php echo $sectionSchedule['attendance_session'] === 'whole_day' ? 'selected' : ''; ?>>Whole day</option>
@@ -431,15 +434,15 @@ include 'includes/header.php';
                             </select>
                         </div>
                         <div class="col-sm-6">
-                            <label class="form-label">Time In</label>
+                            <label class="form-label">First Period</label>
                             <input type="time" name="schedule_time_in" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['schedule_time_in']); ?>" step="60">
                         </div>
-                        <div class="col-sm-6">
+                        <div class="col-sm-6 d-none">
                             <label class="form-label">Late After</label>
                             <input type="time" name="late_after_time" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['late_after_time']); ?>" step="60">
                         </div>
                         <div class="col-sm-6">
-                            <label class="form-label">Time Out</label>
+                            <label class="form-label">Last Period</label>
                             <input type="time" name="schedule_time_out" class="form-control js-section-time" value="<?php echo htmlspecialchars((string)$sectionSchedule['schedule_time_out']); ?>" step="60">
                         </div>
                     </div>
@@ -513,16 +516,16 @@ include 'includes/header.php';
                     <div class="weekly-schedule-grid">
                         <div class="weekly-schedule-row weekly-schedule-head">
                             <div>Day</div>
-                            <div>Session</div>
-                            <div>Time In</div>
-                            <div>Late After</div>
-                            <div>Time Out</div>
+                            <div class="d-none">Session</div>
+                            <div>First Period</div>
+                            <div class="d-none">Late After</div>
+                            <div>Last Period</div>
                         </div>
                         <?php foreach (section_schedule_weekday_order() as $dayKey): ?>
                             <?php $daySchedule = $weeklySchedule[$dayKey] ?? section_schedule_empty_day($sectionSchedule); ?>
                             <div class="weekly-schedule-row" data-weekday-row="<?php echo htmlspecialchars($dayKey); ?>">
                                 <div class="weekly-schedule-day"><?php echo htmlspecialchars(section_schedule_weekday_label($dayKey)); ?></div>
-                                <div>
+                                <div class="d-none">
                                     <label class="form-label d-lg-none">Session</label>
                                     <select name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][attendance_session]" class="form-select js-day-session">
                                         <option value="whole_day" <?php echo $daySchedule['attendance_session'] === 'whole_day' ? 'selected' : ''; ?>>Whole day</option>
@@ -531,15 +534,15 @@ include 'includes/header.php';
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="form-label d-lg-none">Time In</label>
+                                    <label class="form-label d-lg-none">First Period</label>
                                     <input type="time" name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][schedule_time_in]" class="form-control js-section-time js-weekly-time-in" value="<?php echo htmlspecialchars((string)$daySchedule['schedule_time_in']); ?>" step="60">
                                 </div>
-                                <div>
+                                <div class="d-none">
                                     <label class="form-label d-lg-none">Late After</label>
                                     <input type="time" name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][late_after_time]" class="form-control js-section-time js-weekly-late" value="<?php echo htmlspecialchars((string)$daySchedule['late_after_time']); ?>" step="60">
                                 </div>
                                 <div>
-                                    <label class="form-label d-lg-none">Time Out</label>
+                                    <label class="form-label d-lg-none">Last Period</label>
                                     <input type="time" name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][schedule_time_out]" class="form-control js-section-time js-weekly-time-out" value="<?php echo htmlspecialchars((string)$daySchedule['schedule_time_out']); ?>" step="60">
                                 </div>
                             </div>

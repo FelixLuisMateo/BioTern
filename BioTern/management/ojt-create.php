@@ -3,7 +3,9 @@ require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/offices.php';
 biotern_boot_session(isset($conn) ? $conn : null);
+biotern_offices_ensure_schema($conn);
 
 $ops_helpers = dirname(__DIR__) . '/lib/ops_helpers.php';
 if (file_exists($ops_helpers)) {
@@ -369,6 +371,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_ojt'])) {
                             $insertTypes .= 'i';
                             $insertVals[] = $supervisorUserId;
                         }
+                        $primaryOffice = biotern_supervisor_primary_office($conn, $supervisorUserId);
+                        if (in_array('office_id', $internCols, true) && (int)$primaryOffice['id'] > 0) {
+                            $insertCols[] = 'office_id';
+                            $insertTypes .= 'i';
+                            $insertVals[] = (int)$primaryOffice['id'];
+                        }
                         if (in_array('type', $internCols, true)) {
                             $insertCols[] = 'type';
                             $insertTypes .= 's';
@@ -412,7 +420,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['create_ojt'])) {
                         if (in_array('company_name', $internCols, true)) {
                             $insertCols[] = 'company_name';
                             $insertTypes .= 's';
-                            $insertVals[] = $companyName;
+                            $insertVals[] = $companyName !== '' ? $companyName : (string)$primaryOffice['name'];
                         }
                         if (in_array('position', $internCols, true)) {
                             $insertCols[] = 'position';

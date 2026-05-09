@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/lib/offices.php';
 /** @var mysqli $conn */
 
 require_roles_page(['admin']);
@@ -8,7 +9,7 @@ require_roles_page(['admin']);
 $message = '';
 $message_type = 'success';
 
-biotern_ensure_table_column($conn, 'supervisors', 'office_location', 'VARCHAR(255) DEFAULT NULL');
+biotern_offices_ensure_schema($conn);
 
 function h($value): string
 {
@@ -34,10 +35,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 
 $rows = [];
 $sql = "
-    SELECT s.*, u.name AS user_name, d.name AS department_name
+    SELECT s.*, u.name AS user_name, d.name AS department_name, office_summary.office_names
     FROM supervisors s
     LEFT JOIN users u ON s.user_id = u.id
     LEFT JOIN departments d ON s.department_id = d.id
+    LEFT JOIN (
+        SELECT so.supervisor_id, GROUP_CONCAT(DISTINCT o.name ORDER BY o.name SEPARATOR ', ') AS office_names
+        FROM supervisor_offices so
+        INNER JOIN offices o ON o.id = so.office_id AND o.deleted_at IS NULL
+        GROUP BY so.supervisor_id
+    ) office_summary ON office_summary.supervisor_id = s.id
     WHERE s.deleted_at IS NULL
     ORDER BY s.id DESC
 ";
@@ -114,7 +121,7 @@ include 'includes/header.php';
                                 <td><span class="app-academic-created"><?php echo h($r['phone'] ?? '-'); ?></span></td>
                                 <td><span class="app-academic-head"><?php echo h($r['department_name'] ?? '-'); ?></span></td>
                                 <td><span class="app-academic-created"><?php echo h($r['specialization'] ?? '-'); ?></span></td>
-                                <td><span class="app-academic-created"><?php echo h($r['office_location'] ?? ($r['office'] ?? '-')); ?></span></td>
+                                <td><span class="app-academic-created"><?php echo h($r['office_names'] ?: ($r['office_location'] ?? ($r['office'] ?? '-'))); ?></span></td>
                                 <td>
                                     <?php if ((int)($r['is_active'] ?? 0) === 1): ?>
                                         <span class="app-academic-status-pill is-active">Active</span>
@@ -148,7 +155,7 @@ include 'includes/header.php';
                         $phone = (string)($r['phone'] ?? '-');
                         $department = (string)($r['department_name'] ?? '-');
                         $specialization = (string)($r['specialization'] ?? '-');
-                        $office = (string)($r['office_location'] ?? ($r['office'] ?? '-'));
+                        $office = (string)($r['office_names'] ?: ($r['office_location'] ?? ($r['office'] ?? '-')));
                         $statusLabel = (int)($r['is_active'] ?? 0) === 1 ? 'Active' : 'Inactive';
                         $statusClass = (int)($r['is_active'] ?? 0) === 1 ? 'status-active' : 'status-inactive';
                         ?>

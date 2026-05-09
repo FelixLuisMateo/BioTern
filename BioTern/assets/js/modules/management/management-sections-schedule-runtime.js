@@ -22,7 +22,7 @@
                     timeIn.value = defaultTimeIn.value;
                 }
                 if (lateAfter && defaultLateAfter) {
-                    lateAfter.value = defaultLateAfter.value;
+                    lateAfter.value = defaultTimeIn ? defaultTimeIn.value : defaultLateAfter.value;
                 }
                 if (timeOut && defaultTimeOut) {
                     timeOut.value = defaultTimeOut.value;
@@ -45,7 +45,7 @@
                     + formatTime(defaultTimeOut ? defaultTimeOut.value : "");
             }
             if (span) {
-                span.textContent = labelSession(defaultSession ? defaultSession.value : "whole_day") + " default";
+                span.textContent = "Default periods";
             }
         }
 
@@ -145,12 +145,11 @@
             var timeIn = row.querySelector(".js-weekly-time-in");
             var lateAfter = row.querySelector(".js-weekly-late");
             var timeOut = row.querySelector(".js-weekly-time-out");
+            if (lateAfter && timeIn) lateAfter.value = timeIn.value;
             var item = document.createElement("span");
             item.textContent = labelDay(row.getAttribute("data-weekday-row"))
-                + " | " + labelSession(session ? session.value : "whole_day")
                 + " | " + formatTime(timeIn ? timeIn.value : "")
-                + " to " + formatTime(timeOut ? timeOut.value : "")
-                + " | Late " + formatTime(lateAfter ? lateAfter.value : "");
+                + " to " + formatTime(timeOut ? timeOut.value : "");
             summary.appendChild(item);
         });
     }

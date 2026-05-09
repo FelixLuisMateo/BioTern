@@ -80,6 +80,10 @@
       "dest": "/legacy_router.php?file=attendance.php"
     },
     {
+      "src": "^/test-attendance(?:\\.php)?$",
+      "dest": "/legacy_router.php?file=test-attendance.php"
+    },
+    {
       "src": "^/external-attendance(?:\\.php)?$",
       "dest": "/legacy_router.php?file=external-attendance.php"
     },

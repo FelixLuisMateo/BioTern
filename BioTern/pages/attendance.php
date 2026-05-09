@@ -1925,7 +1925,7 @@ if (trim((string)($_GET['print'] ?? '')) === 'list') {
 }
 ?>
 <?php
-$page_title = 'BioTern || Internal Attendance';
+$page_title = !empty($biotern_attendance_sandbox) ? 'BioTern || Test Attendance' : 'BioTern || Internal Attendance';
 $page_body_class = 'attendance-page';
 $page_styles = ['assets/css/modules/pages/page-attendance.css?v=20260509c'];
 $page_scripts = [
@@ -2062,6 +2062,11 @@ include 'includes/header.php';
                 <div class="alert alert-<?php echo htmlspecialchars((string)($attendance_sync_flash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> alert-dismissible fade show mx-3" role="alert" id="attendanceSyncAlert">
                     <?php echo nl2br(htmlspecialchars((string)$attendance_sync_flash['message'], ENT_QUOTES, 'UTF-8')); ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($biotern_attendance_sandbox)): ?>
+                <div class="alert alert-info mx-3" role="alert">
+                    Test Attendance sandbox. This page uses the same data as Internal Attendance so display changes can be reviewed here before changing the original workflow.
                 </div>
             <?php endif; ?>
             <?php if (!empty($missingScheduleAttendances)): ?>

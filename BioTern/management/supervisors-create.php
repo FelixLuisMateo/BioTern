@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/lib/offices.php';
 /** @var mysqli $conn */
 
 require_roles_page(['admin']);
@@ -8,7 +9,7 @@ require_roles_page(['admin']);
 $message = '';
 $message_type = 'info';
 
-biotern_ensure_table_column($conn, 'supervisors', 'office_location', 'VARCHAR(255) DEFAULT NULL');
+biotern_offices_ensure_schema($conn);
 
 $supervisorColumns = [];
 $supervisorColumnResult = $conn->query("SHOW COLUMNS FROM supervisors");
@@ -35,6 +36,8 @@ if ($dept_res) {
     }
 }
 
+$offices = biotern_offices_all($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
@@ -47,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $department_id = $department_id_raw !== '' ? (int)$department_id_raw : null;
     $specialization = trim((string)($_POST['specialization'] ?? ''));
     $office_location = trim((string)($_POST['office_location'] ?? ''));
+    $office_ids = isset($_POST['office_ids']) && is_array($_POST['office_ids']) ? $_POST['office_ids'] : [];
     $bio = trim((string)($_POST['bio'] ?? ''));
     $profile_picture = '';
     $is_active = isset($_POST['is_active']) ? 1 : 0;
@@ -138,7 +142,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if ($stmt->execute()) {
+                    $supervisorId = (int)$stmt->insert_id;
                     $stmt->close();
+                    biotern_supervisor_sync_offices($conn, $supervisorId, $office_ids, $office_location);
                     $conn->commit();
                     header('Location: supervisors.php');
                     exit;
@@ -203,7 +209,16 @@ include 'includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-4"><label class="form-label">Specialization</label><input type="text" name="specialization" class="form-control"></div>
-                <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control"></div>
+                <div class="col-md-4">
+                    <label class="form-label">Office Assignments</label>
+                    <select name="office_ids[]" class="form-select" multiple size="4">
+                        <?php foreach ($offices as $office): ?>
+                            <option value="<?php echo (int)$office['id']; ?>"><?php echo h($office['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="text-muted">Hold Ctrl to select multiple offices.</small>
+                </div>
+                <div class="col-md-4"><label class="form-label">Add Office</label><input type="text" name="office_location" class="form-control" placeholder="Example: ComLab 2"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_create" checked><label class="form-check-label" for="is_active_create">Active</label></div>
                 <div class="col-12 create-form-actions app-form-actions">

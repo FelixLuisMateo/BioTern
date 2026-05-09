@@ -93,7 +93,11 @@ html.app-skin-light input.form-control[type="time"] {
 }
 
 .section-default-hours {
-    background: linear-gradient(180deg, rgba(52, 84, 209, 0.08), rgba(52, 84, 209, 0.02));
+    background: rgba(52, 84, 209, 0.08);
+}
+
+.section-default-hours-compact .row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .default-hours-preview {
@@ -269,7 +273,7 @@ html.app-skin-light input.form-control[type="time"] {
 
 .weekly-schedule-row {
     display: grid;
-    grid-template-columns: 120px minmax(160px, 1fr) repeat(3, minmax(150px, 1fr));
+    grid-template-columns: 120px minmax(0, 1fr) minmax(0, 1fr);
     gap: 0.75rem;
     align-items: end;
 }

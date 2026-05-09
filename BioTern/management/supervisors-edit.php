@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/lib/offices.php';
 /** @var mysqli $conn */
 
 require_roles_page(['admin']);
@@ -8,7 +9,7 @@ require_roles_page(['admin']);
 $message = '';
 $message_type = 'info';
 
-biotern_ensure_table_column($conn, 'supervisors', 'office_location', 'VARCHAR(255) DEFAULT NULL');
+biotern_offices_ensure_schema($conn);
 
 $supervisorColumns = [];
 $supervisorColumnResult = $conn->query("SHOW COLUMNS FROM supervisors");
@@ -39,6 +40,7 @@ if ($dept_res) {
         $departments[] = $row;
     }
 }
+$offices = biotern_offices_all($conn);
 
 $stmt = $conn->prepare('SELECT * FROM supervisors WHERE id = ? AND deleted_at IS NULL LIMIT 1');
 $supervisor = null;
@@ -61,6 +63,7 @@ if ($linkedUserStmt) {
     $linkedUser = $linkedUserStmt->get_result()->fetch_assoc() ?: null;
     $linkedUserStmt->close();
 }
+$selectedOfficeIds = biotern_supervisor_office_ids($conn, $id);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (($_POST['action'] ?? '') === 'delete') {
@@ -84,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $department_id = $department_id_raw !== '' ? (int)$department_id_raw : null;
     $specialization = trim((string)($_POST['specialization'] ?? ''));
     $office_location = trim((string)($_POST['office_location'] ?? ''));
+    $office_ids = isset($_POST['office_ids']) && is_array($_POST['office_ids']) ? $_POST['office_ids'] : [];
     $bio = trim((string)($_POST['bio'] ?? ''));
     $is_active = isset($_POST['is_active']) ? 1 : 0;
 
@@ -105,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $up->bind_param('isssssissii', $user_id, $first_name, $last_name, $middle_name, $email, $phone, $department_id, $specialization, $bio, $is_active, $id);
             }
             if ($up->execute()) {
+                biotern_supervisor_sync_offices($conn, $id, $office_ids, $office_location);
                 header('Location: supervisors.php');
                 exit;
             }
@@ -159,7 +164,16 @@ include 'includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-4"><label class="form-label">Specialization</label><input type="text" name="specialization" class="form-control" value="<?php echo h($supervisor['specialization']); ?>"></div>
-                <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control" value="<?php echo h($supervisor['office_location'] ?? ($supervisor['office'] ?? '')); ?>"></div>
+                <div class="col-md-4">
+                    <label class="form-label">Office Assignments</label>
+                    <select name="office_ids[]" class="form-select" multiple size="4">
+                        <?php foreach ($offices as $office): ?>
+                            <option value="<?php echo (int)$office['id']; ?>" <?php echo in_array((int)$office['id'], $selectedOfficeIds, true) ? 'selected' : ''; ?>><?php echo h($office['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="text-muted">A supervisor can manage more than one office.</small>
+                </div>
+                <div class="col-md-4"><label class="form-label">Add Office</label><input type="text" name="office_location" class="form-control" placeholder="Example: ComLab 2"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"><?php echo h($supervisor['bio']); ?></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_edit" <?php echo ((int)$supervisor['is_active'] === 1) ? 'checked' : ''; ?>><label class="form-check-label" for="is_active_edit">Active</label></div>
                 <div class="col-12 d-flex gap-2">
