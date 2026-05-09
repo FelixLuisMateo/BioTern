@@ -42,6 +42,21 @@ if (!function_exists('section_schedule_normalize_session')) {
     }
 }
 
+if (!function_exists('section_schedule_normalize_day_type')) {
+    function section_schedule_normalize_day_type(?string $value, ?string $dayKey = null): string
+    {
+        $value = strtolower(trim((string)$value));
+        $allowed = ['class', 'no_class', 'x2_schedule'];
+        if (!in_array($value, $allowed, true)) {
+            $value = 'class';
+        }
+
+        return $value === 'x2_schedule' && strtolower(trim((string)$dayKey)) !== 'saturday'
+            ? 'class'
+            : $value;
+    }
+}
+
 if (!function_exists('section_schedule_weekday_order')) {
     function section_schedule_weekday_order(): array
     {
@@ -69,6 +84,7 @@ if (!function_exists('section_schedule_from_row')) {
     function section_schedule_from_row(array $row): array
     {
         $defaults = [
+            'day_type' => section_schedule_normalize_day_type((string)($row['day_type'] ?? 'class')),
             'attendance_session' => section_schedule_normalize_session((string)($row['attendance_session'] ?? 'whole_day')),
             'schedule_time_in' => section_schedule_format_time_input((string)($row['schedule_time_in'] ?? '')),
             'schedule_time_out' => section_schedule_format_time_input((string)($row['schedule_time_out'] ?? '')),
@@ -76,6 +92,7 @@ if (!function_exists('section_schedule_from_row')) {
         ];
 
         return [
+            'day_type' => $defaults['day_type'],
             'attendance_session' => $defaults['attendance_session'],
             'schedule_time_in' => $defaults['schedule_time_in'],
             'schedule_time_out' => $defaults['schedule_time_out'],
@@ -117,6 +134,7 @@ if (!function_exists('section_schedule_empty_day')) {
     function section_schedule_empty_day(array $defaults = []): array
     {
         return [
+            'day_type' => section_schedule_normalize_day_type((string)($defaults['day_type'] ?? 'class')),
             'attendance_session' => section_schedule_normalize_session((string)($defaults['attendance_session'] ?? 'whole_day')),
             'schedule_time_in' => section_schedule_format_time_input((string)($defaults['schedule_time_in'] ?? '')),
             'schedule_time_out' => section_schedule_format_time_input((string)($defaults['schedule_time_out'] ?? '')),
@@ -135,6 +153,7 @@ if (!function_exists('section_schedule_decode_weekly')) {
         foreach (section_schedule_weekday_order() as $dayKey) {
             $rawDay = isset($decoded[$dayKey]) && is_array($decoded[$dayKey]) ? $decoded[$dayKey] : [];
             $weekly[$dayKey] = [
+                'day_type' => section_schedule_normalize_day_type((string)($rawDay['day_type'] ?? ($defaults['day_type'] ?? 'class')), $dayKey),
                 'attendance_session' => section_schedule_normalize_session((string)($rawDay['attendance_session'] ?? ($defaults['attendance_session'] ?? 'whole_day'))),
                 'schedule_time_in' => section_schedule_format_time_input((string)($rawDay['schedule_time_in'] ?? ($defaults['schedule_time_in'] ?? ''))),
                 'schedule_time_out' => section_schedule_format_time_input((string)($rawDay['schedule_time_out'] ?? ($defaults['schedule_time_out'] ?? ''))),
@@ -155,6 +174,7 @@ if (!function_exists('section_schedule_normalize_weekly_input')) {
         foreach (section_schedule_weekday_order() as $dayKey) {
             $rawDay = isset($rawWeekly[$dayKey]) && is_array($rawWeekly[$dayKey]) ? $rawWeekly[$dayKey] : [];
             $normalized[$dayKey] = [
+                'day_type' => section_schedule_normalize_day_type((string)($rawDay['day_type'] ?? ($defaults['day_type'] ?? 'class')), $dayKey),
                 'attendance_session' => section_schedule_normalize_session((string)($rawDay['attendance_session'] ?? ($defaults['attendance_session'] ?? 'whole_day'))),
                 'schedule_time_in' => section_schedule_format_time_input((string)($rawDay['schedule_time_in'] ?? ($defaults['schedule_time_in'] ?? ''))),
                 'schedule_time_out' => section_schedule_format_time_input((string)($rawDay['schedule_time_out'] ?? ($defaults['schedule_time_out'] ?? ''))),
@@ -173,6 +193,7 @@ if (!function_exists('section_schedule_encode_weekly')) {
         foreach (section_schedule_weekday_order() as $dayKey) {
             $day = isset($weekly[$dayKey]) && is_array($weekly[$dayKey]) ? $weekly[$dayKey] : [];
             $payload[$dayKey] = [
+                'day_type' => section_schedule_normalize_day_type((string)($day['day_type'] ?? 'class'), $dayKey),
                 'attendance_session' => section_schedule_normalize_session((string)($day['attendance_session'] ?? 'whole_day')),
                 'schedule_time_in' => section_schedule_normalize_time_input((string)($day['schedule_time_in'] ?? '')),
                 'schedule_time_out' => section_schedule_normalize_time_input((string)($day['schedule_time_out'] ?? '')),
@@ -210,6 +231,7 @@ if (!function_exists('section_schedule_for_date')) {
     function section_schedule_for_date(array $schedule, ?string $date = null): array
     {
         $resolved = [
+            'day_type' => section_schedule_normalize_day_type((string)($schedule['day_type'] ?? 'class')),
             'attendance_session' => section_schedule_normalize_session((string)($schedule['attendance_session'] ?? 'whole_day')),
             'schedule_time_in' => section_schedule_format_time_input((string)($schedule['schedule_time_in'] ?? '')),
             'schedule_time_out' => section_schedule_format_time_input((string)($schedule['schedule_time_out'] ?? '')),
@@ -220,6 +242,7 @@ if (!function_exists('section_schedule_for_date')) {
         $weekly = isset($schedule['weekly_schedule']) && is_array($schedule['weekly_schedule']) ? $schedule['weekly_schedule'] : [];
         if ($dayKey !== null && isset($weekly[$dayKey]) && is_array($weekly[$dayKey])) {
             $day = $weekly[$dayKey];
+            $resolved['day_type'] = section_schedule_normalize_day_type((string)($day['day_type'] ?? $resolved['day_type']), $dayKey);
             $resolved['attendance_session'] = section_schedule_normalize_session((string)($day['attendance_session'] ?? $resolved['attendance_session']));
             foreach (['schedule_time_in', 'schedule_time_out', 'late_after_time'] as $field) {
                 $dayValue = section_schedule_format_time_input((string)($day[$field] ?? ''));
@@ -237,6 +260,9 @@ if (!function_exists('section_schedule_has_configured_day')) {
     function section_schedule_has_configured_day(array $schedule, ?string $date = null): bool
     {
         $resolved = section_schedule_for_date($schedule, $date);
+        if (section_schedule_normalize_day_type((string)($resolved['day_type'] ?? 'class')) === 'no_class') {
+            return false;
+        }
         if (trim((string)($resolved['schedule_time_in'] ?? '')) !== '') {
             return true;
         }
@@ -256,18 +282,24 @@ if (!function_exists('section_schedule_effective_day')) {
     {
         $resolved = section_schedule_for_date($schedule, $date);
         $hasSectionWindow = section_schedule_has_configured_day($schedule, $date);
+        $dayType = section_schedule_normalize_day_type((string)($resolved['day_type'] ?? 'class'), section_schedule_day_key_from_date($date));
 
         $fallbackIn = section_schedule_format_time_input((string)($fallback['schedule_time_in'] ?? ''));
         $fallbackOut = section_schedule_format_time_input((string)($fallback['schedule_time_out'] ?? ''));
         $fallbackLate = section_schedule_format_time_input((string)($fallback['late_after_time'] ?? ''));
 
-        if ($resolved['schedule_time_in'] === '' && $fallbackIn !== '') {
+        if ($dayType === 'no_class') {
+            $resolved['attendance_session'] = 'whole_day';
+            $resolved['schedule_time_in'] = $fallbackIn;
+            $resolved['schedule_time_out'] = $fallbackOut;
+            $resolved['late_after_time'] = $fallbackLate !== '' ? $fallbackLate : $fallbackIn;
+        } elseif ($resolved['schedule_time_in'] === '' && $fallbackIn !== '') {
             $resolved['schedule_time_in'] = $fallbackIn;
         }
-        if ($resolved['schedule_time_out'] === '' && $fallbackOut !== '') {
+        if ($dayType !== 'no_class' && $resolved['schedule_time_out'] === '' && $fallbackOut !== '') {
             $resolved['schedule_time_out'] = $fallbackOut;
         }
-        if ($resolved['late_after_time'] === '') {
+        if ($dayType !== 'no_class' && $resolved['late_after_time'] === '') {
             if ($fallbackLate !== '') {
                 $resolved['late_after_time'] = $fallbackLate;
             } elseif ($resolved['schedule_time_in'] !== '') {
@@ -275,7 +307,9 @@ if (!function_exists('section_schedule_effective_day')) {
             }
         }
 
-        if ($hasSectionWindow) {
+        if ($dayType === 'no_class') {
+            $resolved['window_source'] = $fallbackIn !== '' || $fallbackOut !== '' ? 'school' : 'none';
+        } elseif ($hasSectionWindow) {
             $resolved['window_source'] = 'section';
         } elseif ($resolved['schedule_time_in'] !== '' || $resolved['schedule_time_out'] !== '') {
             $resolved['window_source'] = 'school';
@@ -313,13 +347,19 @@ if (!function_exists('section_schedule_summary_lines')) {
         $lines = [];
         foreach (section_schedule_weekday_order() as $dayKey) {
             $resolved = section_schedule_for_date($schedule, $dayKey);
+            $dayType = section_schedule_normalize_day_type((string)($resolved['day_type'] ?? 'class'), $dayKey);
             $sessionLabel = match (section_schedule_inferred_session($resolved)) {
                 'morning_only' => 'Morning',
                 'afternoon_only' => 'Afternoon',
                 default => 'Whole day',
             };
+            $typeLabel = match ($dayType) {
+                'no_class' => 'No class',
+                'x2_schedule' => 'x2 schedule',
+                default => 'Class',
+            };
 
-            $parts = [section_schedule_weekday_label($dayKey), $sessionLabel];
+            $parts = [section_schedule_weekday_label($dayKey), $typeLabel, $sessionLabel];
             if ($resolved['schedule_time_in'] !== '') {
                 $parts[] = 'In ' . $resolved['schedule_time_in'];
             }
@@ -423,6 +463,13 @@ if (!function_exists('section_schedule_status')) {
         $lateAfter = trim((string)($schedule['late_after_time'] ?? ''));
         if ($lateAfter === '') {
             $lateAfter = trim((string)($schedule['schedule_time_in'] ?? ''));
+        }
+        $dayType = section_schedule_normalize_day_type(
+            (string)($schedule['day_type'] ?? 'class'),
+            section_schedule_day_key_from_date((string)($attendanceRow['attendance_date'] ?? ''))
+        );
+        if (($dayType === 'class' || $dayType === 'x2_schedule') && trim((string)($schedule['schedule_time_out'] ?? '')) !== '') {
+            $lateAfter = trim((string)$schedule['schedule_time_out']);
         }
         if ($lateAfter === '') {
             $lateAfter = '08:00:00';

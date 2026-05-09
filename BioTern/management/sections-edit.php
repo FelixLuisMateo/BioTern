@@ -131,6 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $weekly_schedule = section_schedule_normalize_weekly_input(
         $_POST['weekly_schedule'] ?? [],
         [
+            'day_type' => 'class',
             'attendance_session' => $attendance_session,
             'schedule_time_in' => $schedule_time_in ?? '',
             'schedule_time_out' => $schedule_time_out ?? '',
@@ -289,7 +290,19 @@ function section_edit_session_label(?string $session): string {
     };
 }
 
+function section_edit_day_type_label(?string $dayType): string {
+    return match (section_schedule_normalize_day_type($dayType)) {
+        'no_class' => 'No class',
+        'x2_schedule' => 'x2 schedule',
+        default => 'Class',
+    };
+}
+
 function section_edit_timetable_style(array $daySchedule, int $startMinutes, int $endMinutes, int $slotMinutes): string {
+    if (section_schedule_normalize_day_type((string)($daySchedule['day_type'] ?? 'class')) === 'no_class') {
+        return 'display: none;';
+    }
+
     $timeIn = section_edit_time_minutes((string)($daySchedule['schedule_time_in'] ?? ''));
     $timeOut = section_edit_time_minutes((string)($daySchedule['schedule_time_out'] ?? ''));
     if ($timeIn === null || $timeOut === null || $timeOut <= $timeIn) {
@@ -359,7 +372,7 @@ include 'includes/header.php';
                     <div>
                         <span class="section-schedule-guide-kicker">How this schedule is used</span>
                         <h6>Attendance reads each weekday row first, then falls back to the default hours.</h6>
-                        <p>Use First Period for when attendance should begin and Last Period for when the day should end. Attendance still treats the first period as the on-time cutoff, so students who punch after that time can be marked late.</p>
+                        <p>Use Class when students are in class first: First Period and Last Period are the class window, and OJT attendance starts after the last period. Use No Class when OJT attendance should use the whole school window.</p>
                     </div>
                     <div class="section-schedule-summary" id="sectionScheduleSummary">
                         <?php foreach (array_slice($scheduleSummaryLines, 0, 3) as $summaryLine): ?>
@@ -506,7 +519,7 @@ include 'includes/header.php';
                                          data-schedule-block="<?php echo htmlspecialchars($dayKey, ENT_QUOTES, 'UTF-8'); ?>"
                                          style="grid-column: <?php echo $dayOffset + 2; ?>; <?php echo htmlspecialchars($blockStyle, ENT_QUOTES, 'UTF-8'); ?>">
                                         <span class="class-schedule-block-title"><?php echo htmlspecialchars($sectionBoardTitle, ENT_QUOTES, 'UTF-8'); ?></span>
-                                        <span class="class-schedule-block-session" data-schedule-block-session><?php echo htmlspecialchars(section_edit_session_label((string)($daySchedule['attendance_session'] ?? 'whole_day')), ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <span class="class-schedule-block-session" data-schedule-block-session><?php echo htmlspecialchars(section_edit_day_type_label((string)($daySchedule['day_type'] ?? 'class')), ENT_QUOTES, 'UTF-8'); ?></span>
                                         <span class="class-schedule-block-time" data-schedule-block-time><?php echo htmlspecialchars(section_edit_time_label((string)($daySchedule['schedule_time_in'] ?? '')) . ' - ' . section_edit_time_label((string)($daySchedule['schedule_time_out'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></span>
                                     </div>
                                 <?php endforeach; ?>
@@ -520,6 +533,7 @@ include 'includes/header.php';
                             <div>First Period</div>
                             <div class="d-none">Late After</div>
                             <div>Last Period</div>
+                            <div>Day Type</div>
                         </div>
                         <?php foreach (section_schedule_weekday_order() as $dayKey): ?>
                             <?php $daySchedule = $weeklySchedule[$dayKey] ?? section_schedule_empty_day($sectionSchedule); ?>
@@ -544,6 +558,17 @@ include 'includes/header.php';
                                 <div>
                                     <label class="form-label d-lg-none">Last Period</label>
                                     <input type="time" name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][schedule_time_out]" class="form-control js-section-time js-weekly-time-out" value="<?php echo htmlspecialchars((string)$daySchedule['schedule_time_out']); ?>" step="60">
+                                </div>
+                                <div>
+                                    <label class="form-label d-lg-none">Day Type</label>
+                                    <?php $dayType = section_schedule_normalize_day_type((string)($daySchedule['day_type'] ?? 'class'), $dayKey); ?>
+                                    <select name="weekly_schedule[<?php echo htmlspecialchars($dayKey); ?>][day_type]" class="form-select js-day-type">
+                                        <option value="class" <?php echo $dayType === 'class' ? 'selected' : ''; ?>>Class</option>
+                                        <option value="no_class" <?php echo $dayType === 'no_class' ? 'selected' : ''; ?>>No Class</option>
+                                        <?php if ($dayKey === 'saturday'): ?>
+                                            <option value="x2_schedule" <?php echo $dayType === 'x2_schedule' ? 'selected' : ''; ?>>x2 Schedule</option>
+                                        <?php endif; ?>
+                                    </select>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -608,7 +633,7 @@ include 'includes/header.php';
                                  data-print-schedule-block="<?php echo htmlspecialchars($dayKey, ENT_QUOTES, 'UTF-8'); ?>"
                                  style="grid-column: <?php echo $dayOffset + 2; ?>; <?php echo htmlspecialchars($blockStyle, ENT_QUOTES, 'UTF-8'); ?>">
                                 <span><?php echo htmlspecialchars($sectionBoardTitle, ENT_QUOTES, 'UTF-8'); ?></span>
-                                <span data-print-schedule-session><?php echo htmlspecialchars(section_edit_session_label((string)($daySchedule['attendance_session'] ?? 'whole_day')), ENT_QUOTES, 'UTF-8'); ?></span>
+                                <span data-print-schedule-session><?php echo htmlspecialchars(section_edit_day_type_label((string)($daySchedule['day_type'] ?? 'class')), ENT_QUOTES, 'UTF-8'); ?></span>
                                 <span data-print-schedule-time><?php echo htmlspecialchars(section_edit_time_label((string)($daySchedule['schedule_time_in'] ?? '')) . ' - ' . section_edit_time_label((string)($daySchedule['schedule_time_out'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></span>
                             </div>
                         <?php endforeach; ?>

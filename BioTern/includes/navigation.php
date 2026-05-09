@@ -166,7 +166,7 @@ if (!function_exists('biotern_nav_any_active')) {
 $nav_active_dashboard = biotern_nav_any_active($nav_current_file, ['homepage.php', 'analytics.php']);
 $nav_active_students = biotern_nav_any_active($nav_current_file, [
     'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php', 'students-internal-dtr.php',
-    'applications-review.php', 'attendance.php', 'external-attendance.php', 'attendance-corrections.php', 'print_attendance.php',
+    'applications-review.php', 'attendance.php', 'test-attendance.php', 'external-attendance.php', 'attendance-corrections.php', 'print_attendance.php',
     'student-assistance.php',
 ]);
 $nav_active_ojt = biotern_nav_any_active($nav_current_file, [
