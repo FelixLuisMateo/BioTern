@@ -650,7 +650,7 @@ $student_internal_eval_factors = [
 $student_latest_evaluation = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_internal_eval_action'])) {
-    if (!$is_evaluation_unlocked) {
+    if (!$is_evaluation_unlocked && !$can_manage_eval_unlock) {
         $eval_flash_type = 'danger';
         $eval_flash_message = 'Evaluation is still locked. Unlock it before saving a rating.';
     } elseif (!in_array($current_user_role, ['admin', 'coordinator', 'supervisor'], true)) {
@@ -1359,7 +1359,7 @@ endif; ?>
                                         </div>
 
                                         <?php
-if ($is_evaluation_unlocked): ?>
+if ($is_evaluation_unlocked || $can_manage_eval_unlock): ?>
                                             <div class="alert alert-soft-success-message p-4 mb-4" role="alert">
                                                 <div class="d-flex">
                                                     <div class="me-3 d-none d-md-block"><i class="feather-check-circle fs-1"></i></div>

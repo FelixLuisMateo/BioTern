@@ -1071,16 +1071,16 @@
             return;
         }
 
-        document.body.classList.add('application-native-printing');
+        if (window.BioTernDocumentPrintPreview && typeof window.BioTernDocumentPrintPreview.open === 'function') {
+            window.BioTernDocumentPrintPreview.open({
+                element: editor,
+                title: 'Application Letter Preview',
+                bodyClass: 'application-builder-page application-document-builder-page'
+            });
+            return;
+        }
 
-        var cleanup = function () {
-            document.body.classList.remove('application-native-printing');
-            window.removeEventListener('afterprint', cleanup);
-        };
-
-        window.addEventListener('afterprint', cleanup);
         window.print();
-        window.setTimeout(cleanup, 1200);
     }
 
     function initPrintButton() {

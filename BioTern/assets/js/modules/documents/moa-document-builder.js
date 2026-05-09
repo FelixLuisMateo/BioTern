@@ -580,6 +580,15 @@
             return;
         }
 
+        if (window.BioTernDocumentPrintPreview && typeof window.BioTernDocumentPrintPreview.open === 'function') {
+            window.BioTernDocumentPrintPreview.open({
+                element: editor,
+                title: isDau ? 'DAU MOA Preview' : 'MOA Preview',
+                bodyClass: 'application-builder-page document-builder-page moa-builder-page'
+            });
+            return;
+        }
+
         var pagesHtml = Array.prototype.slice.call(editor.querySelectorAll('.a4-page')).map(function (page) {
             return page.outerHTML;
         }).join('');

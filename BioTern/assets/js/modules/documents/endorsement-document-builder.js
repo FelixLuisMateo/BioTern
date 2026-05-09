@@ -1218,6 +1218,14 @@
             }
             ensureA4TemplateStructure();
             updatePreview();
+            if (window.BioTernDocumentPrintPreview && typeof window.BioTernDocumentPrintPreview.open === 'function') {
+                window.BioTernDocumentPrintPreview.open({
+                    element: editor,
+                    title: 'Endorsement Letter Preview',
+                    bodyClass: 'application-builder-page endorsement-page'
+                });
+                return;
+            }
             window.print();
         });
     }

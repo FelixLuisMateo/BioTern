@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
+require_once dirname(__DIR__) . '/lib/company_profiles.php';
 /** @var mysqli $conn */
 
 external_attendance_ensure_schema($conn);
@@ -54,11 +55,24 @@ $student_stmt = $conn->prepare("
         s.middle_name,
         s.last_name,
         s.assignment_track,
+        s.department_id,
+        s.section_id,
+        s.supervisor_name,
+        s.coordinator_name,
         s.external_total_hours,
         s.external_total_hours_remaining,
+        d.name AS department_name,
+        sec.code AS section_code,
+        sec.name AS section_name,
+        i.company_name AS company_name,
         c.name AS course_name
     FROM students s
     LEFT JOIN courses c ON s.course_id = c.id
+    LEFT JOIN departments d ON d.id = s.department_id
+    LEFT JOIN sections sec ON sec.id = s.section_id
+    LEFT JOIN internships i ON i.id = (
+        SELECT i2.id FROM internships i2 WHERE i2.student_id = s.id ORDER BY (i2.status = 'ongoing') DESC, i2.id DESC LIMIT 1
+    )
     WHERE s.id = ?
     LIMIT 1
 ");
@@ -73,7 +87,7 @@ if (!$student) {
 }
 
 $att_stmt = $conn->prepare("
-    SELECT attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out, total_hours, status
+    SELECT attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out, total_hours, status, source, notes
     FROM external_attendance
     WHERE student_id = ? AND attendance_date BETWEEN ? AND ?
     ORDER BY attendance_date ASC
@@ -124,6 +138,23 @@ if ($externalRecordCount <= 0 && $externalRenderedHours <= 0 && $total_hours_rem
     $total_hours_remaining = $total_hours_target;
 }
 $total_hours_completed = max(0, $total_hours_target - $total_hours_remaining);
+$section_label = trim((string)($student['section_code'] ?? ''));
+if ($section_label === '') {
+    $section_label = trim((string)($student['section_name'] ?? ''));
+}
+$company_label = trim((string)($student['company_name'] ?? ''));
+$company_profile = $company_label !== '' ? biotern_company_profile_fetch_by_name($conn, $company_label) : null;
+$company_contact = '';
+if ($company_profile) {
+    $profile_company_name = trim((string)($company_profile['company_name'] ?? ''));
+    if ($profile_company_name !== '') {
+        $company_label = $profile_company_name;
+    }
+    $company_contact = trim((string)($company_profile['company_representative'] ?? ''));
+    if ($company_contact === '') {
+        $company_contact = trim((string)($company_profile['supervisor_name'] ?? ''));
+    }
+}
 
 function h(mixed $value): string {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -210,6 +241,9 @@ include 'includes/header.php';
                             <div class="student-meta-highlight app-students-dtr-meta-highlight">
                                 <span class="chip app-students-dtr-chip">Student ID: <?php echo h($student['student_id']); ?></span>
                                 <span class="chip app-students-dtr-chip">Course: <?php echo h($student['course_name'] ?? 'N/A'); ?></span>
+                                <span class="chip app-students-dtr-chip">Section: <?php echo h($section_label !== '' ? $section_label : 'N/A'); ?></span>
+                                <span class="chip app-students-dtr-chip">Department: <?php echo h($student['department_name'] ?? 'N/A'); ?></span>
+                                <span class="chip app-students-dtr-chip">Company: <?php echo h($company_label !== '' ? $company_label : 'No company linked'); ?></span>
                                 <span class="chip app-students-dtr-chip">Track: EXTERNAL</span>
                             </div>
                         </div>
@@ -243,6 +277,13 @@ include 'includes/header.php';
             </div>
 
             <div class="row g-3 mb-3">
+                <div class="col-md-3 col-6"><div class="dtr-summary-card app-students-dtr-summary-card"><div class="dtr-summary-label app-students-dtr-summary-label">Company / Training Site</div><div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h($company_label !== '' ? $company_label : 'No company linked'); ?></div></div></div>
+                <div class="col-md-3 col-6"><div class="dtr-summary-card app-students-dtr-summary-card"><div class="dtr-summary-label app-students-dtr-summary-label">Company Contact</div><div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h($company_contact !== '' ? $company_contact : 'Not provided'); ?></div></div></div>
+                <div class="col-md-3 col-6"><div class="dtr-summary-card app-students-dtr-summary-card"><div class="dtr-summary-label app-students-dtr-summary-label">Supervisor</div><div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h($student['supervisor_name'] ?? 'Not assigned'); ?></div></div></div>
+                <div class="col-md-3 col-6"><div class="dtr-summary-card app-students-dtr-summary-card"><div class="dtr-summary-label app-students-dtr-summary-label">Coordinator</div><div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h($student['coordinator_name'] ?? 'Not assigned'); ?></div></div></div>
+            </div>
+
+            <div class="row g-3 mb-3">
                 <div class="col-md-3 col-6"><div class="dtr-summary-card app-students-dtr-summary-card"><div class="dtr-summary-label app-students-dtr-summary-label">Date Range</div><div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h($selected_range_label); ?></div></div></div>
                 <div class="col-md-3 col-6"><div class="dtr-summary-card app-students-dtr-summary-card"><div class="dtr-summary-label app-students-dtr-summary-label">Present Days</div><div class="dtr-summary-value app-students-dtr-summary-value"><?php echo intval($present_days); ?></div></div></div>
                 <div class="col-md-3 col-6"><div class="dtr-summary-card app-students-dtr-summary-card"><div class="dtr-summary-label app-students-dtr-summary-label">Total Hours Remaining</div><div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h(fmt_hours_hm($total_hours_remaining)); ?></div></div></div>
@@ -263,6 +304,8 @@ include 'includes/header.php';
                                     <th>Afternoon In (PM)</th>
                                     <th>Afternoon Out (PM)</th>
                                     <th>Total Hours</th>
+                                    <th>Source</th>
+                                    <th>Notes</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -283,6 +326,8 @@ include 'includes/header.php';
                                         <td data-label="Afternoon In (PM)"><?php echo $row ? h(fmt_time($row['afternoon_time_in'])) : '-'; ?></td>
                                         <td data-label="Afternoon Out (PM)"><?php echo $row ? h(fmt_time($row['afternoon_time_out'])) : '-'; ?></td>
                                         <td data-label="Total Hours"><?php echo $row ? h(fmt_hours_hm((float)($row['total_hours'] ?? 0))) : '00h:00m'; ?></td>
+                                        <td data-label="Source"><?php echo $row ? h(ucfirst(str_replace('-', ' ', (string)($row['source'] ?? 'manual')))) : '-'; ?></td>
+                                        <td data-label="Notes"><?php echo $row ? h(trim((string)($row['notes'] ?? '')) !== '' ? (string)$row['notes'] : '-') : '-'; ?></td>
                                         <td data-label="Status"><?php echo $row ? status_badge($row['status']) : '<span class="badge bg-soft-secondary text-secondary">No Record</span>'; ?></td>
                                     </tr>
                                 <?php endfor; ?>
@@ -324,6 +369,16 @@ include 'includes/header.php';
                                         <p class="dtr-hours-label app-students-dtr-hours-label">Total Hours</p>
                                         <p class="dtr-hours-value app-students-dtr-hours-value"><?php echo h(fmt_hours_hm((float)($row['total_hours'] ?? 0))); ?></p>
                                     </div>
+                                    <div class="dtr-hours-row app-students-dtr-hours-row">
+                                        <p class="dtr-hours-label app-students-dtr-hours-label">Source</p>
+                                        <p class="dtr-hours-value app-students-dtr-hours-value"><?php echo h(ucfirst(str_replace('-', ' ', (string)($row['source'] ?? 'manual')))); ?></p>
+                                    </div>
+                                    <?php if (trim((string)($row['notes'] ?? '')) !== ''): ?>
+                                        <div class="dtr-hours-row app-students-dtr-hours-row">
+                                            <p class="dtr-hours-label app-students-dtr-hours-label">Notes</p>
+                                            <p class="dtr-hours-value app-students-dtr-hours-value"><?php echo h($row['notes']); ?></p>
+                                        </div>
+                                    <?php endif; ?>
                                 <?php else: ?>
                                     <p class="dtr-empty-note app-students-dtr-empty-note">No attendance logs for this day.</p>
                                 <?php endif; ?>

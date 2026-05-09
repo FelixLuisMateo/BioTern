@@ -77,8 +77,8 @@ $dau_moa_data = [
 $active_tab = 'profileTab';
 $internship_data = null;
 $attendance_summary = ['last_attendance_date' => '', 'pending_count' => 0, 'total_hours' => 0.0];
-$document_completion = ['application' => 'missing', 'endorsement' => 'missing', 'moa' => 'missing', 'dau_moa' => 'missing'];
-$document_last_saved = ['application' => '', 'endorsement' => '', 'moa' => '', 'dau_moa' => ''];
+$document_completion = ['application' => 'missing', 'endorsement' => 'missing', 'moa' => 'missing', 'dau_moa' => 'missing', 'parent_consent' => 'draft'];
+$document_last_saved = ['application' => '', 'endorsement' => '', 'moa' => '', 'dau_moa' => '', 'parent_consent' => ''];
 $pipeline_stage = 'Applied';
 $risk_flags = [];
 $profile_timeline = [];
@@ -89,6 +89,7 @@ $workflow = [
     'endorsement' => ['status' => 'draft', 'review_notes' => '', 'approved_by' => 0, 'approved_at' => ''],
     'moa' => ['status' => 'draft', 'review_notes' => '', 'approved_by' => 0, 'approved_at' => ''],
     'dau_moa' => ['status' => 'draft', 'review_notes' => '', 'approved_by' => 0, 'approved_at' => ''],
+    'parent_consent' => ['status' => 'draft', 'review_notes' => '', 'approved_by' => 0, 'approved_at' => ''],
 ];
 $company_profile = null;
 $review_notes = [];
@@ -179,6 +180,9 @@ function document_status_badge_class(string $status): string
     if ($s === 'incomplete') {
         return 'bg-soft-warning text-warning';
     }
+    if ($s === 'draft') {
+        return 'bg-soft-secondary text-secondary';
+    }
     return 'bg-soft-danger text-danger';
 }
 
@@ -187,6 +191,7 @@ function document_status_label(string $status): string
     $s = strtolower(trim($status));
     if ($s === 'complete') return 'Complete';
     if ($s === 'incomplete') return 'Incomplete';
+    if ($s === 'draft') return 'Ready';
     return 'Missing';
 }
 
@@ -1093,81 +1098,22 @@ try {
 $moa_signed_parts = split_date_parts($moa_data['moa_date'] ?? '');
 $moa_ack_parts = split_date_parts($moa_data['acknowledgement_date'] ?? '');
 $app_base = app_base_path();
-$application_print_url = $app_base . 'pages/generate_application_letter.php?' . http_build_query([
+$application_print_url = $app_base . 'documents/document_application.php?' . http_build_query([
     'id' => intval($selected_student_id),
-    'date' => date_value_or_default($app_letter['date'] ?? ''),
-    'ap_name' => (string)($app_letter['application_person'] ?? ''),
-    'ap_position' => (string)($app_letter['position'] ?? ''),
-    'ap_company' => (string)($app_letter['company_name'] ?? ''),
-    'ap_address' => (string)($app_letter['company_address'] ?? ''),
 ]);
-$endorsement_print_url = $app_base . 'pages/generate_endorsement_letter.php?' . http_build_query([
+$endorsement_print_url = $app_base . 'documents/document_endorsement.php?' . http_build_query([
     'id' => intval($selected_student_id),
-    'recipient' => (string)($endorsement_data['recipient_name'] ?? ''),
     'recipient_title' => (string)($endorsement_data['recipient_title'] ?? 'auto'),
-    'position' => (string)($endorsement_data['recipient_position'] ?? ''),
-    'company' => (string)($endorsement_data['company_name'] ?? ''),
-    'company_address' => (string)($endorsement_data['company_address'] ?? ''),
-    'students' => (string)($endorsement_data['students_to_endorse'] ?? ''),
     'greeting_pref' => (string)($endorsement_data['greeting_preference'] ?? 'either'),
 ]);
-$moa_print_url = $app_base . 'pages/generate_moa.php?' . http_build_query([
-    'date' => date_value_or_default($moa_data['moa_date'] ?? '', 'F j, Y'),
-    'partner_name' => (string)($moa_data['company_name'] ?? ''),
-    'partner_rep' => (string)($moa_data['partner_representative'] ?? ''),
-    'partner_position' => (string)($moa_data['position'] ?? ''),
-    'partner_address' => (string)($moa_data['company_address'] ?? ''),
-    'company_receipt' => (string)($moa_data['company_receipt'] ?? ''),
-    'total_hours' => (string)($moa_data['total_hours'] ?? ''),
-    'school_rep' => (string)($moa_data['coordinator'] ?? ''),
-    'school_position' => (string)($moa_data['school_position'] ?? ''),
-    'signed_at' => (string)($moa_data['moa_address'] ?? ''),
-    'signed_day' => $moa_signed_parts['day'],
-    'signed_month' => $moa_signed_parts['month'],
-    'signed_year' => $moa_signed_parts['year'],
-    'presence_partner_rep' => (string)($moa_data['partner_representative'] ?? ''),
-    'presence_school_admin' => (string)($moa_data['school_administrator'] ?? ''),
-    'presence_school_admin_position' => (string)($moa_data['school_admin_position'] ?? ''),
-    'notary_city' => (string)($moa_data['notary_address'] ?? ''),
-    'notary_appeared_1' => (string)($moa_data['partner_representative'] ?? ''),
-    'notary_appeared_2' => (string)($moa_data['school_administrator'] ?? ''),
-    'notary_day' => $moa_ack_parts['day'],
-    'notary_month' => $moa_ack_parts['month'],
-    'notary_year' => $moa_ack_parts['year'],
-    'notary_place' => (string)($moa_data['acknowledgement_address'] ?? ''),
-    'doc_no' => (string)($moa_data['doc_no'] ?? ''),
-    'page_no' => (string)($moa_data['page_no'] ?? ''),
-    'book_no' => (string)($moa_data['book_no'] ?? ''),
-    'series_no' => (string)($moa_data['series_no'] ?? ''),
+$moa_print_url = $app_base . 'documents/document_moa.php?' . http_build_query([
+    'id' => intval($selected_student_id),
 ]);
-$dau_print_url = $app_base . 'pages/generate_dau_moa.php?' . http_build_query([
-    'date' => date('F j, Y'),
-    'partner_name' => (string)($dau_moa_data['company_name'] ?? ''),
-    'partner_rep' => (string)($dau_moa_data['partner_representative'] ?? ''),
-    'partner_position' => (string)($dau_moa_data['position'] ?? ''),
-    'partner_address' => (string)($dau_moa_data['company_address'] ?? ''),
-    'company_receipt' => (string)($dau_moa_data['company_receipt'] ?? ''),
-    'total_hours' => (string)($dau_moa_data['total_hours'] ?? ''),
-    'school_rep' => (string)($dau_moa_data['school_representative'] ?? ''),
-    'school_position' => (string)($dau_moa_data['school_position'] ?? ''),
-    'signed_at' => (string)($dau_moa_data['signed_at'] ?? ''),
-    'signed_day' => (string)($dau_moa_data['signed_day'] ?? ''),
-    'signed_month' => (string)($dau_moa_data['signed_month'] ?? ''),
-    'signed_year' => (string)($dau_moa_data['signed_year'] ?? ''),
-    'presence_partner_rep' => (string)($dau_moa_data['witness_partner'] ?? ''),
-    'presence_school_admin' => (string)($dau_moa_data['school_administrator'] ?? ''),
-    'presence_school_admin_position' => (string)($dau_moa_data['school_admin_position'] ?? ''),
-    'notary_city' => (string)($dau_moa_data['notary_city'] ?? ''),
-    'notary_appeared_1' => (string)($dau_moa_data['partner_representative'] ?? ''),
-    'notary_appeared_2' => (string)($dau_moa_data['school_administrator'] ?? ''),
-    'notary_day' => (string)($dau_moa_data['notary_day'] ?? ''),
-    'notary_month' => (string)($dau_moa_data['notary_month'] ?? ''),
-    'notary_year' => (string)($dau_moa_data['notary_year'] ?? ''),
-    'notary_place' => (string)($dau_moa_data['notary_place'] ?? ''),
-    'doc_no' => (string)($dau_moa_data['doc_no'] ?? ''),
-    'page_no' => (string)($dau_moa_data['page_no'] ?? ''),
-    'book_no' => (string)($dau_moa_data['book_no'] ?? ''),
-    'series_no' => (string)($dau_moa_data['series_no'] ?? ''),
+$dau_print_url = $app_base . 'documents/document_dau_moa.php?' . http_build_query([
+    'id' => intval($selected_student_id),
+]);
+$parent_consent_print_url = $app_base . 'documents/document_parent_consent.php?' . http_build_query([
+    'id' => intval($selected_student_id),
 ]);
 $page_title = 'BioTern || OJT View';
 $page_styles = [
@@ -1380,12 +1326,14 @@ include 'includes/header.php';
                                                 <span class="badge <?php echo document_status_badge_class((string)$document_completion['endorsement']); ?>">Endorsement <?php echo document_status_label((string)$document_completion['endorsement']); ?></span>
                                                 <span class="badge <?php echo document_status_badge_class((string)$document_completion['moa']); ?>">MOA <?php echo document_status_label((string)$document_completion['moa']); ?></span>
                                                 <span class="badge <?php echo document_status_badge_class((string)$document_completion['dau_moa']); ?>">Dau MOA <?php echo document_status_label((string)$document_completion['dau_moa']); ?></span>
+                                                <span class="badge <?php echo document_status_badge_class((string)$document_completion['parent_consent']); ?>">Parent Consent <?php echo document_status_label((string)$document_completion['parent_consent']); ?></span>
                                             </div>
                                             <div class="mt-2 fs-12 text-muted">
                                                 Last save: Application <?php echo htmlspecialchars(format_dt($document_last_saved['application'])); ?>,
                                                 Endorsement <?php echo htmlspecialchars(format_dt($document_last_saved['endorsement'])); ?>,
                                                 MOA <?php echo htmlspecialchars(format_dt($document_last_saved['moa'])); ?>,
-                                                Dau MOA <?php echo htmlspecialchars(format_dt($document_last_saved['dau_moa'])); ?>
+                                                Dau MOA <?php echo htmlspecialchars(format_dt($document_last_saved['dau_moa'])); ?>,
+                                                Parent Consent ready on demand
                                             </div>
                                         </div>
                                     </div>
@@ -1405,7 +1353,7 @@ include 'includes/header.php';
                                     </div>
                                 </div>
                                 <div class="row g-3 mt-1">
-                                    <?php foreach (['application' => 'Application', 'endorsement' => 'Endorsement', 'moa' => 'MOA', 'dau_moa' => 'Dau MOA'] as $doc_key => $doc_label): ?>
+                                    <?php foreach (['application' => 'Application', 'endorsement' => 'Endorsement', 'moa' => 'MOA', 'dau_moa' => 'Dau MOA', 'parent_consent' => 'Parent Consent'] as $doc_key => $doc_label): ?>
                                         <div class="col-md-6 col-xl-6">
                                             <form method="post" action="ojt-view.php?id=<?php echo intval($selected_student_id); ?>" class="p-2 border rounded app-ojt-view-workflow-form">
                                                 <input type="hidden" name="save_document_workflow" value="1">
@@ -1427,14 +1375,17 @@ include 'includes/header.php';
                                 </div>
                                 <div class="card app-ojt-view-surface-card card-body mt-3">
                                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                                        <h6 class="fw-bold mb-0">Print Selected Documents</h6>
+                                        <div>
+                                            <h6 class="fw-bold mb-1">OJT Document Preview Board</h6>
+                                            <p class="text-muted fs-12 mb-0">Five document tiles act like a quick snapshot. Open any preview tab to edit or print that document.</p>
+                                        </div>
                                         <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleAllPrintDocs">Select All</button>
                                     </div>
                                     <?php if ($view_user_id <= 0): ?>
                                         <div class="alert alert-warning mb-0">Select a student from OJT List first to print documents.</div>
                                     <?php else: ?>
                                         <div class="row g-2 mb-3" id="printDocsSelection">
-                                            <div class="col-md-3 col-sm-6">
+                                            <div class="col-xl col-md-4 col-sm-6">
                                                 <label class="print-doc-option app-ojt-view-print-doc-option mb-0"
                                                     data-doc-url="<?php echo htmlspecialchars($application_print_url); ?>"
                                                     data-doc-label="Application Letter">
@@ -1442,7 +1393,7 @@ include 'includes/header.php';
                                                     <span class="print-doc-state app-ojt-view-print-doc-state">Select</span>
                                                 </label>
                                             </div>
-                                            <div class="col-md-3 col-sm-6">
+                                            <div class="col-xl col-md-4 col-sm-6">
                                                 <label class="print-doc-option app-ojt-view-print-doc-option mb-0"
                                                     data-doc-url="<?php echo htmlspecialchars($endorsement_print_url); ?>"
                                                     data-doc-label="Endorsement Letter">
@@ -1450,7 +1401,7 @@ include 'includes/header.php';
                                                     <span class="print-doc-state app-ojt-view-print-doc-state">Select</span>
                                                 </label>
                                             </div>
-                                            <div class="col-md-3 col-sm-6">
+                                            <div class="col-xl col-md-4 col-sm-6">
                                                 <label class="print-doc-option app-ojt-view-print-doc-option mb-0"
                                                     data-doc-url="<?php echo htmlspecialchars($moa_print_url); ?>"
                                                     data-doc-label="MOA">
@@ -1458,7 +1409,7 @@ include 'includes/header.php';
                                                     <span class="print-doc-state app-ojt-view-print-doc-state">Select</span>
                                                 </label>
                                             </div>
-                                            <div class="col-md-3 col-sm-6">
+                                            <div class="col-xl col-md-4 col-sm-6">
                                                 <label class="print-doc-option app-ojt-view-print-doc-option mb-0"
                                                     data-doc-url="<?php echo htmlspecialchars($dau_print_url); ?>"
                                                     data-doc-label="Dau MOA">
@@ -1466,11 +1417,19 @@ include 'includes/header.php';
                                                     <span class="print-doc-state app-ojt-view-print-doc-state">Select</span>
                                                 </label>
                                             </div>
+                                            <div class="col-xl col-md-4 col-sm-6">
+                                                <label class="print-doc-option app-ojt-view-print-doc-option mb-0"
+                                                    data-doc-url="<?php echo htmlspecialchars($parent_consent_print_url); ?>"
+                                                    data-doc-label="Parent Consent">
+                                                    <span class="print-doc-label app-ojt-view-print-doc-label">Parent Consent</span>
+                                                    <span class="print-doc-state app-ojt-view-print-doc-state">Select</span>
+                                                </label>
+                                            </div>
                                         </div>
                                         <div class="d-flex align-items-center gap-2 flex-wrap print-doc-actions app-ojt-view-print-doc-actions">
-                                            <button type="button" class="btn btn-success" id="printSelectedDocsBtn">Print Selected</button>
-                                            <button type="button" class="btn btn-primary" id="printAllDocsBtn">Print All Documents</button>
-                                            <span class="text-muted print-doc-hint app-ojt-view-print-doc-hint" id="printDocsHint">Documents will print one by one from this page.</span>
+                                            <button type="button" class="btn btn-success" id="printSelectedDocsBtn">Open Selected Previews</button>
+                                            <button type="button" class="btn btn-primary" id="printAllDocsBtn">Open All Document Previews</button>
+                                            <span class="text-muted print-doc-hint app-ojt-view-print-doc-hint" id="printDocsHint">Each selected document opens in its own preview tab with a Print button.</span>
                                         </div>
                                     <?php endif; ?>
                                 </div>

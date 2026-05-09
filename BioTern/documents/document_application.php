@@ -154,6 +154,7 @@ $page_styles = [
     'assets/css/modules/documents/template-print-isolation.css',
 ];
 $page_scripts = [
+    'assets/js/modules/documents/document-print-preview.js',
     'assets/js/modules/documents/application-document-builder.js',
 ];
 

@@ -98,13 +98,83 @@ function biotern_student_edit_ensure_runtime_dir(string $path): bool
     return @mkdir($path, 0755, true) || is_dir($path);
 }
 
-// Ensure new student assignment/hour fields exist.
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours_remaining INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours_remaining INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
+function biotern_student_edit_table_exists(mysqli $conn, string $table): bool
+{
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+        return false;
+    }
+
+    $safeTable = $conn->real_escape_string($table);
+    $res = $conn->query("SHOW TABLES LIKE '{$safeTable}'");
+    $exists = $res instanceof mysqli_result && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+    return $exists;
+}
+
+function biotern_student_edit_column_exists(mysqli $conn, string $table, string $column): bool
+{
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table) || !preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+        return false;
+    }
+
+    $safeTable = $conn->real_escape_string($table);
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    $exists = $res instanceof mysqli_result && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+    return $exists;
+}
+
+function biotern_student_edit_ensure_column(mysqli $conn, string $table, string $column, string $definition): bool
+{
+    if (!biotern_student_edit_table_exists($conn, $table)) {
+        return false;
+    }
+    if (biotern_student_edit_column_exists($conn, $table, $column)) {
+        return true;
+    }
+
+    $ok = @$conn->query("ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}");
+    return $ok === true || biotern_student_edit_column_exists($conn, $table, $column);
+}
+
+// Ensure student-edit can run against older deployed schemas.
+$student_edit_columns = [
+    'profile_picture' => 'VARCHAR(255) DEFAULT NULL',
+    'phone' => 'VARCHAR(50) DEFAULT NULL',
+    'date_of_birth' => 'DATE DEFAULT NULL',
+    'gender' => 'VARCHAR(30) DEFAULT NULL',
+    'address' => 'VARCHAR(255) DEFAULT NULL',
+    'emergency_contact' => 'VARCHAR(255) DEFAULT NULL',
+    'department_id' => 'INT DEFAULT NULL',
+    'section_id' => 'INT DEFAULT NULL',
+    'internal_total_hours' => 'INT(11) DEFAULT NULL',
+    'internal_total_hours_remaining' => 'INT(11) DEFAULT NULL',
+    'external_total_hours' => 'INT(11) DEFAULT NULL',
+    'external_total_hours_remaining' => 'INT(11) DEFAULT NULL',
+    'assignment_track' => "VARCHAR(20) NOT NULL DEFAULT 'internal'",
+    'external_start_allowed' => 'TINYINT(1) NOT NULL DEFAULT 0',
+    'biometric_registered' => 'TINYINT(1) NOT NULL DEFAULT 0',
+    'biometric_registered_at' => 'DATETIME DEFAULT NULL',
+    'supervisor_name' => 'VARCHAR(255) DEFAULT NULL',
+    'coordinator_name' => 'VARCHAR(255) DEFAULT NULL',
+];
+
+foreach ($student_edit_columns as $column => $definition) {
+    biotern_student_edit_ensure_column($conn, 'students', $column, $definition);
+}
+biotern_student_edit_ensure_column($conn, 'users', 'profile_picture', 'VARCHAR(255) DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'users', 'updated_at', 'DATETIME DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'supervisors', 'user_id', 'INT DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'supervisors', 'course_id', 'INT DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'supervisors', 'department_id', 'INT DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'coordinators', 'user_id', 'INT DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'coordinators', 'department_id', 'INT DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'internships', 'office_id', 'BIGINT UNSIGNED NULL');
 
 // Get student ID from URL parameter
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -175,6 +245,10 @@ $student_query = "
 ";
 
 $stmt = $conn->prepare($student_query);
+if (!$stmt) {
+    http_response_code(500);
+    die('Unable to load student record. Database query could not be prepared: ' . htmlspecialchars($conn->error, ENT_QUOTES, 'UTF-8'));
+}
 $stmt->bind_param("i", $student_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -804,10 +878,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     }
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
-                    $stmt->bind_param("i", $student_id);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
-                    $student = $result->fetch_assoc();
+                    if ($stmt) {
+                        $stmt->bind_param("i", $student_id);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        $student = $result->fetch_assoc();
+                        $stmt->close();
+                    }
                 } else {
                     $error_message = "Error updating student: " . $update_stmt->error;
                 }
