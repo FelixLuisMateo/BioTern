@@ -35,9 +35,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 
 $rows = [];
 $sql = "
-    SELECT s.*, u.name AS user_name, d.name AS department_name, office_summary.office_names
+    SELECT s.*, u.name AS user_name, c.name AS course_name, d.name AS department_name, office_summary.office_names
     FROM supervisors s
     LEFT JOIN users u ON s.user_id = u.id
+    LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN departments d ON s.department_id = d.id
     LEFT JOIN (
         SELECT so.supervisor_id, GROUP_CONCAT(DISTINCT o.name ORDER BY o.name SEPARATOR ', ') AS office_names
@@ -96,6 +97,7 @@ include 'includes/header.php';
                             <th>User</th>
                             <th>Email</th>
                             <th>Phone</th>
+                            <th>Course</th>
                             <th>Department</th>
                             <th>Specialization</th>
                             <th>Office</th>
@@ -105,7 +107,7 @@ include 'includes/header.php';
                     </thead>
                     <tbody>
                         <?php if (!$rows): ?>
-                            <tr><td colspan="10" class="text-center py-4 text-muted">No supervisors found.</td></tr>
+                            <tr><td colspan="11" class="text-center py-4 text-muted">No supervisors found.</td></tr>
                         <?php endif; ?>
                         <?php foreach ($rows as $r): ?>
                             <tr>
@@ -119,6 +121,7 @@ include 'includes/header.php';
                                 <td><span class="app-academic-created"><?php echo h($r['user_name'] ?? '-'); ?></span></td>
                                 <td><span class="app-academic-created"><?php echo h($r['email'] ?? '-'); ?></span></td>
                                 <td><span class="app-academic-created"><?php echo h($r['phone'] ?? '-'); ?></span></td>
+                                <td><span class="app-academic-created"><?php echo h($r['course_name'] ?? '-'); ?></span></td>
                                 <td><span class="app-academic-head"><?php echo h($r['department_name'] ?? '-'); ?></span></td>
                                 <td><span class="app-academic-created"><?php echo h($r['specialization'] ?? '-'); ?></span></td>
                                 <td><span class="app-academic-created"><?php echo h($r['office_names'] ?: ($r['office_location'] ?? ($r['office'] ?? '-'))); ?></span></td>
@@ -153,6 +156,7 @@ include 'includes/header.php';
                         $fullName = trim((string)($r['first_name'] ?? '') . ' ' . (string)($r['middle_name'] ?? '') . ' ' . (string)($r['last_name'] ?? ''));
                         $email = (string)($r['email'] ?? '-');
                         $phone = (string)($r['phone'] ?? '-');
+                        $course = (string)($r['course_name'] ?? '-');
                         $department = (string)($r['department_name'] ?? '-');
                         $specialization = (string)($r['specialization'] ?? '-');
                         $office = (string)($r['office_names'] ?: ($r['office_location'] ?? ($r['office'] ?? '-')));
@@ -173,6 +177,8 @@ include 'includes/header.php';
                                 <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">User</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h((string)($r['user_name'] ?? '-')); ?></span></div>
                                 <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">Email</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h($email); ?></span></div>
                                 <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">Phone</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h($phone); ?></span></div>
+                                <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">Course</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h($course); ?></span></div>
+                                <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">Department</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h($department); ?></span></div>
                                 <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">Specialization</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h($specialization); ?></span></div>
                                 <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">Office</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h($office); ?></span></div>
                                 <div class="app-mobile-row app-ojt-mobile-row"><span class="app-mobile-label app-ojt-mobile-label">Status</span><span class="app-mobile-value app-ojt-mobile-value"><?php echo h($statusLabel); ?></span></div>

@@ -393,6 +393,7 @@ if ($is_logged_in) {
   $academic_files = [
     'courses.php', 'courses-create.php', 'courses-edit.php',
     'departments.php', 'departments-create.php', 'departments-edit.php',
+    'offices.php',
     'sections.php', 'sections-create.php', 'sections-edit.php',
     'coordinators.php', 'coordinators-create.php', 'coordinators-edit.php',
     'supervisors.php', 'supervisors-create.php', 'supervisors-edit.php',
