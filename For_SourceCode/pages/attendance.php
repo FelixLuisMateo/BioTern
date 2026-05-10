@@ -1987,7 +1987,7 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
         <div class="nxl-content">
-            <!-- [ page-header ] start -->
+            
             <div class="page-header">
                 <div class="page-header-left d-flex align-items-center">
                     <div class="page-header-title">
@@ -2143,7 +2143,7 @@ include 'includes/header.php';
             <?php endif; ?>
             <div id="attendanceSyncAlertHost" class="mx-3"></div>
 
-            <!-- Filters -->
+            
             <div class="collapse show" id="attendanceFilterCollapse">
                 <div class="row mb-3 px-3">
                     <div class="col-12">
@@ -2194,7 +2194,7 @@ echo htmlspecialchars((string)$filter_date, ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
             </div>
 
-            <!--! attendance statistics database !-->
+            
             <div id="collapseAttendanceStats" class="accordion-collapse collapse page-header-collapse">
                 <div class="accordion-body pb-2">
                     <div class="row">
@@ -2292,9 +2292,9 @@ echo $stats['total_count'] ?? 0; ?></span>
                     </div>
                 </div>
             </div>
-            <!--! end of attendance statistics database !-->
+            
 
-            <!-- Bulk Actions Toolbar -->
+            
             <div class="row mb-2 px-3" id="bulkActionsToolbar" style="display: none;">
                 <div class="col-12">
                     <div class="d-flex align-items-center justify-content-between p-2 rounded bulk-toolbar">
@@ -2434,16 +2434,16 @@ endif; ?>
                     </div>
                 </div>
             </div>
-            <!-- [ Main Content ] end -->
+            
         </div>
 </main>
 
-    <!--! ================================================================ !-->
-    <!--! [End] Main Content !-->
+    
+    
 
-    <!--! ================================================================ !-->
-    <!--! BEGIN: Downloading Toast !-->
-    <!--! ================================================================ !-->
+    
+    
+    
     <div class="position-fixed" style="right: 5px; bottom: 5px; z-index: 999999">
         <div id="toast" class="toast bg-black hide" data-bs-delay="3000" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header px-3 bg-transparent d-flex align-items-center justify-content-between border-bottom border-light border-opacity-10">
@@ -2515,3 +2515,4 @@ endif; ?>
         </div>
     </div>
     <?php include 'includes/footer.php'; ?>
+

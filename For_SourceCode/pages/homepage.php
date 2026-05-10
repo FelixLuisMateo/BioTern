@@ -920,7 +920,7 @@ include 'includes/header.php';
                 </div>
             </div>
             </div>
-            <!-- [ page-header ] end -->
+            
             <div class="dashboard-mobile-summary d-md-none">
                 <div class="mobile-summary-card">
                     <span class="mobile-summary-label">Active Students</span>
@@ -969,10 +969,10 @@ include 'includes/header.php';
                     <strong class="dashboard-mobile-stat-value"><?php echo count($supervisors); ?></strong>
                 </button>
             </div>
-            <!-- [ Main Content ] start -->
+            
             <div class="main-content dashboard-shell widgets-preloading">
                 <div class="row">
-                    <!-- [KPI Strip] start -->
+                    
                     <div class="col-12 dashboard-movable" data-move-key="kpi-strip" data-mobile-panel="kpi">
                         <div class="card stretch stretch-full kpi-strip">
                             <div class="card-header">
@@ -1027,9 +1027,9 @@ include 'includes/header.php';
                             </div>
                         </div>
                     </div>
-                    <!-- [KPI Strip] end -->
+                    
 
-                    <!-- [Active Students] start -->
+                    
                     <div class="col-xxl-4 section-tight dashboard-movable" data-move-key="active-students" data-mobile-panel="students">
                         <div class="card dash-card stretch stretch-full">
                             <div class="dash-card-header">
@@ -1084,9 +1084,9 @@ include 'includes/header.php';
                             </div>
                         </div>
                     </div>
-                    <!-- [Active Students] end -->
+                    
 
-                    <!-- [Recent Activities & Logs] start (replaces Payment Record) -->
+                    
                     <div class="col-xxl-8 section-tight dashboard-movable" data-move-key="recent-activities" data-mobile-panel="activities">
                         <div class="card dash-card stretch stretch-full">
                             <div class="dash-card-header">
@@ -1159,11 +1159,11 @@ include 'includes/header.php';
                             </div>
                         </div>
                     </div>
-                    <!-- [Recent Activities & Logs] end -->
+                    
 
                     
 
-                    <!-- [Latest Attendance Records] start -->
+                    
                     <div class="col-xxl-8 section-tight dashboard-movable" data-move-key="latest-attendance" data-mobile-panel="attendance">
                         <div class="card dash-card stretch stretch-full">
                             <div class="dash-card-header">
@@ -1227,8 +1227,8 @@ include 'includes/header.php';
                             </div>
                         </div>
                     </div>
-                    <!-- [Latest Attendance Records] end -->
-                    <!--! BEGIN: [Coordinators List] !-->
+                    
+                    
                     <div class="col-xxl-4 dashboard-movable" data-move-key="coordinators" data-mobile-panel="coordinators">
                         <div class="card dash-card stretch stretch-full">
                             <div class="dash-card-header">
@@ -1259,8 +1259,8 @@ include 'includes/header.php';
                             </div>
                         </div>
                     </div>
-                    <!--! END: [Coordinators List] !-->
-                    <!--! BEGIN: [Supervisors List] !-->
+                    
+                    
                     <div class="col-xxl-4 dashboard-movable" data-move-key="supervisors" data-mobile-panel="supervisors">
                         <div class="card dash-card stretch stretch-full">
                             <div class="dash-card-header">
@@ -1291,8 +1291,8 @@ include 'includes/header.php';
                             </div>
                         </div>
                     </div>
-                    <!--! END: [Supervisors List] !-->
-                    <!-- Duplicate Recent Activities removed (now shown in the top section) -->
+                    
+                    
                 </div>
             </div>
             <div id="homepage-runtime-config"
@@ -1345,8 +1345,14 @@ include 'includes/header.php';
                 }
             })();
             </script>
-            <!-- [ Main Content ] end -->
+            
             <?php endif; ?>
-</div> <!-- .nxl-content -->
+</div> 
 </main>
 <?php include 'includes/footer.php'; ?>
+
+
+
+
+
+
