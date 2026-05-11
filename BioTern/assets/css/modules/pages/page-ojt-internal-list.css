@@ -215,8 +215,8 @@
 .page-ojt-internal-list #ojtInternalActionModal .ojt-internal-selection-box {
     padding: 0.75rem 0.9rem;
     border-radius: 14px;
-    border: 1px solid var(--biotern-border, rgba(148, 163, 184, 0.18));
-    background: var(--biotern-surface-muted, #f8fafc);
+    border: 1px solid rgba(125, 161, 228, 0.38);
+    background: rgba(20, 40, 72, 0.62);
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .ojt-internal-selection-head {
@@ -228,7 +228,7 @@
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .ojt-internal-selection-head span {
-    color: var(--bs-heading-color, var(--bs-body-color, #111827));
+    color: #dce9ff;
     font-size: 0.8rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -236,7 +236,7 @@
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .ojt-internal-selection-head small {
-    color: var(--biotern-text-muted, #64748b);
+    color: #b9cff4;
     font-size: 0.74rem;
 }
 
@@ -255,8 +255,8 @@
     gap: 0.55rem;
     padding: 0.5rem 0.65rem;
     border-radius: 12px;
-    background: var(--biotern-surface, #ffffff);
-    border: 1px solid var(--biotern-border, rgba(148, 163, 184, 0.14));
+    background: rgba(30, 55, 94, 0.78);
+    border: 1px solid rgba(140, 176, 238, 0.34);
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .ojt-internal-selection-index {
@@ -264,15 +264,15 @@
     min-width: 2rem;
     padding: 0.18rem 0.45rem;
     border-radius: 999px;
-    background: var(--biotern-surface-muted, #eef2f7);
-    color: var(--bs-body-color, #111827);
+    background: rgba(92, 130, 207, 0.32);
+    color: #f2f7ff;
     font-size: 0.72rem;
     font-weight: 800;
     text-align: center;
 }
 
 .page-ojt-internal-list #ojtInternalActionModal .ojt-internal-selection-label {
-    color: var(--bs-body-color, #111827);
+    color: #f2f7ff;
     font-size: 0.86rem;
     line-height: 1.35;
     word-break: break-word;
