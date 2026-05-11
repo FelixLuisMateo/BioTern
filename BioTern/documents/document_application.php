@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/document_access.php';
 require_once dirname(__DIR__) . '/lib/company_profiles.php';
+require_once dirname(__DIR__) . '/lib/ojt_masterlist.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
@@ -50,6 +51,15 @@ if (isset($_GET['action'])) {
                     'text' => trim($text . ' ' . (string)$r['student_id']),
                 ];
             }
+        }
+        $seenIds = array_fill_keys(array_map(static fn($row) => (int)($row['id'] ?? 0), $out), true);
+        foreach (biotern_masterlist_search_students($conn, $term, 50) as $row) {
+            $rowId = (int)($row['id'] ?? 0);
+            if ($rowId <= 0 || isset($seenIds[$rowId])) {
+                continue;
+            }
+            $out[] = $row;
+            $seenIds[$rowId] = true;
         }
         echo json_encode(['results' => $out]);
         exit;
@@ -174,10 +184,12 @@ include __DIR__ . '/../includes/header.php';
                 </ul>
             </div>
             <?php ob_start(); ?>
-                <a href="documents/index.php" class="btn btn-outline-secondary"><i class="feather-folder me-1"></i>All Documents</a>
-                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                <a href="documents/index.php<?php echo $prefill_student_id > 0 ? '?id=' . (int)$prefill_student_id : ''; ?>" class="btn btn-outline-secondary"><i class="feather-folder me-1"></i>All Documents</a>
+                <a href="document_endorsement.php<?php echo $prefill_student_id > 0 ? '?id=' . (int)$prefill_student_id : ''; ?>" class="btn btn-outline-primary"><i class="feather-send me-1"></i>Endorsement</a>
                 <a href="document_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>MOA</a>
                 <a href="document_dau_moa.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>DAU MOA</a>
+                <a href="document_parent_consent.php<?php echo $prefill_student_id > 0 ? '?id=' . (int)$prefill_student_id : ''; ?>" class="btn btn-outline-primary"><i class="feather-user-check me-1"></i>Waiver</a>
+                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
             <?php
             biotern_render_page_header_actions([
                 'menu_id' => 'documentApplicationActionsMenu',

@@ -87,6 +87,15 @@ if (isset($_GET['action'])) {
                 $results[] = ['id' => $r['id'], 'text' => $name . ' - ' . $r['student_id']];
             }
         }
+        $seenIds = array_fill_keys(array_map(static fn($row) => (int)($row['id'] ?? 0), $results), true);
+        foreach (biotern_masterlist_search_students($conn, $term, 50) as $row) {
+            $rowId = (int)($row['id'] ?? 0);
+            if ($rowId <= 0 || isset($seenIds[$rowId])) {
+                continue;
+            }
+            $results[] = $row;
+            $seenIds[$rowId] = true;
+        }
         echo json_encode(['results' => $results]);
         exit;
     }
@@ -194,9 +203,12 @@ include __DIR__ . '/../includes/header.php';
                 </ul>
             </div>
             <?php ob_start(); ?>
-                <a href="documents/index.php" class="btn btn-outline-secondary"><i class="feather-folder me-1"></i>All Documents</a>
+                <a href="documents/index.php<?php echo $prefill_student_id > 0 ? '?id=' . (int)$prefill_student_id : ''; ?>" class="btn btn-outline-secondary"><i class="feather-folder me-1"></i>All Documents</a>
+                <a href="document_application.php<?php echo $prefill_student_id > 0 ? '?id=' . (int)$prefill_student_id : ''; ?>" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>Application</a>
+                <a href="document_moa.php<?php echo $prefill_student_id > 0 ? '?id=' . (int)$prefill_student_id : ''; ?>" class="btn btn-outline-primary"><i class="feather-briefcase me-1"></i>MOA</a>
+                <a href="document_dau_moa.php<?php echo $prefill_student_id > 0 ? '?id=' . (int)$prefill_student_id : ''; ?>" class="btn btn-outline-primary"><i class="feather-map-pin me-1"></i>DAU MOA</a>
+                <a href="document_parent_consent.php<?php echo $prefill_student_id > 0 ? '?id=' . (int)$prefill_student_id : ''; ?>" class="btn btn-outline-primary"><i class="feather-user-check me-1"></i>Waiver</a>
                 <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
-                <a href="document_application.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>Application</a>
             <?php
             biotern_render_page_header_actions([
                 'menu_id' => 'documentEndorsementActionsMenu',

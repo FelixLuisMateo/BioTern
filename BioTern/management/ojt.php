@@ -46,6 +46,17 @@ function ojt_column_exists(mysqli $conn, string $table, string $column): bool {
     return ($res && $res->num_rows > 0);
 }
 
+function ojt_public_url(string $path): string
+{
+    $scriptDir = trim(str_replace('\\', '/', (string)dirname((string)($_SERVER['SCRIPT_NAME'] ?? ''))), '/');
+    $segments = $scriptDir === '' ? [] : explode('/', $scriptDir);
+    if (!empty($segments) && in_array(strtolower((string)end($segments)), ['management', 'index.php'], true)) {
+        array_pop($segments);
+    }
+    $base = empty($segments) ? '' : '/' . implode('/', $segments);
+    return $base . '/' . ltrim($path, '/');
+}
+
 function safe_pct($num, $den) {
     $d = (float)$den;
     if ($d <= 0) return 0;

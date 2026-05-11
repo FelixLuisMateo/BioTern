@@ -1058,6 +1058,9 @@ echo $student['id']; ?>" class="btn btn-success" target="_blank">
                                     <li class="nav-item app-students-view-tab-item" role="presentation">
                                         <a href="javascript:void(0);" class="nav-link app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#evaluationTab" role="tab">Evaluation</a>
                                     </li>
+                                    <li class="nav-item app-students-view-tab-item" role="presentation">
+                                        <a href="javascript:void(0);" class="nav-link app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#documentsTab" role="tab">Documents</a>
+                                    </li>
                                 </ul>
                             </div>
                             <div class="tab-content">
@@ -1692,6 +1695,16 @@ else: ?>
                                             </div>
                                         <?php
 endif; ?>
+                                    </div>
+                                </div>
+
+                                <div class="tab-pane fade app-students-view-tab-pane" id="documentsTab" role="tabpanel">
+                                    <div class="mb-4 pb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <h5 class="fw-bold mb-0">Student Documents</h5>
+                                        <a href="<?php echo htmlspecialchars(student_view_public_asset_url('documents/index.php?id=' . intval($student['id'])), ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-primary">Open Documents Hub</a>
+                                    </div>
+                                    <div class="ratio ratio-16x9 app-students-view-documents-frame">
+                                        <iframe src="<?php echo htmlspecialchars(student_view_public_asset_url('documents/index.php?id=' . intval($student['id'])), ENT_QUOTES, 'UTF-8'); ?>" title="Student Documents" loading="lazy"></iframe>
                                     </div>
                                 </div>
                             </div>

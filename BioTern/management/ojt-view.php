@@ -197,10 +197,14 @@ function document_status_label(string $status): string
 
 function app_base_path()
 {
-    $dir = str_replace('\\', '/', dirname($_SERVER['PHP_SELF'] ?? ''));
+    $scriptName = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
+    $dir = str_replace('\\', '/', dirname($scriptName));
     $dir = rtrim($dir, '/');
     if ($dir === '' || $dir === '.') {
         $dir = '';
+    }
+    if (preg_match('#/index\.php$#i', $dir)) {
+        $dir = preg_replace('#/index\.php$#i', '', $dir);
     }
     if (preg_match('#/management$#i', $dir)) {
         $dir = preg_replace('#/management$#i', '', $dir);
@@ -1115,6 +1119,9 @@ $dau_print_url = $app_base . 'documents/document_dau_moa.php?' . http_build_quer
 $parent_consent_print_url = $app_base . 'documents/document_parent_consent.php?' . http_build_query([
     'id' => intval($selected_student_id),
 ]);
+$documents_hub_url = $app_base . 'documents/index.php?' . http_build_query([
+    'id' => intval($selected_student_id),
+]);
 $page_title = 'BioTern || OJT View';
 $page_styles = [
     'assets/css/modules/management/management-ojt-shared.css',
@@ -1288,6 +1295,7 @@ include 'includes/header.php';
                                 <div class="d-flex gap-2 overview-actions app-ojt-view-overview-actions">
                                     <a href="ojt-edit.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-sm btn-outline-primary">Controlled Edit</a>
                                     <a href="students-internal-dtr.php?id=<?php echo intval($selected_student_id); ?>" class="btn btn-sm btn-outline-success">Internal Attendance</a>
+                                    <a href="<?php echo htmlspecialchars($documents_hub_url, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-outline-primary">Documents Hub</a>
                                     <a href="ojt-workflow-board.php" class="btn btn-sm btn-outline-info">Workflow Board</a>
                                 </div>
                             </div>
@@ -1429,6 +1437,7 @@ include 'includes/header.php';
                                         <div class="d-flex align-items-center gap-2 flex-wrap print-doc-actions app-ojt-view-print-doc-actions">
                                             <button type="button" class="btn btn-success" id="printSelectedDocsBtn">Open Selected Previews</button>
                                             <button type="button" class="btn btn-primary" id="printAllDocsBtn">Open All Document Previews</button>
+                                            <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars($documents_hub_url, ENT_QUOTES, 'UTF-8'); ?>">Open Documents Hub</a>
                                             <span class="text-muted print-doc-hint app-ojt-view-print-doc-hint" id="printDocsHint">Each selected document opens in its own preview tab with a Print button.</span>
                                         </div>
                                     <?php endif; ?>

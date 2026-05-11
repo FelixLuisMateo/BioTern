@@ -104,3 +104,75 @@ if (!function_exists('biotern_masterlist_endorsement_defaults')) {
     }
 }
 
+if (!function_exists('biotern_masterlist_search_students')) {
+    function biotern_masterlist_search_students(mysqli $conn, string $term, int $limit = 50): array
+    {
+        if (!biotern_masterlist_table_exists($conn, 'ojt_masterlist')) {
+            return [];
+        }
+
+        $term = trim($term);
+        if ($term === '') {
+            return [];
+        }
+
+        $like = '%' . $term . '%';
+        $lookupLike = '%' . biotern_masterlist_lookup_key($term) . '%';
+        $limit = max(1, min(100, $limit));
+
+        $sql = "SELECT
+                    ml.student_name,
+                    ml.student_lookup_key,
+                    " . (biotern_masterlist_column_exists($conn, 'ojt_masterlist', 'student_no') ? 'ml.student_no' : 'NULL AS student_no') . ",
+                    ml.section,
+                    s.id,
+                    s.first_name,
+                    s.middle_name,
+                    s.last_name,
+                    s.student_id
+                FROM ojt_masterlist ml
+                LEFT JOIN students s
+                    ON TRIM(COALESCE(s.student_id, '')) = TRIM(COALESCE(" . (biotern_masterlist_column_exists($conn, 'ojt_masterlist', 'student_no') ? 'ml.student_no' : 'ml.student_lookup_key') . ", ''))
+                    OR REPLACE(LOWER(TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.middle_name, ''), ' ', COALESCE(s.last_name, '')))), ' ', '') = ml.student_lookup_key
+                WHERE ml.student_name LIKE ?
+                   OR ml.student_lookup_key LIKE ?
+                   " . (biotern_masterlist_column_exists($conn, 'ojt_masterlist', 'student_no') ? 'OR ml.student_no LIKE ?' : '') . "
+                ORDER BY ml.updated_at DESC, ml.id DESC
+                LIMIT {$limit}";
+
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            return [];
+        }
+
+        if (biotern_masterlist_column_exists($conn, 'ojt_masterlist', 'student_no')) {
+            $stmt->bind_param('sss', $like, $lookupLike, $like);
+        } else {
+            $stmt->bind_param('ss', $like, $lookupLike);
+        }
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $rows = [];
+        while ($row = $res->fetch_assoc()) {
+            if (empty($row['id'])) {
+                continue;
+            }
+            $id = (int)$row['id'];
+            if (isset($rows[$id])) {
+                continue;
+            }
+            $name = trim((string)(($row['first_name'] ?? '') . ' ' . (!empty($row['middle_name']) ? ($row['middle_name'] . ' ') : '') . ($row['last_name'] ?? '')));
+            if ($name === '') {
+                $name = trim((string)($row['student_name'] ?? ''));
+            }
+            $studentNo = trim((string)($row['student_id'] ?? $row['student_no'] ?? ''));
+            $section = trim((string)($row['section'] ?? ''));
+            $label = trim($name . ($studentNo !== '' ? ' - ' . $studentNo : '') . ($section !== '' ? ' - ' . $section : ''));
+            $rows[$id] = ['id' => $id, 'text' => $label !== '' ? $label : ('Student #' . $id)];
+        }
+        $stmt->close();
+
+        return array_values($rows);
+    }
+}
+

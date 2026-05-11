@@ -39,6 +39,14 @@ html.app-theme-gray.app-skin-dark .application-builder-page {
     padding-right: 0;
 }
 
+body.application-builder-page .page-header .page-header-actions {
+    display: none !important;
+}
+
+body.application-builder-page .page-header .page-header-actions.is-open {
+    display: block !important;
+}
+
 .application-builder-page .application-document-builder {
     max-width: 1480px;
     margin: 0 auto;
@@ -155,19 +163,20 @@ html.app-theme-gray.app-skin-dark .application-builder-page {
 .application-builder-page .builder-paper-shell {
     overflow: auto;
     padding: 6px 0 0;
-    display: flex;
-    justify-content: center;
+    display: block;
+    text-align: center;
 }
 
 .application-builder-page .builder-paper {
-    width: calc(var(--doc-builder-paper-width) + (var(--doc-builder-paper-outer-padding) * 2));
-    min-width: calc(var(--doc-builder-paper-width) + (var(--doc-builder-paper-outer-padding) * 2));
+    width: auto;
+    min-width: 0;
     margin: 0 auto;
     padding: var(--doc-builder-paper-outer-padding);
     border-radius: 14px;
     background: #111317;
-    display: flex;
+    display: inline-flex;
     justify-content: center;
+    text-align: left;
 }
 
 .application-builder-page .builder-editor-surface {
@@ -176,14 +185,14 @@ html.app-theme-gray.app-skin-dark .application-builder-page {
     max-width: var(--doc-builder-paper-width);
     flex: 0 0 auto;
     margin: 0;
-    padding: var(--doc-builder-paper-padding);
-    background: #fff;
-    border: 1px solid rgba(15, 23, 42, 0.12);
-    border-radius: 10px;
-    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
     outline: none;
     color: #111;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .application-builder-page .builder-editor-surface.is-locked {
