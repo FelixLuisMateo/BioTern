@@ -235,6 +235,38 @@ function reviewTableHasColumn(mysqli $conn, $table, $column)
     return $res && $res->num_rows > 0;
 }
 
+function reviewStudentSettingValue(mysqli $conn, string $key, string $fallback): string
+{
+    static $cache = null;
+
+    if ($cache === null) {
+        $cache = [];
+        $tableCheck = $conn->query("SHOW TABLES LIKE 'system_settings'");
+        if ($tableCheck instanceof mysqli_result && $tableCheck->num_rows > 0) {
+            $stmt = $conn->prepare("SELECT `key`, `value` FROM system_settings WHERE category = 'students'");
+            if ($stmt) {
+                $stmt->execute();
+                $result = $stmt->get_result();
+                while ($row = $result->fetch_assoc()) {
+                    $cache[(string)($row['key'] ?? '')] = trim((string)($row['value'] ?? ''));
+                }
+                $stmt->close();
+            }
+        }
+    }
+
+    $value = trim((string)($cache[$key] ?? ''));
+    return $value !== '' ? $value : $fallback;
+}
+
+function reviewHoursValue($value, int $fallback): int
+{
+    if ($value === null || $value === '' || !is_numeric($value) || (int)$value <= 0) {
+        return $fallback;
+    }
+    return (int)$value;
+}
+
 function reviewBindDynamicParams(mysqli_stmt $stmt, $types, &$values)
 {
     if (!is_array($values) || $types === '') {
@@ -262,6 +294,8 @@ function reviewResolveProfileImageUrl(string $profilePath): ?string
 }
 
 $applicationsStageTable = ensureApplicationsStagingTable($conn) ? '`student_applications`' : '';
+$reviewDefaultInternalHours = max(0, (int)reviewStudentSettingValue($conn, 'default_internal_hours', '140'));
+$reviewDefaultExternalHours = max(0, (int)reviewStudentSettingValue($conn, 'default_external_hours', '250'));
 
 $flashType = '';
 $flashMessage = '';
@@ -277,8 +311,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $decision = strtolower(trim((string)($_POST['decision'] ?? '')));
     $notes = trim((string)($_POST['approval_notes'] ?? ''));
     $disciplinaryRemark = trim((string)($_POST['disciplinary_remark'] ?? ''));
-    $internalHoursRaw = isset($_POST['internal_total_hours']) ? trim((string)$_POST['internal_total_hours']) : '140';
-    $externalHoursRaw = isset($_POST['external_total_hours']) ? trim((string)$_POST['external_total_hours']) : '250';
+    $internalHoursRaw = isset($_POST['internal_total_hours']) ? trim((string)$_POST['internal_total_hours']) : (string)$reviewDefaultInternalHours;
+    $externalHoursRaw = isset($_POST['external_total_hours']) ? trim((string)$_POST['external_total_hours']) : (string)$reviewDefaultExternalHours;
     $departmentId = isset($_POST['department_id']) ? (int)$_POST['department_id'] : 0;
     $coordinatorId = isset($_POST['coordinator_id']) ? (int)$_POST['coordinator_id'] : 0;
     $supervisorId = isset($_POST['supervisor_id']) ? (int)$_POST['supervisor_id'] : 0;
@@ -315,6 +349,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $flashType = 'danger';
         $flashMessage = 'Hours must be valid non-negative numbers.';
     } else {
+        if ($internalHours <= 0) {
+            $internalHours = $reviewDefaultInternalHours;
+        }
+        if ($externalHours <= 0) {
+            $externalHours = $reviewDefaultExternalHours;
+        }
         if ($decision === 'approve') {
             $conn->begin_transaction();
             try {
@@ -387,7 +427,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $stmt->close();
 
-                $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ?, internal_total_hours = ?, external_total_hours = ?, internal_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN 0 ELSE ? END, external_total_hours_remaining = CASE WHEN assignment_track = 'external' THEN ? ELSE 0 END, external_start_allowed = CASE WHEN assignment_track = 'external' THEN 1 ELSE external_start_allowed END, date_of_birth = COALESCE(NULLIF(?, ''), date_of_birth), gender = COALESCE(NULLIF(?, ''), gender) WHERE user_id = ? LIMIT 1");
+                $studentStmt = $conn->prepare("UPDATE students SET department_id = NULLIF(?, 0), coordinator_id = NULLIF(?, 0), coordinator_name = ?, supervisor_id = NULLIF(?, 0), supervisor_name = ?, internal_total_hours = ?, external_total_hours = ?, internal_total_hours_remaining = ?, external_total_hours_remaining = ?, external_start_allowed = CASE WHEN assignment_track = 'external' THEN 1 ELSE external_start_allowed END, date_of_birth = COALESCE(NULLIF(?, ''), date_of_birth), gender = COALESCE(NULLIF(?, ''), gender) WHERE user_id = ? LIMIT 1");
                 if (!$studentStmt) {
                     throw new Exception('Unable to update student hour settings.');
                 }
@@ -446,9 +486,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $coordinatorId,
                         (string)($coordinatorName ?? ''),
                         $internalHours,
-                        ($assignmentTrack === 'external' ? 0 : $internalHours),
+                        $internalHours,
                         $externalHours,
-                        ($assignmentTrack === 'external' ? $externalHours : 0),
+                        $externalHours,
                         $assignmentTrack,
                         (string)($stagedApplication['emergency_contact'] ?? '')
                     ];
@@ -1207,7 +1247,7 @@ include 'includes/header.php';
                                             <td data-label="Hours (Int/Ext)">
                                                 <div class="apps-review-hours-stack">
                                                     <span class="hours-pill">
-                                                        <span class="hours-pill-value"><?php echo (int)($row['internal_total_hours'] ?? 140); ?> / <?php echo (int)($row['external_total_hours'] ?? 250); ?></span>
+                                                        <span class="hours-pill-value"><?php echo reviewHoursValue($row['internal_total_hours'] ?? null, $reviewDefaultInternalHours); ?> / <?php echo reviewHoursValue($row['external_total_hours'] ?? null, $reviewDefaultExternalHours); ?></span>
                                                     </span>
                                                     <small class="apps-review-hours-track">Track: <?php echo htmlspecialchars($assignmentTrackLabel, ENT_QUOTES, 'UTF-8'); ?></small>
                                                 </div>
@@ -1291,11 +1331,11 @@ include 'includes/header.php';
                                                             </div>
                                                             <div class="field-wrap">
                                                                 <label class="field-label">Internal OJT Hours</label>
-                                                                <input type="number" class="form-control form-control-sm" name="internal_total_hours" min="0" required value="<?php echo (int)($row['internal_total_hours'] ?? 140); ?>" title="Internal OJT Hours">
+                                                                <input type="number" class="form-control form-control-sm" name="internal_total_hours" min="0" required value="<?php echo reviewHoursValue($row['internal_total_hours'] ?? null, $reviewDefaultInternalHours); ?>" title="Internal OJT Hours">
                                                             </div>
                                                             <div class="field-wrap">
                                                                 <label class="field-label">External OJT Hours</label>
-                                                                <input type="number" class="form-control form-control-sm" name="external_total_hours" min="0" required value="<?php echo (int)($row['external_total_hours'] ?? 250); ?>" title="External OJT Hours">
+                                                                <input type="number" class="form-control form-control-sm" name="external_total_hours" min="0" required value="<?php echo reviewHoursValue($row['external_total_hours'] ?? null, $reviewDefaultExternalHours); ?>" title="External OJT Hours">
                                                             </div>
                                                             <div class="field-wrap approval-note">
                                                                 <label class="field-label">Approval Note</label>

@@ -142,6 +142,30 @@ function biotern_student_edit_ensure_column(mysqli $conn, string $table, string 
     return $ok === true || biotern_student_edit_column_exists($conn, $table, $column);
 }
 
+function biotern_student_edit_setting(mysqli $conn, string $key, string $fallback): string
+{
+    static $cache = null;
+
+    if ($cache === null) {
+        $cache = [];
+        $tableCheck = $conn->query("SHOW TABLES LIKE 'system_settings'");
+        if ($tableCheck instanceof mysqli_result && $tableCheck->num_rows > 0) {
+            $stmt = $conn->prepare("SELECT `key`, `value` FROM system_settings WHERE category = 'students'");
+            if ($stmt) {
+                $stmt->execute();
+                $result = $stmt->get_result();
+                while ($row = $result->fetch_assoc()) {
+                    $cache[(string)($row['key'] ?? '')] = trim((string)($row['value'] ?? ''));
+                }
+                $stmt->close();
+            }
+        }
+    }
+
+    $value = trim((string)($cache[$key] ?? ''));
+    return $value !== '' ? $value : $fallback;
+}
+
 // Ensure student-edit can run against older deployed schemas.
 $student_edit_columns = [
     'profile_picture' => 'VARCHAR(255) DEFAULT NULL',
@@ -175,6 +199,9 @@ biotern_student_edit_ensure_column($conn, 'supervisors', 'department_id', 'INT D
 biotern_student_edit_ensure_column($conn, 'coordinators', 'user_id', 'INT DEFAULT NULL');
 biotern_student_edit_ensure_column($conn, 'coordinators', 'department_id', 'INT DEFAULT NULL');
 biotern_student_edit_ensure_column($conn, 'internships', 'office_id', 'BIGINT UNSIGNED NULL');
+
+$student_edit_default_internal_hours = max(0, (int)biotern_student_edit_setting($conn, 'default_internal_hours', '140'));
+$student_edit_default_external_hours = max(0, (int)biotern_student_edit_setting($conn, 'default_external_hours', '250'));
 
 // Get student ID from URL parameter
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -259,6 +286,20 @@ if ($result->num_rows == 0) {
 }
 
 $student = $result->fetch_assoc();
+$student_internal_total_was_empty = !isset($student['internal_total_hours']) || $student['internal_total_hours'] === '' || (is_numeric($student['internal_total_hours']) && (int)$student['internal_total_hours'] <= 0);
+$student_external_total_was_empty = !isset($student['external_total_hours']) || $student['external_total_hours'] === '' || (is_numeric($student['external_total_hours']) && (int)$student['external_total_hours'] <= 0);
+if ($student_internal_total_was_empty) {
+    $student['internal_total_hours'] = $student_edit_default_internal_hours;
+}
+if ($student_external_total_was_empty) {
+    $student['external_total_hours'] = $student_edit_default_external_hours;
+}
+if (!isset($student['internal_total_hours_remaining']) || $student['internal_total_hours_remaining'] === '' || $student_internal_total_was_empty) {
+    $student['internal_total_hours_remaining'] = $student_edit_default_internal_hours;
+}
+if (!isset($student['external_total_hours_remaining']) || $student['external_total_hours_remaining'] === '' || $student_external_total_was_empty) {
+    $student['external_total_hours_remaining'] = $student_edit_default_external_hours;
+}
 
 // Fetch all courses for dropdown (be tolerant of differing schema columns)
 $courses = [];

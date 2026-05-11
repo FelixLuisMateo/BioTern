@@ -57,6 +57,29 @@ function getGeneralSettingValue(mysqli $mysqli, string $key, string $fallback = 
     return $value !== '' ? $value : $fallback;
 }
 
+function getStudentSettingValue(mysqli $mysqli, string $key, string $fallback = ''): string {
+    static $cache = null;
+
+    if ($cache === null) {
+        $cache = [];
+        $tableCheck = $mysqli->query("SHOW TABLES LIKE 'system_settings'");
+        if ($tableCheck instanceof mysqli_result && $tableCheck->num_rows > 0) {
+            $stmt = $mysqli->prepare("SELECT `key`, `value` FROM system_settings WHERE category = 'students'");
+            if ($stmt) {
+                $stmt->execute();
+                $result = $stmt->get_result();
+                while ($row = $result->fetch_assoc()) {
+                    $cache[(string)($row['key'] ?? '')] = trim((string)($row['value'] ?? ''));
+                }
+                $stmt->close();
+            }
+        }
+    }
+
+    $value = trim((string)($cache[$key] ?? ''));
+    return $value !== '' ? $value : $fallback;
+}
+
 function parseStudentDateOfBirthToSql(?string $rawDate): ?string {
     $value = trim((string)$rawDate);
     if ($value === '') {
@@ -757,12 +780,13 @@ function createUser($mysqli, $username, $email, $password, $role, &$errorCode = 
 }
 
 if ($role === 'student') {
-    $default_internal_hours = 140;
-    $default_external_hours = 250;
+    $default_internal_hours = max(0, (int)getStudentSettingValue($mysqli, 'default_internal_hours', '140'));
+    $default_external_hours = max(0, (int)getStudentSettingValue($mysqli, 'default_external_hours', '250'));
 
     // Keep student hour/assignment fields available even on older databases.
     $registerStudentSchemaColumns = [
         'department_id' => "department_id VARCHAR(255) NULL",
+        'internal_total_hours' => "internal_total_hours INT(11) DEFAULT NULL",
         'internal_total_hours_remaining' => "internal_total_hours_remaining INT(11) DEFAULT NULL",
         'external_total_hours' => "external_total_hours INT(11) DEFAULT NULL",
         'external_total_hours_remaining' => "external_total_hours_remaining INT(11) DEFAULT NULL",
@@ -876,7 +900,7 @@ if ($role === 'student') {
     if ($external_total_hours < 0) $external_total_hours = 0;
     $finished_internal_yes = in_array($finished_internal, ['yes', '1', 'true'], true);
     $internal_total_hours_remaining = $finished_internal_yes ? 0 : $internal_total_hours;
-    $external_total_hours_remaining = $finished_internal_yes ? $external_total_hours : 0;
+    $external_total_hours_remaining = $external_total_hours;
     $assignment_track = $finished_internal_yes ? 'external' : 'internal';
     $default_school_year = getGeneralSettingValue($mysqli, 'default_school_year', getCurrentSchoolYearLabel());
     if (!preg_match('/^\d{4}-\d{4}$/', $default_school_year)) {
