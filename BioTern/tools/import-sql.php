@@ -1160,13 +1160,13 @@ include dirname(__DIR__) . '/includes/header.php';
         <div class="page-header-right ms-auto transfer-page-header-actions">
             <div class="page-header-right-items">
                 <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                    <a href="backup-database.php" class="btn btn-primary">
+                        <i class="feather-download-cloud me-2"></i>
+                        <span>Backup Database</span>
+                    </a>
                     <a href="import-students-excel.php" class="btn btn-light-brand">
                         <i class="feather-upload me-2"></i>
                         <span>Excel Import</span>
-                    </a>
-                    <a href="homepage.php" class="btn btn-outline-secondary">
-                        <i class="feather-arrow-left me-2"></i>
-                        <span>Dashboard</span>
                     </a>
                 </div>
             </div>

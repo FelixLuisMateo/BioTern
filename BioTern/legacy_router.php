@@ -118,6 +118,7 @@ $map = [
   'bridge-setup-manual.php' => 'pages/bridge-setup-manual.php',
   'biometric_machine_sync.php' => 'tools/biometric_machine_sync.php',
   'f20h_offline_excel_import.php' => 'tools/f20h_offline_excel_import.php',
+  'backup-database.php' => 'tools/backup-database.php',
   'import-sql.php' => 'tools/import-sql.php',
   'import-students-excel.php' => 'tools/import-students-excel.php',
   'import-ojt-internal.php' => 'tools/import-ojt-internal.php',
@@ -406,7 +407,7 @@ if ($is_logged_in) {
   ];
   $system_files = [
     'users.php', 'create_admin.php',
-    'import-sql.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php', 'export-ojt-list.php',
+    'backup-database.php', 'import-sql.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php', 'export-ojt-list.php',
   ];
   $settings_files = [
     'settings-general.php', 'settings-email.php',

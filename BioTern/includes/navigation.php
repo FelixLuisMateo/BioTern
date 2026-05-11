@@ -227,7 +227,7 @@ $nav_active_student_tools = biotern_nav_any_active($nav_current_file, [
     'theme-customizer.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
 ]);
 $nav_active_tools = biotern_nav_any_active($nav_current_file, [
-    'theme-customizer.php', 'import-sql.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php',
+    'theme-customizer.php', 'backup-database.php', 'import-sql.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php',
     'reports-import-errors.php', 'reports-dtr-manual-input.php', 'demo-biometric.php',
 ]);
 ?>
@@ -539,6 +539,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-import-errors.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-import-errors.php">Import Error Report</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-dtr-manual-input.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-dtr-manual-input.php">Manual DTR Input</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('demo-biometric.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="demo-biometric.php">Biometric Demo</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('backup-database.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="backup-database.php">Backup Database</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('import-sql.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-sql.php">Data Transfer</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('theme-customizer.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="theme-customizer.php">Appearance</a></li>
                     </ul>
