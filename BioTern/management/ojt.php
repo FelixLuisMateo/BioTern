@@ -990,6 +990,7 @@ include 'includes/header.php';
                             $has_student_account = (int)($r['id'] ?? 0) > 0;
                             $ojt_view_link = $has_student_account ? ('ojt-view.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '')) : '#';
                             $ojt_edit_link = $has_student_account ? ('ojt-edit.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '')) : '#';
+                            $documents_hub_link = $has_student_account ? ojt_public_url('documents/index.php?id=' . (int)$r['id']) : '#';
                             ?>
                             <tr class="app-ojt-table-row app-ojt-table-row-<?php echo htmlspecialchars($risk_band); ?>"
                                 data-print-student-no="<?php echo htmlspecialchars((string)($r['student_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
@@ -1074,6 +1075,7 @@ include 'includes/header.php';
                                     <div class="app-ojt-row-actions">
                                         <?php if ($has_student_account): ?>
                                             <a class="btn btn-sm btn-light app-ojt-action-btn" href="<?php echo htmlspecialchars($ojt_view_link); ?>">Open Record</a>
+                                            <a class="btn btn-sm btn-outline-primary app-ojt-action-btn" href="<?php echo htmlspecialchars($documents_hub_link, ENT_QUOTES, 'UTF-8'); ?>">Documents</a>
                                             <a class="btn btn-sm btn-outline-primary app-ojt-action-btn" href="<?php echo htmlspecialchars($ojt_edit_link); ?>">Update OJT</a>
                                             <a class="btn btn-sm btn-outline-success app-ojt-action-btn app-ojt-action-btn-wide" href="students-internal-dtr.php?id=<?php echo (int)$r['id']; ?>">Open Internal DTR</a>
                                         <?php else: ?>
@@ -1135,6 +1137,7 @@ include 'includes/header.php';
                             $has_student_account = (int)($r['id'] ?? 0) > 0;
                             $ojt_view_link = $has_student_account ? ('ojt-view.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '')) : '#';
                             $ojt_edit_link = $has_student_account ? ('ojt-edit.php?id=' . (int)$r['id'] . ($row_context_query !== '' ? '&' . $row_context_query : '')) : '#';
+                            $documents_hub_link = $has_student_account ? ojt_public_url('documents/index.php?id=' . (int)$r['id']) : '#';
                             ?>
                             <details class="app-ojt-mobile-item app-mobile-item">
                                 <summary class="app-ojt-mobile-summary app-mobile-summary">
@@ -1194,6 +1197,7 @@ include 'includes/header.php';
                                     <div class="app-ojt-mobile-actions">
                                         <?php if ($has_student_account): ?>
                                             <a class="btn btn-sm btn-light" href="<?php echo htmlspecialchars($ojt_view_link); ?>">View</a>
+                                            <a class="btn btn-sm btn-outline-primary" href="<?php echo htmlspecialchars($documents_hub_link, ENT_QUOTES, 'UTF-8'); ?>">Documents</a>
                                             <a class="btn btn-sm btn-outline-primary" href="<?php echo htmlspecialchars($ojt_edit_link); ?>">Edit</a>
                                             <a class="btn btn-sm btn-outline-success" href="students-internal-dtr.php?id=<?php echo (int)$r['id']; ?>">Internal DTR</a>
                                         <?php else: ?>

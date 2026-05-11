@@ -117,6 +117,9 @@
 
     if (printAllBtn) {
       printAllBtn.addEventListener("click", function () {
+        if (printAllBtn.tagName === "A") {
+          return;
+        }
         if (!printOptions.length) {
           if (hint) hint.textContent = "No documents available to open.";
           return;

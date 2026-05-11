@@ -1436,8 +1436,7 @@ include 'includes/header.php';
                                         </div>
                                         <div class="d-flex align-items-center gap-2 flex-wrap print-doc-actions app-ojt-view-print-doc-actions">
                                             <button type="button" class="btn btn-success" id="printSelectedDocsBtn">Open Selected Previews</button>
-                                            <button type="button" class="btn btn-primary" id="printAllDocsBtn">Open All Document Previews</button>
-                                            <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars($documents_hub_url, ENT_QUOTES, 'UTF-8'); ?>">Open Documents Hub</a>
+                                            <a class="btn btn-primary" id="printAllDocsBtn" href="<?php echo htmlspecialchars($documents_hub_url, ENT_QUOTES, 'UTF-8'); ?>">Open All Documents Grid</a>
                                             <span class="text-muted print-doc-hint app-ojt-view-print-doc-hint" id="printDocsHint">Each selected document opens in its own preview tab with a Print button.</span>
                                         </div>
                                     <?php endif; ?>
