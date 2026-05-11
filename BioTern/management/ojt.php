@@ -1088,6 +1088,9 @@ include 'includes/header.php';
                         </tbody>
                     </table>
                 </div>
+                <div class="d-flex justify-content-end px-3 py-2">
+                    <button type="button" class="btn btn-light btn-sm" data-view-all-table="ojtListTable">View all list</button>
+                </div>
                 <div class="app-ojt-mobile-list app-mobile-list">
                     <?php if (!$rows): ?>
                         <div class="app-ojt-mobile-empty text-muted">No records found.</div>

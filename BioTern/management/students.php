@@ -1421,6 +1421,9 @@ include 'includes/header.php';
                                         </tbody>
                                     </table>
                                 </div>
+                                <div class="d-flex justify-content-end px-3 py-2">
+                                    <button type="button" class="btn btn-light btn-sm" data-view-all-table="customerList">View all list</button>
+                                </div>
                                 <div class="app-students-mobile-list app-mobile-list">
                                     <?php if (count($students) > 0): ?>
                                         <?php foreach ($students as $index => $student): ?>

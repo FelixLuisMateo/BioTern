@@ -217,3 +217,30 @@
             }
         }
 
+.avatar-crop-editor {
+    border: 1px solid var(--bs-border-color, #d9e2f2);
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--bs-body-bg, #fff);
+}
+
+#studentAvatarCropModal .modal-header,
+#studentAvatarCropModal .modal-footer {
+    border-color: var(--bs-border-color, #d9e2f2);
+}
+
+.avatar-crop-canvas-wrap {
+    width: min(320px, 100%);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--bs-border-color, #d9e2f2);
+    background: #0b1220;
+}
+
+.avatar-crop-canvas-wrap canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+    cursor: grab;
+    touch-action: none;
+}

@@ -34,6 +34,45 @@
 
   }
 
+  function initStudentsDataTable() {
+    if (
+      !window.jQuery ||
+      !window.jQuery.fn ||
+      typeof window.jQuery.fn.DataTable !== "function" ||
+      !window.jQuery("#customerList").length
+    ) {
+      return null;
+    }
+
+    var table = window.jQuery.fn.DataTable.isDataTable("#customerList")
+      ? window.jQuery("#customerList").DataTable()
+      : window.jQuery("#customerList").DataTable({
+          pageLength: 10,
+          lengthMenu: [
+            [10, 25, 50, -1],
+            [10, 25, 50, "All"],
+          ],
+          lengthChange: false,
+          dom: "rtip",
+          order: [],
+          columnDefs: [{ orderable: false, targets: [0] }],
+        });
+
+    var viewAllButton = document.querySelector('[data-view-all-table="customerList"]');
+    if (viewAllButton) {
+      function syncLabel() {
+        viewAllButton.textContent = table.page.len() === -1 ? "Show paged list" : "View all list";
+      }
+      viewAllButton.addEventListener("click", function () {
+        table.page.len(table.page.len() === -1 ? 10 : -1).draw();
+        syncLabel();
+      });
+      syncLabel();
+    }
+
+    return table;
+  }
+
   function initHeaderTableSearch() {
     var searchInput = document.getElementById("studentsHeaderSearchInput");
     if (!searchInput) return;
@@ -265,9 +304,22 @@
 
   function initTableCheckboxes() {
     var selectAll = document.getElementById("checkAllStudent");
-    var rowCheckboxes = Array.prototype.slice.call(
-      document.querySelectorAll("#customerList tbody .checkbox")
-    );
+    function getRowCheckboxes() {
+      if (
+        window.jQuery &&
+        window.jQuery.fn &&
+        typeof window.jQuery.fn.DataTable === "function" &&
+        window.jQuery.fn.DataTable.isDataTable("#customerList")
+      ) {
+        return Array.prototype.slice.call(
+          window.jQuery("#customerList").DataTable().rows().nodes().to$().find(".checkbox")
+        );
+      }
+      return Array.prototype.slice.call(
+        document.querySelectorAll("#customerList tbody .checkbox")
+      );
+    }
+    var rowCheckboxes = getRowCheckboxes();
 
     function toggleRowState(checkboxEl) {
       var row = checkboxEl ? checkboxEl.closest("tr") : null;
@@ -290,6 +342,7 @@
 
     if (selectAll) {
       selectAll.addEventListener("change", function () {
+        rowCheckboxes = getRowCheckboxes();
         rowCheckboxes.forEach(function (checkboxEl) {
           checkboxEl.checked = !!selectAll.checked;
           toggleRowState(checkboxEl);
@@ -301,12 +354,26 @@
     rowCheckboxes.forEach(function (checkboxEl) {
       checkboxEl.addEventListener("change", function () {
         toggleRowState(checkboxEl);
+        rowCheckboxes = getRowCheckboxes();
         refreshSelectAllState();
       });
       toggleRowState(checkboxEl);
     });
 
     refreshSelectAllState();
+
+    if (
+      window.jQuery &&
+      window.jQuery.fn &&
+      typeof window.jQuery.fn.DataTable === "function" &&
+      window.jQuery.fn.DataTable.isDataTable("#customerList")
+    ) {
+      window.jQuery("#customerList").on("draw.dt", function () {
+        rowCheckboxes = getRowCheckboxes();
+        rowCheckboxes.forEach(toggleRowState);
+        refreshSelectAllState();
+      });
+    }
   }
 
   function initStudentActionModal() {
@@ -726,6 +793,7 @@
   function initStudentsPageRuntime() {
     initFilterSelects();
     initFilterAutoSubmit();
+    initStudentsDataTable();
     initHeaderTableSearch();
     initPrintActions();
     initTableCheckboxes();

@@ -373,7 +373,7 @@ $header_notifications_unread = 0;
 $header_notifications_read = 0;
 $header_profile_url = 'profile-details.php';
 $header_notifications_url = 'notifications.php';
-$header_account_settings_url = 'account-settings.php#security';
+$header_account_settings_url = 'account-settings.php';
 $header_avatar_debug_enabled = isset($_GET['avatar_debug']) && (string)$_GET['avatar_debug'] === '1';
 
 if ($page_render_header) {

@@ -18,20 +18,48 @@
 
         try {
             if ($.fn.DataTable.isDataTable(tableSelector)) {
+                bindViewAllButton($(tableSelector).DataTable(), tableSelector);
                 return true;
             }
-            $(tableSelector).DataTable(
+            var dataTable = $(tableSelector).DataTable(
                 options || {
                     pageLength: 10,
+                    lengthMenu: [
+                        [10, 25, 50, -1],
+                        [10, 25, 50, "All"]
+                    ],
                     lengthChange: false,
                     dom: "rtip",
                     order: []
                 }
             );
+            bindViewAllButton(dataTable, tableSelector);
             return true;
         } catch (err) {
             return false;
         }
+    }
+
+    function bindViewAllButton(dataTable, tableSelector) {
+        if (!dataTable || !tableSelector) {
+            return;
+        }
+
+        var id = String(tableSelector).replace(/^#/, "");
+        var button = document.querySelector('[data-view-all-table="' + id + '"]');
+        if (!button) {
+            return;
+        }
+
+        function syncLabel() {
+            button.textContent = dataTable.page.len() === -1 ? "Show paged list" : "View all list";
+        }
+
+        button.addEventListener("click", function () {
+            dataTable.page.len(dataTable.page.len() === -1 ? 10 : -1).draw();
+            syncLabel();
+        });
+        syncLabel();
     }
 
     function initChecklist(options) {

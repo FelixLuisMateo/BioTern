@@ -86,7 +86,7 @@ function fingerprint_mapping_requeue_raw_logs(mysqli $conn, int $fingerId): int
         return 0;
     }
 
-    $res = $conn->query('SELECT id, raw_data FROM biometric_raw_logs ORDER BY id DESC LIMIT 1000');
+    $res = $conn->query('SELECT id, raw_data FROM biometric_raw_logs ORDER BY id DESC LIMIT 5000');
     if (!($res instanceof mysqli_result)) {
         return 0;
     }

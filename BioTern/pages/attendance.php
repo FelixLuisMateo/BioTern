@@ -844,6 +844,7 @@ foreach ($attendances as $attendance) {
 }
 
 $attendanceBridgeStatus = attendance_bridge_runtime_status($conn);
+$attendanceShowBridgeStatus = !in_array((string)($attendanceBridgeStatus['class'] ?? ''), ['danger'], true);
 
 // If requested via AJAX, return only the table rows HTML so frontend can replace tbody
 if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
@@ -851,11 +852,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
         foreach ($attendances as $idx => $attendance) {
             $checkboxId = 'checkBox_' . $attendance['id'] . '_' . $idx;
             echo '<tr class="single-item">';
-            if (attendanceCanReview($attendance)) {
             echo '<td data-label="Select"><div class="item-checkbox ms-1"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input checkbox" id="' . $checkboxId . '" data-attendance-id="' . (int)$attendance['id'] . '"><label class="custom-control-label" for="' . $checkboxId . '"></label></div></div></td>';
-            } else {
-                echo '<td data-label="Select"><span class="text-muted fs-12" title="Biometric records are auto-verified">Auto</span></td>';
-            }
             // build avatar (use uploaded profile picture when available)
             $avatar_html = '<a href="students-internal-dtr.php?id=' . (int)$attendance['student_id'] . '" class="hstack gap-3">';
             $pp_url = resolve_attendance_profile_image_url((string)($attendance['profile_picture'] ?? ''), (int)($attendance['user_id'] ?? 0));
@@ -2000,6 +1997,7 @@ include 'includes/header.php';
                     </ul>
                 </div>
                 <div class="page-header-right ms-auto">
+                    <?php if ($attendanceShowBridgeStatus): ?>
                     <a href="legacy_router.php?file=biometric-machine.php" class="attendance-bridge-status attendance-bridge-status-<?php echo htmlspecialchars((string)($attendanceBridgeStatus['class'] ?? 'secondary'), ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo htmlspecialchars((string)($attendanceBridgeStatus['detail'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                         <i class="<?php echo htmlspecialchars((string)($attendanceBridgeStatus['icon'] ?? 'feather-help-circle'), ENT_QUOTES, 'UTF-8'); ?>"></i>
                         <span><?php echo htmlspecialchars((string)($attendanceBridgeStatus['label'] ?? 'Bridge Unknown'), ENT_QUOTES, 'UTF-8'); ?></span>
@@ -2007,6 +2005,7 @@ include 'includes/header.php';
                             <small><?php echo (int)$attendanceBridgeStatus['age_seconds']; ?>s</small>
                         <?php endif; ?>
                     </a>
+                    <?php endif; ?>
                     <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="attendanceActionsMenu">
                         <i class="feather-grid me-1"></i>
                         <span>Actions</span>
@@ -2359,7 +2358,6 @@ if (!empty($attendances)): ?>
 foreach ($attendances as $index => $attendance): ?>
                                                     <tr class="single-item">
                                                         <td data-label="Select">
-                                                            <?php if (attendanceCanReview($attendance)): ?>
                                                             <div class="item-checkbox ms-1">
                                                                 <div class="custom-control custom-checkbox">
                                                                     <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php
@@ -2371,9 +2369,6 @@ echo (int)$attendance['id']; ?>_<?php
 echo (int)$index; ?>"></label>
                                                                 </div>
                                                             </div>
-                                                            <?php else: ?>
-                                                            <span class="text-muted fs-12" title="Biometric records are auto-verified">Auto</span>
-                                                            <?php endif; ?>
                                                         </td>
                                                         <td data-label="Student Name">
                                                             <a href="students-internal-dtr.php?id=<?php
@@ -2428,6 +2423,9 @@ endforeach; ?>
 endif; ?>
                                         </tbody>
                                     </table>
+                                </div>
+                                <div class="d-flex justify-content-end px-3 py-2">
+                                    <button type="button" class="btn btn-light btn-sm" id="attendanceViewAllList">View all list</button>
                                 </div>
                             </div>
                         </div>

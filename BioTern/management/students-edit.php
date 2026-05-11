@@ -374,7 +374,61 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $profile_picture_path = $student['profile_picture'] ?? '';
     $profile_picture_uploaded = false;
     
-    if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == UPLOAD_ERR_OK) {
+    $cropped_profile_picture = trim((string)($_POST['profile_picture_cropped'] ?? ''));
+    if ($cropped_profile_picture !== '') {
+        $linked_user_id = !empty($student['user_id']) ? (int)$student['user_id'] : 0;
+        $allowed_mimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $max_file_size = 5 * 1024 * 1024;
+
+        if (!preg_match('#^data:(image/(?:png|jpeg|jpg|webp|gif));base64,([a-zA-Z0-9+/=\r\n]+)$#', $cropped_profile_picture, $parts)) {
+            $error_message = "Invalid cropped profile picture. Please crop the image again.";
+        } else {
+            $mime_type = strtolower((string)$parts[1]);
+            if ($mime_type === 'image/jpg') {
+                $mime_type = 'image/jpeg';
+            }
+            $binary = base64_decode(preg_replace('/\s+/', '', (string)$parts[2]), true);
+            $img_info = is_string($binary) && $binary !== '' && function_exists('getimagesizefromstring')
+                ? @getimagesizefromstring($binary)
+                : false;
+
+            if (!is_string($binary) || $binary === '' || strlen($binary) > $max_file_size || !$img_info || !in_array($mime_type, $allowed_mimes, true)) {
+                $error_message = "Invalid cropped profile picture. Allowed types: JPG, PNG, GIF, WEBP up to 5MB.";
+            } elseif ($linked_user_id > 0) {
+                if (biotern_student_edit_save_profile_picture_blob($conn, $linked_user_id, $mime_type, $binary)) {
+                    $profile_picture_path = 'db-avatar';
+                    $profile_picture_uploaded = true;
+                } else {
+                    $error_message = "Failed to save profile picture to user_profile_pictures.";
+                }
+            } elseif (!$uploads_available) {
+                $error_message = "Profile picture uploads are currently unavailable because the upload folder is missing or not writable.";
+            } else {
+                $ext_map = [
+                    'image/jpeg' => 'jpg',
+                    'image/png' => 'png',
+                    'image/gif' => 'gif',
+                    'image/webp' => 'webp',
+                ];
+                $unique_name = 'student_' . $student_id . '_' . time() . '.' . ($ext_map[$mime_type] ?? 'jpg');
+                $file_path = $uploads_dir . '/' . $unique_name;
+                $destination_dir = dirname($file_path);
+                $old_profile_file = $project_root . '/' . ltrim(str_replace('\\', '/', (string)$profile_picture_path), '/');
+                if (!empty($profile_picture_path) && file_exists($old_profile_file)) {
+                    unlink($old_profile_file);
+                }
+
+                if (!is_dir($destination_dir) && !biotern_student_edit_ensure_runtime_dir($destination_dir)) {
+                    $error_message = "Failed to upload profile picture because the destination folder is not available on this deployment.";
+                } elseif (@file_put_contents($file_path, $binary) !== false) {
+                    $profile_picture_path = 'uploads/profile_pictures/' . $unique_name;
+                    $profile_picture_uploaded = true;
+                } else {
+                    $error_message = "Failed to upload profile picture. Please try again.";
+                }
+            }
+        }
+    } elseif (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == UPLOAD_ERR_OK) {
         $file_tmp = $_FILES['profile_picture']['tmp_name'];
         $file_name = $_FILES['profile_picture']['name'];
         $file_size = $_FILES['profile_picture']['size'];
@@ -1078,15 +1132,19 @@ include 'includes/header.php';
                                                     <?php $student_profile_src = biotern_avatar_public_src((string)($student['profile_picture'] ?? ''), (int)($student['user_id'] ?? 0)); ?>
                                                     <?php if (!empty($student_profile_src)): ?>
                                                         <div class="mb-2">
-                                                            <img src="<?php echo htmlspecialchars($student_profile_src); ?>" alt="Profile" class="img-thumbnail app-thumb-150">
+                                                            <img src="<?php echo htmlspecialchars($student_profile_src); ?>" alt="Profile" class="img-thumbnail app-thumb-150" data-student-avatar-preview>
                                                         </div>
                                                     <?php else: ?>
-                                                        <div class="alert alert-info mb-2 py-2 px-3">No profile picture uploaded</div>
+                                                        <div class="alert alert-info mb-2 py-2 px-3" data-student-avatar-empty>No profile picture uploaded</div>
+                                                        <div class="mb-2 d-none" data-student-avatar-preview-wrap>
+                                                            <img src="" alt="Profile preview" class="img-thumbnail app-thumb-150" data-student-avatar-preview>
+                                                        </div>
                                                     <?php endif; ?>
                                                 </div>
+                                                <input type="hidden" id="profile_picture_cropped" name="profile_picture_cropped" value="" data-student-avatar-cropped-input>
                                                 <input type="file" class="form-control" id="profile_picture" name="profile_picture" 
-                                                       accept="image/*">
-                                                <small class="form-text text-muted">JPG, PNG, GIF (Max 5MB)</small>
+                                                       accept=".jpg,.jpeg,.png,.webp,.gif,image/*" data-student-avatar-file-input>
+                                                <small class="form-text text-muted">JPG, PNG, GIF, WEBP (Max 5MB)</small>
                                             </div>
                                         </div>
                                     </div>
@@ -1326,6 +1384,32 @@ include 'includes/header.php';
 
 </div> <!-- .nxl-content -->
 </main>
+<div class="modal fade" id="studentAvatarCropModal" tabindex="-1" aria-hidden="true" data-student-avatar-crop-modal>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crop Profile Picture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="avatar-crop-editor">
+                    <div class="avatar-crop-canvas-wrap">
+                        <canvas width="320" height="320" data-student-avatar-crop-canvas></canvas>
+                    </div>
+                    <div class="mt-2">
+                        <label class="form-label mb-1" for="student_avatar_crop_zoom">Zoom</label>
+                        <input type="range" id="student_avatar_crop_zoom" min="100" max="400" step="1" value="100" class="form-range" data-student-avatar-crop-zoom>
+                    </div>
+                    <p class="form-text mb-0 mt-2" data-student-avatar-crop-status>Drag the image to position the crop area.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-student-avatar-crop-reset>Reset</button>
+                <button type="button" class="btn btn-primary" data-student-avatar-crop-apply>Use Crop</button>
+            </div>
+        </div>
+    </div>
+</div>
 <?php include 'includes/footer.php'; ?>
 
 <script>
