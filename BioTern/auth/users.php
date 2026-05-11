@@ -199,9 +199,6 @@ $types = '';
 $params = [];
 
 $has_application_status = users_table_has_column($conn, 'users', 'application_status');
-if ($has_application_status) {
-    $where[] = "NOT (role = 'student' AND application_status = 'pending')";
-}
 
 if ($search !== '') {
     $where[] = '(name LIKE ? OR username LIKE ? OR email LIKE ?)';
@@ -263,9 +260,6 @@ $stats_query = "
     FROM users
 ";
 $stats_where = [];
-if ($has_application_status) {
-    $stats_where[] = "NOT (role = 'student' AND application_status = 'pending')";
-}
 if (!empty($stats_where)) {
     $stats_query .= ' WHERE ' . implode(' AND ', $stats_where);
 }
@@ -388,7 +382,11 @@ include __DIR__ . '/../includes/header.php';
                     <tbody>
                         <?php if (!$rows): ?>
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">No users found.</td>
+                                <td class="text-center py-4 text-muted">No users found.</td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
                             </tr>
                         <?php endif; ?>
                         <?php foreach ($rows as $index => $r): ?>

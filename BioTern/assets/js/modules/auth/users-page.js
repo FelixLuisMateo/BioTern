@@ -111,9 +111,16 @@
         }
       });
 
-      var toggleCell = row.querySelector(".app-users-mobile-toggle-cell");
-      if (!toggleCell) {
-        toggleCell = document.createElement("td");
+      var toggleRow = row.nextElementSibling;
+      if (
+        !toggleRow ||
+        !toggleRow.classList ||
+        !toggleRow.classList.contains("app-users-mobile-toggle-row")
+      ) {
+        toggleRow = document.createElement("tr");
+        toggleRow.className = "app-users-mobile-toggle-row";
+
+        var toggleCell = document.createElement("td");
         toggleCell.className = "app-users-mobile-toggle-cell";
         toggleCell.setAttribute("colspan", String(cells.length));
 
@@ -130,7 +137,8 @@
         });
 
         toggleCell.appendChild(btn);
-        row.appendChild(toggleCell);
+        toggleRow.appendChild(toggleCell);
+        row.parentNode.insertBefore(toggleRow, row.nextSibling);
       }
 
       row.classList.add("app-users-mobile-collapsed");
