@@ -492,7 +492,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         </a>
                         <ul class="nxl-submenu">
                             <li class="nxl-item<?php echo biotern_nav_is_active('users.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="users.php">Users</a></li>
-                            <li class="nxl-item<?php echo biotern_nav_is_active('create_admin.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="create_admin.php">Create Admin</a></li>
+                            <li class="nxl-item<?php echo biotern_nav_is_active('create_admin.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="create_admin.php">Admins</a></li>
                             <li class="nxl-item<?php echo biotern_nav_is_active('coordinators.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="coordinators.php">Coordinators</a></li>
                             <li class="nxl-item<?php echo biotern_nav_is_active('supervisors.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="supervisors.php">Supervisors</a></li>
                         </ul>

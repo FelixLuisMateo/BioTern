@@ -138,12 +138,409 @@ body.app-page-create-admin .nxl-content {
 }
 
 body.app-page-create-admin .create-admin-admin-page {
-    margin-top: 2px;
+    margin-top: 10px;
+    display: grid;
+    gap: 18px;
+}
+
+body.app-page-create-admin .create-admin-shell {
+    display: grid;
+    gap: 18px;
+}
+
+body.app-page-create-admin .create-admin-hero,
+body.app-page-create-admin .create-admin-panel {
+    background: var(--bs-card-bg, #111827);
+    border: 1px solid rgba(104, 133, 198, 0.28);
+    border-radius: 8px;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.18);
+}
+
+body.app-page-create-admin .create-admin-list-card {
+    background: var(--bs-card-bg, #111827);
+    border: 1px solid rgba(104, 133, 198, 0.28);
+    border-radius: 8px;
+    box-shadow: none;
+}
+
+body.app-page-create-admin .create-admin-list-card .card-header {
+    min-height: 58px;
+    padding: 0.95rem 1.1rem;
+    background: transparent;
+    border-bottom: 0;
+}
+
+body.app-page-create-admin .create-admin-list-card .card-title {
+    color: var(--bs-heading-color, #ffffff);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+body.app-page-create-admin .create-admin-table-wrap {
+    padding: 0 1rem 1rem;
+}
+
+body.app-page-create-admin .create-admin-table {
+    color: var(--bs-body-color, #d9e7ff);
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+body.app-page-create-admin .create-admin-table thead th {
+    padding: 0.75rem 1rem;
+    color: var(--bs-heading-color, #ffffff);
+    background: rgba(13, 27, 50, 0.58);
+    border: 0;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+body.app-page-create-admin .create-admin-table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-top: 1px solid rgba(104, 133, 198, 0.12);
+    background: rgba(13, 27, 50, 0.36);
+}
+
+body.app-page-create-admin .create-admin-table tbody tr:hover td {
+    background: rgba(20, 40, 72, 0.56);
+}
+
+body.app-page-create-admin .create-admin-id-pill {
+    display: inline-grid;
+    min-width: 30px;
+    height: 28px;
+    place-items: center;
+    padding: 0 0.45rem;
+    color: #d9e7ff;
+    border: 1px solid rgba(122, 162, 230, 0.32);
+    border-radius: 999px;
+    background: rgba(35, 55, 86, 0.72);
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+body.app-page-create-admin .create-admin-name {
+    color: var(--bs-heading-color, #ffffff);
+    font-size: 0.9rem;
+    font-weight: 900;
+}
+
+body.app-page-create-admin .create-admin-muted {
+    color: var(--bs-secondary-color, #a8c4ee);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+body.app-page-create-admin .create-admin-status-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+body.app-page-create-admin .create-admin-status-pill.is-active {
+    color: #40f0b0;
+    background: rgba(29, 185, 132, 0.16);
+    border: 1px solid rgba(29, 185, 132, 0.32);
+}
+
+body.app-page-create-admin .create-admin-status-pill.is-inactive {
+    color: #f7b267;
+    background: rgba(247, 178, 103, 0.14);
+    border: 1px solid rgba(247, 178, 103, 0.28);
+}
+
+body.app-page-create-admin .create-admin-row-btn {
+    min-width: 78px;
+    border-radius: 8px;
+    font-weight: 800;
+}
+
+body.app-page-create-admin .create-admin-hero {
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px 30px;
+    background:
+        linear-gradient(135deg, rgba(47, 92, 168, 0.28), rgba(13, 24, 44, 0.92)),
+        var(--bs-card-bg, #111827);
+}
+
+body.app-page-create-admin .create-admin-kicker,
+body.app-page-create-admin .create-admin-section-head span,
+body.app-page-create-admin .create-admin-scope > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #78a6ff;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+}
+
+body.app-page-create-admin .create-admin-hero h3 {
+    margin: 10px 0 8px;
+    color: var(--bs-heading-color, #ffffff);
+    font-size: clamp(1.45rem, 2.2vw, 2rem);
+    font-weight: 800;
+}
+
+body.app-page-create-admin .create-admin-hero p {
+    max-width: 680px;
+    margin: 0;
+    color: var(--bs-secondary-color, #aec7ef);
+    line-height: 1.55;
+}
+
+body.app-page-create-admin .create-admin-status {
+    flex: 0 0 190px;
+    min-height: 110px;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    border: 1px solid rgba(122, 162, 230, 0.35);
+    border-radius: 8px;
+    background: rgba(8, 19, 36, 0.62);
+}
+
+body.app-page-create-admin .create-admin-status span,
+body.app-page-create-admin .create-admin-status small {
+    color: var(--bs-secondary-color, #9eb8e3);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+body.app-page-create-admin .create-admin-status strong {
+    margin: 6px 0;
+    color: var(--bs-heading-color, #ffffff);
+    font-size: 1.45rem;
+    font-weight: 900;
+}
+
+body.app-page-create-admin .create-admin-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+    gap: 18px;
+    align-items: stretch;
+}
+
+body.app-page-create-admin .create-admin-panel {
+    padding: 24px;
+}
+
+body.app-page-create-admin .create-admin-form-panel {
+    scroll-margin-top: 90px;
+    display: none;
+}
+
+body.app-page-create-admin .create-admin-form-panel:target,
+body.app-page-create-admin .create-admin-form-panel.is-open {
+    display: block;
+}
+
+body.app-page-create-admin .create-admin-section-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 18px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid rgba(104, 133, 198, 0.2);
+}
+
+body.app-page-create-admin .create-admin-section-head h5 {
+    margin: 6px 0 0;
+    color: var(--bs-heading-color, #ffffff);
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+body.app-page-create-admin .create-admin-section-head > i {
+    display: inline-grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    color: #ffffff;
+    border-radius: 8px;
+    background: rgba(83, 121, 240, 0.18);
+    border: 1px solid rgba(113, 149, 255, 0.24);
+}
+
+body.app-page-create-admin .create-admin-form {
+    row-gap: 18px;
+}
+
+body.app-page-create-admin .create-admin-form .form-label {
+    color: var(--bs-heading-color, #ffffff);
+    font-size: 12px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+body.app-page-create-admin .create-admin-form .form-control {
+    min-height: 44px;
+    border-radius: 8px;
+    border-color: rgba(121, 151, 205, 0.55);
+    background: rgba(9, 19, 35, 0.52);
+    color: var(--bs-body-color, #d9e7ff);
+}
+
+body.app-page-create-admin .create-admin-form .form-control:focus {
+    border-color: rgba(99, 132, 255, 0.95);
+    background: rgba(9, 19, 35, 0.74);
+    box-shadow: 0 0 0 3px rgba(99, 132, 255, 0.18);
+}
+
+body.app-page-create-admin .create-admin-form .input-group .form-control {
+    border-right: 0;
+}
+
+body.app-page-create-admin .create-admin-form .input-group .btn-outline-secondary {
+    min-width: 46px;
+    border-color: rgba(121, 151, 205, 0.55);
+    border-left: 0;
+    border-radius: 0 8px 8px 0;
+    background: rgba(18, 31, 53, 0.86);
+    color: var(--bs-secondary-color, #9eb8e3);
+}
+
+body.app-page-create-admin .create-admin-form .input-group .btn-outline-secondary:hover {
+    background: rgba(83, 121, 240, 0.18);
+    color: var(--bs-heading-color, #ffffff);
+}
+
+body.app-page-create-admin .create-admin-password-hint {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+body.app-page-create-admin .create-admin-password-hint span,
+body.app-page-create-admin .create-admin-scope small {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 4px 10px;
+    border: 1px solid rgba(104, 133, 198, 0.25);
+    border-radius: 999px;
+    color: var(--bs-secondary-color, #a8c4ee);
+    background: rgba(8, 19, 36, 0.56);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+body.app-page-create-admin .create-admin-submit,
+body.app-page-create-admin .create-admin-cancel {
+    min-height: 42px;
+    border-radius: 8px;
+    padding-inline: 20px;
+    font-weight: 800;
+}
+
+body.app-page-create-admin .create-admin-guide {
+    display: flex;
+    flex-direction: column;
+}
+
+body.app-page-create-admin .create-admin-checklist {
+    display: grid;
+    gap: 12px;
+}
+
+body.app-page-create-admin .create-admin-check-item {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 12px;
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(104, 133, 198, 0.22);
+    background: rgba(8, 19, 36, 0.42);
+}
+
+body.app-page-create-admin .create-admin-check-item > i {
+    display: inline-grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    color: #39d98a;
+    border-radius: 8px;
+    background: rgba(57, 217, 138, 0.1);
+}
+
+body.app-page-create-admin .create-admin-check-item strong {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--bs-heading-color, #ffffff);
+    font-size: 13px;
+}
+
+body.app-page-create-admin .create-admin-check-item span {
+    display: block;
+    color: var(--bs-secondary-color, #a8c4ee);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+body.app-page-create-admin .create-admin-scope {
+    margin-top: auto;
+    padding-top: 20px;
+}
+
+body.app-page-create-admin .create-admin-scope div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
 }
 
 @media (max-width: 575.98px) {
     body.create-admin-public .create-admin-wrapper {
         padding: 24px 12px;
+    }
+}
+
+@media (max-width: 991.98px) {
+    body.app-page-create-admin .create-admin-hero,
+    body.app-page-create-admin .create-admin-grid {
+        grid-template-columns: 1fr;
+    }
+
+    body.app-page-create-admin .create-admin-hero {
+        display: grid;
+        padding: 24px;
+    }
+
+    body.app-page-create-admin .create-admin-status {
+        width: 100%;
+        min-height: 88px;
+        justify-items: start;
+        padding: 18px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    body.app-page-create-admin .create-admin-panel,
+    body.app-page-create-admin .create-admin-hero {
+        padding: 18px;
+    }
+
+    body.app-page-create-admin .create-admin-submit,
+    body.app-page-create-admin .create-admin-cancel {
+        width: 100%;
     }
 }
 

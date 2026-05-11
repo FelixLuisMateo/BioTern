@@ -292,7 +292,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'title' => 'Users',
                         'items' => [
                             ['label' => 'Users', 'href' => 'users.php', 'icon' => 'feather-users'],
-                            ['label' => 'Create Admin', 'href' => 'create_admin.php', 'icon' => 'feather-shield'],
+                            ['label' => 'Admins', 'href' => 'create_admin.php', 'icon' => 'feather-shield'],
                             ['label' => 'Coordinators', 'href' => 'coordinators.php', 'icon' => 'feather-user-check'],
                             ['label' => 'Supervisors', 'href' => 'supervisors.php', 'icon' => 'feather-user'],
                         ],

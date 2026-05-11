@@ -144,6 +144,10 @@ if (!function_exists('biotern_admin_activity_page')) {
 if (!function_exists('biotern_admin_activity_target_type')) {
     function biotern_admin_activity_target_type(string $page): string
     {
+        if (strtolower(trim($page)) === 'process_attendance.php') {
+            return 'attendance';
+        }
+
         $name = preg_replace('/\.php$/i', '', $page);
         $name = preg_replace('/-(create|edit|view|list)$/i', '', (string)$name);
         $name = str_replace(['reports-', 'import-', 'export-'], '', (string)$name);
@@ -259,12 +263,34 @@ if (!function_exists('biotern_admin_activity_compact_text')) {
     }
 }
 
+if (!function_exists('biotern_admin_activity_flat_value')) {
+    function biotern_admin_activity_flat_value($value): string
+    {
+        if (is_array($value)) {
+            $parts = [];
+            array_walk_recursive($value, static function ($item) use (&$parts): void {
+                $item = trim((string)$item);
+                if ($item !== '') {
+                    $parts[] = $item;
+                }
+            });
+
+            return biotern_admin_activity_compact_text(implode(', ', array_unique($parts)), 120);
+        }
+
+        return biotern_admin_activity_compact_text((string)$value, 120);
+    }
+}
+
 if (!function_exists('biotern_admin_activity_request_value')) {
     function biotern_admin_activity_request_value(array $request, array $keys): string
     {
         foreach ($keys as $key) {
-            if (isset($request[$key]) && !is_array($request[$key]) && trim((string)$request[$key]) !== '') {
-                return trim((string)$request[$key]);
+            if (isset($request[$key])) {
+                $value = biotern_admin_activity_flat_value($request[$key]);
+                if ($value !== '') {
+                    return $value;
+                }
             }
         }
 
@@ -358,7 +384,19 @@ if (!function_exists('biotern_admin_activity_lookup_target_name')) {
         $page = strtolower($page);
         $targetType = strtolower($targetType);
 
+        if ($targetId !== '' && strcasecmp($targetId, 'Array') === 0) {
+            $targetId = '';
+        }
+        if ($targetId !== '' && preg_match('/^\d+(?:\s*,\s*\d+)+$/', $targetId)) {
+            $label = (strpos($page, 'attendance') !== false || strpos($targetType, 'attendance') !== false) ? 'Attendance records' : 'Records';
+            return $label . ': ' . $targetId;
+        }
+
         $candidates = [];
+        if (strpos($page, 'attendance') !== false || strpos($targetType, 'attendance') !== false) {
+            $candidates[] = ['attendances', 'id'];
+            $candidates[] = ['external_attendance', 'id'];
+        }
         if (strpos($page, 'student') !== false || strpos($targetType, 'student') !== false) {
             $candidates[] = ['students', 'id'];
             $candidates[] = ['students', 'student_id'];
@@ -412,8 +450,15 @@ if (!function_exists('biotern_admin_activity_build_comment')) {
     function biotern_admin_activity_build_comment(string $adminName, string $actionLabel, string $targetType, ?string $targetName, ?string $targetId, string $page): string
     {
         $subject = trim($targetName ?? '');
-        if ($subject === '' && trim((string)$targetId) !== '') {
-            $subject = '#' . trim((string)$targetId);
+        $targetId = trim((string)$targetId);
+        if (strcasecmp($subject, 'Array') === 0) {
+            $subject = '';
+        }
+        if (strcasecmp($targetId, 'Array') === 0) {
+            $targetId = '';
+        }
+        if ($subject === '' && $targetId !== '') {
+            $subject = '#' . $targetId;
         }
 
         $targetType = trim($targetType);
@@ -571,14 +616,7 @@ if (!function_exists('biotern_admin_activity_auto_log')) {
                 continue;
             }
 
-            $rawTargetId = $request[$idKey];
-            if (is_array($rawTargetId)) {
-                $rawTargetId = implode(',', array_filter(array_map(static function ($value) {
-                    return trim((string)$value);
-                }, $rawTargetId), static function ($value) {
-                    return $value !== '';
-                }));
-            }
+            $rawTargetId = biotern_admin_activity_flat_value($request[$idKey]);
 
             if (trim((string)$rawTargetId) !== '') {
                 $targetId = (string)$rawTargetId;

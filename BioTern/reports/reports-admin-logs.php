@@ -83,6 +83,82 @@ function adminLogsDetailsSummary(?string $json): string
     return $bits ? implode(' | ', $bits) : '-';
 }
 
+function adminLogsFlatValue($value): string
+{
+    if (is_array($value)) {
+        $parts = [];
+        array_walk_recursive($value, static function ($item) use (&$parts): void {
+            $item = trim((string)$item);
+            if ($item !== '') {
+                $parts[] = $item;
+            }
+        });
+        return trim(implode(', ', array_unique($parts)));
+    }
+
+    return trim((string)$value);
+}
+
+function adminLogsDetailsIds(?string $json): string
+{
+    $decoded = json_decode(trim((string)$json), true);
+    if (!is_array($decoded)) {
+        return '';
+    }
+
+    $ids = [];
+    foreach (['form', 'query'] as $bucket) {
+        if (!isset($decoded[$bucket]) || !is_array($decoded[$bucket])) {
+            continue;
+        }
+        foreach (['id', 'ids', 'attendance_id', 'attendance_ids'] as $key) {
+            if (array_key_exists($key, $decoded[$bucket])) {
+                $value = adminLogsFlatValue($decoded[$bucket][$key]);
+                if ($value !== '' && strcasecmp($value, 'Array') !== 0) {
+                    $ids[] = $value;
+                }
+            }
+        }
+    }
+
+    return trim(implode(', ', array_unique($ids)));
+}
+
+function adminLogsTargetTypeLabel($targetType, $page): string
+{
+    $type = trim((string)$targetType);
+    $page = strtolower(trim((string)$page));
+    if ($type === '' || $type === '-') {
+        return '-';
+    }
+    if ($type === 'process_attendance' || $page === 'process_attendance.php') {
+        return 'Attendance';
+    }
+    if ($type === 'external attendance' || $page === 'external-attendance.php') {
+        return 'External Attendance';
+    }
+
+    return ucwords(str_replace(['_', '-'], ' ', $type));
+}
+
+function adminLogsCleanActivityComment(array $row, string $activityComment, string $targetTypeLabel, string $targetDisplay): string
+{
+    $hasArrayLeak = stripos($activityComment, '#Array') !== false || preg_match('/:\s*Array\.?$/i', $activityComment);
+    $hasProcessName = stripos($activityComment, 'process_attendance') !== false;
+    if (!$hasArrayLeak && !$hasProcessName) {
+        return $activityComment;
+    }
+
+    $adminName = trim((string)($row['admin_name'] ?? ''));
+    if ($adminName === '') {
+        $adminName = trim((string)($row['admin_username'] ?? 'Admin'));
+    }
+    $actionLabel = strtolower(trim((string)($row['action_label'] ?? $row['action'] ?? 'updated')));
+    $subject = $targetDisplay !== '' && $targetDisplay !== '-' ? $targetDisplay : 'selected records';
+
+    return trim($adminName . ' ' . $actionLabel . ' ' . strtolower($targetTypeLabel) . ': ' . $subject . '.');
+}
+
 $action = strtolower(trim((string)($_GET['action'] ?? 'all')));
 $importantActions = ['create', 'add', 'edit', 'update', 'delete', 'import', 'export', 'approve', 'reject', 'archive', 'restore'];
 $allowedActions = array_merge(['all'], $importantActions);
@@ -357,6 +433,19 @@ include 'includes/header.php';
                             }
                             $targetName = trim((string)($row['target_name'] ?? ''));
                             $targetId = trim((string)($row['target_id'] ?? ''));
+                            $targetTypeLabel = adminLogsTargetTypeLabel($row['target_type'] ?? '', $row['page'] ?? '');
+                            $detailsIds = adminLogsDetailsIds($row['details_json'] ?? '');
+                            if (strcasecmp($targetName, 'Array') === 0) {
+                                $targetName = '';
+                            }
+                            if (strcasecmp($targetId, 'Array') === 0) {
+                                $targetId = $detailsIds;
+                            }
+                            if ($targetName === '' && $detailsIds !== '' && stripos($targetTypeLabel, 'attendance') !== false) {
+                                $targetName = 'Attendance records: ' . $detailsIds;
+                            }
+                            $targetDisplay = $targetName !== '' ? $targetName : ($targetId !== '' ? $targetId : '-');
+                            $activityComment = adminLogsCleanActivityComment($row, $activityComment, $targetTypeLabel, $targetDisplay);
                             ?>
                             <tr>
                                 <td class="text-nowrap" data-label="Time"><?php echo htmlspecialchars(adminLogsFormatDateTime($row['created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -373,8 +462,8 @@ include 'includes/header.php';
                                     </span>
                                 </td>
                                 <td data-label="Target">
-                                    <div class="fw-semibold text-capitalize"><?php echo htmlspecialchars((string)($row['target_type'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></div>
-                                    <small class="text-muted"><?php echo htmlspecialchars($targetName !== '' ? $targetName : ($targetId !== '' ? $targetId : '-'), ENT_QUOTES, 'UTF-8'); ?></small>
+                                    <div class="fw-semibold"><?php echo htmlspecialchars($targetTypeLabel, ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <small class="text-muted"><?php echo htmlspecialchars($targetDisplay, ENT_QUOTES, 'UTF-8'); ?></small>
                                 </td>
                                 <td data-label="Page"><span class="logs-identifier"><?php echo htmlspecialchars((string)($row['page'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></span></td>
                                 <td class="text-nowrap" data-label="IP Address"><?php echo htmlspecialchars(adminLogsDisplayIp($row['ip_address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>

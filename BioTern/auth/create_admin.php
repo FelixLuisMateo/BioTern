@@ -140,10 +140,27 @@ if ($message !== '') {
     $create_admin_toast_type = (stripos($message, 'successfully') !== false) ? 'success' : 'error';
     $create_admin_toast_message = $message;
 }
+
+$admin_rows = [];
+if ($is_admin_session && isset($conn) && $conn instanceof mysqli) {
+    $admin_sql = "
+        SELECT id, name, username, email, is_active, created_at
+        FROM users
+        WHERE role = 'admin'
+        ORDER BY id DESC
+    ";
+    $admin_res = $conn->query($admin_sql);
+    if ($admin_res) {
+        while ($admin_row = $admin_res->fetch_assoc()) {
+            $admin_rows[] = $admin_row;
+        }
+    }
+}
+$show_create_form = $is_post_request && $create_admin_toast_type !== 'success';
 ?>
 <?php if ($is_admin_session): ?>
 <?php
-$page_title = 'BioTern || Create Admin';
+$page_title = 'BioTern || Admins';
 $base_href = '';
 $page_body_class = 'app-page-create-admin';
 $page_styles = ['assets/css/state/notification-skin.css', 'assets/css/modules/auth/page-create-admin.css'];
@@ -155,31 +172,83 @@ include __DIR__ . '/../includes/header.php';
 
 <div class="page-header">
     <div class="page-header-left d-flex align-items-center">
-        <div class="page-header-title"><h5 class="m-b-10">Create Admin</h5></div>
+        <div class="page-header-title"><h5 class="m-b-10">Admins</h5></div>
         <ul class="breadcrumb">
             <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-            <li class="breadcrumb-item"><a href="users.php">Users</a></li>
-            <li class="breadcrumb-item">Create Admin</li>
+            <li class="breadcrumb-item">Admins</li>
         </ul>
     </div>
     <div class="page-header-right ms-auto">
-        <a href="users.php" class="btn btn-outline-secondary">Back to Users</a>
+        <a href="#createAdminForm" class="btn btn-primary">Create Admin</a>
     </div>
 </div>
 
 <div class="main-content create-admin-admin-page">
-    <div class="row">
-        <div class="col-lg-7 col-xl-6">
-            <div class="card stretch stretch-full">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="feather feather-shield me-2 text-primary"></i>New Admin Account
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <p class="text-muted fs-12 mb-4">Creates a new administrator entry in both the <code>users</code> and <code>admin</code> tables.</p>
+    <div class="card stretch stretch-full create-admin-list-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">All Admins</h5>
+            <span class="badge bg-primary text-white px-3 py-1 fw-semibold"><?php echo count($admin_rows); ?> total</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive create-admin-table-wrap">
+                <table class="table table-hover mb-0 create-admin-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (!$admin_rows): ?>
+                            <tr><td colspan="7" class="text-center py-4 text-muted">No admins found.</td></tr>
+                        <?php endif; ?>
+                        <?php foreach ($admin_rows as $admin_row): ?>
+                            <?php
+                            $adminId = (int)($admin_row['id'] ?? 0);
+                            $adminName = trim((string)($admin_row['name'] ?? ''));
+                            $adminUsername = trim((string)($admin_row['username'] ?? ''));
+                            $adminEmail = trim((string)($admin_row['email'] ?? ''));
+                            $isActiveAdmin = (int)($admin_row['is_active'] ?? 0) === 1;
+                            $createdAt = trim((string)($admin_row['created_at'] ?? ''));
+                            $createdLabel = $createdAt !== '' && $createdAt !== '0000-00-00 00:00:00' ? date('M d, Y', strtotime($createdAt)) : '-';
+                            ?>
+                            <tr>
+                                <td><span class="create-admin-id-pill"><?php echo $adminId; ?></span></td>
+                                <td><span class="create-admin-name"><?php echo esc($adminName !== '' ? $adminName : '-'); ?></span></td>
+                                <td><span class="create-admin-muted"><?php echo esc($adminUsername !== '' ? $adminUsername : '-'); ?></span></td>
+                                <td><span class="create-admin-muted"><?php echo esc($adminEmail !== '' ? $adminEmail : '-'); ?></span></td>
+                                <td>
+                                    <span class="create-admin-status-pill <?php echo $isActiveAdmin ? 'is-active' : 'is-inactive'; ?>">
+                                        <?php echo $isActiveAdmin ? 'Active' : 'Inactive'; ?>
+                                    </span>
+                                </td>
+                                <td><span class="create-admin-muted"><?php echo esc($createdLabel); ?></span></td>
+                                <td>
+                                    <a href="users.php?role=admin&q=<?php echo urlencode($adminEmail !== '' ? $adminEmail : $adminUsername); ?>" class="btn btn-sm btn-outline-primary create-admin-row-btn">Open</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-                    <form method="post" novalidate class="row g-3" autocomplete="off">
+    <section class="create-admin-panel create-admin-form-panel <?php echo $show_create_form ? 'is-open' : ''; ?>" id="createAdminForm">
+                <div class="create-admin-section-head">
+                    <div>
+                        <span>Account Details</span>
+                        <h5>Create Admin Account</h5>
+                    </div>
+                    <i class="feather feather-user-plus"></i>
+                </div>
+
+                    <form method="post" novalidate class="row g-3 create-admin-form" autocomplete="off">
                         <div class="ca-honeypot" aria-hidden="true">
                             <input type="text" name="fake_username" tabindex="-1" autocomplete="username">
                             <input type="password" name="fake_password" tabindex="-1" autocomplete="current-password">
@@ -204,32 +273,17 @@ include __DIR__ . '/../includes/header.php';
                                     <i id="toggleIcon"></i>
                                 </button>
                             </div>
+                            <div class="create-admin-password-hint">
+                                <span>Recommended: 8+ characters</span>
+                                <span>Use a mix of letters and numbers</span>
+                            </div>
                         </div>
-                        <div class="col-12 d-flex gap-2 mt-2">
-                            <button type="submit" class="btn btn-primary"><i class="feather feather-user-plus me-2"></i>Create Admin</button>
-                            <a href="users.php" class="btn btn-outline-secondary">Cancel</a>
+                        <div class="col-12 d-flex flex-wrap gap-2 mt-2">
+                            <button type="submit" class="btn btn-primary create-admin-submit"><i class="feather feather-user-plus me-2"></i>Create Admin</button>
+                            <a href="create_admin.php" class="btn btn-outline-secondary create-admin-cancel">Cancel</a>
                         </div>
                     </form>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-5 col-xl-6">
-            <div class="card stretch stretch-full border-0 bg-transparent">
-                <div class="card-body pt-0">
-                    <div class="alert alert-soft-warning">
-                        <h6 class="alert-heading fw-bold mb-2"><i class="feather feather-info me-2"></i>Notes</h6>
-                        <ul class="mb-0 ps-3 fs-12">
-                            <li>The new account will have <strong>admin</strong> role and will be active immediately.</li>
-                            <li>A matching row is inserted into the <code>admin</code> profile table if it exists.</li>
-                            <li>Username and email must be unique across all users.</li>
-                            <li>Use a strong password (8+ characters recommended).</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    </section>
 </div>
 
     </div>
