@@ -434,6 +434,9 @@ $today_attendance_progress = min(100, max(0, $today_attendance));
 $pending_biometrics = $dashboard_stats['pending_biometrics'];
 $attendance_approval_rate = $dashboard_stats['attendance_approval_rate'];
 $attendance_pending_rate = $dashboard_stats['attendance_pending_rate'];
+$attendance_pending_subtext = $attendance_awaiting > 0
+    ? $attendance_pending_rate . '% waiting for review'
+    : 'No pending attendance';
 $active_student_rate = $dashboard_stats['active_student_rate'];
 $biometric_registered = $dashboard_stats['biometric_registered'];
 $dashboard_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
@@ -935,7 +938,7 @@ include 'includes/header.php';
                 <div class="mobile-summary-card">
                     <span class="mobile-summary-label">Pending Attendance</span>
                     <span class="mobile-summary-value"><?php echo $attendance_awaiting; ?></span>
-                    <span class="mobile-summary-meta"><?php echo $attendance_approval_rate; ?>% approved</span>
+                    <span class="mobile-summary-meta"><?php echo htmlspecialchars($attendance_pending_subtext, ENT_QUOTES, 'UTF-8'); ?></span>
                 </div>
                 <div class="mobile-summary-card">
                     <span class="mobile-summary-label">OJT Ongoing</span>
@@ -1007,9 +1010,9 @@ include 'includes/header.php';
                                             <div class="kpi-card kpi-tile">
                                                 <div class="kpi-title">Pending Attendance</div>
                                                 <div class="kpi-value"><?php echo $attendance_awaiting; ?></div>
-                                                <div class="kpi-subtext"><?php echo $attendance_approval_rate; ?>% approved overall</div>
+                                                <div class="kpi-subtext"><?php echo htmlspecialchars($attendance_pending_subtext, ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <div class="progress kpi-progress">
-                                                    <div class="progress-bar bg-success" role="progressbar" data-progress-width="<?php echo $attendance_approval_rate; ?>"></div>
+                                                    <div class="progress-bar bg-warning" role="progressbar" data-progress-width="<?php echo $attendance_pending_rate; ?>"></div>
                                                 </div>
                                             </div>
                                         </div>

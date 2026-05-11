@@ -3,196 +3,98 @@
 << /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>
+<< /Type /Pages /Kids [6 0 R 8 0 R] /Count 2 >>
 endobj
 3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R >> >> /Contents 4 0 R >>
-endobj
-4 0 obj
-<< /Length 2788 >>
-stream
-BT
-/F1 16 Tf
-50 750 Td
-(Supervisor Manual) Tj
-/F1 10 Tf
-0 -15 Td
-(BioTern User Manual) Tj
-/F1 10 Tf
-0 -15 Td
-(Updated: May 08, 2026) Tj
-/F1 10 Tf
-0 -15 Td
-() Tj
-/F1 12 Tf
-0 -20 Td
-(Purpose:) Tj
-/F1 10 Tf
-0 -15 Td
-(This manual explains the main BioTern tasks for supervisors. Supervisor accounts focus on) Tj
-/F1 10 Tf
-0 -15 Td
-(reviewing assigned students, attendance, OJT progress, communication, and reports.) Tj
-/F1 10 Tf
-0 -15 Td
-() Tj
-/F1 12 Tf
-0 -20 Td
-(Login And Dashboard:) Tj
-/F1 10 Tf
-0 -15 Td
-(1. Sign in using your supervisor account.) Tj
-/F1 10 Tf
-0 -15 Td
-(2. Open Dashboard to view available summaries and assigned work.) Tj
-/F1 10 Tf
-0 -15 Td
-(3. Use search to quickly open attendance, student, or report pages.) Tj
-/F1 10 Tf
-0 -15 Td
-() Tj
-/F1 12 Tf
-0 -20 Td
-(Student Review:) Tj
-/F1 10 Tf
-0 -15 Td
-(1. Open Student Management > Students List to review student profiles available to your role.) Tj
-/F1 10 Tf
-0 -15 Td
-(2. Check course, section, assignment track, coordinator, and supervisor assignment.) Tj
-/F1 10 Tf
-0 -15 Td
-(3. Use profile information to confirm the correct student before reviewing DTR records.) Tj
-/F1 10 Tf
-0 -15 Td
-() Tj
-/F1 12 Tf
-0 -20 Td
-(Internal Attendance:) Tj
-/F1 10 Tf
-0 -15 Td
-(1. Open Internal Attendance to review internal DTR records.) Tj
-/F1 10 Tf
-0 -15 Td
-(2. Check proof image, date, time entries, and reason.) Tj
-/F1 10 Tf
-0 -15 Td
-(3. Approve valid entries when the time and proof match.) Tj
-/F1 10 Tf
-0 -15 Td
-(4. Decline entries when proof is missing, unclear, or the time is incorrect.) Tj
-/F1 10 Tf
-0 -15 Td
-() Tj
-/F1 12 Tf
-0 -20 Td
-(External Attendance:) Tj
-/F1 10 Tf
-0 -15 Td
-(1. Open External Attendance to review external DTR records.) Tj
-/F1 10 Tf
-0 -15 Td
-(2. Check if external OJT is approved or allowed to start counting hours.) Tj
-/F1 10 Tf
-0 -15 Td
-(3. Verify the proof image and the encoded time entries.) Tj
-/F1 10 Tf
-0 -15 Td
-(4. Approve or decline based on school policy and evidence.) Tj
-/F1 10 Tf
-0 -15 Td
-() Tj
-/F1 12 Tf
-0 -20 Td
-(OJT Monitoring:) Tj
-/F1 10 Tf
-0 -15 Td
-(1. Use OJT List, Internal List, and External List to monitor student placement and status.) Tj
-/F1 10 Tf
-0 -15 Td
-(2. Check company information when reviewing external OJT.) Tj
-/F1 10 Tf
-0 -15 Td
-(3. Coordinate with the coordinator or admin when records need correction.) Tj
-/F1 10 Tf
-0 -15 Td
-() Tj
-/F1 12 Tf
-0 -20 Td
-(Communication:) Tj
-/F1 10 Tf
-0 -15 Td
-(1. Use Chat for quick discussion with students or staff.) Tj
-/F1 10 Tf
-0 -15 Td
-(2. Use Email for formal messages inside the system.) Tj
-/F1 10 Tf
-0 -15 Td
-(3. Keep communication professional and related to OJT or school activity.) Tj
-/F1 10 Tf
-0 -15 Td
-() Tj
-/F1 12 Tf
-0 -20 Td
-(Reports:) Tj
-/F1 10 Tf
-0 -15 Td
-(1. Use attendance and student progress reports when available.) Tj
-ET
-endstream
-endobj
-5 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 7 0 R >> >> /Contents 6 0 R >>
-endobj
-6 0 obj
-<< /Length 642 >>
-stream
-BT
-/F1 16 Tf
-50 750 Td
-(2. Confirm filters before exporting or reviewing a report.) Tj
-/F1 10 Tf
-0 -15 Td
-(3. Use reports to identify students with missing DTR entries or incomplete hours.) Tj
-/F1 10 Tf
-0 -15 Td
-() Tj
-/F1 12 Tf
-0 -20 Td
-(Good Practice:) Tj
-/F1 10 Tf
-0 -15 Td
-(1. Review pending attendance requests regularly.) Tj
-/F1 10 Tf
-0 -15 Td
-(2. Do not approve entries without checking proof.) Tj
-/F1 10 Tf
-0 -15 Td
-(3. Leave clear reasons when declining an entry if the system asks for remarks.) Tj
-/F1 10 Tf
-0 -15 Td
-(4. Report suspicious or repeated incorrect submissions to the coordinator or admin.) Tj
-/F1 10 Tf
-0 -15 Td
-() Tj
-ET
-endstream
-endobj
-7 0 obj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
 endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Length 3491 >>
+stream
+BT
+/F2 18 Tf 1 0 0 1 54 760 Tm (Supervisor Manual) Tj
+/F1 12 Tf 1 0 0 1 54 736 Tm (BioTern User Manual) Tj
+/F1 10 Tf 1 0 0 1 54 718 Tm (Updated: May 11, 2026) Tj
+/F1 10 Tf 1 0 0 1 54 704 Tm () Tj
+/F2 12 Tf 1 0 0 1 54 690 Tm (Purpose:) Tj
+/F1 10 Tf 1 0 0 1 54 672 Tm (1. This manual explains the main BioTern tasks for supervisors. Supervisor accounts focus on) Tj
+/F1 10 Tf 1 0 0 1 54 658 Tm (   reviewing assigned students, attendance, OJT progress, communication, and reports.) Tj
+/F1 10 Tf 1 0 0 1 54 644 Tm () Tj
+/F2 12 Tf 1 0 0 1 54 630 Tm (Dashboard:) Tj
+/F1 10 Tf 1 0 0 1 54 612 Tm (1. Open Dashboard to view available summaries and assigned work.) Tj
+/F1 10 Tf 1 0 0 1 54 598 Tm (2. Use search to quickly open attendance, student, or report pages.) Tj
+/F1 10 Tf 1 0 0 1 54 584 Tm () Tj
+/F2 12 Tf 1 0 0 1 54 570 Tm (Student Review:) Tj
+/F1 10 Tf 1 0 0 1 54 552 Tm (1. Open Student Management > Students List to review student profiles available to your) Tj
+/F1 10 Tf 1 0 0 1 54 538 Tm (   role.) Tj
+/F1 10 Tf 1 0 0 1 54 524 Tm (2. Check course, section, assignment track, coordinator, and supervisor assignment.) Tj
+/F1 10 Tf 1 0 0 1 54 510 Tm (3. Use profile information to confirm the correct student before reviewing DTR records.) Tj
+/F1 10 Tf 1 0 0 1 54 496 Tm () Tj
+/F2 12 Tf 1 0 0 1 54 482 Tm (Internal Attendance:) Tj
+/F1 10 Tf 1 0 0 1 54 464 Tm (1. Open Internal Attendance to review internal DTR records.) Tj
+/F1 10 Tf 1 0 0 1 54 450 Tm (2. Check proof image, date, time entries, and reason.) Tj
+/F1 10 Tf 1 0 0 1 54 436 Tm (3. Approve valid entries when the time and proof match.) Tj
+/F1 10 Tf 1 0 0 1 54 422 Tm (4. Decline entries when proof is missing, unclear, or the time is incorrect.) Tj
+/F1 10 Tf 1 0 0 1 54 408 Tm () Tj
+/F2 12 Tf 1 0 0 1 54 394 Tm (External Attendance:) Tj
+/F1 10 Tf 1 0 0 1 54 376 Tm (1. Open External Attendance to review external DTR records.) Tj
+/F1 10 Tf 1 0 0 1 54 362 Tm (2. Check if external OJT is approved or allowed to start counting hours.) Tj
+/F1 10 Tf 1 0 0 1 54 348 Tm (3. Verify the proof image and the encoded time entries.) Tj
+/F1 10 Tf 1 0 0 1 54 334 Tm (4. Approve or decline based on school policy and evidence.) Tj
+/F1 10 Tf 1 0 0 1 54 320 Tm () Tj
+/F2 12 Tf 1 0 0 1 54 306 Tm (OJT Monitoring:) Tj
+/F1 10 Tf 1 0 0 1 54 288 Tm (1. Use OJT List, Internal List, and External List to monitor student placement and status.) Tj
+/F1 10 Tf 1 0 0 1 54 274 Tm (2. Check company information when reviewing external OJT.) Tj
+/F1 10 Tf 1 0 0 1 54 260 Tm (3. Coordinate with the coordinator or admin when records need correction.) Tj
+/F1 10 Tf 1 0 0 1 54 246 Tm () Tj
+/F2 12 Tf 1 0 0 1 54 232 Tm (Communication:) Tj
+/F1 10 Tf 1 0 0 1 54 214 Tm (1. Use Chat for quick discussion with students or staff.) Tj
+/F1 10 Tf 1 0 0 1 54 200 Tm (2. Use Email for formal messages inside the system.) Tj
+/F1 10 Tf 1 0 0 1 54 186 Tm (3. Keep communication professional and related to OJT or school activity.) Tj
+/F1 10 Tf 1 0 0 1 54 172 Tm () Tj
+/F2 12 Tf 1 0 0 1 54 158 Tm (Reports:) Tj
+/F1 10 Tf 1 0 0 1 54 140 Tm (1. Use attendance and student progress reports when available.) Tj
+/F1 10 Tf 1 0 0 1 54 126 Tm (2. Confirm filters before exporting or reviewing a report.) Tj
+/F1 10 Tf 1 0 0 1 54 112 Tm (3. Use reports to identify students with missing DTR entries or incomplete hours.) Tj
+/F1 10 Tf 1 0 0 1 54 98 Tm () Tj
+/F2 12 Tf 1 0 0 1 54 84 Tm (Good Practice:) Tj
+/F1 10 Tf 1 0 0 1 54 66 Tm (1. Review pending attendance requests regularly.) Tj
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 352 >>
+stream
+BT
+/F1 10 Tf 1 0 0 1 54 760 Tm (2. Do not approve entries without checking proof.) Tj
+/F1 10 Tf 1 0 0 1 54 746 Tm (3. Leave clear reasons when declining an entry if the system asks for remarks.) Tj
+/F1 10 Tf 1 0 0 1 54 732 Tm (4. Report suspicious or repeated incorrect submissions to the coordinator or admin.) Tj
+/F1 10 Tf 1 0 0 1 54 718 Tm () Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
 xref
-0 8
+0 9
 0000000000 65535 f 
 0000000009 00000 n 
 0000000058 00000 n 
 0000000121 00000 n 
-0000000247 00000 n 
-0000003087 00000 n 
-0000003213 00000 n 
-0000003906 00000 n 
+0000000191 00000 n 
+0000000266 00000 n 
+0000003808 00000 n 
+0000003944 00000 n 
+0000004346 00000 n 
 trailer
-<< /Size 8 /Root 1 0 R >>
+<< /Size 9 /Root 1 0 R >>
 startxref
-3976
+4482
 %%EOF

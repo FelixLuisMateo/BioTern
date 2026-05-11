@@ -786,7 +786,14 @@ $students_query = "
     LEFT JOIN users u_student ON s.user_id = u_student.id
     LEFT JOIN courses c ON s.course_id = c.id
     LEFT JOIN sections sec ON s.section_id = sec.id
-    LEFT JOIN internships i ON s.id = i.student_id AND i.status = 'ongoing'
+    LEFT JOIN internships i ON i.id = (
+        SELECT i_latest.id
+        FROM internships i_latest
+        WHERE i_latest.student_id = s.id
+          AND i_latest.status = 'ongoing'
+        ORDER BY i_latest.id DESC
+        LIMIT 1
+    )
     LEFT JOIN supervisors sup ON sup.id = COALESCE(i.supervisor_id, s.supervisor_id)
     LEFT JOIN users sup_user ON sup_user.id = sup.user_id
     LEFT JOIN coordinators coor ON coor.id = COALESCE(i.coordinator_id, s.coordinator_id)
@@ -1229,6 +1236,7 @@ include 'includes/header.php';
                                                         $value = trim((string)$value);
                                                         return $value !== '' && $value !== '-';
                                                     }));
+                                                    $student_dom_key = (int)$student['id'] . '_' . (int)$index;
                                                     ?>
                                                     <tr
                                                         class="single-item app-students-table-row"
@@ -1252,8 +1260,8 @@ include 'includes/header.php';
                                                         <td>
                                                             <div class="item-checkbox ms-1">
                                                                 <div class="custom-control custom-checkbox">
-                                                                    <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php echo $student['id']; ?>">
-                                                                    <label class="custom-control-label" for="checkBox_<?php echo $student['id']; ?>"></label>
+                                                                    <input type="checkbox" class="custom-control-input checkbox" id="checkBox_<?php echo htmlspecialchars($student_dom_key, ENT_QUOTES, 'UTF-8'); ?>">
+                                                                    <label class="custom-control-label" for="checkBox_<?php echo htmlspecialchars($student_dom_key, ENT_QUOTES, 'UTF-8'); ?>"></label>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -1275,7 +1283,7 @@ include 'includes/header.php';
                                                                     <span class="app-students-student-meta"><?php echo htmlspecialchars($student_id_label); ?></span>
                                                                 </div>
                                                             </a>
-                                                            <div class="collapse app-students-inline-collapse" id="studentRowDetails<?php echo (int)$student['id']; ?>">
+                                                            <div class="collapse app-students-inline-collapse" id="studentRowDetails<?php echo htmlspecialchars($student_dom_key, ENT_QUOTES, 'UTF-8'); ?>">
                                                                 <div class="app-students-inline-details">
                                                                     <div class="app-students-inline-detail-item">
                                                                         <span class="app-students-inline-detail-label">Track</span>
@@ -1329,7 +1337,7 @@ include 'includes/header.php';
                                                         </td>
                                                         <td data-label="Actions">
                                                             <div class="app-students-row-actions">
-                                                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#studentRowDetails<?php echo (int)$student['id']; ?>" aria-expanded="false" aria-controls="studentRowDetails<?php echo (int)$student['id']; ?>">
+                                                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#studentRowDetails<?php echo htmlspecialchars($student_dom_key, ENT_QUOTES, 'UTF-8'); ?>" aria-expanded="false" aria-controls="studentRowDetails<?php echo htmlspecialchars($student_dom_key, ENT_QUOTES, 'UTF-8'); ?>">
                                                                     Details
                                                                 </button>
                                                                 <?php if (!$is_student_user): ?>
