@@ -594,11 +594,15 @@ if (!function_exists('external_attendance_student_context_select_sql')) {
                 sec.late_after_time,
                 sec.weekly_schedule_json,
                 d.name AS department_name,
-                c.name AS course_name
+                c.name AS course_name,
+                i.company_name AS company_name
             FROM students s
             LEFT JOIN sections sec ON sec.id = s.section_id
             LEFT JOIN departments d ON d.id = s.department_id
             LEFT JOIN courses c ON c.id = s.course_id
+            LEFT JOIN internships i ON i.id = (
+                SELECT i2.id FROM internships i2 WHERE i2.student_id = s.id ORDER BY (i2.status = 'ongoing') DESC, i2.id DESC LIMIT 1
+            )
         ";
     }
 }

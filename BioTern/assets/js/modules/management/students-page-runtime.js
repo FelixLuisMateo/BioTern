@@ -318,6 +318,7 @@
     var trackSelect = form.querySelector('select[name="assignment_track"]');
     var departmentSelect = form.querySelector('select[name="department_id"]');
     var supervisorSelect = form.querySelector('select[name="supervisor_id"]');
+    var officeSelect = form.querySelector('select[name="office_id"]');
     var startDateInput = form.querySelector('input[name="start_date"]');
     var summary = modal.querySelector("[data-student-action-summary]");
     var currentInfo = modal.querySelector("[data-student-action-current]");
@@ -351,6 +352,7 @@
         assignment_track: trackSelect ? String(trackSelect.value || "") : "",
         department_id: departmentSelect ? String(departmentSelect.value || "") : "",
         supervisor_id: supervisorSelect ? String(supervisorSelect.value || "") : "",
+        office_id: officeSelect ? String(officeSelect.value || "") : "",
         start_date: startDateInput ? String(startDateInput.value || "") : "",
         saved_at: Date.now(),
       };
@@ -367,7 +369,9 @@
       if (trackSelect && draft.assignment_track) trackSelect.value = String(draft.assignment_track);
       if (departmentSelect && draft.department_id) departmentSelect.value = String(draft.department_id);
       if (supervisorSelect && draft.supervisor_id) supervisorSelect.value = String(draft.supervisor_id);
+      if (officeSelect && draft.office_id) officeSelect.value = String(draft.office_id);
       if (startDateInput && draft.start_date) startDateInput.value = String(draft.start_date);
+      filterAssignmentOptions();
       return true;
     }
 
@@ -400,8 +404,50 @@
           (optionText(departmentSelect, departmentSelect && departmentSelect.value) || departmentName || "Not assigned") +
           " | Supervisor: " +
           (optionText(supervisorSelect, supervisorSelect && supervisorSelect.value) || supervisorName || "Not assigned") +
+          " | Office: " +
+          (optionText(officeSelect, officeSelect && officeSelect.value) || "Auto") +
           " | Coordinator: " +
           (coordinatorName || "Not assigned");
+      }
+    }
+
+    function csvHas(csv, value) {
+      if (!csv || !value) return false;
+      return String(csv).split(",").indexOf(String(value)) !== -1;
+    }
+
+    function filterAssignmentOptions() {
+      var departmentId = departmentSelect ? String(departmentSelect.value || "0") : "0";
+      var supervisorId = supervisorSelect ? String(supervisorSelect.value || "0") : "0";
+      if (supervisorSelect) {
+        Array.prototype.forEach.call(supervisorSelect.options, function (option) {
+          if (!option.value || option.value === "0") {
+            option.hidden = false;
+            return;
+          }
+          var optionDepartment = option.getAttribute("data-department-id") || "0";
+          option.hidden = !(departmentId === "0" || optionDepartment === "0" || optionDepartment === departmentId);
+          if (option.hidden && option.selected) supervisorSelect.value = "0";
+        });
+      }
+      if (officeSelect) {
+        var visibleOffices = [];
+        Array.prototype.forEach.call(officeSelect.options, function (option) {
+          if (!option.value || option.value === "0") {
+            option.hidden = false;
+            return;
+          }
+          var optionDepartment = option.getAttribute("data-department-id") || "0";
+          var supervisorIds = option.getAttribute("data-supervisor-ids") || "";
+          var departmentMatches = departmentId === "0" || optionDepartment === "0" || optionDepartment === departmentId;
+          var supervisorMatches = supervisorId === "0" || csvHas(supervisorIds, supervisorId);
+          option.hidden = !(departmentMatches && supervisorMatches);
+          if (!option.hidden) visibleOffices.push(option.value);
+          if (option.hidden && option.selected) officeSelect.value = "0";
+        });
+        if (supervisorId !== "0" && visibleOffices.length === 1 && (!officeSelect.value || officeSelect.value === "0")) {
+          officeSelect.value = visibleOffices[0];
+        }
       }
     }
 
@@ -421,6 +467,7 @@
         if (trackSelect) trackSelect.value = studentTrack;
         if (departmentSelect) departmentSelect.value = departmentId;
         if (supervisorSelect) supervisorSelect.value = supervisorId;
+        if (officeSelect) officeSelect.value = "0";
         if (departmentSelect && String(departmentSelect.value) !== String(departmentId) && departmentName) {
           for (var di = 0; di < departmentSelect.options.length; di++) {
             if ((departmentSelect.options[di].textContent || "").trim() === departmentName) {
@@ -451,6 +498,7 @@
           window.localStorage.removeItem(draftKey(studentId));
         } catch (e) {}
         updateActionCopy(studentName, studentTrack, supervisorName, coordinatorName, departmentName);
+        filterAssignmentOptions();
 
         if (typeof window.BioTernSelectDropdown !== "undefined" &&
             window.BioTernSelectDropdown &&
@@ -461,9 +509,10 @@
     });
 
     ["change", "input"].forEach(function (evtName) {
-      [trackSelect, departmentSelect, supervisorSelect, startDateInput].forEach(function (field) {
+      [trackSelect, departmentSelect, supervisorSelect, officeSelect, startDateInput].forEach(function (field) {
         if (!field) return;
         field.addEventListener(evtName, writeDraft);
+        field.addEventListener(evtName, filterAssignmentOptions);
       });
     });
 

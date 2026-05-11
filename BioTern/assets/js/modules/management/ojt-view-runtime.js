@@ -37,7 +37,6 @@
     var printAllBtn = document.getElementById("printAllDocsBtn");
     var toggleAllBtn = document.getElementById("toggleAllPrintDocs");
     var hint = document.getElementById("printDocsHint");
-    var printFrame = null;
     var printOptions = Array.prototype.slice.call(
       document.querySelectorAll(".print-doc-option")
     );
@@ -61,23 +60,9 @@
       });
     });
 
-    function getPrintFrame() {
-      if (printFrame) return printFrame;
-      printFrame = document.createElement("iframe");
-      printFrame.id = "batchPrintFrame";
-      printFrame.style.position = "fixed";
-      printFrame.style.width = "0";
-      printFrame.style.height = "0";
-      printFrame.style.border = "0";
-      printFrame.style.opacity = "0";
-      printFrame.style.pointerEvents = "none";
-      document.body.appendChild(printFrame);
-      return printFrame;
-    }
-
     function runBatchPrint(checkedNodes) {
       if (!checkedNodes.length) {
-        if (hint) hint.textContent = "Select at least one document to print.";
+        if (hint) hint.textContent = "Select at least one document to open.";
         return;
       }
 
@@ -90,43 +75,21 @@
         });
 
       if (!queue.length) {
-        if (hint) hint.textContent = "No printable document URL found.";
+        if (hint) hint.textContent = "No document URL found.";
         return;
       }
 
       if (hint) {
-        hint.textContent = "Preparing " + queue.length + " document(s) for printing...";
+        hint.textContent = "Opening " + queue.length + " document preview tab(s)...";
       }
 
-      var frame = getPrintFrame();
-      var index = 0;
+      queue.forEach(function (url) {
+        window.open(url, "_blank", "noopener");
+      });
 
-      var printNext = function () {
-        if (index >= queue.length) {
-          if (hint) hint.textContent = "Done. Printed " + queue.length + " document(s).";
-          return;
-        }
-
-        var url = queue[index];
-        if (hint) hint.textContent = "Printing " + (index + 1) + " of " + queue.length + "...";
-
-        frame.onload = function () {
-          setTimeout(function () {
-            try {
-              frame.contentWindow.focus();
-              frame.contentWindow.print();
-            } catch (e) {
-              // Ignore and continue with next document.
-            }
-            index += 1;
-            setTimeout(printNext, 500);
-          }, 450);
-        };
-
-        frame.src = url + (url.indexOf("?") >= 0 ? "&" : "?") + "batch_print=1";
-      };
-
-      printNext();
+      if (hint) {
+        hint.textContent = "Opened " + queue.length + " preview tab(s). Use the Print button inside each tab.";
+      }
     }
 
     if (printBtn) {
@@ -155,7 +118,7 @@
     if (printAllBtn) {
       printAllBtn.addEventListener("click", function () {
         if (!printOptions.length) {
-          if (hint) hint.textContent = "No documents available to print.";
+          if (hint) hint.textContent = "No documents available to open.";
           return;
         }
         printOptions.forEach(function (option) {

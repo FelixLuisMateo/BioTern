@@ -2,11 +2,13 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
+require_once dirname(__DIR__) . '/lib/offices.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 biotern_boot_session(isset($conn) ? $conn : null);
+biotern_offices_ensure_schema($conn);
 if (!isset($conn) || !($conn instanceof mysqli) || $conn->connect_errno) {
     http_response_code(500);
     die('Database connection is not available.');
@@ -244,7 +246,7 @@ if ($section_res && $section_res->num_rows) {
 $supervisors = [];
 $supervisorOptions = [];
 $sup_res = $db->query("
-    SELECT id, user_id, TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS supervisor_name, department_id
+    SELECT id, user_id, course_id, TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS supervisor_name, department_id
     FROM supervisors
     WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
     ORDER BY supervisor_name ASC
@@ -253,6 +255,18 @@ if ($sup_res && $sup_res->num_rows) {
     while ($r = $sup_res->fetch_assoc()) {
         $supervisors[] = $r['supervisor_name'];
         $supervisorOptions[] = $r;
+    }
+}
+
+$officeOptions = biotern_offices_all($db);
+$officeSupervisorMap = [];
+$officeMapRes = $db->query('SELECT office_id, supervisor_id FROM supervisor_offices');
+if ($officeMapRes) {
+    while ($row = $officeMapRes->fetch_assoc()) {
+        $officeId = (int)($row['office_id'] ?? 0);
+        if ($officeId > 0) {
+            $officeSupervisorMap[$officeId][] = (int)($row['supervisor_id'] ?? 0);
+        }
     }
 }
 
@@ -310,6 +324,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
         $assignmentTrack = strtolower(trim((string)($_POST['assignment_track'] ?? 'internal')));
         $departmentId = (int)($_POST['department_id'] ?? 0);
         $supervisorProfileId = (int)($_POST['supervisor_id'] ?? 0);
+        $officeId = (int)($_POST['office_id'] ?? 0);
         $startDate = trim((string)($_POST['start_date'] ?? date('Y-m-d')));
 
         if ($studentId <= 0) {
@@ -326,6 +341,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
         $studentStmt = $db->prepare("
             SELECT s.id, s.course_id,
                    COALESCE(i.department_id, s.department_id) AS department_id,
+                   COALESCE(i.office_id, 0) AS office_id,
                    COALESCE(i.supervisor_id, s.supervisor_id) AS supervisor_id,
                    COALESCE(i.coordinator_id, s.coordinator_id) AS coordinator_id,
                    first_name, last_name, supervisor_name, coordinator_name,
@@ -376,6 +392,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
         $courseId = (int)($studentRow['course_id'] ?? 0);
         $coordinatorInfo = $coordinatorCourseMap[$courseId] ?? ['user_id' => 0, 'profile_id' => 0, 'name' => trim((string)($studentRow['coordinator_name'] ?? ''))];
         $supervisorName = trim((string)($supervisorProfile['supervisor_name'] ?? ''));
+        $officeName = '';
+        if ($officeId <= 0) {
+            $supervisorOffices = biotern_offices_for_supervisor($db, $supervisorProfileId);
+            if (count($supervisorOffices) === 1) {
+                $officeId = (int)$supervisorOffices[0]['id'];
+                $officeName = (string)$supervisorOffices[0]['name'];
+            }
+        } else {
+            foreach ($officeOptions as $officeOption) {
+                if ((int)$officeOption['id'] === $officeId) {
+                    $officeName = (string)$officeOption['name'];
+                    break;
+                }
+            }
+        }
         $coordinatorName = trim((string)($coordinatorInfo['name'] ?? ''));
         $coordinatorProfileId = (int)($coordinatorInfo['profile_id'] ?? 0);
         $requiredHours = $assignmentTrack === 'external'
@@ -491,6 +522,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                     $internshipTypes .= 'i';
                     $internshipValues[] = $coordinatorProfileId;
                 }
+                if (isset($internshipColumns['office_id'])) {
+                    $internshipSets[] = 'office_id = NULLIF(?, 0)';
+                    $internshipTypes .= 'i';
+                    $internshipValues[] = $officeId;
+                }
+                if (isset($internshipColumns['company_name'])) {
+                    $internshipSets[] = "company_name = COALESCE(NULLIF(company_name, ''), NULLIF(?, ''))";
+                    $internshipTypes .= 's';
+                    $internshipValues[] = $officeName;
+                }
                 if (isset($internshipColumns['start_date'])) {
                     $internshipSets[] = 'start_date = ?';
                     $internshipTypes .= 's';
@@ -549,6 +590,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$is_student_user) {
                     $insertPlaceholders[] = 'NULLIF(?, 0)';
                     $insertTypes .= 'i';
                     $insertValues[] = $supervisorProfileId;
+                }
+                if (isset($internshipColumns['office_id'])) {
+                    $insertColumns[] = 'office_id';
+                    $insertPlaceholders[] = 'NULLIF(?, 0)';
+                    $insertTypes .= 'i';
+                    $insertValues[] = $officeId;
+                }
+                if (isset($internshipColumns['company_name'])) {
+                    $insertColumns[] = 'company_name';
+                    $insertPlaceholders[] = 'NULLIF(?, \'\')';
+                    $insertTypes .= 's';
+                    $insertValues[] = $officeName;
                 }
                 if (isset($internshipColumns['type'])) {
                     $insertColumns[] = 'type';
@@ -1506,7 +1559,19 @@ include 'includes/header.php';
                     <select name="supervisor_id" class="form-select" required>
                         <option value="0">Select supervisor</option>
                         <?php foreach ($supervisorOptions as $supervisorOption): ?>
-                            <option value="<?php echo (int)$supervisorOption['id']; ?>"><?php echo htmlspecialchars((string)$supervisorOption['supervisor_name'], ENT_QUOTES, 'UTF-8'); ?></option>
+                            <option value="<?php echo (int)$supervisorOption['id']; ?>" data-course-id="<?php echo (int)($supervisorOption['course_id'] ?? 0); ?>" data-department-id="<?php echo (int)($supervisorOption['department_id'] ?? 0); ?>"><?php echo htmlspecialchars((string)$supervisorOption['supervisor_name'], ENT_QUOTES, 'UTF-8'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select name="office_id" class="form-select">
+                        <option value="0">Auto office from supervisor</option>
+                        <?php foreach ($officeOptions as $officeOption): ?>
+                            <?php $officeSupIds = $officeSupervisorMap[(int)$officeOption['id']] ?? []; ?>
+                            <option value="<?php echo (int)$officeOption['id']; ?>"
+                                data-course-id="<?php echo (int)($officeOption['course_id'] ?? 0); ?>"
+                                data-department-id="<?php echo (int)($officeOption['department_id'] ?? 0); ?>"
+                                data-supervisor-ids="<?php echo htmlspecialchars(implode(',', $officeSupIds), ENT_QUOTES, 'UTF-8'); ?>">
+                                <?php echo htmlspecialchars((string)$officeOption['name'], ENT_QUOTES, 'UTF-8'); ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                     <input type="date" name="start_date" class="form-control" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>

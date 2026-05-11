@@ -175,6 +175,7 @@ $page_styles = [
     'assets/css/modules/documents/template-print-isolation.css',
 ];
 $page_scripts = [
+    'assets/js/modules/documents/document-print-preview.js',
     'assets/js/modules/documents/endorsement-document-builder.js',
 ];
 include __DIR__ . '/../includes/header.php';

@@ -1,9 +1,11 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
+require_once dirname(__DIR__) . '/lib/offices.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
+biotern_offices_ensure_schema($conn);
 $ops_helpers = dirname(__DIR__) . '/lib/ops_helpers.php';
 if (file_exists($ops_helpers)) {
     require_once $ops_helpers;
@@ -221,6 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                         $selected_supervisor_name = (string)($stmt_u->get_result()->fetch_assoc()['name'] ?? '');
                         $stmt_u->close();
                     }
+                    $primaryOffice = $selected_supervisor_id > 0 ? biotern_supervisor_primary_office($conn, $selected_supervisor_id) : ['id' => 0, 'name' => ''];
                     if ($selected_coordinator_id > 0) {
                         $stmt_u = $conn->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
                         $stmt_u->bind_param('i', $selected_coordinator_id);
@@ -248,6 +251,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                             $i_types .= 'i';
                             $i_vals[] = $selected_supervisor_id;
                             $change_log[] = 'internships.supervisor_id updated';
+                        }
+                        if (in_array('office_id', $intern_cols, true) && (int)$primaryOffice['id'] > 0 && (int)$primaryOffice['id'] !== intval($internship['office_id'] ?? 0)) {
+                            $i_updates[] = 'office_id = ?';
+                            $i_types .= 'i';
+                            $i_vals[] = (int)$primaryOffice['id'];
+                            $change_log[] = 'internships.office_id synchronized from supervisor office';
+                        }
+                        if (in_array('company_name', $intern_cols, true) && trim((string)($internship['company_name'] ?? '')) === '' && (string)$primaryOffice['name'] !== '') {
+                            $i_updates[] = 'company_name = ?';
+                            $i_types .= 's';
+                            $i_vals[] = (string)$primaryOffice['name'];
+                            $change_log[] = 'internships.company_name filled from supervisor office';
                         }
                         if (in_array('coordinator_id', $intern_cols, true) && $selected_coordinator_id > 0 && $selected_coordinator_id !== intval($internship['coordinator_id'] ?? 0)) {
                             $i_updates[] = 'coordinator_id = ?';
@@ -289,6 +304,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_ojt'])) {
                         $insert_types = 'i';
                         if (in_array('status', $intern_cols, true)) { $insert_cols[] = 'status'; $insert_vals[] = $i_status; $insert_types .= 's'; }
                         if (in_array('supervisor_id', $intern_cols, true) && $selected_supervisor_id > 0) { $insert_cols[] = 'supervisor_id'; $insert_vals[] = $selected_supervisor_id; $insert_types .= 'i'; }
+                        if (in_array('office_id', $intern_cols, true) && (int)$primaryOffice['id'] > 0) { $insert_cols[] = 'office_id'; $insert_vals[] = (int)$primaryOffice['id']; $insert_types .= 'i'; }
                         if (in_array('coordinator_id', $intern_cols, true) && $selected_coordinator_id > 0) { $insert_cols[] = 'coordinator_id'; $insert_vals[] = $selected_coordinator_id; $insert_types .= 'i'; }
                         if (in_array('required_hours', $intern_cols, true)) { $insert_cols[] = 'required_hours'; $insert_vals[] = $i_required; $insert_types .= 'i'; }
                         if (in_array('start_date', $intern_cols, true)) { $insert_cols[] = 'start_date'; $insert_vals[] = $i_start; $insert_types .= 's'; }

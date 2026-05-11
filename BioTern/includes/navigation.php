@@ -166,7 +166,7 @@ if (!function_exists('biotern_nav_any_active')) {
 $nav_active_dashboard = biotern_nav_any_active($nav_current_file, ['homepage.php', 'analytics.php']);
 $nav_active_students = biotern_nav_any_active($nav_current_file, [
     'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php', 'students-internal-dtr.php',
-    'applications-review.php', 'attendance.php', 'external-attendance.php', 'attendance-corrections.php', 'print_attendance.php',
+    'applications-review.php', 'attendance.php', 'test-attendance.php', 'external-attendance.php', 'attendance-corrections.php', 'print_attendance.php',
     'student-assistance.php',
 ]);
 $nav_active_ojt = biotern_nav_any_active($nav_current_file, [
@@ -201,6 +201,7 @@ $nav_active_reports = biotern_nav_any_active($nav_current_file, [
 $nav_active_academic = biotern_nav_any_active($nav_current_file, [
     'courses.php', 'courses-create.php', 'courses-edit.php',
     'departments.php', 'departments-create.php', 'departments-edit.php',
+    'offices.php',
     'sections.php', 'sections-create.php', 'sections-edit.php',
 ]);
 $nav_active_apps = biotern_nav_any_active($nav_current_file, [
@@ -394,6 +395,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                     <ul class="nxl-submenu">
                         <li class="nxl-item<?php echo biotern_nav_is_active('courses.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="courses.php">Courses</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('departments.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="departments.php">Departments</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('offices.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="offices.php">Offices</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('sections.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="sections.php">Sections</a></li>
                     </ul>
                 </li>

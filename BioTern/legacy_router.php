@@ -71,6 +71,7 @@ $map = [
   'departments.php' => 'management/departments.php',
   'departments-create.php' => 'management/departments-create.php',
   'departments-edit.php' => 'management/departments-edit.php',
+  'offices.php' => 'management/offices.php',
   'sections.php' => 'management/sections.php',
   'sections-create.php' => 'management/sections-create.php',
   'sections-edit.php' => 'management/sections-edit.php',
@@ -89,6 +90,7 @@ $map = [
   'masterlist-pending-students.php' => 'management/masterlist-pending-students.php',
 
   'attendance.php' => 'pages/attendance.php',
+  'test-attendance.php' => 'pages/test-attendance.php',
   'analytics.php' => 'pages/analytics.php',
   'homepage.php' => 'pages/homepage.php',
   'attendance-corrections.php' => 'pages/attendance-corrections.php',
@@ -391,6 +393,7 @@ if ($is_logged_in) {
   $academic_files = [
     'courses.php', 'courses-create.php', 'courses-edit.php',
     'departments.php', 'departments-create.php', 'departments-edit.php',
+    'offices.php',
     'sections.php', 'sections-create.php', 'sections-edit.php',
     'coordinators.php', 'coordinators-create.php', 'coordinators-edit.php',
     'supervisors.php', 'supervisors-create.php', 'supervisors-edit.php',

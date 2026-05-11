@@ -56,9 +56,22 @@ $student_stmt = $conn->prepare("
         s.internal_total_hours_remaining,
         s.external_total_hours,
         s.external_total_hours_remaining,
+        s.department_id,
+        s.section_id,
+        s.supervisor_name,
+        s.coordinator_name,
+        d.name AS department_name,
+        sec.code AS section_code,
+        sec.name AS section_name,
+        i.company_name AS company_name,
         c.name AS course_name
     FROM students s
     LEFT JOIN courses c ON s.course_id = c.id
+    LEFT JOIN departments d ON d.id = s.department_id
+    LEFT JOIN sections sec ON sec.id = s.section_id
+    LEFT JOIN internships i ON i.id = (
+        SELECT i2.id FROM internships i2 WHERE i2.student_id = s.id ORDER BY (i2.status = 'ongoing') DESC, i2.id DESC LIMIT 1
+    )
     WHERE s.id = ?
     LIMIT 1
 ");
@@ -113,6 +126,11 @@ $total_hours_remaining = $stored_remaining_hours !== null
     ? max(0, (float)$stored_remaining_hours)
     : max(0, $total_hours_target - $month_total_hours);
 $total_hours_completed = max(0, $total_hours_target - $total_hours_remaining);
+$section_label = trim((string)($student['section_code'] ?? ''));
+if ($section_label === '') {
+    $section_label = trim((string)($student['section_name'] ?? ''));
+}
+$company_label = trim((string)($student['company_name'] ?? ''));
 
 function h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -195,6 +213,8 @@ include 'includes/header.php';
                     <div class="student-meta-highlight app-students-dtr-meta-highlight">
                         <span class="chip app-students-dtr-chip">Student ID: <?php echo h($student['student_id']); ?></span>
                         <span class="chip app-students-dtr-chip">Course: <?php echo h($student['course_name'] ?? 'N/A'); ?></span>
+                        <span class="chip app-students-dtr-chip">Section: <?php echo h($section_label !== '' ? $section_label : 'N/A'); ?></span>
+                        <span class="chip app-students-dtr-chip">Department: <?php echo h($student['department_name'] ?? 'N/A'); ?></span>
                         <span class="chip app-students-dtr-chip">Track: <?php echo h(strtoupper((string)($student['assignment_track'] ?? 'internal'))); ?></span>
                     </div>
                 </div>
@@ -223,6 +243,33 @@ include 'includes/header.php';
                         <p class="app-students-dtr-hours-chip-meta mb-0">Remaining: <?php echo h(fmt_hours_hm($total_hours_remaining)); ?></p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-3 col-6">
+            <div class="dtr-summary-card app-students-dtr-summary-card">
+                <div class="dtr-summary-label app-students-dtr-summary-label">Supervisor</div>
+                <div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h($student['supervisor_name'] ?? 'Not assigned'); ?></div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="dtr-summary-card app-students-dtr-summary-card">
+                <div class="dtr-summary-label app-students-dtr-summary-label">Coordinator</div>
+                <div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h($student['coordinator_name'] ?? 'Not assigned'); ?></div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="dtr-summary-card app-students-dtr-summary-card">
+                <div class="dtr-summary-label app-students-dtr-summary-label">Training Site</div>
+                <div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h($company_label !== '' ? $company_label : 'Internal / School'); ?></div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="dtr-summary-card app-students-dtr-summary-card">
+                <div class="dtr-summary-label app-students-dtr-summary-label">Month</div>
+                <div class="dtr-summary-value app-students-dtr-summary-value"><?php echo h($month_label); ?></div>
             </div>
         </div>
     </div>

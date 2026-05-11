@@ -144,6 +144,9 @@ $page_styles = [
     'assets/css/modules/documents/page-application-document-builder.css',
     'assets/css/modules/documents/template-print-isolation.css',
 ];
+$page_scripts = [
+    'assets/js/modules/documents/document-print-preview.js',
+];
 
 include __DIR__ . '/../includes/header.php';
 ?>
@@ -816,6 +819,14 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('[data-parent-consent-print]').forEach(function (button) {
         button.addEventListener('click', function () {
             syncPreview();
+            if (window.BioTernDocumentPrintPreview && typeof window.BioTernDocumentPrintPreview.open === 'function') {
+                window.BioTernDocumentPrintPreview.open({
+                    element: editor,
+                    title: 'Parent Consent Preview',
+                    bodyClass: 'application-builder-page application-document-builder-page parent-consent-builder-page'
+                });
+                return;
+            }
             window.print();
         });
     });

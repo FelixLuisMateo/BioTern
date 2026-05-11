@@ -162,7 +162,10 @@ $page_styles = [
     'assets/css/modules/documents/page-moa-document-builder.css',
     'assets/css/modules/documents/template-print-isolation.css',
 ];
-$page_scripts = ['assets/js/modules/documents/moa-document-builder.js'];
+$page_scripts = [
+    'assets/js/modules/documents/document-print-preview.js',
+    'assets/js/modules/documents/moa-document-builder.js',
+];
 include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">

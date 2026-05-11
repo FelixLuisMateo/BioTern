@@ -2,11 +2,13 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
+require_once dirname(__DIR__) . '/lib/offices.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 /** @var mysqli $conn */
 
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
+biotern_offices_ensure_schema($conn);
 
 $current_role = strtolower(trim((string) (
     $_SESSION['role'] ??
@@ -96,13 +98,83 @@ function biotern_student_edit_ensure_runtime_dir(string $path): bool
     return @mkdir($path, 0755, true) || is_dir($path);
 }
 
-// Ensure new student assignment/hour fields exist.
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours_remaining INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours_remaining INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
+function biotern_student_edit_table_exists(mysqli $conn, string $table): bool
+{
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+        return false;
+    }
+
+    $safeTable = $conn->real_escape_string($table);
+    $res = $conn->query("SHOW TABLES LIKE '{$safeTable}'");
+    $exists = $res instanceof mysqli_result && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+    return $exists;
+}
+
+function biotern_student_edit_column_exists(mysqli $conn, string $table, string $column): bool
+{
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table) || !preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+        return false;
+    }
+
+    $safeTable = $conn->real_escape_string($table);
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    $exists = $res instanceof mysqli_result && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+    return $exists;
+}
+
+function biotern_student_edit_ensure_column(mysqli $conn, string $table, string $column, string $definition): bool
+{
+    if (!biotern_student_edit_table_exists($conn, $table)) {
+        return false;
+    }
+    if (biotern_student_edit_column_exists($conn, $table, $column)) {
+        return true;
+    }
+
+    $ok = @$conn->query("ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}");
+    return $ok === true || biotern_student_edit_column_exists($conn, $table, $column);
+}
+
+// Ensure student-edit can run against older deployed schemas.
+$student_edit_columns = [
+    'profile_picture' => 'VARCHAR(255) DEFAULT NULL',
+    'phone' => 'VARCHAR(50) DEFAULT NULL',
+    'date_of_birth' => 'DATE DEFAULT NULL',
+    'gender' => 'VARCHAR(30) DEFAULT NULL',
+    'address' => 'VARCHAR(255) DEFAULT NULL',
+    'emergency_contact' => 'VARCHAR(255) DEFAULT NULL',
+    'department_id' => 'INT DEFAULT NULL',
+    'section_id' => 'INT DEFAULT NULL',
+    'internal_total_hours' => 'INT(11) DEFAULT NULL',
+    'internal_total_hours_remaining' => 'INT(11) DEFAULT NULL',
+    'external_total_hours' => 'INT(11) DEFAULT NULL',
+    'external_total_hours_remaining' => 'INT(11) DEFAULT NULL',
+    'assignment_track' => "VARCHAR(20) NOT NULL DEFAULT 'internal'",
+    'external_start_allowed' => 'TINYINT(1) NOT NULL DEFAULT 0',
+    'biometric_registered' => 'TINYINT(1) NOT NULL DEFAULT 0',
+    'biometric_registered_at' => 'DATETIME DEFAULT NULL',
+    'supervisor_name' => 'VARCHAR(255) DEFAULT NULL',
+    'coordinator_name' => 'VARCHAR(255) DEFAULT NULL',
+];
+
+foreach ($student_edit_columns as $column => $definition) {
+    biotern_student_edit_ensure_column($conn, 'students', $column, $definition);
+}
+biotern_student_edit_ensure_column($conn, 'users', 'profile_picture', 'VARCHAR(255) DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'users', 'updated_at', 'DATETIME DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'supervisors', 'user_id', 'INT DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'supervisors', 'course_id', 'INT DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'supervisors', 'department_id', 'INT DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'coordinators', 'user_id', 'INT DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'coordinators', 'department_id', 'INT DEFAULT NULL');
+biotern_student_edit_ensure_column($conn, 'internships', 'office_id', 'BIGINT UNSIGNED NULL');
 
 // Get student ID from URL parameter
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -156,6 +228,8 @@ $student_query = "
         c.name as course_name,
         c.id as course_id,
         i.id as internship_id,
+        i.office_id as internship_office_id,
+        i.company_name as internship_company_name,
         i.supervisor_id as internship_supervisor_id,
         i.coordinator_id as internship_coordinator_id,
         sv.id as supervisor_id,
@@ -171,6 +245,10 @@ $student_query = "
 ";
 
 $stmt = $conn->prepare($student_query);
+if (!$stmt) {
+    http_response_code(500);
+    die('Unable to load student record. Database query could not be prepared: ' . htmlspecialchars($conn->error, ENT_QUOTES, 'UTF-8'));
+}
 $stmt->bind_param("i", $student_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -233,6 +311,8 @@ if ($sections_result && $sections_result->num_rows > 0) {
 $supervisors_query = "
     SELECT 
         id,
+        course_id,
+        department_id,
         TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS name
     FROM supervisors
     WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
@@ -244,8 +324,22 @@ if ($supervisors_result->num_rows > 0) {
     while ($row = $supervisors_result->fetch_assoc()) {
         $supervisors[] = [
             'id' => (int)$row['id'],
+            'course_id' => (int)($row['course_id'] ?? 0),
+            'department_id' => (int)($row['department_id'] ?? 0),
             'name' => $row['name']
         ];
+    }
+}
+
+$officeOptions = biotern_offices_all($conn);
+$officeSupervisorMap = [];
+$officeMapRes = $conn->query('SELECT office_id, supervisor_id FROM supervisor_offices');
+if ($officeMapRes) {
+    while ($row = $officeMapRes->fetch_assoc()) {
+        $officeId = (int)($row['office_id'] ?? 0);
+        if ($officeId > 0) {
+            $officeSupervisorMap[$officeId][] = (int)($row['supervisor_id'] ?? 0);
+        }
     }
 }
 
@@ -369,6 +463,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $section_id = isset($_POST['section_id']) ? intval($_POST['section_id']) : 0;
     $status = isset($_POST['status']) ? intval($_POST['status']) : 1;
     $supervisor_id = isset($_POST['supervisor_id']) && $_POST['supervisor_id'] !== '' ? intval($_POST['supervisor_id']) : null;
+    $office_id = isset($_POST['office_id']) && $_POST['office_id'] !== '' ? intval($_POST['office_id']) : null;
     $coordinator_id = isset($_POST['coordinator_id']) && $_POST['coordinator_id'] !== '' ? intval($_POST['coordinator_id']) : null;
     $student_id_code = isset($_POST['student_id']) ? trim($_POST['student_id']) : ($student['student_id'] ?? '');
     $internal_total_hours = isset($_POST['internal_total_hours']) && $_POST['internal_total_hours'] !== '' ? intval($_POST['internal_total_hours']) : null;
@@ -411,6 +506,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $selected_supervisor_name = $sup_name_res->fetch_assoc()['name'];
             }
             $sup_name_stmt->close();
+        }
+    }
+    $selectedOffice = ['id' => 0, 'name' => ''];
+    if ($office_id !== null && $office_id > 0) {
+        $officeStmt = $conn->prepare("SELECT id, name FROM offices WHERE id = ? AND deleted_at IS NULL LIMIT 1");
+        if ($officeStmt) {
+            $officeStmt->bind_param('i', $office_id);
+            $officeStmt->execute();
+            $selectedOffice = $officeStmt->get_result()->fetch_assoc() ?: $selectedOffice;
+            $officeStmt->close();
+        }
+    }
+    if (($office_id === null || $office_id <= 0) && $supervisor_id !== null) {
+        $supervisorOffices = biotern_offices_for_supervisor($conn, $supervisor_id);
+        if (count($supervisorOffices) === 1) {
+            $office_id = (int)$supervisorOffices[0]['id'];
+            $selectedOffice = ['id' => $office_id, 'name' => (string)$supervisorOffices[0]['name']];
         }
     }
 
@@ -651,11 +763,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     if (!empty($student['internship_id'])) {
                         $internship_update = $conn->prepare("
                             UPDATE internships
-                            SET supervisor_id = ?, coordinator_id = ?, status = 'ongoing', updated_at = NOW()
+                            SET supervisor_id = ?, coordinator_id = ?, office_id = NULLIF(?, 0), company_name = COALESCE(NULLIF(company_name, ''), NULLIF(?, '')), status = 'ongoing', updated_at = NOW()
                             WHERE id = ?
                         ");
                             if ($internship_update) {
-                            $internship_update->bind_param("iii", $intern_supervisor_user_id, $intern_coordinator_user_id, $student['internship_id']);
+                            $officeName = (string)($selectedOffice['name'] ?? '');
+                            $officeIdForSave = (int)($office_id ?? 0);
+                            $internship_update->bind_param("iiisi", $intern_supervisor_user_id, $intern_coordinator_user_id, $officeIdForSave, $officeName, $student['internship_id']);
                             $internship_update->execute();
                             $internship_update->close();
                         }
@@ -682,11 +796,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         if ($latest_internship_id) {
                             $internship_update = $conn->prepare("
                                 UPDATE internships
-                                SET supervisor_id = ?, coordinator_id = ?, status = 'ongoing', updated_at = NOW()
+                                SET supervisor_id = ?, coordinator_id = ?, office_id = NULLIF(?, 0), company_name = COALESCE(NULLIF(company_name, ''), NULLIF(?, '')), status = 'ongoing', updated_at = NOW()
                                 WHERE id = ?
                             ");
                             if ($internship_update) {
-                                $internship_update->bind_param("iii", $intern_supervisor_user_id, $intern_coordinator_user_id, $latest_internship_id);
+                                $officeName = (string)($selectedOffice['name'] ?? '');
+                                $officeIdForSave = (int)($office_id ?? 0);
+                                $internship_update->bind_param("iiisi", $intern_supervisor_user_id, $intern_coordinator_user_id, $officeIdForSave, $officeName, $latest_internship_id);
                                 $internship_update->execute();
                                 $internship_update->close();
                             }
@@ -718,18 +834,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                                 $insert_intern = $conn->prepare("
                                     INSERT INTO internships
-                                    (student_id, course_id, department_id, coordinator_id, supervisor_id, type, start_date, status, school_year, required_hours, rendered_hours, completion_percentage, created_at, updated_at)
+                                    (student_id, course_id, department_id, coordinator_id, supervisor_id, office_id, company_name, type, start_date, status, school_year, required_hours, rendered_hours, completion_percentage, created_at, updated_at)
                                     VALUES
-                                    (?, ?, ?, ?, ?, ?, ?, 'ongoing', ?, ?, ?, ?, NOW(), NOW())
+                                    (?, ?, ?, ?, ?, NULLIF(?, 0), NULLIF(?, ''), ?, ?, 'ongoing', ?, ?, ?, ?, NOW(), NOW())
                                 ");
                                 if ($insert_intern) {
+                                    $officeName = (string)($selectedOffice['name'] ?? '');
+                                    $officeIdForSave = (int)($office_id ?? 0);
                                     $insert_intern->bind_param(
-                                        "iiiiisssiid",
+                                        "iiiiiissssiid",
                                         $student_id,
                                         $course_for_intern,
                                         $department_id,
                                         $intern_coordinator_user_id,
                                         $intern_supervisor_user_id,
+                                        $officeIdForSave,
+                                        $officeName,
                                         $type,
                                         $today,
                                         $school_year,
@@ -758,10 +878,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     }
                     // Refresh student data
                     $stmt = $conn->prepare($student_query);
-                    $stmt->bind_param("i", $student_id);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
-                    $student = $result->fetch_assoc();
+                    if ($stmt) {
+                        $stmt->bind_param("i", $student_id);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        $student = $result->fetch_assoc();
+                        $stmt->close();
+                    }
                 } else {
                     $error_message = "Error updating student: " . $update_stmt->error;
                 }
@@ -1011,11 +1134,30 @@ include 'includes/header.php';
                                                     <option value=""></option>
                                                     <?php foreach ($supervisors as $supervisor): ?>
                                                         <option value="<?php echo (int)$supervisor['id']; ?>"
+                                                            data-course-id="<?php echo (int)($supervisor['course_id'] ?? 0); ?>"
+                                                            data-department-id="<?php echo (int)($supervisor['department_id'] ?? 0); ?>"
                                                             <?php echo ((int)($student['supervisor_id'] ?? 0) === (int)$supervisor['id']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($supervisor['name']); ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
+                                            </div>
+                                            <div class="col-md-6 mb-4">
+                                                <label for="office_id" class="form-label fw-semibold">Office</label>
+                                                <select class="form-control" id="office_id" name="office_id">
+                                                    <option value="">Auto from supervisor</option>
+                                                    <?php foreach ($officeOptions as $office): ?>
+                                                        <?php $officeSupIds = $officeSupervisorMap[(int)$office['id']] ?? []; ?>
+                                                        <option value="<?php echo (int)$office['id']; ?>"
+                                                            data-course-id="<?php echo (int)($office['course_id'] ?? 0); ?>"
+                                                            data-department-id="<?php echo (int)($office['department_id'] ?? 0); ?>"
+                                                            data-supervisor-ids="<?php echo htmlspecialchars(implode(',', $officeSupIds), ENT_QUOTES, 'UTF-8'); ?>"
+                                                            <?php echo ((int)($student['internship_office_id'] ?? 0) === (int)$office['id']) ? 'selected' : ''; ?>>
+                                                            <?php echo htmlspecialchars((string)$office['name'], ENT_QUOTES, 'UTF-8'); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <small class="form-text text-muted">If the supervisor has one office, this fills automatically. If they have more than one, choose the exact office here.</small>
                                             </div>
                                             <div class="col-md-6 mb-4">
                                                 <label for="coordinator_id" class="form-label fw-semibold">Coordinator</label>
@@ -1216,6 +1358,62 @@ document.addEventListener('DOMContentLoaded', function () {
         courseSelect.addEventListener('change', filterSections);
         filterSections();
     }
+
+    var departmentSelect = document.getElementById('department_id');
+    var supervisorSelect = document.getElementById('supervisor_id');
+    var officeSelect = document.getElementById('office_id');
+
+    function csvHas(csv, value) {
+        if (!csv || !value) return false;
+        return csv.split(',').indexOf(String(value)) !== -1;
+    }
+
+    function filterSupervisorsAndOffices() {
+        var courseId = courseSelect ? (courseSelect.value || '0') : '0';
+        var departmentId = departmentSelect ? (departmentSelect.value || '0') : '0';
+        if (supervisorSelect) {
+            Array.prototype.forEach.call(supervisorSelect.options, function (option) {
+                if (!option.value) {
+                    option.hidden = false;
+                    return;
+                }
+                var optionCourse = option.getAttribute('data-course-id') || '0';
+                var optionDepartment = option.getAttribute('data-department-id') || '0';
+                var courseMatches = courseId === '0' || optionCourse === '0' || optionCourse === courseId;
+                var departmentMatches = departmentId === '0' || optionDepartment === '0' || optionDepartment === departmentId;
+                option.hidden = !(courseMatches && departmentMatches);
+                if (option.hidden && option.selected) supervisorSelect.value = '';
+            });
+        }
+
+        if (officeSelect) {
+            var supervisorId = supervisorSelect ? (supervisorSelect.value || '') : '';
+            var visibleOfficeValues = [];
+            Array.prototype.forEach.call(officeSelect.options, function (option) {
+                if (!option.value) {
+                    option.hidden = false;
+                    return;
+                }
+                var officeCourse = option.getAttribute('data-course-id') || '0';
+                var officeDepartment = option.getAttribute('data-department-id') || '0';
+                var supervisorIds = option.getAttribute('data-supervisor-ids') || '';
+                var courseMatches = courseId === '0' || officeCourse === '0' || officeCourse === courseId;
+                var departmentMatches = departmentId === '0' || officeDepartment === '0' || officeDepartment === departmentId;
+                var supervisorMatches = !supervisorId || csvHas(supervisorIds, supervisorId);
+                option.hidden = !(courseMatches && departmentMatches && supervisorMatches);
+                if (!option.hidden) visibleOfficeValues.push(option.value);
+                if (option.hidden && option.selected) officeSelect.value = '';
+            });
+            if (supervisorId && visibleOfficeValues.length === 1 && !officeSelect.value) {
+                officeSelect.value = visibleOfficeValues[0];
+            }
+        }
+    }
+
+    if (courseSelect) courseSelect.addEventListener('change', filterSupervisorsAndOffices);
+    if (departmentSelect) departmentSelect.addEventListener('change', filterSupervisorsAndOffices);
+    if (supervisorSelect) supervisorSelect.addEventListener('change', filterSupervisorsAndOffices);
+    filterSupervisorsAndOffices();
 
     var toggle = document.getElementById('toggle_admin_reset_password');
     if (!toggle) {

@@ -48,6 +48,19 @@ if ($listResult) {
     }
 }
 
+$departmentSupervisors = [];
+$supRes = $conn->query("
+    SELECT department_id, GROUP_CONCAT(TRIM(CONCAT(first_name, ' ', last_name)) ORDER BY first_name, last_name SEPARATOR ', ') AS supervisor_names
+    FROM supervisors
+    WHERE deleted_at IS NULL AND department_id IS NOT NULL
+    GROUP BY department_id
+");
+if ($supRes) {
+    while ($row = $supRes->fetch_assoc()) {
+        $departmentSupervisors[(int)($row['department_id'] ?? 0)] = (string)($row['supervisor_names'] ?? '');
+    }
+}
+
 // set title for header include
 $page_title = 'Departments';
 
@@ -89,6 +102,7 @@ $page_title = 'Departments';
                             <th>Name</th>
                             <?php if ($hasColumn('location')): ?><th>Location</th><?php endif; ?>
                             <?php if ($hasColumn('department_head')): ?><th>Department Head</th><?php endif; ?>
+                            <th>Supervisors</th>
                             <?php if ($hasColumn('is_active')): ?><th>Status</th><?php endif; ?>
                             <?php if ($hasColumn('created_at')): ?><th>Created</th><?php endif; ?>
                             <th>Actions</th>
@@ -111,6 +125,7 @@ $page_title = 'Departments';
                                 <?php if ($hasColumn('department_head')): ?>
                                     <td><span class="app-academic-head"><?php echo htmlspecialchars((string)($dept['department_head'] ?? '-')); ?></span></td>
                                 <?php endif; ?>
+                                <td><span class="app-academic-created"><?php echo htmlspecialchars($departmentSupervisors[(int)$dept['id']] ?? '-'); ?></span></td>
                                 <?php if ($hasColumn('is_active')): ?>
                                     <td>
                                         <?php if ((string)($dept['is_active'] ?? '0') === '1'): ?>
@@ -132,7 +147,7 @@ $page_title = 'Departments';
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="<?php echo 4 + ($hasColumn('location') ? 1 : 0) + ($hasColumn('department_head') ? 1 : 0) + ($hasColumn('is_active') ? 1 : 0) + ($hasColumn('created_at') ? 1 : 0); ?>" class="text-center py-4 text-muted">No departments found.</td>
+                            <td colspan="<?php echo 5 + ($hasColumn('location') ? 1 : 0) + ($hasColumn('department_head') ? 1 : 0) + ($hasColumn('is_active') ? 1 : 0) + ($hasColumn('created_at') ? 1 : 0); ?>" class="text-center py-4 text-muted">No departments found.</td>
                         </tr>
                     <?php endif; ?>
                     </tbody>
@@ -173,6 +188,10 @@ $page_title = 'Departments';
                                         <span class="app-mobile-value app-ojt-mobile-value"><?php echo htmlspecialchars((string)($dept['department_head'] ?? '-')); ?></span>
                                     </div>
                                 <?php endif; ?>
+                                <div class="app-mobile-row app-ojt-mobile-row">
+                                    <span class="app-mobile-label app-ojt-mobile-label">Supervisors</span>
+                                    <span class="app-mobile-value app-ojt-mobile-value"><?php echo htmlspecialchars($departmentSupervisors[(int)$dept['id']] ?? '-'); ?></span>
+                                </div>
                                 <?php if ($hasColumn('is_active')): ?>
                                     <div class="app-mobile-row app-ojt-mobile-row">
                                         <span class="app-mobile-label app-ojt-mobile-label">Status</span>

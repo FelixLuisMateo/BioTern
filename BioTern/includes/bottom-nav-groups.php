@@ -105,10 +105,11 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'icon' => 'feather-briefcase',
                 'routes' => [
                     'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php', 'students-internal-dtr.php',
-                    'applications-review.php', 'attendance.php', 'external-attendance.php', 'attendance-corrections.php', 'print_attendance.php', 'external-biometric.php',
-                    'fingerprint_mapping.php', 'biometric-machine.php', 'biometric_machine_sync.php',
+                    'applications-review.php', 'attendance.php', 'test-attendance.php', 'external-attendance.php', 'attendance-corrections.php', 'print_attendance.php', 'external-biometric.php',
+                    'student-assistance.php',
+                    'fingerprint_mapping.php', 'biometric-fleet.php', 'biometric-machine.php', 'biometric_machine_sync.php',
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
-                    'import-ojt-internal.php', 'import-ojt-external.php',
+                    'companies.php', 'ojt-internal-list.php', 'ojt-external-list.php',
                     'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-hours-completion.php',
                     'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
                     'reports-unassigned-students.php', 'reports-document.php',
@@ -119,12 +120,20 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'title' => 'Student Management',
                         'items' => [
                             ['label' => 'Students List', 'href' => 'students.php', 'icon' => 'feather-users'],
+                            ...($canSystem ? [
+                                ['label' => 'SA Program', 'href' => 'student-assistance.php', 'icon' => 'feather-heart'],
+                            ] : []),
                             ['label' => 'Applications Review', 'href' => 'applications-review.php', 'icon' => 'feather-clipboard'],
-                            ['label' => 'Internal DTR', 'href' => 'attendance.php', 'icon' => 'feather-clock'],
-                            ['label' => 'External DTR', 'href' => 'external-attendance.php', 'icon' => 'feather-briefcase'],
+                            ['label' => 'Internal Attendance', 'href' => 'attendance.php', 'icon' => 'feather-clock'],
+                            ['label' => 'External Attendance', 'href' => 'external-attendance.php', 'icon' => 'feather-briefcase'],
+                        ],
+                    ],
+                    [
+                        'title' => 'Machine Management',
+                        'items' => [
                             ['label' => 'Fingerprint Mapping', 'href' => 'fingerprint_mapping.php', 'icon' => 'feather-link'],
+                            ['label' => 'Machine Fleet', 'href' => 'biometric-fleet.php', 'icon' => 'feather-server'],
                             ['label' => 'F20H Machine Manager', 'href' => 'biometric-machine.php', 'icon' => 'feather-cpu'],
-                            ['label' => 'Sync Biometric Machine', 'href' => 'biometric_machine_sync.php?redirect=biometric-machine.php', 'icon' => 'feather-refresh-cw'],
                         ],
                     ],
                     [
@@ -132,8 +141,9 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'items' => [
                             ['label' => 'OJT List', 'href' => 'ojt.php', 'icon' => 'feather-archive'],
                             ['label' => 'OJT Create', 'href' => 'ojt-create.php', 'icon' => 'feather-plus-circle'],
-                            ['label' => 'Import OJT Internal', 'href' => 'import-ojt-internal.php', 'icon' => 'feather-upload'],
-                            ['label' => 'Import OJT External', 'href' => 'import-ojt-external.php', 'icon' => 'feather-upload-cloud'],
+                            ['label' => 'Companies', 'href' => 'companies.php', 'icon' => 'feather-map-pin'],
+                            ['label' => 'Internal List', 'href' => 'ojt-internal-list.php', 'icon' => 'feather-list'],
+                            ['label' => 'External List', 'href' => 'ojt-external-list.php', 'icon' => 'feather-list'],
                         ],
                     ],
                     [
@@ -174,6 +184,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'routes' => [
                     'courses.php', 'courses-create.php', 'courses-edit.php',
                     'departments.php', 'departments-create.php', 'departments-edit.php',
+                    'offices.php',
                     'sections.php', 'sections-create.php', 'sections-edit.php',
                 ],
                 'sections' => [
@@ -182,6 +193,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'items' => [
                             ['label' => 'Courses', 'href' => 'courses.php', 'icon' => 'feather-book-open'],
                             ['label' => 'Departments', 'href' => 'departments.php', 'icon' => 'feather-briefcase'],
+                            ['label' => 'Offices', 'href' => 'offices.php', 'icon' => 'feather-map-pin'],
                             ['label' => 'Sections', 'href' => 'sections.php', 'icon' => 'feather-layers'],
                         ],
                     ],
@@ -192,13 +204,14 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         if ($canWorkspace) {
             $workspaceItems = [
                 ['label' => 'Chat', 'href' => 'apps-chat.php', 'icon' => 'feather-message-circle'],
+                ['label' => 'Announcements', 'href' => 'announcements.php', 'icon' => 'feather-megaphone'],
                 ['label' => 'Email', 'href' => 'apps-email.php', 'icon' => 'feather-mail'],
                 ['label' => 'Notes', 'href' => 'apps-notes.php', 'icon' => 'feather-edit-2'],
                 ['label' => 'Storage', 'href' => 'apps-storage.php', 'icon' => 'feather-hard-drive'],
                 ['label' => 'Calendar', 'href' => 'apps-calendar.php', 'icon' => 'feather-calendar'],
             ];
             $workspaceRoutes = [
-                'apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
+                'apps-chat.php', 'announcements.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php',
             ];
 
             if ($isStudent) {
@@ -269,10 +282,10 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'coordinators.php', 'coordinators-create.php', 'coordinators-edit.php',
                     'supervisors.php', 'supervisors-create.php', 'supervisors-edit.php',
                     'settings-general.php', 'settings-email.php', 'settings-ojt.php', 'settings-students.php',
-                    'settings-support.php',
-                    'theme-customizer.php', 'import-students-excel.php', 'import-sql.php',
+                    'settings-attendance.php', 'settings-support.php', 'notifications.php', 'account-settings.php',
+                    'theme-customizer.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php', 'import-sql.php',
                     'reports-admin-logs.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-chat-penalties.php',
-                    'reports-import-errors.php', 'reports-dtr-manual-input.php',
+                    'reports-import-errors.php', 'reports-dtr-manual-input.php', 'demo-biometric.php',
                 ],
                 'sections' => [
                     [
@@ -291,6 +304,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Email', 'href' => 'settings-email.php', 'icon' => 'feather-mail'],
                             ['label' => 'OJT Settings', 'href' => 'settings-ojt.php', 'icon' => 'feather-briefcase'],
                             ['label' => 'Student Settings', 'href' => 'settings-students.php', 'icon' => 'feather-users'],
+                            ['label' => 'Attendance Settings', 'href' => 'settings-attendance.php', 'icon' => 'feather-clock'],
                             ['label' => 'Support', 'href' => 'settings-support.php', 'icon' => 'feather-life-buoy'],
                             ['label' => 'Notifications', 'href' => 'notifications.php', 'icon' => 'feather-bell'],
                             ['label' => 'Account Settings', 'href' => 'account-settings.php', 'icon' => 'feather-user'],
@@ -309,9 +323,12 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     [
                         'title' => 'Tools',
                         'items' => [
-                            ['label' => 'Excel Import', 'href' => 'import-students-excel.php', 'icon' => 'feather-upload'],
+                            ['label' => "Student's Masterlist Import/Export", 'href' => 'import-students-excel.php', 'icon' => 'feather-upload'],
+                            ['label' => 'Import OJT Internal', 'href' => 'import-ojt-internal.php', 'icon' => 'feather-upload'],
+                            ['label' => 'Import OJT External', 'href' => 'import-ojt-external.php', 'icon' => 'feather-upload-cloud'],
                             ['label' => 'Import Error Report', 'href' => 'reports-import-errors.php', 'icon' => 'feather-alert-triangle'],
                             ['label' => 'Manual DTR Input', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit'],
+                            ['label' => 'Biometric Demo', 'href' => 'demo-biometric.php', 'icon' => 'feather-cpu'],
                             ['label' => 'Data Transfer', 'href' => 'import-sql.php', 'icon' => 'feather-database'],
                             ['label' => 'Appearance', 'href' => 'theme-customizer.php', 'icon' => 'feather-droplet'],
                         ],

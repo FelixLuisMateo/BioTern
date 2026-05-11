@@ -930,8 +930,22 @@ function attendanceScheduleDisplayFallback(array $attendance, string $column): ?
     }
 
     $session = section_schedule_inferred_session($schedule);
+    $dayType = section_schedule_normalize_day_type(
+        (string)($schedule['day_type'] ?? 'class'),
+        attendanceDateWeekdayKey((string)($attendance['attendance_date'] ?? ''))
+    );
     $scheduleIn = section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? ''));
     $scheduleOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
+
+    if ($dayType === 'class' || $dayType === 'x2_schedule') {
+        if ($column === 'morning_time_in') {
+            return $scheduleIn;
+        }
+        if ($column === 'morning_time_out') {
+            return $scheduleOut;
+        }
+        return null;
+    }
 
     if ($session === 'morning_only') {
         if ($column === 'morning_time_in') {
@@ -987,6 +1001,14 @@ function attendanceIsMorningAbsentForWholeDay(array $attendance): bool {
         return false;
     }
 
+    $dayType = section_schedule_normalize_day_type(
+        (string)($schedule['day_type'] ?? 'class'),
+        attendanceDateWeekdayKey((string)($attendance['attendance_date'] ?? ''))
+    );
+    if ($dayType === 'class' || $dayType === 'x2_schedule') {
+        return false;
+    }
+
     $session = section_schedule_inferred_session($schedule);
     if ($session !== 'whole_day') {
         return false;
@@ -1009,13 +1031,24 @@ function attendanceScheduledClassLabel(array $attendance): string
     $scheduleIn = section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? ''));
     $scheduleOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
 
-    if ($scheduleIn === '' || $scheduleOut === '') {
+    if ($scheduleIn === null || $scheduleOut === null) {
         return 'Class';
     }
 
     $from = date('g:i A', strtotime($scheduleIn));
     $to = date('g:i A', strtotime($scheduleOut));
     return $from . ' to ' . $to;
+}
+
+function attendanceScheduleFallbackSuffix(array $attendance): string
+{
+    $schedule = attendance_effective_schedule($attendance);
+    $dayType = section_schedule_normalize_day_type(
+        (string)($schedule['day_type'] ?? 'class'),
+        attendanceDateWeekdayKey((string)($attendance['attendance_date'] ?? ''))
+    );
+
+    return ($dayType === 'class' || $dayType === 'x2_schedule') ? 'Class' : 'OJT';
 }
 
 function attendanceExpectedEndLabel(array $attendance, string $column): string
@@ -1043,7 +1076,8 @@ function attendanceDisplayTimeHtml(array $attendance, string $column, string $ba
     }
 
     $classTimeLabel = date('g:i A', strtotime((string)$resolved['time']));
-    return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($classTimeLabel . ' Class', ENT_QUOTES, 'UTF-8') . '</span>';
+    $suffix = attendanceScheduleFallbackSuffix($attendance);
+    return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars($classTimeLabel . ' ' . $suffix, ENT_QUOTES, 'UTF-8') . '</span>';
 }
 
 function resolve_attendance_profile_image_url(string $profilePath, int $userId = 0): ?string {
@@ -1183,13 +1217,30 @@ function attendance_collect_punch_values(array $attendance): array {
 
 function attendance_schedule_bounds(array $attendance): array {
     $schedule = attendance_effective_schedule($attendance);
+    $schoolHours = attendance_school_hours_config($GLOBALS['machineConfig'] ?? []);
+    $dayType = section_schedule_normalize_day_type(
+        (string)($schedule['day_type'] ?? 'class'),
+        attendanceDateWeekdayKey((string)($attendance['attendance_date'] ?? ''))
+    );
+    $scheduleIn = section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? ''));
+    $scheduleOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
+    $schoolOut = section_schedule_normalize_time_input((string)($schoolHours['schedule_time_out'] ?? '')) ?: '19:00:00';
+
+    if (($dayType === 'class' || $dayType === 'x2_schedule') && ($schedule['window_source'] ?? '') === 'section' && $scheduleOut !== null) {
+        return [
+            'schedule' => $schedule,
+            'official_start' => $scheduleOut,
+            'official_end' => $schoolOut,
+            'late_after' => $scheduleOut,
+        ];
+    }
 
     return [
         'schedule' => $schedule,
-        'official_start' => section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? '')) ?: '08:00:00',
-        'official_end' => section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? '')) ?: '19:00:00',
+        'official_start' => $scheduleIn ?: '08:00:00',
+        'official_end' => $scheduleOut ?: '19:00:00',
         'late_after' => section_schedule_normalize_time_input((string)($schedule['late_after_time'] ?? ''))
-            ?: (section_schedule_normalize_time_input((string)($schedule['schedule_time_in'] ?? '')) ?: '08:00:00'),
+            ?: ($scheduleIn ?: '08:00:00'),
     ];
 }
 
@@ -1925,7 +1976,7 @@ if (trim((string)($_GET['print'] ?? '')) === 'list') {
 }
 ?>
 <?php
-$page_title = 'BioTern || Internal Attendance';
+$page_title = !empty($biotern_attendance_sandbox) ? 'BioTern || Test Attendance' : 'BioTern || Internal Attendance';
 $page_body_class = 'attendance-page';
 $page_styles = ['assets/css/modules/pages/page-attendance.css?v=20260509c'];
 $page_scripts = [
@@ -2062,6 +2113,11 @@ include 'includes/header.php';
                 <div class="alert alert-<?php echo htmlspecialchars((string)($attendance_sync_flash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?> alert-dismissible fade show mx-3" role="alert" id="attendanceSyncAlert">
                     <?php echo nl2br(htmlspecialchars((string)$attendance_sync_flash['message'], ENT_QUOTES, 'UTF-8')); ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($biotern_attendance_sandbox)): ?>
+                <div class="alert alert-info mx-3" role="alert">
+                    Test Attendance sandbox. This page uses the same data as Internal Attendance so display changes can be reviewed here before changing the original workflow.
                 </div>
             <?php endif; ?>
             <?php if (!empty($missingScheduleAttendances)): ?>

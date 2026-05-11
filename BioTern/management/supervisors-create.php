@@ -1,6 +1,7 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/lib/offices.php';
 /** @var mysqli $conn */
 
 require_roles_page(['admin']);
@@ -8,7 +9,7 @@ require_roles_page(['admin']);
 $message = '';
 $message_type = 'info';
 
-biotern_ensure_table_column($conn, 'supervisors', 'office_location', 'VARCHAR(255) DEFAULT NULL');
+biotern_offices_ensure_schema($conn);
 
 $supervisorColumns = [];
 $supervisorColumnResult = $conn->query("SHOW COLUMNS FROM supervisors");
@@ -35,6 +36,16 @@ if ($dept_res) {
     }
 }
 
+$courses = [];
+$courseRes = $conn->query("SELECT id, name FROM courses ORDER BY name ASC");
+if ($courseRes) {
+    while ($row = $courseRes->fetch_assoc()) {
+        $courses[] = $row;
+    }
+}
+
+$offices = biotern_offices_all($conn);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim((string)($_POST['username'] ?? ''));
     $password = (string)($_POST['password'] ?? '');
@@ -43,10 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $middle_name = trim((string)($_POST['middle_name'] ?? ''));
     $email = trim((string)($_POST['email'] ?? ''));
     $phone = trim((string)($_POST['phone'] ?? ''));
+    $course_id_raw = trim((string)($_POST['course_id'] ?? ''));
+    $course_id = $course_id_raw !== '' ? (int)$course_id_raw : null;
     $department_id_raw = trim((string)($_POST['department_id'] ?? ''));
     $department_id = $department_id_raw !== '' ? (int)$department_id_raw : null;
     $specialization = trim((string)($_POST['specialization'] ?? ''));
     $office_location = trim((string)($_POST['office_location'] ?? ''));
+    $office_ids = isset($_POST['office_ids']) && is_array($_POST['office_ids']) ? $_POST['office_ids'] : [];
     $bio = trim((string)($_POST['bio'] ?? ''));
     $profile_picture = '';
     $is_active = isset($_POST['is_active']) ? 1 : 0;
@@ -138,7 +152,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if ($stmt->execute()) {
+                    $supervisorId = (int)$stmt->insert_id;
                     $stmt->close();
+                    if ($course_id !== null) {
+                        $courseStmt = $conn->prepare('UPDATE supervisors SET course_id = NULLIF(?, 0) WHERE id = ?');
+                        if ($courseStmt) {
+                            $courseStmt->bind_param('ii', $course_id, $supervisorId);
+                            $courseStmt->execute();
+                            $courseStmt->close();
+                        }
+                    }
+                    biotern_supervisor_sync_offices($conn, $supervisorId, $office_ids, $office_location);
                     $conn->commit();
                     header('Location: supervisors.php');
                     exit;
@@ -194,8 +218,17 @@ include 'includes/header.php';
                 <div class="col-md-4"><label class="form-label">Password *</label><input type="password" name="password" class="form-control" minlength="8" autocomplete="new-password" required></div>
                 <div class="col-md-4"><label class="form-label">Phone</label><input type="text" name="phone" class="form-control"></div>
                 <div class="col-md-4">
+                    <label class="form-label">Course</label>
+                    <select name="course_id" id="supervisorCourse" class="form-select">
+                        <option value="">Any course</option>
+                        <?php foreach ($courses as $course): ?>
+                            <option value="<?php echo (int)$course['id']; ?>"><?php echo h($course['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
                     <label class="form-label">Department</label>
-                    <select name="department_id" class="form-select">
+                    <select name="department_id" id="supervisorDepartment" class="form-select">
                         <option value="">None</option>
                         <?php foreach ($departments as $d): ?>
                             <option value="<?php echo (int)$d['id']; ?>"><?php echo h($d['name']); ?></option>
@@ -203,7 +236,16 @@ include 'includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-4"><label class="form-label">Specialization</label><input type="text" name="specialization" class="form-control"></div>
-                <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control"></div>
+                <div class="col-md-4">
+                    <label class="form-label">Office Assignments</label>
+                    <select name="office_ids[]" id="supervisorOffices" class="form-select" multiple size="4">
+                        <?php foreach ($offices as $office): ?>
+                            <option value="<?php echo (int)$office['id']; ?>" data-course-id="<?php echo (int)($office['course_id'] ?? 0); ?>" data-department-id="<?php echo (int)($office['department_id'] ?? 0); ?>"><?php echo h($office['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="text-muted">Hold Ctrl to select multiple offices.</small>
+                </div>
+                <div class="col-md-4"><label class="form-label">Add Office</label><input type="text" name="office_location" class="form-control" placeholder="Example: ComLab 2"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"></textarea></div>
                 <div class="col-12 form-check ms-1"><input class="form-check-input" type="checkbox" name="is_active" id="is_active_create" checked><label class="form-check-label" for="is_active_create">Active</label></div>
                 <div class="col-12 create-form-actions app-form-actions">
@@ -216,6 +258,29 @@ include 'includes/header.php';
 </div>
 </div> <!-- .nxl-content -->
 </main>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var course = document.getElementById('supervisorCourse');
+    var department = document.getElementById('supervisorDepartment');
+    var offices = document.getElementById('supervisorOffices');
+    if (!course || !department || !offices) return;
+    function filterOffices() {
+        var courseId = course.value || '0';
+        var departmentId = department.value || '0';
+        Array.prototype.forEach.call(offices.options, function (option) {
+            var officeCourse = option.getAttribute('data-course-id') || '0';
+            var officeDepartment = option.getAttribute('data-department-id') || '0';
+            var courseMatches = courseId === '0' || officeCourse === '0' || officeCourse === courseId;
+            var departmentMatches = departmentId === '0' || officeDepartment === '0' || officeDepartment === departmentId;
+            option.hidden = !(courseMatches && departmentMatches);
+            if (option.hidden) option.selected = false;
+        });
+    }
+    course.addEventListener('change', filterOffices);
+    department.addEventListener('change', filterOffices);
+    filterOffices();
+});
+</script>
 <?php include 'includes/footer.php'; $conn->close(); ?>
 
 

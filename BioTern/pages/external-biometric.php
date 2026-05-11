@@ -192,6 +192,7 @@ if ($studentContext) {
 						<span><?php echo htmlspecialchars((string)($studentContext['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></span>
 						<span><?php echo htmlspecialchars((string)($studentContext['section_code'] ?? 'No section'), ENT_QUOTES, 'UTF-8'); ?></span>
 						<span><?php echo htmlspecialchars((string)($studentContext['student_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+						<span><?php echo htmlspecialchars(trim((string)($studentContext['company_name'] ?? '')) !== '' ? (string)$studentContext['company_name'] : 'No company linked', ENT_QUOTES, 'UTF-8'); ?></span>
 						<span class="<?php echo $externalHoursCounting ? 'is-counting' : 'is-paused'; ?>"><?php echo $externalHoursCounting ? 'Hours counting' : 'Hours not counting yet'; ?></span>
 					</div>
 				</div>
@@ -322,7 +323,11 @@ if ($studentContext) {
 			</section>
 			<?php else: ?>
 			<div class="alert alert-info">
-				Select a student first from the Students module, then open the student's External DTR page and launch External Biometric from there.
+				<?php if ($canManage && $selectedStudentId > 0): ?>
+					Student ID <?php echo (int)$selectedStudentId; ?> could not be loaded for external biometric. Confirm the student still exists, then open it from the student's External DTR page.
+				<?php else: ?>
+					Select a student first from the Students module, then open the student's External DTR page and launch External Biometric from there.
+				<?php endif; ?>
 			</div>
 			<?php endif; ?>
 		</div>

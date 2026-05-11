@@ -154,7 +154,7 @@ if ($hasSectionDepartment) {
 if (!empty($where)) {
     $sectionSql .= "WHERE " . implode(' AND ', $where) . " ";
 }
-$sectionSql .= "ORDER BY s.id DESC LIMIT 300";
+$sectionSql .= "ORDER BY s.code ASC, s.name ASC, s.id ASC LIMIT 300";
 
 $sections = [];
 $sectionRes = $conn->query($sectionSql);
@@ -266,8 +266,8 @@ include 'includes/header.php';
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Code</th>
-                            <th>Name</th>
+                            <th>Section</th>
+                            <th>Details</th>
                             <th>Course</th>
                             <?php if ($hasSectionDepartment): ?><th>Department</th><?php endif; ?>
                             <?php if ($hasSectionStatus || $hasSectionIsActive): ?><th>Status</th><?php endif; ?>
@@ -280,13 +280,13 @@ include 'includes/header.php';
                         <?php foreach ($sections as $sec): ?>
                             <tr>
                                 <td><span class="app-academic-id-pill"><?php echo (int)$sec['id']; ?></span></td>
-                                <td><span class="app-academic-code-pill"><?php echo htmlspecialchars(biotern_format_section_label((string)($sec['code'] ?? ''), (string)($sec['name'] ?? ''))); ?></span></td>
                                 <td>
                                     <div class="app-academic-name-cell">
-                                        <span class="app-academic-name"><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></span>
-                                        <span class="app-academic-meta"><?php echo htmlspecialchars((string)($sec['course_name'] ?? '-')); ?></span>
+                                        <span class="app-academic-name app-section-name-hero"><?php echo htmlspecialchars(biotern_format_section_label((string)($sec['code'] ?? ''), (string)($sec['name'] ?? ''))); ?></span>
+                                        <span class="app-academic-meta"><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></span>
                                     </div>
                                 </td>
+                                <td><span class="app-academic-code-pill"><?php echo htmlspecialchars((string)($sec['course_name'] ?? '-')); ?></span></td>
                                 <td><span class="app-academic-head"><?php echo htmlspecialchars((string)($sec['course_name'] ?? '-')); ?></span></td>
                                 <?php if ($hasSectionDepartment): ?><td><span class="app-academic-created"><?php echo htmlspecialchars((string)($sec['department_name'] ?? '-')); ?></span></td><?php endif; ?>
                                 <?php if ($hasSectionStatus || $hasSectionIsActive): ?>
