@@ -451,7 +451,7 @@ include 'includes/header.php';
                 </div>
                 <div class="dashboard-actions-grid page-header-right-items-wrapper">
                     <a class="btn btn-light-brand" href="profile-details.php"><i class="feather-user me-2"></i>Profile Details</a>
-                    <a class="btn btn-light-brand" href="account-settings.php"><i class="feather-settings me-2"></i>Settings</a>
+                    <a class="btn btn-light-brand" href="account-settings.php" data-profile-account-settings-link><i class="feather-settings me-2"></i>Settings</a>
                     <a class="btn btn-light-brand" href="activity-feed.php"><i class="feather-activity me-2"></i>Activity Feed</a>
                 </div>
             </div>
@@ -669,7 +669,7 @@ include 'includes/header.php';
                                 </div>
                                 <div class="profile-edit-actions">
                                     <button type="submit" class="btn btn-primary">Save Personal Details</button>
-                                    <a href="account-settings.php" class="btn btn-outline-secondary">Change Profile Picture</a>
+                                    <a href="account-settings.php" class="btn btn-outline-secondary" data-profile-account-settings-link>Change Profile Picture</a>
                                 </div>
                             </form>
                         </div>

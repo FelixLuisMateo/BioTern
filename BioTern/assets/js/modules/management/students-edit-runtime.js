@@ -211,6 +211,11 @@
         if (previewWrap) previewWrap.classList.remove("d-none");
         if (emptyState) emptyState.classList.add("d-none");
       }
+      try {
+        fileInput.value = "";
+      } catch (errReset) {
+        // Some browsers block programmatic file reset; cropped data still takes priority.
+      }
       setStatus("Crop is ready. Save the student to apply it.");
       if (cropModal) cropModal.hide();
     }
@@ -253,16 +258,27 @@
         setStatus("Please select an image file.");
         return;
       }
+      if (file.size > 5 * 1024 * 1024) {
+        setStatus("Image must be 5MB or smaller.");
+        fileInput.value = "";
+        return;
+      }
 
       var reader = new FileReader();
       reader.onload = function (event) {
+        var rawPreview = String(event.target && event.target.result ? event.target.result : "");
+        if (preview && rawPreview) {
+          preview.src = rawPreview;
+          if (previewWrap) previewWrap.classList.remove("d-none");
+          if (emptyState) emptyState.classList.add("d-none");
+        }
         var img = new Image();
         img.onload = function () {
           state.image = img;
           resetToDefault();
           if (cropModal) cropModal.show();
         };
-        img.src = String(event.target && event.target.result ? event.target.result : "");
+        img.src = rawPreview;
       };
       reader.readAsDataURL(file);
     });
@@ -273,6 +289,19 @@
       resetToDefault();
     });
     applyButton.addEventListener("click", applyCrop);
+
+    form.addEventListener("submit", function () {
+      if (state.image && !hiddenInput.value) {
+        applyCrop();
+      }
+      if (hiddenInput.value) {
+        try {
+          fileInput.value = "";
+        } catch (errResetSubmit) {
+          // Cropped payload is already stored in the hidden input.
+        }
+      }
+    });
 
     canvas.addEventListener("mousedown", startDrag);
     window.addEventListener("mousemove", moveDrag);

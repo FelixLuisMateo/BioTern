@@ -1131,7 +1131,7 @@ include 'includes/header.php';
                                                 <div class="mb-2">
                                                     <?php $student_profile_src = biotern_avatar_public_src((string)($student['profile_picture'] ?? ''), (int)($student['user_id'] ?? 0)); ?>
                                                     <?php if (!empty($student_profile_src)): ?>
-                                                        <div class="mb-2">
+                                                        <div class="mb-2" data-student-avatar-preview-wrap>
                                                             <img src="<?php echo htmlspecialchars($student_profile_src); ?>" alt="Profile" class="img-thumbnail app-thumb-150" data-student-avatar-preview>
                                                         </div>
                                                     <?php else: ?>
@@ -1405,7 +1405,7 @@ include 'includes/header.php';
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-light" data-student-avatar-crop-reset>Reset</button>
-                <button type="button" class="btn btn-primary" data-student-avatar-crop-apply>Use Crop</button>
+                <button type="button" class="btn btn-primary" data-student-avatar-crop-apply>Crop and Preview</button>
             </div>
         </div>
     </div>
