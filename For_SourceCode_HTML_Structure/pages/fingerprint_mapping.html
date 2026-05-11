@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pages/fingerprint_mapping.php - HTML Structure</title>
+<style>
+:root{--ink:#0f172a;--muted:#64748b;--line:#dbe3ef;--paper:#fff;--soft:#f8fafc;--brand:#3454d1}
+*{box-sizing:border-box}
+body{margin:0;background:#e5e7eb;color:var(--ink);font:14px/1.5 Consolas,"Courier New",monospace}
+.page{width:min(100%,1100px);margin:24px auto;background:var(--paper);box-shadow:0 18px 40px rgba(15,23,42,.12)}
+header{padding:22px 28px;border-bottom:1px solid var(--line);font-family:Arial,sans-serif}
+h1{margin:0 0 6px;font-size:20px}
+.meta{color:var(--muted);font-size:12px}
+.toolbar{display:flex;gap:10px;margin-top:16px}
+.toolbar a,.toolbar button{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:8px;padding:8px 12px;text-decoration:none;font:600 13px Arial,sans-serif;cursor:pointer}
+.toolbar button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.code{margin:0;padding:24px 28px;white-space:pre-wrap;tab-size:4;font-size:12px;line-height:1.45;word-break:break-word}
+@media print{body{background:#fff}.page{width:100%;margin:0;box-shadow:none}.toolbar{display:none}.code{font-size:9.5px}a{color:inherit}}
+@page{margin:12mm}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+<h1>pages/fingerprint_mapping.php</h1>
+<div class="meta">HTML structure only. PHP blocks, JavaScript, and CSS blocks were removed.</div>
+<div class="toolbar"><a href="../index.html">Back to index</a><button class="primary" onclick="window.print()">Print / Save PDF</button></div>
+</header>
+<main><pre class="code"><code>&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;
+    &lt;title&gt;&lt;/title&gt;
+    
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;toolbar&quot;&gt;&lt;button class=&quot;light&quot; type=&quot;button&quot;&gt;Close&lt;/button&gt;&lt;button class=&quot;primary&quot; type=&quot;button&quot;&gt;Print&lt;/button&gt;&lt;/div&gt;
+    &lt;div class=&quot;print-head&quot;&gt;
+        &lt;img src=&quot;assets/images/ccstlogo.png&quot; alt=&quot;CCST&quot;&gt;
+        &lt;div class=&quot;print-head-copy&quot;&gt;
+            &lt;h2&gt;CLARK COLLEGE OF SCIENCE AND TECHNOLOGY&lt;/h2&gt;
+            &lt;div&gt;SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga&lt;/div&gt;
+            &lt;div&gt;Telefax No.: (045) 624-0215&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;print-title&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;print-meta&quot;&gt;&lt;strong&gt;FILTER:&lt;/strong&gt; &lt;/div&gt;
+    &lt;table&gt;
+        &lt;thead&gt;
+            &lt;tr&gt;
+                &lt;th class=&quot;col-index&quot;&gt;#&lt;/th&gt;
+                &lt;th&gt;Finger ID&lt;/th&gt;
+                &lt;th&gt;Student No.&lt;/th&gt;
+                &lt;th&gt;Name&lt;/th&gt;
+                &lt;th&gt;Course / Section&lt;/th&gt;
+                &lt;th&gt;Date Registered&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            
+                &lt;tr&gt;&lt;td class=&quot;col-index&quot;&gt;1&lt;/td&gt;&lt;td colspan=&quot;5&quot;&gt;No students matched the current filters.&lt;/td&gt;&lt;/tr&gt;
+
+                    &lt;tr&gt;
+                        &lt;td class=&quot;col-index&quot;&gt;&lt;/td&gt;
+                        &lt;td&gt;&lt;/td&gt;
+                        &lt;td&gt;&lt;/td&gt;
+                        &lt;td&gt;&lt;/td&gt;
+                        &lt;td&gt;&lt;/td&gt;
+                        &lt;td&gt;&lt;/td&gt;
+                    &lt;/tr&gt;
+
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+    
+&lt;main class=&quot;nxl-container&quot;&gt;
+    &lt;div class=&quot;nxl-content&quot;&gt;
+        &lt;div class=&quot;page-header&quot;&gt;
+            &lt;div class=&quot;page-header-left d-flex align-items-center&quot;&gt;
+                &lt;div class=&quot;page-header-title&quot;&gt;
+                    &lt;h5 class=&quot;m-b-10&quot;&gt;Fingerprint Mapping&lt;/h5&gt;
+                &lt;/div&gt;
+                &lt;ul class=&quot;breadcrumb&quot;&gt;
+                    &lt;li class=&quot;breadcrumb-item&quot;&gt;&lt;a href=&quot;homepage.php&quot;&gt;Home&lt;/a&gt;&lt;/li&gt;
+                    &lt;li class=&quot;breadcrumb-item&quot;&gt;Fingerprint Mapping&lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;page-header-right ms-auto bio-console-header-actions&quot;&gt;
+                &lt;div class=&quot;page-header-right-items&quot;&gt;
+                    &lt;div class=&quot;d-flex align-items-center gap-2 page-header-right-items-wrapper&quot;&gt;
+                        &lt;a href=&quot;biometric-machine.php&quot; class=&quot;btn btn-light-brand&quot;&gt;
+                            &lt;i class=&quot;feather-cpu me-2&quot;&gt;&lt;/i&gt;
+                            &lt;span&gt;F20H Manager&lt;/span&gt;
+                        &lt;/a&gt;
+                        &lt;a href=&quot;attendance.php&quot; class=&quot;btn btn-outline-secondary&quot;&gt;
+                            &lt;i class=&quot;feather-clock me-2&quot;&gt;&lt;/i&gt;
+                            &lt;span&gt;Attendance DTR&lt;/span&gt;
+                        &lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;bio-console-shell&quot;&gt;
+
+            &lt;div class=&quot;alert alert- py-2&quot;&gt;
+                
+            &lt;/div&gt;
+
+            &lt;div class=&quot;alert alert-warning&quot;&gt;
+                Some mapped fingerprints are attached to users with no student profile and no authorized role. Please remap those records.
+            &lt;/div&gt;
+
+        &lt;div class=&quot;card bio-console-hero&quot;&gt;
+            &lt;div class=&quot;card-body&quot;&gt;
+                &lt;div class=&quot;bio-console-hero-grid&quot;&gt;
+                    &lt;div&gt;
+                        &lt;span class=&quot;bio-console-eyebrow&quot;&gt;Biometric Access&lt;/span&gt;
+                        &lt;h3&gt;Link each fingerprint to the correct BioTern account&lt;/h3&gt;
+                        &lt;p&gt;Review detected F20H fingerprint IDs and prioritize unmapped entries, especially machine-admin capable fingerprints that may control device configuration access.&lt;/p&gt;
+                        &lt;div class=&quot;bio-console-pill-list&quot;&gt;
+                            &lt;span class=&quot;bio-console-pill&quot;&gt;Latest detected ID: &lt;/span&gt;
+                            &lt;span class=&quot;bio-console-pill&quot;&gt;Latest mapped Finger ID: &lt;/span&gt;
+                            &lt;span class=&quot;bio-console-pill&quot;&gt;Unmapped detected: &lt;/span&gt;
+                            &lt;span class=&quot;bio-console-pill&quot;&gt;Machine admin-capable: &lt;/span&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;bio-console-note-surface&quot;&gt;
+                        &lt;span class=&quot;badge bg-soft-info text-info&quot;&gt;Mapping Workflow&lt;/span&gt;
+                        &lt;h6&gt;Best results come from the latest machine logs&lt;/h6&gt;
+                        &lt;p&gt;Read users and logs in the F20H Machine Manager first, then review the unmapped table below. Entries tagged as Admin-capable are likely the fingerprints that can open machine configuration menus.&lt;/p&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;card mb-4 bio-console-panel&quot;&gt;
+            &lt;div class=&quot;card-header&quot;&gt;&lt;strong&gt;Unmapped Fingerprints (Priority Queue)&lt;/strong&gt;&lt;/div&gt;
+            &lt;div class=&quot;card-body border-bottom&quot;&gt;
+                &lt;div class=&quot;d-flex flex-wrap gap-2 mb-3&quot;&gt;
+                    &lt;a href=&quot;fingerprint-unmapped-internal.php&quot; class=&quot;btn btn-sm btn-light-brand&quot;&gt;Open Unmapped Internal Students&lt;/a&gt;
+                    &lt;a href=&quot;ojt-external-list.php&quot; class=&quot;btn btn-sm btn-outline-secondary&quot;&gt;Open External List&lt;/a&gt;
+                    &lt;a href=&quot;import-ojt-internal.php&quot; class=&quot;btn btn-sm btn-outline-secondary&quot;&gt;Import OJT Internal&lt;/a&gt;
+                    &lt;a href=&quot;import-ojt-external.php&quot; class=&quot;btn btn-sm btn-outline-secondary&quot;&gt;Import OJT External&lt;/a&gt;
+                &lt;/div&gt;
+                &lt;form method=&quot;get&quot; class=&quot;row g-2 align-items-end fingerprint-form&quot;&gt;
+                    &lt;input type=&quot;hidden&quot; name=&quot;unmapped_admin_only&quot; value=&quot;&quot;&gt;
+                    &lt;div class=&quot;col-12 col-md-8 col-xl-8&quot;&gt;
+                        &lt;label class=&quot;form-label&quot; for=&quot;unmapped_query&quot;&gt;Search Unmapped Fingerprints&lt;/label&gt;
+                        &lt;input type=&quot;text&quot; class=&quot;form-control&quot; id=&quot;unmapped_query&quot; name=&quot;unmapped_query&quot; value=&quot;&quot; placeholder=&quot;Search by fingerprint ID, machine name, or admin hint&quot;&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;col-12 col-xl-4 fm-actions&quot;&gt;
+                        &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary&quot;&gt;Apply Unmapped Filter&lt;/button&gt;
+                        &lt;a href=&quot;fingerprint_mapping.php&quot; class=&quot;btn btn-light&quot;&gt;Clear&lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/form&gt;
+                &lt;div class=&quot;d-flex flex-wrap gap-2 mt-2&quot;&gt;
+                    &lt;a href=&quot;fingerprint_mapping.php?unmapped_admin_only=1&quot; class=&quot;btn btn-sm &quot;&gt;Admin-Capable Only&lt;/a&gt;
+                    
+                        &lt;a href=&quot;fingerprint_mapping.php&quot; class=&quot;btn btn-sm btn-outline-secondary&quot;&gt;Show All Unmapped&lt;/a&gt;
+                    
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;card-body p-0&quot;&gt;
+                &lt;div class=&quot;table-responsive&quot;&gt;
+                    &lt;table class=&quot;table table-hover align-middle mb-0 bio-console-table&quot;&gt;
+                        &lt;thead&gt;
+                            &lt;tr&gt;
+                                &lt;th&gt;Fingerprint ID&lt;/th&gt;
+                                &lt;th&gt;Last Seen&lt;/th&gt;
+                                &lt;th&gt;Machine User&lt;/th&gt;
+                                &lt;th&gt;Machine Access Hint&lt;/th&gt;
+                                &lt;th&gt;Status&lt;/th&gt;
+                                &lt;th class=&quot;text-end&quot;&gt;Action&lt;/th&gt;
+                            &lt;/tr&gt;
+                        &lt;/thead&gt;
+                        &lt;tbody&gt;
+                        
+                            &lt;tr&gt;
+                                &lt;td colspan=&quot;6&quot; class=&quot;text-center text-muted py-4&quot;&gt;No unmapped fingerprints right now.&lt;/td&gt;
+                            &lt;/tr&gt;
+                        
+                            &lt;tr&gt;
+                                &lt;td colspan=&quot;6&quot; class=&quot;text-center text-muted py-4&quot;&gt;No unmapped fingerprints match your search.&lt;/td&gt;
+                            &lt;/tr&gt;
+
+                                &lt;tr&gt;
+                                    &lt;td&gt;&lt;/td&gt;
+                                    &lt;td&gt;&lt;/td&gt;
+                                    &lt;td&gt;
+
+                                            &lt;span class=&quot;text-muted&quot;&gt;Unknown&lt;/span&gt;
+                                        
+                                    &lt;/td&gt;
+                                    &lt;td&gt;
+                                        
+                                            &lt;span class=&quot;badge bg-soft-danger text-danger&quot;&gt;Admin-capable&lt;/span&gt;
+                                            
+                                                &lt;div class=&quot;text-muted small&quot;&gt;&lt;/div&gt;
+
+                                            &lt;span class=&quot;badge bg-soft-secondary text-secondary&quot;&gt;Standard/Unknown&lt;/span&gt;
+                                        
+                                    &lt;/td&gt;
+                                    &lt;td&gt;&lt;span class=&quot;badge bg-soft-warning text-warning&quot;&gt;Needs Mapping&lt;/span&gt;&lt;/td&gt;
+                                    &lt;td class=&quot;text-end&quot;&gt;
+                                        &lt;a href=&quot;fingerprint-unmapped-internal.php?map_finger_id=&quot; class=&quot;btn btn-sm btn-outline-primary&quot;&gt;Map To Student&lt;/a&gt;
+                                    &lt;/td&gt;
+                                &lt;/tr&gt;
+
+                        &lt;/tbody&gt;
+                    &lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;card mb-4 fingerprint-map-card bio-console-panel&quot;&gt;
+            &lt;div class=&quot;card-header&quot;&gt;&lt;strong&gt;Current Student Mappings&lt;/strong&gt;&lt;/div&gt;
+            &lt;div class=&quot;card-body border-bottom&quot;&gt;
+                &lt;form method=&quot;get&quot; class=&quot;row g-2 align-items-end fingerprint-form&quot;&gt;
+                    &lt;div class=&quot;col-12 col-md-6 col-xl-4&quot;&gt;
+                        &lt;label class=&quot;form-label&quot; for=&quot;filter_course_id&quot;&gt;Filter by Course&lt;/label&gt;
+                        &lt;select class=&quot;form-select&quot; name=&quot;filter_course_id&quot; id=&quot;filter_course_id&quot;&gt;
+                            &lt;option value=&quot;0&quot;&gt;All Courses&lt;/option&gt;
+                            
+                                &lt;option value=&quot;&quot; &gt;
+                                    
+                                &lt;/option&gt;
+                            
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;col-12 col-md-6 col-xl-4&quot;&gt;
+                        &lt;label class=&quot;form-label&quot; for=&quot;filter_section_id&quot;&gt;Filter by Section&lt;/label&gt;
+                        &lt;select class=&quot;form-select&quot; name=&quot;filter_section_id&quot; id=&quot;filter_section_id&quot;&gt;
+                            &lt;option value=&quot;0&quot;&gt;All Sections&lt;/option&gt;
+                            
+                                &lt;option value=&quot;&quot; data-course-id=&quot;&quot; &gt;
+                                    
+                                &lt;/option&gt;
+                            
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;col-12 col-xl-4 fm-actions&quot;&gt;
+                        &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary&quot;&gt;Apply Filters&lt;/button&gt;
+                        &lt;a href=&quot;fingerprint_mapping.php&quot; class=&quot;btn btn-light&quot;&gt;Clear&lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/form&gt;
+                
+                &lt;div class=&quot;d-flex flex-wrap gap-2 mt-3&quot;&gt;
+                    &lt;a href=&quot;fingerprint_mapping.php?print=mapped&quot; target=&quot;_blank&quot; class=&quot;btn btn-sm btn-outline-primary&quot;&gt;
+                        &lt;i class=&quot;feather-printer me-1&quot;&gt;&lt;/i&gt; Print Mapped Students
+                    &lt;/a&gt;
+                    &lt;a href=&quot;fingerprint_mapping.php?print=unmapped_students&quot; target=&quot;_blank&quot; class=&quot;btn btn-sm btn-outline-secondary&quot;&gt;
+                        &lt;i class=&quot;feather-printer me-1&quot;&gt;&lt;/i&gt; Print Not Mapped Students
+                    &lt;/a&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;card-body p-0&quot;&gt;
+                &lt;div class=&quot;table-responsive&quot;&gt;
+                    &lt;table class=&quot;table table-hover align-middle mb-0 bio-console-table&quot;&gt;
+                        &lt;thead&gt;
+                            &lt;tr&gt;
+                                &lt;th&gt;Fingerprint ID&lt;/th&gt;
+                                &lt;th&gt;User&lt;/th&gt;
+                                &lt;th&gt;Student Link&lt;/th&gt;
+                                &lt;th&gt;Course&lt;/th&gt;
+                                &lt;th&gt;Section&lt;/th&gt;
+                                &lt;th&gt;OJT Status&lt;/th&gt;
+                                &lt;th&gt;Mapped Info&lt;/th&gt;
+                                &lt;th class=&quot;text-end&quot;&gt;Actions&lt;/th&gt;
+                            &lt;/tr&gt;
+                        &lt;/thead&gt;
+                        &lt;tbody&gt;
+                        
+                            &lt;tr&gt;
+                                &lt;td colspan=&quot;8&quot; class=&quot;text-center text-muted py-4&quot;&gt;No student mappings match the selected filters.&lt;/td&gt;
+                            &lt;/tr&gt;
+
+                                &lt;tr&gt;
+                                    &lt;td&gt;&lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;div class=&quot;fw-semibold&quot;&gt;&lt;/div&gt;
+                                        &lt;small class=&quot;text-muted&quot;&gt;User ID: &lt;/small&gt;
+                                    &lt;/td&gt;
+                                    &lt;td&gt;
+                                        
+                                            &lt;div class=&quot;fw-semibold&quot;&gt;&lt;/div&gt;
+                                            &lt;small class=&quot;text-muted&quot;&gt;Student #: &lt;/small&gt;
+                                            &lt;br&gt;
+                                            &lt;small class=&quot;text-muted&quot;&gt;Enrolled: &lt;/small&gt;
+                                        
+                                            &lt;span class=&quot;badge bg-soft-warning text-warning&quot;&gt;No student profile linked&lt;/span&gt;
+                                        
+                                    &lt;/td&gt;
+                                    &lt;td&gt;&lt;/td&gt;
+                                    &lt;td&gt;&lt;/td&gt;
+                                    &lt;td&gt;
+                                        
+                                            &lt;span class=&quot;badge bg-soft-secondary text-secondary&quot;&gt;N/A&lt;/span&gt;
+                                        
+                                            &lt;span class=&quot;badge bg-soft-success text-success&quot;&gt;Completed&lt;/span&gt;
+                                            &lt;div class=&quot;text-muted small&quot;&gt;Ready for fingerprint slot reuse&lt;/div&gt;
+                                        
+                                            &lt;span class=&quot;badge bg-soft-warning text-warning&quot;&gt;In Progress&lt;/span&gt;
+                                            &lt;div class=&quot;text-muted small&quot;&gt;Remaining: h&lt;/div&gt;
+                                        
+                                    &lt;/td&gt;
+                                    &lt;td&gt;
+
+                                        &lt;div class=&quot;text-muted small&quot;&gt;Created: &lt;/div&gt;
+                                        &lt;div class=&quot;text-muted small&quot;&gt;Updated: &lt;/div&gt;
+                                    &lt;/td&gt;
+                                    &lt;td class=&quot;text-end&quot;&gt;
+                                        &lt;div class=&quot;fingerprint-actions ms-auto&quot;&gt;
+                                            
+                                                &lt;a href=&quot;biometric-machine.php?selected_user_id=&amp;load_users=1&amp;load_user=1&quot; class=&quot;btn btn-sm btn-outline-warning&quot;&gt;Cleanup Fingerprint Slot&lt;/a&gt;
+                                            
+                                            &lt;form method=&quot;post&quot; class=&quot;d-inline&quot; data-confirm=&quot;Remove this fingerprint mapping?&quot;&gt;
+                                                &lt;input type=&quot;hidden&quot; name=&quot;mapping_action&quot; value=&quot;delete&quot;&gt;
+                                                &lt;input type=&quot;hidden&quot; name=&quot;finger_id&quot; value=&quot;&quot;&gt;
+                                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-sm btn-outline-danger&quot;&gt;Remove&lt;/button&gt;
+                                            &lt;/form&gt;
+                                        &lt;/div&gt;
+                                    &lt;/td&gt;
+                                &lt;/tr&gt;
+
+                        &lt;/tbody&gt;
+                    &lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;card mb-4 bio-console-panel&quot;&gt;
+            &lt;div class=&quot;card-header&quot;&gt;&lt;strong&gt;Authorized Personnel Mappings&lt;/strong&gt;&lt;/div&gt;
+            &lt;div class=&quot;card-body p-0&quot;&gt;
+                &lt;div class=&quot;table-responsive&quot;&gt;
+                    &lt;table class=&quot;table table-hover align-middle mb-0 bio-console-table&quot;&gt;
+                        &lt;thead&gt;
+                            &lt;tr&gt;
+                                &lt;th&gt;Fingerprint ID&lt;/th&gt;
+                                &lt;th&gt;User&lt;/th&gt;
+                                &lt;th&gt;Role&lt;/th&gt;
+                                &lt;th&gt;Mapped Info&lt;/th&gt;
+                                &lt;th class=&quot;text-end&quot;&gt;Actions&lt;/th&gt;
+                            &lt;/tr&gt;
+                        &lt;/thead&gt;
+                        &lt;tbody&gt;
+                        
+                            &lt;tr&gt;
+                                &lt;td colspan=&quot;5&quot; class=&quot;text-center text-muted py-4&quot;&gt;No authorized personnel mappings yet.&lt;/td&gt;
+                            &lt;/tr&gt;
+
+                                &lt;tr&gt;
+                                    &lt;td&gt;&lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;div class=&quot;fw-semibold&quot;&gt;&lt;/div&gt;
+                                        &lt;small class=&quot;text-muted&quot;&gt;User ID: &lt;/small&gt;
+                                    &lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;span class=&quot;badge bg-soft-info text-info&quot;&gt;&lt;/span&gt;
+                                    &lt;/td&gt;
+                                    &lt;td&gt;
+
+                                        &lt;div class=&quot;text-muted small&quot;&gt;Created: &lt;/div&gt;
+                                        &lt;div class=&quot;text-muted small&quot;&gt;Updated: &lt;/div&gt;
+                                    &lt;/td&gt;
+                                    &lt;td class=&quot;text-end&quot;&gt;
+                                        &lt;div class=&quot;fingerprint-actions ms-auto&quot;&gt;
+                                            &lt;form method=&quot;post&quot; class=&quot;d-inline&quot; data-confirm=&quot;Remove this fingerprint mapping?&quot;&gt;
+                                                &lt;input type=&quot;hidden&quot; name=&quot;mapping_action&quot; value=&quot;delete&quot;&gt;
+                                                &lt;input type=&quot;hidden&quot; name=&quot;finger_id&quot; value=&quot;&quot;&gt;
+                                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-sm btn-outline-danger&quot;&gt;Remove&lt;/button&gt;
+                                            &lt;/form&gt;
+                                        &lt;/div&gt;
+                                    &lt;/td&gt;
+                                &lt;/tr&gt;
+
+                        &lt;/tbody&gt;
+                    &lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;card mt-4 bio-console-panel&quot;&gt;
+            &lt;div class=&quot;card-header&quot;&gt;&lt;strong&gt;Detected Fingerprints From Machine Logs&lt;/strong&gt;&lt;/div&gt;
+            &lt;div class=&quot;card-body border-bottom&quot;&gt;
+                &lt;form method=&quot;get&quot; class=&quot;row g-2 align-items-end fingerprint-form&quot;&gt;
+                    &lt;div class=&quot;col-12 col-md-6 col-xl-3&quot;&gt;
+                        &lt;label class=&quot;form-label&quot; for=&quot;detected_status&quot;&gt;Filter by Status&lt;/label&gt;
+                        &lt;select class=&quot;form-select&quot; name=&quot;detected_status&quot; id=&quot;detected_status&quot;&gt;
+                            &lt;option value=&quot;all&quot; &gt;All&lt;/option&gt;
+                            &lt;option value=&quot;mapped&quot; &gt;Mapped&lt;/option&gt;
+                            &lt;option value=&quot;unmapped&quot; &gt;Needs Mapping&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;col-12 col-md-6 col-xl-5&quot;&gt;
+                        &lt;label class=&quot;form-label&quot; for=&quot;detected_query&quot;&gt;Search Fingerprint/User/Student&lt;/label&gt;
+                        &lt;input type=&quot;text&quot; class=&quot;form-control&quot; id=&quot;detected_query&quot; name=&quot;detected_query&quot; value=&quot;&quot; placeholder=&quot;e.g. ID, name, student number&quot;&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;col-12 col-xl-4 fm-actions&quot;&gt;
+                        &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary&quot;&gt;Apply Table Filters&lt;/button&gt;
+                        &lt;a href=&quot;fingerprint_mapping.php&quot; class=&quot;btn btn-light&quot;&gt;Clear&lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/form&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;card-body p-0&quot;&gt;
+                &lt;div class=&quot;table-responsive&quot;&gt;
+                    &lt;table class=&quot;table table-hover align-middle mb-0 bio-console-table&quot;&gt;
+                        &lt;thead&gt;
+                            &lt;tr&gt;
+                                &lt;th&gt;Fingerprint ID&lt;/th&gt;
+                                &lt;th&gt;Last Seen&lt;/th&gt;
+                                &lt;th&gt;Status&lt;/th&gt;
+                                &lt;th&gt;Mapped To&lt;/th&gt;
+                                &lt;th class=&quot;text-end&quot;&gt;Action&lt;/th&gt;
+                            &lt;/tr&gt;
+                        &lt;/thead&gt;
+                        &lt;tbody&gt;
+                        
+                            &lt;tr&gt;
+                                &lt;td colspan=&quot;5&quot; class=&quot;text-center text-muted py-4&quot;&gt;No fingerprints detected from machine logs yet.&lt;/td&gt;
+                            &lt;/tr&gt;
+                        
+                            &lt;tr&gt;
+                                &lt;td colspan=&quot;5&quot; class=&quot;text-center text-muted py-4&quot;&gt;No fingerprints match your current filters.&lt;/td&gt;
+                            &lt;/tr&gt;
+
+                                &lt;tr&gt;
+                                    &lt;td&gt;&lt;/td&gt;
+                                    &lt;td&gt;&lt;/td&gt;
+                                    &lt;td&gt;
+                                        
+                                            &lt;span class=&quot;badge bg-soft-success text-success&quot;&gt;Mapped&lt;/span&gt;
+                                        
+                                            &lt;span class=&quot;badge bg-soft-warning text-warning&quot;&gt;Needs Mapping&lt;/span&gt;
+                                        
+                                    &lt;/td&gt;
+                                    &lt;td&gt;
+                                        
+                                            &lt;div class=&quot;fw-semibold&quot;&gt;&lt;/div&gt;
+                                            &lt;small class=&quot;text-muted&quot;&gt;
+                                                User ID: 
+                                                
+                                                    | 
+
+                                                    ()
+                                                
+                                            &lt;/small&gt;
+                                            &lt;div class=&quot;text-muted small&quot;&gt;Mapped: &lt;/div&gt;
+                                        
+                                            &lt;span class=&quot;text-muted&quot;&gt;Not mapped yet&lt;/span&gt;
+                                            
+                                                &lt;div class=&quot;text-muted small&quot;&gt;Machine Name: &lt;/div&gt;
+
+                                    &lt;/td&gt;
+                                    &lt;td class=&quot;text-end&quot;&gt;
+                                        &lt;div class=&quot;fingerprint-actions ms-auto&quot;&gt;
+                                            &lt;span class=&quot;text-muted small&quot;&gt;&lt;/span&gt;
+                                        &lt;/div&gt;
+                                    &lt;/td&gt;
+                                &lt;/tr&gt;
+
+                        &lt;/tbody&gt;
+                    &lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/main&gt;</code></pre></main>
+</div>
+</body>
+</html>

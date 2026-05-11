@@ -1,0 +1,1213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pages/biometric-machine.php - HTML Structure</title>
+<style>
+:root{--ink:#0f172a;--muted:#64748b;--line:#dbe3ef;--paper:#fff;--soft:#f8fafc;--brand:#3454d1}
+*{box-sizing:border-box}
+body{margin:0;background:#e5e7eb;color:var(--ink);font:14px/1.5 Consolas,"Courier New",monospace}
+.page{width:min(100%,1100px);margin:24px auto;background:var(--paper);box-shadow:0 18px 40px rgba(15,23,42,.12)}
+header{padding:22px 28px;border-bottom:1px solid var(--line);font-family:Arial,sans-serif}
+h1{margin:0 0 6px;font-size:20px}
+.meta{color:var(--muted);font-size:12px}
+.toolbar{display:flex;gap:10px;margin-top:16px}
+.toolbar a,.toolbar button{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:8px;padding:8px 12px;text-decoration:none;font:600 13px Arial,sans-serif;cursor:pointer}
+.toolbar button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.code{margin:0;padding:24px 28px;white-space:pre-wrap;tab-size:4;font-size:12px;line-height:1.45;word-break:break-word}
+@media print{body{background:#fff}.page{width:100%;margin:0;box-shadow:none}.toolbar{display:none}.code{font-size:9.5px}a{color:inherit}}
+@page{margin:12mm}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+<h1>pages/biometric-machine.php</h1>
+<div class="meta">HTML structure only. PHP blocks, JavaScript, and CSS blocks were removed.</div>
+<div class="toolbar"><a href="../index.html">Back to index</a><button class="primary" onclick="window.print()">Print / Save PDF</button></div>
+</header>
+<main><pre class="code"><code>&lt;main class=&quot;nxl-container&quot;&gt;
+    &lt;div class=&quot;nxl-content&quot;&gt;
+        &lt;div class=&quot;page-header&quot; data-phc-skip=&quot;1&quot;&gt;
+            &lt;div class=&quot;page-header-left d-flex align-items-center&quot;&gt;
+                &lt;div class=&quot;page-header-title&quot;&gt;
+                    &lt;h5 class=&quot;m-b-10&quot;&gt;F20H Machine Manager&lt;/h5&gt;
+                &lt;/div&gt;
+                &lt;ul class=&quot;breadcrumb&quot;&gt;
+                    &lt;li class=&quot;breadcrumb-item&quot;&gt;&lt;a href=&quot;homepage.php&quot;&gt;Home&lt;/a&gt;&lt;/li&gt;
+                    &lt;li class=&quot;breadcrumb-item&quot;&gt;F20H Machine Manager&lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;page-header-right ms-auto bio-console-header-actions&quot;&gt;
+                &lt;div class=&quot;page-header-right-items&quot;&gt;
+                    &lt;div class=&quot;d-flex align-items-center gap-2 page-header-right-items-wrapper&quot;&gt;
+                        &lt;a href=&quot;bridge-setup-manual.php&quot; class=&quot;btn btn-outline-secondary&quot;&gt;
+                            &lt;i class=&quot;feather-book-open me-2&quot;&gt;&lt;/i&gt;
+                            &lt;span&gt;Bridge Setup Manual&lt;/span&gt;
+                        &lt;/a&gt;
+                        &lt;a href=&quot;fingerprint_mapping.php&quot; class=&quot;btn btn-light-brand&quot;&gt;
+                            &lt;i class=&quot;feather-link me-2&quot;&gt;&lt;/i&gt;
+                            &lt;span&gt;Fingerprint Mapping&lt;/span&gt;
+                        &lt;/a&gt;
+                        &lt;a href=&quot;attendance.php&quot; class=&quot;btn btn-outline-secondary&quot;&gt;
+                            &lt;i class=&quot;feather-clock me-2&quot;&gt;&lt;/i&gt;
+                            &lt;span&gt;Attendance DTR&lt;/span&gt;
+                        &lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+            &lt;div class=&quot;alert alert- alert-dismissible fade show&quot; role=&quot;alert&quot;&gt;
+                
+                &lt;button type=&quot;button&quot; class=&quot;btn-close&quot; data-bs-dismiss=&quot;alert&quot; aria-label=&quot;Close&quot;&gt;&lt;/button&gt;
+            &lt;/div&gt;
+
+        &lt;div class=&quot;card bio-console-hero mb-3&quot;&gt;
+            &lt;div class=&quot;card-body&quot;&gt;
+                &lt;div class=&quot;bio-console-hero-grid&quot;&gt;
+                    &lt;div&gt;
+                        &lt;span class=&quot;bio-console-eyebrow&quot;&gt;Device Operations&lt;/span&gt;
+                        &lt;h3&gt;Manage machine users, sync pipelines, and F20H data flow in one place&lt;/h3&gt;
+                        &lt;p&gt;Use this console to inspect bridge health, read machine users, process logs into attendance, and keep the device side aligned with BioTern.&lt;/p&gt;
+                        &lt;div class=&quot;bio-console-pill-list&quot;&gt;
+                            &lt;span class=&quot;bio-console-pill&quot;&gt;Connector: &lt;/span&gt;
+                            &lt;span class=&quot;bio-console-pill&quot;&gt;Sync mode: &lt;/span&gt;
+                            &lt;span class=&quot;bio-console-pill&quot;&gt;Open anomalies: &lt;/span&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;bio-console-hero-side machine-hero-status&quot;&gt;
+                        &lt;span class=&quot;badge bg-soft- text-&quot;&gt;
+                            
+                        &lt;/span&gt;
+                        &lt;h6&gt;Bridge Worker Status&lt;/h6&gt;
+                        &lt;p&gt;&lt;/p&gt;
+                        
+                            &lt;div class=&quot;d-flex flex-wrap gap-2 mb-2&quot;&gt;
+                                &lt;form method=&quot;post&quot; class=&quot;d-inline&quot; data-confirm=&quot;Revive the bridge connection? On the bridge PC this repairs and restarts BioTernBridgeWorker.&quot;&gt;
+                                    &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;revive_bridge_connection&quot;&gt;
+                                    &lt;button type=&quot;submit&quot; class=&quot;btn btn-success btn-sm&quot;&gt;Revive Bridge Connection&lt;/button&gt;
+                                &lt;/form&gt;
+                                
+                                    &lt;form method=&quot;post&quot; class=&quot;d-inline&quot;&gt;
+                                        &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;pause_bridge_for_enrollment&quot;&gt;
+                                        &lt;button type=&quot;submit&quot; class=&quot;btn btn-warning btn-sm&quot;&gt;Pause Bridge for Enrollment&lt;/button&gt;
+                                    &lt;/form&gt;
+                                
+                                    &lt;form method=&quot;post&quot; class=&quot;d-inline&quot;&gt;
+                                        &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;resume_bridge_after_enrollment&quot;&gt;
+                                        &lt;button type=&quot;submit&quot; class=&quot;btn btn-success btn-sm&quot;&gt;Resume Bridge Sync&lt;/button&gt;
+                                    &lt;/form&gt;
+                                
+                            &lt;/div&gt;
+                            &lt;small class=&quot;d-block mb-2 text-muted&quot;&gt;
+                                
+                            &lt;/small&gt;
+                        
+                        &lt;small&gt;Background mode: Scheduled Task (no open PowerShell needed). If installed without admin rights, it runs after Windows sign-in.&lt;/small&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;row g-3 mb-3&quot;&gt;
+            &lt;div class=&quot;col-md-4&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full machine-kpi-card&quot;&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;text-muted fs-12 mb-1&quot;&gt;Connector Target&lt;/div&gt;
+                        &lt;div class=&quot;fw-bold&quot;&gt;&lt;/div&gt;
+                        &lt;div class=&quot;text-muted&quot;&gt;Port:  | Device: &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;col-md-4&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full machine-kpi-card&quot;&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;text-muted fs-12 mb-1&quot;&gt;Loaded Machine Users&lt;/div&gt;
+                        &lt;div class=&quot;fs-3 fw-bold&quot;&gt;&lt;/div&gt;
+                        &lt;div class=&quot;text-muted&quot;&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;col-md-4&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full machine-kpi-card&quot;&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;text-muted fs-12 mb-1&quot;&gt;Selected Machine User&lt;/div&gt;
+                        &lt;div class=&quot;fs-3 fw-bold&quot;&gt;&lt;/div&gt;
+                        &lt;div class=&quot;text-muted&quot;&gt;Load a record, then edit its name or raw JSON below.&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;col-md-4&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full machine-kpi-card&quot;&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;text-muted fs-12 mb-1&quot;&gt;Last Sync Status&lt;/div&gt;
+                        &lt;div class=&quot;fs-4 fw-bold&quot;&gt;&lt;/div&gt;
+                        &lt;div class=&quot;text-muted&quot;&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;col-md-4&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full machine-kpi-card&quot;&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;text-muted fs-12 mb-1&quot;&gt;Open Anomalies&lt;/div&gt;
+                        &lt;div class=&quot;fs-3 fw-bold&quot;&gt;&lt;/div&gt;
+                        &lt;div class=&quot;text-muted&quot;&gt;Duplicate punches, unmapped scans, and suspicious attendance cases.&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;col-md-4&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full machine-kpi-card&quot;&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;text-muted fs-12 mb-1&quot;&gt;Last Sync Totals&lt;/div&gt;
+                        &lt;div class=&quot;fw-bold&quot;&gt;
+                            
+                        &lt;/div&gt;
+                        &lt;div class=&quot;text-muted&quot;&gt;
+                            
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;col-md-4&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full machine-kpi-card&quot;&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;text-muted fs-12 mb-1&quot;&gt;Last Ingest Event&lt;/div&gt;
+                        &lt;div class=&quot;fw-bold&quot;&gt;&lt;/div&gt;
+                        &lt;div class=&quot;text-muted&quot;&gt;Node:  | IP: &lt;/div&gt;
+                        &lt;div class=&quot;text-muted&quot;&gt;Token: &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;col-md-4&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full machine-kpi-card&quot;&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;text-muted fs-12 mb-1&quot;&gt;Ingest Today&lt;/div&gt;
+                        &lt;div class=&quot;fs-3 fw-bold&quot;&gt;&lt;/div&gt;
+                        &lt;div class=&quot;text-muted&quot;&gt;Accepted events: &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;col-md-4&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full machine-kpi-card&quot;&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;text-muted fs-12 mb-1&quot;&gt;Last Ingest HTTP Status&lt;/div&gt;
+                        &lt;div class=&quot;fs-3 fw-bold&quot;&gt;&lt;/div&gt;
+                        &lt;div class=&quot;text-muted&quot;&gt;200 means accepted; 401 token mismatch; 422 invalid payload.&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;row g-3&quot;&gt;
+            &lt;div class=&quot;col-xl-4&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                    &lt;div class=&quot;card-header&quot;&gt;&lt;h6 class=&quot;card-title mb-0&quot;&gt;Machine Sync&lt;/h6&gt;&lt;/div&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;p class=&quot;text-muted&quot;&gt;&lt;/p&gt;
+                        &lt;form method=&quot;post&quot;&gt;
+                            &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;sync&quot;&gt;
+                            &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary w-100&quot;&gt;&lt;/button&gt;
+                        &lt;/form&gt;
+                        
+                            &lt;form method=&quot;post&quot; class=&quot;mt-2&quot; data-confirm=&quot;Revive the bridge connection now? This enables the bridge profile, repairs auto-start, and restarts BioTernBridgeWorker.&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;revive_bridge_connection&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-success w-100&quot;&gt;Revive Bridge Connection&lt;/button&gt;
+                            &lt;/form&gt;
+                            &lt;form method=&quot;post&quot; class=&quot;mt-2&quot; data-confirm=&quot;Repair and start the BioTern bridge task on this Windows computer?&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;repair_bridge_task_now&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-success w-100&quot;&gt;Repair Bridge Now&lt;/button&gt;
+                            &lt;/form&gt;
+                            &lt;form method=&quot;post&quot; class=&quot;mt-2&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;restart_bridge_task_now&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-success w-100&quot;&gt;Restart Bridge Now&lt;/button&gt;
+                            &lt;/form&gt;
+                            &lt;form method=&quot;post&quot; class=&quot;mt-2&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;restart_windows&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-danger w-100&quot;&gt;Restart Windows&lt;/button&gt;
+                            &lt;/form&gt;
+                            &lt;form method=&quot;post&quot; class=&quot;mt-2&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;open_restart_bridge_shell&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-dark w-100&quot;&gt;Open PowerShell: Restart Bridge Worker&lt;/button&gt;
+                            &lt;/form&gt;
+                            &lt;form method=&quot;post&quot; class=&quot;mt-2&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;open_bridge_log_tail_shell&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-secondary w-100&quot;&gt;Open PowerShell: Bridge Log Tail&lt;/button&gt;
+                            &lt;/form&gt;
+                        
+                            &lt;form method=&quot;post&quot; class=&quot;mt-2&quot; data-confirm=&quot;Revive the shared bridge profile? To restart the Windows task itself, use this same button from the bridge PC.&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;revive_bridge_connection&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-success w-100&quot;&gt;Revive Bridge Profile&lt;/button&gt;
+                            &lt;/form&gt;
+                            &lt;div class=&quot;alert alert-info mt-2 mb-0 fs-12&quot;&gt;Cloud can keep the bridge profile enabled, but only the local Windows bridge PC can restart BioTernBridgeWorker.&lt;/div&gt;
+                        
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;col-xl-4&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                    &lt;div class=&quot;card-header&quot;&gt;&lt;h6 class=&quot;card-title mb-0&quot;&gt;Machine Status&lt;/h6&gt;&lt;/div&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;d-grid gap-2&quot;&gt;
+                            &lt;form method=&quot;post&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;get_device_info&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-primary w-100&quot;&gt;Read Device Info&lt;/button&gt;
+                            &lt;/form&gt;
+                            &lt;form method=&quot;post&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;get_network&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-primary w-100&quot;&gt;Read Network Settings&lt;/button&gt;
+                            &lt;/form&gt;
+                            &lt;form method=&quot;post&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;get_time&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-primary w-100&quot;&gt;Read Device Time&lt;/button&gt;
+                            &lt;/form&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;col-xl-4&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                    &lt;div class=&quot;card-header&quot;&gt;&lt;h6 class=&quot;card-title mb-0&quot;&gt;Machine Config&lt;/h6&gt;&lt;/div&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;d-grid gap-2&quot;&gt;
+                            &lt;form method=&quot;post&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;get_config&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-secondary w-100&quot; &gt;Read Device Config&lt;/button&gt;
+                            &lt;/form&gt;
+                            &lt;form method=&quot;post&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;list_users&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-secondary w-100&quot; title=&quot;&quot;&gt;&lt;/button&gt;
+                            &lt;/form&gt;
+                            &lt;a href=&quot;attendance.php&quot; class=&quot;btn btn-outline-secondary w-100&quot;&gt;Open Attendance DTR&lt;/a&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;col-xl-8&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full machine-users-card&quot;&gt;
+                    &lt;div class=&quot;card-header d-flex justify-content-between align-items-center gap-2&quot;&gt;
+                        &lt;h6 class=&quot;card-title mb-0&quot;&gt;Users on Machine&lt;/h6&gt;
+                        &lt;button class=&quot;btn btn-sm btn-outline-secondary machine-section-toggle&quot; type=&quot;button&quot; data-bs-toggle=&quot;collapse&quot; data-bs-target=&quot;#machineUsersCollapse&quot; aria-expanded=&quot;true&quot; aria-controls=&quot;machineUsersCollapse&quot;&gt;Toggle Users&lt;/button&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;card-body collapse show&quot; id=&quot;machineUsersCollapse&quot;&gt;
+                        &lt;form method=&quot;post&quot; class=&quot;row g-2 align-items-end mb-3&quot;&gt;
+                            &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;get_user&quot;&gt;
+                            &lt;div class=&quot;col-sm-6&quot;&gt;
+                                &lt;label class=&quot;form-label&quot;&gt;User ID on F20H&lt;/label&gt;
+                                &lt;input type=&quot;number&quot; name=&quot;user_id&quot; class=&quot;form-control&quot; value=&quot;&quot; min=&quot;1&quot;&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;col-sm-6&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary w-100&quot; title=&quot;&quot;&gt;Load User Record&lt;/button&gt;
+                            &lt;/div&gt;
+                        &lt;/form&gt;
+
+                            &lt;div class=&quot;table-responsive mb-3&quot;&gt;
+                                &lt;table class=&quot;table table-sm table-hover align-middle&quot;&gt;
+                                    &lt;thead&gt;
+                                        &lt;tr&gt;
+                                            &lt;th&gt;Machine ID&lt;/th&gt;
+                                            &lt;th&gt;Name&lt;/th&gt;
+                                            &lt;th&gt;Card No&lt;/th&gt;
+                                            &lt;th&gt;Privilege&lt;/th&gt;
+                                            &lt;th&gt;Rename on F20H&lt;/th&gt;
+                                            &lt;th class=&quot;text-end&quot;&gt;Actions&lt;/th&gt;
+                                        &lt;/tr&gt;
+                                    &lt;/thead&gt;
+                                    &lt;tbody&gt;
+                                        
+                                            &lt;tr&gt;
+
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;
+                                                    &lt;div class=&quot;fw-semibold&quot;&gt;&lt;/div&gt;
+                                                    &lt;small class=&quot;text-muted&quot;&gt;&lt;/small&gt;
+                                                &lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td class=&quot;machine-rename-cell&quot;&gt;
+                                                    
+                                                        &lt;form method=&quot;post&quot; class=&quot;d-flex gap-2&quot;&gt;
+                                                            &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;save_list_user_name&quot;&gt;
+                                                            &lt;input type=&quot;hidden&quot; name=&quot;inline_user_id&quot; value=&quot;&quot;&gt;
+                                                            &lt;input type=&quot;text&quot; name=&quot;inline_user_name&quot; class=&quot;form-control form-control-sm&quot; value=&quot;&quot; placeholder=&quot;Type new name&quot;&gt;
+                                                            &lt;button type=&quot;submit&quot; class=&quot;btn btn-sm btn-outline-primary&quot;&gt;Save&lt;/button&gt;
+                                                        &lt;/form&gt;
+                                                    
+                                                        &lt;span class=&quot;text-muted fs-12&quot;&gt;Unavailable&lt;/span&gt;
+                                                    
+                                                &lt;/td&gt;
+                                                &lt;td class=&quot;text-end&quot;&gt;
+                                                    
+                                                        &lt;div class=&quot;machine-inline-actions&quot;&gt;
+                                                            &lt;form method=&quot;post&quot; class=&quot;d-inline&quot;&gt;
+                                                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;get_user&quot;&gt;
+                                                                &lt;input type=&quot;hidden&quot; name=&quot;user_id&quot; value=&quot;&quot;&gt;
+                                                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-sm btn-outline-primary&quot;&gt;Load&lt;/button&gt;
+                                                            &lt;/form&gt;
+                                                            &lt;form method=&quot;post&quot; class=&quot;d-inline&quot; data-confirm=&quot;Delete this fingerprint record from the F20H machine? This removes the machine user entry.&quot;&gt;
+                                                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;delete_fingerprint&quot;&gt;
+                                                                &lt;input type=&quot;hidden&quot; name=&quot;user_id&quot; value=&quot;&quot;&gt;
+                                                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-sm btn-outline-danger&quot;&gt;Delete FP&lt;/button&gt;
+                                                            &lt;/form&gt;
+                                                        &lt;/div&gt;
+                                                    
+                                                        &lt;span class=&quot;text-muted fs-12&quot;&gt;No ID&lt;/span&gt;
+                                                    
+                                                &lt;/td&gt;
+                                            &lt;/tr&gt;
+                                        
+                                    &lt;/tbody&gt;
+                                &lt;/table&gt;
+                            &lt;/div&gt;
+
+                            &lt;label class=&quot;form-label&quot;&gt;Raw User List&lt;/label&gt;
+                            &lt;textarea class=&quot;form-control&quot; rows=&quot;10&quot; readonly&gt;&lt;/textarea&gt;
+                        
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;col-xl-4&quot;&gt;
+                &lt;div class=&quot;card&quot;&gt;
+                    &lt;div class=&quot;card-header&quot;&gt;&lt;h6 class=&quot;card-title mb-0&quot;&gt;Selected User Editor&lt;/h6&gt;&lt;/div&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;form method=&quot;post&quot; class=&quot;row g-2 mb-3&quot;&gt;
+                            &lt;div class=&quot;col-sm-8&quot;&gt;
+                                &lt;label class=&quot;form-label&quot;&gt;Quick Name Update&lt;/label&gt;
+                                &lt;input type=&quot;text&quot; name=&quot;user_name&quot; class=&quot;form-control&quot; value=&quot;&quot;&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;col-sm-4 d-flex align-items-end&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;save_user_name&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;user_id&quot; value=&quot;&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;user_json&quot; value=&quot;&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-primary w-100&quot;&gt;Save Name&lt;/button&gt;
+                            &lt;/div&gt;
+                        &lt;/form&gt;
+
+                        &lt;form method=&quot;post&quot; class=&quot;mt-2&quot; data-confirm=&quot;Delete this fingerprint record from the F20H machine? This removes the machine user entry.&quot;&gt;
+                            &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;delete_fingerprint&quot;&gt;
+                            &lt;input type=&quot;hidden&quot; name=&quot;user_id&quot; value=&quot;&quot;&gt;
+                            &lt;button type=&quot;submit&quot; class=&quot;btn btn-danger&quot;&gt;Delete Fingerprint&lt;/button&gt;
+                        &lt;/form&gt;
+                        &lt;div class=&quot;text-muted fs-12 mt-2&quot;&gt;This device SDK removes the whole F20H machine user record, which also removes the enrolled fingerprint from the device.&lt;/div&gt;
+
+                            &lt;div class=&quot;mt-3&quot;&gt;
+                                &lt;button
+                                    class=&quot;btn btn-sm btn-outline-secondary&quot;
+                                    type=&quot;button&quot;
+                                    data-bs-toggle=&quot;collapse&quot;
+                                    data-bs-target=&quot;#machineUserAdvanced&quot;
+                                    aria-expanded=&quot;false&quot;
+                                    aria-controls=&quot;machineUserAdvanced&quot;
+                                &gt;
+                                    Toggle Advanced Record
+                                &lt;/button&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;collapse mt-3&quot; id=&quot;machineUserAdvanced&quot;&gt;
+                                
+                                    &lt;form method=&quot;post&quot;&gt;
+                                        &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;save_user_json&quot;&gt;
+                                        &lt;input type=&quot;hidden&quot; name=&quot;user_id&quot; value=&quot;&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Raw User JSON&lt;/label&gt;
+                                        &lt;textarea
+                                            name=&quot;user_json&quot;
+                                            class=&quot;form-control machine-user-json-field&quot;
+                                            rows=&quot;4&quot;
+                                        &gt;&lt;/textarea&gt;
+                                        &lt;div class=&quot;d-flex flex-wrap gap-2 mt-3&quot;&gt;
+                                            &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary&quot;&gt;Save Raw User&lt;/button&gt;
+                                        &lt;/div&gt;
+                                    &lt;/form&gt;
+
+                                    &lt;div class=&quot;row g-2 mt-3&quot;&gt;
+                                        
+                                    &lt;/div&gt;
+                                
+                            &lt;/div&gt;
+                        
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;col-xl-6&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                    &lt;div class=&quot;card-header&quot;&gt;&lt;h6 class=&quot;card-title mb-0&quot;&gt;Laptop Bridge Profile&lt;/h6&gt;&lt;/div&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;machine-config-pane h-100&quot;&gt;
+                            &lt;div class=&quot;text-muted fs-12 mb-3&quot;&gt;Use this profile for your laptop bridge worker now. It is saved in Railway and used by Vercel endpoints.&lt;/div&gt;
+                            
+                                &lt;div class=&quot;alert alert-info mb-0&quot;&gt;Only admins can change bridge profile settings.&lt;/div&gt;
+                            
+                                &lt;form method=&quot;post&quot; class=&quot;row g-2 machine-compact-form&quot;&gt;
+                                    &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;save_bridge_profile&quot;&gt;
+                                    &lt;div class=&quot;col-sm-4&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Laptop Bridge Preset&lt;/label&gt;
+                                        &lt;select class=&quot;form-select&quot; id=&quot;bridgePresetSelect&quot; name=&quot;bridge_preset_preview&quot;&gt;
+                                            
+                                                &lt;option
+                                                    value=&quot;&quot;
+                                                    data-cloud-base-url=&quot;&quot;
+                                                    data-ingest-path=&quot;&quot;
+                                                    data-ingest-api-token=&quot;&quot;
+                                                    data-poll-seconds=&quot;&quot;
+                                                    data-ip=&quot;&quot;
+                                                    data-gateway=&quot;&quot;
+                                                    data-mask=&quot;&quot;
+                                                    data-port=&quot;&quot;
+                                                    data-device-number=&quot;&quot;
+                                                    data-output-path=&quot;&quot;
+                                                    
+                                                &gt;
+                                                    
+                                                &lt;/option&gt;
+                                            
+                                        &lt;/select&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-4 d-flex align-items-end&quot;&gt;
+                                        &lt;div class=&quot;form-check mb-2&quot;&gt;
+                                            &lt;input class=&quot;form-check-input&quot; type=&quot;checkbox&quot; name=&quot;bridge_enabled&quot; id=&quot;bridgeEnabled&quot; &gt;
+                                            &lt;label class=&quot;form-check-label&quot; for=&quot;bridgeEnabled&quot;&gt;Laptop Bridge Enabled&lt;/label&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-4&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Router Name&lt;/label&gt;
+                                        &lt;input type=&quot;text&quot; name=&quot;router_name&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;Router 2&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-4&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Bridge Name&lt;/label&gt;
+                                        &lt;input type=&quot;text&quot; name=&quot;bridge_name&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;Laptop Bridge Router 2&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-4&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Bridge Token&lt;/label&gt;
+                                        &lt;input type=&quot;text&quot; name=&quot;bridge_token&quot; id=&quot;bridgeTokenField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;shared token for bridge_profile.php&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-6&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Cloud Base URL&lt;/label&gt;
+                                        &lt;input type=&quot;text&quot; name=&quot;cloud_base_url&quot; id=&quot;bridgeCloudBaseUrlField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;https://your-app.vercel.app&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-6&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Ingest Path&lt;/label&gt;
+                                        &lt;input type=&quot;text&quot; name=&quot;ingest_path&quot; id=&quot;bridgeIngestPathField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;/api/f20h_ingest.php&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-6&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Ingest API Token&lt;/label&gt;
+                                        &lt;input type=&quot;text&quot; name=&quot;ingest_api_token&quot; id=&quot;bridgeIngestApiTokenField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;BIOTERN_API_TOKEN&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-6&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Poll Seconds&lt;/label&gt;
+                                        &lt;input type=&quot;number&quot; name=&quot;poll_seconds&quot; id=&quot;bridgePollSecondsField&quot; class=&quot;form-control&quot; value=&quot;&quot; min=&quot;5&quot; max=&quot;300&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-6&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;F20H IP&lt;/label&gt;
+                                        &lt;input type=&quot;text&quot; name=&quot;bridge_ip&quot; id=&quot;bridgeIpField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;192.168.110.201&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-6&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Gateway&lt;/label&gt;
+                                        &lt;input type=&quot;text&quot; name=&quot;bridge_gateway&quot; id=&quot;bridgeGatewayField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;192.168.110.1&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-4&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Mask&lt;/label&gt;
+                                        &lt;input type=&quot;text&quot; name=&quot;bridge_mask&quot; id=&quot;bridgeMaskField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;255.255.255.0&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-4&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Port&lt;/label&gt;
+                                        &lt;input type=&quot;number&quot; name=&quot;bridge_port&quot; id=&quot;bridgePortField&quot; class=&quot;form-control&quot; value=&quot;&quot; min=&quot;1&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-4&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Device Number&lt;/label&gt;
+                                        &lt;input type=&quot;number&quot; name=&quot;bridge_device_number&quot; id=&quot;bridgeDeviceNumberField&quot; class=&quot;form-control&quot; value=&quot;&quot; min=&quot;1&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-6&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Communication Password&lt;/label&gt;
+                                        &lt;input type=&quot;text&quot; name=&quot;bridge_password&quot; id=&quot;bridgePasswordField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;0&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-sm-6&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Local Output Path (bridge PC)&lt;/label&gt;
+                                        &lt;input type=&quot;text&quot; name=&quot;bridge_output_path&quot; id=&quot;bridgeOutputPathField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;&quot;&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-12&quot;&gt;
+                                        &lt;label class=&quot;form-label&quot;&gt;Install Auto-Start Bridge Task (recommended)&lt;/label&gt;
+                                        &lt;div class=&quot;input-group mb-2&quot;&gt;
+                                            &lt;input type=&quot;text&quot; class=&quot;form-control&quot; id=&quot;bridgeTaskInstallCommandField&quot; value=&quot;&quot; readonly&gt;
+                                            &lt;button type=&quot;button&quot; class=&quot;btn btn-outline-secondary&quot; id=&quot;copyBridgeTaskInstallCmdBtn&quot;&gt;Copy&lt;/button&gt;
+                                        &lt;/div&gt;
+                                        &lt;small class=&quot;text-muted d-block mb-2&quot;&gt;Run this once on the laptop bridge computer. It installs and starts a background task at startup/logon.&lt;/small&gt;
+
+                                        &lt;label class=&quot;form-label&quot;&gt;Check Bridge Task Status&lt;/label&gt;
+                                        &lt;div class=&quot;input-group mb-2&quot;&gt;
+                                            &lt;input type=&quot;text&quot; class=&quot;form-control&quot; id=&quot;bridgeTaskStatusCommandField&quot; value=&quot;&quot; readonly&gt;
+                                            &lt;button type=&quot;button&quot; class=&quot;btn btn-outline-secondary&quot; id=&quot;copyBridgeTaskStatusCmdBtn&quot;&gt;Copy&lt;/button&gt;
+                                        &lt;/div&gt;
+                                        &lt;small class=&quot;text-muted d-block mb-2&quot;&gt;Use this to verify the background bridge task state anytime.&lt;/small&gt;
+
+                                        &lt;label class=&quot;form-label&quot;&gt;Manual Start Bridge Worker (fallback)&lt;/label&gt;
+                                        &lt;div class=&quot;input-group&quot;&gt;
+                                            &lt;input type=&quot;text&quot; class=&quot;form-control&quot; id=&quot;bridgeWorkerCommandField&quot; value=&quot;&quot; readonly&gt;
+                                            &lt;button type=&quot;button&quot; class=&quot;btn btn-outline-secondary&quot; id=&quot;copyBridgeWorkerCmdBtn&quot;&gt;Copy&lt;/button&gt;
+                                        &lt;/div&gt;
+                                        &lt;small class=&quot;text-muted&quot;&gt;Use manual start only if task install is unavailable.&lt;/small&gt;
+                                    &lt;/div&gt;
+                                    &lt;div class=&quot;col-12 d-flex flex-wrap gap-2&quot;&gt;
+                                        &lt;button type=&quot;submit&quot; class=&quot;btn btn-secondary btn-sm&quot;&gt;Save Laptop Bridge Profile&lt;/button&gt;
+                                        &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-primary btn-sm&quot; formaction=&quot;&quot; formmethod=&quot;post&quot; name=&quot;machine_action&quot; value=&quot;quick_fill_bridge_router_1&quot;&gt;Fill Shared Bridge (Router 1)&lt;/button&gt;
+                                        &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-primary btn-sm&quot; formaction=&quot;&quot; formmethod=&quot;post&quot; name=&quot;machine_action&quot; value=&quot;quick_fill_bridge_router_2&quot;&gt;Fill Shared Bridge (Router 2)&lt;/button&gt;
+                                        &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-info btn-sm&quot; formaction=&quot;&quot; formmethod=&quot;post&quot; name=&quot;machine_action&quot; value=&quot;test_bridge_profile&quot;&gt;Test Shared Bridge&lt;/button&gt;
+                                        &lt;small class=&quot;text-muted align-self-center&quot;&gt;Laptop worker fetches this profile from /bridge_profile.php using the bridge token.&lt;/small&gt;
+                                            
+                                                &lt;form method=&quot;post&quot; class=&quot;d-inline ms-2&quot;&gt;
+                                                    &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;delete_bridge_profile&quot;&gt;
+                                                    &lt;input type=&quot;hidden&quot; name=&quot;profile_name&quot; value=&quot;&quot;&gt;
+                                                    &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-danger btn-sm&quot;&gt;Delete Profile&lt;/button&gt;
+                                                &lt;/form&gt;
+                                            
+                                    &lt;/div&gt;
+                                &lt;/form&gt;
+                            
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;col-xl-6&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                    &lt;div class=&quot;card-header d-flex justify-content-between align-items-center gap-2 flex-wrap&quot;&gt;
+                        &lt;h6 class=&quot;card-title mb-0&quot;&gt;Quick Router Switch&lt;/h6&gt;
+                        &lt;button type=&quot;button&quot; class=&quot;btn btn-sm btn-secondary&quot; id=&quot;copyConnectorToMachineBtn&quot;&gt;Copy to Network Form&lt;/button&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;machine-config-pane h-100&quot;&gt;
+                            &lt;div class=&quot;text-muted fs-12 mb-2&quot;&gt;Choose a router preset, adjust values, then save.&lt;/div&gt;
+                            &lt;form method=&quot;post&quot; class=&quot;row g-2 mt-1 machine-compact-form&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;save_connector_profile&quot;&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Router Preset&lt;/label&gt;
+                                    &lt;select class=&quot;form-select&quot; id=&quot;routerPresetSelect&quot; name=&quot;router_preset&quot;&gt;
+                                        
+                                            &lt;option
+                                                value=&quot;&quot;
+                                                data-ip=&quot;&quot;
+                                                data-gateway=&quot;&quot;
+                                                data-mask=&quot;&quot;
+                                                data-port=&quot;&quot;
+                                                
+                                            &gt;
+                                                
+                                            &lt;/option&gt;
+                                        
+                                    &lt;/select&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Sync Mode&lt;/label&gt;
+                                    &lt;select class=&quot;form-select&quot; name=&quot;sync_mode&quot;&gt;
+                                        &lt;option value=&quot;direct_ingest&quot; &gt;Direct machine ingest&lt;/option&gt;
+                                        &lt;option value=&quot;connector_fallback&quot; &gt;Connector fallback worker&lt;/option&gt;
+                                    &lt;/select&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Attendance File&lt;/label&gt;
+                                    &lt;input type=&quot;text&quot; name=&quot;connector_output_path&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Connector IP&lt;/label&gt;
+                                    &lt;input type=&quot;text&quot; name=&quot;connector_ip&quot; id=&quot;connectorIpField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;192.168.110.201&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Gateway&lt;/label&gt;
+                                    &lt;input type=&quot;text&quot; name=&quot;connector_gateway&quot; id=&quot;connectorGatewayField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;192.168.110.1&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Mask&lt;/label&gt;
+                                    &lt;input type=&quot;text&quot; name=&quot;connector_mask&quot; id=&quot;connectorMaskField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;255.255.255.0&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Port&lt;/label&gt;
+                                    &lt;input type=&quot;number&quot; name=&quot;connector_port&quot; id=&quot;connectorPortField&quot; class=&quot;form-control&quot; value=&quot;&quot; min=&quot;1&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Device Number&lt;/label&gt;
+                                    &lt;input type=&quot;number&quot; name=&quot;connector_device_number&quot; class=&quot;form-control&quot; value=&quot;&quot; min=&quot;1&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Communication Password&lt;/label&gt;
+                                    &lt;input type=&quot;text&quot; name=&quot;connector_password&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;0&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-4&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Duplicate Guard (minutes)&lt;/label&gt;
+                                    &lt;input type=&quot;number&quot; name=&quot;duplicate_guard_minutes&quot; class=&quot;form-control&quot; value=&quot;&quot; min=&quot;1&quot; max=&quot;60&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-4&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Slot Advance Minimum&lt;/label&gt;
+                                    &lt;input type=&quot;number&quot; name=&quot;slot_advance_minimum_minutes&quot; class=&quot;form-control&quot; value=&quot;&quot; min=&quot;1&quot; max=&quot;240&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-4 d-flex align-items-end&quot;&gt;
+                                    &lt;div class=&quot;form-check mb-2&quot;&gt;
+                                        &lt;input class=&quot;form-check-input&quot; type=&quot;checkbox&quot; name=&quot;attendance_window_enabled&quot; id=&quot;attendanceWindowEnabled&quot; &gt;
+                                        &lt;label class=&quot;form-check-label&quot; for=&quot;attendanceWindowEnabled&quot;&gt;Use Attendance Window&lt;/label&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-12&quot;&gt;
+                                    &lt;div class=&quot;form-check&quot;&gt;
+                                        &lt;input class=&quot;form-check-input&quot; type=&quot;checkbox&quot; name=&quot;disable_auto_import_on_ingest&quot; id=&quot;disableAutoImportOnIngest&quot; &gt;
+                                        &lt;label class=&quot;form-check-label&quot; for=&quot;disableAutoImportOnIngest&quot;&gt;Disable automatic attendance import after direct ingest&lt;/label&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Window Start&lt;/label&gt;
+                                    &lt;input type=&quot;text&quot; name=&quot;attendance_start_time&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;08:00:00&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Window End&lt;/label&gt;
+                                    &lt;input type=&quot;text&quot; name=&quot;attendance_end_time&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;20:00:00&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-12 d-flex flex-wrap gap-2&quot;&gt;
+                                    &lt;button type=&quot;submit&quot; class=&quot;btn btn-secondary btn-sm&quot;&gt;Save Quick Router Settings&lt;/button&gt;
+                                    &lt;small class=&quot;text-muted align-self-center&quot;&gt;Use direct ingest for Vercel deployments. Use connector fallback when a Windows worker pulls from F20H first.&lt;/small&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-12&quot;&gt;
+                                    &lt;div class=&quot;machine-endpoint-box border rounded p-3&quot;&gt;
+                                        &lt;div class=&quot;fw-semibold mb-1&quot;&gt;Dedicated F20H Ingest Endpoint&lt;/div&gt;
+                                        &lt;div class=&quot;text-muted fs-12 mb-2&quot;&gt;Point the machine or bridge to this endpoint for raw F20H payload delivery. The same BIOTERN_API_TOKEN header/token used by the biometric API is accepted here.&lt;/div&gt;
+                                        &lt;div class=&quot;d-flex flex-column gap-1&quot;&gt;
+                                            &lt;code&gt;/api/f20h_ingest.php&lt;/code&gt;
+                                            &lt;small class=&quot;text-muted&quot;&gt;Vercel fallback route: &lt;code&gt;/f20h_ingest.php&lt;/code&gt;&lt;/small&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/form&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;col-12&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                    &lt;div class=&quot;card-header d-flex justify-content-between align-items-center flex-wrap gap-2&quot;&gt;
+                        &lt;h6 class=&quot;card-title mb-0&quot;&gt;Direct Device Controls&lt;/h6&gt;
+                        &lt;button class=&quot;btn btn-sm machine-section-toggle&quot; type=&quot;button&quot; data-bs-toggle=&quot;collapse&quot; data-bs-target=&quot;#machineNetworkDirectControls&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;machineNetworkDirectControls&quot;&gt;Toggle Device Controls&lt;/button&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;text-muted fs-12 mb-2&quot;&gt;Optional controls for direct machine networking and time adjustments.&lt;/div&gt;
+                        &lt;div class=&quot;collapse&quot; id=&quot;machineNetworkDirectControls&quot;&gt;
+                            &lt;form method=&quot;post&quot; class=&quot;row g-2 mb-4&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;save_network&quot;&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;IP Address&lt;/label&gt;
+                                    &lt;input type=&quot;text&quot; name=&quot;ip_address&quot; id=&quot;machineIpField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;192.168.100.201&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Gateway&lt;/label&gt;
+                                    &lt;input type=&quot;text&quot; name=&quot;gateway&quot; id=&quot;machineGatewayField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;192.168.100.1&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Mask&lt;/label&gt;
+                                    &lt;input type=&quot;text&quot; name=&quot;mask&quot; id=&quot;machineMaskField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;255.255.255.0&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Port&lt;/label&gt;
+                                    &lt;input type=&quot;number&quot; name=&quot;port&quot; id=&quot;machinePortField&quot; class=&quot;form-control&quot; value=&quot;&quot; placeholder=&quot;5001&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-12&quot;&gt;
+                                    &lt;button type=&quot;submit&quot; class=&quot;btn btn-secondary&quot;&gt;Save Network Settings&lt;/button&gt;
+                                &lt;/div&gt;
+                            &lt;/form&gt;
+
+                            &lt;form method=&quot;post&quot; class=&quot;row g-2&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;set_time&quot;&gt;
+                                &lt;div class=&quot;col-sm-8&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Device Time&lt;/label&gt;
+                                    &lt;input type=&quot;text&quot; name=&quot;time_value&quot; class=&quot;form-control&quot; placeholder=&quot;2026-03-25 08:00:00&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-4 d-flex align-items-end&quot;&gt;
+                                    &lt;button type=&quot;submit&quot; class=&quot;btn btn-secondary w-100&quot;&gt;Set Time&lt;/button&gt;
+                                &lt;/div&gt;
+                            &lt;/form&gt;
+
+                            &lt;div class=&quot;mt-3&quot;&gt;
+                                &lt;label class=&quot;form-label&quot;&gt;Last Network Readback&lt;/label&gt;
+                                &lt;textarea class=&quot;form-control&quot; rows=&quot;4&quot; readonly&gt;&lt;/textarea&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;mt-3&quot;&gt;
+                                &lt;label class=&quot;form-label&quot;&gt;Last Time Readback&lt;/label&gt;
+                                &lt;textarea class=&quot;form-control&quot; rows=&quot;2&quot; readonly&gt;&lt;/textarea&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;col-xl-8&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full machine-raw-logs-card&quot;&gt;
+                    &lt;div class=&quot;card-header d-flex flex-wrap justify-content-between gap-2&quot;&gt;
+                        &lt;div&gt;
+                            &lt;h6 class=&quot;card-title mb-0&quot;&gt;Raw Machine Logs&lt;/h6&gt;
+                            &lt;div class=&quot;text-muted fs-12 mt-1&quot;&gt;Every log BioTern has already pulled from the F20H. Use this to monitor volume before clearing the machine records.&lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;text-end&quot;&gt;
+                            &lt;div class=&quot;fw-semibold&quot;&gt; total logs&lt;/div&gt;
+                            &lt;small class=&quot;text-muted&quot;&gt; processed&lt;/small&gt;
+                            &lt;div class=&quot;mt-2&quot;&gt;
+                                &lt;button class=&quot;btn btn-sm btn-outline-secondary machine-section-toggle&quot; type=&quot;button&quot; data-bs-toggle=&quot;collapse&quot; data-bs-target=&quot;#machineRawLogsCollapse&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;machineRawLogsCollapse&quot;&gt;Toggle Logs&lt;/button&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;card-body p-0 collapse&quot; id=&quot;machineRawLogsCollapse&quot;&gt;
+                        &lt;div class=&quot;table-responsive&quot;&gt;
+                            &lt;table class=&quot;table table-sm mb-0 align-middle&quot;&gt;
+                                &lt;thead&gt;
+                                    &lt;tr&gt;
+                                        &lt;th&gt;Raw ID&lt;/th&gt;
+                                        &lt;th&gt;Fingerprint&lt;/th&gt;
+                                        &lt;th&gt;Matched Person&lt;/th&gt;
+                                        &lt;th&gt;Time&lt;/th&gt;
+                                        &lt;th&gt;Type&lt;/th&gt;
+                                        &lt;th&gt;Processed&lt;/th&gt;
+                                        &lt;th&gt;Imported&lt;/th&gt;
+                                        &lt;th&gt;Raw JSON&lt;/th&gt;
+                                    &lt;/tr&gt;
+                                &lt;/thead&gt;
+                                &lt;tbody&gt;
+                                    
+                                        &lt;tr&gt;&lt;td colspan=&quot;8&quot; class=&quot;text-center text-muted py-3&quot;&gt;No raw machine logs stored yet.&lt;/td&gt;&lt;/tr&gt;
+
+                                            &lt;tr&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td class=&quot;machine-raw-json-cell&quot;&gt;&lt;code&gt;&lt;/code&gt;&lt;/td&gt;
+                                            &lt;/tr&gt;
+
+                                &lt;/tbody&gt;
+                            &lt;/table&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-3 border-top&quot;&gt;
+                            &lt;small class=&quot;text-muted&quot;&gt;Page  of &lt;/small&gt;
+                            &lt;div class=&quot;d-flex gap-2&quot;&gt;
+                                
+                                    &lt;a class=&quot;btn btn-sm btn-outline-primary&quot; href=&quot;biometric-machine.php?raw_page=&quot;&gt;Previous&lt;/a&gt;
+
+                                    &lt;a class=&quot;btn btn-sm btn-outline-primary&quot; href=&quot;biometric-machine.php?raw_page=&quot;&gt;Next&lt;/a&gt;
+                                
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;col-xl-4&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                    &lt;div class=&quot;card-header d-flex justify-content-between align-items-center gap-2&quot;&gt;
+                        &lt;h6 class=&quot;card-title mb-0&quot;&gt;Sync Attempts&lt;/h6&gt;
+                        &lt;button class=&quot;btn btn-sm btn-outline-secondary machine-section-toggle&quot; type=&quot;button&quot; data-bs-toggle=&quot;collapse&quot; data-bs-target=&quot;#machineSyncAttemptsCollapse&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;machineSyncAttemptsCollapse&quot;&gt;Toggle&lt;/button&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;card-body p-0 collapse&quot; id=&quot;machineSyncAttemptsCollapse&quot;&gt;
+                        &lt;div class=&quot;table-responsive&quot;&gt;
+                            &lt;table class=&quot;table table-sm mb-0 align-middle&quot;&gt;
+                                &lt;thead&gt;
+                                    &lt;tr&gt;
+                                        &lt;th&gt;Status&lt;/th&gt;
+                                        &lt;th&gt;Started&lt;/th&gt;
+                                        &lt;th&gt;Imported&lt;/th&gt;
+                                        &lt;th&gt;Anomalies&lt;/th&gt;
+                                    &lt;/tr&gt;
+                                &lt;/thead&gt;
+                                &lt;tbody&gt;
+                                    
+                                        &lt;tr&gt;&lt;td colspan=&quot;4&quot; class=&quot;text-center text-muted py-3&quot;&gt;No sync attempts yet.&lt;/td&gt;&lt;/tr&gt;
+
+                                            &lt;tr&gt;
+                                                &lt;td&gt;
+                                                    &lt;div class=&quot;fw-semibold&quot;&gt;&lt;/div&gt;
+                                                    &lt;small class=&quot;text-muted&quot;&gt;&lt;/small&gt;
+                                                &lt;/td&gt;
+                                                &lt;td&gt;
+                                                    &lt;div&gt;&lt;/div&gt;
+                                                    &lt;small class=&quot;text-muted&quot;&gt;&lt;/small&gt;
+                                                &lt;/td&gt;
+                                                &lt;td&gt; logs&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                            &lt;/tr&gt;
+
+                                &lt;/tbody&gt;
+                            &lt;/table&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;px-3 py-3 border-top text-muted fs-12&quot;&gt;If these counts keep growing, run a sync, confirm the raw logs are stored here, then you can use &quot;Clear Records&quot; on the F20H to avoid filling the device.&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;col-xl-12&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                    &lt;div class=&quot;card-header d-flex justify-content-between align-items-center gap-2&quot;&gt;
+                        &lt;h6 class=&quot;card-title mb-0&quot;&gt;Ingest Health Monitor&lt;/h6&gt;
+                        &lt;button class=&quot;btn btn-sm btn-outline-secondary machine-section-toggle&quot; type=&quot;button&quot; data-bs-toggle=&quot;collapse&quot; data-bs-target=&quot;#machineIngestHealthCollapse&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;machineIngestHealthCollapse&quot;&gt;Toggle&lt;/button&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;card-body p-0 collapse&quot; id=&quot;machineIngestHealthCollapse&quot;&gt;
+                        &lt;div class=&quot;table-responsive&quot;&gt;
+                            &lt;table class=&quot;table table-sm mb-0 align-middle&quot;&gt;
+                                &lt;thead&gt;
+                                    &lt;tr&gt;
+                                        &lt;th&gt;Received&lt;/th&gt;
+                                        &lt;th&gt;Bridge Node&lt;/th&gt;
+                                        &lt;th&gt;Source IP&lt;/th&gt;
+                                        &lt;th&gt;Token&lt;/th&gt;
+                                        &lt;th&gt;HTTP&lt;/th&gt;
+                                        &lt;th&gt;Events&lt;/th&gt;
+                                        &lt;th&gt;Accepted&lt;/th&gt;
+                                        &lt;th&gt;Note&lt;/th&gt;
+                                    &lt;/tr&gt;
+                                &lt;/thead&gt;
+                                &lt;tbody&gt;
+                                    
+                                        &lt;tr&gt;&lt;td colspan=&quot;8&quot; class=&quot;text-center text-muted py-3&quot;&gt;No ingest requests captured yet.&lt;/td&gt;&lt;/tr&gt;
+
+                                            &lt;tr&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                            &lt;/tr&gt;
+
+                                &lt;/tbody&gt;
+                            &lt;/table&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;col-xl-12&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                    &lt;div class=&quot;card-header d-flex justify-content-between align-items-center gap-2&quot;&gt;
+                        &lt;h6 class=&quot;card-title mb-0&quot;&gt;Bridge Command Queue Monitor&lt;/h6&gt;
+                        &lt;button class=&quot;btn btn-sm btn-outline-secondary machine-section-toggle&quot; type=&quot;button&quot; data-bs-toggle=&quot;collapse&quot; data-bs-target=&quot;#machineBridgeQueueCollapse&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;machineBridgeQueueCollapse&quot;&gt;Toggle&lt;/button&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;card-body collapse&quot; id=&quot;machineBridgeQueueCollapse&quot;&gt;
+                        &lt;div class=&quot;row g-2 mb-3&quot;&gt;
+                            &lt;div class=&quot;col-sm-3&quot;&gt;
+                                &lt;div class=&quot;border rounded p-2&quot;&gt;
+                                    &lt;div class=&quot;text-muted fs-12&quot;&gt;Queued&lt;/div&gt;
+                                    &lt;div class=&quot;fw-bold&quot;&gt;&lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;col-sm-3&quot;&gt;
+                                &lt;div class=&quot;border rounded p-2&quot;&gt;
+                                    &lt;div class=&quot;text-muted fs-12&quot;&gt;Claimed&lt;/div&gt;
+                                    &lt;div class=&quot;fw-bold&quot;&gt;&lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;col-sm-3&quot;&gt;
+                                &lt;div class=&quot;border rounded p-2&quot;&gt;
+                                    &lt;div class=&quot;text-muted fs-12&quot;&gt;Succeeded&lt;/div&gt;
+                                    &lt;div class=&quot;fw-bold&quot;&gt;&lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;col-sm-3&quot;&gt;
+                                &lt;div class=&quot;border rounded p-2&quot;&gt;
+                                    &lt;div class=&quot;text-muted fs-12&quot;&gt;Failed&lt;/div&gt;
+                                    &lt;div class=&quot;fw-bold&quot;&gt;&lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class=&quot;table-responsive&quot;&gt;
+                            &lt;table class=&quot;table table-sm mb-0 align-middle&quot;&gt;
+                                &lt;thead&gt;
+                                    &lt;tr&gt;
+                                        &lt;th&gt;ID&lt;/th&gt;
+                                        &lt;th&gt;Command&lt;/th&gt;
+                                        &lt;th&gt;Status&lt;/th&gt;
+                                        &lt;th&gt;Requested&lt;/th&gt;
+                                        &lt;th&gt;Claimed By&lt;/th&gt;
+                                        &lt;th&gt;Completed&lt;/th&gt;
+                                        &lt;th&gt;Attempts&lt;/th&gt;
+                                        &lt;th&gt;Result&lt;/th&gt;
+                                    &lt;/tr&gt;
+                                &lt;/thead&gt;
+                                &lt;tbody&gt;
+                                    
+                                        &lt;tr&gt;&lt;td colspan=&quot;8&quot; class=&quot;text-center text-muted py-3&quot;&gt;No bridge commands queued yet.&lt;/td&gt;&lt;/tr&gt;
+
+                                            &lt;tr&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;span class=&quot;badge bg-soft- text-&quot;&gt;&lt;/span&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                            &lt;/tr&gt;
+
+                                &lt;/tbody&gt;
+                            &lt;/table&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;col-xl-12&quot;&gt;
+                &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                    &lt;div class=&quot;card-header d-flex justify-content-between align-items-center gap-2&quot;&gt;
+                        &lt;h6 class=&quot;card-title mb-0&quot;&gt;Automatic Fingerprint Cleanup Monitor&lt;/h6&gt;
+                        &lt;div class=&quot;d-flex align-items-center gap-2&quot;&gt;
+                            
+                                &lt;form method=&quot;post&quot; class=&quot;d-inline&quot;&gt;
+                                    &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;retry_all_fingerprint_cleanup&quot;&gt;
+                                    &lt;button type=&quot;submit&quot; class=&quot;btn btn-sm btn-outline-warning&quot;&gt;Retry All Failed&lt;/button&gt;
+                                &lt;/form&gt;
+                            
+                            &lt;button class=&quot;btn btn-sm btn-outline-secondary machine-section-toggle&quot; type=&quot;button&quot; data-bs-toggle=&quot;collapse&quot; data-bs-target=&quot;#machineAutoCleanupCollapse&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;machineAutoCleanupCollapse&quot;&gt;Toggle&lt;/button&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;card-body collapse&quot; id=&quot;machineAutoCleanupCollapse&quot;&gt;
+                        &lt;div class=&quot;row g-2 mb-3&quot;&gt;
+                            &lt;div class=&quot;col-sm-3&quot;&gt;
+                                &lt;div class=&quot;border rounded p-2&quot;&gt;
+                                    &lt;div class=&quot;text-muted fs-12&quot;&gt;Queued&lt;/div&gt;
+                                    &lt;div class=&quot;fw-bold&quot;&gt;&lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;col-sm-3&quot;&gt;
+                                &lt;div class=&quot;border rounded p-2&quot;&gt;
+                                    &lt;div class=&quot;text-muted fs-12&quot;&gt;Claimed&lt;/div&gt;
+                                    &lt;div class=&quot;fw-bold&quot;&gt;&lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;col-sm-3&quot;&gt;
+                                &lt;div class=&quot;border rounded p-2&quot;&gt;
+                                    &lt;div class=&quot;text-muted fs-12&quot;&gt;Succeeded&lt;/div&gt;
+                                    &lt;div class=&quot;fw-bold&quot;&gt;&lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;col-sm-3&quot;&gt;
+                                &lt;div class=&quot;border rounded p-2&quot;&gt;
+                                    &lt;div class=&quot;text-muted fs-12&quot;&gt;Failed&lt;/div&gt;
+                                    &lt;div class=&quot;fw-bold&quot;&gt;&lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class=&quot;table-responsive&quot;&gt;
+                            &lt;table class=&quot;table table-sm mb-0 align-middle&quot;&gt;
+                                &lt;thead&gt;
+                                    &lt;tr&gt;
+                                        &lt;th&gt;Student&lt;/th&gt;
+                                        &lt;th&gt;Finger ID&lt;/th&gt;
+                                        &lt;th&gt;Log Status&lt;/th&gt;
+                                        &lt;th&gt;Queue ID&lt;/th&gt;
+                                        &lt;th&gt;Queue Status&lt;/th&gt;
+                                        &lt;th&gt;Queued&lt;/th&gt;
+                                        &lt;th&gt;Completed&lt;/th&gt;
+                                        &lt;th&gt;Message&lt;/th&gt;
+                                        &lt;th class=&quot;text-end&quot;&gt;Action&lt;/th&gt;
+                                    &lt;/tr&gt;
+                                &lt;/thead&gt;
+                                &lt;tbody&gt;
+                                    
+                                        &lt;tr&gt;&lt;td colspan=&quot;9&quot; class=&quot;text-center text-muted py-3&quot;&gt;No automatic fingerprint cleanup logs yet.&lt;/td&gt;&lt;/tr&gt;
+
+                                            &lt;tr&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;span class=&quot;badge bg-soft- text-&quot;&gt;&lt;/span&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;span class=&quot;badge bg-soft- text-&quot;&gt;&lt;/span&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td&gt;&lt;/td&gt;
+                                                &lt;td class=&quot;text-end&quot;&gt;
+                                                    
+                                                        &lt;form method=&quot;post&quot; class=&quot;d-inline&quot;&gt;
+                                                            &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;retry_fingerprint_cleanup&quot;&gt;
+                                                            &lt;input type=&quot;hidden&quot; name=&quot;cleanup_log_id&quot; value=&quot;&quot;&gt;
+                                                            &lt;button type=&quot;submit&quot; class=&quot;btn btn-sm btn-outline-warning&quot;&gt;Retry&lt;/button&gt;
+                                                        &lt;/form&gt;
+                                                    
+                                                        &lt;span class=&quot;text-muted small&quot;&gt;-&lt;/span&gt;
+                                                    
+                                                &lt;/td&gt;
+                                            &lt;/tr&gt;
+
+                                &lt;/tbody&gt;
+                            &lt;/table&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+                &lt;div class=&quot;col-12 d-flex justify-content-end&quot;&gt;
+                    &lt;button class=&quot;btn btn-sm btn-outline-secondary machine-section-toggle&quot; type=&quot;button&quot; data-bs-toggle=&quot;collapse&quot; data-bs-target=&quot;#machineAdminAdvancedPanels&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;machineAdminAdvancedPanels&quot;&gt;Toggle Admin Advanced Panels&lt;/button&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;col-12 collapse&quot; id=&quot;machineAdminAdvancedPanels&quot;&gt;
+                    &lt;div class=&quot;row g-3&quot;&gt;
+                &lt;div class=&quot;col-xl-6&quot;&gt;
+                    &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                        &lt;div class=&quot;card-header&quot;&gt;&lt;h6 class=&quot;card-title mb-0&quot;&gt;Recent Anomalies&lt;/h6&gt;&lt;/div&gt;
+                        &lt;div class=&quot;card-body p-0&quot;&gt;
+                            &lt;div class=&quot;table-responsive&quot;&gt;
+                                &lt;table class=&quot;table table-sm mb-0&quot;&gt;
+                                    &lt;thead&gt;
+                                        &lt;tr&gt;
+                                            &lt;th&gt;Type&lt;/th&gt;
+                                            &lt;th&gt;Fingerprint&lt;/th&gt;
+                                            &lt;th&gt;Matched Person&lt;/th&gt;
+                                            &lt;th&gt;Severity&lt;/th&gt;
+                                            &lt;th&gt;Message&lt;/th&gt;
+                                            &lt;th&gt;When&lt;/th&gt;
+                                        &lt;/tr&gt;
+                                    &lt;/thead&gt;
+                                    &lt;tbody&gt;
+                                        
+                                            &lt;tr&gt;&lt;td colspan=&quot;6&quot; class=&quot;text-center text-muted py-3&quot;&gt;No recent anomalies.&lt;/td&gt;&lt;/tr&gt;
+
+                                                &lt;tr&gt;
+                                                    &lt;td&gt;&lt;/td&gt;
+                                                    &lt;td&gt;&lt;/td&gt;
+                                                    &lt;td&gt;
+                                                        &lt;div class=&quot;fw-semibold&quot;&gt;&lt;/div&gt;
+                                                        &lt;small class=&quot;text-muted&quot;&gt;
+                                                            
+                                                        &lt;/small&gt;
+                                                    &lt;/td&gt;
+                                                    &lt;td&gt;&lt;/td&gt;
+                                                    &lt;td&gt;&lt;/td&gt;
+                                                    &lt;td&gt;&lt;/td&gt;
+                                                &lt;/tr&gt;
+
+                                    &lt;/tbody&gt;
+                                &lt;/table&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;col-xl-6&quot;&gt;
+                    &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                        &lt;div class=&quot;card-header&quot;&gt;&lt;h6 class=&quot;card-title mb-0&quot;&gt;Recent Audit Log&lt;/h6&gt;&lt;/div&gt;
+                        &lt;div class=&quot;card-body p-0&quot;&gt;
+                            &lt;div class=&quot;table-responsive&quot;&gt;
+                                &lt;table class=&quot;table table-sm mb-0&quot;&gt;
+                                    &lt;thead&gt;
+                                        &lt;tr&gt;
+                                            &lt;th&gt;Action&lt;/th&gt;
+                                            &lt;th&gt;Actor&lt;/th&gt;
+                                            &lt;th&gt;Target&lt;/th&gt;
+                                            &lt;th&gt;When&lt;/th&gt;
+                                        &lt;/tr&gt;
+                                    &lt;/thead&gt;
+                                    &lt;tbody&gt;
+                                        
+                                            &lt;tr&gt;&lt;td colspan=&quot;4&quot; class=&quot;text-center text-muted py-3&quot;&gt;No recent audit entries.&lt;/td&gt;&lt;/tr&gt;
+
+                                                &lt;tr&gt;
+                                                    &lt;td&gt;&lt;/td&gt;
+                                                    &lt;td&gt;&lt;/td&gt;
+                                                    &lt;td&gt;&lt;/td&gt;
+                                                    &lt;td&gt;&lt;/td&gt;
+                                                &lt;/tr&gt;
+
+                                    &lt;/tbody&gt;
+                                &lt;/table&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;col-xl-6&quot;&gt;
+                    &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                        &lt;div class=&quot;card-header&quot;&gt;&lt;h6 class=&quot;card-title mb-0&quot;&gt;Device Info and Raw Config&lt;/h6&gt;&lt;/div&gt;
+                        &lt;div class=&quot;card-body&quot;&gt;
+                            &lt;label class=&quot;form-label&quot;&gt;Device Info&lt;/label&gt;
+                            &lt;textarea class=&quot;form-control mb-3&quot; rows=&quot;6&quot; readonly&gt;&lt;/textarea&gt;
+
+                            &lt;form method=&quot;post&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;save_config&quot;&gt;
+                                &lt;label class=&quot;form-label&quot;&gt;Config JSON&lt;/label&gt;
+                                &lt;textarea name=&quot;config_json&quot; class=&quot;form-control&quot; rows=&quot;10&quot;&gt;&lt;/textarea&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary mt-3&quot;&gt;Save Config&lt;/button&gt;
+                            &lt;/form&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;col-xl-6&quot;&gt;
+                    &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                        &lt;div class=&quot;card-header&quot;&gt;&lt;h6 class=&quot;card-title mb-0&quot;&gt;Connector Defaults&lt;/h6&gt;&lt;/div&gt;
+                        &lt;div class=&quot;card-body&quot;&gt;
+                            &lt;p class=&quot;text-muted&quot;&gt;These are the localhost-side connection settings BioTern uses when it talks to the F20H over LAN.&lt;/p&gt;
+                            &lt;form method=&quot;post&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;save_connector_config&quot;&gt;
+                                &lt;label class=&quot;form-label&quot;&gt;Connector JSON&lt;/label&gt;
+                                &lt;textarea name=&quot;connector_config_json&quot; class=&quot;form-control&quot; rows=&quot;10&quot;&gt;&lt;/textarea&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-primary mt-3&quot;&gt;Save Connector Config&lt;/button&gt;
+                            &lt;/form&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;col-xl-6&quot;&gt;
+                    &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                        &lt;div class=&quot;card-header&quot;&gt;&lt;h6 class=&quot;card-title mb-0&quot;&gt;Advanced Machine Controls&lt;/h6&gt;&lt;/div&gt;
+                        &lt;div class=&quot;card-body&quot;&gt;
+                            &lt;form method=&quot;post&quot; class=&quot;row g-2 mb-4&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;save_device_identity&quot;&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Device Number&lt;/label&gt;
+                                    &lt;input type=&quot;number&quot; name=&quot;device_number&quot; class=&quot;form-control&quot; min=&quot;1&quot; placeholder=&quot;1&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-sm-6&quot;&gt;
+                                    &lt;label class=&quot;form-label&quot;&gt;Communication Password&lt;/label&gt;
+                                    &lt;input type=&quot;text&quot; name=&quot;communication_password&quot; class=&quot;form-control&quot; placeholder=&quot;0&quot;&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;col-12&quot;&gt;
+                                    &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-secondary&quot;&gt;Save Device Identity&lt;/button&gt;
+                                &lt;/div&gt;
+                            &lt;/form&gt;
+
+                            &lt;div class=&quot;d-flex flex-wrap gap-2&quot;&gt;
+                                &lt;form method=&quot;post&quot; data-confirm=&quot;Restart the F20H now?&quot;&gt;
+                                    &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;restart&quot;&gt;
+                                    &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-primary&quot;&gt;Restart Machine&lt;/button&gt;
+                                &lt;/form&gt;
+                                &lt;form method=&quot;post&quot; data-confirm=&quot;Clear only attendance records from the F20H?&quot;&gt;
+                                    &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;clear_records&quot;&gt;
+                                    &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-warning&quot;&gt;Clear Records&lt;/button&gt;
+                                &lt;/form&gt;
+                                &lt;form method=&quot;post&quot; data-confirm=&quot;Clear admin data on the F20H?&quot;&gt;
+                                    &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;clear_admin&quot;&gt;
+                                    &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-warning&quot;&gt;Clear Admin&lt;/button&gt;
+                                &lt;/form&gt;
+                                &lt;form method=&quot;post&quot; data-confirm=&quot;Clear all users from the F20H? This removes the machine user list.&quot;&gt;
+                                    &lt;input type=&quot;hidden&quot; name=&quot;machine_action&quot; value=&quot;clear_users&quot;&gt;
+                                    &lt;button type=&quot;submit&quot; class=&quot;btn btn-outline-danger&quot;&gt;Clear All Users&lt;/button&gt;
+                                &lt;/form&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            
+        &lt;/div&gt;
+&lt;/div&gt;
+&lt;/main&gt;
+
+&lt;div
+    class=&quot;toast-container position-fixed top-0 end-0 p-3&quot;
+    id=&quot;machineQueueToastContainer&quot;
+    style=&quot;z-index: 1080;&quot;
+    data-machine-queue-watch-url=&quot;biometric-machine.php?queue_watch_status=1&quot;&gt;&lt;/div&gt;</code></pre></main>
+</div>
+</body>
+</html>

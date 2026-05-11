@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pages/attendance.php - HTML Structure</title>
+<style>
+:root{--ink:#0f172a;--muted:#64748b;--line:#dbe3ef;--paper:#fff;--soft:#f8fafc;--brand:#3454d1}
+*{box-sizing:border-box}
+body{margin:0;background:#e5e7eb;color:var(--ink);font:14px/1.5 Consolas,"Courier New",monospace}
+.page{width:min(100%,1100px);margin:24px auto;background:var(--paper);box-shadow:0 18px 40px rgba(15,23,42,.12)}
+header{padding:22px 28px;border-bottom:1px solid var(--line);font-family:Arial,sans-serif}
+h1{margin:0 0 6px;font-size:20px}
+.meta{color:var(--muted);font-size:12px}
+.toolbar{display:flex;gap:10px;margin-top:16px}
+.toolbar a,.toolbar button{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:8px;padding:8px 12px;text-decoration:none;font:600 13px Arial,sans-serif;cursor:pointer}
+.toolbar button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.code{margin:0;padding:24px 28px;white-space:pre-wrap;tab-size:4;font-size:12px;line-height:1.45;word-break:break-word}
+@media print{body{background:#fff}.page{width:100%;margin:0;box-shadow:none}.toolbar{display:none}.code{font-size:9.5px}a{color:inherit}}
+@page{margin:12mm}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+<h1>pages/attendance.php</h1>
+<div class="meta">HTML structure only. PHP blocks, JavaScript, and CSS blocks were removed.</div>
+<div class="toolbar"><a href="../index.html">Back to index</a><button class="primary" onclick="window.print()">Print / Save PDF</button></div>
+</header>
+<main><pre class="code"><code>&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;
+    &lt;title&gt;BioTern || Attendance Print Preview&lt;/title&gt;
+    
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;screen-actions&quot;&gt;&lt;button type=&quot;button&quot;&gt;Close&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;primary&quot;&gt;Print&lt;/button&gt;&lt;/div&gt;
+    &lt;main class=&quot;paper&quot;&gt;
+        &lt;header class=&quot;print-header&quot;&gt;
+            &lt;img src=&quot;assets/images/ccstlogo.png&quot; alt=&quot;CCST&quot;&gt;
+            &lt;div class=&quot;print-header-copy&quot;&gt;
+                &lt;h1 class=&quot;print-school&quot;&gt;CLARK COLLEGE OF SCIENCE AND TECHNOLOGY&lt;/h1&gt;
+                &lt;p class=&quot;print-meta&quot;&gt;SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga&lt;/p&gt;
+                &lt;p class=&quot;print-meta&quot;&gt;Telefax No.: (045) 624-0215&lt;/p&gt;
+            &lt;/div&gt;
+            &lt;div aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;
+        &lt;/header&gt;
+        &lt;div class=&quot;print-title&quot;&gt;Attendance List&lt;/div&gt;
+        &lt;div class=&quot;filter-line&quot;&gt;&lt;strong&gt;FILTER:&lt;/strong&gt;  /  / &lt;/div&gt;
+        &lt;table&gt;
+            &lt;thead&gt;
+                &lt;tr&gt;
+                    &lt;th&gt;#&lt;/th&gt;
+                    &lt;th&gt;Date&lt;/th&gt;
+                    &lt;th&gt;Student No.&lt;/th&gt;
+                    &lt;th&gt;Name&lt;/th&gt;
+                    &lt;th&gt;Course / Section&lt;/th&gt;
+                    &lt;th&gt;AM In&lt;/th&gt;
+                    &lt;th&gt;AM Out&lt;/th&gt;
+                    &lt;th&gt;PM In&lt;/th&gt;
+                    &lt;th&gt;PM Out&lt;/th&gt;
+                    &lt;th&gt;Total Hours&lt;/th&gt;
+                    &lt;th&gt;Status&lt;/th&gt;
+                    &lt;th&gt;Type&lt;/th&gt;
+                &lt;/tr&gt;
+            &lt;/thead&gt;
+            &lt;tbody&gt;
+                
+                    &lt;tr&gt;&lt;td colspan=&quot;12&quot; class=&quot;text-center&quot;&gt;No attendance records matched the current filters.&lt;/td&gt;&lt;/tr&gt;
+
+                        &lt;tr&gt;
+                            &lt;td&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;/td&gt;
+                        &lt;/tr&gt;
+
+            &lt;/tbody&gt;
+        &lt;/table&gt;
+    &lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+&lt;main class=&quot;nxl-container&quot;&gt;
+        &lt;div class=&quot;nxl-content&quot;&gt;
+            
+            &lt;div class=&quot;page-header&quot;&gt;
+                &lt;div class=&quot;page-header-left d-flex align-items-center&quot;&gt;
+                    &lt;div class=&quot;page-header-title&quot;&gt;
+                        &lt;h5 class=&quot;m-b-10&quot;&gt;Internal Attendance&lt;/h5&gt;
+                    &lt;/div&gt;
+                    &lt;ul class=&quot;breadcrumb&quot;&gt;
+                        &lt;li class=&quot;breadcrumb-item&quot;&gt;&lt;a href=&quot;homepage.php&quot;&gt;Home&lt;/a&gt;&lt;/li&gt;
+                        &lt;li class=&quot;breadcrumb-item&quot;&gt;&lt;a href=&quot;students.php&quot;&gt;Students&lt;/a&gt;&lt;/li&gt;
+                        &lt;li class=&quot;breadcrumb-item&quot;&gt;Internal Attendance&lt;/li&gt;
+                    &lt;/ul&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;page-header-right ms-auto&quot;&gt;
+                    &lt;a href=&quot;legacy_router.php?file=biometric-machine.php&quot; class=&quot;attendance-bridge-status attendance-bridge-status-&quot; title=&quot;&quot;&gt;
+                        &lt;i class=&quot;&quot;&gt;&lt;/i&gt;
+                        &lt;span&gt;&lt;/span&gt;
+                        
+                            &lt;small&gt;s&lt;/small&gt;
+                        
+                    &lt;/a&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn btn-sm btn-light-brand page-header-actions-toggle&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;attendanceActionsMenu&quot;&gt;
+                        &lt;i class=&quot;feather-grid me-1&quot;&gt;&lt;/i&gt;
+                        &lt;span&gt;Actions&lt;/span&gt;
+                    &lt;/button&gt;
+                    &lt;div class=&quot;page-header-actions&quot; id=&quot;attendanceActionsMenu&quot;&gt;
+                        &lt;div class=&quot;dashboard-actions-panel&quot;&gt;
+                            &lt;div class=&quot;dashboard-actions-meta&quot;&gt;
+                                &lt;span class=&quot;text-muted fs-12&quot;&gt;Quick Actions&lt;/span&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;dashboard-actions-grid page-header-right-items-wrapper&quot;&gt;
+                            &lt;a href=&quot;javascript:void(0);&quot; class=&quot;btn btn-light-brand&quot; data-bs-toggle=&quot;collapse&quot; data-bs-target=&quot;#collapseAttendanceStats&quot;&gt;
+                                &lt;i class=&quot;feather-bar-chart me-2&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;Statistics&lt;/span&gt;
+                            &lt;/a&gt;
+                            &lt;button type=&quot;button&quot; class=&quot;btn filter-toggle-btn&quot; data-bs-toggle=&quot;collapse&quot; data-bs-target=&quot;#attendanceFilterCollapse&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;attendanceFilterCollapse&quot;&gt;
+                                &lt;i class=&quot;feather-filter me-2&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;Filters&lt;/span&gt;
+                            &lt;/button&gt;
+                            &lt;a href=&quot;legacy_router.php?file=biometric-machine.php&quot; class=&quot;btn btn-light-brand&quot;&gt;
+                                &lt;i class=&quot;feather-cpu me-2&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;Machine Manager&lt;/span&gt;
+                            &lt;/a&gt;
+                            &lt;a href=&quot;external-attendance.php&quot; class=&quot;btn btn-light-brand&quot;&gt;
+                                &lt;i class=&quot;feather-briefcase me-2&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;External Attendance&lt;/span&gt;
+                            &lt;/a&gt;
+                            &lt;button type=&quot;button&quot; class=&quot;btn btn-primary&quot; id=&quot;manualSyncMachineButton&quot;&gt;
+                                &lt;i class=&quot;feather-refresh-cw me-2&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;Sync Machine&lt;/span&gt;
+                            &lt;/button&gt;
+                            &lt;form method=&quot;post&quot; action=&quot;legacy_router.php?file=f20h_offline_excel_import.php&quot; enctype=&quot;multipart/form-data&quot; class=&quot;d-inline-flex align-items-center gap-2&quot;&gt;
+                                &lt;label class=&quot;btn btn-light-brand mb-0&quot; for=&quot;f20hOfflineReportFile&quot;&gt;
+                                    &lt;i class=&quot;feather-upload-cloud me-2&quot;&gt;&lt;/i&gt;
+                                    &lt;span&gt;Import F20H Excel&lt;/span&gt;
+                                &lt;/label&gt;
+                                &lt;input type=&quot;file&quot; id=&quot;f20hOfflineReportFile&quot; name=&quot;f20h_report_file&quot; class=&quot;d-none&quot; accept=&quot;.xls,application/vnd.ms-excel&quot;&gt;
+                            &lt;/form&gt;
+                            &lt;div class=&quot;dropdown&quot;&gt;
+                                &lt;a class=&quot;btn btn-light-brand&quot; data-bs-toggle=&quot;dropdown&quot; data-bs-offset=&quot;0, 10&quot; data-bs-auto-close=&quot;outside&quot;&gt;
+                                    &lt;i class=&quot;feather-sliders me-2&quot;&gt;&lt;/i&gt;
+                                    &lt;span&gt;Quick Filter&lt;/span&gt;
+                                &lt;/a&gt;
+                                &lt;div class=&quot;dropdown-menu dropdown-menu-end&quot;&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item attendance-filter&quot; data-type=&quot;status&quot; data-value=&quot;approved&quot;&gt;
+                                        &lt;i class=&quot;feather-check-circle me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;Approved&lt;/span&gt;
+                                    &lt;/a&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item attendance-filter&quot; data-type=&quot;status&quot; data-value=&quot;present&quot;&gt;
+                                        &lt;i class=&quot;feather-check-square me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;Present&lt;/span&gt;
+                                    &lt;/a&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item attendance-filter&quot; data-type=&quot;status&quot; data-value=&quot;late&quot;&gt;
+                                        &lt;i class=&quot;feather-clock me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;Late&lt;/span&gt;
+                                    &lt;/a&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item attendance-filter&quot; data-type=&quot;status&quot; data-value=&quot;absent&quot;&gt;
+                                        &lt;i class=&quot;feather-x-circle me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;Absent&lt;/span&gt;
+                                    &lt;/a&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;dropdown&quot;&gt;
+                                &lt;a class=&quot;btn btn-light-brand&quot; data-bs-toggle=&quot;dropdown&quot; data-bs-offset=&quot;0, 10&quot; data-bs-auto-close=&quot;outside&quot;&gt;
+                                    &lt;i class=&quot;feather-paperclip me-2&quot;&gt;&lt;/i&gt;
+                                    &lt;span&gt;Export&lt;/span&gt;
+                                &lt;/a&gt;
+                                &lt;div class=&quot;dropdown-menu dropdown-menu-end&quot;&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item&quot;&gt;
+                                        &lt;i class=&quot;bi bi-filetype-pdf me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;PDF&lt;/span&gt;
+                                    &lt;/a&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item&quot;&gt;
+                                        &lt;i class=&quot;bi bi-filetype-csv me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;CSV&lt;/span&gt;
+                                    &lt;/a&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item&quot;&gt;
+                                        &lt;i class=&quot;bi bi-filetype-xml me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;XML&lt;/span&gt;
+                                    &lt;/a&gt;
+                                    &lt;div class=&quot;dropdown-divider&quot;&gt;&lt;/div&gt;
+                                    
+                                    &lt;a href=&quot;attendance.php?&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot; class=&quot;dropdown-item&quot;&gt;
+                                        &lt;i class=&quot;bi bi-printer me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;Print&lt;/span&gt;
+                                    &lt;/a&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;d-md-none d-flex align-items-center&quot;&gt;
+                        &lt;a href=&quot;javascript:void(0)&quot; class=&quot;page-header-right-open-toggle&quot;&gt;
+                            &lt;i class=&quot;feather-align-right fs-20&quot;&gt;&lt;/i&gt;
+                        &lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+                &lt;div class=&quot;alert alert- alert-dismissible fade show mx-3&quot; role=&quot;alert&quot; id=&quot;attendanceSyncAlert&quot;&gt;
+                    
+                    &lt;button type=&quot;button&quot; class=&quot;btn-close&quot; data-bs-dismiss=&quot;alert&quot; aria-label=&quot;Close&quot;&gt;&lt;/button&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;alert alert-info mx-3&quot; role=&quot;alert&quot;&gt;
+                    Test Attendance sandbox. This page uses the same data as Internal Attendance so display changes can be reviewed here before changing the original workflow.
+                &lt;/div&gt;
+
+                &lt;div class=&quot;alert alert-warning alert-dismissible fade show mx-3&quot; role=&quot;alert&quot;&gt;
+                    Section schedule is missing for some biometric rows on this page. Review the section schedule before trusting their slot placement.
+                    
+                        &lt;div class=&quot;mt-2 small&quot;&gt;&lt;/div&gt;
+                    
+                    &lt;button type=&quot;button&quot; class=&quot;btn-close&quot; data-bs-dismiss=&quot;alert&quot; aria-label=&quot;Close&quot;&gt;&lt;/button&gt;
+                &lt;/div&gt;
+            
+            &lt;div id=&quot;attendanceSyncAlertHost&quot; class=&quot;mx-3&quot;&gt;&lt;/div&gt;
+
+            &lt;div class=&quot;collapse show&quot; id=&quot;attendanceFilterCollapse&quot;&gt;
+                &lt;div class=&quot;row mb-3 px-3&quot;&gt;
+                    &lt;div class=&quot;col-12&quot;&gt;
+                        &lt;div class=&quot;filter-panel filter-panel-compact&quot;&gt;
+                            &lt;form method=&quot;GET&quot; action=&quot;attendance.php&quot; class=&quot;filter-form row g-2 align-items-end&quot; id=&quot;attendanceFilterForm&quot;&gt;
+                        &lt;div class=&quot;col-sm-2&quot;&gt;
+                            &lt;label class=&quot;form-label&quot; for=&quot;filter-date&quot;&gt;Date&lt;/label&gt;
+                            &lt;input id=&quot;filter-date&quot; type=&quot;date&quot; name=&quot;date&quot; class=&quot;form-control&quot; value=&quot;&quot;&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-sm-2&quot;&gt;
+                            &lt;label class=&quot;form-label&quot; for=&quot;filter-status&quot;&gt;Status&lt;/label&gt;
+                            &lt;select id=&quot;filter-status&quot; name=&quot;status&quot; class=&quot;form-control&quot;&gt;
+                                &lt;option value=&quot;all&quot; &gt;All Statuses&lt;/option&gt;
+                                &lt;option value=&quot;early&quot; &gt;Early&lt;/option&gt;
+                                &lt;option value=&quot;present&quot; &gt;Present&lt;/option&gt;
+                                &lt;option value=&quot;late&quot; &gt;Late&lt;/option&gt;
+                                &lt;option value=&quot;absent&quot; &gt;Absent&lt;/option&gt;
+                                &lt;option value=&quot;approved&quot; &gt;Approved&lt;/option&gt;
+                                &lt;option value=&quot;pending_correction&quot; &gt;Needs Correction&lt;/option&gt;
+                            &lt;/select&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-sm-2&quot;&gt;
+                            &lt;label class=&quot;form-label&quot; for=&quot;filter-source&quot;&gt;Source&lt;/label&gt;
+                            &lt;select id=&quot;filter-source&quot; name=&quot;source&quot; class=&quot;form-control&quot;&gt;
+                                &lt;option value=&quot;all&quot; &gt;All Sources&lt;/option&gt;
+                                &lt;option value=&quot;manual&quot; &gt;Manual&lt;/option&gt;
+                                &lt;option value=&quot;biometric&quot; &gt;Biometric&lt;/option&gt;
+                                &lt;option value=&quot;external-biometric&quot; &gt;External Biometric&lt;/option&gt;
+                            &lt;/select&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-sm-2&quot;&gt;
+                            &lt;label class=&quot;form-label&quot; for=&quot;filter-reports&quot;&gt;Reports&lt;/label&gt;
+                            &lt;select id=&quot;filter-reports&quot; name=&quot;reports&quot; class=&quot;form-control&quot;&gt;
+                                &lt;option value=&quot;all&quot; &gt;All Reports&lt;/option&gt;
+                                &lt;option value=&quot;internal_dtr&quot; &gt;Internal DTR / Print&lt;/option&gt;
+                                &lt;option value=&quot;external_queue&quot; &gt;External Queue&lt;/option&gt;
+                                &lt;option value=&quot;proof&quot; &gt;With Proof&lt;/option&gt;
+                            &lt;/select&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-sm-2 filter-form-actions&quot;&gt;
+                            &lt;a href=&quot;attendance.php&quot; class=&quot;btn btn-outline-secondary&quot;&gt;Reset&lt;/a&gt;
+                            &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary&quot;&gt;Apply&lt;/button&gt;
+                        &lt;/div&gt;
+                            &lt;/form&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div id=&quot;collapseAttendanceStats&quot; class=&quot;accordion-collapse collapse page-header-collapse&quot;&gt;
+                &lt;div class=&quot;accordion-body pb-2&quot;&gt;
+                    &lt;div class=&quot;row&quot;&gt;
+                        &lt;div class=&quot;col-xxl-3 col-md-6&quot;&gt;
+                            &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                                &lt;div class=&quot;card-body&quot;&gt;
+                                    &lt;div class=&quot;d-flex align-items-center justify-content-between&quot;&gt;
+                                        &lt;div class=&quot;d-flex align-items-center gap-3&quot;&gt;
+                                            &lt;div class=&quot;avatar-text avatar-xl rounded&quot;&gt;
+                                                &lt;i class=&quot;feather-check-circle&quot;&gt;&lt;/i&gt;
+                                            &lt;/div&gt;
+                                            &lt;a href=&quot;javascript:void(0);&quot; class=&quot;fw-bold d-block&quot;&gt;
+                                                &lt;span class=&quot;text-truncate-1-line&quot;&gt;Total Approved&lt;/span&gt;
+                                                &lt;span class=&quot;fs-24 fw-bolder d-block&quot;&gt;&lt;/span&gt;
+                                            &lt;/a&gt;
+                                        &lt;/div&gt;
+                                        &lt;div class=&quot;badge bg-soft-success text-success&quot;&gt;
+                                            &lt;i class=&quot;feather-arrow-up fs-10 me-1&quot;&gt;&lt;/i&gt;
+                                            &lt;span&gt;%&lt;/span&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-xxl-3 col-md-6&quot;&gt;
+                            &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                                &lt;div class=&quot;card-body&quot;&gt;
+                                    &lt;div class=&quot;d-flex align-items-center justify-content-between&quot;&gt;
+                                        &lt;div class=&quot;d-flex align-items-center gap-3&quot;&gt;
+                                            &lt;div class=&quot;avatar-text avatar-xl rounded&quot;&gt;
+                                                &lt;i class=&quot;feather-clock&quot;&gt;&lt;/i&gt;
+                                            &lt;/div&gt;
+                                            &lt;a href=&quot;javascript:void(0);&quot; class=&quot;fw-bold d-block&quot;&gt;
+                                                &lt;span class=&quot;text-truncate-1-line&quot;&gt;Pending Approval&lt;/span&gt;
+                                                &lt;span class=&quot;fs-24 fw-bolder d-block&quot;&gt;&lt;/span&gt;
+                                            &lt;/a&gt;
+                                        &lt;/div&gt;
+                                        &lt;div class=&quot;badge bg-soft-warning text-warning&quot;&gt;
+                                            &lt;i class=&quot;feather-arrow-up fs-10 me-1&quot;&gt;&lt;/i&gt;
+                                            &lt;span&gt;%&lt;/span&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-xxl-3 col-md-6&quot;&gt;
+                            &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                                &lt;div class=&quot;card-body&quot;&gt;
+                                    &lt;div class=&quot;d-flex align-items-center justify-content-between&quot;&gt;
+                                        &lt;div class=&quot;d-flex align-items-center gap-3&quot;&gt;
+                                            &lt;div class=&quot;avatar-text avatar-xl rounded&quot;&gt;
+                                                &lt;i class=&quot;feather-x-circle&quot;&gt;&lt;/i&gt;
+                                            &lt;/div&gt;
+                                            &lt;a href=&quot;javascript:void(0);&quot; class=&quot;fw-bold d-block&quot;&gt;
+                                                &lt;span class=&quot;text-truncate-1-line&quot;&gt;Rejected&lt;/span&gt;
+                                                &lt;span class=&quot;fs-24 fw-bolder d-block&quot;&gt;&lt;/span&gt;
+                                            &lt;/a&gt;
+                                        &lt;/div&gt;
+                                        &lt;div class=&quot;badge bg-soft-danger text-danger&quot;&gt;
+                                            &lt;i class=&quot;feather-arrow-down fs-10 me-1&quot;&gt;&lt;/i&gt;
+                                            &lt;span&gt;%&lt;/span&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-xxl-3 col-md-6&quot;&gt;
+                            &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                                &lt;div class=&quot;card-body&quot;&gt;
+                                    &lt;div class=&quot;d-flex align-items-center justify-content-between&quot;&gt;
+                                        &lt;div class=&quot;d-flex align-items-center gap-3&quot;&gt;
+                                            &lt;div class=&quot;avatar-text avatar-xl rounded&quot;&gt;
+                                                &lt;i class=&quot;feather-alert-circle&quot;&gt;&lt;/i&gt;
+                                            &lt;/div&gt;
+                                            &lt;a href=&quot;javascript:void(0);&quot; class=&quot;fw-bold d-block&quot;&gt;
+                                                &lt;span class=&quot;text-truncate-1-line&quot;&gt;Total Records&lt;/span&gt;
+                                                &lt;span class=&quot;fs-24 fw-bolder d-block&quot;&gt;&lt;/span&gt;
+                                            &lt;/a&gt;
+                                        &lt;/div&gt;
+                                        &lt;div class=&quot;badge bg-soft-info text-info&quot;&gt;
+                                            &lt;i class=&quot;feather-info fs-10 me-1&quot;&gt;&lt;/i&gt;
+                                            &lt;span&gt;100%&lt;/span&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;row mb-2 px-3&quot; id=&quot;bulkActionsToolbar&quot; style=&quot;display: none;&quot;&gt;
+                &lt;div class=&quot;col-12&quot;&gt;
+                    &lt;div class=&quot;d-flex align-items-center justify-content-between p-2 rounded bulk-toolbar&quot;&gt;
+                        &lt;span class=&quot;fs-6&quot; style=&quot;font-weight: 600;&quot;&gt;
+                            &lt;i class=&quot;feather feather-check me-1&quot; style=&quot;font-size: 16px;&quot;&gt;&lt;/i&gt;
+                            &lt;strong id=&quot;selectedCount&quot; style=&quot;font-size:1.1rem;&quot;&gt;0&lt;/strong&gt; record(s) selected
+                        &lt;/span&gt;
+                        &lt;div class=&quot;d-flex gap-1&quot;&gt;
+                            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm btn-success py-1 px-2&quot; title=&quot;Approve selected&quot;&gt;
+                                &lt;i class=&quot;feather feather-check fs-8 me-1&quot;&gt;&lt;/i&gt; Approve
+                            &lt;/button&gt;
+                            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm btn-warning py-1 px-2&quot; title=&quot;Reject selected&quot;&gt;
+                                &lt;i class=&quot;feather feather-x fs-8 me-1&quot;&gt;&lt;/i&gt; Reject
+                            &lt;/button&gt;
+                            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm btn-danger py-1 px-2&quot; title=&quot;Delete selected&quot;&gt;
+                                &lt;i class=&quot;feather feather-trash-2 fs-8 me-1&quot;&gt;&lt;/i&gt; Delete
+                            &lt;/button&gt;
+                            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm btn-outline-secondary py-1 px-2&quot;&gt;
+                                &lt;i class=&quot;feather feather-x fs-8 me-1&quot;&gt;&lt;/i&gt; Clear
+                            &lt;/button&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;main-content&quot;&gt;
+                &lt;div class=&quot;row&quot;&gt;
+                    &lt;div class=&quot;col-lg-12&quot;&gt;
+
+                        &lt;div class=&quot;card stretch stretch-full attendance-table-card app-data-card app-data-toolbar&quot;&gt;
+                            &lt;div class=&quot;card-body p-0&quot;&gt;
+                                &lt;div class=&quot;table-responsive app-data-table-wrap&quot;&gt;
+                                    &lt;table class=&quot;table table-hover app-data-table&quot; id=&quot;attendanceList&quot;&gt;
+                                        &lt;thead&gt;
+                                            &lt;tr&gt;
+                                                &lt;th class=&quot;wd-30&quot;&gt;
+                                                    &lt;div class=&quot;btn-group mb-1&quot;&gt;
+                                                        &lt;div class=&quot;custom-control custom-checkbox ms-1&quot;&gt;
+                                                            &lt;input type=&quot;checkbox&quot; class=&quot;custom-control-input&quot; id=&quot;checkAllAttendance&quot;&gt;
+                                                            &lt;label class=&quot;custom-control-label&quot; for=&quot;checkAllAttendance&quot;&gt;&lt;/label&gt;
+                                                        &lt;/div&gt;
+                                                    &lt;/div&gt;
+                                                &lt;/th&gt;
+                                                &lt;th&gt;Student Name&lt;/th&gt;
+                                                &lt;th&gt;Attendance Date&lt;/th&gt;
+                                                &lt;th&gt;Morning In&lt;/th&gt;
+                                                &lt;th&gt;Morning Out&lt;/th&gt;
+                                                &lt;th&gt;Afternoon In&lt;/th&gt;
+                                                &lt;th&gt;Afternoon Out&lt;/th&gt;
+                                                &lt;th&gt;Total Hours&lt;/th&gt;
+                                                &lt;th&gt;Status&lt;/th&gt;
+                                                &lt;th&gt;Source&lt;/th&gt;
+                                                &lt;th&gt;Photo&lt;/th&gt;
+                                                &lt;th&gt;Reports&lt;/th&gt;
+                                                &lt;th&gt;Notes&lt;/th&gt;
+                                                &lt;th&gt;Review&lt;/th&gt;
+                                            &lt;/tr&gt;
+                                        &lt;/thead&gt;
+                                        &lt;tbody&gt;
+
+                                                    &lt;tr class=&quot;single-item&quot;&gt;
+                                                        &lt;td data-label=&quot;Select&quot;&gt;
+                                                            
+                                                            &lt;div class=&quot;item-checkbox ms-1&quot;&gt;
+                                                                &lt;div class=&quot;custom-control custom-checkbox&quot;&gt;
+                                                                    &lt;input type=&quot;checkbox&quot; class=&quot;custom-control-input checkbox&quot; id=&quot;checkBox__&quot; data-attendance-id=&quot;&quot;&gt;
+                                                                    &lt;label class=&quot;custom-control-label&quot; for=&quot;checkBox__&quot;&gt;&lt;/label&gt;
+                                                                &lt;/div&gt;
+                                                            &lt;/div&gt;
+                                                            
+                                                            &lt;span class=&quot;text-muted fs-12&quot; title=&quot;Biometric records are auto-verified&quot;&gt;Auto&lt;/span&gt;
+                                                            
+                                                        &lt;/td&gt;
+                                                        &lt;td data-label=&quot;Student Name&quot;&gt;
+                                                            &lt;a href=&quot;students-internal-dtr.php?id=&quot; class=&quot;hstack gap-3&quot;&gt;
+                                                                
+                                                                &lt;div&gt;
+                                                                    &lt;span class=&quot;text-truncate-1-line fw-bold&quot;&gt; &lt;span class=&quot;badge bg-soft-primary text-primary ms-1&quot;&gt;SA&lt;/span&gt;&lt;/span&gt;
+                                                                    &lt;span class=&quot;fs-12 text-muted d-block&quot;&gt;&lt;/span&gt;
+                                                                &lt;/div&gt;
+                                                            &lt;/a&gt;
+                                                        &lt;/td&gt;
+                                                        &lt;td data-label=&quot;Attendance Date&quot;&gt;&lt;span class=&quot;badge bg-soft-primary text-primary&quot;&gt;&lt;/span&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Morning In&quot;&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Morning Out&quot;&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Afternoon In&quot;&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Afternoon Out&quot;&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Total Hours&quot;&gt;
+                                                            
+                                                        &lt;/td&gt;
+                                                        &lt;td data-label=&quot;Status&quot;&gt;
+                                                            
+                                                        &lt;/td&gt;
+                                                        &lt;td data-label=&quot;Source&quot;&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Photo&quot;&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Reports&quot;&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Notes&quot;&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Review&quot;&gt;
+                                                            
+                                                        &lt;/td&gt;
+                                                    &lt;/tr&gt;
+
+                                        &lt;/tbody&gt;
+                                    &lt;/table&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            
+        &lt;/div&gt;
+&lt;/main&gt;
+
+    &lt;div class=&quot;position-fixed&quot; style=&quot;right: 5px; bottom: 5px; z-index: 999999&quot;&gt;
+        &lt;div id=&quot;toast&quot; class=&quot;toast bg-black hide&quot; data-bs-delay=&quot;3000&quot; role=&quot;alert&quot; aria-live=&quot;assertive&quot; aria-atomic=&quot;true&quot;&gt;
+            &lt;div class=&quot;toast-header px-3 bg-transparent d-flex align-items-center justify-content-between border-bottom border-light border-opacity-10&quot;&gt;
+                &lt;div class=&quot;text-white mb-0 mr-auto&quot;&gt;Downloading...&lt;/div&gt;
+                &lt;a href=&quot;javascript:void(0)&quot; class=&quot;ms-2 mb-1 close fw-normal&quot; data-bs-dismiss=&quot;toast&quot; aria-label=&quot;Close&quot;&gt;
+                    &lt;span class=&quot;text-white&quot;&gt;&amp;times;&lt;/span&gt;
+                &lt;/a&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;toast-body p-3 text-white&quot;&gt;
+                &lt;h6 class=&quot;fs-13 text-white&quot;&gt;Attendance.zip&lt;/h6&gt;
+                &lt;span class=&quot;text-light fs-11&quot;&gt;4.2mb of 5.5mb&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;toast-footer p-3 pt-0 border-top border-light border-opacity-10&quot;&gt;
+                &lt;div class=&quot;progress mt-3&quot; style=&quot;height: 5px&quot;&gt;
+                    &lt;div class=&quot;progress-bar progress-bar-striped progress-bar-animated w-75 bg-dark&quot; role=&quot;progressbar&quot; aria-valuenow=&quot;75&quot; aria-valuemin=&quot;0&quot; aria-valuemax=&quot;100&quot;&gt;&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;div class=&quot;modal fade&quot; id=&quot;viewAttendanceModal&quot; tabindex=&quot;-1&quot; aria-hidden=&quot;true&quot;&gt;
+        &lt;div class=&quot;modal-dialog modal-lg modal-dialog-centered&quot;&gt;
+            &lt;div class=&quot;modal-content&quot;&gt;
+                &lt;div class=&quot;modal-header&quot;&gt;
+                    &lt;h5 class=&quot;modal-title&quot;&gt;Attendance Details&lt;/h5&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn-close&quot; data-bs-dismiss=&quot;modal&quot; aria-label=&quot;Close&quot;&gt;&lt;/button&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;modal-body&quot;&gt;
+                    &lt;div class=&quot;row g-3&quot;&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Attendance ID&lt;/small&gt;&lt;strong id=&quot;view_attendance_id&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Date&lt;/small&gt;&lt;strong id=&quot;view_date&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Student No.&lt;/small&gt;&lt;strong id=&quot;view_student_number&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-6&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Student&lt;/small&gt;&lt;strong id=&quot;view_student_name&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-3&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Course&lt;/small&gt;&lt;strong id=&quot;view_course&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-3&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Department&lt;/small&gt;&lt;strong id=&quot;view_department&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-3&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Morning In&lt;/small&gt;&lt;strong id=&quot;view_morning_in&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-3&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Morning Out&lt;/small&gt;&lt;strong id=&quot;view_morning_out&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-3&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Afternoon In&lt;/small&gt;&lt;strong id=&quot;view_afternoon_in&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-3&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Afternoon Out&lt;/small&gt;&lt;strong id=&quot;view_afternoon_out&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Total Hours&lt;/small&gt;&lt;strong id=&quot;view_total_hours&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Attendance Status&lt;/small&gt;&lt;strong id=&quot;view_attendance_status&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Record Status&lt;/small&gt;&lt;strong id=&quot;view_approval_status&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;modal-footer&quot;&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn btn-secondary&quot; data-bs-dismiss=&quot;modal&quot;&gt;Close&lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;modal fade&quot; id=&quot;confirmModal&quot; tabindex=&quot;-1&quot; aria-hidden=&quot;true&quot;&gt;
+        &lt;div class=&quot;modal-dialog modal-dialog-centered&quot;&gt;
+            &lt;div class=&quot;modal-content&quot;&gt;
+                &lt;div class=&quot;modal-header&quot;&gt;
+                    &lt;h5 class=&quot;modal-title&quot;&gt;Confirm&lt;/h5&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn-close&quot; data-bs-dismiss=&quot;modal&quot; aria-label=&quot;Close&quot;&gt;&lt;/button&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;modal-body&quot;&gt;
+                    &lt;p class=&quot;confirm-message&quot;&gt;&lt;/p&gt;
+                    &lt;div class=&quot;confirm-remarks-wrap&quot; style=&quot;display:none; margin-top:10px;&quot;&gt;
+                        &lt;label for=&quot;confirmRemarks&quot; class=&quot;form-label&quot;&gt;Remarks&lt;/label&gt;
+                        &lt;textarea id=&quot;confirmRemarks&quot; class=&quot;form-control&quot; rows=&quot;3&quot; placeholder=&quot;Enter remarks here...&quot;&gt;&lt;/textarea&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;modal-footer&quot;&gt;
+                    &lt;button type=&quot;button&quot; id=&quot;confirmModalCancel&quot; class=&quot;btn btn-secondary&quot; data-bs-dismiss=&quot;modal&quot;&gt;Cancel&lt;/button&gt;
+                    &lt;button type=&quot;button&quot; id=&quot;confirmModalOk&quot; class=&quot;btn btn-primary&quot;&gt;OK&lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;</code></pre></main>
+</div>
+</body>
+</html>

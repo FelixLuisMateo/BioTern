@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pages/external-attendance.php - HTML Structure</title>
+<style>
+:root{--ink:#0f172a;--muted:#64748b;--line:#dbe3ef;--paper:#fff;--soft:#f8fafc;--brand:#3454d1}
+*{box-sizing:border-box}
+body{margin:0;background:#e5e7eb;color:var(--ink);font:14px/1.5 Consolas,"Courier New",monospace}
+.page{width:min(100%,1100px);margin:24px auto;background:var(--paper);box-shadow:0 18px 40px rgba(15,23,42,.12)}
+header{padding:22px 28px;border-bottom:1px solid var(--line);font-family:Arial,sans-serif}
+h1{margin:0 0 6px;font-size:20px}
+.meta{color:var(--muted);font-size:12px}
+.toolbar{display:flex;gap:10px;margin-top:16px}
+.toolbar a,.toolbar button{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:8px;padding:8px 12px;text-decoration:none;font:600 13px Arial,sans-serif;cursor:pointer}
+.toolbar button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.code{margin:0;padding:24px 28px;white-space:pre-wrap;tab-size:4;font-size:12px;line-height:1.45;word-break:break-word}
+@media print{body{background:#fff}.page{width:100%;margin:0;box-shadow:none}.toolbar{display:none}.code{font-size:9.5px}a{color:inherit}}
+@page{margin:12mm}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+<h1>pages/external-attendance.php</h1>
+<div class="meta">HTML structure only. PHP blocks, JavaScript, and CSS blocks were removed.</div>
+<div class="toolbar"><a href="../index.html">Back to index</a><button class="primary" onclick="window.print()">Print / Save PDF</button></div>
+</header>
+<main><pre class="code"><code>&lt;main class=&quot;nxl-container&quot;&gt;
+        &lt;div class=&quot;nxl-content&quot;&gt;
+            &lt;div class=&quot;main-content&quot;&gt;
+                &lt;div class=&quot;student-home-shell student-dtr-shell biometric-container&quot;&gt;
+                    
+                        &lt;div class=&quot;alert alert-&quot;&gt;
+                            
+                        &lt;/div&gt;
+
+                    &lt;section class=&quot;bio-hero&quot;&gt;
+                        &lt;div class=&quot;bio-hero-chip&quot;&gt;
+                            &lt;i class=&quot;feather-shield&quot;&gt;&lt;/i&gt;
+                            &lt;span&gt;External DTR Biometric Demo&lt;/span&gt;
+                        &lt;/div&gt;
+                        &lt;h2&gt;&lt;/h2&gt;
+                        &lt;p&gt;Use the same one-tap biometric flow for your external DTR. The system uses your current account automatically and disables punches that are already recorded.&lt;/p&gt;
+                        &lt;div class=&quot;student-home-meta mt-3&quot;&gt;
+                            &lt;span&gt;&lt;/span&gt;
+                            &lt;span&gt;&lt;/span&gt;
+                            &lt;span&gt;External target:  hrs&lt;/span&gt;
+                            &lt;span&gt;Remaining:  hrs&lt;/span&gt;
+                        &lt;/div&gt;
+                    &lt;/section&gt;
+
+                    &lt;div class=&quot;row g-3 mb-4&quot;&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;
+                            &lt;div class=&quot;dtr-summary-card&quot;&gt;
+                                &lt;div class=&quot;dtr-summary-label&quot;&gt;Month Hours&lt;/div&gt;
+                                &lt;div class=&quot;dtr-summary-value&quot;&gt; hrs&lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;
+                            &lt;div class=&quot;dtr-summary-card&quot;&gt;
+                                &lt;div class=&quot;dtr-summary-label&quot;&gt;Approved Entries&lt;/div&gt;
+                                &lt;div class=&quot;dtr-summary-value&quot;&gt;&lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;
+                            &lt;div class=&quot;dtr-summary-card&quot;&gt;
+                                &lt;div class=&quot;dtr-summary-label&quot;&gt;Pending Review&lt;/div&gt;
+                                &lt;div class=&quot;dtr-summary-value&quot;&gt;&lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;bio-layout&quot;&gt;
+                        &lt;aside class=&quot;scanner-card&quot;&gt;
+                            &lt;figure class=&quot;fingerprint-image&quot;&gt;
+                                &lt;div class=&quot;display-4 text-primary&quot;&gt;&lt;i class=&quot;feather-shield&quot;&gt;&lt;/i&gt;&lt;/div&gt;
+                                &lt;p class=&quot;scan-label&quot;&gt;ACCOUNT-LINKED BIOMETRIC ACTION&lt;/p&gt;
+                            &lt;/figure&gt;
+                            &lt;div class=&quot;scanner-stat&quot;&gt;
+                                External DTR for 
+                            &lt;/div&gt;
+                        &lt;/aside&gt;
+
+                        &lt;section class=&quot;clock-section&quot;&gt;
+                            &lt;h3&gt;Quick External DTR Punch&lt;/h3&gt;
+                            &lt;div class=&quot;time-display mb-3&quot; id=&quot;externalCurrentTime&quot;&gt;&lt;/div&gt;
+                            &lt;form method=&quot;post&quot; id=&quot;externalBiometricForm&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;external_action&quot; value=&quot;quick_clock&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;clock_date&quot; value=&quot;&quot;&gt;
+                                &lt;input type=&quot;hidden&quot; name=&quot;clock_type&quot; id=&quot;externalBiometricClockType&quot; value=&quot;&quot;&gt;
+
+                                &lt;div class=&quot;form-group-custom&quot;&gt;
+                                    &lt;label&gt;Clock Type&lt;/label&gt;
+                                    &lt;div class=&quot;clock-type-grid&quot;&gt;
+
+                                            &lt;button
+                                                type=&quot;button&quot;
+                                                class=&quot;clock-btn external-clock-btn&quot;
+                                                data-clock-type=&quot;&quot;
+                                                value=&quot;&quot;
+                                                
+                                            &gt;
+                                                &lt;i class=&quot;&quot;&gt;&lt;/i&gt;&lt;br&gt;
+                                            &lt;/button&gt;
+                                        
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+
+                                &lt;div class=&quot;form-group-custom&quot;&gt;
+                                    &lt;label for=&quot;externalPunchNotes&quot;&gt;Notes&lt;/label&gt;
+                                    &lt;input type=&quot;text&quot; name=&quot;notes&quot; id=&quot;externalPunchNotes&quot; maxlength=&quot;255&quot; placeholder=&quot;Optional note for this punch&quot;&gt;
+                                &lt;/div&gt;
+                            &lt;/form&gt;
+                        &lt;/section&gt;
+                    &lt;/div&gt;
+
+                    &lt;section class=&quot;record-section mb-4&quot;&gt;
+                        &lt;div class=&quot;card-header border-0 bg-transparent px-4 pt-4&quot;&gt;
+                            &lt;h5 class=&quot;mb-0&quot;&gt;Today&amp;apos;s External DTR Status&lt;/h5&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;card-body pt-3&quot;&gt;
+                            &lt;div class=&quot;row g-3&quot;&gt;
+
+                                    &lt;div class=&quot;col-md-4 col-sm-6&quot;&gt;
+                                        &lt;div class=&quot;dtr-summary-card&quot;&gt;
+                                            &lt;div class=&quot;dtr-summary-label&quot;&gt;&lt;/div&gt;
+                                            &lt;div class=&quot;dtr-summary-value&quot; style=&quot;font-size: 1rem;&quot;&gt;
+                                                
+                                            &lt;/div&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/section&gt;
+
+                    &lt;section class=&quot;record-section mb-4&quot;&gt;
+                        &lt;div class=&quot;card-header border-0 bg-transparent px-4 pt-4&quot;&gt;
+                            &lt;h5 class=&quot;mb-1&quot;&gt;Manual External DTR Capture&lt;/h5&gt;
+                            &lt;p class=&quot;text-muted mb-0&quot;&gt;Open the dedicated encoder page when you need to enter many days from a physical DTR without crowding this screen.&lt;/p&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;card-body pt-3&quot;&gt;
+                            &lt;div class=&quot;d-flex flex-wrap gap-3 align-items-center justify-content-between&quot;&gt;
+                                &lt;div&gt;
+                                    &lt;div class=&quot;fw-semibold&quot;&gt;Need to encode many dates?&lt;/div&gt;
+                                    &lt;div class=&quot;text-muted small&quot;&gt;Use the standalone page for long physical DTR batches like 10 to 20 daily rows.&lt;/div&gt;
+                                &lt;/div&gt;
+                                &lt;a href=&quot;external-biometric.php#manual-dtr&quot; class=&quot;btn btn-primary&quot;&gt;
+                                    &lt;i class=&quot;feather-edit-3 me-2&quot;&gt;&lt;/i&gt;
+                                    &lt;span&gt;Open Manual DTR Page&lt;/span&gt;
+                                &lt;/a&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/section&gt;
+
+                    &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                        &lt;div class=&quot;card-header d-flex justify-content-between align-items-center&quot;&gt;
+                            &lt;h5 class=&quot;mb-0&quot;&gt;External Attendance History&lt;/h5&gt;
+                            &lt;form method=&quot;get&quot; class=&quot;d-flex gap-2 align-items-center&quot;&gt;
+                                &lt;label class=&quot;small text-muted&quot; for=&quot;externalMonth&quot;&gt;Month&lt;/label&gt;
+                                &lt;input id=&quot;externalMonth&quot; type=&quot;month&quot; name=&quot;month&quot; class=&quot;form-control&quot; value=&quot;&quot;&gt;
+                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-light-brand&quot;&gt;Load&lt;/button&gt;
+                            &lt;/form&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;card-body p-0&quot;&gt;
+                            &lt;div class=&quot;table-responsive&quot;&gt;
+                                &lt;table class=&quot;table table-hover mb-0 external-history-table&quot;&gt;
+                                    &lt;thead&gt;
+                                        &lt;tr&gt;
+                                            &lt;th&gt;Date&lt;/th&gt;
+                                            &lt;th&gt;Morning&lt;/th&gt;
+                                            &lt;th&gt;Afternoon&lt;/th&gt;
+                                            &lt;th&gt;Total&lt;/th&gt;
+                                            &lt;th&gt;Status&lt;/th&gt;
+                                            &lt;th&gt;Notes&lt;/th&gt;
+                                        &lt;/tr&gt;
+                                    &lt;/thead&gt;
+                                    &lt;tbody&gt;
+                                        
+                                            &lt;tr&gt;&lt;td colspan=&quot;6&quot; class=&quot;text-center text-muted py-4&quot;&gt;No external attendance records yet for this month.&lt;/td&gt;&lt;/tr&gt;
+
+                                                &lt;tr&gt;
+                                                    &lt;td data-label=&quot;Date&quot;&gt;&lt;/td&gt;
+                                                    &lt;td data-label=&quot;Morning&quot;&gt;&lt;/td&gt;
+                                                    &lt;td data-label=&quot;Afternoon&quot;&gt;&lt;/td&gt;
+                                                    &lt;td data-label=&quot;Total&quot;&gt;
+                                                         hrs
+                                                        
+                                                            &lt;div class=&quot;small text-muted&quot;&gt;x&lt;/div&gt;
+                                                        
+                                                    &lt;/td&gt;
+                                                    &lt;td data-label=&quot;Status&quot;&gt;&lt;span class=&quot;badge bg-soft-&quot;&gt;&lt;/span&gt;&lt;/td&gt;
+                                                    &lt;td data-label=&quot;Notes&quot;&gt;&lt;/td&gt;
+                                                &lt;/tr&gt;
+
+                                    &lt;/tbody&gt;
+                                &lt;/table&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/main&gt;
+
+&lt;main class=&quot;nxl-container&quot;&gt;
+    &lt;div class=&quot;nxl-content&quot;&gt;
+        &lt;div class=&quot;page-header dashboard-page-header external-attendance-page-header&quot;&gt;
+            &lt;div class=&quot;page-header-left d-flex align-items-center&quot;&gt;
+                &lt;div class=&quot;page-header-title&quot;&gt;
+                    &lt;h5 class=&quot;m-b-10&quot;&gt;External Attendance&lt;/h5&gt;
+                &lt;/div&gt;
+                &lt;ul class=&quot;breadcrumb&quot;&gt;
+                    &lt;li class=&quot;breadcrumb-item&quot;&gt;&lt;a href=&quot;homepage.php&quot;&gt;Home&lt;/a&gt;&lt;/li&gt;
+                    &lt;li class=&quot;breadcrumb-item&quot;&gt;&lt;a href=&quot;attendance.php&quot;&gt;Internal Attendance&lt;/a&gt;&lt;/li&gt;
+                    &lt;li class=&quot;breadcrumb-item&quot;&gt;External Attendance&lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;page-header-right ms-auto&quot;&gt;
+                &lt;div class=&quot;d-md-none d-flex align-items-center&quot;&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn btn-light-brand page-header-actions-toggle&quot; data-bs-toggle=&quot;collapse&quot; data-bs-target=&quot;#externalAttendanceActionsCollapse&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;externalAttendanceActionsCollapse&quot;&gt;
+                        &lt;i class=&quot;feather-more-horizontal&quot;&gt;&lt;/i&gt;
+                    &lt;/button&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;page-header-right-items collapse d-md-flex&quot; id=&quot;externalAttendanceActionsCollapse&quot;&gt;
+                    &lt;div class=&quot;d-flex align-items-center gap-2 page-header-right-items-wrapper&quot;&gt;
+                        &lt;span class=&quot;badge bg-soft-primary text-primary fs-11&quot;&gt;
+                            &lt;i class=&quot;feather-layers me-1&quot;&gt;&lt;/i&gt;  Records
+                        &lt;/span&gt;
+                        &lt;a href=&quot;apps-calendar.php&quot; class=&quot;btn btn-primary&quot;&gt;
+                            &lt;i class=&quot;feather-calendar me-1&quot;&gt;&lt;/i&gt; Open Calendar
+                        &lt;/a&gt;
+                        
+                            &lt;a href=&quot;external-attendance.php&quot; class=&quot;btn btn-outline-secondary&quot;&gt;
+                                &lt;i class=&quot;feather-rotate-ccw me-1&quot;&gt;&lt;/i&gt; Clear Filters
+                            &lt;/a&gt;
+                        
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;main-content&quot;&gt;
+            
+                &lt;div class=&quot;alert alert-&quot;&gt;
+                    
+                &lt;/div&gt;
+
+            &lt;div class=&quot;card stretch stretch-full mb-4 external-attendance-filter-card&quot;&gt;
+                &lt;div class=&quot;card-body&quot;&gt;
+                    &lt;form method=&quot;get&quot; class=&quot;filter-form&quot; id=&quot;externalAttendanceFilterForm&quot;&gt;
+                        &lt;div class=&quot;external-filter-field&quot;&gt;
+                            &lt;label class=&quot;form-label&quot; for=&quot;external-filter-date&quot;&gt;Date&lt;/label&gt;
+                            &lt;input id=&quot;external-filter-date&quot; type=&quot;date&quot; name=&quot;date&quot; class=&quot;form-control&quot; value=&quot;&quot;&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;external-filter-field&quot;&gt;
+                            &lt;label class=&quot;form-label&quot; for=&quot;external-filter-status&quot;&gt;Status&lt;/label&gt;
+                            &lt;select id=&quot;external-filter-status&quot; name=&quot;status&quot; class=&quot;form-control&quot;&gt;
+                                &lt;option value=&quot;all&quot; &gt;All&lt;/option&gt;
+                                &lt;option value=&quot;pending&quot; &gt;Pending&lt;/option&gt;
+                                &lt;option value=&quot;approved&quot; &gt;Approved&lt;/option&gt;
+                                &lt;option value=&quot;rejected&quot; &gt;Rejected&lt;/option&gt;
+                            &lt;/select&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;external-filter-field&quot;&gt;
+                            &lt;label class=&quot;form-label&quot; for=&quot;external-filter-source&quot;&gt;Source&lt;/label&gt;
+                            &lt;select id=&quot;external-filter-source&quot; name=&quot;source&quot; class=&quot;form-control&quot;&gt;
+                                &lt;option value=&quot;all&quot; &gt;All Sources&lt;/option&gt;
+                                &lt;option value=&quot;biometric&quot; &gt;Biometric&lt;/option&gt;
+                                &lt;option value=&quot;external-biometric&quot; &gt;External Biometric&lt;/option&gt;
+                                &lt;option value=&quot;manual&quot; &gt;Manual&lt;/option&gt;
+                            &lt;/select&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;external-filter-field&quot;&gt;
+                            &lt;label class=&quot;form-label&quot; for=&quot;external-filter-photo&quot;&gt;Photo&lt;/label&gt;
+                            &lt;select id=&quot;external-filter-photo&quot; name=&quot;photo&quot; class=&quot;form-control&quot;&gt;
+                                &lt;option value=&quot;all&quot; &gt;All&lt;/option&gt;
+                                &lt;option value=&quot;with&quot; &gt;With Photo&lt;/option&gt;
+                                &lt;option value=&quot;without&quot; &gt;Without Photo&lt;/option&gt;
+                            &lt;/select&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;external-filter-field external-filter-field-student&quot;&gt;
+                            &lt;label class=&quot;form-label&quot; for=&quot;external-filter-student&quot;&gt;Student&lt;/label&gt;
+                            &lt;input id=&quot;external-filter-student&quot; type=&quot;text&quot; name=&quot;student&quot; class=&quot;form-control&quot; placeholder=&quot;ID, first name, or last name&quot; value=&quot;&quot;&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;external-filter-actions&quot;&gt;
+                            &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary&quot;&gt;Apply Filters&lt;/button&gt;
+                            &lt;a href=&quot;external-attendance.php&quot; class=&quot;btn btn-outline-secondary&quot;&gt;Reset&lt;/a&gt;
+                        &lt;/div&gt;
+                    &lt;/form&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class=&quot;card stretch stretch-full external-attendance-table-card app-data-card app-data-toolbar&quot;&gt;
+                &lt;div class=&quot;card-header d-flex flex-wrap align-items-center justify-content-between gap-2&quot;&gt;
+                    &lt;div&gt;
+                        &lt;h5 class=&quot;mb-0&quot;&gt;External Attendance Review Queue&lt;/h5&gt;
+                    &lt;/div&gt;
+                    &lt;span class=&quot;badge bg-soft-primary text-primary&quot;&gt; record(s)&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;card-body p-0&quot;&gt;
+                    &lt;div class=&quot;table-responsive external-review-table-wrap&quot;&gt;
+                        &lt;table class=&quot;table table-hover mb-0 external-review-table app-data-table&quot; id=&quot;externalAttendanceReviewTable&quot;&gt;
+                            &lt;thead&gt;
+                                &lt;tr&gt;
+                                    &lt;th&gt;Student&lt;/th&gt;
+                                    &lt;th&gt;Date&lt;/th&gt;
+                                    &lt;th&gt;Morning In&lt;/th&gt;
+                                    &lt;th&gt;Morning Out&lt;/th&gt;
+                                    &lt;th&gt;Afternoon In&lt;/th&gt;
+                                    &lt;th&gt;Afternoon Out&lt;/th&gt;
+                                    &lt;th&gt;Total&lt;/th&gt;
+                                    &lt;th&gt;Status&lt;/th&gt;
+                                    &lt;th&gt;Source&lt;/th&gt;
+                                    &lt;th&gt;Photo&lt;/th&gt;
+                                    &lt;th&gt;Reports&lt;/th&gt;
+                                    &lt;th&gt;Notes&lt;/th&gt;
+                                    &lt;th&gt;Review&lt;/th&gt;
+                                &lt;/tr&gt;
+                            &lt;/thead&gt;
+                            &lt;tbody&gt;
+                                
+                                    &lt;tr&gt;&lt;td colspan=&quot;13&quot; class=&quot;text-center text-muted py-4&quot;&gt;No external attendance records found.&lt;/td&gt;&lt;/tr&gt;
+
+                                        &lt;tr&gt;
+                                            &lt;td class=&quot;external-review-student&quot; data-label=&quot;Student&quot;&gt;
+                                                &lt;div class=&quot;d-flex align-items-center gap-3&quot;&gt;
+                                                    &lt;div class=&quot;avatar-image avatar-md&quot;&gt;&lt;img src=&quot;&quot; alt=&quot;&quot; class=&quot;img-fluid&quot;&gt;&lt;/div&gt;
+                                                    &lt;div&gt;
+                                                        &lt;div class=&quot;fw-bold&quot;&gt;&lt;/div&gt;
+                                                        &lt;div class=&quot;small text-muted&quot;&gt;&lt;/div&gt;
+                                                        &lt;div class=&quot;small text-muted&quot;&gt;&lt;/div&gt;
+                                                        &lt;div class=&quot;small mt-1&quot;&gt;&lt;a href=&quot;external-biometric.php?student_id=&quot;&gt;Open biometric&lt;/a&gt;&lt;/div&gt;
+                                                    &lt;/div&gt;
+                                                &lt;/div&gt;
+                                            &lt;/td&gt;
+                                            &lt;td data-label=&quot;Date&quot; data-order=&quot;&quot;&gt;&lt;/td&gt;
+                                            &lt;td data-label=&quot;Morning In&quot;&gt;&lt;/td&gt;
+                                            &lt;td data-label=&quot;Morning Out&quot;&gt;&lt;/td&gt;
+                                            &lt;td data-label=&quot;Afternoon In&quot;&gt;&lt;/td&gt;
+                                            &lt;td data-label=&quot;Afternoon Out&quot;&gt;&lt;/td&gt;
+                                            &lt;td data-label=&quot;Total&quot; data-order=&quot;&quot;&gt;
+                                                 hrs
+                                                
+                                                    &lt;div class=&quot;small text-muted&quot;&gt;&lt;/div&gt;
+                                                
+                                            &lt;/td&gt;
+                                            &lt;td data-label=&quot;Status&quot;&gt;
+                                                &lt;span class=&quot;badge bg-soft-&quot;&gt;
+                                                    
+                                                &lt;/span&gt;
+                                            &lt;/td&gt;
+                                            &lt;td data-label=&quot;Source&quot;&gt;&lt;/td&gt;
+                                            &lt;td data-label=&quot;Photo&quot;&gt;&lt;/td&gt;
+                                            &lt;td data-label=&quot;Reports&quot;&gt;&lt;/td&gt;
+                                            &lt;td class=&quot;small external-review-notes&quot; data-label=&quot;Notes&quot;&gt;&lt;/td&gt;
+                                            &lt;td data-label=&quot;Review&quot;&gt;
+                                                &lt;form method=&quot;post&quot; class=&quot;d-grid gap-2 external-review-form&quot;&gt;
+                                                    &lt;input type=&quot;hidden&quot; name=&quot;external_admin_action&quot; value=&quot;review&quot;&gt;
+                                                    &lt;input type=&quot;hidden&quot; name=&quot;record_id&quot; value=&quot;&quot;&gt;
+                                                    &lt;input type=&quot;hidden&quot; name=&quot;filter_status&quot; value=&quot;&quot;&gt;
+                                                    &lt;input type=&quot;hidden&quot; name=&quot;filter_date&quot; value=&quot;&quot;&gt;
+                                                    &lt;input type=&quot;hidden&quot; name=&quot;filter_source&quot; value=&quot;&quot;&gt;
+                                                    &lt;input type=&quot;hidden&quot; name=&quot;filter_photo&quot; value=&quot;&quot;&gt;
+                                                    &lt;input type=&quot;hidden&quot; name=&quot;filter_student&quot; value=&quot;&quot;&gt;
+                                                    &lt;select name=&quot;status&quot; class=&quot;form-select form-select-sm&quot;&gt;
+                                                        &lt;option value=&quot;approved&quot; &gt;Approve&lt;/option&gt;
+                                                        &lt;option value=&quot;pending&quot; &gt;Pending&lt;/option&gt;
+                                                        &lt;option value=&quot;rejected&quot; &gt;Reject&lt;/option&gt;
+                                                    &lt;/select&gt;
+                                                    &lt;input type=&quot;text&quot; name=&quot;admin_note&quot; class=&quot;form-control form-control-sm&quot; placeholder=&quot;Review note (optional)&quot;&gt;
+                                                    &lt;button type=&quot;submit&quot; class=&quot;btn btn-sm btn-primary&quot;&gt;Save&lt;/button&gt;
+                                                &lt;/form&gt;
+                                            &lt;/td&gt;
+                                        &lt;/tr&gt;
+
+                            &lt;/tbody&gt;
+                        &lt;/table&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/main&gt;</code></pre></main>
+</div>
+</body>
+</html>

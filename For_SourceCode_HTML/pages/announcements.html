@@ -1,0 +1,568 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pages/announcements.php - BioTern Source Code</title>
+<style>
+:root{color-scheme:light;--ink:#0f172a;--muted:#64748b;--line:#dbe3ef;--paper:#fff;--soft:#f8fafc;--brand:#3454d1}*{box-sizing:border-box}body{margin:0;background:#e5e7eb;color:var(--ink);font:14px/1.5 Consolas,"Courier New",monospace}.page{width:min(100%,1100px);margin:24px auto;background:var(--paper);box-shadow:0 18px 40px rgba(15,23,42,.12)}header{padding:22px 28px;border-bottom:1px solid var(--line);font-family:Arial,sans-serif}h1{margin:0 0 6px;font-size:20px}.meta{color:var(--muted);font-size:12px}.toolbar{display:flex;gap:10px;margin-top:16px}.toolbar a,.toolbar button{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:8px;padding:8px 12px;text-decoration:none;font:600 13px Arial,sans-serif;cursor:pointer}.toolbar button.primary{background:var(--brand);border-color:var(--brand);color:#fff}main{padding:0}.code-wrap{overflow:auto}.code{margin:0;padding:24px 28px;white-space:pre;tab-size:4;font-size:12px;line-height:1.45}.code code{font-family:inherit}@media print{body{background:#fff}.page{width:100%;margin:0;box-shadow:none}.toolbar{display:none}header{position:static}.code{font-size:9.5px;white-space:pre-wrap;word-break:break-word}a{color:inherit}}@page{margin:12mm}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+<h1>pages/announcements.php</h1>
+<div class="meta">BioTern source code copy | Generated as HTML for viewing and printing</div>
+<div class="toolbar"><a href="../index.html">Back to index</a><button class="primary" onclick="window.print()">Print / Save PDF</button></div>
+</header>
+<main><div class="code-wrap"><pre class="code"><code>&lt;?php
+require_once dirname(__DIR__) . &#39;/config/db.php&#39;;
+require_once dirname(__DIR__) . &#39;/includes/auth-session.php&#39;;
+require_once dirname(__DIR__) . &#39;/lib/announcements.php&#39;;
+require_once dirname(__DIR__) . &#39;/lib/notifications.php&#39;;
+
+biotern_boot_session(isset($conn) ? $conn : null);
+
+function announcements_h($value): string
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES, &#39;UTF-8&#39;);
+}
+
+function announcements_excerpt(string $value, int $limit = 110): string
+{
+    $value = trim(preg_replace(&#39;/\s+/&#39;, &#39; &#39;, $value));
+    if (strlen($value) &lt;= $limit) {
+        return $value;
+    }
+    return substr($value, 0, max(0, $limit - 3)) . &#39;...&#39;;
+}
+
+function announcements_ensure_runtime_dir(string $path): bool
+{
+    $path = rtrim(str_replace(&#39;\\&#39;, DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR);
+    if ($path === &#39;&#39;) {
+        return false;
+    }
+
+    if (!is_dir($path) &amp;&amp; !@mkdir($path, 0775, true) &amp;&amp; !is_dir($path)) {
+        return false;
+    }
+
+    @chmod($path, 0775);
+    return is_dir($path);
+}
+
+function announcements_store_upload(array $file, ?string &amp;$error, ?string &amp;$mediaType): string
+{
+    $error = null;
+    $mediaType = null;
+    $GLOBALS[&#39;announcement_pending_media&#39;] = null;
+    if (($file[&#39;error&#39;] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return &#39;&#39;;
+    }
+    if (($file[&#39;error&#39;] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+        $error = &#39;Unable to upload announcement media.&#39;;
+        return &#39;&#39;;
+    }
+    if ((int)($file[&#39;size&#39;] ?? 0) &gt; 80 * 1024 * 1024) {
+        $error = &#39;Announcement media must be 80 MB or smaller.&#39;;
+        return &#39;&#39;;
+    }
+
+    $tmp = (string)($file[&#39;tmp_name&#39;] ?? &#39;&#39;);
+    $mime = &#39;&#39;;
+    if (is_file($tmp) &amp;&amp; class_exists(&#39;finfo&#39;)) {
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime = (string)$finfo-&gt;file($tmp);
+    }
+    if ($mime === &#39;&#39; &amp;&amp; is_file($tmp)) {
+        $imageInfo = @getimagesize($tmp);
+        $mime = is_array($imageInfo) ? (string)($imageInfo[&#39;mime&#39;] ?? &#39;&#39;) : &#39;&#39;;
+    }
+    if ($mime === &#39;&#39;) {
+        $extension = strtolower(pathinfo((string)($file[&#39;name&#39;] ?? &#39;&#39;), PATHINFO_EXTENSION));
+        $extensionMimeMap = [
+            &#39;jpg&#39; =&gt; &#39;image/jpeg&#39;,
+            &#39;jpeg&#39; =&gt; &#39;image/jpeg&#39;,
+            &#39;png&#39; =&gt; &#39;image/png&#39;,
+            &#39;webp&#39; =&gt; &#39;image/webp&#39;,
+            &#39;gif&#39; =&gt; &#39;image/gif&#39;,
+            &#39;mp4&#39; =&gt; &#39;video/mp4&#39;,
+            &#39;webm&#39; =&gt; &#39;video/webm&#39;,
+            &#39;ogv&#39; =&gt; &#39;video/ogg&#39;,
+            &#39;ogg&#39; =&gt; &#39;video/ogg&#39;,
+            &#39;mov&#39; =&gt; &#39;video/quicktime&#39;,
+        ];
+        $mime = $extensionMimeMap[$extension] ?? &#39;&#39;;
+    }
+
+    $imageExtensions = [
+        &#39;image/jpeg&#39; =&gt; &#39;jpg&#39;,
+        &#39;image/png&#39; =&gt; &#39;png&#39;,
+        &#39;image/webp&#39; =&gt; &#39;webp&#39;,
+        &#39;image/gif&#39; =&gt; &#39;gif&#39;,
+    ];
+    $videoExtensions = [
+        &#39;video/mp4&#39; =&gt; &#39;mp4&#39;,
+        &#39;video/webm&#39; =&gt; &#39;webm&#39;,
+        &#39;video/ogg&#39; =&gt; &#39;ogv&#39;,
+        &#39;video/quicktime&#39; =&gt; &#39;mov&#39;,
+    ];
+
+    if (isset($imageExtensions[$mime])) {
+        $extension = $imageExtensions[$mime];
+        $mediaType = &#39;image&#39;;
+    } elseif (isset($videoExtensions[$mime])) {
+        $extension = $videoExtensions[$mime];
+        $mediaType = &#39;video&#39;;
+    } else {
+        $error = &#39;Upload a JPG, PNG, WebP, GIF, MP4, WebM, OGV, or MOV announcement file.&#39;;
+        return &#39;&#39;;
+    }
+
+    $blob = is_file($tmp) ? file_get_contents($tmp) : false;
+    if ($blob === false || $blob === &#39;&#39;) {
+        $error = &#39;Unable to read announcement media.&#39;;
+        return &#39;&#39;;
+    }
+
+    $safeOriginalName = trim((string)($file[&#39;name&#39;] ?? &#39;announcement.&#39; . $extension));
+    $GLOBALS[&#39;announcement_pending_media&#39;] = [
+        &#39;blob&#39; =&gt; $blob,
+        &#39;mime&#39; =&gt; $mime,
+        &#39;name&#39; =&gt; $safeOriginalName !== &#39;&#39; ? substr($safeOriginalName, 0, 255) : (&#39;announcement.&#39; . $extension),
+        &#39;size&#39; =&gt; strlen($blob),
+    ];
+
+    return &#39;__announcement_media_pending__&#39;;
+}
+
+function announcements_target_user_ids(mysqli $conn, string $targetRole, int $authorId): array
+{
+    $targetRole = biotern_announcements_normalize_target($targetRole);
+    $where = [&#39;is_active = 1&#39;];
+    if ($targetRole !== &#39;all&#39;) {
+        $where[] = &quot;LOWER(role) = &#39;&quot; . $conn-&gt;real_escape_string($targetRole) . &quot;&#39;&quot;;
+    }
+
+    $ids = [];
+    $result = $conn-&gt;query(&#39;SELECT id FROM users WHERE &#39; . implode(&#39; AND &#39;, $where));
+    if ($result instanceof mysqli_result) {
+        while ($row = $result-&gt;fetch_assoc()) {
+            $id = (int)($row[&#39;id&#39;] ?? 0);
+            if ($id &gt; 0) {
+                $ids[] = $id;
+            }
+        }
+        $result-&gt;close();
+    }
+
+    if (!in_array($authorId, $ids, true) &amp;&amp; $authorId &gt; 0 &amp;&amp; $targetRole === &#39;all&#39;) {
+        $ids[] = $authorId;
+    }
+
+    return array_values(array_unique($ids));
+}
+
+function announcements_send_notifications(mysqli $conn, array $userIds, string $title, string $body): int
+{
+    $message = trim($body);
+    if ($message === &#39;&#39;) {
+        $message = &#39;A new announcement has been posted.&#39;;
+    }
+    $sent = 0;
+    foreach ($userIds as $targetUserId) {
+        if (biotern_notify($conn, (int)$targetUserId, $title, $message, &#39;system&#39;, &#39;announcements.php&#39;)) {
+            $sent++;
+        }
+    }
+    return $sent;
+}
+
+$userId = (int)($_SESSION[&#39;user_id&#39;] ?? 0);
+$role = strtolower(trim((string)($_SESSION[&#39;role&#39;] ?? $_SESSION[&#39;user_role&#39;] ?? &#39;&#39;)));
+if ($userId &lt;= 0) {
+    header(&#39;Location: auth-login.php&#39;);
+    exit;
+}
+if (!biotern_announcements_can_manage($role)) {
+    http_response_code(403);
+    exit(&#39;Forbidden&#39;);
+}
+
+biotern_announcements_ensure_tables($conn);
+
+$message = &#39;&#39;;
+$error = &#39;&#39;;
+
+if (($_SERVER[&#39;REQUEST_METHOD&#39;] ?? &#39;GET&#39;) === &#39;POST&#39;) {
+    $action = strtolower(trim((string)($_POST[&#39;announcement_action&#39;] ?? &#39;&#39;)));
+
+    if ($action === &#39;create&#39;) {
+        $title = trim((string)($_POST[&#39;title&#39;] ?? &#39;&#39;));
+        $body = trim((string)($_POST[&#39;body&#39;] ?? &#39;&#39;));
+        $uploadError = null;
+        $mediaType = null;
+        $mediaPath = announcements_store_upload($_FILES[&#39;announcement_media&#39;] ?? [], $uploadError, $mediaType);
+        $mediaType = biotern_announcements_normalize_media_type((string)($mediaType ?? &#39;image&#39;));
+        $popupSize = biotern_announcements_normalize_size((string)($_POST[&#39;popup_size&#39;] ?? &#39;medium&#39;));
+        $accentColor = biotern_announcements_normalize_color((string)($_POST[&#39;accent_color&#39;] ?? &#39;#3454d1&#39;));
+        $buttonLabel = trim((string)($_POST[&#39;button_label&#39;] ?? &#39;Got It&#39;));
+        if ($buttonLabel === &#39;&#39;) {
+            $buttonLabel = &#39;Got It&#39;;
+        }
+        if (strlen($buttonLabel) &gt; 80) {
+            $buttonLabel = substr($buttonLabel, 0, 80);
+        }
+        $showTitle = isset($_POST[&#39;show_title&#39;]) ? 1 : 0;
+        $showAuthor = isset($_POST[&#39;show_author&#39;]) ? 1 : 0;
+        $displayMode = biotern_announcements_normalize_display_mode((string)($_POST[&#39;display_mode&#39;] ?? &#39;popup&#39;));
+        $target = biotern_announcements_normalize_target((string)($_POST[&#39;target_role&#39;] ?? &#39;all&#39;));
+        $startsAt = biotern_announcements_datetime_or_null($_POST[&#39;starts_at&#39;] ?? null);
+        $endsAt = biotern_announcements_datetime_or_null($_POST[&#39;ends_at&#39;] ?? null);
+        if ($title === &#39;&#39; &amp;&amp; $mediaPath !== &#39;&#39;) {
+            $title = &#39;Photo Announcement&#39;;
+            $showTitle = 0;
+        }
+
+        if ($uploadError !== null) {
+            $error = $uploadError;
+        } elseif ($title === &#39;&#39; || ($body === &#39;&#39; &amp;&amp; $mediaPath === &#39;&#39;)) {
+            $error = &#39;Add a title and either a message or an announcement photo.&#39;;
+        } elseif ($startsAt === null || $endsAt === null) {
+            $error = &#39;Start and end date/time are required.&#39;;
+        } elseif (strtotime($endsAt) &lt; strtotime($startsAt)) {
+            $error = &#39;End date cannot be earlier than start date.&#39;;
+        } else {
+            $mediaForInsert = $mediaPath === &#39;__announcement_media_pending__&#39; ? &#39;&#39; : $mediaPath;
+            $stmt = $conn-&gt;prepare(
+                &quot;INSERT INTO announcements (title, body, media_path, media_type, popup_size, accent_color, button_label, show_title, show_author, display_mode, target_role, starts_at, ends_at, is_active, created_by, created_at, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())&quot;
+            );
+            if ($stmt) {
+                $stmt-&gt;bind_param(&#39;sssssssiissssi&#39;, $title, $body, $mediaForInsert, $mediaType, $popupSize, $accentColor, $buttonLabel, $showTitle, $showAuthor, $displayMode, $target, $startsAt, $endsAt, $userId);
+                if ($stmt-&gt;execute()) {
+                    $announcementId = (int)$stmt-&gt;insert_id;
+                    $pendingMedia = is_array($GLOBALS[&#39;announcement_pending_media&#39;] ?? null) ? $GLOBALS[&#39;announcement_pending_media&#39;] : null;
+                    if ($announcementId &gt; 0 &amp;&amp; $pendingMedia !== null) {
+                        $mediaUrl = &#39;announcement-media.php?id=&#39; . $announcementId;
+                        $mediaMime = (string)($pendingMedia[&#39;mime&#39;] ?? &#39;&#39;);
+                        $mediaName = (string)($pendingMedia[&#39;name&#39;] ?? &#39;&#39;);
+                        $mediaSize = (int)($pendingMedia[&#39;size&#39;] ?? 0);
+                        $mediaBlob = (string)($pendingMedia[&#39;blob&#39;] ?? &#39;&#39;);
+                        $mediaStmt = $conn-&gt;prepare(&#39;UPDATE announcements SET media_path = ?, media_mime = ?, media_name = ?, media_size = ?, media_blob = ? WHERE id = ? LIMIT 1&#39;);
+                        if ($mediaStmt) {
+                            $mediaStmt-&gt;bind_param(&#39;sssisi&#39;, $mediaUrl, $mediaMime, $mediaName, $mediaSize, $mediaBlob, $announcementId);
+                            if (!$mediaStmt-&gt;execute()) {
+                                $mediaError = $mediaStmt-&gt;error;
+                                $cleanupStmt = $conn-&gt;prepare(&#39;DELETE FROM announcements WHERE id = ? LIMIT 1&#39;);
+                                if ($cleanupStmt) {
+                                    $cleanupStmt-&gt;bind_param(&#39;i&#39;, $announcementId);
+                                    $cleanupStmt-&gt;execute();
+                                    $cleanupStmt-&gt;close();
+                                }
+                                $error = &#39;Unable to save announcement media in the database. &#39; . $mediaError;
+                            }
+                            $mediaStmt-&gt;close();
+                            if ($error === &#39;&#39;) {
+                                $mediaPath = $mediaUrl;
+                            }
+                        } else {
+                            $cleanupStmt = $conn-&gt;prepare(&#39;DELETE FROM announcements WHERE id = ? LIMIT 1&#39;);
+                            if ($cleanupStmt) {
+                                $cleanupStmt-&gt;bind_param(&#39;i&#39;, $announcementId);
+                                $cleanupStmt-&gt;execute();
+                                $cleanupStmt-&gt;close();
+                            }
+                            $error = &#39;Unable to prepare announcement media save.&#39;;
+                        }
+                    }
+                    if ($error === &#39;&#39;) {
+                        $sentCount = 0;
+                        if (in_array($displayMode, [&#39;notification&#39;, &#39;both&#39;], true)) {
+                            $sentCount = announcements_send_notifications($conn, announcements_target_user_ids($conn, $target, $userId), $title, $body);
+                        }
+                        $message = &#39;Announcement posted successfully.&#39;;
+                        if ($sentCount &gt; 0) {
+                            $message .= &#39; Notifications sent: &#39; . $sentCount . &#39;.&#39;;
+                        }
+                    }
+                } else {
+                    $error = &#39;Unable to save announcement right now.&#39;;
+                }
+                $stmt-&gt;close();
+            } else {
+                $error = &#39;Unable to prepare announcement save.&#39;;
+            }
+        }
+    } elseif ($action === &#39;toggle&#39;) {
+        $announcementId = (int)($_POST[&#39;announcement_id&#39;] ?? 0);
+        $isActive = (int)($_POST[&#39;is_active&#39;] ?? 0) === 1 ? 1 : 0;
+        if ($announcementId &gt; 0) {
+            $stmt = $conn-&gt;prepare(&#39;UPDATE announcements SET is_active = ?, updated_at = NOW() WHERE id = ?&#39;);
+            if ($stmt) {
+                $stmt-&gt;bind_param(&#39;ii&#39;, $isActive, $announcementId);
+                $stmt-&gt;execute();
+                $stmt-&gt;close();
+                $message = $isActive === 1 ? &#39;Announcement reactivated.&#39; : &#39;Announcement hidden.&#39;;
+            }
+        }
+    } elseif ($action === &#39;delete&#39;) {
+        $announcementId = (int)($_POST[&#39;announcement_id&#39;] ?? 0);
+        if ($announcementId &gt; 0) {
+            $readStmt = $conn-&gt;prepare(&#39;DELETE FROM announcement_reads WHERE announcement_id = ?&#39;);
+            if ($readStmt) {
+                $readStmt-&gt;bind_param(&#39;i&#39;, $announcementId);
+                $readStmt-&gt;execute();
+                $readStmt-&gt;close();
+            }
+
+            $stmt = $conn-&gt;prepare(&#39;DELETE FROM announcements WHERE id = ? LIMIT 1&#39;);
+            if ($stmt) {
+                $stmt-&gt;bind_param(&#39;i&#39;, $announcementId);
+                if ($stmt-&gt;execute()) {
+                    $message = &#39;Announcement deleted permanently.&#39;;
+                } else {
+                    $error = &#39;Unable to delete announcement right now.&#39;;
+                }
+                $stmt-&gt;close();
+            } else {
+                $error = &#39;Unable to prepare announcement delete.&#39;;
+            }
+        }
+    }
+}
+
+$announcements = [];
+$result = $conn-&gt;query(
+    &quot;SELECT a.*, u.name AS author_name
+     FROM announcements a
+     LEFT JOIN users u ON u.id = a.created_by
+     ORDER BY a.created_at DESC, a.id DESC
+     LIMIT 50&quot;
+);
+if ($result instanceof mysqli_result) {
+    while ($row = $result-&gt;fetch_assoc()) {
+        $announcements[] = $row;
+    }
+    $result-&gt;close();
+}
+
+$page_title = &#39;Announcements&#39;;
+$page_body_class = &#39;settings-page announcements-page&#39;;
+$page_styles = [
+    &#39;assets/css/layout/page_shell.css&#39;,
+    &#39;assets/css/modules/settings/settings-shell.css&#39;,
+    &#39;assets/css/modules/settings/page-settings-suite.css&#39;,
+];
+require_once dirname(__DIR__) . &#39;/includes/header.php&#39;;
+?&gt;
+&lt;main class=&quot;nxl-container&quot;&gt;
+    &lt;div class=&quot;nxl-content&quot;&gt;
+        &lt;div class=&quot;page-header&quot;&gt;
+            &lt;div class=&quot;page-header-left d-flex align-items-center&quot;&gt;
+                &lt;div class=&quot;page-header-title&quot;&gt;
+                    &lt;h5 class=&quot;m-b-10&quot;&gt;Announcements&lt;/h5&gt;
+                &lt;/div&gt;
+                &lt;ul class=&quot;breadcrumb&quot;&gt;
+                    &lt;li class=&quot;breadcrumb-item&quot;&gt;&lt;a href=&quot;homepage.php&quot;&gt;Home&lt;/a&gt;&lt;/li&gt;
+                    &lt;li class=&quot;breadcrumb-item&quot;&gt;Announcements&lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;main-content settings-shell&quot;&gt;
+            &lt;div class=&quot;settings-layout&quot;&gt;
+                &lt;section class=&quot;settings-main&quot;&gt;
+                    &lt;?php if ($message !== &#39;&#39;): ?&gt;
+                        &lt;div class=&quot;alert alert-success settings-alert&quot; role=&quot;alert&quot;&gt;&lt;?php echo announcements_h($message); ?&gt;&lt;/div&gt;
+                    &lt;?php endif; ?&gt;
+                    &lt;?php if ($error !== &#39;&#39;): ?&gt;
+                        &lt;div class=&quot;alert alert-danger settings-alert&quot; role=&quot;alert&quot;&gt;&lt;?php echo announcements_h($error); ?&gt;&lt;/div&gt;
+                    &lt;?php endif; ?&gt;
+
+                    &lt;form method=&quot;post&quot; enctype=&quot;multipart/form-data&quot; class=&quot;settings-form-card mb-4&quot;&gt;
+                        &lt;input type=&quot;hidden&quot; name=&quot;announcement_action&quot; value=&quot;create&quot;&gt;
+                        &lt;div class=&quot;settings-form-header&quot;&gt;
+                            &lt;div&gt;
+                                &lt;h4&gt;Post Announcement&lt;/h4&gt;
+                                &lt;p&gt;Upload a poster/photo, set when it starts and ends, then choose whether users see a popup, notification, or both.&lt;/p&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;settings-badge&quot;&gt;Popup + notification ready&lt;/div&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class=&quot;settings-grid&quot;&gt;
+                            &lt;div class=&quot;settings-field-card&quot;&gt;
+                                &lt;label class=&quot;form-label&quot; for=&quot;title&quot;&gt;Title&lt;/label&gt;
+                                &lt;input type=&quot;text&quot; class=&quot;form-control&quot; id=&quot;title&quot; name=&quot;title&quot; maxlength=&quot;255&quot;&gt;
+                                &lt;small class=&quot;form-text&quot;&gt;Optional when uploading a photo-only popup.&lt;/small&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;settings-field-card&quot;&gt;
+                                &lt;label class=&quot;form-label&quot; for=&quot;target_role&quot;&gt;Show To&lt;/label&gt;
+                                &lt;select class=&quot;form-select&quot; id=&quot;target_role&quot; name=&quot;target_role&quot;&gt;
+                                    &lt;option value=&quot;all&quot;&gt;Everyone&lt;/option&gt;
+                                    &lt;option value=&quot;student&quot;&gt;Students&lt;/option&gt;
+                                    &lt;option value=&quot;coordinator&quot;&gt;Coordinators&lt;/option&gt;
+                                    &lt;option value=&quot;supervisor&quot;&gt;Supervisors&lt;/option&gt;
+                                    &lt;option value=&quot;admin&quot;&gt;Admins&lt;/option&gt;
+                                &lt;/select&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;settings-field-card&quot;&gt;
+                                &lt;label class=&quot;form-label&quot; for=&quot;display_mode&quot;&gt;Display As&lt;/label&gt;
+                                &lt;select class=&quot;form-select&quot; id=&quot;display_mode&quot; name=&quot;display_mode&quot;&gt;
+                                    &lt;option value=&quot;popup&quot;&gt;Popup Only&lt;/option&gt;
+                                    &lt;option value=&quot;notification&quot;&gt;Notification Only&lt;/option&gt;
+                                    &lt;option value=&quot;both&quot; selected&gt;Popup + Notification&lt;/option&gt;
+                                &lt;/select&gt;
+                                &lt;small class=&quot;form-text&quot;&gt;Use both for important announcements. Notification-only will not interrupt users.&lt;/small&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;settings-field-card&quot;&gt;
+                                &lt;label class=&quot;form-label&quot; for=&quot;announcement_media&quot;&gt;Announcement Photo or Video&lt;/label&gt;
+                                &lt;input type=&quot;file&quot; class=&quot;form-control&quot; id=&quot;announcement_media&quot; name=&quot;announcement_media&quot; accept=&quot;image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/ogg,video/quicktime&quot;&gt;
+                                &lt;small class=&quot;form-text&quot;&gt;Use a poster image or short video. JPG, PNG, WebP, GIF, MP4, WebM, OGV, or MOV up to 80 MB.&lt;/small&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;settings-field-card&quot;&gt;
+                                &lt;label class=&quot;form-label&quot; for=&quot;popup_size&quot;&gt;Popup Size&lt;/label&gt;
+                                &lt;select class=&quot;form-select&quot; id=&quot;popup_size&quot; name=&quot;popup_size&quot;&gt;
+                                    &lt;option value=&quot;medium&quot;&gt;Medium&lt;/option&gt;
+                                    &lt;option value=&quot;wide&quot;&gt;Wide&lt;/option&gt;
+                                    &lt;option value=&quot;full&quot;&gt;Full Screen&lt;/option&gt;
+                                    &lt;option value=&quot;small&quot;&gt;Small&lt;/option&gt;
+                                &lt;/select&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;settings-field-card&quot;&gt;
+                                &lt;label class=&quot;form-label&quot; for=&quot;accent_color&quot;&gt;Accent Color&lt;/label&gt;
+                                &lt;input type=&quot;color&quot; class=&quot;form-control form-control-color&quot; id=&quot;accent_color&quot; name=&quot;accent_color&quot; value=&quot;#3454d1&quot;&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;settings-field-card&quot;&gt;
+                                &lt;label class=&quot;form-label&quot; for=&quot;button_label&quot;&gt;Dismiss Button Text&lt;/label&gt;
+                                &lt;input type=&quot;text&quot; class=&quot;form-control&quot; id=&quot;button_label&quot; name=&quot;button_label&quot; maxlength=&quot;80&quot; value=&quot;Got It&quot;&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;settings-field-card settings-toggle&quot;&gt;
+                                &lt;div class=&quot;settings-toggle-copy&quot;&gt;
+                                    &lt;label class=&quot;form-label mb-0&quot; for=&quot;show_title&quot;&gt;Show Title On Popup&lt;/label&gt;
+                                    &lt;small class=&quot;form-text mt-0&quot;&gt;Turn this off for photo-only announcements.&lt;/small&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;form-check form-switch m-0&quot;&gt;
+                                    &lt;input class=&quot;form-check-input&quot; id=&quot;show_title&quot; name=&quot;show_title&quot; type=&quot;checkbox&quot; value=&quot;1&quot; checked&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;settings-field-card settings-toggle&quot;&gt;
+                                &lt;div class=&quot;settings-toggle-copy&quot;&gt;
+                                    &lt;label class=&quot;form-label mb-0&quot; for=&quot;show_author&quot;&gt;Show My Name&lt;/label&gt;
+                                    &lt;small class=&quot;form-text mt-0&quot;&gt;Optional. Leave off if the announcement should not show who posted it.&lt;/small&gt;
+                                &lt;/div&gt;
+                                &lt;div class=&quot;form-check form-switch m-0&quot;&gt;
+                                    &lt;input class=&quot;form-check-input&quot; id=&quot;show_author&quot; name=&quot;show_author&quot; type=&quot;checkbox&quot; value=&quot;1&quot;&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;settings-field-card&quot;&gt;
+                                &lt;label class=&quot;form-label&quot; for=&quot;starts_at&quot;&gt;Start Showing&lt;/label&gt;
+                                &lt;input type=&quot;datetime-local&quot; class=&quot;form-control&quot; id=&quot;starts_at&quot; name=&quot;starts_at&quot; required&gt;
+                                &lt;small class=&quot;form-text&quot;&gt;The popup will not appear before this date and time.&lt;/small&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;settings-field-card&quot;&gt;
+                                &lt;label class=&quot;form-label&quot; for=&quot;ends_at&quot;&gt;Stop Showing&lt;/label&gt;
+                                &lt;input type=&quot;datetime-local&quot; class=&quot;form-control&quot; id=&quot;ends_at&quot; name=&quot;ends_at&quot; required&gt;
+                                &lt;small class=&quot;form-text&quot;&gt;The popup automatically stops after this date and time.&lt;/small&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;settings-field-card full&quot;&gt;
+                                &lt;label class=&quot;form-label&quot; for=&quot;body&quot;&gt;Optional Caption&lt;/label&gt;
+                                &lt;textarea class=&quot;form-control&quot; id=&quot;body&quot; name=&quot;body&quot; rows=&quot;4&quot;&gt;&lt;/textarea&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class=&quot;settings-actions&quot;&gt;
+                            &lt;button class=&quot;btn btn-primary&quot; type=&quot;submit&quot;&gt;
+                                &lt;i class=&quot;feather-send me-2&quot;&gt;&lt;/i&gt;
+                                Post Announcement
+                            &lt;/button&gt;
+                        &lt;/div&gt;
+                    &lt;/form&gt;
+
+                    &lt;section class=&quot;card settings-panel-card&quot;&gt;
+                        &lt;div class=&quot;card-body&quot;&gt;
+                            &lt;div class=&quot;settings-form-header&quot;&gt;
+                                &lt;div&gt;
+                                    &lt;h4&gt;Recent Announcements&lt;/h4&gt;
+                                    &lt;p&gt;Hide an announcement to pause it, or delete it when it should be removed permanently.&lt;/p&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+
+                            &lt;?php if (empty($announcements)): ?&gt;
+                                &lt;div class=&quot;text-muted&quot;&gt;No announcements yet.&lt;/div&gt;
+                            &lt;?php else: ?&gt;
+                                &lt;div class=&quot;table-responsive&quot;&gt;
+                                    &lt;table class=&quot;table table-hover align-middle mb-0&quot;&gt;
+                                        &lt;thead&gt;
+                                            &lt;tr&gt;
+                                                &lt;th&gt;Announcement&lt;/th&gt;
+                                                &lt;th&gt;Audience&lt;/th&gt;
+                                                &lt;th&gt;Display&lt;/th&gt;
+                                                &lt;th&gt;Status&lt;/th&gt;
+                                                &lt;th&gt;Created&lt;/th&gt;
+                                                &lt;th class=&quot;text-end&quot;&gt;Action&lt;/th&gt;
+                                            &lt;/tr&gt;
+                                        &lt;/thead&gt;
+                                        &lt;tbody&gt;
+                                            &lt;?php foreach ($announcements as $item): ?&gt;
+                                                &lt;?php
+                                                $active = (int)($item[&#39;is_active&#39;] ?? 0) === 1;
+                                                $createdAt = (string)($item[&#39;created_at&#39;] ?? &#39;&#39;);
+                                                ?&gt;
+                                                &lt;tr&gt;
+                                                    &lt;td&gt;
+                                                        &lt;strong&gt;&lt;?php echo announcements_h($item[&#39;title&#39;] ?? &#39;Announcement&#39;); ?&gt;&lt;/strong&gt;
+                                                        &lt;?php if (trim((string)($item[&#39;media_path&#39;] ?? &#39;&#39;)) !== &#39;&#39;): ?&gt;
+                                                            &lt;div class=&quot;mt-2&quot;&gt;
+                                                                &lt;?php if (biotern_announcements_normalize_media_type((string)($item[&#39;media_type&#39;] ?? &#39;image&#39;)) === &#39;video&#39;): ?&gt;
+                                                                    &lt;video src=&quot;&lt;?php echo announcements_h((string)$item[&#39;media_path&#39;]); ?&gt;&quot; muted style=&quot;width: 120px; max-height: 72px; object-fit: cover; border-radius: 6px;&quot;&gt;&lt;/video&gt;
+                                                                &lt;?php else: ?&gt;
+                                                                    &lt;img src=&quot;&lt;?php echo announcements_h((string)$item[&#39;media_path&#39;]); ?&gt;&quot; alt=&quot;&quot; style=&quot;width: 96px; max-height: 72px; object-fit: cover; border-radius: 6px;&quot;&gt;
+                                                                &lt;?php endif; ?&gt;
+                                                            &lt;/div&gt;
+                                                        &lt;?php endif; ?&gt;
+                                                        &lt;div class=&quot;text-muted small&quot;&gt;&lt;?php echo announcements_h(announcements_excerpt((string)($item[&#39;body&#39;] ?? &#39;&#39;))); ?&gt;&lt;/div&gt;
+                                                    &lt;/td&gt;
+                                                    &lt;td&gt;&lt;?php echo announcements_h(biotern_announcements_target_label((string)($item[&#39;target_role&#39;] ?? &#39;all&#39;))); ?&gt;&lt;/td&gt;
+                                                    &lt;td&gt;&lt;?php echo announcements_h(biotern_announcements_display_mode_label((string)($item[&#39;display_mode&#39;] ?? &#39;popup&#39;))); ?&gt;&lt;/td&gt;
+                                                    &lt;td&gt;
+                                                        &lt;span class=&quot;badge &lt;?php echo $active ? &#39;bg-soft-success text-success&#39; : &#39;bg-soft-secondary text-secondary&#39;; ?&gt;&quot;&gt;
+                                                            &lt;?php echo $active ? &#39;Active&#39; : &#39;Hidden&#39;; ?&gt;
+                                                        &lt;/span&gt;
+                                                    &lt;/td&gt;
+                                                    &lt;td&gt;&lt;?php echo announcements_h($createdAt !== &#39;&#39; ? date(&#39;M d, Y h:i A&#39;, strtotime($createdAt)) : &#39;&#39;); ?&gt;&lt;/td&gt;
+                                                    &lt;td class=&quot;text-end&quot;&gt;
+                                                        &lt;form method=&quot;post&quot; class=&quot;d-inline&quot;&gt;
+                                                            &lt;input type=&quot;hidden&quot; name=&quot;announcement_action&quot; value=&quot;toggle&quot;&gt;
+                                                            &lt;input type=&quot;hidden&quot; name=&quot;announcement_id&quot; value=&quot;&lt;?php echo (int)($item[&#39;id&#39;] ?? 0); ?&gt;&quot;&gt;
+                                                            &lt;input type=&quot;hidden&quot; name=&quot;is_active&quot; value=&quot;&lt;?php echo $active ? 0 : 1; ?&gt;&quot;&gt;
+                                                            &lt;button type=&quot;submit&quot; class=&quot;btn btn-sm &lt;?php echo $active ? &#39;btn-outline-danger&#39; : &#39;btn-outline-primary&#39;; ?&gt;&quot;&gt;
+                                                                &lt;?php echo $active ? &#39;Hide&#39; : &#39;Reactivate&#39;; ?&gt;
+                                                            &lt;/button&gt;
+                                                        &lt;/form&gt;
+                                                        &lt;form method=&quot;post&quot; class=&quot;d-inline&quot; data-confirm-message=&quot;Delete this announcement permanently?&quot;&gt;
+                                                            &lt;input type=&quot;hidden&quot; name=&quot;announcement_action&quot; value=&quot;delete&quot;&gt;
+                                                            &lt;input type=&quot;hidden&quot; name=&quot;announcement_id&quot; value=&quot;&lt;?php echo (int)($item[&#39;id&#39;] ?? 0); ?&gt;&quot;&gt;
+                                                            &lt;button type=&quot;submit&quot; class=&quot;btn btn-sm btn-outline-danger ms-1&quot;&gt;Delete&lt;/button&gt;
+                                                        &lt;/form&gt;
+                                                    &lt;/td&gt;
+                                                &lt;/tr&gt;
+                                            &lt;?php endforeach; ?&gt;
+                                        &lt;/tbody&gt;
+                                    &lt;/table&gt;
+                                &lt;/div&gt;
+                            &lt;?php endif; ?&gt;
+                        &lt;/div&gt;
+                    &lt;/section&gt;
+                &lt;/section&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/main&gt;
+&lt;?php require_once dirname(__DIR__) . &#39;/includes/footer.php&#39;; ?&gt;
+
+</code></pre></div></main>
+</div>
+</body>
+</html>

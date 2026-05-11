@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pages/student-documents.php - HTML Structure</title>
+<style>
+:root{--ink:#0f172a;--muted:#64748b;--line:#dbe3ef;--paper:#fff;--soft:#f8fafc;--brand:#3454d1}
+*{box-sizing:border-box}
+body{margin:0;background:#e5e7eb;color:var(--ink);font:14px/1.5 Consolas,"Courier New",monospace}
+.page{width:min(100%,1100px);margin:24px auto;background:var(--paper);box-shadow:0 18px 40px rgba(15,23,42,.12)}
+header{padding:22px 28px;border-bottom:1px solid var(--line);font-family:Arial,sans-serif}
+h1{margin:0 0 6px;font-size:20px}
+.meta{color:var(--muted);font-size:12px}
+.toolbar{display:flex;gap:10px;margin-top:16px}
+.toolbar a,.toolbar button{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:8px;padding:8px 12px;text-decoration:none;font:600 13px Arial,sans-serif;cursor:pointer}
+.toolbar button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.code{margin:0;padding:24px 28px;white-space:pre-wrap;tab-size:4;font-size:12px;line-height:1.45;word-break:break-word}
+@media print{body{background:#fff}.page{width:100%;margin:0;box-shadow:none}.toolbar{display:none}.code{font-size:9.5px}a{color:inherit}}
+@page{margin:12mm}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+<h1>pages/student-documents.php</h1>
+<div class="meta">HTML structure only. PHP blocks, JavaScript, and CSS blocks were removed.</div>
+<div class="toolbar"><a href="../index.html">Back to index</a><button class="primary" onclick="window.print()">Print / Save PDF</button></div>
+</header>
+<main><pre class="code"><code>&lt;main class=&quot;nxl-container&quot;&gt;
+    &lt;div class=&quot;nxl-content&quot;&gt;
+        &lt;div class=&quot;page-header dashboard-page-header&quot;&gt;
+            &lt;div class=&quot;page-header-left d-flex align-items-center&quot;&gt;
+                &lt;div class=&quot;page-header-title&quot;&gt;
+                    &lt;h5 class=&quot;m-b-10&quot;&gt;My Documents&lt;/h5&gt;
+                &lt;/div&gt;
+                &lt;ul class=&quot;breadcrumb&quot;&gt;
+                    &lt;li class=&quot;breadcrumb-item&quot;&gt;&lt;a href=&quot;homepage.php&quot;&gt;Home&lt;/a&gt;&lt;/li&gt;
+                    &lt;li class=&quot;breadcrumb-item&quot;&gt;My Documents&lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;page-header-right ms-auto&quot;&gt;
+                &lt;a href=&quot;student-profile.php&quot; class=&quot;btn btn-outline-primary&quot;&gt;Back to Profile&lt;/a&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;main-content&quot;&gt;
+            &lt;div class=&quot;student-home-shell&quot;&gt;
+                &lt;section class=&quot;card student-panel mt-4&quot;&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3&quot;&gt;
+                            &lt;div&gt;
+                                &lt;span class=&quot;student-metric-label&quot;&gt;Printing Access&lt;/span&gt;
+                                &lt;h3 class=&quot;mb-1&quot;&gt;My Generated Documents&lt;/h3&gt;
+                                &lt;div class=&quot;student-dtr-meta&quot;&gt;Editing stays exclusive to admin, coordinator, and supervisor accounts.&lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+
+                        &lt;div class=&quot;row g-3&quot;&gt;
+                            
+                            &lt;div class=&quot;col-12 col-md-6 col-xl-4&quot;&gt;
+                                &lt;article class=&quot;student-metric-card h-100&quot;&gt;
+                                    &lt;div class=&quot;card-body d-flex flex-column gap-3&quot;&gt;
+                                        &lt;div&gt;
+                                            &lt;span class=&quot;student-metric-label&quot;&gt;&lt;/span&gt;
+                                            &lt;p class=&quot;mb-0 mt-2&quot;&gt;&lt;/p&gt;
+                                        &lt;/div&gt;
+                                        &lt;div class=&quot;mt-auto&quot;&gt;
+                                            
+                                            &lt;a href=&quot;&quot; class=&quot;btn btn-primary w-100&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;
+                                                View / Print
+                                            &lt;/a&gt;
+                                            
+                                            &lt;button type=&quot;button&quot; class=&quot;btn btn-outline-secondary w-100&quot; disabled&gt;Waiting for staff input&lt;/button&gt;
+                                            
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/article&gt;
+                            &lt;/div&gt;
+                            
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/section&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/main&gt;</code></pre></main>
+</div>
+</body>
+</html>

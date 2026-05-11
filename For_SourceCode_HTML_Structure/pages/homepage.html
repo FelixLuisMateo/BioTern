@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pages/homepage.php - HTML Structure</title>
+<style>
+:root{--ink:#0f172a;--muted:#64748b;--line:#dbe3ef;--paper:#fff;--soft:#f8fafc;--brand:#3454d1}
+*{box-sizing:border-box}
+body{margin:0;background:#e5e7eb;color:var(--ink);font:14px/1.5 Consolas,"Courier New",monospace}
+.page{width:min(100%,1100px);margin:24px auto;background:var(--paper);box-shadow:0 18px 40px rgba(15,23,42,.12)}
+header{padding:22px 28px;border-bottom:1px solid var(--line);font-family:Arial,sans-serif}
+h1{margin:0 0 6px;font-size:20px}
+.meta{color:var(--muted);font-size:12px}
+.toolbar{display:flex;gap:10px;margin-top:16px}
+.toolbar a,.toolbar button{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:8px;padding:8px 12px;text-decoration:none;font:600 13px Arial,sans-serif;cursor:pointer}
+.toolbar button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.code{margin:0;padding:24px 28px;white-space:pre-wrap;tab-size:4;font-size:12px;line-height:1.45;word-break:break-word}
+@media print{body{background:#fff}.page{width:100%;margin:0;box-shadow:none}.toolbar{display:none}.code{font-size:9.5px}a{color:inherit}}
+@page{margin:12mm}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+<h1>pages/homepage.php</h1>
+<div class="meta">HTML structure only. PHP blocks, JavaScript, and CSS blocks were removed.</div>
+<div class="toolbar"><a href="../index.html">Back to index</a><button class="primary" onclick="window.print()">Print / Save PDF</button></div>
+</header>
+<main><pre class="code"><code>&lt;main class=&quot;nxl-container&quot;&gt;
+    &lt;div class=&quot;nxl-content&quot;&gt;
+
+            &lt;div class=&quot;page-header student-page-header&quot;&gt;
+                &lt;div class=&quot;page-header-left d-flex align-items-center&quot;&gt;
+                    &lt;div class=&quot;page-header-title&quot;&gt;
+                        &lt;h5 class=&quot;m-b-10&quot;&gt;Dashboard&lt;/h5&gt;
+                    &lt;/div&gt;
+                    &lt;ul class=&quot;breadcrumb&quot;&gt;
+                        &lt;li class=&quot;breadcrumb-item&quot;&gt;&lt;a href=&quot;homepage.php&quot;&gt;Home&lt;/a&gt;&lt;/li&gt;
+                        &lt;li class=&quot;breadcrumb-item&quot;&gt;Dashboard&lt;/li&gt;
+                    &lt;/ul&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;main-content student-home-shell&quot;&gt;
+                &lt;div class=&quot;card student-panel student-hours-timer-card&quot;&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div
+                            class=&quot;student-hours-timer&quot;
+                            data-student-hours-timer
+                            data-remaining-seconds=&quot;&quot;
+                            data-live-countdown=&quot;&quot;
+                        &gt;
+                            &lt;div class=&quot;student-hours-timer__header&quot;&gt;
+                                &lt;div&gt;
+                                    &lt;h6&gt;&lt;/h6&gt;
+                                &lt;/div&gt;
+                                &lt;span class=&quot;student-hours-timer__badge&quot;&gt;&lt;/span&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;student-hours-timer__clock&quot;&gt;
+                                &lt;div class=&quot;student-hours-timer__segment&quot;&gt;
+                                    &lt;strong data-student-hours-part=&quot;hours&quot;&gt;&lt;/strong&gt;
+                                    &lt;small&gt;Hours&lt;/small&gt;
+                                &lt;/div&gt;
+                                &lt;span class=&quot;student-hours-timer__divider&quot;&gt;:&lt;/span&gt;
+                                &lt;div class=&quot;student-hours-timer__segment&quot;&gt;
+                                    &lt;strong data-student-hours-part=&quot;minutes&quot;&gt;&lt;/strong&gt;
+                                    &lt;small&gt;Minutes&lt;/small&gt;
+                                &lt;/div&gt;
+                                &lt;span class=&quot;student-hours-timer__divider&quot;&gt;:&lt;/span&gt;
+                                &lt;div class=&quot;student-hours-timer__segment&quot;&gt;
+                                    &lt;strong data-student-hours-part=&quot;seconds&quot;&gt;&lt;/strong&gt;
+                                    &lt;small&gt;Seconds&lt;/small&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;p class=&quot;student-hours-timer__summary&quot;&gt;&lt;/p&gt;
+                            &lt;div class=&quot;student-hours-timer__progress&quot; aria-hidden=&quot;true&quot;&gt;
+                                &lt;span style=&quot;width: %;&quot;&gt;&lt;/span&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;student-hours-timer__footer&quot;&gt;
+                                &lt;span class=&quot;student-hours-timer__sync&quot;&gt;
+                                    &lt;i class=&quot;feather-activity&quot;&gt;&lt;/i&gt;
+                                    Synced at &lt;strong data-student-hours-sync&gt;&lt;/strong&gt;
+                                &lt;/span&gt;
+                                &lt;a href=&quot;&quot; class=&quot;btn btn-sm btn-primary&quot;&gt;&lt;/a&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;student-home-hero card border-0&quot;&gt;
+                    &lt;div class=&quot;card-body&quot;&gt;
+                        &lt;div class=&quot;student-home-hero__content&quot;&gt;
+                            &lt;div&gt;
+                                &lt;span class=&quot;student-home-eyebrow&quot;&gt;Student Workspace&lt;/span&gt;
+                                &lt;h2&gt;&lt;/h2&gt;
+                                &lt;p&gt;Keep track of your attendance, internship progress, documents, and daily tools in one place.&lt;/p&gt;
+                                &lt;div class=&quot;student-home-meta&quot;&gt;
+                                    &lt;span&gt;&lt;/span&gt;
+                                    &lt;span&gt;&lt;/span&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;student-home-actions&quot;&gt;
+                                &lt;a href=&quot;&quot; class=&quot;btn btn-primary&quot;&gt;&lt;i class=&quot;feather-clock me-1&quot;&gt;&lt;/i&gt; &lt;/a&gt;
+                                &lt;a href=&quot;student-profile.php&quot; class=&quot;btn btn-light-brand&quot;&gt;&lt;i class=&quot;feather-user me-1&quot;&gt;&lt;/i&gt; My Profile&lt;/a&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;row g-3 student-home-stats&quot;&gt;
+                    &lt;div class=&quot;col-xl-3 col-md-6&quot;&gt;&lt;div class=&quot;card student-metric-card h-100&quot;&gt;&lt;div class=&quot;card-body&quot;&gt;&lt;span class=&quot;student-metric-label&quot;&gt;Attendance This Month&lt;/span&gt;&lt;h3&gt;&lt;/h3&gt;&lt;p&gt;Your logged DTR entries for .&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+                    &lt;div class=&quot;col-xl-3 col-md-6&quot;&gt;&lt;div class=&quot;card student-metric-card h-100&quot;&gt;&lt;div class=&quot;card-body&quot;&gt;&lt;span class=&quot;student-metric-label&quot;&gt;Pending Logs&lt;/span&gt;&lt;h3&gt;&lt;/h3&gt;&lt;p&gt;Attendance entries still waiting for approval.&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+                    &lt;div class=&quot;col-xl-3 col-md-6&quot;&gt;&lt;div class=&quot;card student-metric-card h-100&quot;&gt;&lt;div class=&quot;card-body&quot;&gt;&lt;span class=&quot;student-metric-label&quot;&gt;Internship Status&lt;/span&gt;&lt;h3&gt;&lt;/h3&gt;&lt;p&gt;&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+                    &lt;div class=&quot;col-xl-3 col-md-6&quot;&gt;&lt;div class=&quot;card student-metric-card h-100&quot;&gt;&lt;div class=&quot;card-body&quot;&gt;&lt;span class=&quot;student-metric-label&quot;&gt;Completion&lt;/span&gt;&lt;h3&gt;%&lt;/h3&gt;&lt;p&gt; of  hours rendered.&lt;/p&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;
+                &lt;/div&gt;
+
+                &lt;div class=&quot;row g-3 mt-1&quot;&gt;
+                    &lt;div class=&quot;col-xxl-7&quot;&gt;
+                        &lt;div class=&quot;card student-panel h-100&quot;&gt;
+                            &lt;div class=&quot;card-header&quot;&gt;&lt;h5 class=&quot;card-title mb-0&quot;&gt;Quick Access&lt;/h5&gt;&lt;/div&gt;
+                            &lt;div class=&quot;card-body&quot;&gt;
+                                &lt;div class=&quot;student-quick-grid&quot;&gt;
+                                    &lt;a href=&quot;student-profile.php&quot; class=&quot;student-shortcut-card&quot;&gt;&lt;i class=&quot;feather-user&quot;&gt;&lt;/i&gt;&lt;span&gt;My Profile&lt;/span&gt;&lt;small&gt;Review your student details.&lt;/small&gt;&lt;/a&gt;
+                                    &lt;a href=&quot;&quot; class=&quot;student-shortcut-card&quot;&gt;&lt;i class=&quot;feather-clock&quot;&gt;&lt;/i&gt;&lt;span&gt;&lt;/span&gt;&lt;small&gt;&lt;/small&gt;&lt;/a&gt;
+                                    &lt;a href=&quot;student-documents.php&quot; class=&quot;student-shortcut-card&quot;&gt;&lt;i class=&quot;feather-file-text&quot;&gt;&lt;/i&gt;&lt;span&gt;Documents&lt;/span&gt;&lt;small&gt;Open your internship documents.&lt;/small&gt;&lt;/a&gt;
+                                    &lt;a href=&quot;apps-storage.php&quot; class=&quot;student-shortcut-card&quot;&gt;&lt;i class=&quot;feather-folder&quot;&gt;&lt;/i&gt;&lt;span&gt;Storage&lt;/span&gt;&lt;small&gt;Manage files and requirements.&lt;/small&gt;&lt;/a&gt;
+                                    &lt;a href=&quot;apps-notes.php&quot; class=&quot;student-shortcut-card&quot;&gt;&lt;i class=&quot;feather-edit-3&quot;&gt;&lt;/i&gt;&lt;span&gt;Notes&lt;/span&gt;&lt;small&gt;Keep reminders and internship notes.&lt;/small&gt;&lt;/a&gt;
+                                    &lt;a href=&quot;apps-chat.php&quot; class=&quot;student-shortcut-card&quot;&gt;&lt;i class=&quot;feather-message-circle&quot;&gt;&lt;/i&gt;&lt;span&gt;Chat&lt;/span&gt;&lt;small&gt;Stay in touch with your team.&lt;/small&gt;&lt;/a&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;col-xxl-5&quot;&gt;
+                        &lt;div class=&quot;card student-panel h-100&quot;&gt;
+                            &lt;div class=&quot;card-header&quot;&gt;&lt;h5 class=&quot;card-title mb-0&quot;&gt;Recent Attendance&lt;/h5&gt;&lt;/div&gt;
+                            &lt;div class=&quot;card-body&quot;&gt;
+                                
+                                &lt;div class=&quot;student-attendance-list&quot;&gt;
+                                    
+                                    &lt;div class=&quot;student-attendance-item&quot;&gt;
+                                        &lt;div&gt;
+                                            &lt;strong&gt;&lt;/strong&gt;
+                                            &lt;span&gt;&lt;/span&gt;
+                                        &lt;/div&gt;
+                                        &lt;b&gt; hrs&lt;/b&gt;
+                                    &lt;/div&gt;
+                                    
+                                &lt;/div&gt;
+                                
+                                &lt;div class=&quot;student-empty-state&quot;&gt;No attendance records yet. Your DTR entries will appear here once you start logging them.&lt;/div&gt;
+                                
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            
+            &lt;div class=&quot;page-header dashboard-page-header&quot;&gt;
+                &lt;div class=&quot;page-header-left d-flex align-items-center&quot;&gt;
+                    &lt;div class=&quot;page-header-title&quot;&gt;
+                        &lt;h5 class=&quot;m-b-10&quot;&gt;Overview&lt;/h5&gt;
+                    &lt;/div&gt;
+                    &lt;ul class=&quot;breadcrumb&quot;&gt;
+                        &lt;li class=&quot;breadcrumb-item&quot;&gt;&lt;a href=&quot;homepage.php&quot;&gt;Home&lt;/a&gt;&lt;/li&gt;
+                        &lt;li class=&quot;breadcrumb-item&quot;&gt;Overview&lt;/li&gt;
+                    &lt;/ul&gt;
+                &lt;/div&gt;
+            &lt;div class=&quot;page-header-right ms-auto&quot;&gt;
+                &lt;div class=&quot;page-header-quick d-none d-md-flex&quot;&gt;
+                    &lt;span class=&quot;badge bg-soft-primary text-primary fs-11&quot;&gt;
+                        &lt;i class=&quot;feather-calendar me-1&quot;&gt;&lt;/i&gt; 
+                    &lt;/span&gt;
+                    &lt;button type=&quot;button&quot; id=&quot;toggle-dashboard-layout&quot; class=&quot;btn btn-sm btn-light-brand&quot;&gt;
+                        &lt;i class=&quot;feather-move me-1&quot;&gt;&lt;/i&gt; Edit Layout
+                    &lt;/button&gt;
+                    &lt;a href=&quot;students.php&quot; class=&quot;btn btn-sm btn-light-brand&quot;&gt;
+                        &lt;i class=&quot;feather-users me-1&quot;&gt;&lt;/i&gt; Manage Students
+                    &lt;/a&gt;
+                    &lt;a href=&quot;students-edit.php&quot; class=&quot;btn btn-sm btn-light-brand&quot;&gt;
+                        &lt;i class=&quot;feather-plus-circle me-1&quot;&gt;&lt;/i&gt; Add Student
+                    &lt;/a&gt;
+                &lt;/div&gt;
+                &lt;button class=&quot;btn btn-sm btn-primary page-header-actions-toggle&quot; type=&quot;button&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;dashboardPageActions&quot;&gt;
+                    &lt;i class=&quot;feather-grid me-1&quot;&gt;&lt;/i&gt; Actions
+                &lt;/button&gt;
+                &lt;div class=&quot;page-header-actions&quot; id=&quot;dashboardPageActions&quot;&gt;
+                    &lt;div class=&quot;dashboard-actions-panel&quot;&gt;
+                        &lt;div class=&quot;dashboard-actions-meta&quot;&gt;
+                            &lt;span class=&quot;text-muted fs-12&quot;&gt;Quick Actions&lt;/span&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;dashboard-actions-quick d-md-none&quot;&gt;
+                            &lt;span class=&quot;badge bg-soft-primary text-primary fs-11&quot;&gt;
+                                &lt;i class=&quot;feather-calendar me-1&quot;&gt;&lt;/i&gt; 
+                            &lt;/span&gt;
+                            &lt;button type=&quot;button&quot; id=&quot;toggle-dashboard-layout-mobile&quot; class=&quot;btn btn-sm btn-light-brand&quot;&gt;
+                                &lt;i class=&quot;feather-move me-1&quot;&gt;&lt;/i&gt; Edit Layout
+                            &lt;/button&gt;
+                            &lt;a href=&quot;students.php&quot; class=&quot;btn btn-sm btn-light-brand&quot;&gt;
+                                &lt;i class=&quot;feather-users me-1&quot;&gt;&lt;/i&gt; Manage Students
+                            &lt;/a&gt;
+                            &lt;a href=&quot;students-edit.php&quot; class=&quot;btn btn-sm btn-light-brand&quot;&gt;
+                                &lt;i class=&quot;feather-plus-circle me-1&quot;&gt;&lt;/i&gt; Add Student
+                            &lt;/a&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;dashboard-actions-grid&quot;&gt;
+                            &lt;button type=&quot;button&quot; id=&quot;reset-dashboard-layout&quot; class=&quot;action-tile&quot;&gt;
+                                &lt;i class=&quot;feather-refresh-cw&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;Reset Layout&lt;/span&gt;
+                            &lt;/button&gt;
+                            
+                            &lt;a href=&quot;applications-review.php&quot; class=&quot;action-tile&quot;&gt;
+                                &lt;i class=&quot;feather-user-check&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;Review Applications&lt;/span&gt;
+                            &lt;/a&gt;
+                            
+                            &lt;a href=&quot;attendance.php&quot; class=&quot;action-tile&quot;&gt;
+                                &lt;i class=&quot;feather-calendar&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;Attendance Center&lt;/span&gt;
+                            &lt;/a&gt;
+                            &lt;a href=&quot;reports-chat-logs.php&quot; class=&quot;action-tile&quot;&gt;
+                                &lt;i class=&quot;feather-file-text&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;Reports&lt;/span&gt;
+                            &lt;/a&gt;
+                            &lt;a href=&quot;biometric-machine.php&quot; class=&quot;action-tile&quot;&gt;
+                                &lt;i class=&quot;feather-activity&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;F20H Manager&lt;/span&gt;
+                            &lt;/a&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;/div&gt;
+            
+            &lt;div class=&quot;dashboard-mobile-summary d-md-none&quot;&gt;
+                &lt;div class=&quot;mobile-summary-card&quot;&gt;
+                    &lt;span class=&quot;mobile-summary-label&quot;&gt;Active Students&lt;/span&gt;
+                    &lt;span class=&quot;mobile-summary-value&quot;&gt;&lt;/span&gt;
+                    &lt;span class=&quot;mobile-summary-meta&quot;&gt;% of &lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;mobile-summary-card&quot;&gt;
+                    &lt;span class=&quot;mobile-summary-label&quot;&gt;Today&#039;s Logs&lt;/span&gt;
+                    &lt;span class=&quot;mobile-summary-value&quot;&gt;&lt;/span&gt;
+                    &lt;span class=&quot;mobile-summary-meta&quot;&gt;&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;mobile-summary-card&quot;&gt;
+                    &lt;span class=&quot;mobile-summary-label&quot;&gt;Pending Attendance&lt;/span&gt;
+                    &lt;span class=&quot;mobile-summary-value&quot;&gt;&lt;/span&gt;
+                    &lt;span class=&quot;mobile-summary-meta&quot;&gt;% approved&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;mobile-summary-card&quot;&gt;
+                    &lt;span class=&quot;mobile-summary-label&quot;&gt;OJT Ongoing&lt;/span&gt;
+                    &lt;span class=&quot;mobile-summary-value&quot;&gt;&lt;/span&gt;
+                    &lt;span class=&quot;mobile-summary-meta&quot;&gt;Avg % completion&lt;/span&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;dashboard-mobile-stat-board d-md-none&quot; aria-label=&quot;Mobile dashboard section switcher&quot;&gt;
+                &lt;button type=&quot;button&quot; class=&quot;dashboard-mobile-stat-btn is-active&quot; data-mobile-panel-btn=&quot;kpi&quot; aria-pressed=&quot;true&quot;&gt;
+                    &lt;span class=&quot;dashboard-mobile-stat-label&quot;&gt;Today Glance&lt;/span&gt;
+                    &lt;strong class=&quot;dashboard-mobile-stat-value&quot;&gt;&lt;/strong&gt;
+                &lt;/button&gt;
+                &lt;button type=&quot;button&quot; class=&quot;dashboard-mobile-stat-btn&quot; data-mobile-panel-btn=&quot;students&quot; aria-pressed=&quot;false&quot;&gt;
+                    &lt;span class=&quot;dashboard-mobile-stat-label&quot;&gt;Students&lt;/span&gt;
+                    &lt;strong class=&quot;dashboard-mobile-stat-value&quot;&gt;&lt;/strong&gt;
+                &lt;/button&gt;
+                &lt;button type=&quot;button&quot; class=&quot;dashboard-mobile-stat-btn&quot; data-mobile-panel-btn=&quot;activities&quot; aria-pressed=&quot;false&quot;&gt;
+                    &lt;span class=&quot;dashboard-mobile-stat-label&quot;&gt;Activities&lt;/span&gt;
+                    &lt;strong class=&quot;dashboard-mobile-stat-value&quot;&gt;&lt;/strong&gt;
+                &lt;/button&gt;
+                &lt;button type=&quot;button&quot; class=&quot;dashboard-mobile-stat-btn&quot; data-mobile-panel-btn=&quot;attendance&quot; aria-pressed=&quot;false&quot;&gt;
+                    &lt;span class=&quot;dashboard-mobile-stat-label&quot;&gt;Attendance&lt;/span&gt;
+                    &lt;strong class=&quot;dashboard-mobile-stat-value&quot;&gt;&lt;/strong&gt;
+                &lt;/button&gt;
+                &lt;button type=&quot;button&quot; class=&quot;dashboard-mobile-stat-btn&quot; data-mobile-panel-btn=&quot;coordinators&quot; aria-pressed=&quot;false&quot;&gt;
+                    &lt;span class=&quot;dashboard-mobile-stat-label&quot;&gt;Coordinators&lt;/span&gt;
+                    &lt;strong class=&quot;dashboard-mobile-stat-value&quot;&gt;&lt;/strong&gt;
+                &lt;/button&gt;
+                &lt;button type=&quot;button&quot; class=&quot;dashboard-mobile-stat-btn&quot; data-mobile-panel-btn=&quot;supervisors&quot; aria-pressed=&quot;false&quot;&gt;
+                    &lt;span class=&quot;dashboard-mobile-stat-label&quot;&gt;Supervisors&lt;/span&gt;
+                    &lt;strong class=&quot;dashboard-mobile-stat-value&quot;&gt;&lt;/strong&gt;
+                &lt;/button&gt;
+            &lt;/div&gt;
+            
+            &lt;div class=&quot;main-content dashboard-shell widgets-preloading&quot;&gt;
+                &lt;div class=&quot;row&quot;&gt;
+                    
+                    &lt;div class=&quot;col-12 dashboard-movable&quot; data-move-key=&quot;kpi-strip&quot; data-mobile-panel=&quot;kpi&quot;&gt;
+                        &lt;div class=&quot;card stretch stretch-full kpi-strip&quot;&gt;
+                            &lt;div class=&quot;card-header&quot;&gt;
+                                &lt;h5 class=&quot;card-title&quot;&gt;Today at a Glance&lt;/h5&gt;
+                                &lt;div class=&quot;card-header-action&quot;&gt;
+                                    &lt;div class=&quot;card-header-btn&quot;&gt;&lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;card-body&quot;&gt;
+                                    &lt;div class=&quot;row g-3&quot;&gt;
+                                        &lt;div class=&quot;col-sm-6 col-xl-3&quot;&gt;
+                                            &lt;div class=&quot;kpi-card kpi-tile&quot;&gt;
+                                                &lt;div class=&quot;kpi-title&quot;&gt;Active Students&lt;/div&gt;
+                                                &lt;div class=&quot;kpi-value&quot;&gt;&lt;/div&gt;
+                                                &lt;div class=&quot;kpi-subtext&quot;&gt;% of  total&lt;/div&gt;
+                                                &lt;div class=&quot;progress kpi-progress&quot;&gt;
+                                                    &lt;div class=&quot;progress-bar bg-primary&quot; role=&quot;progressbar&quot; data-progress-width=&quot;&quot;&gt;&lt;/div&gt;
+                                                &lt;/div&gt;
+                                            &lt;/div&gt;
+                                        &lt;/div&gt;
+                                        &lt;div class=&quot;col-sm-6 col-xl-3&quot;&gt;
+                                            &lt;div class=&quot;kpi-card kpi-tile&quot;&gt;
+                                                &lt;div class=&quot;kpi-title&quot;&gt;Today&#039;s Logs&lt;/div&gt;
+                                                &lt;div class=&quot;kpi-value&quot;&gt;&lt;/div&gt;
+                                                &lt;div class=&quot;kpi-subtext&quot;&gt;&lt;/div&gt;
+                                                &lt;div class=&quot;progress kpi-progress&quot;&gt;
+                                                    &lt;div class=&quot;progress-bar bg-warning&quot; role=&quot;progressbar&quot; data-progress-width=&quot;&quot;&gt;&lt;/div&gt;
+                                                &lt;/div&gt;
+                                            &lt;/div&gt;
+                                        &lt;/div&gt;
+                                        &lt;div class=&quot;col-sm-6 col-xl-3&quot;&gt;
+                                            &lt;div class=&quot;kpi-card kpi-tile&quot;&gt;
+                                                &lt;div class=&quot;kpi-title&quot;&gt;Pending Attendance&lt;/div&gt;
+                                                &lt;div class=&quot;kpi-value&quot;&gt;&lt;/div&gt;
+                                                &lt;div class=&quot;kpi-subtext&quot;&gt;% approved overall&lt;/div&gt;
+                                                &lt;div class=&quot;progress kpi-progress&quot;&gt;
+                                                    &lt;div class=&quot;progress-bar bg-success&quot; role=&quot;progressbar&quot; data-progress-width=&quot;&quot;&gt;&lt;/div&gt;
+                                                &lt;/div&gt;
+                                            &lt;/div&gt;
+                                        &lt;/div&gt;
+                                        &lt;div class=&quot;col-sm-6 col-xl-3&quot;&gt;
+                                            &lt;div class=&quot;kpi-card kpi-tile&quot;&gt;
+                                                &lt;div class=&quot;kpi-title&quot;&gt;OJT Ongoing&lt;/div&gt;
+                                                &lt;div class=&quot;kpi-value&quot;&gt;&lt;/div&gt;
+                                                &lt;div class=&quot;kpi-subtext&quot;&gt;Avg. completion %&lt;/div&gt;
+                                                &lt;div class=&quot;progress kpi-progress&quot;&gt;
+                                                    &lt;div class=&quot;progress-bar bg-info&quot; role=&quot;progressbar&quot; data-progress-width=&quot;&quot;&gt;&lt;/div&gt;
+                                                &lt;/div&gt;
+                                            &lt;/div&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;col-xxl-4 section-tight dashboard-movable&quot; data-move-key=&quot;active-students&quot; data-mobile-panel=&quot;students&quot;&gt;
+                        &lt;div class=&quot;card dash-card stretch stretch-full&quot;&gt;
+                            &lt;div class=&quot;dash-card-header&quot;&gt;
+                                &lt;h6 class=&quot;dash-card-title&quot;&gt;Active Students&lt;/h6&gt;
+                                &lt;div class=&quot;dash-card-actions&quot;&gt;&lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;dash-card-body&quot;&gt;
+                                
+                                    &lt;div class=&quot;dash-list&quot;&gt;
+
+                                            &lt;div class=&quot;dash-list-item&quot;&gt;
+                                                &lt;div class=&quot;dash-list-main&quot;&gt;
+                                                    
+                                                    &lt;div class=&quot;dash-list-text&quot;&gt;
+                                                        &lt;a href=&quot;students-view.php?id=&quot; class=&quot;dash-list-title&quot;&gt;
+                                                            
+                                                        &lt;/a&gt;
+                                                        &lt;div class=&quot;dash-list-sub&quot;&gt;
+                                                             | 
+                                                        &lt;/div&gt;
+                                                    &lt;/div&gt;
+                                                &lt;/div&gt;
+                                                &lt;div class=&quot;dash-list-meta&quot;&gt;
+                                                    
+                                                        &lt;span class=&quot;badge bg-soft-success text-success&quot;&gt;Approved&lt;/span&gt;
+                                                    
+                                                        &lt;span class=&quot;badge bg-soft-warning text-warning&quot;&gt;Pending&lt;/span&gt;
+                                                    
+                                                        &lt;span class=&quot;badge bg-soft-danger text-danger&quot;&gt;Rejected&lt;/span&gt;
+                                                    
+                                                        &lt;span class=&quot;badge bg-soft-secondary text-secondary&quot;&gt;No record&lt;/span&gt;
+                                                    
+                                                    &lt;div class=&quot;dash-meta-line&quot;&gt;
+                                                        
+                                                    &lt;/div&gt;
+                                                &lt;/div&gt;
+                                            &lt;/div&gt;
+                                        
+                                    &lt;/div&gt;
+                                
+                                    &lt;div class=&quot;dash-empty&quot;&gt;No active students&lt;/div&gt;
+                                
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;col-xxl-8 section-tight dashboard-movable&quot; data-move-key=&quot;recent-activities&quot; data-mobile-panel=&quot;activities&quot;&gt;
+                        &lt;div class=&quot;card dash-card stretch stretch-full&quot;&gt;
+                            &lt;div class=&quot;dash-card-header&quot;&gt;
+                                &lt;h6 class=&quot;dash-card-title&quot;&gt;Recent Activities&lt;/h6&gt;
+                                &lt;div class=&quot;dash-card-actions&quot;&gt;&lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;dash-card-body&quot;&gt;
+
+                                    &lt;div class=&quot;dash-list&quot;&gt;
+
+                                        &lt;div class=&quot;dash-list-item&quot;&gt;
+                                            &lt;div class=&quot;dash-list-main&quot;&gt;
+                                                &lt;div class=&quot;dash-activity-icon &quot;&gt;
+                                                    &lt;i class=&quot;feather-&quot;&gt;&lt;/i&gt;
+                                                &lt;/div&gt;
+                                                &lt;div class=&quot;dash-list-text&quot;&gt;
+                                                    &lt;div class=&quot;dash-list-title&quot;&gt;
+                                                        
+                                                    &lt;/div&gt;
+                                                    &lt;div class=&quot;dash-list-sub&quot;&gt;
+                                                        
+                                                    &lt;/div&gt;
+                                                &lt;/div&gt;
+                                            &lt;/div&gt;
+                                        &lt;/div&gt;
+                                        
+                                    &lt;/div&gt;
+                                
+                                    &lt;div class=&quot;dash-empty&quot;&gt;No recent activity&lt;/div&gt;
+                                
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;col-xxl-8 section-tight dashboard-movable&quot; data-move-key=&quot;latest-attendance&quot; data-mobile-panel=&quot;attendance&quot;&gt;
+                        &lt;div class=&quot;card dash-card stretch stretch-full&quot;&gt;
+                            &lt;div class=&quot;dash-card-header&quot;&gt;
+                                &lt;h6 class=&quot;dash-card-title&quot;&gt;Latest Attendance&lt;/h6&gt;
+                                &lt;div class=&quot;dash-card-actions&quot;&gt;
+                                    &lt;span class=&quot;dash-pill&quot;&gt;Today &lt;/span&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;dash-card-body&quot;&gt;
+                                &lt;div class=&quot;table-responsive&quot;&gt;
+                                    &lt;table class=&quot;table table-hover mb-0 dash-table&quot; id=&quot;latest-attendance-table&quot;&gt;
+                                        &lt;thead&gt;
+                                            &lt;tr class=&quot;border-b&quot;&gt;
+                                                &lt;th scope=&quot;row&quot;&gt;Students&lt;/th&gt;
+                                                &lt;th&gt;Attendance Date&lt;/th&gt;
+                                                &lt;th&gt;Time In&lt;/th&gt;
+                                                &lt;th&gt;Status&lt;/th&gt;
+                                            &lt;/tr&gt;
+                                        &lt;/thead&gt;
+                                        &lt;tbody&gt;
+
+                                            &lt;tr&gt;
+                                                &lt;td&gt;
+                                                    &lt;div class=&quot;d-flex align-items-center gap-3&quot;&gt;
+                                                        
+                                                        &lt;a href=&quot;students-view.php?id=&quot;&gt;
+                                                            &lt;span class=&quot;d-block fw-semibold&quot;&gt;&lt;/span&gt;
+                                                            &lt;span class=&quot;fs-12 d-block fw-normal text-muted&quot;&gt;&lt;/span&gt;
+                                                        &lt;/a&gt;
+                                                    &lt;/div&gt;
+                                                &lt;/td&gt;
+                                                &lt;td&gt;
+                                                    
+                                                &lt;/td&gt;
+                                                &lt;td&gt;
+                                                    
+                                                &lt;/td&gt;
+                                                &lt;td&gt;
+                                                    
+                                                &lt;/td&gt;
+                                              &lt;/tr&gt;
+
+                                            &lt;tr&gt;
+                                                &lt;td colspan=&quot;4&quot; class=&quot;text-center text-muted py-4&quot;&gt;No attendance records found&lt;/td&gt;
+                                            &lt;/tr&gt;
+                                            
+                                        &lt;/tbody&gt;
+                                    &lt;/table&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;col-xxl-4 dashboard-movable&quot; data-move-key=&quot;coordinators&quot; data-mobile-panel=&quot;coordinators&quot;&gt;
+                        &lt;div class=&quot;card dash-card stretch stretch-full&quot;&gt;
+                            &lt;div class=&quot;dash-card-header&quot;&gt;
+                                &lt;h6 class=&quot;dash-card-title&quot;&gt;Coordinators&lt;/h6&gt;
+                                &lt;div class=&quot;dash-card-actions&quot;&gt;&lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;dash-card-body&quot;&gt;
+                                
+                                    &lt;div class=&quot;dash-list&quot;&gt;
+                                        
+                                        &lt;div class=&quot;dash-list-item&quot;&gt;
+                                            &lt;div class=&quot;dash-list-main&quot;&gt;
+                                                
+                                                &lt;div class=&quot;dash-list-text&quot;&gt;
+                                                    &lt;div class=&quot;dash-list-title&quot;&gt;&lt;/div&gt;
+                                                    &lt;div class=&quot;dash-list-sub&quot;&gt;&lt;/div&gt;
+                                                &lt;/div&gt;
+                                            &lt;/div&gt;
+                                            &lt;div class=&quot;dash-list-meta&quot;&gt;
+                                                &lt;span class=&quot;badge bg-soft-info text-info&quot;&gt;Coordinator&lt;/span&gt;
+                                            &lt;/div&gt;
+                                        &lt;/div&gt;
+                                        
+                                    &lt;/div&gt;
+                                
+                                    &lt;div class=&quot;dash-empty&quot;&gt;No coordinators&lt;/div&gt;
+                                
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                    &lt;div class=&quot;col-xxl-4 dashboard-movable&quot; data-move-key=&quot;supervisors&quot; data-mobile-panel=&quot;supervisors&quot;&gt;
+                        &lt;div class=&quot;card dash-card stretch stretch-full&quot;&gt;
+                            &lt;div class=&quot;dash-card-header&quot;&gt;
+                                &lt;h6 class=&quot;dash-card-title&quot;&gt;Supervisors&lt;/h6&gt;
+                                &lt;div class=&quot;dash-card-actions&quot;&gt;&lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;dash-card-body&quot;&gt;
+                                
+                                    &lt;div class=&quot;dash-list&quot;&gt;
+                                        
+                                        &lt;div class=&quot;dash-list-item&quot;&gt;
+                                            &lt;div class=&quot;dash-list-main&quot;&gt;
+                                                
+                                                &lt;div class=&quot;dash-list-text&quot;&gt;
+                                                    &lt;div class=&quot;dash-list-title&quot;&gt;&lt;/div&gt;
+                                                    &lt;div class=&quot;dash-list-sub&quot;&gt;&lt;/div&gt;
+                                                &lt;/div&gt;
+                                            &lt;/div&gt;
+                                            &lt;div class=&quot;dash-list-meta&quot;&gt;
+                                                &lt;span class=&quot;badge bg-soft-success text-success&quot;&gt;Supervisor&lt;/span&gt;
+                                            &lt;/div&gt;
+                                        &lt;/div&gt;
+                                        
+                                    &lt;/div&gt;
+                                
+                                    &lt;div class=&quot;dash-empty&quot;&gt;No supervisors&lt;/div&gt;
+                                
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div id=&quot;homepage-runtime-config&quot;
+                data-ojt-pending=&quot;&quot;
+                data-ojt-ongoing=&quot;&quot;
+                data-ojt-completed=&quot;&quot;
+                data-ojt-cancelled=&quot;&quot;
+                hidden&gt;&lt;/div&gt;
+
+&lt;/div&gt; 
+&lt;/main&gt;</code></pre></main>
+</div>
+</body>
+</html>

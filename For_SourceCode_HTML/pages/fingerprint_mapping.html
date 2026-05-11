@@ -1,0 +1,1197 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pages/fingerprint_mapping.php - BioTern Source Code</title>
+<style>
+:root{color-scheme:light;--ink:#0f172a;--muted:#64748b;--line:#dbe3ef;--paper:#fff;--soft:#f8fafc;--brand:#3454d1}*{box-sizing:border-box}body{margin:0;background:#e5e7eb;color:var(--ink);font:14px/1.5 Consolas,"Courier New",monospace}.page{width:min(100%,1100px);margin:24px auto;background:var(--paper);box-shadow:0 18px 40px rgba(15,23,42,.12)}header{padding:22px 28px;border-bottom:1px solid var(--line);font-family:Arial,sans-serif}h1{margin:0 0 6px;font-size:20px}.meta{color:var(--muted);font-size:12px}.toolbar{display:flex;gap:10px;margin-top:16px}.toolbar a,.toolbar button{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:8px;padding:8px 12px;text-decoration:none;font:600 13px Arial,sans-serif;cursor:pointer}.toolbar button.primary{background:var(--brand);border-color:var(--brand);color:#fff}main{padding:0}.code-wrap{overflow:auto}.code{margin:0;padding:24px 28px;white-space:pre;tab-size:4;font-size:12px;line-height:1.45}.code code{font-family:inherit}@media print{body{background:#fff}.page{width:100%;margin:0;box-shadow:none}.toolbar{display:none}header{position:static}.code{font-size:9.5px;white-space:pre-wrap;word-break:break-word}a{color:inherit}}@page{margin:12mm}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+<h1>pages/fingerprint_mapping.php</h1>
+<div class="meta">BioTern source code copy | Generated as HTML for viewing and printing</div>
+<div class="toolbar"><a href="../index.html">Back to index</a><button class="primary" onclick="window.print()">Print / Save PDF</button></div>
+</header>
+<main><div class="code-wrap"><pre class="code"><code>&lt;?php
+ob_start();
+require_once __DIR__ . &#39;/../config/db.php&#39;;
+require_once dirname(__DIR__) . &#39;/tools/biometric_ops.php&#39;;
+require_once dirname(__DIR__) . &#39;/lib/section_format.php&#39;;
+
+require_once dirname(__DIR__) . &#39;/includes/auth-session.php&#39;;
+biotern_boot_session(isset($conn) ? $conn : null);
+
+$role = strtolower(trim((string)($_SESSION[&#39;role&#39;] ?? $_SESSION[&#39;user_role&#39;] ?? &#39;&#39;)));
+if (!in_array($role, [&#39;admin&#39;, &#39;coordinator&#39;, &#39;supervisor&#39;], true)) {
+    header(&#39;Location: homepage.php&#39;);
+    exit;
+}
+
+$host = defined(&#39;DB_HOST&#39;) ? DB_HOST : &#39;localhost&#39;;
+$db_user = defined(&#39;DB_USER&#39;) ? DB_USER : &#39;root&#39;;
+$db_password = defined(&#39;DB_PASS&#39;) ? DB_PASS : &#39;&#39;;
+$db_name = defined(&#39;DB_NAME&#39;) ? DB_NAME : &#39;biotern_db&#39;;
+$db_port = defined(&#39;DB_PORT&#39;) ? DB_PORT : 3306;
+
+if (!isset($conn) || !($conn instanceof mysqli)) {
+    $conn = new mysqli($host, $db_user, $db_password, $db_name, $db_port);
+    if ($conn-&gt;connect_error) {
+        ob_end_clean();
+        die(&#39;Connection failed: &#39; . $conn-&gt;connect_error);
+    }
+    $conn-&gt;set_charset(&#39;utf8mb4&#39;);
+}
+
+$conn-&gt;query(&quot;CREATE TABLE IF NOT EXISTS fingerprint_user_map (\n    finger_id INT NOT NULL,\n    user_id INT NOT NULL,\n    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n    PRIMARY KEY (finger_id),\n    UNIQUE KEY uniq_fingerprint_user_map_user_id (user_id),\n    KEY idx_fingerprint_user_map_user_id (user_id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4&quot;);
+
+$colCreatedAt = $conn-&gt;query(&quot;SHOW COLUMNS FROM fingerprint_user_map LIKE &#39;created_at&#39;&quot;);
+if ($colCreatedAt instanceof mysqli_result) {
+    if ($colCreatedAt-&gt;num_rows === 0) {
+        $conn-&gt;query(&quot;ALTER TABLE fingerprint_user_map ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP&quot;);
+    }
+    $colCreatedAt-&gt;close();
+}
+
+$colUpdatedAt = $conn-&gt;query(&quot;SHOW COLUMNS FROM fingerprint_user_map LIKE &#39;updated_at&#39;&quot;);
+if ($colUpdatedAt instanceof mysqli_result) {
+    if ($colUpdatedAt-&gt;num_rows === 0) {
+        $conn-&gt;query(&quot;ALTER TABLE fingerprint_user_map ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP&quot;);
+    }
+    $colUpdatedAt-&gt;close();
+}
+
+$idxUniqueUser = $conn-&gt;query(&quot;SHOW INDEX FROM fingerprint_user_map WHERE Key_name = &#39;uniq_fingerprint_user_map_user_id&#39;&quot;);
+if ($idxUniqueUser instanceof mysqli_result) {
+    if ($idxUniqueUser-&gt;num_rows === 0) {
+        $conn-&gt;query(&quot;ALTER TABLE fingerprint_user_map ADD UNIQUE KEY uniq_fingerprint_user_map_user_id (user_id)&quot;);
+    }
+    $idxUniqueUser-&gt;close();
+}
+
+$idxUser = $conn-&gt;query(&quot;SHOW INDEX FROM fingerprint_user_map WHERE Key_name = &#39;idx_fingerprint_user_map_user_id&#39;&quot;);
+if ($idxUser instanceof mysqli_result) {
+    if ($idxUser-&gt;num_rows === 0) {
+        $conn-&gt;query(&quot;ALTER TABLE fingerprint_user_map ADD KEY idx_fingerprint_user_map_user_id (user_id)&quot;);
+    }
+    $idxUser-&gt;close();
+}
+
+$flashType = &#39;success&#39;;
+$msg = &#39;&#39;;
+$editFingerId = (int)($_GET[&#39;edit_finger_id&#39;] ?? 0);
+$filterCourseId = (int)($_GET[&#39;filter_course_id&#39;] ?? 0);
+$filterSectionId = (int)($_GET[&#39;filter_section_id&#39;] ?? 0);
+$detectedStatus = strtolower(trim((string)($_GET[&#39;detected_status&#39;] ?? &#39;all&#39;)));
+if (!in_array($detectedStatus, [&#39;all&#39;, &#39;mapped&#39;, &#39;unmapped&#39;], true)) {
+    $detectedStatus = &#39;all&#39;;
+}
+$detectedQuery = trim((string)($_GET[&#39;detected_query&#39;] ?? &#39;&#39;));
+$unmappedQuery = trim((string)($_GET[&#39;unmapped_query&#39;] ?? &#39;&#39;));
+$unmappedAdminOnly = (int)($_GET[&#39;unmapped_admin_only&#39;] ?? 0) === 1;
+$printMode = strtolower(trim((string)($_GET[&#39;print&#39;] ?? &#39;&#39;)));
+if (!in_array($printMode, [&#39;mapped&#39;, &#39;unmapped_students&#39;], true)) {
+    $printMode = &#39;&#39;;
+}
+$authorizedRoles = [&#39;admin&#39;, &#39;coordinator&#39;, &#39;supervisor&#39;];
+
+function fingerprint_mapping_requeue_raw_logs(mysqli $conn, int $fingerId): int
+{
+    if ($fingerId &lt;= 0) {
+        return 0;
+    }
+
+    $res = $conn-&gt;query(&#39;SELECT id, raw_data FROM biometric_raw_logs ORDER BY id DESC LIMIT 1000&#39;);
+    if (!($res instanceof mysqli_result)) {
+        return 0;
+    }
+
+    $ids = [];
+    while ($row = $res-&gt;fetch_assoc()) {
+        $entry = json_decode((string)($row[&#39;raw_data&#39;] ?? &#39;&#39;), true);
+        if (!is_array($entry)) {
+            continue;
+        }
+
+        $entryFingerId = isset($entry[&#39;finger_id&#39;]) ? (int)$entry[&#39;finger_id&#39;] : (isset($entry[&#39;id&#39;]) ? (int)$entry[&#39;id&#39;] : 0);
+        if ($entryFingerId === $fingerId) {
+            $ids[] = (int)$row[&#39;id&#39;];
+        }
+    }
+    $res-&gt;close();
+
+    if ($ids === []) {
+        return 0;
+    }
+
+    $idList = implode(&#39;,&#39;, array_map(&#39;intval&#39;, array_unique($ids)));
+    $conn-&gt;query(&quot;UPDATE biometric_raw_logs SET processed = 0 WHERE id IN ({$idList})&quot;);
+    return max(0, (int)$conn-&gt;affected_rows);
+}
+
+if (isset($_SESSION[&#39;fingerprint_mapping_flash&#39;]) &amp;&amp; is_array($_SESSION[&#39;fingerprint_mapping_flash&#39;])) {
+    $flashType = (string)($_SESSION[&#39;fingerprint_mapping_flash&#39;][&#39;type&#39;] ?? &#39;success&#39;);
+    $msg = (string)($_SESSION[&#39;fingerprint_mapping_flash&#39;][&#39;message&#39;] ?? &#39;&#39;);
+    unset($_SESSION[&#39;fingerprint_mapping_flash&#39;]);
+}
+
+if ($_SERVER[&#39;REQUEST_METHOD&#39;] === &#39;POST&#39;) {
+    $action = trim((string)($_POST[&#39;mapping_action&#39;] ?? &#39;save_student&#39;));
+
+    try {
+        if ($action === &#39;delete&#39;) {
+            $fingerId = (int)($_POST[&#39;finger_id&#39;] ?? 0);
+            if ($fingerId &lt;= 0) {
+                throw new RuntimeException(&#39;Invalid fingerprint ID.&#39;);
+            }
+
+            $stmt = $conn-&gt;prepare(&#39;DELETE FROM fingerprint_user_map WHERE finger_id = ?&#39;);
+            $stmt-&gt;bind_param(&#39;i&#39;, $fingerId);
+            $stmt-&gt;execute();
+            $stmt-&gt;close();
+
+            biometric_ops_log_audit(
+                $conn,
+                (int)($_SESSION[&#39;user_id&#39;] ?? 0),
+                $role,
+                &#39;fingerprint_mapping_removed&#39;,
+                &#39;fingerprint_mapping&#39;,
+                (string)$fingerId,
+                [&#39;finger_id&#39; =&gt; $fingerId]
+            );
+
+            $_SESSION[&#39;fingerprint_mapping_flash&#39;] = [&#39;type&#39; =&gt; &#39;success&#39;, &#39;message&#39; =&gt; &#39;Mapping removed.&#39;];
+            header(&#39;Location: fingerprint_mapping.php&#39;);
+            exit;
+        }
+
+        $fingerId = (int)($_POST[&#39;finger_id&#39;] ?? 0);
+        $userId = (int)($_POST[&#39;user_id&#39;] ?? 0);
+
+        if ($fingerId &lt;= 0 || $userId &lt;= 0) {
+            throw new RuntimeException(&#39;Fingerprint ID and user are required.&#39;);
+        }
+
+        $userStmt = $conn-&gt;prepare(&#39;SELECT role FROM users WHERE id = ? LIMIT 1&#39;);
+        $userStmt-&gt;bind_param(&#39;i&#39;, $userId);
+        $userStmt-&gt;execute();
+        $userRes = $userStmt-&gt;get_result();
+        $userRow = $userRes ? $userRes-&gt;fetch_assoc() : null;
+        $userStmt-&gt;close();
+
+        if (!$userRow) {
+            throw new RuntimeException(&#39;Selected user does not exist.&#39;);
+        }
+
+        $targetRole = strtolower(trim((string)($userRow[&#39;role&#39;] ?? &#39;&#39;)));
+
+        $studentCheck = $conn-&gt;prepare(&#39;SELECT id FROM students WHERE user_id = ? LIMIT 1&#39;);
+        $studentCheck-&gt;bind_param(&#39;i&#39;, $userId);
+        $studentCheck-&gt;execute();
+        $studentResult = $studentCheck-&gt;get_result();
+        $studentRow = $studentResult ? $studentResult-&gt;fetch_assoc() : null;
+        $studentCheck-&gt;close();
+
+        if ($action === &#39;save_student&#39; &amp;&amp; !$studentRow) {
+            throw new RuntimeException(&#39;Selected user is not linked to a student record yet.&#39;);
+        }
+
+        if ($action === &#39;save_personnel&#39; &amp;&amp; !in_array($targetRole, $authorizedRoles, true)) {
+            throw new RuntimeException(&#39;Selected user is not an authorized personnel account.&#39;);
+        }
+
+        if (!$studentRow &amp;&amp; !in_array($targetRole, $authorizedRoles, true)) {
+            throw new RuntimeException(&#39;Selected user must be either a student-linked user or authorized personnel.&#39;);
+        }
+
+        $duplicateCheck = $conn-&gt;prepare(&#39;SELECT finger_id FROM fingerprint_user_map WHERE user_id = ? AND finger_id &lt;&gt; ? LIMIT 1&#39;);
+        $duplicateCheck-&gt;bind_param(&#39;ii&#39;, $userId, $fingerId);
+        $duplicateCheck-&gt;execute();
+        $duplicateResult = $duplicateCheck-&gt;get_result();
+        $duplicateRow = $duplicateResult ? $duplicateResult-&gt;fetch_assoc() : null;
+        $duplicateCheck-&gt;close();
+
+        if ($duplicateRow) {
+            throw new RuntimeException(&#39;That user is already mapped to another fingerprint.&#39;);
+        }
+
+        $stmt = $conn-&gt;prepare(&#39;INSERT INTO fingerprint_user_map (finger_id, user_id, created_at, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), updated_at = CURRENT_TIMESTAMP&#39;);
+        $stmt-&gt;bind_param(&#39;ii&#39;, $fingerId, $userId);
+        $stmt-&gt;execute();
+        $stmt-&gt;close();
+
+        $requeuedLogs = fingerprint_mapping_requeue_raw_logs($conn, $fingerId);
+
+        biometric_ops_log_audit(
+            $conn,
+            (int)($_SESSION[&#39;user_id&#39;] ?? 0),
+            $role,
+            &#39;fingerprint_mapping_saved&#39;,
+            &#39;fingerprint_mapping&#39;,
+            (string)$fingerId,
+            [&#39;finger_id&#39; =&gt; $fingerId, &#39;user_id&#39; =&gt; $userId, &#39;mapping_action&#39; =&gt; $action]
+        );
+
+        $_SESSION[&#39;fingerprint_mapping_flash&#39;] = [
+            &#39;type&#39; =&gt; &#39;success&#39;,
+            &#39;message&#39; =&gt; &#39;Mapping updated.&#39; . ($requeuedLogs &gt; 0 ? &#39; Requeued &#39; . $requeuedLogs . &#39; raw log(s) for attendance import.&#39; : &#39;&#39;),
+        ];
+        header(&#39;Location: fingerprint_mapping.php&#39;);
+        exit;
+    } catch (Throwable $e) {
+        $_SESSION[&#39;fingerprint_mapping_flash&#39;] = [&#39;type&#39; =&gt; &#39;danger&#39;, &#39;message&#39; =&gt; $e-&gt;getMessage()];
+        $redirect = &#39;fingerprint_mapping.php&#39;;
+        if ($editFingerId &gt; 0) {
+            $redirect .= &#39;?edit_finger_id=&#39; . $editFingerId;
+        }
+        header(&#39;Location: &#39; . $redirect);
+        exit;
+    }
+}
+
+$courses = [];
+$courseRes = $conn-&gt;query(&#39;SELECT id, name FROM courses ORDER BY name ASC&#39;);
+if ($courseRes instanceof mysqli_result) {
+    while ($row = $courseRes-&gt;fetch_assoc()) {
+        $courses[] = $row;
+    }
+    $courseRes-&gt;close();
+}
+
+$sections = [];
+$sectionRes = $conn-&gt;query(&quot;SELECT id, course_id, code, name, COALESCE(NULLIF(code, &#39;&#39;), name) AS section_label FROM sections ORDER BY section_label ASC&quot;);
+if ($sectionRes instanceof mysqli_result) {
+    while ($row = $sectionRes-&gt;fetch_assoc()) {
+        $row[&#39;section_label&#39;] = biotern_format_section_label((string)($row[&#39;code&#39;] ?? &#39;&#39;), (string)($row[&#39;name&#39;] ?? &#39;&#39;));
+        $sections[] = $row;
+    }
+    $sectionRes-&gt;close();
+}
+
+$mappings = [];
+$mappingSql = &quot;
+    SELECT
+        m.finger_id,
+        m.user_id,
+        m.created_at,
+        m.updated_at,
+        u.name AS user_name,
+        LOWER(TRIM(COALESCE(u.role, &#39;&#39;))) AS user_role,
+        s.id AS student_row_id,
+        s.student_id AS student_number,
+        s.created_at AS enrolled_at,
+        s.assignment_track,
+        s.internal_total_hours_remaining,
+        s.external_total_hours_remaining,
+        s.course_id,
+        s.section_id,
+        c.name AS course_name,
+        sec.code AS section_code,
+        sec.name AS section_name,
+        CONCAT(COALESCE(s.first_name, &#39;&#39;), &#39; &#39;, COALESCE(s.last_name, &#39;&#39;)) AS student_name
+    FROM fingerprint_user_map m
+    LEFT JOIN users u ON u.id = m.user_id
+    LEFT JOIN students s ON s.user_id = m.user_id
+    LEFT JOIN courses c ON c.id = s.course_id
+    LEFT JOIN sections sec ON sec.id = s.section_id
+    ORDER BY m.finger_id ASC
+&quot;;
+$mappingRes = $conn-&gt;query($mappingSql);
+if ($mappingRes instanceof mysqli_result) {
+    while ($row = $mappingRes-&gt;fetch_assoc()) {
+        $row[&#39;section_label&#39;] = biotern_format_section_label((string)($row[&#39;section_code&#39;] ?? &#39;&#39;), (string)($row[&#39;section_name&#39;] ?? &#39;&#39;));
+        $mappings[] = $row;
+    }
+    $mappingRes-&gt;close();
+}
+
+$studentMappings = [];
+$personnelMappings = [];
+foreach ($mappings as $row) {
+    if ((int)($row[&#39;student_row_id&#39;] ?? 0) &gt; 0) {
+        $studentMappings[] = $row;
+        continue;
+    }
+
+    if (in_array((string)($row[&#39;user_role&#39;] ?? &#39;&#39;), $authorizedRoles, true)) {
+        $personnelMappings[] = $row;
+        continue;
+    }
+
+    $studentMappings[] = $row;
+}
+
+$filteredStudentMappings = array_values(array_filter($studentMappings, static function (array $row) use ($filterCourseId, $filterSectionId): bool {
+    if ($filterCourseId &gt; 0 &amp;&amp; (int)($row[&#39;course_id&#39;] ?? 0) !== $filterCourseId) {
+        return false;
+    }
+
+    if ($filterSectionId &gt; 0 &amp;&amp; (int)($row[&#39;section_id&#39;] ?? 0) !== $filterSectionId) {
+        return false;
+    }
+
+    return true;
+}));
+
+$unmappedStudents = [];
+$unmappedStudentSql = &quot;
+    SELECT
+        s.id AS student_row_id,
+        s.student_id AS student_number,
+        s.created_at,
+        s.course_id,
+        s.section_id,
+        c.name AS course_name,
+        sec.code AS section_code,
+        sec.name AS section_name,
+        TRIM(CONCAT(COALESCE(s.last_name, &#39;&#39;), &#39;, &#39;, COALESCE(s.first_name, &#39;&#39;), &#39; &#39;, COALESCE(s.middle_name, &#39;&#39;))) AS student_name
+    FROM students s
+    LEFT JOIN fingerprint_user_map m ON m.user_id = s.user_id
+    LEFT JOIN courses c ON c.id = s.course_id
+    LEFT JOIN sections sec ON sec.id = s.section_id
+    WHERE COALESCE(s.user_id, 0) &gt; 0
+      AND m.user_id IS NULL
+    ORDER BY s.last_name ASC, s.first_name ASC
+&quot;;
+$unmappedStudentRes = $conn-&gt;query($unmappedStudentSql);
+if ($unmappedStudentRes instanceof mysqli_result) {
+    while ($row = $unmappedStudentRes-&gt;fetch_assoc()) {
+        $row[&#39;section_label&#39;] = biotern_format_section_label((string)($row[&#39;section_code&#39;] ?? &#39;&#39;), (string)($row[&#39;section_name&#39;] ?? &#39;&#39;));
+        $unmappedStudents[] = $row;
+    }
+    $unmappedStudentRes-&gt;close();
+}
+$filteredUnmappedStudents = array_values(array_filter($unmappedStudents, static function (array $row) use ($filterCourseId, $filterSectionId): bool {
+    if ($filterCourseId &gt; 0 &amp;&amp; (int)($row[&#39;course_id&#39;] ?? 0) !== $filterCourseId) {
+        return false;
+    }
+
+    if ($filterSectionId &gt; 0 &amp;&amp; (int)($row[&#39;section_id&#39;] ?? 0) !== $filterSectionId) {
+        return false;
+    }
+
+    return true;
+}));
+
+$orphanMappings = array_values(array_filter($studentMappings, static function (array $row) use ($authorizedRoles): bool {
+    return (int)($row[&#39;student_row_id&#39;] ?? 0) &lt;= 0 &amp;&amp; !in_array((string)($row[&#39;user_role&#39;] ?? &#39;&#39;), $authorizedRoles, true);
+}));
+
+$detectedFingerprints = [];
+$extractFingerId = static function (array $entry): int {
+    $candidates = [
+        $entry[&#39;finger_id&#39;] ?? null,
+        $entry[&#39;fingerId&#39;] ?? null,
+        $entry[&#39;id&#39;] ?? null,
+        $entry[&#39;user_id&#39;] ?? null,
+        $entry[&#39;userId&#39;] ?? null,
+        $entry[&#39;uid&#39;] ?? null,
+        $entry[&#39;enroll_number&#39;] ?? null,
+        $entry[&#39;enrollNumber&#39;] ?? null,
+        $entry[&#39;EnrollNumber&#39;] ?? null,
+    ];
+
+    foreach ($candidates as $candidate) {
+        if ($candidate === null) {
+            continue;
+        }
+        $parsed = (int)trim((string)$candidate);
+        if ($parsed &gt; 0) {
+            return $parsed;
+        }
+    }
+
+    return 0;
+};
+
+$rawLogRes = $conn-&gt;query(&#39;SELECT raw_data FROM biometric_raw_logs ORDER BY id DESC&#39;);
+if ($rawLogRes instanceof mysqli_result) {
+    while ($row = $rawLogRes-&gt;fetch_assoc()) {
+        $entry = json_decode((string)($row[&#39;raw_data&#39;] ?? &#39;&#39;), true);
+        if (!is_array($entry)) {
+            continue;
+        }
+
+        if (isset($entry[&#39;data&#39;]) &amp;&amp; is_array($entry[&#39;data&#39;])) {
+            $entry = $entry[&#39;data&#39;];
+        }
+
+        $fingerId = $extractFingerId($entry);
+        $timeValue = trim((string)($entry[&#39;time&#39;] ?? &#39;&#39;));
+        if ($fingerId &lt;= 0) {
+            continue;
+        }
+
+        if (!isset($detectedFingerprints[$fingerId])) {
+            $detectedFingerprints[$fingerId] = [
+                &#39;finger_id&#39; =&gt; $fingerId,
+                &#39;last_seen&#39; =&gt; $timeValue,
+                &#39;machine_user_name&#39; =&gt; &#39;&#39;,
+                &#39;machine_is_admin&#39; =&gt; false,
+                &#39;machine_admin_label&#39; =&gt; &#39;&#39;,
+                &#39;is_mapped&#39; =&gt; false,
+                &#39;mapped_user_name&#39; =&gt; &#39;&#39;,
+                &#39;mapped_user_id&#39; =&gt; 0,
+                &#39;student_name&#39; =&gt; &#39;&#39;,
+                &#39;student_number&#39; =&gt; &#39;&#39;,
+                &#39;mapped_created_at&#39; =&gt; &#39;&#39;,
+            ];
+        }
+    }
+    $rawLogRes-&gt;close();
+}
+
+$extractBridgeRows = static function ($decoded): array {
+    if (!is_array($decoded)) {
+        return [];
+    }
+
+    foreach ([&#39;rows&#39;, &#39;users&#39;, &#39;data&#39;, &#39;items&#39;, &#39;list&#39;] as $key) {
+        if (isset($decoded[$key]) &amp;&amp; is_array($decoded[$key])) {
+            return $decoded[$key];
+        }
+    }
+
+    $isList = array_keys($decoded) === range(0, count($decoded) - 1);
+    return $isList ? $decoded : [$decoded];
+};
+
+$extractMachineAdminMeta = static function (array $userRow): array {
+    $indicatorKeys = [
+        &#39;privilege&#39;, &#39;Privilege&#39;, &#39;role&#39;, &#39;Role&#39;, &#39;user_role&#39;, &#39;userRole&#39;,
+        &#39;authority&#39;, &#39;Authority&#39;, &#39;admin&#39;, &#39;is_admin&#39;, &#39;isAdmin&#39;,
+        &#39;user_type&#39;, &#39;UserType&#39;, &#39;type&#39;,
+    ];
+
+    foreach ($indicatorKeys as $key) {
+        if (!array_key_exists($key, $userRow)) {
+            continue;
+        }
+
+        $raw = $userRow[$key];
+        $valueText = strtolower(trim((string)$raw));
+
+        if (is_numeric($raw) &amp;&amp; (int)$raw &gt; 0) {
+            return [&#39;is_admin&#39; =&gt; true, &#39;label&#39; =&gt; $key . &#39;:&#39; . (string)$raw];
+        }
+
+        if ($valueText !== &#39;&#39; &amp;&amp; preg_match(&#39;/admin|manager|super|master|owner/&#39;, $valueText)) {
+            return [&#39;is_admin&#39; =&gt; true, &#39;label&#39; =&gt; $key . &#39;:&#39; . (string)$raw];
+        }
+    }
+
+    foreach ($userRow as $rawValue) {
+        if (!is_scalar($rawValue)) {
+            continue;
+        }
+
+        $valueText = strtolower(trim((string)$rawValue));
+        if ($valueText !== &#39;&#39; &amp;&amp; preg_match(&#39;/admin|manager|super|master|owner/&#39;, $valueText)) {
+            return [&#39;is_admin&#39; =&gt; true, &#39;label&#39; =&gt; (string)$rawValue];
+        }
+    }
+
+    return [&#39;is_admin&#39; =&gt; false, &#39;label&#39; =&gt; &#39;&#39;];
+};
+
+$bridgeCacheRes = $conn-&gt;query(&#39;SELECT users_json FROM biometric_bridge_user_cache ORDER BY id DESC LIMIT 1&#39;);
+if ($bridgeCacheRes instanceof mysqli_result) {
+    $bridgeCacheRow = $bridgeCacheRes-&gt;fetch_assoc();
+    $bridgeCacheRes-&gt;close();
+
+    $usersJson = trim((string)($bridgeCacheRow[&#39;users_json&#39;] ?? &#39;&#39;));
+    if ($usersJson !== &#39;&#39;) {
+        $decodedUsers = json_decode($usersJson, true);
+        if (is_array($decodedUsers)) {
+            foreach ($extractBridgeRows($decodedUsers) as $userRow) {
+                if (!is_array($userRow)) {
+                    continue;
+                }
+
+                $fingerId = (int)trim((string)($userRow[&#39;id&#39;] ?? $userRow[&#39;ID&#39;] ?? $userRow[&#39;user_id&#39;] ?? $userRow[&#39;userId&#39;] ?? $userRow[&#39;EnrollNumber&#39;] ?? 0));
+                if ($fingerId &lt;= 0) {
+                    continue;
+                }
+
+                $machineName = trim((string)($userRow[&#39;name&#39;] ?? $userRow[&#39;Name&#39;] ?? $userRow[&#39;user_name&#39;] ?? &#39;&#39;));
+                $machineAdminMeta = $extractMachineAdminMeta($userRow);
+                $machineIsAdmin = !empty($machineAdminMeta[&#39;is_admin&#39;]);
+                $machineAdminLabel = trim((string)($machineAdminMeta[&#39;label&#39;] ?? &#39;&#39;));
+
+                if (!isset($detectedFingerprints[$fingerId])) {
+                    $detectedFingerprints[$fingerId] = [
+                        &#39;finger_id&#39; =&gt; $fingerId,
+                        &#39;last_seen&#39; =&gt; &#39;&#39;,
+                        &#39;machine_user_name&#39; =&gt; $machineName,
+                        &#39;machine_is_admin&#39; =&gt; $machineIsAdmin,
+                        &#39;machine_admin_label&#39; =&gt; $machineAdminLabel,
+                        &#39;is_mapped&#39; =&gt; false,
+                        &#39;mapped_user_name&#39; =&gt; &#39;&#39;,
+                        &#39;mapped_user_id&#39; =&gt; 0,
+                        &#39;student_name&#39; =&gt; &#39;&#39;,
+                        &#39;student_number&#39; =&gt; &#39;&#39;,
+                        &#39;mapped_created_at&#39; =&gt; &#39;&#39;,
+                    ];
+                } elseif ($machineName !== &#39;&#39; &amp;&amp; trim((string)($detectedFingerprints[$fingerId][&#39;machine_user_name&#39;] ?? &#39;&#39;)) === &#39;&#39;) {
+                    $detectedFingerprints[$fingerId][&#39;machine_user_name&#39;] = $machineName;
+                }
+
+                if ($machineIsAdmin) {
+                    $detectedFingerprints[$fingerId][&#39;machine_is_admin&#39;] = true;
+                    if ($machineAdminLabel !== &#39;&#39;) {
+                        $detectedFingerprints[$fingerId][&#39;machine_admin_label&#39;] = $machineAdminLabel;
+                    }
+                }
+            }
+        }
+    }
+}
+
+foreach ($mappings as $mapping) {
+    $fingerId = (int)($mapping[&#39;finger_id&#39;] ?? 0);
+    if ($fingerId &lt;= 0) {
+        continue;
+    }
+
+    if (!isset($detectedFingerprints[$fingerId])) {
+        $detectedFingerprints[$fingerId] = [
+            &#39;finger_id&#39; =&gt; $fingerId,
+            &#39;last_seen&#39; =&gt; &#39;&#39;,
+            &#39;machine_user_name&#39; =&gt; &#39;&#39;,
+            &#39;machine_is_admin&#39; =&gt; false,
+            &#39;machine_admin_label&#39; =&gt; &#39;&#39;,
+            &#39;is_mapped&#39; =&gt; false,
+            &#39;mapped_user_name&#39; =&gt; &#39;&#39;,
+            &#39;mapped_user_id&#39; =&gt; 0,
+            &#39;student_name&#39; =&gt; &#39;&#39;,
+            &#39;student_number&#39; =&gt; &#39;&#39;,
+            &#39;mapped_created_at&#39; =&gt; &#39;&#39;,
+        ];
+    }
+
+    $detectedFingerprints[$fingerId][&#39;is_mapped&#39;] = true;
+    $detectedFingerprints[$fingerId][&#39;mapped_user_name&#39;] = (string)($mapping[&#39;user_name&#39;] ?? &#39;&#39;);
+    $detectedFingerprints[$fingerId][&#39;mapped_user_id&#39;] = (int)($mapping[&#39;user_id&#39;] ?? 0);
+    $detectedFingerprints[$fingerId][&#39;student_name&#39;] = trim((string)($mapping[&#39;student_name&#39;] ?? &#39;&#39;));
+    $detectedFingerprints[$fingerId][&#39;student_number&#39;] = (string)($mapping[&#39;student_number&#39;] ?? &#39;&#39;);
+    $detectedFingerprints[$fingerId][&#39;mapped_created_at&#39;] = (string)($mapping[&#39;created_at&#39;] ?? &#39;&#39;);
+}
+
+ksort($detectedFingerprints);
+$unmappedDetectedCount = 0;
+foreach ($detectedFingerprints as $detectedFingerprint) {
+    if (empty($detectedFingerprint[&#39;is_mapped&#39;])) {
+        $unmappedDetectedCount++;
+    }
+}
+
+$latestDetectedFingerId = empty($detectedFingerprints) ? 0 : (int)max(array_keys($detectedFingerprints));
+$latestMappedFingerId = 0;
+$machineAdminDetectedCount = 0;
+foreach ($detectedFingerprints as $fingerId =&gt; $detectedFingerprint) {
+    if (!empty($detectedFingerprint[&#39;is_mapped&#39;]) &amp;&amp; (int)$fingerId &gt; $latestMappedFingerId) {
+        $latestMappedFingerId = (int)$fingerId;
+    }
+
+    if (!empty($detectedFingerprint[&#39;machine_is_admin&#39;])) {
+        $machineAdminDetectedCount++;
+    }
+}
+
+$unmappedDetectedFingerprints = array_values(array_filter($detectedFingerprints, static function (array $row) use ($unmappedQuery, $unmappedAdminOnly): bool {
+    if (!empty($row[&#39;is_mapped&#39;])) {
+        return false;
+    }
+
+    if ($unmappedAdminOnly &amp;&amp; empty($row[&#39;machine_is_admin&#39;])) {
+        return false;
+    }
+
+    if ($unmappedQuery === &#39;&#39;) {
+        return true;
+    }
+
+    $haystack = strtolower(trim(implode(&#39; &#39;, [
+        (string)($row[&#39;finger_id&#39;] ?? &#39;&#39;),
+        (string)($row[&#39;last_seen&#39;] ?? &#39;&#39;),
+        (string)($row[&#39;machine_user_name&#39;] ?? &#39;&#39;),
+        (string)($row[&#39;machine_admin_label&#39;] ?? &#39;&#39;),
+    ])));
+
+    return str_contains($haystack, strtolower($unmappedQuery));
+}));
+
+$filteredDetectedFingerprints = array_values(array_filter($detectedFingerprints, static function (array $row) use ($detectedStatus, $detectedQuery): bool {
+    $isMapped = !empty($row[&#39;is_mapped&#39;]);
+    if ($detectedStatus === &#39;mapped&#39; &amp;&amp; !$isMapped) {
+        return false;
+    }
+    if ($detectedStatus === &#39;unmapped&#39; &amp;&amp; $isMapped) {
+        return false;
+    }
+
+    if ($detectedQuery === &#39;&#39;) {
+        return true;
+    }
+
+    $haystack = strtolower(trim(implode(&#39; &#39;, [
+        (string)($row[&#39;finger_id&#39;] ?? &#39;&#39;),
+        (string)($row[&#39;last_seen&#39;] ?? &#39;&#39;),
+        (string)($row[&#39;machine_user_name&#39;] ?? &#39;&#39;),
+        (string)($row[&#39;mapped_user_name&#39;] ?? &#39;&#39;),
+        (string)($row[&#39;mapped_user_id&#39;] ?? &#39;&#39;),
+        (string)($row[&#39;student_name&#39;] ?? &#39;&#39;),
+        (string)($row[&#39;student_number&#39;] ?? &#39;&#39;),
+    ])));
+
+    return str_contains($haystack, strtolower($detectedQuery));
+}));
+
+$courseFilterLabel = &#39;&#39;;
+foreach ($courses as $course) {
+    if ((int)($course[&#39;id&#39;] ?? 0) === $filterCourseId) {
+        $courseFilterLabel = (string)($course[&#39;name&#39;] ?? &#39;&#39;);
+        break;
+    }
+}
+$sectionFilterLabel = &#39;&#39;;
+foreach ($sections as $section) {
+    if ((int)($section[&#39;id&#39;] ?? 0) === $filterSectionId) {
+        $sectionFilterLabel = (string)($section[&#39;section_label&#39;] ?? &#39;&#39;);
+        break;
+    }
+}
+$fingerprintFilterParts = [];
+if ($courseFilterLabel !== &#39;&#39;) {
+    $fingerprintFilterParts[] = &#39;Course: &#39; . $courseFilterLabel;
+}
+if ($sectionFilterLabel !== &#39;&#39;) {
+    $fingerprintFilterParts[] = &#39;Section: &#39; . $sectionFilterLabel;
+}
+$fingerprintPrintFilterLabel = $fingerprintFilterParts !== [] ? implode(&#39; / &#39;, $fingerprintFilterParts) : &#39;All students&#39;;
+
+if ($printMode !== &#39;&#39;) {
+    $printRows = $printMode === &#39;mapped&#39; ? $filteredStudentMappings : $filteredUnmappedStudents;
+    $printTitle = $printMode === &#39;mapped&#39; ? &#39;Mapped Fingerprint Students&#39; : &#39;Students Without Fingerprint Mapping&#39;;
+    ob_end_clean();
+    ?&gt;
+&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;
+    &lt;title&gt;&lt;?php echo htmlspecialchars($printTitle, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/title&gt;
+    &lt;style&gt;
+        body { font-family: Arial, sans-serif; color: #111827; margin: 18px; }
+        .toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 14px; }
+        .toolbar button { border: 0; border-radius: 6px; padding: 9px 14px; font-weight: 700; cursor: pointer; }
+        .toolbar .primary { background: #0ea5e9; color: #fff; }
+        .toolbar .light { background: #eef2f7; color: #172033; }
+        .print-head { display: grid; grid-template-columns: 74px 1fr 74px; align-items: center; border-bottom: 1.5px solid #2f6fca; padding-bottom: 8px; margin-bottom: 12px; color: #0b4aa2; }
+        .print-head img { width: 62px; height: 62px; object-fit: contain; justify-self: center; }
+        .print-head-copy { text-align: center; }
+        .print-head h2 { margin: 0 0 3px; font-size: 17px; color: #0b4aa2; }
+        .print-head div { font-size: 11px; color: #0b4aa2; line-height: 1.25; }
+        .print-title { text-align: center; font-size: 15px; font-weight: 700; margin: 12px 0 8px; }
+        .print-meta { font-size: 12px; margin-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11px; }
+        th, td { border: 1px solid #1f2937; padding: 5px 6px; vertical-align: top; word-break: break-word; }
+        th { background: #f3f4f6; }
+        .col-index { width: 34px; text-align: center; }
+        @media print { body { margin: 10mm; } .toolbar { display: none; } }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;toolbar&quot;&gt;&lt;button class=&quot;light&quot; type=&quot;button&quot; onclick=&quot;window.close()&quot;&gt;Close&lt;/button&gt;&lt;button class=&quot;primary&quot; type=&quot;button&quot; onclick=&quot;window.print()&quot;&gt;Print&lt;/button&gt;&lt;/div&gt;
+    &lt;div class=&quot;print-head&quot;&gt;
+        &lt;img src=&quot;assets/images/ccstlogo.png&quot; alt=&quot;CCST&quot;&gt;
+        &lt;div class=&quot;print-head-copy&quot;&gt;
+            &lt;h2&gt;CLARK COLLEGE OF SCIENCE AND TECHNOLOGY&lt;/h2&gt;
+            &lt;div&gt;SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga&lt;/div&gt;
+            &lt;div&gt;Telefax No.: (045) 624-0215&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;print-title&quot;&gt;&lt;?php echo htmlspecialchars(strtoupper($printTitle), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/div&gt;
+    &lt;div class=&quot;print-meta&quot;&gt;&lt;strong&gt;FILTER:&lt;/strong&gt; &lt;?php echo htmlspecialchars($fingerprintPrintFilterLabel, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/div&gt;
+    &lt;table&gt;
+        &lt;thead&gt;
+            &lt;tr&gt;
+                &lt;th class=&quot;col-index&quot;&gt;#&lt;/th&gt;
+                &lt;th&gt;Finger ID&lt;/th&gt;
+                &lt;th&gt;Student No.&lt;/th&gt;
+                &lt;th&gt;Name&lt;/th&gt;
+                &lt;th&gt;Course / Section&lt;/th&gt;
+                &lt;th&gt;Date Registered&lt;/th&gt;
+            &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+            &lt;?php if ($printRows === []): ?&gt;
+                &lt;tr&gt;&lt;td class=&quot;col-index&quot;&gt;1&lt;/td&gt;&lt;td colspan=&quot;5&quot;&gt;No students matched the current filters.&lt;/td&gt;&lt;/tr&gt;
+            &lt;?php else: ?&gt;
+                &lt;?php foreach ($printRows as $index =&gt; $row): ?&gt;
+                    &lt;tr&gt;
+                        &lt;td class=&quot;col-index&quot;&gt;&lt;?php echo (int)$index + 1; ?&gt;&lt;/td&gt;
+                        &lt;td&gt;&lt;?php echo $printMode === &#39;mapped&#39; ? (int)($row[&#39;finger_id&#39;] ?? 0) : &#39;Not mapped&#39;; ?&gt;&lt;/td&gt;
+                        &lt;td&gt;&lt;?php echo htmlspecialchars((string)($row[&#39;student_number&#39;] ?? &#39;&#39;), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                        &lt;td&gt;&lt;?php echo htmlspecialchars(trim((string)($row[&#39;student_name&#39;] ?? &#39;&#39;)), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                        &lt;td&gt;&lt;?php echo htmlspecialchars(trim((string)($row[&#39;course_name&#39;] ?? &#39;-&#39;) . &#39; / &#39; . (string)($row[&#39;section_label&#39;] ?? &#39;-&#39;)), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                        &lt;td&gt;&lt;?php echo htmlspecialchars((string)($row[$printMode === &#39;mapped&#39; ? &#39;created_at&#39; : &#39;created_at&#39;] ?? &#39;&#39;), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                    &lt;/tr&gt;
+                &lt;?php endforeach; ?&gt;
+            &lt;?php endif; ?&gt;
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+    &lt;?php
+    exit;
+}
+
+$page_title = &#39;Fingerprint Mapping&#39;;
+$page_body_class = &#39;page-fingerprint-mapping&#39;;
+$page_styles = [
+    &#39;assets/css/layout/page_shell.css&#39;,
+    &#39;assets/css/modules/pages/page-biometric-console.css&#39;,
+];
+$page_scripts = [
+    &#39;assets/js/modules/pages/biometric-management-runtime.js&#39;,
+];
+$base_href = &#39;&#39;;
+include __DIR__ . &#39;/../includes/header.php&#39;;
+ob_end_flush();
+?&gt;
+&lt;main class=&quot;nxl-container&quot;&gt;
+    &lt;div class=&quot;nxl-content&quot;&gt;
+        &lt;div class=&quot;page-header&quot;&gt;
+            &lt;div class=&quot;page-header-left d-flex align-items-center&quot;&gt;
+                &lt;div class=&quot;page-header-title&quot;&gt;
+                    &lt;h5 class=&quot;m-b-10&quot;&gt;Fingerprint Mapping&lt;/h5&gt;
+                &lt;/div&gt;
+                &lt;ul class=&quot;breadcrumb&quot;&gt;
+                    &lt;li class=&quot;breadcrumb-item&quot;&gt;&lt;a href=&quot;homepage.php&quot;&gt;Home&lt;/a&gt;&lt;/li&gt;
+                    &lt;li class=&quot;breadcrumb-item&quot;&gt;Fingerprint Mapping&lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;page-header-right ms-auto bio-console-header-actions&quot;&gt;
+                &lt;div class=&quot;page-header-right-items&quot;&gt;
+                    &lt;div class=&quot;d-flex align-items-center gap-2 page-header-right-items-wrapper&quot;&gt;
+                        &lt;a href=&quot;biometric-machine.php&quot; class=&quot;btn btn-light-brand&quot;&gt;
+                            &lt;i class=&quot;feather-cpu me-2&quot;&gt;&lt;/i&gt;
+                            &lt;span&gt;F20H Manager&lt;/span&gt;
+                        &lt;/a&gt;
+                        &lt;a href=&quot;attendance.php&quot; class=&quot;btn btn-outline-secondary&quot;&gt;
+                            &lt;i class=&quot;feather-clock me-2&quot;&gt;&lt;/i&gt;
+                            &lt;span&gt;Attendance DTR&lt;/span&gt;
+                        &lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;bio-console-shell&quot;&gt;
+
+        &lt;?php if ($msg !== &#39;&#39;): ?&gt;
+            &lt;div class=&quot;alert alert-&lt;?php echo htmlspecialchars($flashType, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt; py-2&quot;&gt;
+                &lt;?php echo htmlspecialchars($msg, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;
+            &lt;/div&gt;
+        &lt;?php endif; ?&gt;
+
+        &lt;?php if (!empty($orphanMappings)): ?&gt;
+            &lt;div class=&quot;alert alert-warning&quot;&gt;
+                Some mapped fingerprints are attached to users with no student profile and no authorized role. Please remap those records.
+            &lt;/div&gt;
+        &lt;?php endif; ?&gt;
+
+        &lt;div class=&quot;card bio-console-hero&quot;&gt;
+            &lt;div class=&quot;card-body&quot;&gt;
+                &lt;div class=&quot;bio-console-hero-grid&quot;&gt;
+                    &lt;div&gt;
+                        &lt;span class=&quot;bio-console-eyebrow&quot;&gt;Biometric Access&lt;/span&gt;
+                        &lt;h3&gt;Link each fingerprint to the correct BioTern account&lt;/h3&gt;
+                        &lt;p&gt;Review detected F20H fingerprint IDs and prioritize unmapped entries, especially machine-admin capable fingerprints that may control device configuration access.&lt;/p&gt;
+                        &lt;div class=&quot;bio-console-pill-list&quot;&gt;
+                            &lt;span class=&quot;bio-console-pill&quot;&gt;Latest detected ID: &lt;?php echo $latestDetectedFingerId &gt; 0 ? $latestDetectedFingerId : &#39;N/A&#39;; ?&gt;&lt;/span&gt;
+                            &lt;span class=&quot;bio-console-pill&quot;&gt;Latest mapped Finger ID: &lt;?php echo $latestMappedFingerId &gt; 0 ? $latestMappedFingerId : &#39;N/A&#39;; ?&gt;&lt;/span&gt;
+                            &lt;span class=&quot;bio-console-pill&quot;&gt;Unmapped detected: &lt;?php echo (int)$unmappedDetectedCount; ?&gt;&lt;/span&gt;
+                            &lt;span class=&quot;bio-console-pill&quot;&gt;Machine admin-capable: &lt;?php echo (int)$machineAdminDetectedCount; ?&gt;&lt;/span&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;bio-console-note-surface&quot;&gt;
+                        &lt;span class=&quot;badge bg-soft-info text-info&quot;&gt;Mapping Workflow&lt;/span&gt;
+                        &lt;h6&gt;Best results come from the latest machine logs&lt;/h6&gt;
+                        &lt;p&gt;Read users and logs in the F20H Machine Manager first, then review the unmapped table below. Entries tagged as Admin-capable are likely the fingerprints that can open machine configuration menus.&lt;/p&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;card mb-4 bio-console-panel&quot;&gt;
+            &lt;div class=&quot;card-header&quot;&gt;&lt;strong&gt;Unmapped Fingerprints (Priority Queue)&lt;/strong&gt;&lt;/div&gt;
+            &lt;div class=&quot;card-body border-bottom&quot;&gt;
+                &lt;div class=&quot;d-flex flex-wrap gap-2 mb-3&quot;&gt;
+                    &lt;a href=&quot;fingerprint-unmapped-internal.php&quot; class=&quot;btn btn-sm btn-light-brand&quot;&gt;Open Unmapped Internal Students&lt;/a&gt;
+                    &lt;a href=&quot;ojt-external-list.php&quot; class=&quot;btn btn-sm btn-outline-secondary&quot;&gt;Open External List&lt;/a&gt;
+                    &lt;a href=&quot;import-ojt-internal.php&quot; class=&quot;btn btn-sm btn-outline-secondary&quot;&gt;Import OJT Internal&lt;/a&gt;
+                    &lt;a href=&quot;import-ojt-external.php&quot; class=&quot;btn btn-sm btn-outline-secondary&quot;&gt;Import OJT External&lt;/a&gt;
+                &lt;/div&gt;
+                &lt;form method=&quot;get&quot; class=&quot;row g-2 align-items-end fingerprint-form&quot;&gt;
+                    &lt;input type=&quot;hidden&quot; name=&quot;unmapped_admin_only&quot; value=&quot;&lt;?php echo $unmappedAdminOnly ? &#39;1&#39; : &#39;0&#39;; ?&gt;&quot;&gt;
+                    &lt;div class=&quot;col-12 col-md-8 col-xl-8&quot;&gt;
+                        &lt;label class=&quot;form-label&quot; for=&quot;unmapped_query&quot;&gt;Search Unmapped Fingerprints&lt;/label&gt;
+                        &lt;input type=&quot;text&quot; class=&quot;form-control&quot; id=&quot;unmapped_query&quot; name=&quot;unmapped_query&quot; value=&quot;&lt;?php echo htmlspecialchars($unmappedQuery, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&quot; placeholder=&quot;Search by fingerprint ID, machine name, or admin hint&quot;&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;col-12 col-xl-4 fm-actions&quot;&gt;
+                        &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary&quot;&gt;Apply Unmapped Filter&lt;/button&gt;
+                        &lt;a href=&quot;fingerprint_mapping.php&quot; class=&quot;btn btn-light&quot;&gt;Clear&lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/form&gt;
+                &lt;div class=&quot;d-flex flex-wrap gap-2 mt-2&quot;&gt;
+                    &lt;a href=&quot;fingerprint_mapping.php?unmapped_admin_only=1&lt;?php echo $unmappedQuery !== &#39;&#39; ? &#39;&amp;unmapped_query=&#39; . urlencode($unmappedQuery) : &#39;&#39;; ?&gt;&quot; class=&quot;btn btn-sm &lt;?php echo $unmappedAdminOnly ? &#39;btn-primary&#39; : &#39;btn-outline-primary&#39;; ?&gt;&quot;&gt;Admin-Capable Only&lt;/a&gt;
+                    &lt;?php if ($unmappedAdminOnly): ?&gt;
+                        &lt;a href=&quot;fingerprint_mapping.php&lt;?php echo $unmappedQuery !== &#39;&#39; ? &#39;?unmapped_query=&#39; . urlencode($unmappedQuery) : &#39;&#39;; ?&gt;&quot; class=&quot;btn btn-sm btn-outline-secondary&quot;&gt;Show All Unmapped&lt;/a&gt;
+                    &lt;?php endif; ?&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;card-body p-0&quot;&gt;
+                &lt;div class=&quot;table-responsive&quot;&gt;
+                    &lt;table class=&quot;table table-hover align-middle mb-0 bio-console-table&quot;&gt;
+                        &lt;thead&gt;
+                            &lt;tr&gt;
+                                &lt;th&gt;Fingerprint ID&lt;/th&gt;
+                                &lt;th&gt;Last Seen&lt;/th&gt;
+                                &lt;th&gt;Machine User&lt;/th&gt;
+                                &lt;th&gt;Machine Access Hint&lt;/th&gt;
+                                &lt;th&gt;Status&lt;/th&gt;
+                                &lt;th class=&quot;text-end&quot;&gt;Action&lt;/th&gt;
+                            &lt;/tr&gt;
+                        &lt;/thead&gt;
+                        &lt;tbody&gt;
+                        &lt;?php if ($unmappedDetectedCount === 0): ?&gt;
+                            &lt;tr&gt;
+                                &lt;td colspan=&quot;6&quot; class=&quot;text-center text-muted py-4&quot;&gt;No unmapped fingerprints right now.&lt;/td&gt;
+                            &lt;/tr&gt;
+                        &lt;?php elseif (empty($unmappedDetectedFingerprints)): ?&gt;
+                            &lt;tr&gt;
+                                &lt;td colspan=&quot;6&quot; class=&quot;text-center text-muted py-4&quot;&gt;No unmapped fingerprints match your search.&lt;/td&gt;
+                            &lt;/tr&gt;
+                        &lt;?php else: ?&gt;
+                            &lt;?php foreach ($unmappedDetectedFingerprints as $fingerprint): ?&gt;
+                                &lt;tr&gt;
+                                    &lt;td&gt;&lt;?php echo (int)$fingerprint[&#39;finger_id&#39;]; ?&gt;&lt;/td&gt;
+                                    &lt;td&gt;&lt;?php echo htmlspecialchars($fingerprint[&#39;last_seen&#39;] !== &#39;&#39; ? $fingerprint[&#39;last_seen&#39;] : &#39;Not seen in raw logs yet&#39;, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;?php if (!empty($fingerprint[&#39;machine_user_name&#39;])): ?&gt;
+                                            &lt;?php echo htmlspecialchars((string)$fingerprint[&#39;machine_user_name&#39;], ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;
+                                        &lt;?php else: ?&gt;
+                                            &lt;span class=&quot;text-muted&quot;&gt;Unknown&lt;/span&gt;
+                                        &lt;?php endif; ?&gt;
+                                    &lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;?php if (!empty($fingerprint[&#39;machine_is_admin&#39;])): ?&gt;
+                                            &lt;span class=&quot;badge bg-soft-danger text-danger&quot;&gt;Admin-capable&lt;/span&gt;
+                                            &lt;?php if (!empty($fingerprint[&#39;machine_admin_label&#39;])): ?&gt;
+                                                &lt;div class=&quot;text-muted small&quot;&gt;&lt;?php echo htmlspecialchars((string)$fingerprint[&#39;machine_admin_label&#39;], ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/div&gt;
+                                            &lt;?php endif; ?&gt;
+                                        &lt;?php else: ?&gt;
+                                            &lt;span class=&quot;badge bg-soft-secondary text-secondary&quot;&gt;Standard/Unknown&lt;/span&gt;
+                                        &lt;?php endif; ?&gt;
+                                    &lt;/td&gt;
+                                    &lt;td&gt;&lt;span class=&quot;badge bg-soft-warning text-warning&quot;&gt;Needs Mapping&lt;/span&gt;&lt;/td&gt;
+                                    &lt;td class=&quot;text-end&quot;&gt;
+                                        &lt;a href=&quot;fingerprint-unmapped-internal.php?map_finger_id=&lt;?php echo (int)$fingerprint[&#39;finger_id&#39;]; ?&gt;&quot; class=&quot;btn btn-sm btn-outline-primary&quot;&gt;Map To Student&lt;/a&gt;
+                                    &lt;/td&gt;
+                                &lt;/tr&gt;
+                            &lt;?php endforeach; ?&gt;
+                        &lt;?php endif; ?&gt;
+                        &lt;/tbody&gt;
+                    &lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+
+        &lt;div class=&quot;card mb-4 fingerprint-map-card bio-console-panel&quot;&gt;
+            &lt;div class=&quot;card-header&quot;&gt;&lt;strong&gt;Current Student Mappings&lt;/strong&gt;&lt;/div&gt;
+            &lt;div class=&quot;card-body border-bottom&quot;&gt;
+                &lt;form method=&quot;get&quot; class=&quot;row g-2 align-items-end fingerprint-form&quot;&gt;
+                    &lt;div class=&quot;col-12 col-md-6 col-xl-4&quot;&gt;
+                        &lt;label class=&quot;form-label&quot; for=&quot;filter_course_id&quot;&gt;Filter by Course&lt;/label&gt;
+                        &lt;select class=&quot;form-select&quot; name=&quot;filter_course_id&quot; id=&quot;filter_course_id&quot;&gt;
+                            &lt;option value=&quot;0&quot;&gt;All Courses&lt;/option&gt;
+                            &lt;?php foreach ($courses as $course): ?&gt;
+                                &lt;option value=&quot;&lt;?php echo (int)$course[&#39;id&#39;]; ?&gt;&quot; &lt;?php echo ((int)$course[&#39;id&#39;] === $filterCourseId) ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;
+                                    &lt;?php echo htmlspecialchars((string)$course[&#39;name&#39;], ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;
+                                &lt;/option&gt;
+                            &lt;?php endforeach; ?&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;col-12 col-md-6 col-xl-4&quot;&gt;
+                        &lt;label class=&quot;form-label&quot; for=&quot;filter_section_id&quot;&gt;Filter by Section&lt;/label&gt;
+                        &lt;select class=&quot;form-select&quot; name=&quot;filter_section_id&quot; id=&quot;filter_section_id&quot;&gt;
+                            &lt;option value=&quot;0&quot;&gt;All Sections&lt;/option&gt;
+                            &lt;?php foreach ($sections as $section): ?&gt;
+                                &lt;option value=&quot;&lt;?php echo (int)$section[&#39;id&#39;]; ?&gt;&quot; data-course-id=&quot;&lt;?php echo (int)($section[&#39;course_id&#39;] ?? 0); ?&gt;&quot; &lt;?php echo ((int)$section[&#39;id&#39;] === $filterSectionId) ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;
+                                    &lt;?php echo htmlspecialchars((string)$section[&#39;section_label&#39;], ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;
+                                &lt;/option&gt;
+                            &lt;?php endforeach; ?&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;col-12 col-xl-4 fm-actions&quot;&gt;
+                        &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary&quot;&gt;Apply Filters&lt;/button&gt;
+                        &lt;a href=&quot;fingerprint_mapping.php&quot; class=&quot;btn btn-light&quot;&gt;Clear&lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/form&gt;
+                &lt;?php $fingerprintPrintQuery = http_build_query(array_filter([
+                    &#39;filter_course_id&#39; =&gt; $filterCourseId &gt; 0 ? (string)$filterCourseId : &#39;&#39;,
+                    &#39;filter_section_id&#39; =&gt; $filterSectionId &gt; 0 ? (string)$filterSectionId : &#39;&#39;,
+                ], static fn($value): bool =&gt; $value !== &#39;&#39;)); ?&gt;
+                &lt;div class=&quot;d-flex flex-wrap gap-2 mt-3&quot;&gt;
+                    &lt;a href=&quot;fingerprint_mapping.php?print=mapped&lt;?php echo $fingerprintPrintQuery !== &#39;&#39; ? &#39;&amp;&#39; . htmlspecialchars($fingerprintPrintQuery, ENT_QUOTES, &#39;UTF-8&#39;) : &#39;&#39;; ?&gt;&quot; target=&quot;_blank&quot; class=&quot;btn btn-sm btn-outline-primary&quot;&gt;
+                        &lt;i class=&quot;feather-printer me-1&quot;&gt;&lt;/i&gt; Print Mapped Students
+                    &lt;/a&gt;
+                    &lt;a href=&quot;fingerprint_mapping.php?print=unmapped_students&lt;?php echo $fingerprintPrintQuery !== &#39;&#39; ? &#39;&amp;&#39; . htmlspecialchars($fingerprintPrintQuery, ENT_QUOTES, &#39;UTF-8&#39;) : &#39;&#39;; ?&gt;&quot; target=&quot;_blank&quot; class=&quot;btn btn-sm btn-outline-secondary&quot;&gt;
+                        &lt;i class=&quot;feather-printer me-1&quot;&gt;&lt;/i&gt; Print Not Mapped Students
+                    &lt;/a&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;card-body p-0&quot;&gt;
+                &lt;div class=&quot;table-responsive&quot;&gt;
+                    &lt;table class=&quot;table table-hover align-middle mb-0 bio-console-table&quot;&gt;
+                        &lt;thead&gt;
+                            &lt;tr&gt;
+                                &lt;th&gt;Fingerprint ID&lt;/th&gt;
+                                &lt;th&gt;User&lt;/th&gt;
+                                &lt;th&gt;Student Link&lt;/th&gt;
+                                &lt;th&gt;Course&lt;/th&gt;
+                                &lt;th&gt;Section&lt;/th&gt;
+                                &lt;th&gt;OJT Status&lt;/th&gt;
+                                &lt;th&gt;Mapped Info&lt;/th&gt;
+                                &lt;th class=&quot;text-end&quot;&gt;Actions&lt;/th&gt;
+                            &lt;/tr&gt;
+                        &lt;/thead&gt;
+                        &lt;tbody&gt;
+                        &lt;?php if (empty($filteredStudentMappings)): ?&gt;
+                            &lt;tr&gt;
+                                &lt;td colspan=&quot;8&quot; class=&quot;text-center text-muted py-4&quot;&gt;No student mappings match the selected filters.&lt;/td&gt;
+                            &lt;/tr&gt;
+                        &lt;?php else: ?&gt;
+                            &lt;?php foreach ($filteredStudentMappings as $map): ?&gt;
+                                &lt;?php
+                                $track = strtolower(trim((string)($map[&#39;assignment_track&#39;] ?? &#39;internal&#39;)));
+                                $remainingHours = $track === &#39;external&#39;
+                                    ? (int)($map[&#39;external_total_hours_remaining&#39;] ?? 0)
+                                    : (int)($map[&#39;internal_total_hours_remaining&#39;] ?? 0);
+                                $ojtCompleted = $remainingHours &lt;= 0 &amp;&amp; (int)($map[&#39;student_row_id&#39;] ?? 0) &gt; 0;
+                                ?&gt;
+                                &lt;tr&gt;
+                                    &lt;td&gt;&lt;?php echo (int)$map[&#39;finger_id&#39;]; ?&gt;&lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;div class=&quot;fw-semibold&quot;&gt;&lt;?php echo htmlspecialchars((string)($map[&#39;user_name&#39;] ?? &#39;Unknown&#39;), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/div&gt;
+                                        &lt;small class=&quot;text-muted&quot;&gt;User ID: &lt;?php echo (int)$map[&#39;user_id&#39;]; ?&gt;&lt;/small&gt;
+                                    &lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;?php if ((int)($map[&#39;student_row_id&#39;] ?? 0) &gt; 0): ?&gt;
+                                            &lt;div class=&quot;fw-semibold&quot;&gt;&lt;?php echo htmlspecialchars(trim((string)$map[&#39;student_name&#39;]), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/div&gt;
+                                            &lt;small class=&quot;text-muted&quot;&gt;Student #: &lt;?php echo htmlspecialchars((string)$map[&#39;student_number&#39;], ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/small&gt;
+                                            &lt;br&gt;
+                                            &lt;small class=&quot;text-muted&quot;&gt;Enrolled: &lt;?php echo !empty($map[&#39;enrolled_at&#39;]) ? htmlspecialchars(date(&#39;M d, Y&#39;, strtotime((string)$map[&#39;enrolled_at&#39;])), ENT_QUOTES, &#39;UTF-8&#39;) : &#39;N/A&#39;; ?&gt;&lt;/small&gt;
+                                        &lt;?php else: ?&gt;
+                                            &lt;span class=&quot;badge bg-soft-warning text-warning&quot;&gt;No student profile linked&lt;/span&gt;
+                                        &lt;?php endif; ?&gt;
+                                    &lt;/td&gt;
+                                    &lt;td&gt;&lt;?php echo htmlspecialchars((string)($map[&#39;course_name&#39;] ?? &#39;N/A&#39;), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                                    &lt;td&gt;&lt;?php echo htmlspecialchars((string)($map[&#39;section_label&#39;] ?? &#39;N/A&#39;), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;?php if ((int)($map[&#39;student_row_id&#39;] ?? 0) &lt;= 0): ?&gt;
+                                            &lt;span class=&quot;badge bg-soft-secondary text-secondary&quot;&gt;N/A&lt;/span&gt;
+                                        &lt;?php elseif ($ojtCompleted): ?&gt;
+                                            &lt;span class=&quot;badge bg-soft-success text-success&quot;&gt;Completed&lt;/span&gt;
+                                            &lt;div class=&quot;text-muted small&quot;&gt;Ready for fingerprint slot reuse&lt;/div&gt;
+                                        &lt;?php else: ?&gt;
+                                            &lt;span class=&quot;badge bg-soft-warning text-warning&quot;&gt;In Progress&lt;/span&gt;
+                                            &lt;div class=&quot;text-muted small&quot;&gt;Remaining: &lt;?php echo (int)$remainingHours; ?&gt;h&lt;/div&gt;
+                                        &lt;?php endif; ?&gt;
+                                    &lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;?php $createdAt = (string)($map[&#39;created_at&#39;] ?? &#39;&#39;); ?&gt;
+                                        &lt;?php $updatedAt = (string)($map[&#39;updated_at&#39;] ?? &#39;&#39;); ?&gt;
+                                        &lt;div class=&quot;text-muted small&quot;&gt;Created: &lt;?php echo $createdAt !== &#39;&#39; ? htmlspecialchars(date(&#39;M d, Y h:i A&#39;, strtotime($createdAt)), ENT_QUOTES, &#39;UTF-8&#39;) : &#39;N/A&#39;; ?&gt;&lt;/div&gt;
+                                        &lt;div class=&quot;text-muted small&quot;&gt;Updated: &lt;?php echo $updatedAt !== &#39;&#39; ? htmlspecialchars(date(&#39;M d, Y h:i A&#39;, strtotime($updatedAt)), ENT_QUOTES, &#39;UTF-8&#39;) : &#39;N/A&#39;; ?&gt;&lt;/div&gt;
+                                    &lt;/td&gt;
+                                    &lt;td class=&quot;text-end&quot;&gt;
+                                        &lt;div class=&quot;fingerprint-actions ms-auto&quot;&gt;
+                                            &lt;?php if ($ojtCompleted): ?&gt;
+                                                &lt;a href=&quot;biometric-machine.php?selected_user_id=&lt;?php echo (int)$map[&#39;finger_id&#39;]; ?&gt;&amp;load_users=1&amp;load_user=1&quot; class=&quot;btn btn-sm btn-outline-warning&quot;&gt;Cleanup Fingerprint Slot&lt;/a&gt;
+                                            &lt;?php endif; ?&gt;
+                                            &lt;form method=&quot;post&quot; class=&quot;d-inline&quot; data-confirm=&quot;Remove this fingerprint mapping?&quot;&gt;
+                                                &lt;input type=&quot;hidden&quot; name=&quot;mapping_action&quot; value=&quot;delete&quot;&gt;
+                                                &lt;input type=&quot;hidden&quot; name=&quot;finger_id&quot; value=&quot;&lt;?php echo (int)$map[&#39;finger_id&#39;]; ?&gt;&quot;&gt;
+                                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-sm btn-outline-danger&quot;&gt;Remove&lt;/button&gt;
+                                            &lt;/form&gt;
+                                        &lt;/div&gt;
+                                    &lt;/td&gt;
+                                &lt;/tr&gt;
+                            &lt;?php endforeach; ?&gt;
+                        &lt;?php endif; ?&gt;
+                        &lt;/tbody&gt;
+                    &lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;card mb-4 bio-console-panel&quot;&gt;
+            &lt;div class=&quot;card-header&quot;&gt;&lt;strong&gt;Authorized Personnel Mappings&lt;/strong&gt;&lt;/div&gt;
+            &lt;div class=&quot;card-body p-0&quot;&gt;
+                &lt;div class=&quot;table-responsive&quot;&gt;
+                    &lt;table class=&quot;table table-hover align-middle mb-0 bio-console-table&quot;&gt;
+                        &lt;thead&gt;
+                            &lt;tr&gt;
+                                &lt;th&gt;Fingerprint ID&lt;/th&gt;
+                                &lt;th&gt;User&lt;/th&gt;
+                                &lt;th&gt;Role&lt;/th&gt;
+                                &lt;th&gt;Mapped Info&lt;/th&gt;
+                                &lt;th class=&quot;text-end&quot;&gt;Actions&lt;/th&gt;
+                            &lt;/tr&gt;
+                        &lt;/thead&gt;
+                        &lt;tbody&gt;
+                        &lt;?php if (empty($personnelMappings)): ?&gt;
+                            &lt;tr&gt;
+                                &lt;td colspan=&quot;5&quot; class=&quot;text-center text-muted py-4&quot;&gt;No authorized personnel mappings yet.&lt;/td&gt;
+                            &lt;/tr&gt;
+                        &lt;?php else: ?&gt;
+                            &lt;?php foreach ($personnelMappings as $map): ?&gt;
+                                &lt;tr&gt;
+                                    &lt;td&gt;&lt;?php echo (int)$map[&#39;finger_id&#39;]; ?&gt;&lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;div class=&quot;fw-semibold&quot;&gt;&lt;?php echo htmlspecialchars((string)($map[&#39;user_name&#39;] ?? &#39;Unknown&#39;), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/div&gt;
+                                        &lt;small class=&quot;text-muted&quot;&gt;User ID: &lt;?php echo (int)$map[&#39;user_id&#39;]; ?&gt;&lt;/small&gt;
+                                    &lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;span class=&quot;badge bg-soft-info text-info&quot;&gt;&lt;?php echo htmlspecialchars(ucfirst((string)($map[&#39;user_role&#39;] ?? &#39;Unknown&#39;)), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/span&gt;
+                                    &lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;?php $createdAt = (string)($map[&#39;created_at&#39;] ?? &#39;&#39;); ?&gt;
+                                        &lt;?php $updatedAt = (string)($map[&#39;updated_at&#39;] ?? &#39;&#39;); ?&gt;
+                                        &lt;div class=&quot;text-muted small&quot;&gt;Created: &lt;?php echo $createdAt !== &#39;&#39; ? htmlspecialchars(date(&#39;M d, Y h:i A&#39;, strtotime($createdAt)), ENT_QUOTES, &#39;UTF-8&#39;) : &#39;N/A&#39;; ?&gt;&lt;/div&gt;
+                                        &lt;div class=&quot;text-muted small&quot;&gt;Updated: &lt;?php echo $updatedAt !== &#39;&#39; ? htmlspecialchars(date(&#39;M d, Y h:i A&#39;, strtotime($updatedAt)), ENT_QUOTES, &#39;UTF-8&#39;) : &#39;N/A&#39;; ?&gt;&lt;/div&gt;
+                                    &lt;/td&gt;
+                                    &lt;td class=&quot;text-end&quot;&gt;
+                                        &lt;div class=&quot;fingerprint-actions ms-auto&quot;&gt;
+                                            &lt;form method=&quot;post&quot; class=&quot;d-inline&quot; data-confirm=&quot;Remove this fingerprint mapping?&quot;&gt;
+                                                &lt;input type=&quot;hidden&quot; name=&quot;mapping_action&quot; value=&quot;delete&quot;&gt;
+                                                &lt;input type=&quot;hidden&quot; name=&quot;finger_id&quot; value=&quot;&lt;?php echo (int)$map[&#39;finger_id&#39;]; ?&gt;&quot;&gt;
+                                                &lt;button type=&quot;submit&quot; class=&quot;btn btn-sm btn-outline-danger&quot;&gt;Remove&lt;/button&gt;
+                                            &lt;/form&gt;
+                                        &lt;/div&gt;
+                                    &lt;/td&gt;
+                                &lt;/tr&gt;
+                            &lt;?php endforeach; ?&gt;
+                        &lt;?php endif; ?&gt;
+                        &lt;/tbody&gt;
+                    &lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+        &lt;div class=&quot;card mt-4 bio-console-panel&quot;&gt;
+            &lt;div class=&quot;card-header&quot;&gt;&lt;strong&gt;Detected Fingerprints From Machine Logs&lt;/strong&gt;&lt;/div&gt;
+            &lt;div class=&quot;card-body border-bottom&quot;&gt;
+                &lt;form method=&quot;get&quot; class=&quot;row g-2 align-items-end fingerprint-form&quot;&gt;
+                    &lt;div class=&quot;col-12 col-md-6 col-xl-3&quot;&gt;
+                        &lt;label class=&quot;form-label&quot; for=&quot;detected_status&quot;&gt;Filter by Status&lt;/label&gt;
+                        &lt;select class=&quot;form-select&quot; name=&quot;detected_status&quot; id=&quot;detected_status&quot;&gt;
+                            &lt;option value=&quot;all&quot; &lt;?php echo $detectedStatus === &#39;all&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;All&lt;/option&gt;
+                            &lt;option value=&quot;mapped&quot; &lt;?php echo $detectedStatus === &#39;mapped&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;Mapped&lt;/option&gt;
+                            &lt;option value=&quot;unmapped&quot; &lt;?php echo $detectedStatus === &#39;unmapped&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;Needs Mapping&lt;/option&gt;
+                        &lt;/select&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;col-12 col-md-6 col-xl-5&quot;&gt;
+                        &lt;label class=&quot;form-label&quot; for=&quot;detected_query&quot;&gt;Search Fingerprint/User/Student&lt;/label&gt;
+                        &lt;input type=&quot;text&quot; class=&quot;form-control&quot; id=&quot;detected_query&quot; name=&quot;detected_query&quot; value=&quot;&lt;?php echo htmlspecialchars($detectedQuery, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&quot; placeholder=&quot;e.g. ID, name, student number&quot;&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;col-12 col-xl-4 fm-actions&quot;&gt;
+                        &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary&quot;&gt;Apply Table Filters&lt;/button&gt;
+                        &lt;a href=&quot;fingerprint_mapping.php&quot; class=&quot;btn btn-light&quot;&gt;Clear&lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/form&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;card-body p-0&quot;&gt;
+                &lt;div class=&quot;table-responsive&quot;&gt;
+                    &lt;table class=&quot;table table-hover align-middle mb-0 bio-console-table&quot;&gt;
+                        &lt;thead&gt;
+                            &lt;tr&gt;
+                                &lt;th&gt;Fingerprint ID&lt;/th&gt;
+                                &lt;th&gt;Last Seen&lt;/th&gt;
+                                &lt;th&gt;Status&lt;/th&gt;
+                                &lt;th&gt;Mapped To&lt;/th&gt;
+                                &lt;th class=&quot;text-end&quot;&gt;Action&lt;/th&gt;
+                            &lt;/tr&gt;
+                        &lt;/thead&gt;
+                        &lt;tbody&gt;
+                        &lt;?php if (empty($detectedFingerprints)): ?&gt;
+                            &lt;tr&gt;
+                                &lt;td colspan=&quot;5&quot; class=&quot;text-center text-muted py-4&quot;&gt;No fingerprints detected from machine logs yet.&lt;/td&gt;
+                            &lt;/tr&gt;
+                        &lt;?php elseif (empty($filteredDetectedFingerprints)): ?&gt;
+                            &lt;tr&gt;
+                                &lt;td colspan=&quot;5&quot; class=&quot;text-center text-muted py-4&quot;&gt;No fingerprints match your current filters.&lt;/td&gt;
+                            &lt;/tr&gt;
+                        &lt;?php else: ?&gt;
+                            &lt;?php foreach ($filteredDetectedFingerprints as $fingerprint): ?&gt;
+                                &lt;tr&gt;
+                                    &lt;td&gt;&lt;?php echo (int)$fingerprint[&#39;finger_id&#39;]; ?&gt;&lt;/td&gt;
+                                    &lt;td&gt;&lt;?php echo htmlspecialchars($fingerprint[&#39;last_seen&#39;] !== &#39;&#39; ? $fingerprint[&#39;last_seen&#39;] : &#39;Not seen in raw logs yet&#39;, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;?php if (!empty($fingerprint[&#39;is_mapped&#39;])): ?&gt;
+                                            &lt;span class=&quot;badge bg-soft-success text-success&quot;&gt;Mapped&lt;/span&gt;
+                                        &lt;?php else: ?&gt;
+                                            &lt;span class=&quot;badge bg-soft-warning text-warning&quot;&gt;Needs Mapping&lt;/span&gt;
+                                        &lt;?php endif; ?&gt;
+                                    &lt;/td&gt;
+                                    &lt;td&gt;
+                                        &lt;?php if (!empty($fingerprint[&#39;is_mapped&#39;])): ?&gt;
+                                            &lt;div class=&quot;fw-semibold&quot;&gt;&lt;?php echo htmlspecialchars((string)$fingerprint[&#39;mapped_user_name&#39;], ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/div&gt;
+                                            &lt;small class=&quot;text-muted&quot;&gt;
+                                                User ID: &lt;?php echo (int)$fingerprint[&#39;mapped_user_id&#39;]; ?&gt;
+                                                &lt;?php if ($fingerprint[&#39;student_name&#39;] !== &#39;&#39;): ?&gt;
+                                                    | &lt;?php echo htmlspecialchars((string)$fingerprint[&#39;student_name&#39;], ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;
+                                                &lt;?php endif; ?&gt;
+                                                &lt;?php if ($fingerprint[&#39;student_number&#39;] !== &#39;&#39;): ?&gt;
+                                                    (&lt;?php echo htmlspecialchars((string)$fingerprint[&#39;student_number&#39;], ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;)
+                                                &lt;?php endif; ?&gt;
+                                            &lt;/small&gt;
+                                            &lt;div class=&quot;text-muted small&quot;&gt;Mapped: &lt;?php echo $fingerprint[&#39;mapped_created_at&#39;] !== &#39;&#39; ? htmlspecialchars(date(&#39;M d, Y h:i A&#39;, strtotime((string)$fingerprint[&#39;mapped_created_at&#39;])), ENT_QUOTES, &#39;UTF-8&#39;) : &#39;N/A&#39;; ?&gt;&lt;/div&gt;
+                                        &lt;?php else: ?&gt;
+                                            &lt;span class=&quot;text-muted&quot;&gt;Not mapped yet&lt;/span&gt;
+                                            &lt;?php if (!empty($fingerprint[&#39;machine_user_name&#39;])): ?&gt;
+                                                &lt;div class=&quot;text-muted small&quot;&gt;Machine Name: &lt;?php echo htmlspecialchars((string)$fingerprint[&#39;machine_user_name&#39;], ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/div&gt;
+                                            &lt;?php endif; ?&gt;
+                                        &lt;?php endif; ?&gt;
+                                    &lt;/td&gt;
+                                    &lt;td class=&quot;text-end&quot;&gt;
+                                        &lt;div class=&quot;fingerprint-actions ms-auto&quot;&gt;
+                                            &lt;span class=&quot;text-muted small&quot;&gt;&lt;?php echo !empty($fingerprint[&#39;is_mapped&#39;]) ? &#39;Mapped&#39; : &#39;Pending Mapping&#39;; ?&gt;&lt;/span&gt;
+                                        &lt;/div&gt;
+                                    &lt;/td&gt;
+                                &lt;/tr&gt;
+                            &lt;?php endforeach; ?&gt;
+                        &lt;?php endif; ?&gt;
+                        &lt;/tbody&gt;
+                    &lt;/table&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/main&gt;
+&lt;?php
+include __DIR__ . &#39;/../includes/footer.php&#39;;
+$conn-&gt;close();
+?&gt;
+
+</code></pre></div></main>
+</div>
+</body>
+</html>

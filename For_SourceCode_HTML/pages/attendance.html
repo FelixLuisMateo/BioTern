@@ -1,0 +1,2539 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pages/attendance.php - BioTern Source Code</title>
+<style>
+:root{color-scheme:light;--ink:#0f172a;--muted:#64748b;--line:#dbe3ef;--paper:#fff;--soft:#f8fafc;--brand:#3454d1}*{box-sizing:border-box}body{margin:0;background:#e5e7eb;color:var(--ink);font:14px/1.5 Consolas,"Courier New",monospace}.page{width:min(100%,1100px);margin:24px auto;background:var(--paper);box-shadow:0 18px 40px rgba(15,23,42,.12)}header{padding:22px 28px;border-bottom:1px solid var(--line);font-family:Arial,sans-serif}h1{margin:0 0 6px;font-size:20px}.meta{color:var(--muted);font-size:12px}.toolbar{display:flex;gap:10px;margin-top:16px}.toolbar a,.toolbar button{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:8px;padding:8px 12px;text-decoration:none;font:600 13px Arial,sans-serif;cursor:pointer}.toolbar button.primary{background:var(--brand);border-color:var(--brand);color:#fff}main{padding:0}.code-wrap{overflow:auto}.code{margin:0;padding:24px 28px;white-space:pre;tab-size:4;font-size:12px;line-height:1.45}.code code{font-family:inherit}@media print{body{background:#fff}.page{width:100%;margin:0;box-shadow:none}.toolbar{display:none}header{position:static}.code{font-size:9.5px;white-space:pre-wrap;word-break:break-word}a{color:inherit}}@page{margin:12mm}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+<h1>pages/attendance.php</h1>
+<div class="meta">BioTern source code copy | Generated as HTML for viewing and printing</div>
+<div class="toolbar"><a href="../index.html">Back to index</a><button class="primary" onclick="window.print()">Print / Save PDF</button></div>
+</header>
+<main><div class="code-wrap"><pre class="code"><code>&lt;?php
+require_once dirname(__DIR__) . &#39;/config/db.php&#39;;
+require_once dirname(__DIR__) . &#39;/lib/section_schedule.php&#39;;
+require_once dirname(__DIR__) . &#39;/lib/section_format.php&#39;;
+require_once dirname(__DIR__) . &#39;/lib/attendance_bonus_rules.php&#39;;
+require_once dirname(__DIR__) . &#39;/lib/attendance_workflow.php&#39;;
+require_once dirname(__DIR__) . &#39;/lib/external_attendance.php&#39;;
+require_once dirname(__DIR__) . &#39;/lib/ops_helpers.php&#39;;
+require_once dirname(__DIR__) . &#39;/tools/biometric_auto_import.php&#39;;
+require_once dirname(__DIR__) . &#39;/includes/avatar.php&#39;;
+require_once dirname(__DIR__) . &#39;/includes/auth-session.php&#39;;
+biotern_boot_session(isset($conn) ? $conn : null);
+attendance_bonus_rules_ensure_schema($conn);
+external_attendance_ensure_schema($conn);
+
+$attendance_role = strtolower(trim((string)($_SESSION[&#39;role&#39;] ?? $_SESSION[&#39;user_role&#39;] ?? &#39;&#39;)));
+if ($attendance_role === &#39;student&#39;) {
+    require __DIR__ . &#39;/student-dtr.php&#39;;
+    return;
+}
+$attendance_user_id = (int)($_SESSION[&#39;user_id&#39;] ?? 0);
+$attendance_is_supervisor = ($attendance_role === &#39;supervisor&#39;);
+$attendance_supervisor_profile_id = 0;
+
+// Database Connection
+$host = defined(&#39;DB_HOST&#39;) ? DB_HOST : &#39;localhost&#39;;
+$db_user = defined(&#39;DB_USER&#39;) ? DB_USER : &#39;root&#39;;
+$db_password = defined(&#39;DB_PASS&#39;) ? DB_PASS : &#39;&#39;;
+$db_name = defined(&#39;DB_NAME&#39;) ? DB_NAME : &#39;biotern_db&#39;;
+$db_port = defined(&#39;DB_PORT&#39;) ? (int)DB_PORT : 3306;
+
+try {
+    $conn = new mysqli($host, $db_user, $db_password, $db_name, $db_port);
+    if ($conn-&gt;connect_error) {
+        die(&quot;Connection failed: &quot; . $conn-&gt;connect_error);
+    }
+    section_schedule_ensure_columns($conn);
+    external_attendance_ensure_schema($conn);
+
+    $calendarColumns = [];
+    $calendarColumnsRes = $conn-&gt;query(&quot;SHOW COLUMNS FROM calendar_events&quot;);
+    if ($calendarColumnsRes instanceof mysqli_result) {
+        while ($calendarColumn = $calendarColumnsRes-&gt;fetch_assoc()) {
+            $calendarColumns[strtolower((string)($calendarColumn[&#39;Field&#39;] ?? &#39;&#39;))] = true;
+        }
+        $calendarColumnsRes-&gt;close();
+    }
+    if (!isset($calendarColumns[&#39;attendance_multiplier&#39;])) {
+        $conn-&gt;query(&quot;ALTER TABLE calendar_events ADD COLUMN attendance_multiplier DECIMAL(6,2) NULL AFTER color&quot;);
+    }
+    if (!isset($calendarColumns[&#39;apply_when_not_late&#39;])) {
+        $conn-&gt;query(&quot;ALTER TABLE calendar_events ADD COLUMN apply_when_not_late TINYINT(1) NOT NULL DEFAULT 0 AFTER attendance_multiplier&quot;);
+    }
+    if (!isset($calendarColumns[&#39;late_grace_minutes&#39;])) {
+        $conn-&gt;query(&quot;ALTER TABLE calendar_events ADD COLUMN late_grace_minutes INT NULL AFTER apply_when_not_late&quot;);
+    }
+    if (!isset($calendarColumns[&#39;applies_to_weekday&#39;])) {
+        $conn-&gt;query(&quot;ALTER TABLE calendar_events ADD COLUMN applies_to_weekday VARCHAR(16) NULL AFTER late_grace_minutes&quot;);
+    }
+} catch (Exception $e) {
+    die(&quot;Database Error: &quot; . $e-&gt;getMessage());
+}
+
+if ($attendance_is_supervisor &amp;&amp; $attendance_user_id &gt; 0) {
+    $attendance_scope_stmt = $conn-&gt;prepare(&#39;SELECT id FROM supervisors WHERE user_id = ? LIMIT 1&#39;);
+    if ($attendance_scope_stmt) {
+        $attendance_scope_stmt-&gt;bind_param(&#39;i&#39;, $attendance_user_id);
+        $attendance_scope_stmt-&gt;execute();
+        $attendance_scope_row = $attendance_scope_stmt-&gt;get_result()-&gt;fetch_assoc();
+        $attendance_supervisor_profile_id = (int)($attendance_scope_row[&#39;id&#39;] ?? 0);
+        $attendance_scope_stmt-&gt;close();
+    }
+}
+
+function attendance_machine_config_path(): string
+{
+    return dirname(__DIR__) . &#39;/tools/biometric_machine_config.json&#39;;
+}
+
+function attendance_load_machine_config(): array
+{
+    $configPath = attendance_machine_config_path();
+    if (!file_exists($configPath)) {
+        return [];
+    }
+
+    $json = file_get_contents($configPath);
+    if (!is_string($json) || trim($json) === &#39;&#39;) {
+        return [];
+    }
+
+    $decoded = json_decode($json, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function attendance_write_machine_config(array $config): void
+{
+    $json = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if (!is_string($json)) {
+        throw new RuntimeException(&#39;Failed to encode biometric machine config.&#39;);
+    }
+
+    file_put_contents(attendance_machine_config_path(), $json . PHP_EOL);
+}
+
+function attendance_ensure_bridge_status_tables(mysqli $conn): void
+{
+    $conn-&gt;query(&quot;CREATE TABLE IF NOT EXISTS biometric_bridge_profile (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        profile_name VARCHAR(100) NOT NULL DEFAULT &#39;default&#39;,
+        bridge_enabled TINYINT(1) NOT NULL DEFAULT 1,
+        bridge_token VARCHAR(255) NOT NULL DEFAULT &#39;&#39;,
+        cloud_base_url VARCHAR(255) NOT NULL DEFAULT &#39;&#39;,
+        ingest_path VARCHAR(255) NOT NULL DEFAULT &#39;/api/f20h_ingest.php&#39;,
+        ingest_api_token VARCHAR(255) NOT NULL DEFAULT &#39;&#39;,
+        poll_seconds INT NOT NULL DEFAULT 30,
+        ip_address VARCHAR(100) NOT NULL DEFAULT &#39;&#39;,
+        gateway VARCHAR(100) NOT NULL DEFAULT &#39;&#39;,
+        mask VARCHAR(100) NOT NULL DEFAULT &#39;255.255.255.0&#39;,
+        port INT NOT NULL DEFAULT 5001,
+        device_number INT NOT NULL DEFAULT 1,
+        communication_password VARCHAR(255) NOT NULL DEFAULT &#39;0&#39;,
+        output_path VARCHAR(255) NOT NULL DEFAULT &#39;&#39;,
+        updated_by INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_profile_name (profile_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4&quot;);
+
+    $conn-&gt;query(&quot;CREATE TABLE IF NOT EXISTS biometric_bridge_heartbeat (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        node_name VARCHAR(120) NOT NULL DEFAULT &#39;&#39;,
+        status_text VARCHAR(255) NOT NULL DEFAULT &#39;&#39;,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_node_name (node_name),
+        KEY idx_updated_at (updated_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4&quot;);
+
+    $conn-&gt;query(&quot;CREATE TABLE IF NOT EXISTS biometric_bridge_user_cache (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        source_node VARCHAR(120) NOT NULL DEFAULT &#39;&#39;,
+        users_json LONGTEXT NOT NULL,
+        users_count INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY idx_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4&quot;);
+
+    $conn-&gt;query(&quot;CREATE TABLE IF NOT EXISTS biometric_ingest_events (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        received_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        source_ip VARCHAR(64) NOT NULL DEFAULT &#39;&#39;,
+        source_node VARCHAR(120) NOT NULL DEFAULT &#39;&#39;,
+        token_status VARCHAR(40) NOT NULL DEFAULT &#39;&#39;,
+        http_status INT NOT NULL DEFAULT 0,
+        events_received INT NOT NULL DEFAULT 0,
+        events_accepted INT NOT NULL DEFAULT 0,
+        note VARCHAR(255) NOT NULL DEFAULT &#39;&#39;,
+        PRIMARY KEY (id),
+        KEY idx_received_at (received_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4&quot;);
+}
+
+function attendance_bridge_runtime_status(mysqli $conn): array
+{
+    try {
+        attendance_ensure_bridge_status_tables($conn);
+    } catch (Throwable $ignored) {
+        return [
+            &#39;label&#39; =&gt; &#39;Bridge Unknown&#39;,
+            &#39;class&#39; =&gt; &#39;secondary&#39;,
+            &#39;icon&#39; =&gt; &#39;feather-help-circle&#39;,
+            &#39;detail&#39; =&gt; &#39;Bridge status tables are not available yet.&#39;,
+            &#39;age_seconds&#39; =&gt; null,
+        ];
+    }
+
+    $profile = [];
+    $profileRes = $conn-&gt;query(&quot;SELECT bridge_enabled, poll_seconds FROM biometric_bridge_profile WHERE profile_name = &#39;default&#39; LIMIT 1&quot;);
+    if ($profileRes instanceof mysqli_result) {
+        $profile = $profileRes-&gt;fetch_assoc() ?: [];
+        $profileRes-&gt;close();
+    }
+
+    $bridgeEnabled = empty($profile) || !empty($profile[&#39;bridge_enabled&#39;]);
+    $pollSeconds = max(10, (int)($profile[&#39;poll_seconds&#39;] ?? 30));
+
+    $latestHeartbeatAt = &#39;&#39;;
+    $heartbeatStatusText = &#39;&#39;;
+    $heartbeatRes = $conn-&gt;query(&quot;SELECT updated_at, status_text FROM biometric_bridge_heartbeat ORDER BY updated_at DESC, id DESC LIMIT 1&quot;);
+    if ($heartbeatRes instanceof mysqli_result) {
+        $row = $heartbeatRes-&gt;fetch_assoc() ?: [];
+        $latestHeartbeatAt = (string)($row[&#39;updated_at&#39;] ?? &#39;&#39;);
+        $heartbeatStatusText = (string)($row[&#39;status_text&#39;] ?? &#39;&#39;);
+        $heartbeatRes-&gt;close();
+    }
+
+    $latestCacheAt = &#39;&#39;;
+    $cacheRes = $conn-&gt;query(&quot;SELECT created_at FROM biometric_bridge_user_cache ORDER BY id DESC LIMIT 1&quot;);
+    if ($cacheRes instanceof mysqli_result) {
+        $row = $cacheRes-&gt;fetch_assoc() ?: [];
+        $latestCacheAt = (string)($row[&#39;created_at&#39;] ?? &#39;&#39;);
+        $cacheRes-&gt;close();
+    }
+
+    $latestIngestAt = &#39;&#39;;
+    $ingestRes = $conn-&gt;query(&quot;SELECT received_at FROM biometric_ingest_events ORDER BY id DESC LIMIT 1&quot;);
+    if ($ingestRes instanceof mysqli_result) {
+        $row = $ingestRes-&gt;fetch_assoc() ?: [];
+        $latestIngestAt = (string)($row[&#39;received_at&#39;] ?? &#39;&#39;);
+        $ingestRes-&gt;close();
+    }
+
+    $workerLogAt = &#39;&#39;;
+    $workerLogPath = dirname(__DIR__) . &#39;/tools/bridge-worker.log&#39;;
+    $workerLogMtime = @filemtime($workerLogPath);
+    if ($workerLogMtime !== false &amp;&amp; $workerLogMtime &gt; 0) {
+        $workerLogAt = date(&#39;Y-m-d H:i:s&#39;, (int)$workerLogMtime);
+    }
+
+    $candidates = [
+        &#39;cloud heartbeat&#39; =&gt; $latestHeartbeatAt,
+        &#39;bridge user cache&#39; =&gt; $latestCacheAt,
+        &#39;ingest event&#39; =&gt; $latestIngestAt,
+        &#39;local worker log&#39; =&gt; $workerLogAt,
+    ];
+
+    $lastSeenAt = &#39;&#39;;
+    $lastSeenSource = &#39;&#39;;
+    $lastSeenTs = 0;
+    foreach ($candidates as $source =&gt; $candidate) {
+        if (trim((string)$candidate) === &#39;&#39;) {
+            continue;
+        }
+        $ts = strtotime((string)$candidate);
+        if ($ts !== false &amp;&amp; $ts &gt; $lastSeenTs) {
+            $lastSeenTs = $ts;
+            $lastSeenAt = (string)$candidate;
+            $lastSeenSource = (string)$source;
+        }
+    }
+
+    if (!$bridgeEnabled) {
+        return [
+            &#39;label&#39; =&gt; &#39;Bridge Paused&#39;,
+            &#39;class&#39; =&gt; &#39;warning&#39;,
+            &#39;icon&#39; =&gt; &#39;feather-pause-circle&#39;,
+            &#39;detail&#39; =&gt; &#39;Bridge profile is paused. Resume or revive it in Machine Manager.&#39;,
+            &#39;age_seconds&#39; =&gt; null,
+        ];
+    }
+
+    if ($lastSeenTs &lt;= 0) {
+        return [
+            &#39;label&#39; =&gt; &#39;Bridge Unknown&#39;,
+            &#39;class&#39; =&gt; &#39;secondary&#39;,
+            &#39;icon&#39; =&gt; &#39;feather-help-circle&#39;,
+            &#39;detail&#39; =&gt; &#39;No bridge heartbeat, user cache, ingest activity, or local worker log has been seen yet.&#39;,
+            &#39;age_seconds&#39; =&gt; null,
+        ];
+    }
+
+    $ageSeconds = max(0, time() - $lastSeenTs);
+    $onlineThreshold = max(600, $pollSeconds * 12);
+    $isOnline = $ageSeconds &lt;= $onlineThreshold;
+    $pullStatus = strtolower($heartbeatStatusText);
+    $pullFailing = $isOnline &amp;&amp; (
+        strpos($pullStatus, &#39;f20h pull failed&#39;) !== false
+        || strpos($pullStatus, &#39;device connection failed&#39;) !== false
+        || strpos($pullStatus, &#39;failed&#39;) !== false
+    );
+
+    return [
+        &#39;label&#39; =&gt; $pullFailing ? &#39;Bridge Online / F20H Pull Failing&#39; : ($isOnline ? &#39;Bridge Online&#39; : &#39;Bridge Offline&#39;),
+        &#39;class&#39; =&gt; $pullFailing ? &#39;warning&#39; : ($isOnline ? &#39;success&#39; : &#39;danger&#39;),
+        &#39;icon&#39; =&gt; $pullFailing ? &#39;feather-alert-triangle&#39; : ($isOnline ? &#39;feather-wifi&#39; : &#39;feather-wifi-off&#39;),
+        &#39;detail&#39; =&gt; ($isOnline ? &#39;Last activity &#39; : &#39;Last activity stale: &#39;) . $lastSeenAt
+            . ($lastSeenSource !== &#39;&#39; ? &#39; via &#39; . $lastSeenSource : &#39;&#39;)
+            . &#39; (age &#39; . $ageSeconds . &#39;s, poll &#39; . $pollSeconds . &#39;s)&#39;
+            . ($heartbeatStatusText !== &#39;&#39; ? &#39;. Heartbeat: &#39; . $heartbeatStatusText : &#39;&#39;),
+        &#39;age_seconds&#39; =&gt; $ageSeconds,
+        &#39;last_seen_at&#39; =&gt; $lastSeenAt,
+        &#39;last_seen_source&#39; =&gt; $lastSeenSource,
+    ];
+}
+
+function attendance_redirect_self(): void
+{
+    $target = &#39;attendance.php&#39;;
+    $query = trim((string)($_SERVER[&#39;QUERY_STRING&#39;] ?? &#39;&#39;));
+    if ($query !== &#39;&#39;) {
+        $target .= &#39;?&#39; . $query;
+    }
+    header(&#39;Location: &#39; . $target);
+    exit;
+}
+
+function attendance_local_today(): string
+{
+    $tzName = trim((string)(getenv(&#39;APP_TIMEZONE&#39;) ?: &#39;Asia/Manila&#39;));
+    try {
+        $tz = new DateTimeZone($tzName !== &#39;&#39; ? $tzName : &#39;Asia/Manila&#39;);
+    } catch (Throwable $e) {
+        $tz = new DateTimeZone(&#39;Asia/Manila&#39;);
+    }
+
+    $now = new DateTimeImmutable(&#39;now&#39;, $tz);
+    return $now-&gt;format(&#39;Y-m-d&#39;);
+}
+
+function attendance_school_hours_config(?array $machineConfig = null): array
+{
+    $machineConfig = is_array($machineConfig) ? $machineConfig : attendance_load_machine_config();
+
+    $start = section_schedule_format_time_input((string)($machineConfig[&#39;attendanceStartTime&#39;] ?? &#39;08:00:00&#39;));
+    $end = section_schedule_format_time_input((string)($machineConfig[&#39;attendanceEndTime&#39;] ?? &#39;19:00:00&#39;));
+
+    return [
+        &#39;schedule_time_in&#39; =&gt; $start !== &#39;&#39; ? $start : &#39;08:00&#39;,
+        &#39;schedule_time_out&#39; =&gt; $end !== &#39;&#39; ? $end : &#39;19:00&#39;,
+        &#39;late_after_time&#39; =&gt; $start !== &#39;&#39; ? $start : &#39;08:00&#39;,
+    ];
+}
+
+$machineConfig = attendance_load_machine_config();
+
+// Fetch Attendance Statistics
+$stats_query = &quot;
+    SELECT 
+        SUM(CASE WHEN status = &#39;approved&#39; THEN 1 ELSE 0 END) as approved_count,
+        SUM(CASE WHEN status IN (&#39;pending&#39;, &#39;pending_correction&#39;, &#39;incomplete&#39;) THEN 1 ELSE 0 END) as pending_count,
+        SUM(CASE WHEN status = &#39;rejected&#39; THEN 1 ELSE 0 END) as rejected_count,
+        COUNT(*) as total_count
+    FROM attendances
+&quot;;
+$attendance_stats_where = [];
+if ($attendance_is_supervisor &amp;&amp; $attendance_user_id &gt; 0) {
+    $attendance_stats_scope = [&quot;(i.supervisor_id = &quot; . (int)$attendance_user_id . &quot; OR s.supervisor_id = &quot; . (int)$attendance_user_id . &quot;)&quot;];
+    if ($attendance_supervisor_profile_id &gt; 0 &amp;&amp; $attendance_supervisor_profile_id !== $attendance_user_id) {
+        $attendance_stats_scope[] = &quot;(i.supervisor_id = &quot; . (int)$attendance_supervisor_profile_id . &quot; OR s.supervisor_id = &quot; . (int)$attendance_supervisor_profile_id . &quot;)&quot;;
+    }
+    $attendance_stats_where[] = &#39;(&#39; . implode(&#39; OR &#39;, $attendance_stats_scope) . &#39;)&#39;;
+}
+if (!empty($attendance_stats_where)) {
+    $stats_query = &quot;
+        SELECT 
+            SUM(CASE WHEN a.status = &#39;approved&#39; THEN 1 ELSE 0 END) as approved_count,
+            SUM(CASE WHEN a.status IN (&#39;pending&#39;, &#39;pending_correction&#39;, &#39;incomplete&#39;) THEN 1 ELSE 0 END) as pending_count,
+            SUM(CASE WHEN a.status = &#39;rejected&#39; THEN 1 ELSE 0 END) as rejected_count,
+            COUNT(*) as total_count
+        FROM attendances a
+        LEFT JOIN students s ON a.student_id = s.id
+        LEFT JOIN internships i ON s.id = i.student_id AND i.status = &#39;ongoing&#39;
+        WHERE &quot; . implode(&#39; AND &#39;, $attendance_stats_where);
+}
+$stats_result = $conn-&gt;query($stats_query);
+$stats = $stats_result-&gt;fetch_assoc();
+// Prepare filter inputs (defaults: today&#39;s date)
+$filter_date = isset($_GET[&#39;date&#39;]) &amp;&amp; $_GET[&#39;date&#39;] !== &#39;&#39; ? $_GET[&#39;date&#39;] : &#39;&#39;;
+$start_date = isset($_GET[&#39;start_date&#39;]) &amp;&amp; $_GET[&#39;start_date&#39;] !== &#39;&#39; ? $_GET[&#39;start_date&#39;] : &#39;&#39;;
+$end_date = isset($_GET[&#39;end_date&#39;]) &amp;&amp; $_GET[&#39;end_date&#39;] !== &#39;&#39; ? $_GET[&#39;end_date&#39;] : &#39;&#39;;
+$filter_course = 0;
+$filter_department = 0;
+$filter_section = 0;
+$filter_school_year = &#39;&#39;;
+$filter_supervisor = &#39;&#39;;
+$filter_coordinator = &#39;&#39;;
+$filter_source = isset($_GET[&#39;source&#39;]) ? trim((string)$_GET[&#39;source&#39;]) : &#39;all&#39;;
+$valid_source_filters = [&#39;all&#39;, &#39;manual&#39;, &#39;biometric&#39;, &#39;external-biometric&#39;];
+if (!in_array($filter_source, $valid_source_filters, true)) {
+    $filter_source = &#39;all&#39;;
+}
+$filter_status = strtolower(trim((string)($_GET[&#39;status&#39;] ?? &#39;all&#39;)));
+$valid_status_filters = [&#39;all&#39;, &#39;early&#39;, &#39;present&#39;, &#39;late&#39;, &#39;absent&#39;, &#39;approved&#39;, &#39;pending_correction&#39;];
+if (!in_array($filter_status, $valid_status_filters, true)) {
+    $filter_status = &#39;all&#39;;
+}
+$has_active_status_filter = $filter_status !== &#39;all&#39;;
+$filter_reports = isset($_GET[&#39;reports&#39;]) ? trim((string)$_GET[&#39;reports&#39;]) : &#39;all&#39;;
+$valid_report_filters = [&#39;all&#39;, &#39;internal_dtr&#39;, &#39;external_queue&#39;, &#39;proof&#39;];
+$has_valid_report_filter = in_array($filter_reports, $valid_report_filters, true);
+if (!$has_valid_report_filter) {
+    $filter_reports = &#39;all&#39;;
+}
+
+$has_application_status = false;
+$col_app = $conn-&gt;query(&quot;SHOW COLUMNS FROM users LIKE &#39;application_status&#39;&quot;);
+if ($col_app instanceof mysqli_result) {
+    $has_application_status = $col_app-&gt;num_rows &gt; 0;
+    $col_app-&gt;close();
+}
+
+$has_school_year_column = false;
+$col_sy = $conn-&gt;query(&quot;SHOW COLUMNS FROM students LIKE &#39;school_year&#39;&quot;);
+if ($col_sy instanceof mysqli_result) {
+    $has_school_year_column = $col_sy-&gt;num_rows &gt; 0;
+    $col_sy-&gt;close();
+}
+
+$school_year_options = [];
+$school_year_start = 2005;
+$attendance_today_local = attendance_local_today();
+$current_calendar_month = (int)date(&#39;n&#39;, strtotime($attendance_today_local));
+$current_calendar_year = (int)date(&#39;Y&#39;, strtotime($attendance_today_local));
+$current_school_year_start = $current_calendar_month &gt;= 7 ? $current_calendar_year : ($current_calendar_year - 1);
+$latest_school_year_start = max(2025, $current_school_year_start);
+for ($year = $latest_school_year_start; $year &gt;= $school_year_start; $year--) {
+    $school_year_options[] = sprintf(&#39;%d-%d&#39;, $year, $year + 1);
+}
+
+$has_additional_filters = (
+    $has_active_status_filter
+    || $filter_reports !== &#39;all&#39;
+    || $filter_source !== &#39;all&#39;
+);
+
+// default to local current date when no date filters provided
+if (empty($filter_date) &amp;&amp; empty($start_date) &amp;&amp; empty($end_date) &amp;&amp; !$has_additional_filters) {
+    $filter_date = $attendance_today_local;
+}
+
+// Safety net: process any pending raw biometric logs so Attendance stays current
+// even if ingest accepted events while auto-import was temporarily disabled.
+try {
+    $pendingRaw = 0;
+    $pendingRes = $conn-&gt;query(&#39;SELECT COUNT(*) AS pending_count FROM biometric_raw_logs WHERE processed = 0&#39;);
+    if ($pendingRes instanceof mysqli_result) {
+        $pendingRow = $pendingRes-&gt;fetch_assoc();
+        $pendingRaw = (int)($pendingRow[&#39;pending_count&#39;] ?? 0);
+        $pendingRes-&gt;close();
+    }
+
+    if ($pendingRaw &gt; 0) {
+        run_biometric_auto_import_stats();
+    }
+} catch (Throwable $ignored) {
+    // Keep attendance page load resilient if biometric sync tables are unavailable.
+}
+
+// Fetch dropdown lists
+$courses = [];
+// Determine which column exists for active flag on courses to avoid schema mismatch errors
+$db_esc = $conn-&gt;real_escape_string($db_name);
+$has_is_active = false;
+$has_status_col = false;
+$col_check = $conn-&gt;query(&quot;SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = &#39;&quot; . $db_esc . &quot;&#39; AND TABLE_NAME = &#39;courses&#39; AND COLUMN_NAME IN (&#39;is_active&#39;,&#39;status&#39;)&quot;);
+if ($col_check &amp;&amp; $col_check-&gt;num_rows) {
+    while ($c = $col_check-&gt;fetch_assoc()) {
+        if ($c[&#39;COLUMN_NAME&#39;] === &#39;is_active&#39;) $has_is_active = true;
+        if ($c[&#39;COLUMN_NAME&#39;] === &#39;status&#39;) $has_status_col = true;
+    }
+}
+
+$courses_query = &quot;SELECT id, name FROM courses&quot;;
+if ($has_is_active) {
+    $courses_query .= &quot; WHERE is_active = 1&quot;;
+} elseif ($has_status_col) {
+    $courses_query .= &quot; WHERE status = 1&quot;;
+}
+$courses_query .= &quot; ORDER BY name ASC&quot;;
+
+$courses_res = $conn-&gt;query($courses_query);
+if ($courses_res &amp;&amp; $courses_res-&gt;num_rows) {
+    while ($r = $courses_res-&gt;fetch_assoc()) $courses[] = $r;
+}
+
+$departments = [];
+$dept_res = $conn-&gt;query(&quot;SELECT id, name FROM departments ORDER BY name ASC&quot;);
+if ($dept_res &amp;&amp; $dept_res-&gt;num_rows) {
+    while ($r = $dept_res-&gt;fetch_assoc()) $departments[] = $r;
+}
+
+$sections = [];
+$section_res = $conn-&gt;query(&quot;SELECT id, code, name, COALESCE(NULLIF(code, &#39;&#39;), name) AS section_label FROM sections ORDER BY section_label ASC&quot;);
+if ($section_res &amp;&amp; $section_res-&gt;num_rows) {
+    while ($r = $section_res-&gt;fetch_assoc()) {
+        $r[&#39;section_label&#39;] = biotern_format_section_label((string)($r[&#39;code&#39;] ?? &#39;&#39;), (string)($r[&#39;name&#39;] ?? &#39;&#39;));
+        $sections[] = $r;
+    }
+}
+
+$supervisors = [];
+$sup_res = $conn-&gt;query(&quot;
+    SELECT DISTINCT TRIM(CONCAT_WS(&#39; &#39;, first_name, middle_name, last_name)) AS supervisor_name
+    FROM supervisors
+    WHERE TRIM(CONCAT_WS(&#39; &#39;, first_name, middle_name, last_name)) &lt;&gt; &#39;&#39;
+    ORDER BY supervisor_name ASC
+&quot;);
+if ($sup_res &amp;&amp; $sup_res-&gt;num_rows) {
+    while ($r = $sup_res-&gt;fetch_assoc()) $supervisors[] = $r[&#39;supervisor_name&#39;];
+}
+
+$coordinators = [];
+$coor_res = $conn-&gt;query(&quot;
+    SELECT DISTINCT TRIM(CONCAT_WS(&#39; &#39;, first_name, middle_name, last_name)) AS coordinator_name
+    FROM coordinators
+    WHERE TRIM(CONCAT_WS(&#39; &#39;, first_name, middle_name, last_name)) &lt;&gt; &#39;&#39;
+    ORDER BY coordinator_name ASC
+&quot;);
+if ($coor_res &amp;&amp; $coor_res-&gt;num_rows) {
+    while ($r = $coor_res-&gt;fetch_assoc()) $coordinators[] = $r[&#39;coordinator_name&#39;];
+}
+
+// Build attendance query filtered by provided inputs. Default shows today&#39;s records.
+// Build WHERE clauses depending on provided filters
+$where = [];
+if ($attendance_is_supervisor &amp;&amp; $attendance_user_id &gt; 0) {
+    $attendanceScopeParts = [&quot;(i.supervisor_id = &quot; . (int)$attendance_user_id . &quot; OR s.supervisor_id = &quot; . (int)$attendance_user_id . &quot;)&quot;];
+    if ($attendance_supervisor_profile_id &gt; 0 &amp;&amp; $attendance_supervisor_profile_id !== $attendance_user_id) {
+        $attendanceScopeParts[] = &quot;(i.supervisor_id = &quot; . (int)$attendance_supervisor_profile_id . &quot; OR s.supervisor_id = &quot; . (int)$attendance_supervisor_profile_id . &quot;)&quot;;
+    }
+    $where[] = &#39;(&#39; . implode(&#39; OR &#39;, $attendanceScopeParts) . &#39;)&#39;;
+}
+if (!empty($start_date) &amp;&amp; !empty($end_date)) {
+    $where[] = &quot;a.attendance_date BETWEEN &#39;&quot; . $conn-&gt;real_escape_string($start_date) . &quot;&#39; AND &#39;&quot; . $conn-&gt;real_escape_string($end_date) . &quot;&#39;&quot;;
+} elseif (!empty($filter_date)) {
+    $where[] = &quot;a.attendance_date = &#39;&quot; . $conn-&gt;real_escape_string($filter_date) . &quot;&#39;&quot;;
+}
+if ($filter_source !== &#39;all&#39;) {
+    if ($filter_source === &#39;biometric&#39;) {
+        $where[] = &quot;(a.source = &#39;biometric&#39; OR a.source = &#39;external-biometric&#39;)&quot;;
+    } else {
+        $where[] = &quot;a.source = &#39;&quot; . $conn-&gt;real_escape_string($filter_source) . &quot;&#39;&quot;;
+    }
+}
+if ($filter_course &gt; 0) {
+    $where[] = &quot;s.course_id = &quot; . intval($filter_course);
+}
+if ($filter_department &gt; 0) {
+    // join internships table to filter by department assignment
+    $where[] = &quot;i.department_id = &quot; . intval($filter_department);
+}
+if ($filter_section &gt; 0) {
+    $where[] = &quot;s.section_id = &quot; . intval($filter_section);
+}
+if ($filter_school_year !== &#39;&#39; &amp;&amp; preg_match(&#39;/^\d{4}-\d{4}$/&#39;, $filter_school_year) &amp;&amp; in_array($filter_school_year, $school_year_options, true)) {
+    $esc_school_year = $conn-&gt;real_escape_string($filter_school_year);
+    $where[] = &quot;s.school_year = &#39;{$esc_school_year}&#39;&quot;;
+}
+if (!empty($filter_supervisor)) {
+    $esc_sup = $conn-&gt;real_escape_string($filter_supervisor);
+    $where[] = &quot;(
+        TRIM(CONCAT_WS(&#39; &#39;, sup.first_name, sup.middle_name, sup.last_name)) LIKE &#39;%{$esc_sup}%&#39;
+        OR s.supervisor_name LIKE &#39;%{$esc_sup}%&#39;
+    )&quot;;
+}
+if (!empty($filter_coordinator)) {
+    $esc_coor = $conn-&gt;real_escape_string($filter_coordinator);
+    $where[] = &quot;(
+        TRIM(CONCAT_WS(&#39; &#39;, coor.first_name, coor.middle_name, coor.last_name)) LIKE &#39;%{$esc_coor}%&#39;
+        OR s.coordinator_name LIKE &#39;%{$esc_coor}%&#39;
+    )&quot;;
+}
+
+$hasManualDtrAttachments = function_exists(&#39;table_exists&#39;) &amp;&amp; table_exists($conn, &#39;manual_dtr_attachments&#39;);
+if ($filter_reports === &#39;proof&#39;) {
+    $where[] = $hasManualDtrAttachments
+        ? &quot;EXISTS (SELECT 1 FROM manual_dtr_attachments mda_filter WHERE mda_filter.attendance_id = a.id AND mda_filter.deleted_at IS NULL)&quot;
+        : &#39;1 = 0&#39;;
+}
+
+$manualProofSelect = &#39;NULL AS proof_photo_path, NULL AS proof_reason&#39;;
+$manualProofJoin = &#39;&#39;;
+if ($hasManualDtrAttachments) {
+    $manualProofSelect = &quot;CASE WHEN mda.id IS NOT NULL THEN CONCAT(&#39;manual-dtr-proof.php?id=&#39;, mda.id) ELSE NULL END AS proof_photo_path, mda.reason AS proof_reason&quot;;
+    $manualProofJoin = &quot;
+    LEFT JOIN manual_dtr_attachments mda ON mda.id = (
+        SELECT MIN(mda_inner.id)
+        FROM manual_dtr_attachments mda_inner
+        WHERE mda_inner.attendance_id = a.id
+          AND mda_inner.deleted_at IS NULL
+    )&quot;;
+}
+
+$hasStudentAssistancePrograms = false;
+$saTableRes = $conn-&gt;query(&quot;SHOW TABLES LIKE &#39;student_assistance_programs&#39;&quot;);
+if ($saTableRes instanceof mysqli_result) {
+    $hasStudentAssistancePrograms = $saTableRes-&gt;num_rows &gt; 0;
+    $saTableRes-&gt;close();
+}
+$saStudentSelect = $hasStudentAssistancePrograms
+    ? &quot;CASE WHEN EXISTS (SELECT 1 FROM student_assistance_programs sap WHERE sap.student_id = s.id AND sap.deleted_at IS NULL AND sap.status = &#39;active&#39;) THEN 1 ELSE 0 END AS is_sa_student,&quot;
+    : &quot;0 AS is_sa_student,&quot;;
+
+$include_internal_records = in_array($filter_reports, [&#39;all&#39;, &#39;internal_dtr&#39;, &#39;proof&#39;], true);
+$include_external_records = in_array($filter_reports, [&#39;all&#39;, &#39;external_queue&#39;, &#39;proof&#39;], true);
+
+$attendance_query = &quot;
+     SELECT 
+         a.id,
+         a.attendance_date,
+         a.morning_time_in,
+         a.morning_time_out,
+         a.break_time_in,
+         a.break_time_out,
+         a.afternoon_time_in,
+         a.afternoon_time_out,
+         a.total_hours,
+         a.source,
+        a.status,
+        a.approved_by,
+        a.approved_at,
+        a.remarks,
+        &#39;internal&#39; AS record_origin,
+        {$manualProofSelect},
+        s.id as student_id,
+        s.user_id,
+        s.department_id,
+        {$saStudentSelect}
+        COALESCE(NULLIF(u_student.profile_picture, &#39;&#39;), NULLIF(s.profile_picture, &#39;&#39;)) AS profile_picture,
+        s.student_id as student_number,
+        s.first_name,
+        s.last_name,
+         s.email,
+         s.section_id,
+         s.supervisor_name,
+         s.coordinator_name,
+         sec.code AS section_code,
+         sec.name AS section_name,
+         c.name as course_name,
+         d.name as department_name,
+         sec.attendance_session,
+        sec.schedule_time_in,
+        sec.schedule_time_out,
+        sec.late_after_time,
+        sec.weekly_schedule_json,
+        u.name as approver_name
+    FROM attendances a
+    LEFT JOIN students s ON a.student_id = s.id
+    LEFT JOIN users u_student ON s.user_id = u_student.id
+    LEFT JOIN sections sec ON s.section_id = sec.id
+    LEFT JOIN courses c ON s.course_id = c.id
+    LEFT JOIN internships i ON s.id = i.student_id AND i.status = &#39;ongoing&#39;
+    LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
+    LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
+    LEFT JOIN departments d ON i.department_id = d.id
+    LEFT JOIN users u ON a.approved_by = u.id
+    {$manualProofJoin}
+    WHERE &quot; . implode(&#39; AND &#39;, $where) . &quot;
+    ORDER BY a.attendance_date DESC, a.id DESC, s.last_name ASC
+    LIMIT 100
+&quot;;
+
+$attendances = [];
+if ($include_internal_records) {
+    $attendance_result = $conn-&gt;query($attendance_query);
+    if ($attendance_result &amp;&amp; $attendance_result-&gt;num_rows &gt; 0) {
+        $seen_attendance_ids = [];
+        while ($row = $attendance_result-&gt;fetch_assoc()) {
+            $aid = isset($row[&#39;id&#39;]) ? (int)$row[&#39;id&#39;] : 0;
+            if ($aid &gt; 0 &amp;&amp; isset($seen_attendance_ids[$aid])) {
+                continue;
+            }
+            if ($aid &gt; 0) {
+                $seen_attendance_ids[$aid] = true;
+            }
+            $attendances[] = $row;
+        }
+    }
+}
+
+$externalWhere = [&quot;ea.status = &#39;approved&#39;&quot;];
+if ($has_application_status) {
+    $externalWhere[] = &quot;COALESCE(u_student.application_status, &#39;approved&#39;) = &#39;approved&#39;&quot;;
+}
+if ($filter_source !== &#39;all&#39;) {
+    if ($filter_source === &#39;biometric&#39;) {
+        $externalWhere[] = &quot;(ea.source = &#39;biometric&#39; OR ea.source = &#39;external-biometric&#39;)&quot;;
+    } else {
+        $externalWhere[] = &quot;ea.source = &#39;&quot; . $conn-&gt;real_escape_string($filter_source) . &quot;&#39;&quot;;
+    }
+}
+if ($filter_reports === &#39;proof&#39;) {
+    $externalWhere[] = &quot;(TRIM(COALESCE(ea.photo_path, &#39;&#39;)) &lt;&gt; &#39;&#39; OR EXISTS (SELECT 1 FROM external_dtr_attachments eda_filter WHERE eda_filter.external_attendance_id = ea.id AND eda_filter.deleted_at IS NULL))&quot;;
+}
+if ($start_date !== &#39;&#39; &amp;&amp; $end_date !== &#39;&#39;) {
+    $safeStartDate = $conn-&gt;real_escape_string($start_date);
+    $safeEndDate = $conn-&gt;real_escape_string($end_date);
+    $externalWhere[] = &quot;ea.attendance_date BETWEEN &#39;{$safeStartDate}&#39; AND &#39;{$safeEndDate}&#39;&quot;;
+} elseif ($filter_date !== &#39;&#39;) {
+    $safeDate = $conn-&gt;real_escape_string($filter_date);
+    $externalWhere[] = &quot;ea.attendance_date = &#39;{$safeDate}&#39;&quot;;
+}
+if ($filter_course &gt; 0) {
+    $externalWhere[] = &quot;s.course_id = &quot; . (int)$filter_course;
+}
+if ($filter_department &gt; 0) {
+    $externalWhere[] = &quot;COALESCE(s.department_id, i.department_id) = &quot; . (int)$filter_department;
+}
+if ($filter_section &gt; 0) {
+    $externalWhere[] = &quot;s.section_id = &quot; . (int)$filter_section;
+}
+if ($has_school_year_column &amp;&amp; $filter_school_year !== &#39;&#39; &amp;&amp; preg_match(&#39;/^\d{4}-\d{4}$/&#39;, $filter_school_year) &amp;&amp; in_array($filter_school_year, $school_year_options, true)) {
+    $externalWhere[] = &quot;s.school_year = &#39;&quot; . $conn-&gt;real_escape_string($filter_school_year) . &quot;&#39;&quot;;
+}
+if (!empty($filter_supervisor)) {
+    $escSup = $conn-&gt;real_escape_string($filter_supervisor);
+    $externalWhere[] = &quot;(
+        TRIM(CONCAT_WS(&#39; &#39;, sup.first_name, sup.middle_name, sup.last_name)) LIKE &#39;%{$escSup}%&#39;
+        OR s.supervisor_name LIKE &#39;%{$escSup}%&#39;
+    )&quot;;
+}
+if (!empty($filter_coordinator)) {
+    $escCoor = $conn-&gt;real_escape_string($filter_coordinator);
+    $externalWhere[] = &quot;(
+        TRIM(CONCAT_WS(&#39; &#39;, coor.first_name, coor.middle_name, coor.last_name)) LIKE &#39;%{$escCoor}%&#39;
+        OR s.coordinator_name LIKE &#39;%{$escCoor}%&#39;
+    )&quot;;
+}
+if ($attendance_is_supervisor &amp;&amp; $attendance_user_id &gt; 0) {
+    $scopeParts = [&quot;(i.supervisor_id = &quot; . (int)$attendance_user_id . &quot; OR s.supervisor_id = &quot; . (int)$attendance_user_id . &quot;)&quot;];
+    if ($attendance_supervisor_profile_id &gt; 0 &amp;&amp; $attendance_supervisor_profile_id !== $attendance_user_id) {
+        $scopeParts[] = &quot;(i.supervisor_id = &quot; . (int)$attendance_supervisor_profile_id . &quot; OR s.supervisor_id = &quot; . (int)$attendance_supervisor_profile_id . &quot;)&quot;;
+    }
+    $externalWhere[] = &#39;(&#39; . implode(&#39; OR &#39;, $scopeParts) . &#39;)&#39;;
+}
+
+$externalAttendanceQuery = &quot;
+     SELECT
+         ea.id,
+         ea.attendance_date,
+         ea.morning_time_in,
+         ea.morning_time_out,
+         ea.break_time_in,
+         ea.break_time_out,
+         ea.afternoon_time_in,
+         ea.afternoon_time_out,
+         ea.total_hours,
+         ea.source,
+         ea.status,
+         ea.reviewed_by AS approved_by,
+         ea.reviewed_at AS approved_at,
+         ea.notes AS remarks,
+         (
+            SELECT eda_reason.reason
+            FROM external_dtr_attachments eda_reason
+            WHERE eda_reason.external_attendance_id = ea.id
+              AND eda_reason.deleted_at IS NULL
+            ORDER BY eda_reason.id DESC
+            LIMIT 1
+         ) AS proof_reason,
+         &#39;external&#39; AS record_origin,
+         &quot; . external_attendance_proof_url_sql(&#39;ea&#39;) . &quot; AS proof_photo_path,
+         s.id AS student_id,
+         s.user_id,
+         COALESCE(s.department_id, i.department_id) AS department_id,
+         {$saStudentSelect}
+         COALESCE(NULLIF(u_student.profile_picture, &#39;&#39;), NULLIF(s.profile_picture, &#39;&#39;)) AS profile_picture,
+         s.student_id AS student_number,
+         s.first_name,
+         s.last_name,
+         s.email,
+         s.section_id,
+         s.supervisor_name,
+         s.coordinator_name,
+         sec.code AS section_code,
+         sec.name AS section_name,
+         c.name AS course_name,
+         d.name AS department_name,
+         sec.attendance_session,
+         sec.schedule_time_in,
+         sec.schedule_time_out,
+         sec.late_after_time,
+         sec.weekly_schedule_json,
+         u.name AS approver_name,
+         ea.multiplier,
+         ea.multiplier_reason
+     FROM external_attendance ea
+     LEFT JOIN students s ON ea.student_id = s.id
+     LEFT JOIN users u_student ON s.user_id = u_student.id
+     LEFT JOIN sections sec ON s.section_id = sec.id
+     LEFT JOIN courses c ON s.course_id = c.id
+     LEFT JOIN internships i ON s.id = i.student_id AND i.status = &#39;ongoing&#39;
+     LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
+     LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
+     LEFT JOIN departments d ON d.id = COALESCE(s.department_id, i.department_id)
+     LEFT JOIN users u ON ea.reviewed_by = u.id
+     WHERE &quot; . implode(&#39; AND &#39;, $externalWhere) . &quot;
+     ORDER BY ea.attendance_date DESC, ea.id DESC, s.last_name ASC
+     LIMIT 100
+&quot;;
+
+$externalAttendanceResult = null;
+if ($include_external_records) {
+    $externalAttendanceResult = $conn-&gt;query($externalAttendanceQuery);
+}
+if ($externalAttendanceResult instanceof mysqli_result) {
+    while ($row = $externalAttendanceResult-&gt;fetch_assoc()) {
+        $attendances[] = $row;
+    }
+    $externalAttendanceResult-&gt;close();
+}
+
+// Remove same-day duplicates per student, preferring the row that has actual punches.
+if (count($attendances) &gt; 1) {
+    $attendance_by_student_date = [];
+    foreach ($attendances as $attendance) {
+        $student_id_key = isset($attendance[&#39;student_id&#39;]) ? (string)$attendance[&#39;student_id&#39;] : &#39;&#39;;
+        $attendance_date_key = isset($attendance[&#39;attendance_date&#39;]) ? (string)$attendance[&#39;attendance_date&#39;] : &#39;&#39;;
+        $record_origin_key = trim((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;));
+        $dedupe_key = ($student_id_key !== &#39;&#39; &amp;&amp; $attendance_date_key !== &#39;&#39;)
+            ? ($student_id_key . &#39;|&#39; . $attendance_date_key . &#39;|&#39; . $record_origin_key)
+            : (&#39;id|&#39; . (string)($attendance[&#39;id&#39;] ?? &#39;&#39;));
+
+        if (!isset($attendance_by_student_date[$dedupe_key]) || shouldPreferAttendanceRow($attendance, $attendance_by_student_date[$dedupe_key])) {
+            $attendance_by_student_date[$dedupe_key] = $attendance;
+        }
+    }
+    $attendances = array_values($attendance_by_student_date);
+}
+
+foreach ($attendances as &amp;$attendance) {
+    if (strtolower(trim((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;))) === &#39;external&#39;) {
+        continue;
+    }
+    attendance_workflow_mark_incomplete_if_needed($conn, $attendance);
+}
+unset($attendance);
+
+if ($has_active_status_filter) {
+    $attendances = array_values(array_filter($attendances, function (array $attendance) use ($filter_status): bool {
+        if ($filter_status === &#39;pending_correction&#39;) {
+            return strtolower(trim((string)($attendance[&#39;status&#39;] ?? &#39;&#39;))) === &#39;pending_correction&#39;;
+        }
+        return attendance_list_status_key($attendance) === $filter_status;
+    }));
+}
+
+synchronizeAttendanceProgress($conn, $attendances);
+
+$missingScheduleAttendances = [];
+foreach ($attendances as $attendance) {
+    if (strtolower(trim((string)($attendance[&#39;source&#39;] ?? &#39;&#39;))) !== &#39;biometric&#39;) {
+        continue;
+    }
+
+    $schedule = attendance_effective_schedule($attendance);
+    if (($schedule[&#39;window_source&#39;] ?? &#39;none&#39;) === &#39;none&#39;) {
+        $missingScheduleAttendances[] = $attendance;
+    }
+}
+
+$attendanceBridgeStatus = attendance_bridge_runtime_status($conn);
+
+// If requested via AJAX, return only the table rows HTML so frontend can replace tbody
+if (isset($_GET[&#39;ajax&#39;]) &amp;&amp; $_GET[&#39;ajax&#39;] == &#39;1&#39;) {
+    if (!empty($attendances)) {
+        foreach ($attendances as $idx =&gt; $attendance) {
+            $checkboxId = &#39;checkBox_&#39; . $attendance[&#39;id&#39;] . &#39;_&#39; . $idx;
+            echo &#39;&lt;tr class=&quot;single-item&quot;&gt;&#39;;
+            if (attendanceCanReview($attendance)) {
+            echo &#39;&lt;td data-label=&quot;Select&quot;&gt;&lt;div class=&quot;item-checkbox ms-1&quot;&gt;&lt;div class=&quot;custom-control custom-checkbox&quot;&gt;&lt;input type=&quot;checkbox&quot; class=&quot;custom-control-input checkbox&quot; id=&quot;&#39; . $checkboxId . &#39;&quot; data-attendance-id=&quot;&#39; . (int)$attendance[&#39;id&#39;] . &#39;&quot;&gt;&lt;label class=&quot;custom-control-label&quot; for=&quot;&#39; . $checkboxId . &#39;&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;/div&gt;&lt;/td&gt;&#39;;
+            } else {
+                echo &#39;&lt;td data-label=&quot;Select&quot;&gt;&lt;span class=&quot;text-muted fs-12&quot; title=&quot;Biometric records are auto-verified&quot;&gt;Auto&lt;/span&gt;&lt;/td&gt;&#39;;
+            }
+            // build avatar (use uploaded profile picture when available)
+            $avatar_html = &#39;&lt;a href=&quot;students-internal-dtr.php?id=&#39; . (int)$attendance[&#39;student_id&#39;] . &#39;&quot; class=&quot;hstack gap-3&quot;&gt;&#39;;
+            $pp_url = resolve_attendance_profile_image_url((string)($attendance[&#39;profile_picture&#39;] ?? &#39;&#39;), (int)($attendance[&#39;user_id&#39;] ?? 0));
+            if ($pp_url !== null) {
+                $avatar_html .= &#39;&lt;div class=&quot;avatar-image avatar-md&quot;&gt;&lt;img src=&quot;&#39; . htmlspecialchars($pp_url) . &#39;&quot; alt=&quot;&quot; class=&quot;img-fluid&quot;&gt;&lt;/div&gt;&#39;;
+            } else {
+                $initials = strtoupper(substr($attendance[&#39;first_name&#39;] ?? &#39;N&#39;, 0, 1) . substr($attendance[&#39;last_name&#39;] ?? &#39;A&#39;, 0, 1));
+                $avatar_html .= &#39;&lt;div class=&quot;avatar-image avatar-md&quot;&gt;&lt;div class=&quot;avatar-text avatar-md bg-light-primary rounded&quot;&gt;&#39; . $initials . &#39;&lt;/div&gt;&lt;/div&gt;&#39;;
+            }
+            $saBadge = ((int)($attendance[&#39;is_sa_student&#39;] ?? 0) === 1) ? &#39; &lt;span class=&quot;badge bg-soft-primary text-primary ms-1&quot;&gt;SA&lt;/span&gt;&#39; : &#39;&#39;;
+            $avatar_html .= &#39;&lt;div&gt;&lt;div class=&quot;fw-bold&quot;&gt;&#39; . htmlspecialchars(($attendance[&#39;first_name&#39;] ?? &#39;&#39;) . &#39; &#39; . ($attendance[&#39;last_name&#39;] ?? &#39;&#39;)) . $saBadge . &#39;&lt;/div&gt;&lt;small class=&quot;text-muted&quot;&gt;&#39; . htmlspecialchars($attendance[&#39;student_number&#39;] ?? &#39;&#39;) . &#39;&lt;/small&gt;&lt;/div&gt;&lt;/a&gt;&#39;;
+            echo &#39;&lt;td data-label=&quot;Student Name&quot;&gt;&#39; . $avatar_html . &#39;&lt;/td&gt;&#39;;
+            echo &#39;&lt;td data-label=&quot;Attendance Date&quot;&gt;&lt;span class=&quot;badge bg-soft-primary text-primary&quot;&gt;&#39; . date(&#39;Y-m-d&#39;, strtotime($attendance[&#39;attendance_date&#39;])) . &#39;&lt;/span&gt;&lt;/td&gt;&#39;;
+            echo &#39;&lt;td data-label=&quot;Morning In&quot;&gt;&#39; . attendanceDisplayTimeHtml($attendance, &#39;morning_time_in&#39;, &#39;bg-soft-success text-success&#39;) . &#39;&lt;/td&gt;&#39;;
+            echo &#39;&lt;td data-label=&quot;Morning Out&quot;&gt;&#39; . attendanceDisplayTimeHtml($attendance, &#39;morning_time_out&#39;, &#39;bg-soft-success text-success&#39;) . &#39;&lt;/td&gt;&#39;;
+            echo &#39;&lt;td data-label=&quot;Afternoon In&quot;&gt;&#39; . attendanceDisplayTimeHtml($attendance, &#39;afternoon_time_in&#39;, &#39;bg-soft-warning text-warning&#39;) . &#39;&lt;/td&gt;&#39;;
+            echo &#39;&lt;td data-label=&quot;Afternoon Out&quot;&gt;&#39; . attendanceDisplayTimeHtml($attendance, &#39;afternoon_time_out&#39;, &#39;bg-soft-warning text-warning&#39;) . &#39;&lt;/td&gt;&#39;;
+            echo &#39;&lt;td data-label=&quot;Total Hours&quot;&gt;&#39; . attendance_hours_cell_html($attendance) . &#39;&lt;/td&gt;&#39;;
+            echo &#39;&lt;td data-label=&quot;Status&quot;&gt;&#39; . attendance_status_cell_html($attendance) . &#39;&lt;/td&gt;&#39;;
+            echo &#39;&lt;td data-label=&quot;Source&quot;&gt;&#39; . getSourceBadge($attendance[&#39;source&#39;] ?? &#39;manual&#39;, $attendance) . &#39;&lt;/td&gt;&#39;;
+            echo &#39;&lt;td data-label=&quot;Reports&quot;&gt;&#39; . attendance_reports_cell_html($attendance) . &#39;&lt;/td&gt;&#39;;
+            $student_name = trim((string)($attendance[&#39;first_name&#39;] ?? &#39;&#39;) . &#39; &#39; . (string)($attendance[&#39;last_name&#39;] ?? &#39;&#39;));
+            $approval_status_label = ucfirst((string)($attendance[&#39;status&#39;] ?? &#39;pending&#39;));
+            $morning_in_text = $attendance[&#39;morning_time_in&#39;] ? date(&#39;h:i A&#39;, strtotime($attendance[&#39;morning_time_in&#39;])) : &#39;-&#39;;
+            $morning_out_text = $attendance[&#39;morning_time_out&#39;] ? date(&#39;h:i A&#39;, strtotime($attendance[&#39;morning_time_out&#39;])) : &#39;-&#39;;
+            $afternoon_in_text = $attendance[&#39;afternoon_time_in&#39;] ? date(&#39;h:i A&#39;, strtotime($attendance[&#39;afternoon_time_in&#39;])) : &#39;-&#39;;
+            $afternoon_out_text = $attendance[&#39;afternoon_time_out&#39;] ? date(&#39;h:i A&#39;, strtotime($attendance[&#39;afternoon_time_out&#39;])) : &#39;-&#39;;
+            echo &#39;&lt;td data-label=&quot;Actions&quot;&gt;&#39; . attendanceActionMenuItems($attendance) . &#39;&lt;/td&gt;&#39;;
+            echo &#39;&lt;/tr&gt;&#39;;
+        }
+    }
+    exit;
+}
+
+// Helper function to format time
+function formatTime($time) {
+    if ($time) {
+        return date(&#39;h:i A&#39;, strtotime($time));
+    }
+    return &#39;-&#39;;
+}
+
+function attendanceDateWeekdayKey(?string $date): string {
+    $date = trim((string)$date);
+    if ($date === &#39;&#39;) {
+        return &#39;&#39;;
+    }
+    $timestamp = strtotime($date);
+    if ($timestamp === false) {
+        return &#39;&#39;;
+    }
+    return strtolower((string)date(&#39;l&#39;, $timestamp));
+}
+
+function attendanceScheduleDisplayFallback(array $attendance, string $column): ?string {
+    global $conn;
+
+    if ($conn instanceof mysqli) {
+        $settings = biotern_attendance_settings($conn);
+        if ((string)($settings[&#39;scheduled_slot_display&#39;] ?? &#39;1&#39;) !== &#39;1&#39;) {
+            return null;
+        }
+    }
+
+    if (strtolower(trim((string)($attendance[&#39;source&#39;] ?? &#39;&#39;))) !== &#39;biometric&#39;) {
+        return null;
+    }
+
+    $schedule = attendance_effective_schedule($attendance);
+    if (($schedule[&#39;window_source&#39;] ?? &#39;none&#39;) === &#39;none&#39;) {
+        return null;
+    }
+
+    $session = section_schedule_inferred_session($schedule);
+    $dayType = section_schedule_normalize_day_type(
+        (string)($schedule[&#39;day_type&#39;] ?? &#39;class&#39;),
+        attendanceDateWeekdayKey((string)($attendance[&#39;attendance_date&#39;] ?? &#39;&#39;))
+    );
+    $scheduleIn = section_schedule_normalize_time_input((string)($schedule[&#39;schedule_time_in&#39;] ?? &#39;&#39;));
+    $scheduleOut = section_schedule_normalize_time_input((string)($schedule[&#39;schedule_time_out&#39;] ?? &#39;&#39;));
+
+    if ($dayType === &#39;class&#39; || $dayType === &#39;x2_schedule&#39;) {
+        if ($column === &#39;morning_time_in&#39;) {
+            return $scheduleIn;
+        }
+        if ($column === &#39;morning_time_out&#39;) {
+            return $scheduleOut;
+        }
+        return null;
+    }
+
+    if ($session === &#39;morning_only&#39;) {
+        if ($column === &#39;morning_time_in&#39;) {
+            return $scheduleIn;
+        }
+        if ($column === &#39;morning_time_out&#39;) {
+            return $scheduleOut;
+        }
+        return null;
+    }
+
+    if ($session === &#39;afternoon_only&#39;) {
+        if ($column === &#39;afternoon_time_in&#39;) {
+            return $scheduleIn;
+        }
+        if ($column === &#39;afternoon_time_out&#39;) {
+            return $scheduleOut;
+        }
+        return null;
+    }
+
+    if ($column === &#39;morning_time_in&#39;) {
+        return $scheduleIn;
+    }
+    if ($column === &#39;afternoon_time_out&#39;) {
+        return $scheduleOut;
+    }
+
+    return null;
+}
+
+function attendanceResolvedTime(array $attendance, string $column): array {
+    $raw = trim((string)($attendance[$column] ?? &#39;&#39;));
+    if ($raw !== &#39;&#39; &amp;&amp; $raw !== &#39;00:00:00&#39;) {
+        return [&#39;time&#39; =&gt; $raw, &#39;is_schedule&#39; =&gt; false];
+    }
+
+    $fallback = attendanceScheduleDisplayFallback($attendance, $column);
+    if ($fallback !== null &amp;&amp; $fallback !== &#39;&#39;) {
+        return [&#39;time&#39; =&gt; $fallback, &#39;is_schedule&#39; =&gt; true];
+    }
+
+    return [&#39;time&#39; =&gt; null, &#39;is_schedule&#39; =&gt; false];
+}
+
+function attendanceIsMorningAbsentForWholeDay(array $attendance): bool {
+    if (strtolower(trim((string)($attendance[&#39;source&#39;] ?? &#39;&#39;))) !== &#39;biometric&#39;) {
+        return false;
+    }
+
+    $schedule = attendance_effective_schedule($attendance);
+    if (($schedule[&#39;window_source&#39;] ?? &#39;none&#39;) === &#39;none&#39;) {
+        return false;
+    }
+
+    $dayType = section_schedule_normalize_day_type(
+        (string)($schedule[&#39;day_type&#39;] ?? &#39;class&#39;),
+        attendanceDateWeekdayKey((string)($attendance[&#39;attendance_date&#39;] ?? &#39;&#39;))
+    );
+    if ($dayType === &#39;class&#39; || $dayType === &#39;x2_schedule&#39;) {
+        return false;
+    }
+
+    $session = section_schedule_inferred_session($schedule);
+    if ($session !== &#39;whole_day&#39;) {
+        return false;
+    }
+
+    $morningIn = trim((string)($attendance[&#39;morning_time_in&#39;] ?? &#39;&#39;));
+    $morningOut = trim((string)($attendance[&#39;morning_time_out&#39;] ?? &#39;&#39;));
+    $afternoonIn = trim((string)($attendance[&#39;afternoon_time_in&#39;] ?? &#39;&#39;));
+    $afternoonOut = trim((string)($attendance[&#39;afternoon_time_out&#39;] ?? &#39;&#39;));
+
+    $hasMorning = ($morningIn !== &#39;&#39; &amp;&amp; $morningIn !== &#39;00:00:00&#39;) || ($morningOut !== &#39;&#39; &amp;&amp; $morningOut !== &#39;00:00:00&#39;);
+    $hasAfternoon = ($afternoonIn !== &#39;&#39; &amp;&amp; $afternoonIn !== &#39;00:00:00&#39;) || ($afternoonOut !== &#39;&#39; &amp;&amp; $afternoonOut !== &#39;00:00:00&#39;);
+
+    return !$hasMorning &amp;&amp; $hasAfternoon;
+}
+
+function attendanceScheduledClassLabel(array $attendance): string
+{
+    $schedule = attendance_effective_schedule($attendance);
+    $scheduleIn = section_schedule_normalize_time_input((string)($schedule[&#39;schedule_time_in&#39;] ?? &#39;&#39;));
+    $scheduleOut = section_schedule_normalize_time_input((string)($schedule[&#39;schedule_time_out&#39;] ?? &#39;&#39;));
+
+    if ($scheduleIn === null || $scheduleOut === null) {
+        return &#39;Class&#39;;
+    }
+
+    $from = date(&#39;g:i A&#39;, strtotime($scheduleIn));
+    $to = date(&#39;g:i A&#39;, strtotime($scheduleOut));
+    return $from . &#39; to &#39; . $to;
+}
+
+function attendanceScheduleFallbackSuffix(array $attendance): string
+{
+    $schedule = attendance_effective_schedule($attendance);
+    $dayType = section_schedule_normalize_day_type(
+        (string)($schedule[&#39;day_type&#39;] ?? &#39;class&#39;),
+        attendanceDateWeekdayKey((string)($attendance[&#39;attendance_date&#39;] ?? &#39;&#39;))
+    );
+
+    return ($dayType === &#39;class&#39; || $dayType === &#39;x2_schedule&#39;) ? &#39;Class&#39; : &#39;OJT&#39;;
+}
+
+function attendanceExpectedEndLabel(array $attendance, string $column): string
+{
+    return &#39;&#39;;
+}
+
+function attendanceDisplayTimeHtml(array $attendance, string $column, string $badgeClass): string {
+    if ($column === &#39;morning_time_in&#39; &amp;&amp; attendanceIsMorningAbsentForWholeDay($attendance)) {
+        return &#39;&lt;span class=&quot;badge bg-soft-danger text-danger&quot;&gt;Absent&lt;/span&gt;&#39;;
+    }
+
+    $resolved = attendanceResolvedTime($attendance, $column);
+    if ($resolved[&#39;time&#39;] === null) {
+        $expectedEnd = attendanceExpectedEndLabel($attendance, $column);
+        return &#39;&lt;span class=&quot;badge &#39; . $badgeClass . &#39;&quot;&gt;-&lt;/span&gt;&#39;
+            . ($expectedEnd !== &#39;&#39;
+                ? &#39;&lt;div class=&quot;fs-11 text-muted mt-1&quot;&gt;&#39; . htmlspecialchars($expectedEnd, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&lt;/div&gt;&#39;
+                : &#39;&#39;);
+    }
+
+    $timeLabel = date(&#39;h:i A&#39;, strtotime((string)$resolved[&#39;time&#39;]));
+    if (!$resolved[&#39;is_schedule&#39;]) {
+        return &#39;&lt;span class=&quot;badge &#39; . $badgeClass . &#39;&quot;&gt;&#39; . htmlspecialchars($timeLabel, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&lt;/span&gt;&#39;;
+    }
+
+    $classTimeLabel = date(&#39;g:i A&#39;, strtotime((string)$resolved[&#39;time&#39;]));
+    $suffix = attendanceScheduleFallbackSuffix($attendance);
+    return &#39;&lt;span class=&quot;badge &#39; . $badgeClass . &#39;&quot;&gt;&#39; . htmlspecialchars($classTimeLabel . &#39; &#39; . $suffix, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&lt;/span&gt;&#39;;
+}
+
+function resolve_attendance_profile_image_url(string $profilePath, int $userId = 0): ?string {
+    $resolved = biotern_avatar_public_src($profilePath, $userId);
+    return $resolved !== &#39;&#39; ? $resolved : null;
+}
+
+// Helper function to get status badge
+function getStatusBadge($status) {
+    switch($status) {
+        case &#39;approved&#39;:
+            return &#39;&lt;span class=&quot;badge bg-soft-success text-success&quot;&gt;Approved&lt;/span&gt;&#39;;
+        case &#39;rejected&#39;:
+            return &#39;&lt;span class=&quot;badge bg-soft-danger text-danger&quot;&gt;Rejected&lt;/span&gt;&#39;;
+        case &#39;pending_correction&#39;:
+            return &#39;&lt;span class=&quot;badge bg-soft-warning text-warning&quot;&gt;Needs Correction&lt;/span&gt;&#39;;
+        case &#39;incomplete&#39;:
+            return &#39;&lt;span class=&quot;badge bg-soft-warning text-warning&quot;&gt;Incomplete&lt;/span&gt;&#39;;
+        case &#39;pending&#39;:
+            return &#39;&lt;span class=&quot;badge bg-soft-warning text-warning&quot;&gt;Pending&lt;/span&gt;&#39;;
+        default:
+            return &#39;&lt;span class=&quot;badge bg-soft-secondary text-secondary&quot;&gt;Unknown&lt;/span&gt;&#39;;
+    }
+}
+
+function attendancePlacementContextLabel(array $attendance): string {
+    if (strtolower(trim((string)($attendance[&#39;source&#39;] ?? &#39;&#39;))) !== &#39;biometric&#39;) {
+        return &#39;&#39;;
+    }
+
+    $schedule = attendance_effective_schedule($attendance);
+    if (($schedule[&#39;window_source&#39;] ?? &#39;&#39;) === &#39;section&#39;) {
+        return &#39;Placed using the student section schedule for this day.&#39;;
+    }
+
+    if (($schedule[&#39;window_source&#39;] ?? &#39;&#39;) === &#39;school&#39;) {
+        return &#39;Placed using school open hours because the student section has no schedule for this day.&#39;;
+    }
+
+    return &#39;No attendance window is configured for this student or the school hours fallback.&#39;;
+}
+
+function attendancePlacementContextShortLabel(array $attendance): string {
+    if (strtolower(trim((string)($attendance[&#39;source&#39;] ?? &#39;&#39;))) !== &#39;biometric&#39;) {
+        return &#39;&#39;;
+    }
+
+    $schedule = attendance_effective_schedule($attendance);
+    if (($schedule[&#39;window_source&#39;] ?? &#39;&#39;) === &#39;section&#39;) {
+        return &#39;Section Schedule&#39;;
+    }
+    if (($schedule[&#39;window_source&#39;] ?? &#39;&#39;) === &#39;school&#39;) {
+        return &#39;School Hours&#39;;
+    }
+
+    return &#39;No Window&#39;;
+}
+
+function getSourceBadge($source, array $attendance = []) {
+    if (strtolower(trim((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;))) === &#39;external&#39;) {
+        $label = strtolower(trim((string)($attendance[&#39;status&#39;] ?? &#39;approved&#39;))) === &#39;approved&#39;
+            ? &#39;External Approved&#39;
+            : &#39;External Upload&#39;;
+        return &#39;&lt;span class=&quot;badge bg-soft-info text-info&quot;&gt;&#39; . htmlspecialchars($label, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&lt;/span&gt;&#39;;
+    }
+
+    $placementLabel = attendancePlacementContextLabel($attendance);
+    $placementShortLabel = attendancePlacementContextShortLabel($attendance);
+    $titleAttr = $placementLabel !== &#39;&#39; ? (&#39; title=&quot;&#39; . htmlspecialchars($placementLabel, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&quot; data-bs-toggle=&quot;tooltip&quot;&#39;) : &#39;&#39;;
+
+    switch (strtolower(trim((string)$source))) {
+        case &#39;biometric&#39;:
+            $html = &#39;&lt;span class=&quot;badge bg-soft-primary text-primary&quot;&#39; . $titleAttr . &#39;&gt;Biometric&lt;/span&gt;&#39;;
+            if ($placementShortLabel !== &#39;&#39;) {
+                $html .= &#39;&lt;div class=&quot;fs-11 text-muted mt-1&quot;&gt;&#39; . htmlspecialchars($placementShortLabel, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&lt;/div&gt;&#39;;
+            }
+            return $html;
+        case &#39;uploaded&#39;:
+            return &#39;&lt;span class=&quot;badge bg-soft-info text-info&quot;&gt;Uploaded&lt;/span&gt;&#39;;
+        default:
+            return &#39;&lt;span class=&quot;badge bg-soft-secondary text-secondary&quot;&gt;Manual&lt;/span&gt;&#39;;
+    }
+}
+
+// Helper function to calculate total hours
+function calculateTotalHours($morning_in, $morning_out, $afternoon_in, $afternoon_out) {
+    $total = 0;
+    
+    if ($morning_in &amp;&amp; $morning_out) {
+        $morning_time = strtotime($morning_out) - strtotime($morning_in);
+        $total += $morning_time / 3600;
+    }
+    
+    if ($afternoon_in &amp;&amp; $afternoon_out) {
+        $afternoon_time = strtotime($afternoon_out) - strtotime($afternoon_in);
+        $total += $afternoon_time / 3600;
+    }
+    
+    return round($total, 2);
+}
+
+function parseAttendanceTime($time) {
+    $value = trim((string)$time);
+    if ($value === &#39;&#39;) {
+        return null;
+    }
+
+    $timestamp = strtotime($value);
+    return $timestamp === false ? null : $timestamp;
+}
+
+function attendance_effective_schedule(array $attendance): array {
+    global $machineConfig;
+    return section_schedule_effective_day(
+        section_schedule_from_row($attendance),
+        (string)($attendance[&#39;attendance_date&#39;] ?? &#39;&#39;),
+        attendance_school_hours_config($machineConfig ?? [])
+    );
+}
+
+function attendance_collect_punch_values(array $attendance): array {
+    $values = [];
+    foreach ([&#39;morning_time_in&#39;, &#39;morning_time_out&#39;, &#39;afternoon_time_in&#39;, &#39;afternoon_time_out&#39;] as $column) {
+        $value = trim((string)($attendance[$column] ?? &#39;&#39;));
+        if ($value === &#39;&#39; || $value === &#39;00:00:00&#39;) {
+            continue;
+        }
+        $values[] = $value;
+    }
+
+    usort($values, static function (string $left, string $right): int {
+        return strcmp($left, $right);
+    });
+
+    return $values;
+}
+
+function attendance_schedule_bounds(array $attendance): array {
+    $schedule = attendance_effective_schedule($attendance);
+    $schoolHours = attendance_school_hours_config($GLOBALS[&#39;machineConfig&#39;] ?? []);
+    $dayType = section_schedule_normalize_day_type(
+        (string)($schedule[&#39;day_type&#39;] ?? &#39;class&#39;),
+        attendanceDateWeekdayKey((string)($attendance[&#39;attendance_date&#39;] ?? &#39;&#39;))
+    );
+    $scheduleIn = section_schedule_normalize_time_input((string)($schedule[&#39;schedule_time_in&#39;] ?? &#39;&#39;));
+    $scheduleOut = section_schedule_normalize_time_input((string)($schedule[&#39;schedule_time_out&#39;] ?? &#39;&#39;));
+    $schoolOut = section_schedule_normalize_time_input((string)($schoolHours[&#39;schedule_time_out&#39;] ?? &#39;&#39;)) ?: &#39;19:00:00&#39;;
+
+    if (($dayType === &#39;class&#39; || $dayType === &#39;x2_schedule&#39;) &amp;&amp; ($schedule[&#39;window_source&#39;] ?? &#39;&#39;) === &#39;section&#39; &amp;&amp; $scheduleOut !== null) {
+        return [
+            &#39;schedule&#39; =&gt; $schedule,
+            &#39;official_start&#39; =&gt; $scheduleOut,
+            &#39;official_end&#39; =&gt; $schoolOut,
+            &#39;late_after&#39; =&gt; $scheduleOut,
+        ];
+    }
+
+    return [
+        &#39;schedule&#39; =&gt; $schedule,
+        &#39;official_start&#39; =&gt; $scheduleIn ?: &#39;08:00:00&#39;,
+        &#39;official_end&#39; =&gt; $scheduleOut ?: &#39;19:00:00&#39;,
+        &#39;late_after&#39; =&gt; section_schedule_normalize_time_input((string)($schedule[&#39;late_after_time&#39;] ?? &#39;&#39;))
+            ?: ($scheduleIn ?: &#39;08:00:00&#39;),
+    ];
+}
+
+function attendance_clamped_duration_seconds(?int $startTs, ?int $endTs, string $windowStart, string $windowEnd): int
+{
+    if ($startTs === null || $endTs === null || $endTs &lt;= $startTs) {
+        return 0;
+    }
+
+    $windowStartTs = strtotime($windowStart);
+    $windowEndTs = strtotime($windowEnd);
+    if ($windowStartTs === false || $windowEndTs === false) {
+        return max(0, $endTs - $startTs);
+    }
+
+    $clampedStart = max($startTs, $windowStartTs);
+    $clampedEnd = min($endTs, $windowEndTs);
+    return max(0, $clampedEnd - $clampedStart);
+}
+
+function attendance_actual_duration_seconds(?int $startTs, ?int $endTs): int
+{
+    if ($startTs === null || $endTs === null || $endTs &lt;= $startTs) {
+        return 0;
+    }
+
+    return max(0, $endTs - $startTs);
+}
+
+function attendance_credited_seconds(array $attendance, ?array $bounds = null): int
+{
+    $bounds = is_array($bounds) ? $bounds : attendance_schedule_bounds($attendance);
+    $officialStart = (string)($bounds[&#39;official_start&#39;] ?? &#39;08:00:00&#39;);
+    $officialEnd = (string)($bounds[&#39;official_end&#39;] ?? &#39;19:00:00&#39;);
+    $useScheduleCredit = false;
+    global $conn;
+    if ($conn instanceof mysqli) {
+        $track = strtolower(trim((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;)));
+        $useScheduleCredit = biotern_attendance_uses_schedule_credit($conn, $track === &#39;external&#39; ? &#39;external&#39; : &#39;internal&#39;);
+    }
+
+    $totalSeconds = 0;
+    $pairs = [
+        [&#39;morning_time_in&#39;, &#39;morning_time_out&#39;],
+        [&#39;afternoon_time_in&#39;, &#39;afternoon_time_out&#39;],
+    ];
+
+    foreach ($pairs as $pair) {
+        $startTs = parseAttendanceTime($attendance[$pair[0]] ?? null);
+        $endTs = parseAttendanceTime($attendance[$pair[1]] ?? null);
+        $totalSeconds += $useScheduleCredit
+            ? attendance_clamped_duration_seconds($startTs, $endTs, $officialStart, $officialEnd)
+            : attendance_actual_duration_seconds($startTs, $endTs);
+    }
+
+    $breakInTs = parseAttendanceTime($attendance[&#39;break_time_in&#39;] ?? null);
+    $breakOutTs = parseAttendanceTime($attendance[&#39;break_time_out&#39;] ?? null);
+    $totalSeconds -= $useScheduleCredit
+        ? attendance_clamped_duration_seconds($breakInTs, $breakOutTs, $officialStart, $officialEnd)
+        : attendance_actual_duration_seconds($breakInTs, $breakOutTs);
+
+    return max(0, $totalSeconds);
+}
+
+function attendance_window_metrics(array $attendance): array {
+    $bounds = attendance_schedule_bounds($attendance);
+    $schedule = $bounds[&#39;schedule&#39;];
+    $punches = attendance_collect_punch_values($attendance);
+    $firstPunch = $punches[0] ?? null;
+    $lastPunch = $punches !== [] ? $punches[count($punches) - 1] : null;
+    $hasCompletedRange = $firstPunch !== null &amp;&amp; $lastPunch !== null &amp;&amp; strcmp($lastPunch, $firstPunch) &gt; 0;
+
+    $officialStart = (string)$bounds[&#39;official_start&#39;];
+    $officialEnd = (string)$bounds[&#39;official_end&#39;];
+    $lateAfter = (string)$bounds[&#39;late_after&#39;];
+
+    $earlyHours = 0.0;
+    $officialHours = round(attendance_credited_seconds($attendance, $bounds) / 3600, 2);
+    $overtimeHours = 0.0;
+
+    if ($firstPunch !== null &amp;&amp; strcmp($firstPunch, $officialStart) &lt; 0) {
+        $earlySeconds = max(0, strtotime($officialStart) - strtotime($firstPunch));
+        $earlyHours = round($earlySeconds / 3600, 2);
+    }
+
+    if ($hasCompletedRange) {
+        if (strcmp($lastPunch, $officialEnd) &gt; 0) {
+            $overtimeSeconds = max(0, strtotime($lastPunch) - strtotime($officialEnd));
+            $overtimeHours = round($overtimeSeconds / 3600, 2);
+        }
+    }
+
+    $arrivalStatus = &#39;absent&#39;;
+    if ($firstPunch !== null) {
+        if (strcmp($firstPunch, $officialStart) &lt; 0) {
+            $arrivalStatus = &#39;early&#39;;
+        } elseif (strcmp($firstPunch, $lateAfter) &gt; 0) {
+            $arrivalStatus = &#39;late&#39;;
+        } else {
+            $arrivalStatus = &#39;present&#39;;
+        }
+    }
+
+    return [
+        &#39;schedule&#39; =&gt; $schedule,
+        &#39;first_punch&#39; =&gt; $firstPunch,
+        &#39;last_punch&#39; =&gt; $lastPunch,
+        &#39;has_completed_range&#39; =&gt; $hasCompletedRange,
+        &#39;arrival_status&#39; =&gt; $arrivalStatus,
+        &#39;official_hours&#39; =&gt; $officialHours,
+        &#39;early_hours&#39; =&gt; $earlyHours,
+        &#39;overtime_hours&#39; =&gt; $overtimeHours,
+        &#39;late_after&#39; =&gt; $lateAfter,
+    ];
+}
+
+function attendanceCalendarBonusRulesForDate(string $dateKey): array {
+    static $cache = [];
+    global $conn;
+
+    if ($dateKey === &#39;&#39;) {
+        return [];
+    }
+    if (isset($cache[$dateKey])) {
+        return $cache[$dateKey];
+    }
+    if (!($conn instanceof mysqli)) {
+        $cache[$dateKey] = [];
+        return $cache[$dateKey];
+    }
+
+    $sql = &quot;
+        SELECT
+            id,
+            title,
+            attendance_multiplier,
+            apply_when_not_late,
+            late_grace_minutes,
+            applies_to_weekday
+        FROM calendar_events
+        WHERE deleted_at IS NULL
+          AND attendance_multiplier IS NOT NULL
+          AND attendance_multiplier &gt; 0
+          AND DATE(start_at) &lt;= ?
+          AND DATE(end_at) &gt;= ?
+        ORDER BY attendance_multiplier DESC, id DESC
+    &quot;;
+
+    $rules = [];
+    $stmt = $conn-&gt;prepare($sql);
+    if ($stmt) {
+        $stmt-&gt;bind_param(&#39;ss&#39;, $dateKey, $dateKey);
+        $stmt-&gt;execute();
+        $result = $stmt-&gt;get_result();
+        while ($row = $result-&gt;fetch_assoc()) {
+            $rules[] = $row;
+        }
+        $stmt-&gt;close();
+    }
+
+    $cache[$dateKey] = $rules;
+    return $cache[$dateKey];
+}
+
+function attendanceMultiplierContext(array $attendance, ?array $metrics = null): array {
+    global $conn;
+    $dateKey = substr((string)($attendance[&#39;attendance_date&#39;] ?? &#39;&#39;), 0, 10);
+    $rules = attendanceCalendarBonusRulesForDate($dateKey);
+    $customRules = [];
+    if ($conn instanceof mysqli) {
+        $customRules = attendance_bonus_rules_for_context(
+            $conn,
+            $dateKey,
+            &#39;internal&#39;,
+            (int)($attendance[&#39;section_id&#39;] ?? 0),
+            (int)($attendance[&#39;department_id&#39;] ?? 0)
+        );
+    }
+
+    $metrics = is_array($metrics) ? $metrics : attendance_window_metrics($attendance);
+    $weekday = attendanceDateWeekdayKey($dateKey);
+    $best = [&#39;multiplier&#39; =&gt; 1.0, &#39;rule&#39; =&gt; null];
+
+    foreach ($customRules as $rule) {
+        $multiplier = (float)($rule[&#39;multiplier&#39;] ?? 1);
+        if ($multiplier &lt;= $best[&#39;multiplier&#39;]) {
+            continue;
+        }
+        $best = [
+            &#39;multiplier&#39; =&gt; $multiplier,
+            &#39;rule&#39; =&gt; [&#39;title&#39; =&gt; &#39;Rule: &#39; . (string)($rule[&#39;title&#39;] ?? &#39;Attendance bonus&#39;)],
+        ];
+    }
+
+    foreach ($rules as $rule) {
+        $ruleWeekday = strtolower(trim((string)($rule[&#39;applies_to_weekday&#39;] ?? &#39;&#39;)));
+        if ($ruleWeekday !== &#39;&#39; &amp;&amp; $ruleWeekday !== $weekday) {
+            continue;
+        }
+
+        $requiresNotLate = (int)($rule[&#39;apply_when_not_late&#39;] ?? 0) === 1;
+        if ($requiresNotLate) {
+            $firstPunch = trim((string)($metrics[&#39;first_punch&#39;] ?? &#39;&#39;));
+            if ($firstPunch === &#39;&#39;) {
+                continue;
+            }
+
+            $lateAfter = trim((string)($metrics[&#39;late_after&#39;] ?? &#39;&#39;));
+            if ($lateAfter === &#39;&#39;) {
+                continue;
+            }
+
+            $lateSeconds = strtotime($firstPunch) - strtotime($lateAfter);
+            $lateMinutes = $lateSeconds &gt; 0 ? (int)floor($lateSeconds / 60) : 0;
+            $graceMinutes = max(0, (int)($rule[&#39;late_grace_minutes&#39;] ?? 0));
+            if ($lateMinutes &gt; $graceMinutes) {
+                continue;
+            }
+        }
+
+        $multiplier = (float)($rule[&#39;attendance_multiplier&#39;] ?? 1);
+        if ($multiplier &lt;= 0) {
+            continue;
+        }
+
+        if ($multiplier &gt; (float)$best[&#39;multiplier&#39;]) {
+            $best = [
+                &#39;multiplier&#39; =&gt; $multiplier,
+                &#39;rule&#39; =&gt; $rule,
+            ];
+        }
+    }
+
+    return $best;
+}
+
+function attendance_format_hours_label(float $hours): string {
+    return number_format($hours, 2) . &#39;h&#39;;
+}
+
+function attendance_hours_cell_html(array $attendance): string {
+    if (strtolower(trim((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;))) === &#39;external&#39;) {
+        $hours = (float)($attendance[&#39;total_hours&#39;] ?? 0);
+        $html = &#39;&lt;span class=&quot;badge bg-soft-info text-info&quot;&gt;&#39; . attendance_format_hours_label($hours) . &#39;&lt;/span&gt;&#39;;
+        $multiplierReason = trim((string)($attendance[&#39;multiplier_reason&#39;] ?? &#39;&#39;));
+        if ($multiplierReason !== &#39;&#39;) {
+            $html .= &#39;&lt;div class=&quot;fs-11 text-muted mt-1&quot;&gt;&#39; . htmlspecialchars($multiplierReason, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&lt;/div&gt;&#39;;
+        }
+        return $html;
+    }
+
+    $computedHours = isset($attendance[&#39;computed_total_hours&#39;])
+        ? (float)$attendance[&#39;computed_total_hours&#39;]
+        : calculateAttendanceRowHours($attendance);
+
+    return &#39;&lt;span class=&quot;badge bg-soft-secondary text-secondary&quot;&gt;&#39; . attendance_format_hours_label($computedHours) . &#39;&lt;/span&gt;&#39;;
+}
+
+function attendance_list_status_key(array $attendance): string {
+    if (strtolower(trim((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;))) === &#39;external&#39;) {
+        return &#39;approved&#39;;
+    }
+
+    $metrics = attendance_window_metrics($attendance);
+    $status = strtolower(trim((string)($metrics[&#39;arrival_status&#39;] ?? &#39;absent&#39;)));
+
+    return in_array($status, [&#39;early&#39;, &#39;present&#39;, &#39;late&#39;, &#39;absent&#39;], true) ? $status : &#39;absent&#39;;
+}
+
+function attendance_status_cell_html(array $attendance): string {
+    if (strtolower(trim((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;))) === &#39;external&#39;) {
+        return &#39;&lt;span class=&quot;badge bg-soft-success text-success&quot;&gt;Approved&lt;/span&gt;&#39;
+            . &#39;&lt;div class=&quot;fs-11 text-muted mt-1&quot;&gt;Teacher-reviewed external DTR&lt;/div&gt;&#39;;
+    }
+
+    $status = attendance_list_status_key($attendance);
+
+    if ($status === &#39;early&#39;) {
+        $badge = &#39;&lt;span class=&quot;badge bg-soft-info text-info&quot;&gt;Early&lt;/span&gt;&#39;;
+    } elseif ($status === &#39;present&#39;) {
+        $badge = &#39;&lt;span class=&quot;badge bg-soft-success text-success&quot;&gt;Present&lt;/span&gt;&#39;;
+    } elseif ($status === &#39;late&#39;) {
+        $badge = &#39;&lt;span class=&quot;badge bg-soft-warning text-warning&quot;&gt;Late&lt;/span&gt;&#39;;
+    } else {
+        $badge = &#39;&lt;span class=&quot;badge bg-soft-danger text-danger&quot;&gt;Absent&lt;/span&gt;&#39;;
+    }
+
+    $metrics = attendance_window_metrics($attendance);
+
+    $notes = [];
+    if ((($metrics[&#39;schedule&#39;][&#39;window_source&#39;] ?? &#39;&#39;) === &#39;school&#39;)) {
+        $notes[] = &#39;School hours&#39;;
+    } elseif ((($metrics[&#39;schedule&#39;][&#39;window_source&#39;] ?? &#39;&#39;) === &#39;section&#39;)) {
+        $notes[] = &#39;Section schedule&#39;;
+    }
+
+    return $badge . ($notes !== []
+        ? &#39;&lt;div class=&quot;fs-11 text-muted mt-1&quot;&gt;&#39; . htmlspecialchars(implode(&#39; | &#39;, $notes), ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&lt;/div&gt;&#39;
+        : &#39;&#39;);
+}
+
+function calculateAttendanceRowHours(array $attendance): float {
+    if (strtolower(trim((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;))) === &#39;external&#39;) {
+        return round((float)($attendance[&#39;total_hours&#39;] ?? 0), 2);
+    }
+
+    $baseHours = round(attendance_credited_seconds($attendance) / 3600, 2);
+    if ($baseHours &lt;= 0) {
+        return 0.0;
+    }
+
+    $bonus = attendanceMultiplierContext($attendance);
+    $multiplier = max(1.0, (float)($bonus[&#39;multiplier&#39;] ?? 1));
+    return round($baseHours * $multiplier, 2);
+}
+
+function synchronizeAttendanceProgress(mysqli $conn, array &amp;$attendances): void {
+    if (empty($attendances)) {
+        return;
+    }
+
+    $studentIds = [];
+    $updateAttendanceStmt = $conn-&gt;prepare(&quot;UPDATE attendances SET total_hours = ?, updated_at = NOW() WHERE id = ?&quot;);
+
+    foreach ($attendances as &amp;$attendance) {
+        if (strtolower(trim((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;))) === &#39;external&#39;) {
+            continue;
+        }
+
+        $computedHours = calculateAttendanceRowHours($attendance);
+        $attendance[&#39;computed_total_hours&#39;] = $computedHours;
+
+        $studentId = (int)($attendance[&#39;student_id&#39;] ?? 0);
+        if ($studentId &gt; 0) {
+            $studentIds[$studentId] = true;
+        }
+
+        $attendanceId = (int)($attendance[&#39;id&#39;] ?? 0);
+        $storedHours = isset($attendance[&#39;total_hours&#39;]) &amp;&amp; $attendance[&#39;total_hours&#39;] !== null &amp;&amp; $attendance[&#39;total_hours&#39;] !== &#39;&#39;
+            ? (float)$attendance[&#39;total_hours&#39;]
+            : null;
+
+        if ($attendanceId &gt; 0 &amp;&amp; $updateAttendanceStmt &amp;&amp; ($storedHours === null || abs($storedHours - $computedHours) &gt; 0.009)) {
+            $updateAttendanceStmt-&gt;bind_param(&#39;di&#39;, $computedHours, $attendanceId);
+            $updateAttendanceStmt-&gt;execute();
+            $attendance[&#39;total_hours&#39;] = $computedHours;
+        }
+    }
+    unset($attendance);
+
+    if ($updateAttendanceStmt) {
+        $updateAttendanceStmt-&gt;close();
+    }
+
+    if (empty($studentIds)) {
+        return;
+    }
+
+    $sumStmt = $conn-&gt;prepare(&quot;
+        SELECT COALESCE(SUM(total_hours), 0) AS rendered
+        FROM attendances
+        WHERE student_id = ? AND LOWER(COALESCE(status, &#39;pending&#39;)) = &#39;approved&#39;
+    &quot;);
+    $internshipLookupStmt = $conn-&gt;prepare(&quot;
+        SELECT id, required_hours
+        FROM internships
+        WHERE student_id = ? AND status = &#39;ongoing&#39;
+        ORDER BY id DESC
+        LIMIT 1
+    &quot;);
+    $internshipUpdateStmt = $conn-&gt;prepare(&quot;
+        UPDATE internships
+        SET rendered_hours = ?, completion_percentage = ?, updated_at = NOW()
+        WHERE id = ?
+    &quot;);
+    $studentLookupStmt = $conn-&gt;prepare(&quot;
+        SELECT assignment_track, internal_total_hours, external_total_hours
+        FROM students
+        WHERE id = ?
+        LIMIT 1
+    &quot;);
+    $studentInternalUpdateStmt = $conn-&gt;prepare(&quot;
+        UPDATE students
+        SET internal_total_hours_remaining = ?, updated_at = NOW()
+        WHERE id = ?
+    &quot;);
+    $studentExternalUpdateStmt = $conn-&gt;prepare(&quot;
+        UPDATE students
+        SET external_total_hours_remaining = ?, updated_at = NOW()
+        WHERE id = ?
+    &quot;);
+
+    foreach (array_keys($studentIds) as $studentId) {
+        if (!$sumStmt) {
+            break;
+        }
+
+        $sumStmt-&gt;bind_param(&#39;i&#39;, $studentId);
+        $sumStmt-&gt;execute();
+        $sumRow = $sumStmt-&gt;get_result()-&gt;fetch_assoc();
+        $rendered = isset($sumRow[&#39;rendered&#39;]) ? (float)$sumRow[&#39;rendered&#39;] : 0.0;
+
+        if ($internshipLookupStmt &amp;&amp; $internshipUpdateStmt) {
+            $internshipLookupStmt-&gt;bind_param(&#39;i&#39;, $studentId);
+            $internshipLookupStmt-&gt;execute();
+            $internship = $internshipLookupStmt-&gt;get_result()-&gt;fetch_assoc();
+
+            if ($internship) {
+                $required = max(0, (int)($internship[&#39;required_hours&#39;] ?? 0));
+                $percentage = $required &gt; 0 ? round(($rendered / $required) * 100, 2) : 0.0;
+                if ($percentage &gt; 100) {
+                    $percentage = 100.0;
+                }
+
+                $internshipId = (int)$internship[&#39;id&#39;];
+                $internshipUpdateStmt-&gt;bind_param(&#39;ddi&#39;, $rendered, $percentage, $internshipId);
+                $internshipUpdateStmt-&gt;execute();
+            }
+        }
+
+        if ($studentLookupStmt) {
+            $studentLookupStmt-&gt;bind_param(&#39;i&#39;, $studentId);
+            $studentLookupStmt-&gt;execute();
+            $student = $studentLookupStmt-&gt;get_result()-&gt;fetch_assoc();
+
+            if ($student) {
+                $track = strtolower(trim((string)($student[&#39;assignment_track&#39;] ?? &#39;internal&#39;)));
+                $roundedRendered = (int)floor($rendered);
+
+                if ($track === &#39;external&#39; &amp;&amp; $studentExternalUpdateStmt) {
+                    $externalTotal = max(0, (int)($student[&#39;external_total_hours&#39;] ?? 0));
+                    $externalRemaining = max(0, $externalTotal - $roundedRendered);
+                    $studentExternalUpdateStmt-&gt;bind_param(&#39;ii&#39;, $externalRemaining, $studentId);
+                    $studentExternalUpdateStmt-&gt;execute();
+                } elseif ($studentInternalUpdateStmt) {
+                    $internalTotal = max(0, (int)($student[&#39;internal_total_hours&#39;] ?? 0));
+                    $internalRemaining = max(0, $internalTotal - $roundedRendered);
+                    $studentInternalUpdateStmt-&gt;bind_param(&#39;ii&#39;, $internalRemaining, $studentId);
+                    $studentInternalUpdateStmt-&gt;execute();
+                }
+            }
+        }
+    }
+
+    if ($sumStmt) {
+        $sumStmt-&gt;close();
+    }
+    if ($internshipLookupStmt) {
+        $internshipLookupStmt-&gt;close();
+    }
+    if ($internshipUpdateStmt) {
+        $internshipUpdateStmt-&gt;close();
+    }
+    if ($studentLookupStmt) {
+        $studentLookupStmt-&gt;close();
+    }
+    if ($studentInternalUpdateStmt) {
+        $studentInternalUpdateStmt-&gt;close();
+    }
+    if ($studentExternalUpdateStmt) {
+        $studentExternalUpdateStmt-&gt;close();
+    }
+}
+
+function attendanceIsBiometricRecord(array $attendance): bool
+{
+    return strtolower(trim((string)($attendance[&#39;source&#39;] ?? &#39;&#39;))) === &#39;biometric&#39;;
+}
+
+function getReviewBadge(array $attendance): string
+{
+    if (strtolower(trim((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;))) === &#39;external&#39;) {
+        return &#39;&lt;span class=&quot;badge bg-soft-success text-success&quot;&gt;Teacher Approved&lt;/span&gt;&#39;;
+    }
+
+    if (attendanceIsBiometricRecord($attendance)) {
+        return &#39;&lt;span class=&quot;badge bg-soft-success text-success&quot;&gt;Auto-Verified&lt;/span&gt;&#39;;
+    }
+
+    return getStatusBadge(strtolower(trim((string)($attendance[&#39;status&#39;] ?? &#39;pending&#39;))));
+}
+
+function attendance_reports_cell_html(array $attendance): string
+{
+    $studentId = (int)($attendance[&#39;student_id&#39;] ?? 0);
+    $attendanceId = (int)($attendance[&#39;id&#39;] ?? 0);
+
+    if ($studentId &lt;= 0 || $attendanceId &lt;= 0) {
+        return &#39;&lt;span class=&quot;text-muted&quot;&gt;N/A&lt;/span&gt;&#39;;
+    }
+
+    if (strtolower(trim((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;))) === &#39;external&#39;) {
+        $proofPath = trim((string)($attendance[&#39;proof_photo_path&#39;] ?? &#39;&#39;));
+        $externalUrl = &#39;external-attendance.php?status=approved&#39;;
+        $html = &#39;&lt;div class=&quot;d-flex flex-wrap gap-1&quot;&gt;&#39;
+            . &#39;&lt;a class=&quot;badge bg-soft-info text-info&quot; href=&quot;&#39; . htmlspecialchars($externalUrl, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&quot;&gt;External Queue&lt;/a&gt;&#39;;
+        if ($proofPath !== &#39;&#39;) {
+            $html .= &#39;&lt;a class=&quot;badge bg-soft-secondary text-secondary&quot; href=&quot;&#39; . htmlspecialchars($proofPath, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Proof&lt;/a&gt;&#39;;
+        }
+        return $html . &#39;&lt;/div&gt;&#39;;
+    }
+
+    $dtrUrl = &#39;students-internal-dtr.php?id=&#39; . $studentId;
+    $printUrl = &#39;print_attendance.php?id=&#39; . $attendanceId;
+    $proofPath = trim((string)($attendance[&#39;proof_photo_path&#39;] ?? &#39;&#39;));
+    $proofLink = $proofPath !== &#39;&#39;
+        ? &#39;&lt;a class=&quot;badge bg-soft-info text-info&quot; href=&quot;&#39; . htmlspecialchars($proofPath, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Proof&lt;/a&gt;&#39;
+        : &#39;&#39;;
+
+    return &#39;&lt;div class=&quot;d-flex flex-wrap gap-1&quot;&gt;&#39;
+        . &#39;&lt;a class=&quot;badge bg-soft-primary text-primary&quot; href=&quot;&#39; . htmlspecialchars($dtrUrl, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&quot;&gt;Internal DTR&lt;/a&gt;&#39;
+        . &#39;&lt;a class=&quot;badge bg-soft-secondary text-secondary&quot; href=&quot;&#39; . htmlspecialchars($printUrl, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Print&lt;/a&gt;&#39;
+        . $proofLink
+        . &#39;&lt;/div&gt;&#39;;
+}
+
+function attendance_photo_cell_html(array $attendance): string
+{
+    $proofPath = trim((string)($attendance[&#39;proof_photo_path&#39;] ?? &#39;&#39;));
+    if ($proofPath === &#39;&#39;) {
+        return &#39;&lt;span class=&quot;text-muted&quot;&gt;-&lt;/span&gt;&#39;;
+    }
+
+    return &#39;&lt;a class=&quot;attendance-proof-thumb&quot; href=&quot;&#39; . htmlspecialchars($proofPath, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot; title=&quot;Open proof image&quot;&gt;&#39;
+        . &#39;&lt;img src=&quot;&#39; . htmlspecialchars($proofPath, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&quot; alt=&quot;Proof image&quot;&gt;&#39;
+        . &#39;&lt;/a&gt;&#39;;
+}
+
+function attendance_notes_cell_html(array $attendance): string
+{
+    $parts = [];
+    foreach ([&#39;remarks&#39;, &#39;proof_reason&#39;] as $key) {
+        $value = trim((string)($attendance[$key] ?? &#39;&#39;));
+        if ($value !== &#39;&#39; &amp;&amp; !in_array($value, $parts, true)) {
+            $parts[] = $value;
+        }
+    }
+
+    if ($parts === []) {
+        return &#39;&lt;span class=&quot;text-muted fs-12&quot;&gt;No notes&lt;/span&gt;&#39;;
+    }
+
+    return &#39;&lt;div class=&quot;attendance-notes-cell&quot;&gt;&#39; . htmlspecialchars(implode(&#39; | &#39;, $parts), ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&lt;/div&gt;&#39;;
+}
+
+function attendanceCanReview(array $attendance): bool
+{
+    if (strtolower(trim((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;))) === &#39;external&#39;) {
+        return false;
+    }
+
+    return !attendanceIsBiometricRecord($attendance);
+}
+
+function attendance_review_cell_html(array $attendance): string
+{
+    $attendanceId = (int)($attendance[&#39;id&#39;] ?? 0);
+    $status = strtolower(trim((string)($attendance[&#39;status&#39;] ?? &#39;pending&#39;)));
+
+    if (!attendanceCanReview($attendance) || $attendanceId &lt;= 0) {
+        return &#39;&lt;span class=&quot;text-muted fs-12&quot;&gt;No manual review needed&lt;/span&gt;&#39;;
+    }
+
+    $approveSelected = $status === &#39;rejected&#39; ? &#39;&#39; : &#39; selected&#39;;
+    $rejectSelected = $status === &#39;rejected&#39; ? &#39; selected&#39; : &#39;&#39;;
+
+    return &#39;&lt;form class=&quot;attendance-review-form&quot; data-attendance-review-form data-attendance-id=&quot;&#39; . $attendanceId . &#39;&quot;&gt;&#39;
+        . &#39;&lt;label class=&quot;visually-hidden&quot; for=&quot;attendanceReviewAction&#39; . $attendanceId . &#39;&quot;&gt;Review action&lt;/label&gt;&#39;
+        . &#39;&lt;select id=&quot;attendanceReviewAction&#39; . $attendanceId . &#39;&quot; class=&quot;form-select form-select-sm&quot; name=&quot;review_action&quot;&gt;&#39;
+        . &#39;&lt;option value=&quot;approve&quot;&#39; . $approveSelected . &#39;&gt;Approve&lt;/option&gt;&#39;
+        . &#39;&lt;option value=&quot;reject&quot;&#39; . $rejectSelected . &#39;&gt;Reject&lt;/option&gt;&#39;
+        . &#39;&lt;/select&gt;&#39;
+        . &#39;&lt;label class=&quot;visually-hidden&quot; for=&quot;attendanceReviewNote&#39; . $attendanceId . &#39;&quot;&gt;Review note&lt;/label&gt;&#39;
+        . &#39;&lt;input id=&quot;attendanceReviewNote&#39; . $attendanceId . &#39;&quot; class=&quot;form-control form-control-sm&quot; type=&quot;text&quot; name=&quot;review_note&quot; placeholder=&quot;Review note (optional)&quot; value=&quot;&quot;&gt;&#39;
+        . &#39;&lt;button type=&quot;button&quot; class=&quot;btn btn-sm btn-primary&quot; data-attendance-review-save&gt;Save&lt;/button&gt;&#39;
+        . &#39;&lt;/form&gt;&#39;;
+}
+
+function attendanceActionMenuItems(array $attendance): string
+{
+    $attendanceId = (int)($attendance[&#39;id&#39;] ?? 0);
+    $studentId = (int)($attendance[&#39;student_id&#39;] ?? 0);
+
+    if (strtolower(trim((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;))) === &#39;external&#39;) {
+        $items = [];
+        $proofPath = trim((string)($attendance[&#39;proof_photo_path&#39;] ?? &#39;&#39;));
+        $items[] = &#39;&lt;li&gt;&lt;a class=&quot;dropdown-item&quot; href=&quot;external-attendance.php?status=approved&quot;&gt;&lt;i class=&quot;feather feather-briefcase me-3&quot;&gt;&lt;/i&gt;&lt;span&gt;Open External Queue&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&#39;;
+        if ($proofPath !== &#39;&#39;) {
+            $items[] = &#39;&lt;li&gt;&lt;a class=&quot;dropdown-item&quot; href=&quot;&#39; . htmlspecialchars($proofPath, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;&lt;i class=&quot;feather feather-image me-3&quot;&gt;&lt;/i&gt;&lt;span&gt;Open Proof&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&#39;;
+        }
+        return &#39;&lt;div class=&quot;hstack gap-2 justify-content-end&quot;&gt;&lt;a href=&quot;javascript:void(0)&quot; class=&quot;avatar-text avatar-md&quot; data-bs-toggle=&quot;tooltip&quot; title=&quot;View Details&quot; onclick=&quot;viewDetails(&#39; . $studentId . &#39;)&quot;&gt;&lt;i class=&quot;feather feather-eye&quot;&gt;&lt;/i&gt;&lt;/a&gt;&lt;div class=&quot;dropdown&quot;&gt;&lt;a href=&quot;javascript:void(0)&quot; class=&quot;avatar-text avatar-md&quot; data-bs-toggle=&quot;dropdown&quot; data-bs-offset=&quot;0,21&quot;&gt;&lt;i class=&quot;feather feather-more-horizontal&quot;&gt;&lt;/i&gt;&lt;/a&gt;&lt;ul class=&quot;dropdown-menu dropdown-menu-end&quot;&gt;&#39; . implode(&#39;&#39;, $items) . &#39;&lt;/ul&gt;&lt;/div&gt;&lt;/div&gt;&#39;;
+    }
+
+    $items = [];
+    $proofPath = trim((string)($attendance[&#39;proof_photo_path&#39;] ?? &#39;&#39;));
+
+    if (attendanceCanReview($attendance)) {
+        $items[] = &#39;&lt;li&gt;&lt;a class=&quot;dropdown-item&quot; href=&quot;javascript:void(0)&quot; onclick=&quot;approveAttendanceIndividual(&#39; . $attendanceId . &#39;)&quot;&gt;&lt;i class=&quot;feather feather-check-circle me-3&quot;&gt;&lt;/i&gt;&lt;span&gt;Approve&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&#39;;
+        $items[] = &#39;&lt;li&gt;&lt;a class=&quot;dropdown-item&quot; href=&quot;javascript:void(0)&quot; onclick=&quot;rejectAttendanceIndividual(&#39; . $attendanceId . &#39;)&quot;&gt;&lt;i class=&quot;feather feather-x-circle me-3&quot;&gt;&lt;/i&gt;&lt;span&gt;Reject&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&#39;;
+    } else {
+        $items[] = &#39;&lt;li&gt;&lt;span class=&quot;dropdown-item-text text-muted&quot;&gt;&lt;i class=&quot;feather feather-shield me-3&quot;&gt;&lt;/i&gt;&lt;span&gt;Auto-verified by machine&lt;/span&gt;&lt;/span&gt;&lt;/li&gt;&#39;;
+    }
+
+    if ($proofPath !== &#39;&#39;) {
+        $items[] = &#39;&lt;li&gt;&lt;a class=&quot;dropdown-item&quot; href=&quot;&#39; . htmlspecialchars($proofPath, ENT_QUOTES, &#39;UTF-8&#39;) . &#39;&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;&lt;i class=&quot;feather feather-image me-3&quot;&gt;&lt;/i&gt;&lt;span&gt;Open Proof&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&#39;;
+    }
+    $items[] = &#39;&lt;li&gt;&lt;a class=&quot;dropdown-item&quot; href=&quot;javascript:void(0)&quot; onclick=&quot;editAttendance(&#39; . $attendanceId . &#39;)&quot;&gt;&lt;i class=&quot;feather feather-edit-3 me-3&quot;&gt;&lt;/i&gt;&lt;span&gt;Edit&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&#39;;
+    $items[] = &#39;&lt;li&gt;&lt;a class=&quot;dropdown-item printBTN&quot; href=&quot;javascript:void(0)&quot; onclick=&quot;printAttendance(&#39; . $attendanceId . &#39;)&quot;&gt;&lt;i class=&quot;feather feather-printer me-3&quot;&gt;&lt;/i&gt;&lt;span&gt;Print&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&#39;;
+    $items[] = &#39;&lt;li&gt;&lt;a class=&quot;dropdown-item&quot; href=&quot;javascript:void(0)&quot; onclick=&quot;sendNotification(&#39; . $attendanceId . &#39;)&quot;&gt;&lt;i class=&quot;feather feather-mail me-3&quot;&gt;&lt;/i&gt;&lt;span&gt;Send Notification&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&#39;;
+    $items[] = &#39;&lt;li class=&quot;dropdown-divider&quot;&gt;&lt;/li&gt;&#39;;
+    $items[] = &#39;&lt;li&gt;&lt;a class=&quot;dropdown-item&quot; href=&quot;javascript:void(0)&quot; onclick=&quot;deleteAttendanceIndividual(&#39; . $attendanceId . &#39;)&quot;&gt;&lt;i class=&quot;feather feather-trash-2 me-3&quot;&gt;&lt;/i&gt;&lt;span&gt;Delete&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;&#39;;
+
+    return &#39;&lt;div class=&quot;hstack gap-2 justify-content-end&quot;&gt;&lt;a href=&quot;javascript:void(0)&quot; class=&quot;avatar-text avatar-md&quot; data-bs-toggle=&quot;tooltip&quot; title=&quot;View Details&quot; onclick=&quot;viewDetails(&#39; . $studentId . &#39;)&quot;&gt;&lt;i class=&quot;feather feather-eye&quot;&gt;&lt;/i&gt;&lt;/a&gt;&lt;div class=&quot;dropdown&quot;&gt;&lt;a href=&quot;javascript:void(0)&quot; class=&quot;avatar-text avatar-md&quot; data-bs-toggle=&quot;dropdown&quot; data-bs-offset=&quot;0,21&quot;&gt;&lt;i class=&quot;feather feather-more-horizontal&quot;&gt;&lt;/i&gt;&lt;/a&gt;&lt;ul class=&quot;dropdown-menu dropdown-menu-end&quot;&gt;&#39; . implode(&#39;&#39;, $items) . &#39;&lt;/ul&gt;&lt;/div&gt;&lt;/div&gt;&#39;;
+}
+
+// Determine attendance status based on the section schedule.
+function getAttendanceStatus(array $attendance) {
+    return (string)(attendance_window_metrics($attendance)[&#39;arrival_status&#39;] ?? &#39;absent&#39;);
+}
+
+function attendanceFilledSlotScore(array $attendance): int {
+    $score = 0;
+    foreach ([&#39;morning_time_in&#39;, &#39;morning_time_out&#39;, &#39;afternoon_time_in&#39;, &#39;afternoon_time_out&#39;] as $column) {
+        $value = trim((string)($attendance[$column] ?? &#39;&#39;));
+        if ($value !== &#39;&#39; &amp;&amp; $value !== &#39;00:00:00&#39;) {
+            $score++;
+        }
+    }
+    return $score;
+}
+
+function shouldPreferAttendanceRow(array $candidate, array $existing): bool {
+    $candidateScore = attendanceFilledSlotScore($candidate);
+    $existingScore = attendanceFilledSlotScore($existing);
+
+    if ($candidateScore !== $existingScore) {
+        return $candidateScore &gt; $existingScore;
+    }
+
+    return (int)($candidate[&#39;id&#39;] ?? 0) &gt; (int)($existing[&#39;id&#39;] ?? 0);
+}
+
+if (trim((string)($_GET[&#39;print&#39;] ?? &#39;&#39;)) === &#39;list&#39;) {
+    $printRange = $start_date !== &#39;&#39; &amp;&amp; $end_date !== &#39;&#39;
+        ? ($start_date . &#39; to &#39; . $end_date)
+        : ($filter_date !== &#39;&#39; ? $filter_date : &#39;Current filtered list&#39;);
+    ?&gt;
+&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;
+    &lt;title&gt;BioTern || Attendance Print Preview&lt;/title&gt;
+    &lt;style&gt;
+        @page { size: A4 landscape; margin: 10mm; }
+        body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #111827; background: #fff; }
+        .screen-actions { max-width: 1120px; margin: 18px auto 0; display: flex; justify-content: flex-end; gap: 10px; }
+        .screen-actions button { border: 1px solid #cbd5e1; background: #fff; color: #0f172a; border-radius: 8px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
+        .screen-actions .primary { background: #0ea5e9; border-color: #0ea5e9; color: #fff; }
+        .paper { max-width: 1120px; margin: 0 auto; padding: 8mm 8mm 10mm; box-sizing: border-box; }
+        .print-header { display: grid; grid-template-columns: 78px minmax(0,1fr) 78px; align-items: center; gap: 12px; border-bottom: 2px solid #2f5fb3; padding-bottom: 9px; }
+        .print-header img { width: 68px; height: 68px; object-fit: contain; }
+        .print-header-copy { text-align: center; line-height: 1.25; }
+        .print-school { margin: 0; font-size: 24px; font-weight: 800; }
+        .print-meta { margin: 0; font-size: 13px; color: #1f4e9f; font-weight: 600; }
+        .print-title { text-align: center; font-size: 20px; font-weight: 800; margin: 18px 0 10px; text-transform: uppercase; }
+        .filter-line { font-size: 12px; margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th, td { border: 1px solid #cbd5e1; padding: 6px 7px; text-align: left; vertical-align: top; }
+        thead th { background: #f8fafc; font-weight: 800; text-transform: uppercase; font-size: 10px; }
+        .text-center { text-align: center; }
+        @media print { .screen-actions { display: none; } .paper { max-width: none; padding: 0; } }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;screen-actions&quot;&gt;&lt;button type=&quot;button&quot; onclick=&quot;window.close()&quot;&gt;Close&lt;/button&gt;&lt;button type=&quot;button&quot; class=&quot;primary&quot; onclick=&quot;window.print()&quot;&gt;Print&lt;/button&gt;&lt;/div&gt;
+    &lt;main class=&quot;paper&quot;&gt;
+        &lt;header class=&quot;print-header&quot;&gt;
+            &lt;img src=&quot;assets/images/ccstlogo.png&quot; alt=&quot;CCST&quot;&gt;
+            &lt;div class=&quot;print-header-copy&quot;&gt;
+                &lt;h1 class=&quot;print-school&quot;&gt;CLARK COLLEGE OF SCIENCE AND TECHNOLOGY&lt;/h1&gt;
+                &lt;p class=&quot;print-meta&quot;&gt;SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga&lt;/p&gt;
+                &lt;p class=&quot;print-meta&quot;&gt;Telefax No.: (045) 624-0215&lt;/p&gt;
+            &lt;/div&gt;
+            &lt;div aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;
+        &lt;/header&gt;
+        &lt;div class=&quot;print-title&quot;&gt;Attendance List&lt;/div&gt;
+        &lt;div class=&quot;filter-line&quot;&gt;&lt;strong&gt;FILTER:&lt;/strong&gt; &lt;?php echo htmlspecialchars($printRange, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt; / &lt;?php echo htmlspecialchars($filter_reports === &#39;all&#39; ? &#39;All reports&#39; : ucwords(str_replace(&#39;_&#39;, &#39; &#39;, $filter_reports)), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt; / &lt;?php echo htmlspecialchars($filter_status === &#39;all&#39; ? &#39;All statuses&#39; : ucwords(str_replace(&#39;_&#39;, &#39; &#39;, $filter_status)), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/div&gt;
+        &lt;table&gt;
+            &lt;thead&gt;
+                &lt;tr&gt;
+                    &lt;th&gt;#&lt;/th&gt;
+                    &lt;th&gt;Date&lt;/th&gt;
+                    &lt;th&gt;Student No.&lt;/th&gt;
+                    &lt;th&gt;Name&lt;/th&gt;
+                    &lt;th&gt;Course / Section&lt;/th&gt;
+                    &lt;th&gt;AM In&lt;/th&gt;
+                    &lt;th&gt;AM Out&lt;/th&gt;
+                    &lt;th&gt;PM In&lt;/th&gt;
+                    &lt;th&gt;PM Out&lt;/th&gt;
+                    &lt;th&gt;Total Hours&lt;/th&gt;
+                    &lt;th&gt;Status&lt;/th&gt;
+                    &lt;th&gt;Type&lt;/th&gt;
+                &lt;/tr&gt;
+            &lt;/thead&gt;
+            &lt;tbody&gt;
+                &lt;?php if (empty($attendances)): ?&gt;
+                    &lt;tr&gt;&lt;td colspan=&quot;12&quot; class=&quot;text-center&quot;&gt;No attendance records matched the current filters.&lt;/td&gt;&lt;/tr&gt;
+                &lt;?php else: ?&gt;
+                    &lt;?php foreach ($attendances as $index =&gt; $attendance): ?&gt;
+                        &lt;tr&gt;
+                            &lt;td&gt;&lt;?php echo (int)$index + 1; ?&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;?php echo htmlspecialchars((string)($attendance[&#39;attendance_date&#39;] ?? &#39;&#39;), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;?php echo htmlspecialchars((string)($attendance[&#39;student_number&#39;] ?? &#39;&#39;), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;?php echo htmlspecialchars(trim((string)($attendance[&#39;last_name&#39;] ?? &#39;&#39;) . &#39;, &#39; . (string)($attendance[&#39;first_name&#39;] ?? &#39;&#39;)), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;?php echo htmlspecialchars(trim((string)($attendance[&#39;course_name&#39;] ?? &#39;-&#39;) . &#39; / &#39; . biotern_format_section_label((string)($attendance[&#39;section_code&#39;] ?? &#39;&#39;), (string)($attendance[&#39;section_name&#39;] ?? &#39;&#39;))), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;?php echo htmlspecialchars(!empty($attendance[&#39;morning_time_in&#39;]) ? date(&#39;h:i A&#39;, strtotime((string)$attendance[&#39;morning_time_in&#39;])) : &#39;-&#39;, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;?php echo htmlspecialchars(!empty($attendance[&#39;morning_time_out&#39;]) ? date(&#39;h:i A&#39;, strtotime((string)$attendance[&#39;morning_time_out&#39;])) : &#39;-&#39;, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;?php echo htmlspecialchars(!empty($attendance[&#39;afternoon_time_in&#39;]) ? date(&#39;h:i A&#39;, strtotime((string)$attendance[&#39;afternoon_time_in&#39;])) : &#39;-&#39;, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;?php echo htmlspecialchars(!empty($attendance[&#39;afternoon_time_out&#39;]) ? date(&#39;h:i A&#39;, strtotime((string)$attendance[&#39;afternoon_time_out&#39;])) : &#39;-&#39;, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;?php echo htmlspecialchars(number_format((float)($attendance[&#39;total_hours&#39;] ?? 0), 2), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;?php echo htmlspecialchars(ucwords(str_replace(&#39;_&#39;, &#39; &#39;, attendance_list_status_key($attendance))), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                            &lt;td&gt;&lt;?php echo htmlspecialchars(ucfirst((string)($attendance[&#39;record_origin&#39;] ?? &#39;internal&#39;)), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/td&gt;
+                        &lt;/tr&gt;
+                    &lt;?php endforeach; ?&gt;
+                &lt;?php endif; ?&gt;
+            &lt;/tbody&gt;
+        &lt;/table&gt;
+    &lt;/main&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+    &lt;?php
+    exit;
+}
+?&gt;
+&lt;?php
+$page_title = !empty($biotern_attendance_sandbox) ? &#39;BioTern || Test Attendance&#39; : &#39;BioTern || Internal Attendance&#39;;
+$page_body_class = &#39;attendance-page&#39;;
+$page_styles = [&#39;assets/css/modules/pages/page-attendance.css?v=20260509c&#39;];
+$page_scripts = [
+    &#39;assets/js/theme-customizer-init.min.js&#39;,
+    &#39;assets/js/modules/pages/pages-attendance-runtime.js?v=20260509c&#39;,
+];
+include &#39;includes/header.php&#39;;
+?&gt;
+&lt;main class=&quot;nxl-container&quot;&gt;
+        &lt;div class=&quot;nxl-content&quot;&gt;
+            
+            &lt;div class=&quot;page-header&quot;&gt;
+                &lt;div class=&quot;page-header-left d-flex align-items-center&quot;&gt;
+                    &lt;div class=&quot;page-header-title&quot;&gt;
+                        &lt;h5 class=&quot;m-b-10&quot;&gt;Internal Attendance&lt;/h5&gt;
+                    &lt;/div&gt;
+                    &lt;ul class=&quot;breadcrumb&quot;&gt;
+                        &lt;li class=&quot;breadcrumb-item&quot;&gt;&lt;a href=&quot;homepage.php&quot;&gt;Home&lt;/a&gt;&lt;/li&gt;
+                        &lt;li class=&quot;breadcrumb-item&quot;&gt;&lt;a href=&quot;students.php&quot;&gt;Students&lt;/a&gt;&lt;/li&gt;
+                        &lt;li class=&quot;breadcrumb-item&quot;&gt;Internal Attendance&lt;/li&gt;
+                    &lt;/ul&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;page-header-right ms-auto&quot;&gt;
+                    &lt;a href=&quot;legacy_router.php?file=biometric-machine.php&quot; class=&quot;attendance-bridge-status attendance-bridge-status-&lt;?php echo htmlspecialchars((string)($attendanceBridgeStatus[&#39;class&#39;] ?? &#39;secondary&#39;), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&quot; title=&quot;&lt;?php echo htmlspecialchars((string)($attendanceBridgeStatus[&#39;detail&#39;] ?? &#39;&#39;), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&quot;&gt;
+                        &lt;i class=&quot;&lt;?php echo htmlspecialchars((string)($attendanceBridgeStatus[&#39;icon&#39;] ?? &#39;feather-help-circle&#39;), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&quot;&gt;&lt;/i&gt;
+                        &lt;span&gt;&lt;?php echo htmlspecialchars((string)($attendanceBridgeStatus[&#39;label&#39;] ?? &#39;Bridge Unknown&#39;), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;/span&gt;
+                        &lt;?php if (isset($attendanceBridgeStatus[&#39;age_seconds&#39;]) &amp;&amp; $attendanceBridgeStatus[&#39;age_seconds&#39;] !== null): ?&gt;
+                            &lt;small&gt;&lt;?php echo (int)$attendanceBridgeStatus[&#39;age_seconds&#39;]; ?&gt;s&lt;/small&gt;
+                        &lt;?php endif; ?&gt;
+                    &lt;/a&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn btn-sm btn-light-brand page-header-actions-toggle&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;attendanceActionsMenu&quot;&gt;
+                        &lt;i class=&quot;feather-grid me-1&quot;&gt;&lt;/i&gt;
+                        &lt;span&gt;Actions&lt;/span&gt;
+                    &lt;/button&gt;
+                    &lt;div class=&quot;page-header-actions&quot; id=&quot;attendanceActionsMenu&quot;&gt;
+                        &lt;div class=&quot;dashboard-actions-panel&quot;&gt;
+                            &lt;div class=&quot;dashboard-actions-meta&quot;&gt;
+                                &lt;span class=&quot;text-muted fs-12&quot;&gt;Quick Actions&lt;/span&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;dashboard-actions-grid page-header-right-items-wrapper&quot;&gt;
+                            &lt;a href=&quot;javascript:void(0);&quot; class=&quot;btn btn-light-brand&quot; data-bs-toggle=&quot;collapse&quot; data-bs-target=&quot;#collapseAttendanceStats&quot;&gt;
+                                &lt;i class=&quot;feather-bar-chart me-2&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;Statistics&lt;/span&gt;
+                            &lt;/a&gt;
+                            &lt;button type=&quot;button&quot; class=&quot;btn filter-toggle-btn&quot; data-bs-toggle=&quot;collapse&quot; data-bs-target=&quot;#attendanceFilterCollapse&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;attendanceFilterCollapse&quot;&gt;
+                                &lt;i class=&quot;feather-filter me-2&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;Filters&lt;/span&gt;
+                            &lt;/button&gt;
+                            &lt;a href=&quot;legacy_router.php?file=biometric-machine.php&quot; class=&quot;btn btn-light-brand&quot;&gt;
+                                &lt;i class=&quot;feather-cpu me-2&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;Machine Manager&lt;/span&gt;
+                            &lt;/a&gt;
+                            &lt;a href=&quot;external-attendance.php&quot; class=&quot;btn btn-light-brand&quot;&gt;
+                                &lt;i class=&quot;feather-briefcase me-2&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;External Attendance&lt;/span&gt;
+                            &lt;/a&gt;
+                            &lt;button type=&quot;button&quot; class=&quot;btn btn-primary&quot; id=&quot;manualSyncMachineButton&quot;&gt;
+                                &lt;i class=&quot;feather-refresh-cw me-2&quot;&gt;&lt;/i&gt;
+                                &lt;span&gt;Sync Machine&lt;/span&gt;
+                            &lt;/button&gt;
+                            &lt;form method=&quot;post&quot; action=&quot;legacy_router.php?file=f20h_offline_excel_import.php&quot; enctype=&quot;multipart/form-data&quot; class=&quot;d-inline-flex align-items-center gap-2&quot;&gt;
+                                &lt;label class=&quot;btn btn-light-brand mb-0&quot; for=&quot;f20hOfflineReportFile&quot;&gt;
+                                    &lt;i class=&quot;feather-upload-cloud me-2&quot;&gt;&lt;/i&gt;
+                                    &lt;span&gt;Import F20H Excel&lt;/span&gt;
+                                &lt;/label&gt;
+                                &lt;input type=&quot;file&quot; id=&quot;f20hOfflineReportFile&quot; name=&quot;f20h_report_file&quot; class=&quot;d-none&quot; accept=&quot;.xls,application/vnd.ms-excel&quot; onchange=&quot;if (this.files &amp;&amp; this.files.length) { this.form.submit(); }&quot;&gt;
+                            &lt;/form&gt;
+                            &lt;div class=&quot;dropdown&quot;&gt;
+                                &lt;a class=&quot;btn btn-light-brand&quot; data-bs-toggle=&quot;dropdown&quot; data-bs-offset=&quot;0, 10&quot; data-bs-auto-close=&quot;outside&quot;&gt;
+                                    &lt;i class=&quot;feather-sliders me-2&quot;&gt;&lt;/i&gt;
+                                    &lt;span&gt;Quick Filter&lt;/span&gt;
+                                &lt;/a&gt;
+                                &lt;div class=&quot;dropdown-menu dropdown-menu-end&quot;&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item attendance-filter&quot; data-type=&quot;status&quot; data-value=&quot;approved&quot;&gt;
+                                        &lt;i class=&quot;feather-check-circle me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;Approved&lt;/span&gt;
+                                    &lt;/a&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item attendance-filter&quot; data-type=&quot;status&quot; data-value=&quot;present&quot;&gt;
+                                        &lt;i class=&quot;feather-check-square me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;Present&lt;/span&gt;
+                                    &lt;/a&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item attendance-filter&quot; data-type=&quot;status&quot; data-value=&quot;late&quot;&gt;
+                                        &lt;i class=&quot;feather-clock me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;Late&lt;/span&gt;
+                                    &lt;/a&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item attendance-filter&quot; data-type=&quot;status&quot; data-value=&quot;absent&quot;&gt;
+                                        &lt;i class=&quot;feather-x-circle me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;Absent&lt;/span&gt;
+                                    &lt;/a&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;div class=&quot;dropdown&quot;&gt;
+                                &lt;a class=&quot;btn btn-light-brand&quot; data-bs-toggle=&quot;dropdown&quot; data-bs-offset=&quot;0, 10&quot; data-bs-auto-close=&quot;outside&quot;&gt;
+                                    &lt;i class=&quot;feather-paperclip me-2&quot;&gt;&lt;/i&gt;
+                                    &lt;span&gt;Export&lt;/span&gt;
+                                &lt;/a&gt;
+                                &lt;div class=&quot;dropdown-menu dropdown-menu-end&quot;&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item&quot;&gt;
+                                        &lt;i class=&quot;bi bi-filetype-pdf me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;PDF&lt;/span&gt;
+                                    &lt;/a&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item&quot;&gt;
+                                        &lt;i class=&quot;bi bi-filetype-csv me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;CSV&lt;/span&gt;
+                                    &lt;/a&gt;
+                                    &lt;a href=&quot;javascript:void(0);&quot; class=&quot;dropdown-item&quot;&gt;
+                                        &lt;i class=&quot;bi bi-filetype-xml me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;XML&lt;/span&gt;
+                                    &lt;/a&gt;
+                                    &lt;div class=&quot;dropdown-divider&quot;&gt;&lt;/div&gt;
+                                    &lt;?php $attendancePrintQuery = http_build_query(array_merge($_GET, [&#39;print&#39; =&gt; &#39;list&#39;])); ?&gt;
+                                    &lt;a href=&quot;attendance.php?&lt;?php echo htmlspecialchars($attendancePrintQuery, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot; class=&quot;dropdown-item&quot;&gt;
+                                        &lt;i class=&quot;bi bi-printer me-3&quot;&gt;&lt;/i&gt;
+                                        &lt;span&gt;Print&lt;/span&gt;
+                                    &lt;/a&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                    &lt;div class=&quot;d-md-none d-flex align-items-center&quot;&gt;
+                        &lt;a href=&quot;javascript:void(0)&quot; class=&quot;page-header-right-open-toggle&quot;&gt;
+                            &lt;i class=&quot;feather-align-right fs-20&quot;&gt;&lt;/i&gt;
+                        &lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;?php
+            $attendance_sync_flash = $_SESSION[&#39;attendance_sync_flash&#39;] ?? null;
+            unset($_SESSION[&#39;attendance_sync_flash&#39;]);
+            if (is_array($attendance_sync_flash) &amp;&amp; !empty($attendance_sync_flash[&#39;message&#39;])):
+            ?&gt;
+                &lt;div class=&quot;alert alert-&lt;?php echo htmlspecialchars((string)($attendance_sync_flash[&#39;type&#39;] ?? &#39;info&#39;), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt; alert-dismissible fade show mx-3&quot; role=&quot;alert&quot; id=&quot;attendanceSyncAlert&quot;&gt;
+                    &lt;?php echo nl2br(htmlspecialchars((string)$attendance_sync_flash[&#39;message&#39;], ENT_QUOTES, &#39;UTF-8&#39;)); ?&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn-close&quot; data-bs-dismiss=&quot;alert&quot; aria-label=&quot;Close&quot;&gt;&lt;/button&gt;
+                &lt;/div&gt;
+            &lt;?php endif; ?&gt;
+            &lt;?php if (!empty($biotern_attendance_sandbox)): ?&gt;
+                &lt;div class=&quot;alert alert-info mx-3&quot; role=&quot;alert&quot;&gt;
+                    Test Attendance sandbox. This page uses the same data as Internal Attendance so display changes can be reviewed here before changing the original workflow.
+                &lt;/div&gt;
+            &lt;?php endif; ?&gt;
+            &lt;?php if (!empty($missingScheduleAttendances)): ?&gt;
+                &lt;?php
+                $missingScheduleLabels = [];
+                foreach ($missingScheduleAttendances as $attendance) {
+                    $studentLabel = trim((string)($attendance[&#39;first_name&#39;] ?? &#39;&#39;) . &#39; &#39; . (string)($attendance[&#39;last_name&#39;] ?? &#39;&#39;));
+                    $sectionLabel = biotern_format_section_label(
+                        (string)($attendance[&#39;section_code&#39;] ?? &#39;&#39;),
+                        (string)($attendance[&#39;section_name&#39;] ?? &#39;&#39;)
+                    );
+                    $missingScheduleLabels[] = trim($studentLabel . ($sectionLabel !== &#39;&#39; ? (&#39; [&#39; . $sectionLabel . &#39;]&#39;) : &#39;&#39;));
+                }
+                $missingScheduleLabels = array_values(array_unique(array_filter($missingScheduleLabels)));
+                ?&gt;
+                &lt;div class=&quot;alert alert-warning alert-dismissible fade show mx-3&quot; role=&quot;alert&quot;&gt;
+                    Section schedule is missing for some biometric rows on this page. Review the section schedule before trusting their slot placement.
+                    &lt;?php if ($missingScheduleLabels !== []): ?&gt;
+                        &lt;div class=&quot;mt-2 small&quot;&gt;&lt;?php echo htmlspecialchars(implode(&#39;, &#39;, array_slice($missingScheduleLabels, 0, 8)), ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&lt;?php echo count($missingScheduleLabels) &gt; 8 ? &#39;...&#39; : &#39;&#39;; ?&gt;&lt;/div&gt;
+                    &lt;?php endif; ?&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn-close&quot; data-bs-dismiss=&quot;alert&quot; aria-label=&quot;Close&quot;&gt;&lt;/button&gt;
+                &lt;/div&gt;
+            &lt;?php endif; ?&gt;
+            &lt;div id=&quot;attendanceSyncAlertHost&quot; class=&quot;mx-3&quot;&gt;&lt;/div&gt;
+
+            
+            &lt;div class=&quot;collapse show&quot; id=&quot;attendanceFilterCollapse&quot;&gt;
+                &lt;div class=&quot;row mb-3 px-3&quot;&gt;
+                    &lt;div class=&quot;col-12&quot;&gt;
+                        &lt;div class=&quot;filter-panel filter-panel-compact&quot;&gt;
+                            &lt;form method=&quot;GET&quot; action=&quot;attendance.php&quot; class=&quot;filter-form row g-2 align-items-end&quot; id=&quot;attendanceFilterForm&quot;&gt;
+                        &lt;div class=&quot;col-sm-2&quot;&gt;
+                            &lt;label class=&quot;form-label&quot; for=&quot;filter-date&quot;&gt;Date&lt;/label&gt;
+                            &lt;input id=&quot;filter-date&quot; type=&quot;date&quot; name=&quot;date&quot; class=&quot;form-control&quot; value=&quot;&lt;?php
+echo htmlspecialchars((string)$filter_date, ENT_QUOTES, &#39;UTF-8&#39;); ?&gt;&quot;&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-sm-2&quot;&gt;
+                            &lt;label class=&quot;form-label&quot; for=&quot;filter-status&quot;&gt;Status&lt;/label&gt;
+                            &lt;select id=&quot;filter-status&quot; name=&quot;status&quot; class=&quot;form-control&quot;&gt;
+                                &lt;option value=&quot;all&quot; &lt;?php echo $filter_status === &#39;all&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;All Statuses&lt;/option&gt;
+                                &lt;option value=&quot;early&quot; &lt;?php echo $filter_status === &#39;early&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;Early&lt;/option&gt;
+                                &lt;option value=&quot;present&quot; &lt;?php echo $filter_status === &#39;present&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;Present&lt;/option&gt;
+                                &lt;option value=&quot;late&quot; &lt;?php echo $filter_status === &#39;late&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;Late&lt;/option&gt;
+                                &lt;option value=&quot;absent&quot; &lt;?php echo $filter_status === &#39;absent&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;Absent&lt;/option&gt;
+                                &lt;option value=&quot;approved&quot; &lt;?php echo $filter_status === &#39;approved&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;Approved&lt;/option&gt;
+                                &lt;option value=&quot;pending_correction&quot; &lt;?php echo $filter_status === &#39;pending_correction&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;Needs Correction&lt;/option&gt;
+                            &lt;/select&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-sm-2&quot;&gt;
+                            &lt;label class=&quot;form-label&quot; for=&quot;filter-source&quot;&gt;Source&lt;/label&gt;
+                            &lt;select id=&quot;filter-source&quot; name=&quot;source&quot; class=&quot;form-control&quot;&gt;
+                                &lt;option value=&quot;all&quot; &lt;?php echo $filter_source === &#39;all&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;All Sources&lt;/option&gt;
+                                &lt;option value=&quot;manual&quot; &lt;?php echo $filter_source === &#39;manual&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;Manual&lt;/option&gt;
+                                &lt;option value=&quot;biometric&quot; &lt;?php echo $filter_source === &#39;biometric&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;Biometric&lt;/option&gt;
+                                &lt;option value=&quot;external-biometric&quot; &lt;?php echo $filter_source === &#39;external-biometric&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;External Biometric&lt;/option&gt;
+                            &lt;/select&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-sm-2&quot;&gt;
+                            &lt;label class=&quot;form-label&quot; for=&quot;filter-reports&quot;&gt;Reports&lt;/label&gt;
+                            &lt;select id=&quot;filter-reports&quot; name=&quot;reports&quot; class=&quot;form-control&quot;&gt;
+                                &lt;option value=&quot;all&quot; &lt;?php echo $filter_reports === &#39;all&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;All Reports&lt;/option&gt;
+                                &lt;option value=&quot;internal_dtr&quot; &lt;?php echo $filter_reports === &#39;internal_dtr&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;Internal DTR / Print&lt;/option&gt;
+                                &lt;option value=&quot;external_queue&quot; &lt;?php echo $filter_reports === &#39;external_queue&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;External Queue&lt;/option&gt;
+                                &lt;option value=&quot;proof&quot; &lt;?php echo $filter_reports === &#39;proof&#39; ? &#39;selected&#39; : &#39;&#39;; ?&gt;&gt;With Proof&lt;/option&gt;
+                            &lt;/select&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-sm-2 filter-form-actions&quot;&gt;
+                            &lt;a href=&quot;attendance.php&quot; class=&quot;btn btn-outline-secondary&quot;&gt;Reset&lt;/a&gt;
+                            &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary&quot;&gt;Apply&lt;/button&gt;
+                        &lt;/div&gt;
+                            &lt;/form&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            
+            &lt;div id=&quot;collapseAttendanceStats&quot; class=&quot;accordion-collapse collapse page-header-collapse&quot;&gt;
+                &lt;div class=&quot;accordion-body pb-2&quot;&gt;
+                    &lt;div class=&quot;row&quot;&gt;
+                        &lt;div class=&quot;col-xxl-3 col-md-6&quot;&gt;
+                            &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                                &lt;div class=&quot;card-body&quot;&gt;
+                                    &lt;div class=&quot;d-flex align-items-center justify-content-between&quot;&gt;
+                                        &lt;div class=&quot;d-flex align-items-center gap-3&quot;&gt;
+                                            &lt;div class=&quot;avatar-text avatar-xl rounded&quot;&gt;
+                                                &lt;i class=&quot;feather-check-circle&quot;&gt;&lt;/i&gt;
+                                            &lt;/div&gt;
+                                            &lt;a href=&quot;javascript:void(0);&quot; class=&quot;fw-bold d-block&quot;&gt;
+                                                &lt;span class=&quot;text-truncate-1-line&quot;&gt;Total Approved&lt;/span&gt;
+                                                &lt;span class=&quot;fs-24 fw-bolder d-block&quot;&gt;&lt;?php
+echo $stats[&#39;approved_count&#39;] ?? 0; ?&gt;&lt;/span&gt;
+                                            &lt;/a&gt;
+                                        &lt;/div&gt;
+                                        &lt;div class=&quot;badge bg-soft-success text-success&quot;&gt;
+                                            &lt;i class=&quot;feather-arrow-up fs-10 me-1&quot;&gt;&lt;/i&gt;
+                                            &lt;span&gt;&lt;?php
+echo $stats[&#39;total_count&#39;] &gt; 0 ? round(($stats[&#39;approved_count&#39;] / $stats[&#39;total_count&#39;]) * 100, 1) : 0; ?&gt;%&lt;/span&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-xxl-3 col-md-6&quot;&gt;
+                            &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                                &lt;div class=&quot;card-body&quot;&gt;
+                                    &lt;div class=&quot;d-flex align-items-center justify-content-between&quot;&gt;
+                                        &lt;div class=&quot;d-flex align-items-center gap-3&quot;&gt;
+                                            &lt;div class=&quot;avatar-text avatar-xl rounded&quot;&gt;
+                                                &lt;i class=&quot;feather-clock&quot;&gt;&lt;/i&gt;
+                                            &lt;/div&gt;
+                                            &lt;a href=&quot;javascript:void(0);&quot; class=&quot;fw-bold d-block&quot;&gt;
+                                                &lt;span class=&quot;text-truncate-1-line&quot;&gt;Pending Approval&lt;/span&gt;
+                                                &lt;span class=&quot;fs-24 fw-bolder d-block&quot;&gt;&lt;?php
+echo $stats[&#39;pending_count&#39;] ?? 0; ?&gt;&lt;/span&gt;
+                                            &lt;/a&gt;
+                                        &lt;/div&gt;
+                                        &lt;div class=&quot;badge bg-soft-warning text-warning&quot;&gt;
+                                            &lt;i class=&quot;feather-arrow-up fs-10 me-1&quot;&gt;&lt;/i&gt;
+                                            &lt;span&gt;&lt;?php
+echo $stats[&#39;total_count&#39;] &gt; 0 ? round(($stats[&#39;pending_count&#39;] / $stats[&#39;total_count&#39;]) * 100, 1) : 0; ?&gt;%&lt;/span&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-xxl-3 col-md-6&quot;&gt;
+                            &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                                &lt;div class=&quot;card-body&quot;&gt;
+                                    &lt;div class=&quot;d-flex align-items-center justify-content-between&quot;&gt;
+                                        &lt;div class=&quot;d-flex align-items-center gap-3&quot;&gt;
+                                            &lt;div class=&quot;avatar-text avatar-xl rounded&quot;&gt;
+                                                &lt;i class=&quot;feather-x-circle&quot;&gt;&lt;/i&gt;
+                                            &lt;/div&gt;
+                                            &lt;a href=&quot;javascript:void(0);&quot; class=&quot;fw-bold d-block&quot;&gt;
+                                                &lt;span class=&quot;text-truncate-1-line&quot;&gt;Rejected&lt;/span&gt;
+                                                &lt;span class=&quot;fs-24 fw-bolder d-block&quot;&gt;&lt;?php
+echo $stats[&#39;rejected_count&#39;] ?? 0; ?&gt;&lt;/span&gt;
+                                            &lt;/a&gt;
+                                        &lt;/div&gt;
+                                        &lt;div class=&quot;badge bg-soft-danger text-danger&quot;&gt;
+                                            &lt;i class=&quot;feather-arrow-down fs-10 me-1&quot;&gt;&lt;/i&gt;
+                                            &lt;span&gt;&lt;?php
+echo $stats[&#39;total_count&#39;] &gt; 0 ? round(($stats[&#39;rejected_count&#39;] / $stats[&#39;total_count&#39;]) * 100, 1) : 0; ?&gt;%&lt;/span&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                        &lt;div class=&quot;col-xxl-3 col-md-6&quot;&gt;
+                            &lt;div class=&quot;card stretch stretch-full&quot;&gt;
+                                &lt;div class=&quot;card-body&quot;&gt;
+                                    &lt;div class=&quot;d-flex align-items-center justify-content-between&quot;&gt;
+                                        &lt;div class=&quot;d-flex align-items-center gap-3&quot;&gt;
+                                            &lt;div class=&quot;avatar-text avatar-xl rounded&quot;&gt;
+                                                &lt;i class=&quot;feather-alert-circle&quot;&gt;&lt;/i&gt;
+                                            &lt;/div&gt;
+                                            &lt;a href=&quot;javascript:void(0);&quot; class=&quot;fw-bold d-block&quot;&gt;
+                                                &lt;span class=&quot;text-truncate-1-line&quot;&gt;Total Records&lt;/span&gt;
+                                                &lt;span class=&quot;fs-24 fw-bolder d-block&quot;&gt;&lt;?php
+echo $stats[&#39;total_count&#39;] ?? 0; ?&gt;&lt;/span&gt;
+                                            &lt;/a&gt;
+                                        &lt;/div&gt;
+                                        &lt;div class=&quot;badge bg-soft-info text-info&quot;&gt;
+                                            &lt;i class=&quot;feather-info fs-10 me-1&quot;&gt;&lt;/i&gt;
+                                            &lt;span&gt;100%&lt;/span&gt;
+                                        &lt;/div&gt;
+                                    &lt;/div&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            
+
+            
+            &lt;div class=&quot;row mb-2 px-3&quot; id=&quot;bulkActionsToolbar&quot; style=&quot;display: none;&quot;&gt;
+                &lt;div class=&quot;col-12&quot;&gt;
+                    &lt;div class=&quot;d-flex align-items-center justify-content-between p-2 rounded bulk-toolbar&quot;&gt;
+                        &lt;span class=&quot;fs-6&quot; style=&quot;font-weight: 600;&quot;&gt;
+                            &lt;i class=&quot;feather feather-check me-1&quot; style=&quot;font-size: 16px;&quot;&gt;&lt;/i&gt;
+                            &lt;strong id=&quot;selectedCount&quot; style=&quot;font-size:1.1rem;&quot;&gt;0&lt;/strong&gt; record(s) selected
+                        &lt;/span&gt;
+                        &lt;div class=&quot;d-flex gap-1&quot;&gt;
+                            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm btn-success py-1 px-2&quot; onclick=&quot;performBulkAction(&#39;approve&#39;)&quot; title=&quot;Approve selected&quot;&gt;
+                                &lt;i class=&quot;feather feather-check fs-8 me-1&quot;&gt;&lt;/i&gt; Approve
+                            &lt;/button&gt;
+                            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm btn-warning py-1 px-2&quot; onclick=&quot;performBulkAction(&#39;reject&#39;)&quot; title=&quot;Reject selected&quot;&gt;
+                                &lt;i class=&quot;feather feather-x fs-8 me-1&quot;&gt;&lt;/i&gt; Reject
+                            &lt;/button&gt;
+                            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm btn-danger py-1 px-2&quot; onclick=&quot;performBulkAction(&#39;delete&#39;)&quot; title=&quot;Delete selected&quot;&gt;
+                                &lt;i class=&quot;feather feather-trash-2 fs-8 me-1&quot;&gt;&lt;/i&gt; Delete
+                            &lt;/button&gt;
+                            &lt;button type=&quot;button&quot; class=&quot;btn btn-sm btn-outline-secondary py-1 px-2&quot; onclick=&quot;clearSelection()&quot;&gt;
+                                &lt;i class=&quot;feather feather-x fs-8 me-1&quot;&gt;&lt;/i&gt; Clear
+                            &lt;/button&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;main-content&quot;&gt;
+                &lt;div class=&quot;row&quot;&gt;
+                    &lt;div class=&quot;col-lg-12&quot;&gt;
+
+                        &lt;div class=&quot;card stretch stretch-full attendance-table-card app-data-card app-data-toolbar&quot;&gt;
+                            &lt;div class=&quot;card-body p-0&quot;&gt;
+                                &lt;div class=&quot;table-responsive app-data-table-wrap&quot;&gt;
+                                    &lt;table class=&quot;table table-hover app-data-table&quot; id=&quot;attendanceList&quot;&gt;
+                                        &lt;thead&gt;
+                                            &lt;tr&gt;
+                                                &lt;th class=&quot;wd-30&quot;&gt;
+                                                    &lt;div class=&quot;btn-group mb-1&quot;&gt;
+                                                        &lt;div class=&quot;custom-control custom-checkbox ms-1&quot;&gt;
+                                                            &lt;input type=&quot;checkbox&quot; class=&quot;custom-control-input&quot; id=&quot;checkAllAttendance&quot;&gt;
+                                                            &lt;label class=&quot;custom-control-label&quot; for=&quot;checkAllAttendance&quot;&gt;&lt;/label&gt;
+                                                        &lt;/div&gt;
+                                                    &lt;/div&gt;
+                                                &lt;/th&gt;
+                                                &lt;th&gt;Student Name&lt;/th&gt;
+                                                &lt;th&gt;Attendance Date&lt;/th&gt;
+                                                &lt;th&gt;Morning In&lt;/th&gt;
+                                                &lt;th&gt;Morning Out&lt;/th&gt;
+                                                &lt;th&gt;Afternoon In&lt;/th&gt;
+                                                &lt;th&gt;Afternoon Out&lt;/th&gt;
+                                                &lt;th&gt;Total Hours&lt;/th&gt;
+                                                &lt;th&gt;Status&lt;/th&gt;
+                                                &lt;th&gt;Source&lt;/th&gt;
+                                                &lt;th&gt;Photo&lt;/th&gt;
+                                                &lt;th&gt;Reports&lt;/th&gt;
+                                                &lt;th&gt;Notes&lt;/th&gt;
+                                                &lt;th&gt;Review&lt;/th&gt;
+                                            &lt;/tr&gt;
+                                        &lt;/thead&gt;
+                                        &lt;tbody&gt;
+                                            &lt;?php
+if (!empty($attendances)): ?&gt;
+                                                &lt;?php
+foreach ($attendances as $index =&gt; $attendance): ?&gt;
+                                                    &lt;tr class=&quot;single-item&quot;&gt;
+                                                        &lt;td data-label=&quot;Select&quot;&gt;
+                                                            &lt;?php if (attendanceCanReview($attendance)): ?&gt;
+                                                            &lt;div class=&quot;item-checkbox ms-1&quot;&gt;
+                                                                &lt;div class=&quot;custom-control custom-checkbox&quot;&gt;
+                                                                    &lt;input type=&quot;checkbox&quot; class=&quot;custom-control-input checkbox&quot; id=&quot;checkBox_&lt;?php
+echo (int)$attendance[&#39;id&#39;]; ?&gt;_&lt;?php
+echo (int)$index; ?&gt;&quot; data-attendance-id=&quot;&lt;?php
+echo (int)$attendance[&#39;id&#39;]; ?&gt;&quot;&gt;
+                                                                    &lt;label class=&quot;custom-control-label&quot; for=&quot;checkBox_&lt;?php
+echo (int)$attendance[&#39;id&#39;]; ?&gt;_&lt;?php
+echo (int)$index; ?&gt;&quot;&gt;&lt;/label&gt;
+                                                                &lt;/div&gt;
+                                                            &lt;/div&gt;
+                                                            &lt;?php else: ?&gt;
+                                                            &lt;span class=&quot;text-muted fs-12&quot; title=&quot;Biometric records are auto-verified&quot;&gt;Auto&lt;/span&gt;
+                                                            &lt;?php endif; ?&gt;
+                                                        &lt;/td&gt;
+                                                        &lt;td data-label=&quot;Student Name&quot;&gt;
+                                                            &lt;a href=&quot;students-internal-dtr.php?id=&lt;?php
+echo $attendance[&#39;student_id&#39;]; ?&gt;&quot; class=&quot;hstack gap-3&quot;&gt;
+                                                                &lt;?php
+$pp = $attendance[&#39;profile_picture&#39;] ?? &#39;&#39;;
+                                                                $pp_url = resolve_attendance_profile_image_url((string)$pp, (int)($attendance[&#39;user_id&#39;] ?? 0));
+                                                                if ($pp_url !== null) {
+                                                                    echo &#39;&lt;div class=&quot;avatar-image avatar-md&quot;&gt;&lt;img src=&quot;&#39; . htmlspecialchars($pp_url) . &#39;&quot; alt=&quot;&quot; class=&quot;img-fluid&quot;&gt;&lt;/div&gt;&#39;;
+                                                                } else {
+                                                                    echo &#39;&lt;div class=&quot;avatar-image avatar-md&quot;&gt;&lt;div class=&quot;avatar-text avatar-md bg-light-primary rounded&quot;&gt;&#39; . strtoupper(substr($attendance[&#39;first_name&#39;] ?? &#39;N&#39;, 0, 1) . substr($attendance[&#39;last_name&#39;] ?? &#39;A&#39;, 0, 1)) . &#39;&lt;/div&gt;&lt;/div&gt;&#39;;
+                                                                }
+                                                                ?&gt;
+                                                                &lt;div&gt;
+                                                                    &lt;span class=&quot;text-truncate-1-line fw-bold&quot;&gt;&lt;?php
+echo ($attendance[&#39;first_name&#39;] ?? &#39;N/A&#39;) . &#39; &#39; . ($attendance[&#39;last_name&#39;] ?? &#39;N/A&#39;); ?&gt;&lt;?php if ((int)($attendance[&#39;is_sa_student&#39;] ?? 0) === 1): ?&gt; &lt;span class=&quot;badge bg-soft-primary text-primary ms-1&quot;&gt;SA&lt;/span&gt;&lt;?php endif; ?&gt;&lt;/span&gt;
+                                                                    &lt;span class=&quot;fs-12 text-muted d-block&quot;&gt;&lt;?php
+echo $attendance[&#39;student_number&#39;] ?? &#39;N/A&#39;; ?&gt;&lt;/span&gt;
+                                                                &lt;/div&gt;
+                                                            &lt;/a&gt;
+                                                        &lt;/td&gt;
+                                                        &lt;td data-label=&quot;Attendance Date&quot;&gt;&lt;span class=&quot;badge bg-soft-primary text-primary&quot;&gt;&lt;?php
+echo date(&#39;Y-m-d&#39;, strtotime($attendance[&#39;attendance_date&#39;])); ?&gt;&lt;/span&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Morning In&quot;&gt;&lt;?php echo attendanceDisplayTimeHtml($attendance, &#39;morning_time_in&#39;, &#39;bg-soft-success text-success&#39;); ?&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Morning Out&quot;&gt;&lt;?php echo attendanceDisplayTimeHtml($attendance, &#39;morning_time_out&#39;, &#39;bg-soft-success text-success&#39;); ?&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Afternoon In&quot;&gt;&lt;?php echo attendanceDisplayTimeHtml($attendance, &#39;afternoon_time_in&#39;, &#39;bg-soft-warning text-warning&#39;); ?&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Afternoon Out&quot;&gt;&lt;?php echo attendanceDisplayTimeHtml($attendance, &#39;afternoon_time_out&#39;, &#39;bg-soft-warning text-warning&#39;); ?&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Total Hours&quot;&gt;
+                                                            &lt;?php
+echo attendance_hours_cell_html($attendance); ?&gt;
+                                                        &lt;/td&gt;
+                                                        &lt;td data-label=&quot;Status&quot;&gt;
+                                                            &lt;?php
+echo attendance_status_cell_html($attendance);
+                                                            ?&gt;
+                                                        &lt;/td&gt;
+                                                        &lt;td data-label=&quot;Source&quot;&gt;&lt;?php
+echo getSourceBadge($attendance[&#39;source&#39;] ?? &#39;manual&#39;, $attendance); ?&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Photo&quot;&gt;&lt;?php
+echo attendance_photo_cell_html($attendance); ?&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Reports&quot;&gt;&lt;?php
+echo attendance_reports_cell_html($attendance); ?&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Notes&quot;&gt;&lt;?php
+echo attendance_notes_cell_html($attendance); ?&gt;&lt;/td&gt;
+                                                        &lt;td data-label=&quot;Review&quot;&gt;
+                                                            &lt;?php echo attendance_review_cell_html($attendance); ?&gt;
+                                                        &lt;/td&gt;
+                                                    &lt;/tr&gt;
+                                                &lt;?php
+endforeach; ?&gt;
+                                            &lt;?php
+endif; ?&gt;
+                                        &lt;/tbody&gt;
+                                    &lt;/table&gt;
+                                &lt;/div&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+            
+        &lt;/div&gt;
+&lt;/main&gt;
+
+    
+    
+
+    
+    
+    
+    &lt;div class=&quot;position-fixed&quot; style=&quot;right: 5px; bottom: 5px; z-index: 999999&quot;&gt;
+        &lt;div id=&quot;toast&quot; class=&quot;toast bg-black hide&quot; data-bs-delay=&quot;3000&quot; role=&quot;alert&quot; aria-live=&quot;assertive&quot; aria-atomic=&quot;true&quot;&gt;
+            &lt;div class=&quot;toast-header px-3 bg-transparent d-flex align-items-center justify-content-between border-bottom border-light border-opacity-10&quot;&gt;
+                &lt;div class=&quot;text-white mb-0 mr-auto&quot;&gt;Downloading...&lt;/div&gt;
+                &lt;a href=&quot;javascript:void(0)&quot; class=&quot;ms-2 mb-1 close fw-normal&quot; data-bs-dismiss=&quot;toast&quot; aria-label=&quot;Close&quot;&gt;
+                    &lt;span class=&quot;text-white&quot;&gt;&amp;times;&lt;/span&gt;
+                &lt;/a&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;toast-body p-3 text-white&quot;&gt;
+                &lt;h6 class=&quot;fs-13 text-white&quot;&gt;Attendance.zip&lt;/h6&gt;
+                &lt;span class=&quot;text-light fs-11&quot;&gt;4.2mb of 5.5mb&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;toast-footer p-3 pt-0 border-top border-light border-opacity-10&quot;&gt;
+                &lt;div class=&quot;progress mt-3&quot; style=&quot;height: 5px&quot;&gt;
+                    &lt;div class=&quot;progress-bar progress-bar-striped progress-bar-animated w-75 bg-dark&quot; role=&quot;progressbar&quot; aria-valuenow=&quot;75&quot; aria-valuemin=&quot;0&quot; aria-valuemax=&quot;100&quot;&gt;&lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;div class=&quot;modal fade&quot; id=&quot;viewAttendanceModal&quot; tabindex=&quot;-1&quot; aria-hidden=&quot;true&quot;&gt;
+        &lt;div class=&quot;modal-dialog modal-lg modal-dialog-centered&quot;&gt;
+            &lt;div class=&quot;modal-content&quot;&gt;
+                &lt;div class=&quot;modal-header&quot;&gt;
+                    &lt;h5 class=&quot;modal-title&quot;&gt;Attendance Details&lt;/h5&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn-close&quot; data-bs-dismiss=&quot;modal&quot; aria-label=&quot;Close&quot;&gt;&lt;/button&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;modal-body&quot;&gt;
+                    &lt;div class=&quot;row g-3&quot;&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Attendance ID&lt;/small&gt;&lt;strong id=&quot;view_attendance_id&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Date&lt;/small&gt;&lt;strong id=&quot;view_date&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Student No.&lt;/small&gt;&lt;strong id=&quot;view_student_number&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-6&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Student&lt;/small&gt;&lt;strong id=&quot;view_student_name&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-3&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Course&lt;/small&gt;&lt;strong id=&quot;view_course&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-3&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Department&lt;/small&gt;&lt;strong id=&quot;view_department&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-3&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Morning In&lt;/small&gt;&lt;strong id=&quot;view_morning_in&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-3&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Morning Out&lt;/small&gt;&lt;strong id=&quot;view_morning_out&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-3&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Afternoon In&lt;/small&gt;&lt;strong id=&quot;view_afternoon_in&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-3&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Afternoon Out&lt;/small&gt;&lt;strong id=&quot;view_afternoon_out&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Total Hours&lt;/small&gt;&lt;strong id=&quot;view_total_hours&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Attendance Status&lt;/small&gt;&lt;strong id=&quot;view_attendance_status&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                        &lt;div class=&quot;col-md-4&quot;&gt;&lt;small class=&quot;text-muted d-block&quot;&gt;Record Status&lt;/small&gt;&lt;strong id=&quot;view_approval_status&quot;&gt;-&lt;/strong&gt;&lt;/div&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;modal-footer&quot;&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn btn-secondary&quot; data-bs-dismiss=&quot;modal&quot;&gt;Close&lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;modal fade&quot; id=&quot;confirmModal&quot; tabindex=&quot;-1&quot; aria-hidden=&quot;true&quot;&gt;
+        &lt;div class=&quot;modal-dialog modal-dialog-centered&quot;&gt;
+            &lt;div class=&quot;modal-content&quot;&gt;
+                &lt;div class=&quot;modal-header&quot;&gt;
+                    &lt;h5 class=&quot;modal-title&quot;&gt;Confirm&lt;/h5&gt;
+                    &lt;button type=&quot;button&quot; class=&quot;btn-close&quot; data-bs-dismiss=&quot;modal&quot; aria-label=&quot;Close&quot;&gt;&lt;/button&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;modal-body&quot;&gt;
+                    &lt;p class=&quot;confirm-message&quot;&gt;&lt;/p&gt;
+                    &lt;div class=&quot;confirm-remarks-wrap&quot; style=&quot;display:none; margin-top:10px;&quot;&gt;
+                        &lt;label for=&quot;confirmRemarks&quot; class=&quot;form-label&quot;&gt;Remarks&lt;/label&gt;
+                        &lt;textarea id=&quot;confirmRemarks&quot; class=&quot;form-control&quot; rows=&quot;3&quot; placeholder=&quot;Enter remarks here...&quot;&gt;&lt;/textarea&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;modal-footer&quot;&gt;
+                    &lt;button type=&quot;button&quot; id=&quot;confirmModalCancel&quot; class=&quot;btn btn-secondary&quot; data-bs-dismiss=&quot;modal&quot;&gt;Cancel&lt;/button&gt;
+                    &lt;button type=&quot;button&quot; id=&quot;confirmModalOk&quot; class=&quot;btn btn-primary&quot;&gt;OK&lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;?php include &#39;includes/footer.php&#39;; ?&gt;
+
+</code></pre></div></main>
+</div>
+</body>
+</html>
