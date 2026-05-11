@@ -144,6 +144,51 @@ $student = $result->fetch_assoc();
 $student_latest_internship = null;
 $student_company_profile = null;
 
+$biometric_registered = (int)($student['biometric_registered'] ?? 0) === 1;
+$biometric_finger_id = null;
+$biometric_registered_at = $student['biometric_registered_at'] ?? null;
+if (!empty($student['user_id']) && student_view_table_exists($conn, 'fingerprint_user_map')) {
+    $finger_stmt = $conn->prepare('SELECT finger_id, created_at, updated_at FROM fingerprint_user_map WHERE user_id = ? LIMIT 1');
+    if ($finger_stmt) {
+        $user_id_for_fingerprint = (int)$student['user_id'];
+        $finger_stmt->bind_param('i', $user_id_for_fingerprint);
+        $finger_stmt->execute();
+        $finger_res = $finger_stmt->get_result();
+        $finger_row = $finger_res ? $finger_res->fetch_assoc() : null;
+        $finger_stmt->close();
+
+        if ($finger_row) {
+            $biometric_finger_id = (int)($finger_row['finger_id'] ?? 0);
+            $biometric_registered = $biometric_finger_id > 0;
+            if ($biometric_registered) {
+                $biometric_registered_at = $finger_row['created_at'] ?: ($finger_row['updated_at'] ?? $biometric_registered_at);
+            }
+        }
+    }
+}
+
+$needs_biometric_backfill = $biometric_registered
+    && ((int)($student['biometric_registered'] ?? 0) !== 1 || trim((string)($student['biometric_registered_at'] ?? '')) === '');
+if ($needs_biometric_backfill) {
+    $backfill_registered_at = trim((string)($student['biometric_registered_at'] ?? ''));
+    if ($backfill_registered_at === '') {
+        $backfill_registered_at = trim((string)($biometric_registered_at ?? ''));
+    }
+    if ($backfill_registered_at === '') {
+        $backfill_registered_at = date('Y-m-d H:i:s');
+    }
+
+    $backfill_stmt = $conn->prepare('UPDATE students SET biometric_registered = 1, biometric_registered_at = ? WHERE id = ?');
+    if ($backfill_stmt) {
+        $backfill_stmt->bind_param('si', $backfill_registered_at, $student_id);
+        $backfill_stmt->execute();
+        $backfill_stmt->close();
+    }
+    $student['biometric_registered'] = 1;
+    $student['biometric_registered_at'] = $backfill_registered_at;
+    $biometric_registered_at = $backfill_registered_at;
+}
+
 function internship_column_exists(mysqli $conn, string $column): bool
 {
     static $cache = [];
@@ -1270,9 +1315,23 @@ echo $lastBiometricClockIn ? formatDate($lastBiometricClockIn) : 'No biometric c
                                             </div>
                                             <div class="col-md-6">
                                                 <div class="p-3 border rounded">
+                                                    <div class="small text-muted mb-1">Biometric Status</div>
+                                                    <div class="fw-semibold"><?php
+if ($biometric_registered) {
+    echo 'Registered';
+    if (!empty($biometric_finger_id)) {
+        echo ' (Finger ID: ' . htmlspecialchars((string)$biometric_finger_id) . ')';
+    }
+} else {
+    echo 'Not Registered';
+} ?></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="p-3 border rounded">
                                                     <div class="small text-muted mb-1">Date Fingerprint Registered</div>
                                                     <div class="fw-semibold"><?php
-echo formatDate($student['biometric_registered_at']); ?></div>
+echo $biometric_registered_at ? formatDate($biometric_registered_at) : 'N/A'; ?></div>
                                                 </div>
                                             </div>
                                         </div>

@@ -301,6 +301,51 @@ if (!isset($student['external_total_hours_remaining']) || $student['external_tot
     $student['external_total_hours_remaining'] = $student_edit_default_external_hours;
 }
 
+$biometric_registered = (int)($student['biometric_registered'] ?? 0) === 1;
+$biometric_finger_id = null;
+$biometric_registered_at = $student['biometric_registered_at'] ?? null;
+if (!empty($student['user_id']) && biotern_student_edit_table_exists($conn, 'fingerprint_user_map')) {
+    $finger_stmt = $conn->prepare('SELECT finger_id, created_at, updated_at FROM fingerprint_user_map WHERE user_id = ? LIMIT 1');
+    if ($finger_stmt) {
+        $user_id_for_fingerprint = (int)$student['user_id'];
+        $finger_stmt->bind_param('i', $user_id_for_fingerprint);
+        $finger_stmt->execute();
+        $finger_res = $finger_stmt->get_result();
+        $finger_row = $finger_res ? $finger_res->fetch_assoc() : null;
+        $finger_stmt->close();
+
+        if ($finger_row) {
+            $biometric_finger_id = (int)($finger_row['finger_id'] ?? 0);
+            $biometric_registered = $biometric_finger_id > 0;
+            if ($biometric_registered) {
+                $biometric_registered_at = $finger_row['created_at'] ?: ($finger_row['updated_at'] ?? $biometric_registered_at);
+            }
+        }
+    }
+}
+
+$needs_biometric_backfill = $biometric_registered
+    && ((int)($student['biometric_registered'] ?? 0) !== 1 || trim((string)($student['biometric_registered_at'] ?? '')) === '');
+if ($needs_biometric_backfill) {
+    $backfill_registered_at = trim((string)($student['biometric_registered_at'] ?? ''));
+    if ($backfill_registered_at === '') {
+        $backfill_registered_at = trim((string)($biometric_registered_at ?? ''));
+    }
+    if ($backfill_registered_at === '') {
+        $backfill_registered_at = date('Y-m-d H:i:s');
+    }
+
+    $backfill_stmt = $conn->prepare('UPDATE students SET biometric_registered = 1, biometric_registered_at = ? WHERE id = ?');
+    if ($backfill_stmt) {
+        $backfill_stmt->bind_param('si', $backfill_registered_at, $student_id);
+        $backfill_stmt->execute();
+        $backfill_stmt->close();
+    }
+    $student['biometric_registered'] = 1;
+    $student['biometric_registered_at'] = $backfill_registered_at;
+    $biometric_registered_at = $backfill_registered_at;
+}
+
 // Fetch all courses for dropdown (be tolerant of differing schema columns)
 $courses = [];
 $db_name = defined('DB_NAME') ? (string)DB_NAME : 'biotern_db';
@@ -1372,12 +1417,17 @@ include 'includes/header.php';
                                             <div class="col-md-6">
                                                 <label class="form-label fw-semibold text-muted">Biometric Status</label>
                                                 <div class="form-text">
-                                                    <?php if ($student['biometric_registered']): ?>
+                                                    <?php if ($biometric_registered): ?>
                                                         <span class="badge bg-success">
                                                             <i class="feather-check me-1"></i>Registered
                                                         </span>
+                                                        <?php if ($biometric_finger_id !== null && $biometric_finger_id > 0): ?>
+                                                            <small class="d-block mt-2 text-muted">
+                                                                Finger ID: <?php echo htmlspecialchars((string)$biometric_finger_id); ?>
+                                                            </small>
+                                                        <?php endif; ?>
                                                         <small class="d-block mt-2 text-muted">
-                                                            Registered on: <?php echo formatDateTime($student['biometric_registered_at']); ?>
+                                                            Registered on: <?php echo formatDateTime($biometric_registered_at); ?>
                                                         </small>
                                                     <?php else: ?>
                                                         <span class="badge bg-warning">
