@@ -194,6 +194,7 @@ include __DIR__ . '/../includes/header.php';
                 </ul>
             </div>
             <?php ob_start(); ?>
+                <a href="documents/index.php" class="btn btn-outline-secondary"><i class="feather-folder me-1"></i>All Documents</a>
                 <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
                 <a href="document_application.php" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>Application</a>
             <?php

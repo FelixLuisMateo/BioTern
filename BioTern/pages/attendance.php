@@ -1057,7 +1057,7 @@ function attendanceExpectedEndLabel(array $attendance, string $column): string
 }
 
 function attendanceDisplayTimeHtml(array $attendance, string $column, string $badgeClass): string {
-    if ($column === 'morning_time_in' && attendanceIsMorningAbsentForWholeDay($attendance)) {
+    if (($column === 'morning_time_in' || $column === 'morning_time_out') && attendanceIsMorningAbsentForWholeDay($attendance)) {
         return '<span class="badge bg-soft-danger text-danger">Absent</span>';
     }
 

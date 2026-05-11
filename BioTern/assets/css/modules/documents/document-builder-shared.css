@@ -155,7 +155,8 @@ html.app-theme-gray.app-skin-dark .application-builder-page {
 .application-builder-page .builder-paper-shell {
     overflow: auto;
     padding: 6px 0 0;
-    display: block;
+    display: flex;
+    justify-content: center;
 }
 
 .application-builder-page .builder-paper {

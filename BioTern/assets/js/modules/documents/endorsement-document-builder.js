@@ -428,6 +428,7 @@
     }
 
     function updatePreview() {
+        ensureRossSignature();
         setPlaceholderText(['pv_recipient', 'ed_recipient'], formatRecipientName(inputRecipient.value), '__________________________');
         setPlaceholderText(['pv_position', 'ed_position'], inputPosition.value, '__________________________');
         setPlaceholderText(['pv_company', 'ed_company'], inputCompany.value, '__________________________');
@@ -524,6 +525,45 @@
         }
 
         saveFormState();
+    }
+
+    function ensureRossSignature() {
+        if (!editor || editor.querySelector('.ross-signature')) {
+            return;
+        }
+
+        var rossName = null;
+        var strongNodes = editor.querySelectorAll('strong');
+        for (var i = 0; i < strongNodes.length; i += 1) {
+            if ((strongNodes[i].textContent || '').toUpperCase().indexOf('MR. ROSS CARVEL C. RAMIREZ') !== -1) {
+                rossName = strongNodes[i];
+                break;
+            }
+        }
+        if (!rossName) {
+            return;
+        }
+
+        var textBlock = rossName.closest('p') || rossName.parentElement;
+        if (!textBlock) {
+            return;
+        }
+
+        var wrapper = textBlock.closest('.ross-signatory');
+        if (!wrapper) {
+            wrapper = document.createElement('div');
+            wrapper.className = 'ross-signatory';
+            textBlock.parentNode.insertBefore(wrapper, textBlock);
+            wrapper.appendChild(textBlock);
+            textBlock.classList.add('ross-signatory-text');
+        }
+
+        var signature = document.createElement('img');
+        signature.className = 'ross-signature';
+        signature.src = 'pages/Ross-Signature.png';
+        signature.alt = 'Ross signature';
+        signature.setAttribute('data-hide-onerror', '1');
+        wrapper.insertBefore(signature, wrapper.firstChild);
     }
 
     function applySavedEndorsement(data) {
