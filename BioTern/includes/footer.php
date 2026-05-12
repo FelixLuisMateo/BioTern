@@ -123,8 +123,8 @@ if (!function_exists('footer_asset_versioned_src')) {
             </div>
         </div>
     <?php endif; ?>
-    <!-- Toast container for server-side flash messages (used by external attendance pages) -->
-    <div id="bioternToastContainer" aria-live="polite" aria-atomic="true" style="position:fixed;right:18px;bottom:18px;z-index:200000;max-width:360px;pointer-events:none;"></div>
+    <!-- Unified toast container for desktop/mobile system-style notifications -->
+    <div id="bioternToastContainer" class="biotern-system-toast-stack" aria-live="polite" aria-atomic="true"></div>
 <?php endif; ?>
 
     <!--! ================================================================ !-->
@@ -146,6 +146,7 @@ if (!function_exists('footer_asset_versioned_src')) {
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/runtime-boot.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/custom-select-dropdown.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/global-ui-helpers.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/global-notifier-runtime.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/unified-date-picker.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/page-header-consistency.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/mobile-filter-actions-modal.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>

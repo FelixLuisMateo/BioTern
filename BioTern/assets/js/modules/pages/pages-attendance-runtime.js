@@ -57,6 +57,16 @@
         }
 
         function showAttendanceSyncAlert(message, type) {
+            if (window.BioTernNotify && typeof window.BioTernNotify.show === 'function') {
+                window.BioTernNotify.show({
+                    type: (type === 'danger' ? 'error' : type),
+                    title: 'Attendance Sync',
+                    message: message || '',
+                    duration: 5000
+                });
+                return;
+            }
+
             var host = document.getElementById('attendanceSyncAlertHost');
             if (!host) {
                 return;
@@ -385,6 +395,15 @@
 
         // Show toast notification
         function showToast(message, type = 'success') {
+            if (window.BioTernNotify && typeof window.BioTernNotify.show === 'function') {
+                window.BioTernNotify.show({
+                    type: (type === 'danger' ? 'error' : type),
+                    message: message || '',
+                    duration: 4000
+                });
+                return;
+            }
+
             // Remove existing toasts
             $('.toast-notification').remove();
             

@@ -633,6 +633,16 @@
     }
 
     function showThemeToast(icon, title) {
+      if (window.BioTernNotify && typeof window.BioTernNotify.show === "function") {
+        window.BioTernNotify.show({
+          type: icon === "error" ? "error" : "success",
+          title: "Theme",
+          message: title || "Saved",
+          duration: 2800
+        });
+        return;
+      }
+
       var root = document.body || document.documentElement;
       if (!root) {
         console.log(title || "Saved");

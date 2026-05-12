@@ -292,7 +292,8 @@ if ($studentContext) {
 					Start and end are both today, so this will create 1 row. Choose a later end date to create more rows.
 				</div>
 			</form>
-			<form method="post" action="external-attendance.php" id="manualDtrTableForm" enctype="multipart/form-data">
+			<form method="post" action="api/external-attendance.php" id="manualDtrTableForm" enctype="multipart/form-data">
+				<input type="hidden" name="action" value="manual_table">
 				<input type="hidden" name="external_action" value="manual_range">
 				<input type="hidden" name="return_to" value="external-biometric.php">
 				<input type="hidden" name="student_id" value="<?php echo (int)($studentContext['id'] ?? 0); ?>">
@@ -487,6 +488,33 @@ enhanceExternalManualTimeFields(document);
 
 var externalBiometricForm = document.getElementById('externalBiometricForm');
 var externalBiometricClockType = document.getElementById('externalBiometricClockType');
+function showExternalPageToast(type, title, message) {
+	if (window.BioTernNotify && typeof window.BioTernNotify.show === 'function') {
+		window.BioTernNotify.show({
+			type: type === 'danger' ? 'error' : type,
+			title: title || '',
+			message: message || '',
+			duration: 5200
+		});
+		return;
+	}
+	var container = document.getElementById('bioternToastContainer');
+	if (!container) return;
+	var bg = type === 'success' ? '#155724' : (type === 'danger' ? '#721c24' : (type === 'warning' ? '#856404' : '#0c5460'));
+	var toast = document.createElement('div');
+	toast.className = 'biotern-toast';
+	toast.setAttribute('style', 'pointer-events:auto;background:' + bg + ';color:#fff;padding:12px;border-radius:8px;margin-top:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12)');
+	toast.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px">' +
+		'<div style="flex:1"><div style="font-weight:600;margin-bottom:2px">' + (title ? String(title) : '') + '</div>' +
+		'<div style="font-size:0.95rem">' + String(message || '') + '</div></div>' +
+		'<button type="button" class="biotern-toast-close" aria-label="Close" style="background:transparent;border:0;color:inherit;font-size:18px;line-height:1;padding:0 6px;">&times;</button>' +
+		'</div>';
+	container.appendChild(toast);
+	var btnClose = toast.querySelector('.biotern-toast-close');
+	if (btnClose) btnClose.addEventListener('click', function(){ toast.remove(); });
+	setTimeout(function(){ try { toast.remove(); } catch(e){} }, 5200);
+}
+
 if (externalBiometricForm && externalBiometricClockType) {
 	Array.prototype.forEach.call(externalBiometricForm.querySelectorAll('.external-clock-btn'), function(button) {
 		button.addEventListener('click', function() {
@@ -512,45 +540,17 @@ if (externalBiometricForm && externalBiometricClockType) {
 				fetch('api/external-attendance.php', { method: 'POST', credentials: 'same-origin', body: fd })
 				.then(function(res){ return res.json().catch(function(){ return null; }); })
 				.then(function(json){
-					function showBioternToast(type, title, message){
-						var container = document.getElementById('bioternToastContainer');
-						if (!container) return;
-						var bg = type === 'success' ? '#155724' : (type === 'danger' ? '#721c24' : (type === 'warning' ? '#856404' : '#0c5460'));
-						var toast = document.createElement('div');
-						toast.className = 'biotern-toast';
-						toast.setAttribute('style', 'pointer-events:auto;background:' + bg + ';color:#fff;padding:12px;border-radius:8px;margin-top:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12)');
-						toast.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px">' +
-							'<div style="flex:1"><div style="font-weight:600;margin-bottom:2px">' + (title ? String(title) : '') + '</div>' +
-							'<div style="font-size:0.95rem">' + String(message || '') + '</div></div>' +
-							'<button type="button" class="biotern-toast-close" aria-label="Close" style="background:transparent;border:0;color:inherit;font-size:18px;line-height:1;padding:0 6px;">&times;</button>' +
-							'</div>';
-						container.appendChild(toast);
-						var btnClose = toast.querySelector('.biotern-toast-close');
-						if (btnClose) btnClose.addEventListener('click', function(){ toast.remove(); });
-						setTimeout(function(){ try { toast.remove(); } catch(e){} }, 5000);
-					}
-
 					if (json && (json.success || json.ok)) {
 						var msg = json.message || json.msg || 'Punch saved.';
-						showBioternToast('success', '', msg);
+						showExternalPageToast('success', '', msg);
 						setTimeout(function(){ window.location.reload(); }, 800);
 					} else {
 						var emsg = (json && (json.message || json.error || json.msg)) || 'Failed to save punch.';
-						showBioternToast('danger', '', emsg);
+						showExternalPageToast('danger', '', emsg);
 						btn.disabled = false;
 					}
 				}).catch(function(){
-					var container = document.getElementById('bioternToastContainer');
-					if (container) {
-						var toast = document.createElement('div');
-						toast.className = 'biotern-toast';
-						toast.setAttribute('style', 'pointer-events:auto;background:#721c24;color:#fff;padding:12px;border-radius:8px;margin-top:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12)');
-						toast.innerHTML = '<div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1"><div style="font-weight:600;margin-bottom:2px">Error</div><div style="font-size:0.95rem">Network error while saving punch.</div></div><button type="button" class="biotern-toast-close" aria-label="Close" style="background:transparent;border:0;color:inherit;font-size:18px;line-height:1;padding:0 6px;">&times;</button></div>';
-						container.appendChild(toast);
-						var btnClose = toast.querySelector('.biotern-toast-close');
-						if (btnClose) btnClose.addEventListener('click', function(){ toast.remove(); });
-						setTimeout(function(){ try { toast.remove(); } catch(e){} }, 5000);
-					}
+					showExternalPageToast('danger', 'Error', 'Network error while saving punch.');
 					btn.disabled = false;
 				});
 			})(button, clockType);
@@ -569,6 +569,37 @@ if (externalBiometricForm && externalBiometricClockType) {
 		if (!externalBiometricClockType.value) {
 			event.preventDefault();
 		}
+	});
+}
+
+var manualDtrTableForm = document.getElementById('manualDtrTableForm');
+if (manualDtrTableForm) {
+	manualDtrTableForm.addEventListener('submit', function(event) {
+		event.preventDefault();
+		var submitButton = manualDtrTableForm.querySelector('button[type="submit"]');
+		if (submitButton) submitButton.disabled = true;
+
+		var formData = new FormData(manualDtrTableForm);
+
+		fetch('api/external-attendance.php', {
+			method: 'POST',
+			credentials: 'same-origin',
+			body: formData
+		}).then(function(res) {
+			return res.json().catch(function() { return null; });
+		}).then(function(json) {
+			if (json && (json.success || json.ok)) {
+				showExternalPageToast('success', 'External DTR', json.message || 'Manual external DTR saved.');
+				if (submitButton) submitButton.disabled = false;
+				return;
+			}
+			var message = (json && (json.message || json.error || json.msg)) || 'Failed to save manual external DTR.';
+			showExternalPageToast('danger', 'External DTR', message);
+			if (submitButton) submitButton.disabled = false;
+		}).catch(function() {
+			showExternalPageToast('danger', 'External DTR', 'Network error while saving manual external DTR.');
+			if (submitButton) submitButton.disabled = false;
+		});
 	});
 }
 </script>

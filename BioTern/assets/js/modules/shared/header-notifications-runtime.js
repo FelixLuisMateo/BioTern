@@ -316,6 +316,17 @@
     }
 
     function showInAppToast(notification) {
+      if (window.BioTernNotify && typeof window.BioTernNotify.show === "function") {
+        window.BioTernNotify.show({
+          type: notificationVariant(notification.type),
+          title: notification.title || "Notification",
+          message: notification.message || "",
+          iconClass: notification.icon || "feather-bell",
+          duration: 6000
+        });
+        return;
+      }
+
       var stack = ensureToastStack();
       var toast = document.createElement("div");
       var variant = notificationVariant(notification.type);
