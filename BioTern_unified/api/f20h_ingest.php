@@ -47,6 +47,30 @@ if (!function_exists('f20h_request_node')) {
     }
 }
 
+if (!function_exists('f20h_table_has_column')) {
+    function f20h_table_has_column(mysqli $db, string $table, string $column): bool
+    {
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+            return false;
+        }
+        $safeColumn = $db->real_escape_string($column);
+        $res = $db->query("SHOW COLUMNS FROM `{$table}` LIKE '{$safeColumn}'");
+        return $res instanceof mysqli_result && $res->num_rows > 0;
+    }
+}
+
+if (!function_exists('f20h_table_has_index')) {
+    function f20h_table_has_index(mysqli $db, string $table, string $index): bool
+    {
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+            return false;
+        }
+        $safeIndex = $db->real_escape_string($index);
+        $res = $db->query("SHOW INDEX FROM `{$table}` WHERE Key_name = '{$safeIndex}'");
+        return $res instanceof mysqli_result && $res->num_rows > 0;
+    }
+}
+
 if (!function_exists('f20h_ensure_ingest_events_table')) {
     function f20h_ensure_ingest_events_table(mysqli $db): void
     {
@@ -68,8 +92,12 @@ if (!function_exists('f20h_ensure_ingest_events_table')) {
             KEY idx_token_status (token_status)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-        $db->query("ALTER TABLE biometric_ingest_events ADD COLUMN IF NOT EXISTS source_node VARCHAR(120) DEFAULT '' AFTER source_ip");
-        $db->query("CREATE INDEX IF NOT EXISTS idx_source_node ON biometric_ingest_events (source_node)");
+        if (!f20h_table_has_column($db, 'biometric_ingest_events', 'source_node')) {
+            $db->query("ALTER TABLE biometric_ingest_events ADD COLUMN source_node VARCHAR(120) DEFAULT '' AFTER source_ip");
+        }
+        if (!f20h_table_has_index($db, 'biometric_ingest_events', 'idx_source_node')) {
+            $db->query("CREATE INDEX idx_source_node ON biometric_ingest_events (source_node)");
+        }
     }
 }
 

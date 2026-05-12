@@ -39,6 +39,26 @@ $moa_data = [
     'acknowledgement_date' => '',
     'acknowledgement_address' => ''
 ];
+
+function ojt_view_table_has_column(mysqli $conn, string $table, string $column): bool
+{
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+        return false;
+    }
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM `{$table}` LIKE '{$safeColumn}'");
+    return $res instanceof mysqli_result && $res->num_rows > 0;
+}
+
+function ojt_view_ensure_table_column(mysqli $conn, string $table, string $column, string $definition): void
+{
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table) || !preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+        return;
+    }
+    if (!ojt_view_table_has_column($conn, $table, $column)) {
+        $conn->query("ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}");
+    }
+}
 $endorsement_data = [
     'recipient_name' => '',
     'recipient_title' => 'auto',
@@ -313,8 +333,8 @@ try {
         PRIMARY KEY (id),
         UNIQUE KEY user_id (user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
-    $conn->query("ALTER TABLE endorsement_letter ADD COLUMN IF NOT EXISTS recipient_title VARCHAR(20) DEFAULT 'none' AFTER recipient_name");
-    $conn->query("ALTER TABLE endorsement_letter ADD COLUMN IF NOT EXISTS greeting_preference VARCHAR(20) DEFAULT 'either' AFTER students_to_endorse");
+    ojt_view_ensure_table_column($conn, 'endorsement_letter', 'recipient_title', "VARCHAR(20) DEFAULT 'none' AFTER recipient_name");
+    ojt_view_ensure_table_column($conn, 'endorsement_letter', 'greeting_preference', "VARCHAR(20) DEFAULT 'either' AFTER students_to_endorse");
     $conn->query("CREATE TABLE IF NOT EXISTS dau_moa (
         id INT(11) NOT NULL AUTO_INCREMENT,
         user_id INT(11) NOT NULL,
