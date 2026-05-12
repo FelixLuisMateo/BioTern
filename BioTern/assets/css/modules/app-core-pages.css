@@ -1,28 +1,5 @@
 /* SMACSS Module: page-scoped styles extracted from core.css */
 
-/* pages/analytics.php */
-.page-analytics .analytics-hero .card-body {
-  background: linear-gradient(
-    95deg,
-    rgba(var(--bs-primary-rgb), 0.95),
-    rgba(31, 90, 166, 0.84)
-  );
-}
-
-.page-analytics .analytics-chart-panel {
-  border: 1px dashed rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  padding: 10px;
-}
-
-.page-analytics .app-chart-240 {
-  height: 240px;
-}
-
-.page-analytics .app-chart-260 {
-  height: 260px;
-}
-
 /* pages/attendance.php */
 .page-attendance .app-bulk-toolbar {
   display: none;

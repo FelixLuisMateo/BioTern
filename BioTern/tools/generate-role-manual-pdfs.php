@@ -10,7 +10,7 @@ $manuals = [
             ],
             'Dashboard:' => [
                 'Use Dashboard > Overview for daily system status.',
-                'Use Dashboard > Analytics to review student, attendance, and OJT activity summaries.',
+                'Use Dashboard > Overview to review student, attendance, and OJT activity summaries.',
             ],
             'System Setup:' => [
                 'Open Settings > General to review school and system details.',

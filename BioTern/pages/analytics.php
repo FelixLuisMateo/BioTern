@@ -2,19 +2,41 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
+require_once dirname(__DIR__) . '/includes/dashboard_data.php';
 
-function a_count(mysqli $conn, string $sql, string $key = 'count'): int
+$currentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+if (!in_array($currentRole, ['admin', 'coordinator', 'supervisor'], true)) {
+    header('Location: homepage.php');
+    exit;
+}
+
+function analytics_table_exists(mysqli $conn, string $table): bool
+{
+    $safeTable = $conn->real_escape_string($table);
+    $result = $conn->query("SHOW TABLES LIKE '{$safeTable}'");
+    return $result instanceof mysqli_result && $result->num_rows > 0;
+}
+
+function analytics_column_exists(mysqli $conn, string $table, string $column): bool
+{
+    $safeTable = str_replace('`', '``', $table);
+    $safeColumn = $conn->real_escape_string($column);
+    $result = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    return $result instanceof mysqli_result && $result->num_rows > 0;
+}
+
+function analytics_count(mysqli $conn, string $sql, string $key = 'total'): int
 {
     $result = $conn->query($sql);
     if (!$result instanceof mysqli_result) {
         return 0;
     }
     $row = $result->fetch_assoc();
-    $result->close();
+    $result->free();
     return (int)($row[$key] ?? 0);
 }
 
-function a_rows(mysqli $conn, string $sql): array
+function analytics_rows(mysqli $conn, string $sql): array
 {
     $rows = [];
     $result = $conn->query($sql);
@@ -24,184 +46,344 @@ function a_rows(mysqli $conn, string $sql): array
     while ($row = $result->fetch_assoc()) {
         $rows[] = $row;
     }
-    $result->close();
+    $result->free();
     return $rows;
 }
 
-function a_table_has_column(mysqli $conn, string $table, string $column): bool
+function analytics_pct(int|float $part, int|float $whole): float
 {
-    $safeTable = str_replace('`', '``', $table);
-    $safeColumn = $conn->real_escape_string($column);
-    $result = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
-    if (!$result instanceof mysqli_result) {
-        return false;
+    if ((float)$whole <= 0) {
+        return 0.0;
     }
-    $has = $result->num_rows > 0;
-    $result->close();
-    return $has;
+    return round((((float)$part / (float)$whole) * 100), 2);
 }
 
-function a_pct(int|float $part, int|float $whole): float
+function analytics_date_label(string $date): string
 {
-    return $whole > 0 ? round(($part / $whole) * 100, 2) : 0.0;
+    $timestamp = strtotime($date);
+    if ($timestamp === false) {
+        return $date;
+    }
+    return date('M d, Y', $timestamp);
 }
 
-function analytics_label_initials(string $value): string
+function analytics_name_from_row(array $row): string
 {
-    $parts = preg_split('/\s+/', trim($value)) ?: [];
-    $letters = '';
-    foreach ($parts as $part) {
-        if ($part !== '') {
-            $letters .= strtoupper(substr($part, 0, 1));
+    $name = trim((string)(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? '')));
+    if ($name !== '') {
+        return $name;
+    }
+
+    $name = trim((string)($row['name'] ?? ''));
+    if ($name !== '') {
+        return $name;
+    }
+
+    return 'Unknown';
+}
+
+function analytics_format_hours(float $hours): string
+{
+    return number_format(max(0, $hours), 2) . 'h';
+}
+
+$stats = [
+    'students_total' => (int)($dashboard_data['total_students'] ?? 0),
+    'students_active' => (int)($dashboard_data['active_students'] ?? 0),
+    'students_biometric' => (int)($dashboard_data['biometric_students'] ?? 0),
+    'internships_total' => (int)($dashboard_data['total_internships'] ?? 0),
+    'internships_active' => (int)($dashboard_data['active_internships'] ?? 0),
+    'internships_completed' => (int)($dashboard_data['completed_internships'] ?? 0),
+    'attendance_pending' => (int)($dashboard_data['pending_approvals'] ?? 0),
+    'attendance_approved' => (int)($dashboard_data['approved_attendances'] ?? 0),
+    'attendance_rejected' => (int)($dashboard_data['rejected_attendances'] ?? 0),
+    'attendance_today' => (int)($dashboard_data['today_attendance'] ?? 0),
+];
+
+$stats['students_biometric_pending'] = max(0, $stats['students_total'] - $stats['students_biometric']);
+$stats['attendance_total'] = $stats['attendance_pending'] + $stats['attendance_approved'] + $stats['attendance_rejected'];
+$stats['attendance_approval_rate'] = analytics_pct($stats['attendance_approved'], $stats['attendance_total']);
+$stats['attendance_pending_rate'] = analytics_pct($stats['attendance_pending'], $stats['attendance_total']);
+$stats['attendance_rejected_rate'] = analytics_pct($stats['attendance_rejected'], $stats['attendance_total']);
+$stats['internship_active_rate'] = analytics_pct($stats['internships_active'], $stats['internships_total']);
+$stats['biometric_coverage_rate'] = analytics_pct($stats['students_biometric'], $stats['students_total']);
+$stats['internship_avg_completion'] = 0.0;
+$stats['internship_hours_completion_rate'] = 0.0;
+$stats['attendance_source_biometric_rate'] = 0.0;
+$stats['student_user_active_rate'] = 0.0;
+$stats['student_user_approved_rate'] = 0.0;
+$stats['application_approval_rate'] = 0.0;
+$stats['login_success_rate'] = 0.0;
+
+$applicationStats = [
+    'total' => 0,
+    'pending' => 0,
+    'approved' => 0,
+    'rejected' => 0,
+];
+
+$loginStats = [
+    'total' => 0,
+    'success' => 0,
+    'failed' => 0,
+];
+
+$internshipStage = [
+    'pending' => 0,
+    'ongoing' => 0,
+    'completed' => 0,
+    'cancelled' => 0,
+];
+
+$hoursStats = [
+    'required' => 0.0,
+    'rendered' => 0.0,
+    'approved_attendance_hours' => 0.0,
+    'approved_attendance_avg' => 0.0,
+    'biometric_logs' => 0,
+    'manual_logs' => 0,
+    'uploaded_logs' => 0,
+];
+
+$studentUserStats = [
+    'total' => 0,
+    'active' => 0,
+    'inactive' => 0,
+    'pending' => 0,
+    'approved' => 0,
+    'rejected' => 0,
+];
+
+$internshipType = [
+    'internal' => 0,
+    'external' => 0,
+    'other' => 0,
+];
+
+if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'internships')) {
+    $typeColumn = analytics_column_exists($conn, 'internships', 'type') ? 'type' : '';
+    if ($typeColumn === '' && analytics_column_exists($conn, 'internships', 'assignment_track')) {
+        $typeColumn = 'assignment_track';
+    }
+
+    if ($typeColumn !== '') {
+        $whereDeleted = analytics_column_exists($conn, 'internships', 'deleted_at') ? ' WHERE deleted_at IS NULL' : '';
+        $typeRows = analytics_rows(
+            $conn,
+            "SELECT LOWER(TRIM(COALESCE(`{$typeColumn}`, 'unknown'))) AS internship_type, COUNT(*) AS total
+             FROM internships{$whereDeleted}
+             GROUP BY LOWER(TRIM(COALESCE(`{$typeColumn}`, 'unknown')))"
+        );
+
+        foreach ($typeRows as $row) {
+            $key = (string)($row['internship_type'] ?? 'other');
+            $count = (int)($row['total'] ?? 0);
+            if ($key === 'internal') {
+                $internshipType['internal'] += $count;
+            } elseif ($key === 'external') {
+                $internshipType['external'] += $count;
+            } else {
+                $internshipType['other'] += $count;
+            }
         }
-        if (strlen($letters) >= 2) {
-            break;
+    }
+}
+
+if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'internships')) {
+    $whereDeleted = analytics_column_exists($conn, 'internships', 'deleted_at') ? ' WHERE deleted_at IS NULL' : '';
+
+    $stageRows = analytics_rows(
+        $conn,
+        "SELECT LOWER(TRIM(COALESCE(status, 'pending'))) AS stage_key, COUNT(*) AS total
+         FROM internships{$whereDeleted}
+         GROUP BY LOWER(TRIM(COALESCE(status, 'pending')))"
+    );
+    foreach ($stageRows as $row) {
+        $stageKey = (string)($row['stage_key'] ?? '');
+        if (array_key_exists($stageKey, $internshipStage)) {
+            $internshipStage[$stageKey] += (int)($row['total'] ?? 0);
         }
     }
 
-    return $letters !== '' ? $letters : 'BT';
+    if (analytics_column_exists($conn, 'internships', 'required_hours') && analytics_column_exists($conn, 'internships', 'rendered_hours')) {
+        $hoursSummary = analytics_rows(
+            $conn,
+            "SELECT
+                COALESCE(SUM(COALESCE(required_hours, 0)), 0) AS required_hours,
+                COALESCE(SUM(COALESCE(rendered_hours, 0)), 0) AS rendered_hours,
+                COALESCE(AVG(COALESCE(completion_percentage, 0)), 0) AS avg_completion
+             FROM internships{$whereDeleted}"
+        );
+        if (!empty($hoursSummary)) {
+            $hoursStats['required'] = (float)($hoursSummary[0]['required_hours'] ?? 0);
+            $hoursStats['rendered'] = (float)($hoursSummary[0]['rendered_hours'] ?? 0);
+            $stats['internship_avg_completion'] = (float)($hoursSummary[0]['avg_completion'] ?? 0);
+        } else {
+            $stats['internship_avg_completion'] = 0.0;
+        }
+    } else {
+        $stats['internship_avg_completion'] = 0.0;
+    }
 }
 
-function a_conic_gradient(array $segments): string
-{
-    $total = 0.0;
-    foreach ($segments as $segment) {
-        $total += max(0, (float)($segment['value'] ?? 0));
+if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'attendances')) {
+    $attendanceSummary = analytics_rows(
+        $conn,
+        "SELECT
+            COALESCE(SUM(CASE WHEN status = 'approved' THEN COALESCE(total_hours, 0) ELSE 0 END), 0) AS approved_hours,
+            COALESCE(AVG(CASE WHEN status = 'approved' THEN COALESCE(total_hours, 0) END), 0) AS avg_approved_hours,
+            COALESCE(SUM(CASE WHEN source = 'biometric' THEN 1 ELSE 0 END), 0) AS biometric_total,
+            COALESCE(SUM(CASE WHEN source = 'manual' THEN 1 ELSE 0 END), 0) AS manual_total,
+            COALESCE(SUM(CASE WHEN source = 'uploaded' THEN 1 ELSE 0 END), 0) AS uploaded_total
+         FROM attendances"
+    );
+    if (!empty($attendanceSummary)) {
+        $hoursStats['approved_attendance_hours'] = (float)($attendanceSummary[0]['approved_hours'] ?? 0);
+        $hoursStats['approved_attendance_avg'] = (float)($attendanceSummary[0]['avg_approved_hours'] ?? 0);
+        $hoursStats['biometric_logs'] = (int)($attendanceSummary[0]['biometric_total'] ?? 0);
+        $hoursStats['manual_logs'] = (int)($attendanceSummary[0]['manual_total'] ?? 0);
+        $hoursStats['uploaded_logs'] = (int)($attendanceSummary[0]['uploaded_total'] ?? 0);
     }
-    if ($total <= 0) {
-        return 'conic-gradient(#334155 0deg 360deg)';
-    }
-
-    $start = 0.0;
-    $parts = [];
-    foreach ($segments as $segment) {
-        $value = max(0, (float)($segment['value'] ?? 0));
-        $color = (string)($segment['color'] ?? '#3454d1');
-        $degrees = ($value / $total) * 360;
-        $end = $start + $degrees;
-        $parts[] = $color . ' ' . round($start, 2) . 'deg ' . round($end, 2) . 'deg';
-        $start = $end;
-    }
-
-    if ($start < 360) {
-        $parts[] = '#334155 ' . round($start, 2) . 'deg 360deg';
-    }
-
-    return 'conic-gradient(' . implode(', ', $parts) . ')';
 }
 
-function a_max_value(array $values): int
-{
-    $max = 0;
-    foreach ($values as $value) {
-        $max = max($max, (int)$value);
+if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'users')) {
+    $userWhere = " WHERE LOWER(TRIM(role)) = 'student'";
+    $userRows = analytics_rows(
+        $conn,
+        "SELECT
+            COUNT(*) AS total,
+            SUM(CASE WHEN COALESCE(is_active, 0) = 1 THEN 1 ELSE 0 END) AS active_total,
+            SUM(CASE WHEN COALESCE(is_active, 0) <> 1 THEN 1 ELSE 0 END) AS inactive_total,
+            SUM(CASE WHEN COALESCE(application_status, 'approved') = 'pending' THEN 1 ELSE 0 END) AS pending_total,
+            SUM(CASE WHEN COALESCE(application_status, 'approved') = 'approved' THEN 1 ELSE 0 END) AS approved_total,
+            SUM(CASE WHEN COALESCE(application_status, 'approved') = 'rejected' THEN 1 ELSE 0 END) AS rejected_total
+         FROM users{$userWhere}"
+    );
+    if (!empty($userRows)) {
+        $studentUserStats['total'] = (int)($userRows[0]['total'] ?? 0);
+        $studentUserStats['active'] = (int)($userRows[0]['active_total'] ?? 0);
+        $studentUserStats['inactive'] = (int)($userRows[0]['inactive_total'] ?? 0);
+        $studentUserStats['pending'] = (int)($userRows[0]['pending_total'] ?? 0);
+        $studentUserStats['approved'] = (int)($userRows[0]['approved_total'] ?? 0);
+        $studentUserStats['rejected'] = (int)($userRows[0]['rejected_total'] ?? 0);
     }
-    return max($max, 1);
 }
 
-$today = date('Y-m-d');
-$monthKeys = [];
-$monthLabels = [];
-for ($i = 11; $i >= 0; $i--) {
-    $monthKeys[] = date('Y-m', strtotime("-{$i} months"));
-    $monthLabels[] = date('M Y', strtotime("-{$i} months"));
+if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'student_applications')) {
+    $appRows = analytics_rows(
+        $conn,
+        "SELECT LOWER(TRIM(COALESCE(status, 'pending'))) AS status_key, COUNT(*) AS total
+         FROM student_applications
+         GROUP BY LOWER(TRIM(COALESCE(status, 'pending')))"
+    );
+    foreach ($appRows as $row) {
+        $appKey = (string)($row['status_key'] ?? '');
+        $appCount = (int)($row['total'] ?? 0);
+        if (array_key_exists($appKey, $applicationStats)) {
+            $applicationStats[$appKey] += $appCount;
+            $applicationStats['total'] += $appCount;
+        }
+    }
 }
 
-$studentTrend = array_fill_keys($monthKeys, 0);
-$attendanceTrend = array_fill_keys($monthKeys, 0);
-$internshipTrend = array_fill_keys($monthKeys, 0);
-$weekLabels = [];
-$weekMap = [];
+if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'login_logs')) {
+    $loginRows = analytics_rows(
+        $conn,
+        "SELECT LOWER(TRIM(COALESCE(status, 'failed'))) AS status_key, COUNT(*) AS total
+         FROM login_logs
+         GROUP BY LOWER(TRIM(COALESCE(status, 'failed')))"
+    );
+    foreach ($loginRows as $row) {
+        $statusKey = (string)($row['status_key'] ?? 'failed');
+        $count = (int)($row['total'] ?? 0);
+        if ($statusKey === 'success') {
+            $loginStats['success'] += $count;
+        } else {
+            $loginStats['failed'] += $count;
+        }
+        $loginStats['total'] += $count;
+    }
+}
+
+$stats['internship_hours_completion_rate'] = analytics_pct($hoursStats['rendered'], max(1.0, $hoursStats['required']));
+$stats['attendance_source_biometric_rate'] = analytics_pct($hoursStats['biometric_logs'], max(1, $stats['attendance_total']));
+$stats['student_user_active_rate'] = analytics_pct($studentUserStats['active'], max(1, $studentUserStats['total']));
+$stats['student_user_approved_rate'] = analytics_pct($studentUserStats['approved'], max(1, $studentUserStats['total']));
+$stats['application_approval_rate'] = analytics_pct($applicationStats['approved'], max(1, $applicationStats['total']));
+$stats['login_success_rate'] = analytics_pct($loginStats['success'], max(1, $loginStats['total']));
+
+$recentStudents = [];
+if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'students')) {
+    $whereDeleted = analytics_column_exists($conn, 'students', 'deleted_at') ? ' WHERE s.deleted_at IS NULL' : '';
+    $recentStudents = analytics_rows(
+        $conn,
+        "SELECT s.id, s.student_id, s.first_name, s.last_name, s.created_at
+         FROM students s
+         {$whereDeleted}
+         ORDER BY s.created_at DESC, s.id DESC
+         LIMIT 8"
+    );
+}
+
+$recentInternships = [];
+if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'internships')) {
+    $whereDeleted = analytics_column_exists($conn, 'internships', 'deleted_at') ? ' WHERE i.deleted_at IS NULL' : '';
+    $recentInternships = analytics_rows(
+        $conn,
+        "SELECT i.id, i.student_id, i.status, i.type, i.company_name, i.required_hours, i.completion_percentage, i.updated_at,
+                s.first_name, s.last_name, s.student_id AS student_code
+         FROM internships i
+         LEFT JOIN students s ON s.id = i.student_id
+         {$whereDeleted}
+         ORDER BY i.updated_at DESC, i.id DESC
+         LIMIT 8"
+    );
+}
+
+$last7Days = [];
+$maxLast7 = 0;
+$dateBuckets = [];
 for ($i = 6; $i >= 0; $i--) {
-    $date = date('Y-m-d', strtotime("-{$i} days"));
-    $weekMap[$date] = 0;
-    $weekLabels[] = date('D', strtotime($date));
+    $dateKey = date('Y-m-d', strtotime("-{$i} days"));
+    $dateBuckets[$dateKey] = [
+        'date' => $dateKey,
+        'label' => date('D', strtotime($dateKey)),
+        'total' => 0,
+    ];
 }
 
-$hasApplicationStatus = a_table_has_column($conn, 'users', 'application_status');
-$approvedStudentCondition = $hasApplicationStatus
-    ? "COALESCE(u.application_status, 'approved') = 'approved'"
-    : '1 = 1';
-
-$studentsTotal = a_count($conn, "SELECT COUNT(*) AS count FROM students s LEFT JOIN users u ON u.id = s.user_id WHERE s.deleted_at IS NULL AND {$approvedStudentCondition}");
-$studentsActive = a_count($conn, "SELECT COUNT(DISTINCT s.id) AS count FROM students s LEFT JOIN users u ON u.id = s.user_id INNER JOIN internships i ON i.student_id = s.id WHERE s.deleted_at IS NULL AND i.deleted_at IS NULL AND i.status = 'ongoing' AND {$approvedStudentCondition}");
-$studentsBiometric = a_count($conn, "SELECT COUNT(*) AS count FROM students s LEFT JOIN users u ON u.id = s.user_id WHERE s.deleted_at IS NULL AND s.biometric_registered = 1 AND {$approvedStudentCondition}");
-$attendanceTotal = a_count($conn, "SELECT COUNT(*) AS count FROM attendances");
-$attendanceToday = a_count($conn, "SELECT COUNT(*) AS count FROM attendances WHERE DATE(attendance_date) = '{$today}'");
-$internshipsTotal = a_count($conn, "SELECT COUNT(*) AS count FROM internships i INNER JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND {$approvedStudentCondition}");
-$internshipsActive = a_count($conn, "SELECT COUNT(*) AS count FROM internships i INNER JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND i.status = 'ongoing' AND {$approvedStudentCondition}");
-$internshipsCompleted = a_count($conn, "SELECT COUNT(*) AS count FROM internships i INNER JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND i.status = 'completed' AND {$approvedStudentCondition}");
-
-$attendanceStatus = ['Pending' => 0, 'Approved' => 0, 'Rejected' => 0];
-foreach (a_rows($conn, "SELECT status, COUNT(*) AS count FROM attendances GROUP BY status") as $row) {
-    $status = strtolower(trim((string)($row['status'] ?? '')));
-    if ($status === 'pending') $attendanceStatus['Pending'] = (int)$row['count'];
-    if ($status === 'approved') $attendanceStatus['Approved'] = (int)$row['count'];
-    if ($status === 'rejected') $attendanceStatus['Rejected'] = (int)$row['count'];
+if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'attendances') && analytics_column_exists($conn, 'attendances', 'attendance_date')) {
+    $windowRows = analytics_rows(
+        $conn,
+        "SELECT DATE(attendance_date) AS day_key, COUNT(*) AS total
+         FROM attendances
+         WHERE attendance_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+         GROUP BY DATE(attendance_date)"
+    );
+    foreach ($windowRows as $row) {
+        $key = (string)($row['day_key'] ?? '');
+        if ($key !== '' && isset($dateBuckets[$key])) {
+            $dateBuckets[$key]['total'] = (int)($row['total'] ?? 0);
+        }
+    }
 }
 
-$internshipStatus = ['Pending' => 0, 'Ongoing' => 0, 'Completed' => 0, 'Cancelled' => 0];
-foreach (a_rows($conn, "SELECT i.status, COUNT(*) AS count FROM internships i INNER JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND {$approvedStudentCondition} GROUP BY i.status") as $row) {
-    $status = strtolower(trim((string)($row['status'] ?? '')));
-    if ($status === 'pending') $internshipStatus['Pending'] = (int)$row['count'];
-    if ($status === 'ongoing') $internshipStatus['Ongoing'] = (int)$row['count'];
-    if ($status === 'completed') $internshipStatus['Completed'] = (int)$row['count'];
-    if ($status === 'cancelled') $internshipStatus['Cancelled'] = (int)$row['count'];
+foreach ($dateBuckets as $bucket) {
+    $last7Days[] = $bucket;
+    if ((int)$bucket['total'] > $maxLast7) {
+        $maxLast7 = (int)$bucket['total'];
+    }
 }
-
-$internshipTypes = ['Internal' => 0, 'External' => 0];
-foreach (a_rows($conn, "SELECT i.type, COUNT(*) AS count FROM internships i INNER JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND {$approvedStudentCondition} GROUP BY i.type") as $row) {
-    $type = strtolower(trim((string)($row['type'] ?? '')));
-    if ($type === 'internal') $internshipTypes['Internal'] = (int)$row['count'];
-    if ($type === 'external') $internshipTypes['External'] = (int)$row['count'];
-}
-
-foreach (a_rows($conn, "SELECT DATE_FORMAT(s.created_at, '%Y-%m') AS ym, COUNT(*) AS count FROM students s LEFT JOIN users u ON u.id = s.user_id WHERE s.deleted_at IS NULL AND s.created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH) AND {$approvedStudentCondition} GROUP BY ym") as $row) {
-    if (isset($studentTrend[$row['ym']])) $studentTrend[$row['ym']] = (int)$row['count'];
-}
-foreach (a_rows($conn, "SELECT DATE_FORMAT(attendance_date, '%Y-%m') AS ym, COUNT(*) AS count FROM attendances WHERE attendance_date >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH) GROUP BY ym") as $row) {
-    if (isset($attendanceTrend[$row['ym']])) $attendanceTrend[$row['ym']] = (int)$row['count'];
-}
-foreach (a_rows($conn, "SELECT DATE_FORMAT(i.created_at, '%Y-%m') AS ym, COUNT(*) AS count FROM internships i INNER JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND i.created_at >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH) AND {$approvedStudentCondition} GROUP BY ym") as $row) {
-    if (isset($internshipTrend[$row['ym']])) $internshipTrend[$row['ym']] = (int)$row['count'];
-}
-foreach (a_rows($conn, "SELECT DATE(attendance_date) AS day_key, COUNT(*) AS count FROM attendances WHERE DATE(attendance_date) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) GROUP BY day_key") as $row) {
-    if (isset($weekMap[$row['day_key']])) $weekMap[$row['day_key']] = (int)$row['count'];
-}
-
-$recentStudents = a_rows($conn, "SELECT s.student_id, s.first_name, s.last_name, s.biometric_registered FROM students s LEFT JOIN users u ON u.id = s.user_id WHERE s.deleted_at IS NULL AND {$approvedStudentCondition} ORDER BY s.created_at DESC LIMIT 5");
-$recentInternships = a_rows($conn, "SELECT i.company_name, i.status, i.type, i.completion_percentage, s.first_name, s.last_name FROM internships i LEFT JOIN students s ON s.id = i.student_id LEFT JOIN users u ON u.id = s.user_id WHERE i.deleted_at IS NULL AND s.deleted_at IS NULL AND {$approvedStudentCondition} ORDER BY i.updated_at DESC, i.created_at DESC LIMIT 5");
-
-$attendanceApprovalRate = a_pct($attendanceStatus['Approved'], $attendanceTotal);
-$biometricCoverageRate = a_pct($studentsBiometric, $studentsTotal);
-$activeInternshipRate = a_pct($internshipsActive, $internshipsTotal);
-$growthMax = a_max_value(array_merge(array_values($studentTrend), array_values($attendanceTrend), array_values($internshipTrend)));
-$weekMax = a_max_value(array_values($weekMap));
-$attendanceChartGradient = a_conic_gradient([
-    ['value' => $attendanceStatus['Approved'], 'color' => '#22c55e'],
-    ['value' => $attendanceStatus['Pending'], 'color' => '#f59e0b'],
-    ['value' => $attendanceStatus['Rejected'], 'color' => '#ef4444'],
-]);
-$biometricChartGradient = a_conic_gradient([
-    ['value' => $studentsBiometric, 'color' => '#3454d1'],
-    ['value' => max(0, $studentsTotal - $studentsBiometric), 'color' => '#94a3b8'],
-]);
-$internshipTypeGradient = a_conic_gradient([
-    ['value' => $internshipTypes['Internal'], 'color' => '#0ea5e9'],
-    ['value' => $internshipTypes['External'], 'color' => '#8b5cf6'],
-]);
+$maxLast7 = max(1, $maxLast7);
 
 $page_title = 'BioTern || Analytics';
-$page_body_class = 'page-analytics';
-$page_styles = ['assets/css/layout/page_shell.css', 'assets/css/modules/pages/page-analytics.css'];
-$page_vendor_scripts = [];
-$page_scripts = [];
-
+$page_body_class = 'analytics-page';
+$page_styles = ['assets/css/modules/pages/page-analytics.css'];
 include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header">
+        <div class="page-header page-header-with-middle">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Analytics</h5>
@@ -211,278 +393,270 @@ include 'includes/header.php';
                     <li class="breadcrumb-item">Analytics</li>
                 </ul>
             </div>
+            <div class="page-header-middle">
+                <p class="page-header-statement">Operational snapshot for students, internships, and attendance.</p>
+            </div>
+            <?php ob_start(); ?>
+                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
+                <a href="students.php" class="btn btn-outline-secondary"><i class="feather-users me-1"></i>Students</a>
+            <?php
+            biotern_render_page_header_actions([
+                'menu_id' => 'analyticsActionsMenu',
+                'items_html' => ob_get_clean(),
+            ]);
+            ?>
         </div>
 
-        <section class="analytics-hero">
-            <div class="analytics-hero-copy">
-                <span class="analytics-kicker">Homepage data, visual-first</span>
-                <h1>See movement, balance, and workload across BioTern.</h1>
-                <p>This page keeps the same core operational scope as the homepage, but translates it into charts and visual summaries instead of mostly number cards.</p>
-            </div>
-            <div class="analytics-hero-glance">
-                <div class="analytics-glance-card">
-                    <span class="analytics-glance-label">Approval Rate</span>
-                    <strong><?php echo number_format(a_pct($attendanceStatus['Approved'], $attendanceTotal), 2); ?>%</strong>
-                    <small><?php echo number_format($attendanceStatus['Approved']); ?> approved attendance entries</small>
-                </div>
-            </div>
-        </section>
-        <section class="analytics-metrics-grid">
-            <article class="analytics-metric-card analytics-metric-card--primary">
-                <span class="analytics-metric-label">Students</span>
-                <strong><?php echo number_format($studentsTotal); ?></strong>
-                <p><?php echo number_format($studentsActive); ?> active in ongoing internships</p>
-            </article>
-            <article class="analytics-metric-card">
-                <span class="analytics-metric-label">Attendance</span>
-                <strong><?php echo number_format($attendanceTotal); ?></strong>
-                <p><?php echo number_format($attendanceToday); ?> logged today</p>
-            </article>
-            <article class="analytics-metric-card">
-                <span class="analytics-metric-label">Internships</span>
-                <strong><?php echo number_format($internshipsTotal); ?></strong>
-                <p><?php echo number_format($internshipsActive); ?> ongoing, <?php echo number_format($internshipsCompleted); ?> completed</p>
-            </article>
-            <article class="analytics-metric-card">
-                <span class="analytics-metric-label">Biometric</span>
-                <strong><?php echo number_format($studentsBiometric); ?></strong>
-                <p><?php echo number_format(max(0, $studentsTotal - $studentsBiometric)); ?> still pending</p>
-            </article>
-        </section>
+        <div class="main-content pb-5 analytics-main-content">
+            <section class="analytics-kpi-grid">
+                <article class="analytics-kpi-card">
+                    <span class="analytics-kpi-label">Total Students</span>
+                    <strong class="analytics-kpi-value"><?php echo number_format($stats['students_total']); ?></strong>
+                    <small class="analytics-kpi-meta"><?php echo number_format($stats['students_active']); ?> active</small>
+                </article>
+                <article class="analytics-kpi-card">
+                    <span class="analytics-kpi-label">Student Accounts Active</span>
+                    <strong class="analytics-kpi-value"><?php echo number_format($stats['student_user_active_rate'], 2); ?>%</strong>
+                    <small class="analytics-kpi-meta"><?php echo number_format($studentUserStats['active']); ?> of <?php echo number_format($studentUserStats['total']); ?></small>
+                </article>
+                <article class="analytics-kpi-card">
+                    <span class="analytics-kpi-label">Biometric Coverage</span>
+                    <strong class="analytics-kpi-value"><?php echo number_format($stats['biometric_coverage_rate'], 2); ?>%</strong>
+                    <small class="analytics-kpi-meta"><?php echo number_format($stats['students_biometric_pending']); ?> pending registration</small>
+                </article>
+                <article class="analytics-kpi-card">
+                    <span class="analytics-kpi-label">Student Approval Rate</span>
+                    <strong class="analytics-kpi-value"><?php echo number_format($stats['student_user_approved_rate'], 2); ?>%</strong>
+                    <small class="analytics-kpi-meta"><?php echo number_format($studentUserStats['pending']); ?> pending, <?php echo number_format($studentUserStats['rejected']); ?> rejected</small>
+                </article>
+                <article class="analytics-kpi-card">
+                    <span class="analytics-kpi-label">Total Internships</span>
+                    <strong class="analytics-kpi-value"><?php echo number_format($stats['internships_total']); ?></strong>
+                    <small class="analytics-kpi-meta"><?php echo number_format($stats['internships_active']); ?> ongoing</small>
+                </article>
+                <article class="analytics-kpi-card">
+                    <span class="analytics-kpi-label">Internship Completion (Avg)</span>
+                    <strong class="analytics-kpi-value"><?php echo number_format($stats['internship_avg_completion'], 2); ?>%</strong>
+                    <small class="analytics-kpi-meta">Across current internship records</small>
+                </article>
+                <article class="analytics-kpi-card">
+                    <span class="analytics-kpi-label">Rendered vs Required Hours</span>
+                    <strong class="analytics-kpi-value"><?php echo number_format($stats['internship_hours_completion_rate'], 2); ?>%</strong>
+                    <small class="analytics-kpi-meta"><?php echo analytics_format_hours($hoursStats['rendered']); ?> of <?php echo analytics_format_hours($hoursStats['required']); ?></small>
+                </article>
+                <article class="analytics-kpi-card">
+                    <span class="analytics-kpi-label">Attendance Approval</span>
+                    <strong class="analytics-kpi-value"><?php echo number_format($stats['attendance_approval_rate'], 2); ?>%</strong>
+                    <small class="analytics-kpi-meta"><?php echo number_format($stats['attendance_pending']); ?> pending reviews</small>
+                </article>
+                <article class="analytics-kpi-card">
+                    <span class="analytics-kpi-label">Attendance Rejected</span>
+                    <strong class="analytics-kpi-value"><?php echo number_format($stats['attendance_rejected_rate'], 2); ?>%</strong>
+                    <small class="analytics-kpi-meta"><?php echo number_format($stats['attendance_rejected']); ?> rejected records</small>
+                </article>
+                <article class="analytics-kpi-card">
+                    <span class="analytics-kpi-label">Biometric Source Share</span>
+                    <strong class="analytics-kpi-value"><?php echo number_format($stats['attendance_source_biometric_rate'], 2); ?>%</strong>
+                    <small class="analytics-kpi-meta"><?php echo number_format($hoursStats['biometric_logs']); ?> biometric logs</small>
+                </article>
+                <article class="analytics-kpi-card">
+                    <span class="analytics-kpi-label">Application Approval</span>
+                    <strong class="analytics-kpi-value"><?php echo number_format($stats['application_approval_rate'], 2); ?>%</strong>
+                    <small class="analytics-kpi-meta"><?php echo number_format($applicationStats['pending']); ?> pending, <?php echo number_format($applicationStats['rejected']); ?> rejected</small>
+                </article>
+                <article class="analytics-kpi-card">
+                    <span class="analytics-kpi-label">Login Success Rate</span>
+                    <strong class="analytics-kpi-value"><?php echo number_format($stats['login_success_rate'], 2); ?>%</strong>
+                    <small class="analytics-kpi-meta"><?php echo number_format($loginStats['success']); ?> success of <?php echo number_format($loginStats['total']); ?></small>
+                </article>
+            </section>
 
-        <section class="row g-4">
-            <div class="col-xxl-8">
-                <div class="card analytics-card stretch stretch-full">
-                    <div class="card-header"><div><h5 class="card-title mb-1">Platform Growth</h5><p class="analytics-card-subtitle">12-month activity across students, attendance, and internships.</p></div></div>
-                    <div class="card-body">
-                        <div class="analytics-chart-shell analytics-chart-shell--tall">
-                            <div class="analytics-chart-legend">
-                                <span><i class="analytics-dot analytics-dot--students"></i>Students</span>
-                                <span><i class="analytics-dot analytics-dot--attendance"></i>Attendance</span>
-                                <span><i class="analytics-dot analytics-dot--internships"></i>Internships</span>
-                            </div>
-                            <div class="analytics-bars-chart">
-                                <?php foreach ($monthLabels as $index => $label): ?>
-                                    <?php
-                                    $studentValue = (int)($studentTrend[$monthKeys[$index]] ?? 0);
-                                    $attendanceValue = (int)($attendanceTrend[$monthKeys[$index]] ?? 0);
-                                    $internshipValue = (int)($internshipTrend[$monthKeys[$index]] ?? 0);
-                                    ?>
-                                    <div class="analytics-bars-group">
-                                        <div class="analytics-bars-stack">
-                                            <span class="analytics-bar analytics-bar--students" style="height: <?php echo min(100, round(($studentValue / max($growthMax, 1)) * 100, 2)); ?>%"></span>
-                                            <span class="analytics-bar analytics-bar--attendance" style="height: <?php echo min(100, round(($attendanceValue / max($growthMax, 1)) * 100, 2)); ?>%"></span>
-                                            <span class="analytics-bar analytics-bar--internships" style="height: <?php echo min(100, round(($internshipValue / max($growthMax, 1)) * 100, 2)); ?>%"></span>
-                                        </div>
-                                        <div class="analytics-bars-label"><?php echo htmlspecialchars(date('M y', strtotime($monthKeys[$index] . '-01')), ENT_QUOTES, 'UTF-8'); ?></div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <div class="analytics-chart-fallback">
-                            <?php foreach ($monthLabels as $index => $label): ?>
-                                <?php $combined = (int)($studentTrend[$monthKeys[$index]] ?? 0) + (int)($attendanceTrend[$monthKeys[$index]] ?? 0) + (int)($internshipTrend[$monthKeys[$index]] ?? 0); ?>
-                                <div class="analytics-fallback-row">
-                                    <div class="analytics-fallback-head">
-                                        <span><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></span>
-                                        <span><?php echo number_format($combined); ?> total activity</span>
-                                    </div>
-                                    <div class="analytics-fallback-track">
-                                        <div class="analytics-fallback-fill" style="width: <?php echo min(100, round(($combined / max($growthMax, 1)) * 100, 2)); ?>%"></div>
-                                    </div>
+            <section class="analytics-panels-grid">
+                <article class="analytics-panel-card">
+                    <header class="analytics-panel-head">
+                        <h6 class="analytics-panel-title">Last 7 Days Attendance</h6>
+                    </header>
+                    <div class="analytics-week-bars">
+                        <?php foreach ($last7Days as $item): ?>
+                            <?php $height = (int)round(((int)$item['total'] / $maxLast7) * 100); ?>
+                            <div class="analytics-week-item">
+                                <span class="analytics-week-total"><?php echo (int)$item['total']; ?></span>
+                                <div class="analytics-week-track">
+                                    <span class="analytics-week-fill" style="height: <?php echo max(4, $height); ?>%;"></span>
                                 </div>
-                            <?php endforeach; ?>
-                        </div>
+                                <span class="analytics-week-label"><?php echo htmlspecialchars((string)$item['label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
-                </div>
-            </div>
-            <div class="col-xxl-4">
-                <div class="card analytics-card stretch stretch-full">
-                    <div class="card-header"><div><h5 class="card-title mb-1">Attendance Status</h5><p class="analytics-card-subtitle">Current review distribution.</p></div></div>
-                    <div class="card-body">
-                        <div class="analytics-ring-chart-block">
-                            <div class="analytics-ring-chart" style="--ring-fill: <?php echo htmlspecialchars($attendanceChartGradient, ENT_QUOTES, 'UTF-8'); ?>">
-                                <div class="analytics-ring-center">
-                                    <strong><?php echo number_format($attendanceTotal); ?></strong>
-                                    <span>Total</span>
+                </article>
+
+                <article class="analytics-panel-card">
+                    <header class="analytics-panel-head">
+                        <h6 class="analytics-panel-title">Internship Type Mix</h6>
+                    </header>
+                    <div class="analytics-mix-list">
+                        <?php
+                        $mixTotal = max(1, $internshipType['internal'] + $internshipType['external'] + $internshipType['other']);
+                        $mixRows = [
+                            ['label' => 'Internal', 'value' => $internshipType['internal']],
+                            ['label' => 'External', 'value' => $internshipType['external']],
+                            ['label' => 'Other', 'value' => $internshipType['other']],
+                        ];
+                        ?>
+                        <?php foreach ($mixRows as $mix): ?>
+                            <?php $ratio = analytics_pct((int)$mix['value'], $mixTotal); ?>
+                            <div class="analytics-mix-row">
+                                <div class="analytics-mix-head">
+                                    <span><?php echo htmlspecialchars((string)$mix['label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <span><?php echo number_format((int)$mix['value']); ?> (<?php echo number_format($ratio, 2); ?>%)</span>
+                                </div>
+                                <div class="analytics-mix-track">
+                                    <span class="analytics-mix-fill" style="width: <?php echo max(0, min(100, $ratio)); ?>%;"></span>
                                 </div>
                             </div>
-                            <div class="analytics-ring-legend">
-                                <div class="analytics-ring-legend-item"><i class="analytics-dot analytics-dot--approved"></i><span>Approved</span><strong><?php echo number_format($attendanceStatus['Approved']); ?></strong></div>
-                                <div class="analytics-ring-legend-item"><i class="analytics-dot analytics-dot--pending"></i><span>Pending</span><strong><?php echo number_format($attendanceStatus['Pending']); ?></strong></div>
-                                <div class="analytics-ring-legend-item"><i class="analytics-dot analytics-dot--rejected"></i><span>Rejected</span><strong><?php echo number_format($attendanceStatus['Rejected']); ?></strong></div>
-                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </article>
+            </section>
+
+            <section class="analytics-panels-grid">
+                <article class="analytics-panel-card">
+                    <header class="analytics-panel-head">
+                        <h6 class="analytics-panel-title">Core Ratios</h6>
+                    </header>
+                    <div class="analytics-ratio-list">
+                        <div class="analytics-ratio-item">
+                            <div class="analytics-ratio-head"><span>Attendance Approved</span><strong><?php echo number_format($stats['attendance_approval_rate'], 2); ?>%</strong></div>
+                            <div class="analytics-ratio-track"><span class="analytics-ratio-fill" style="width: <?php echo max(0, min(100, $stats['attendance_approval_rate'])); ?>%;"></span></div>
                         </div>
-                        <div class="analytics-chart-fallback">
-                            <div class="analytics-fallback-row">
-                                <div class="analytics-fallback-head"><span>Approved</span><span><?php echo number_format($attendanceStatus['Approved']); ?></span></div>
-                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--success" style="width: <?php echo min(100, $attendanceApprovalRate); ?>%"></div></div>
-                            </div>
-                            <div class="analytics-fallback-row">
-                                <div class="analytics-fallback-head"><span>Pending</span><span><?php echo number_format($attendanceStatus['Pending']); ?></span></div>
-                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--warning" style="width: <?php echo min(100, a_pct($attendanceStatus['Pending'], $attendanceTotal)); ?>%"></div></div>
-                            </div>
-                            <div class="analytics-fallback-row">
-                                <div class="analytics-fallback-head"><span>Rejected</span><span><?php echo number_format($attendanceStatus['Rejected']); ?></span></div>
-                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--danger" style="width: <?php echo min(100, a_pct($attendanceStatus['Rejected'], $attendanceTotal)); ?>%"></div></div>
-                            </div>
+                        <div class="analytics-ratio-item">
+                            <div class="analytics-ratio-head"><span>Attendance Pending</span><strong><?php echo number_format($stats['attendance_pending_rate'], 2); ?>%</strong></div>
+                            <div class="analytics-ratio-track"><span class="analytics-ratio-fill" style="width: <?php echo max(0, min(100, $stats['attendance_pending_rate'])); ?>%;"></span></div>
+                        </div>
+                        <div class="analytics-ratio-item">
+                            <div class="analytics-ratio-head"><span>Internship Hours Completion</span><strong><?php echo number_format($stats['internship_hours_completion_rate'], 2); ?>%</strong></div>
+                            <div class="analytics-ratio-track"><span class="analytics-ratio-fill" style="width: <?php echo max(0, min(100, $stats['internship_hours_completion_rate'])); ?>%;"></span></div>
+                        </div>
+                        <div class="analytics-ratio-item">
+                            <div class="analytics-ratio-head"><span>Student Application Approved</span><strong><?php echo number_format($stats['application_approval_rate'], 2); ?>%</strong></div>
+                            <div class="analytics-ratio-track"><span class="analytics-ratio-fill" style="width: <?php echo max(0, min(100, $stats['application_approval_rate'])); ?>%;"></span></div>
+                        </div>
+                        <div class="analytics-ratio-item">
+                            <div class="analytics-ratio-head"><span>Login Success</span><strong><?php echo number_format($stats['login_success_rate'], 2); ?>%</strong></div>
+                            <div class="analytics-ratio-track"><span class="analytics-ratio-fill" style="width: <?php echo max(0, min(100, $stats['login_success_rate'])); ?>%;"></span></div>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="col-xl-4">
-                <div class="card analytics-card stretch stretch-full">
-                    <div class="card-header"><div><h5 class="card-title mb-1">Internship Status</h5><p class="analytics-card-subtitle">Pipeline health snapshot.</p></div></div>
-                    <div class="card-body">
-                        <div class="analytics-segmented-card">
-                            <div class="analytics-segmented-bar">
-                                <?php foreach ($internshipStatus as $label => $value): ?>
-                                    <?php
-                                    $segmentClass = strtolower($label);
-                                    $segmentWidth = min(100, round(a_pct($value, $internshipsTotal), 2));
-                                    ?>
-                                    <span class="analytics-segment analytics-segment--<?php echo htmlspecialchars($segmentClass, ENT_QUOTES, 'UTF-8'); ?>" style="width: <?php echo $segmentWidth; ?>%"></span>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                        <div class="analytics-chart-fallback">
-                            <?php foreach ($internshipStatus as $label => $value): ?>
-                                <div class="analytics-fallback-row">
-                                    <div class="analytics-fallback-head"><span><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></span><span><?php echo number_format($value); ?></span></div>
-                                    <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--info" style="width: <?php echo min(100, a_pct($value, $internshipsTotal)); ?>%"></div></div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
+                </article>
+
+                <article class="analytics-panel-card">
+                    <header class="analytics-panel-head">
+                        <h6 class="analytics-panel-title">Status Breakdown</h6>
+                    </header>
+                    <div class="table-responsive">
+                        <table class="table table-sm analytics-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Total</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Internships Ongoing</td>
+                                    <td><?php echo number_format($internshipStage['ongoing']); ?></td>
+                                    <td><?php echo number_format($internshipStage['pending']); ?> pending, <?php echo number_format($internshipStage['completed']); ?> completed</td>
+                                </tr>
+                                <tr>
+                                    <td>Attendance Source</td>
+                                    <td><?php echo number_format($hoursStats['biometric_logs']); ?></td>
+                                    <td><?php echo number_format($hoursStats['manual_logs']); ?> manual, <?php echo number_format($hoursStats['uploaded_logs']); ?> uploaded</td>
+                                </tr>
+                                <tr>
+                                    <td>Application Pipeline</td>
+                                    <td><?php echo number_format($applicationStats['total']); ?></td>
+                                    <td><?php echo number_format($applicationStats['pending']); ?> pending, <?php echo number_format($applicationStats['approved']); ?> approved, <?php echo number_format($applicationStats['rejected']); ?> rejected</td>
+                                </tr>
+                                <tr>
+                                    <td>Approved Attendance Hours</td>
+                                    <td><?php echo analytics_format_hours($hoursStats['approved_attendance_hours']); ?></td>
+                                    <td>Average <?php echo analytics_format_hours($hoursStats['approved_attendance_avg']); ?> per approved record</td>
+                                </tr>
+                                <tr>
+                                    <td>Student Account Health</td>
+                                    <td><?php echo number_format($studentUserStats['active']); ?></td>
+                                    <td><?php echo number_format($studentUserStats['inactive']); ?> inactive out of <?php echo number_format($studentUserStats['total']); ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-            </div>
-            <div class="col-xl-4">
-                <div class="card analytics-card stretch stretch-full">
-                    <div class="card-header"><div><h5 class="card-title mb-1">Biometric Coverage</h5><p class="analytics-card-subtitle">Registered versus pending students.</p></div></div>
-                    <div class="card-body">
-                        <div class="analytics-ring-chart-block analytics-ring-chart-block--compact">
-                            <div class="analytics-ring-chart analytics-ring-chart--small" style="--ring-fill: <?php echo htmlspecialchars($biometricChartGradient, ENT_QUOTES, 'UTF-8'); ?>">
-                                <div class="analytics-ring-center">
-                                    <strong><?php echo number_format($biometricCoverageRate, 1); ?>%</strong>
-                                    <span>Covered</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="analytics-chart-fallback">
-                            <div class="analytics-fallback-row">
-                                <div class="analytics-fallback-head"><span>Registered</span><span><?php echo number_format($studentsBiometric); ?></span></div>
-                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill" style="width: <?php echo min(100, $biometricCoverageRate); ?>%"></div></div>
-                            </div>
-                            <div class="analytics-fallback-row">
-                                <?php $studentsBiometricPending = max(0, $studentsTotal - $studentsBiometric); ?>
-                                <div class="analytics-fallback-head"><span>Pending</span><span><?php echo number_format($studentsBiometricPending); ?></span></div>
-                                <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--warning" style="width: <?php echo min(100, a_pct($studentsBiometricPending, $studentsTotal)); ?>%"></div></div>
-                            </div>
-                        </div>
+                </article>
+            </section>
+
+            <section class="analytics-panels-grid">
+                <article class="analytics-panel-card">
+                    <header class="analytics-panel-head">
+                        <h6 class="analytics-panel-title">Recent Students</h6>
+                    </header>
+                    <div class="table-responsive">
+                        <table class="table table-sm analytics-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>ID Number</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (!empty($recentStudents)): ?>
+                                    <?php foreach ($recentStudents as $student): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars(analytics_name_from_row($student), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><?php echo htmlspecialchars((string)($student['student_id'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><?php echo htmlspecialchars(analytics_date_label((string)($student['created_at'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr><td colspan="3" class="text-muted text-center py-3">No student records found.</td></tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-            </div>
-            <div class="col-xl-4">
-                <div class="card analytics-card stretch stretch-full">
-                    <div class="card-header"><div><h5 class="card-title mb-1">Internship Type Mix</h5><p class="analytics-card-subtitle">Internal and external balance.</p></div></div>
-                    <div class="card-body">
-                        <div class="analytics-ring-chart-block analytics-ring-chart-block--compact">
-                            <div class="analytics-ring-chart analytics-ring-chart--small" style="--ring-fill: <?php echo htmlspecialchars($internshipTypeGradient, ENT_QUOTES, 'UTF-8'); ?>">
-                                <div class="analytics-ring-center">
-                                    <strong><?php echo number_format($internshipsTotal); ?></strong>
-                                    <span>Total</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="analytics-chart-fallback">
-                            <?php foreach ($internshipTypes as $label => $value): ?>
-                                <div class="analytics-fallback-row">
-                                    <div class="analytics-fallback-head"><span><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></span><span><?php echo number_format($value); ?></span></div>
-                                    <div class="analytics-fallback-track"><div class="analytics-fallback-fill analytics-fallback-fill--violet" style="width: <?php echo min(100, a_pct($value, $internshipsTotal)); ?>%"></div></div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
+                </article>
+
+                <article class="analytics-panel-card">
+                    <header class="analytics-panel-head">
+                        <h6 class="analytics-panel-title">Recent Internship Updates</h6>
+                    </header>
+                    <div class="table-responsive">
+                        <table class="table table-sm analytics-table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Company</th>
+                                    <th>Status</th>
+                                    <th>Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (!empty($recentInternships)): ?>
+                                    <?php foreach ($recentInternships as $internship): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars(analytics_name_from_row($internship), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><?php echo htmlspecialchars((string)($internship['company_name'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td class="text-capitalize"><?php echo htmlspecialchars((string)($internship['status'] ?? '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><?php echo htmlspecialchars(analytics_date_label((string)($internship['updated_at'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <tr><td colspan="4" class="text-muted text-center py-3">No internship records found.</td></tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-            </div>
-            <div class="col-xl-6">
-                <div class="card analytics-card stretch stretch-full">
-                    <div class="card-header"><div><h5 class="card-title mb-1">Last 7 Days Attendance</h5><p class="analytics-card-subtitle">Recent attendance volume.</p></div></div>
-                    <div class="card-body">
-                        <div class="analytics-chart-shell">
-                            <div class="analytics-week-chart">
-                                <?php foreach (array_values($weekMap) as $index => $value): ?>
-                                    <div class="analytics-week-day">
-                                        <div class="analytics-week-bar-wrap">
-                                            <span class="analytics-week-bar" style="height: <?php echo min(100, round(($value / max($weekMax, 1)) * 100, 2)); ?>%"></span>
-                                        </div>
-                                        <div class="analytics-week-meta">
-                                            <strong><?php echo number_format($value); ?></strong>
-                                            <span><?php echo htmlspecialchars($weekLabels[$index] ?? '', ENT_QUOTES, 'UTF-8'); ?></span>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-6">
-                <div class="card analytics-card stretch stretch-full">
-                    <div class="card-header"><div><h5 class="card-title mb-1">Coverage Progress</h5><p class="analytics-card-subtitle">Operational ratios based on current data.</p></div></div>
-                    <div class="card-body">
-                        <div class="analytics-progress-list">
-                            <div class="analytics-progress-item"><div class="analytics-progress-head"><span>Biometric coverage</span><strong><?php echo number_format($biometricCoverageRate, 2); ?>%</strong></div><div class="progress"><div class="progress-bar bg-primary" style="width: <?php echo max(0, min(100, $biometricCoverageRate)); ?>%"></div></div></div>
-                            <div class="analytics-progress-item"><div class="analytics-progress-head"><span>Attendance approval</span><strong><?php echo number_format($attendanceApprovalRate, 2); ?>%</strong></div><div class="progress"><div class="progress-bar bg-success" style="width: <?php echo max(0, min(100, $attendanceApprovalRate)); ?>%"></div></div></div>
-                            <div class="analytics-progress-item"><div class="analytics-progress-head"><span>Active internship share</span><strong><?php echo number_format($activeInternshipRate, 2); ?>%</strong></div><div class="progress"><div class="progress-bar bg-info" style="width: <?php echo max(0, min(100, $activeInternshipRate)); ?>%"></div></div></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-6">
-                <div class="card analytics-card stretch stretch-full">
-                    <div class="card-header"><div><h5 class="card-title mb-1">Recent Students</h5><p class="analytics-card-subtitle">Newest student records.</p></div></div>
-                    <div class="card-body">
-                        <div class="analytics-list">
-                            <?php foreach ($recentStudents as $student): ?>
-                                <?php $name = trim((string)($student['first_name'] ?? '') . ' ' . (string)($student['last_name'] ?? '')); ?>
-                                <div class="analytics-list-item">
-                                    <div class="analytics-avatar"><?php echo htmlspecialchars(analytics_label_initials($name), ENT_QUOTES, 'UTF-8'); ?></div>
-                                    <div class="analytics-list-copy">
-                                        <strong><?php echo htmlspecialchars($name !== '' ? $name : 'Unnamed student', ENT_QUOTES, 'UTF-8'); ?></strong>
-                                        <small><?php echo htmlspecialchars((string)($student['student_id'] ?? 'No student number'), ENT_QUOTES, 'UTF-8'); ?></small>
-                                    </div>
-                                    <span class="badge <?php echo !empty($student['biometric_registered']) ? 'bg-soft-success text-success' : 'bg-soft-warning text-warning'; ?>"><?php echo !empty($student['biometric_registered']) ? 'Biometric' : 'Pending'; ?></span>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-xl-6">
-                <div class="card analytics-card stretch stretch-full">
-                    <div class="card-header"><div><h5 class="card-title mb-1">Recent Internships</h5><p class="analytics-card-subtitle">Latest updated internship records.</p></div></div>
-                    <div class="card-body">
-                        <div class="analytics-list">
-                            <?php foreach ($recentInternships as $row): ?>
-                                <?php $studentName = trim((string)($row['first_name'] ?? '') . ' ' . (string)($row['last_name'] ?? '')); ?>
-                                <?php $company = trim((string)($row['company_name'] ?? '')); ?>
-                                <div class="analytics-list-item analytics-list-item--stacked">
-                                    <div class="analytics-list-copy">
-                                        <strong><?php echo htmlspecialchars($company !== '' ? $company : ($studentName !== '' ? $studentName : 'Unnamed internship'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                                        <small><?php echo htmlspecialchars(($studentName !== '' ? $studentName : 'Unknown student') . ' | ' . strtoupper((string)($row['type'] ?? 'n/a')), ENT_QUOTES, 'UTF-8'); ?></small>
-                                    </div>
-                                    <div class="analytics-inline-meta">
-                                        <span class="badge bg-soft-info text-info"><?php echo htmlspecialchars(ucfirst((string)($row['status'] ?? 'pending')), ENT_QUOTES, 'UTF-8'); ?></span>
-                                        <span class="analytics-inline-stat"><?php echo number_format((float)($row['completion_percentage'] ?? 0), 2); ?>%</span>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+                </article>
+            </section>
+        </div>
     </div>
 </main>
 <?php include 'includes/footer.php'; ?>

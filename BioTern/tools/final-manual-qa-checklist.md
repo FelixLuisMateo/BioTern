@@ -1,7 +1,7 @@
 # BioTern Final Manual QA Checklist
 
 Date: 2026-04-09
-Scope: Final verification of resolved concerns (navigation, profile consistency, analytics, students, applications, attendance, fingerprint, OJT, documents, reports).
+Scope: Final verification of resolved concerns (navigation, profile consistency, students, applications, attendance, fingerprint, OJT, documents, reports).
 
 ## Preconditions
 
@@ -40,15 +40,7 @@ Expected:
 - assignment track is visible and labeled clearly
 - track values are only Internal or External
 
-## 4. Analytics
-
-1. Open Analytics dashboard.
-2. Verify counts against known records.
-Expected:
-- internship metrics load correctly
-- pending student applications are excluded from approved student analytics totals
-
-## 5. Students Page
+## 4. Students Page
 
 1. Open Students list.
 2. Click Select All checkbox, then uncheck one row.
@@ -60,7 +52,7 @@ Expected:
 Expected:
 - print layout renders without floating action UI overlays in print output
 
-## 6. Resume Generation
+## 5. Resume Generation
 
 1. Open Resume for a student with profile image.
 2. Open Resume for a student without profile image.
@@ -69,7 +61,7 @@ Expected:
 - image student shows profile image
 - non-image student shows fallback placeholder
 
-## 7. Evaluation and Certificate Access
+## 6. Evaluation and Certificate Access
 
 1. Open Evaluate page as assigned supervisor or coordinator.
 2. Submit evaluation with valid token session.
@@ -82,7 +74,7 @@ Expected:
 Expected:
 - access check matches evaluation role-mapping behavior
 
-## 8. Student DTR
+## 7. Student DTR
 
 1. Open Student DTR.
 2. Enter invalid month manually in query string.
@@ -93,7 +85,7 @@ Expected:
 Expected:
 - print view renders DTR table cleanly
 
-## 9. Applications Review
+## 8. Applications Review
 
 1. Open Applications Review.
 2. Toggle Actions button and filter controls.
@@ -101,7 +93,7 @@ Expected:
 - actions panel opens and closes correctly
 - filters remain usable and do not glitch
 
-## 10. Attendance
+## 9. Attendance
 
 1. Open Attendance list.
 Expected:
@@ -114,14 +106,14 @@ Expected:
 Expected:
 - attendance print page opens correctly
 
-## 11. Fingerprint Mapping
+## 10. Fingerprint Mapping
 
 1. Open Fingerprint Mapping page.
 2. Check mapped and detected finger IDs.
 Expected:
 - finger IDs are parsed and shown correctly from available payload variants
 
-## 12. OJT List
+## 11. OJT List
 
 1. Open OJT dashboard.
 Expected:
@@ -130,7 +122,7 @@ Expected:
 - stage filter includes Dropped
 - risk score calculation remains stable
 
-## 13. Documents and Excel Sync
+## 12. Documents and Excel Sync
 
 1. Open Import Students Excel tool.
 2. Import masterlist with matching students.
@@ -153,7 +145,7 @@ Expected:
 - generation is blocked for ineligible students
 - generation proceeds for eligible or unlocked students
 
-## 14. Reports
+## 13. Reports
 
 1. Open Disciplinary Acts report.
 Expected:
@@ -168,7 +160,6 @@ Expected:
 
 - Navbar notifications: Pass or Fail
 - Profile consistency: Pass or Fail
-- Analytics pending exclusion: Pass or Fail
 - Students checkbox and print: Pass or Fail
 - Resume rendering: Pass or Fail
 - Evaluation and certificate access: Pass or Fail
