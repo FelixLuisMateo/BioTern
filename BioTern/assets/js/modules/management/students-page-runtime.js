@@ -60,6 +60,28 @@
 
     var viewAllButton = document.querySelector('[data-view-all-table="customerList"]');
     if (viewAllButton) {
+      var tableEl = document.getElementById("customerList");
+      var wrapper = tableEl ? tableEl.closest(".dataTables_wrapper") : null;
+      var paginateHost = wrapper ? wrapper.querySelector(".dataTables_paginate") : null;
+      var legacyWrap = viewAllButton.closest(".d-flex.justify-content-end.px-3.py-2");
+      if (paginateHost) {
+        var viewAllSlot = paginateHost.querySelector(".app-students-pagination-viewall");
+        var paginationList = paginateHost.querySelector("ul.pagination");
+        if (!viewAllSlot) {
+          viewAllSlot = document.createElement("div");
+          viewAllSlot.className = "app-students-pagination-viewall";
+          if (paginationList && paginationList.nextSibling) {
+            paginateHost.insertBefore(viewAllSlot, paginationList.nextSibling);
+          } else {
+            paginateHost.appendChild(viewAllSlot);
+          }
+        }
+        viewAllSlot.appendChild(viewAllButton);
+        if (legacyWrap && legacyWrap !== viewAllSlot && legacyWrap.children.length === 0) {
+          legacyWrap.remove();
+        }
+      }
+
       function syncLabel() {
         viewAllButton.textContent = table.page.len() === -1 ? "Show paged list" : "View all list";
       }
@@ -300,6 +322,30 @@
     }
 
     updateSelectedPrintButton();
+  }
+
+  function initStudentDetailsModal() {
+    var detailsModal = document.getElementById("studentsDetailsModal");
+    if (!detailsModal) return;
+
+    var fields = {
+      name: document.getElementById("studentsDetailsName"),
+      track: document.getElementById("studentsDetailsTrack"),
+      section: document.getElementById("studentsDetailsSection"),
+      email: document.getElementById("studentsDetailsEmail"),
+      phone: document.getElementById("studentsDetailsPhone"),
+    };
+
+    document.addEventListener("click", function (event) {
+      var trigger = event.target.closest("[data-student-details-trigger]");
+      if (!trigger) return;
+
+      if (fields.name) fields.name.textContent = trigger.getAttribute("data-student-name") || "-";
+      if (fields.track) fields.track.textContent = trigger.getAttribute("data-student-track") || "-";
+      if (fields.section) fields.section.textContent = trigger.getAttribute("data-student-section") || "-";
+      if (fields.email) fields.email.textContent = trigger.getAttribute("data-student-email") || "-";
+      if (fields.phone) fields.phone.textContent = trigger.getAttribute("data-student-phone") || "-";
+    });
   }
 
   function initTableCheckboxes() {
@@ -796,6 +842,7 @@
     initStudentsDataTable();
     initHeaderTableSearch();
     initPrintActions();
+    initStudentDetailsModal();
     initTableCheckboxes();
     initStudentActionModal();
     initExportActions();

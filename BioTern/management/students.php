@@ -1338,26 +1338,6 @@ include 'includes/header.php';
                                                                     <span class="app-students-student-meta"><?php echo htmlspecialchars($student_id_label); ?></span>
                                                                 </div>
                                                             </a>
-                                                            <div class="collapse app-students-inline-collapse" id="studentRowDetails<?php echo htmlspecialchars($student_dom_key, ENT_QUOTES, 'UTF-8'); ?>">
-                                                                <div class="app-students-inline-details">
-                                                                    <div class="app-students-inline-detail-item">
-                                                                        <span class="app-students-inline-detail-label">Track</span>
-                                                                        <span class="app-students-section-pill"><?php echo htmlspecialchars($track_label); ?></span>
-                                                                    </div>
-                                                                    <div class="app-students-inline-detail-item">
-                                                                        <span class="app-students-inline-detail-label">Section</span>
-                                                                        <span class="app-students-section-pill"><?php echo htmlspecialchars($section_name); ?></span>
-                                                                    </div>
-                                                                    <div class="app-students-inline-detail-item">
-                                                                        <span class="app-students-inline-detail-label">Email</span>
-                                                                        <span class="app-students-inline-detail-value"><?php echo htmlspecialchars($email_value !== '' ? $email_value : '-'); ?></span>
-                                                                    </div>
-                                                                    <div class="app-students-inline-detail-item">
-                                                                        <span class="app-students-inline-detail-label">Phone</span>
-                                                                        <span class="app-students-inline-detail-value"><?php echo htmlspecialchars($phone_value !== '' ? $phone_value : '-'); ?></span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
                                                         </td>
                                                         <td data-label="Academic">
                                                             <div class="app-students-cell-stack">
@@ -1392,7 +1372,18 @@ include 'includes/header.php';
                                                         </td>
                                                         <td data-label="Actions">
                                                             <div class="app-students-row-actions">
-                                                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#studentRowDetails<?php echo htmlspecialchars($student_dom_key, ENT_QUOTES, 'UTF-8'); ?>" aria-expanded="false" aria-controls="studentRowDetails<?php echo htmlspecialchars($student_dom_key, ENT_QUOTES, 'UTF-8'); ?>">
+                                                                <button
+                                                                    class="btn btn-sm btn-outline-secondary"
+                                                                    type="button"
+                                                                    data-bs-toggle="modal"
+                                                                    data-bs-target="#studentsDetailsModal"
+                                                                    data-student-details-trigger
+                                                                    data-student-name="<?php echo htmlspecialchars($student_name, ENT_QUOTES, 'UTF-8'); ?>"
+                                                                    data-student-track="<?php echo htmlspecialchars($track_label, ENT_QUOTES, 'UTF-8'); ?>"
+                                                                    data-student-section="<?php echo htmlspecialchars($section_name, ENT_QUOTES, 'UTF-8'); ?>"
+                                                                    data-student-email="<?php echo htmlspecialchars($email_value !== '' ? $email_value : '-', ENT_QUOTES, 'UTF-8'); ?>"
+                                                                    data-student-phone="<?php echo htmlspecialchars($phone_value !== '' ? $phone_value : '-', ENT_QUOTES, 'UTF-8'); ?>"
+                                                                >
                                                                     Details
                                                                 </button>
                                                                 <?php if (!$is_student_user): ?>
@@ -1533,6 +1524,40 @@ include 'includes/header.php';
         </div>
 </div> <!-- .nxl-content -->
 </main>
+<div class="modal fade biotern-popup-modal" id="studentsDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Student Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="app-students-inline-details">
+                    <div class="app-students-inline-detail-item">
+                        <span class="app-students-inline-detail-label">Name</span>
+                        <span class="app-students-inline-detail-value" id="studentsDetailsName">-</span>
+                    </div>
+                    <div class="app-students-inline-detail-item">
+                        <span class="app-students-inline-detail-label">Track</span>
+                        <span class="app-students-inline-detail-value" id="studentsDetailsTrack">-</span>
+                    </div>
+                    <div class="app-students-inline-detail-item">
+                        <span class="app-students-inline-detail-label">Section</span>
+                        <span class="app-students-inline-detail-value" id="studentsDetailsSection">-</span>
+                    </div>
+                    <div class="app-students-inline-detail-item">
+                        <span class="app-students-inline-detail-label">Email</span>
+                        <span class="app-students-inline-detail-value" id="studentsDetailsEmail">-</span>
+                    </div>
+                    <div class="app-students-inline-detail-item">
+                        <span class="app-students-inline-detail-label">Phone</span>
+                        <span class="app-students-inline-detail-value" id="studentsDetailsPhone">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <?php if (!$is_student_user): ?>
 <div class="modal fade biotern-popup-modal" id="studentsActionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
