@@ -8,6 +8,9 @@ biotern_boot_session(isset($conn) ? $conn : null);
 require_roles_page(['admin', 'coordinator', 'supervisor']);
 
 $student_id = isset($_GET['student_id']) ? intval($_GET['student_id']) : 0;
+header('Location: document_certificate.php' . ($student_id > 0 ? '?id=' . $student_id : ''));
+exit;
+
 $current_user_id = (int)($_SESSION['user_id'] ?? 0);
 $current_user_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 
