@@ -99,6 +99,17 @@ function ojt_internal_list_matches_search(array $row, string $search): bool {
     return strpos($haystack, $needle) !== false;
 }
 
+function ojt_internal_school_year_options(): array {
+    $startYear = 2005;
+    $currentYear = (int)date('Y');
+    $latestStart = max(2026, $currentYear);
+    $options = [];
+    for ($year = $latestStart; $year >= $startYear; $year--) {
+        $options[] = sprintf('%d-%d', $year, $year + 1);
+    }
+    return $options;
+}
+
 function ojt_internal_apply_start(mysqli $conn, int $targetStudentId, string $startDate, string $endDate, bool $internshipsTableExists, bool $internshipsHasTypeColumn, bool $internshipsHasStartDateColumn, bool $internshipsHasEndDateColumn, bool $internshipsHasStatusColumn, bool $internshipsHasRequiredHoursColumn, bool $internshipsHasStudentIdColumn, bool $hasAssignmentTrack): array {
     if (!$internshipsTableExists || !$internshipsHasStudentIdColumn) {
         return ['ok' => false, 'message' => 'Internship table is not ready for internal start dates.'];
@@ -299,6 +310,7 @@ $filterSchoolYear = trim((string)($_GET['school_year'] ?? ''));
 $filterSemester = trim((string)($_GET['semester'] ?? ''));
 $search = trim((string)($_GET['search'] ?? ''));
 $filterOjtStatus = strtolower(trim((string)($_GET['ojt_status'] ?? 'all')));
+$filterAccountStatus = strtolower(trim((string)($_GET['account_status'] ?? 'all')));
 $isInternalMasterlistPage = basename((string)($_SERVER['SCRIPT_NAME'] ?? '')) === 'ojt-internal-masterlist.php'
     || !empty($biotern_internal_masterlist_page);
 if (!in_array($filterSemester, ['', '1st Semester', '2nd Semester', 'Summer'], true)) {
@@ -307,6 +319,10 @@ if (!in_array($filterSemester, ['', '1st Semester', '2nd Semester', 'Summer'], t
 if (!in_array($filterOjtStatus, ['all', 'ongoing', 'finished', 'not_started'], true)) {
     $filterOjtStatus = 'all';
 }
+if (!in_array($filterAccountStatus, ['all', 'linked', 'unlinked'], true)) {
+    $filterAccountStatus = 'all';
+}
+$schoolYearOptions = ojt_internal_school_year_options();
 
 $internshipsTableExists = ojt_internal_table_exists($conn, 'internships');
 $internshipsHasTypeColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'type');
@@ -335,6 +351,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['internal_action'] 
     }
     if ($filterOjtStatus !== 'all') {
         $redirectQuery['ojt_status'] = $filterOjtStatus;
+    }
+    if ($filterAccountStatus !== 'all') {
+        $redirectQuery['account_status'] = $filterAccountStatus;
     }
     $redirectBase = $isInternalMasterlistPage ? 'ojt-internal-masterlist.php' : 'ojt-internal-list.php';
     $redirectTarget = $redirectBase . ($redirectQuery !== [] ? ('?' . http_build_query($redirectQuery)) : '');
@@ -571,6 +590,13 @@ foreach ($rows as $row) {
     if ($filterOjtStatus !== 'all' && $statusKey !== $filterOjtStatus) {
         continue;
     }
+    $isLinkedAccount = ((int)($row['student_user_id'] ?? 0) > 0 || (int)($row['ojt_user_id'] ?? 0) > 0);
+    if ($filterAccountStatus === 'linked' && !$isLinkedAccount) {
+        continue;
+    }
+    if ($filterAccountStatus === 'unlinked' && $isLinkedAccount) {
+        continue;
+    }
     if (!ojt_internal_list_matches_search($row, $search)) {
         continue;
     }
@@ -580,6 +606,7 @@ foreach ($rows as $row) {
 $rows = $normalizedRows;
 
 $linkedCount = 0;
+$unlinkedCount = 0;
 $statusCounts = [
     'ongoing' => 0,
     'finished' => 0,
@@ -588,6 +615,8 @@ $statusCounts = [
 foreach ($rows as $row) {
     if ((int)($row['student_user_id'] ?? 0) > 0 || (int)($row['ojt_user_id'] ?? 0) > 0) {
         $linkedCount++;
+    } else {
+        $unlinkedCount++;
     }
     $statusKey = (string)($row['internal_status_key'] ?? 'not_started');
     if (array_key_exists($statusKey, $statusCounts)) {
@@ -603,6 +632,7 @@ $exportQuery = array_filter([
     'section_id' => $filterSectionId > 0 ? (string)$filterSectionId : '',
     'search' => $search,
     'ojt_status' => $filterOjtStatus !== 'all' ? $filterOjtStatus : '',
+    'account_status' => $filterAccountStatus !== 'all' ? $filterAccountStatus : '',
 ], static fn($value): bool => $value !== '' && $value !== null);
 $exportUrl = 'export-ojt-list.php?' . http_build_query($exportQuery);
 
@@ -635,6 +665,9 @@ if ($sectionFilterLabel !== '') {
 }
 if ($filterOjtStatus !== 'all') {
     $printFilterParts[] = 'Status: ' . ojt_internal_list_status_label($filterOjtStatus);
+}
+if ($filterAccountStatus !== 'all') {
+    $printFilterParts[] = 'Account: ' . ($filterAccountStatus === 'linked' ? 'Linked / Registered' : 'Not Linked');
 }
 if ($search !== '') {
     $printFilterParts[] = 'Search: ' . $search;
@@ -744,7 +777,12 @@ ob_end_flush();
                         </div>
                         <div class="col-12 col-md-2">
                             <label class="form-label" for="school_year">School Year</label>
-                            <input type="text" class="form-control" id="school_year" name="school_year" value="<?php echo htmlspecialchars($filterSchoolYear, ENT_QUOTES, 'UTF-8'); ?>" placeholder="2025-2026">
+                            <select class="form-select" id="school_year" name="school_year">
+                                <option value="">All School Years</option>
+                                <?php foreach ($schoolYearOptions as $schoolYearOption): ?>
+                                    <option value="<?php echo htmlspecialchars((string)$schoolYearOption, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filterSchoolYear === (string)$schoolYearOption ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)$schoolYearOption, ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         <div class="col-12 col-md-2">
                             <label class="form-label" for="semester">Semester</label>
@@ -782,6 +820,14 @@ ob_end_flush();
                                 <option value="not_started" <?php echo $filterOjtStatus === 'not_started' ? 'selected' : ''; ?>>Not Started</option>
                             </select>
                         </div>
+                        <div class="col-12 col-md-2">
+                            <label class="form-label" for="account_status">Account Status</label>
+                            <select class="form-select" id="account_status" name="account_status">
+                                <option value="all" <?php echo $filterAccountStatus === 'all' ? 'selected' : ''; ?>>All Accounts</option>
+                                <option value="linked" <?php echo $filterAccountStatus === 'linked' ? 'selected' : ''; ?>>Linked / Registered</option>
+                                <option value="unlinked" <?php echo $filterAccountStatus === 'unlinked' ? 'selected' : ''; ?>>Not Linked</option>
+                            </select>
+                        </div>
                         <div class="col-12 col-md-2 fm-actions">
                             <button type="submit" class="btn btn-primary">Apply</button>
                             <a href="<?php echo $isInternalMasterlistPage ? 'ojt-internal-masterlist.php' : 'ojt-internal-list.php'; ?><?php echo $mapFingerId > 0 ? '?map_finger_id=' . $mapFingerId : ''; ?>" class="btn btn-light">Clear</a>
@@ -790,7 +836,7 @@ ob_end_flush();
                 </div>
                 <div class="card-body py-2">
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                        <small class="text-muted">Total internal rows: <?php echo count($rows); ?> | Linked with registered account: <?php echo $linkedCount; ?> | Ongoing: <?php echo (int)$statusCounts['ongoing']; ?> | Finished: <?php echo (int)$statusCounts['finished']; ?> | Not Started: <?php echo (int)$statusCounts['not_started']; ?><?php echo $filterSchoolYear !== '' ? ' | SY: ' . htmlspecialchars($filterSchoolYear, ENT_QUOTES, 'UTF-8') : ''; ?><?php echo $filterSemester !== '' ? ' | ' . htmlspecialchars($filterSemester, ENT_QUOTES, 'UTF-8') : ''; ?></small>
+                        <small class="text-muted">Total internal rows: <?php echo count($rows); ?> | Linked / registered: <?php echo $linkedCount; ?> | Not linked: <?php echo $unlinkedCount; ?> | Ongoing: <?php echo (int)$statusCounts['ongoing']; ?> | Finished: <?php echo (int)$statusCounts['finished']; ?> | Not Started: <?php echo (int)$statusCounts['not_started']; ?><?php echo $filterSchoolYear !== '' ? ' | SY: ' . htmlspecialchars($filterSchoolYear, ENT_QUOTES, 'UTF-8') : ''; ?><?php echo $filterSemester !== '' ? ' | ' . htmlspecialchars($filterSemester, ENT_QUOTES, 'UTF-8') : ''; ?></small>
                     </div>
                 </div>
                 <div class="card-body p-0">

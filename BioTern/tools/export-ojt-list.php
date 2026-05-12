@@ -177,6 +177,10 @@ $courseId = (int)($_GET['course_id'] ?? 0);
 $sectionId = (int)($_GET['section_id'] ?? 0);
 $search = trim((string)($_GET['search'] ?? ''));
 $status = strtolower(trim((string)($_GET['ojt_status'] ?? 'all')));
+$accountStatus = strtolower(trim((string)($_GET['account_status'] ?? 'all')));
+if (!in_array($accountStatus, ['all', 'linked', 'unlinked'], true)) {
+    $accountStatus = 'all';
+}
 
 $hasMasterlist = export_ojt_table_exists($conn, 'ojt_masterlist');
 if ($hasMasterlist && !export_ojt_column_exists($conn, 'ojt_masterlist', 'student_no')) {
@@ -371,6 +375,11 @@ if ($status !== '' && $status !== 'all') {
         $where[] = '(' . implode(' OR ', $parts) . ')';
     }
 }
+if ($accountStatus === 'linked') {
+    $where[] = 'COALESCE(s.user_id, 0) > 0';
+} elseif ($accountStatus === 'unlinked') {
+    $where[] = 'COALESCE(s.user_id, 0) = 0';
+}
 if ($search !== '') {
     $needle = '%' . $search . '%';
     $parts = ['s.student_id LIKE ?', 's.first_name LIKE ?', 's.last_name LIKE ?', 's.email LIKE ?'];
@@ -394,6 +403,7 @@ $sql = "
         COALESCE(s.last_name, '') AS last_name,
         COALESCE(s.phone, '') AS phone,
         COALESCE(s.email, '') AS email,
+        COALESCE(s.user_id, 0) AS user_id,
         COALESCE(s.course_id, 0) AS course_id,
         COALESCE(s.section_id, 0) AS section_id,
         COALESCE(s.status, '') AS student_status,
@@ -515,6 +525,9 @@ if ($type === 'external' && $hasMasterlist) {
         $masterOnlyWhere[] = "(ml.student_no LIKE ? OR ml.student_name LIKE ? OR ml.company_name LIKE ? OR ml.section LIKE ?)";
         $masterOnlyTypes .= 'ssss';
         array_push($masterOnlyParams, $needle, $needle, $needle, $needle);
+    }
+    if ($accountStatus === 'linked') {
+        $masterOnlyWhere[] = '1 = 0';
     }
 
     $masterOnlySql = "

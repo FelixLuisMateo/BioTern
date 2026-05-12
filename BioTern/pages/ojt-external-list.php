@@ -101,6 +101,18 @@ function ojt_external_course_acronym(string $name): string
     return $letters;
 }
 
+function ojt_external_school_year_options(): array
+{
+    $startYear = 2005;
+    $currentYear = (int)date('Y');
+    $latestStart = max(2026, $currentYear);
+    $options = [];
+    for ($year = $latestStart; $year >= $startYear; $year--) {
+        $options[] = sprintf('%d-%d', $year, $year + 1);
+    }
+    return $options;
+}
+
 $conn->query("CREATE TABLE IF NOT EXISTS ojt_external (
     student_no VARCHAR(100) NOT NULL,
     user_id INT NULL,
@@ -134,7 +146,15 @@ $filterSectionId = (int)($_GET['section_id'] ?? 0);
 $filterSchoolYear = trim((string)($_GET['school_year'] ?? ''));
 $filterSemester = trim((string)($_GET['semester'] ?? ''));
 $search = trim((string)($_GET['search'] ?? ''));
+$filterAccountStatus = strtolower(trim((string)($_GET['account_status'] ?? 'all')));
 $semesterOptions = ['1st Semester', '2nd Semester', 'Summer'];
+$schoolYearOptions = ojt_external_school_year_options();
+if (!in_array($filterSemester, ['', '1st Semester', '2nd Semester', 'Summer'], true)) {
+    $filterSemester = '';
+}
+if (!in_array($filterAccountStatus, ['all', 'linked', 'unlinked'], true)) {
+    $filterAccountStatus = 'all';
+}
 
 $courses = [];
 $courseRes = $conn->query('SELECT id, name FROM courses ORDER BY name ASC');
@@ -362,6 +382,13 @@ foreach ($rows as $row) {
     if ($filterSemester !== '' && strcasecmp(trim((string)($row['semester'] ?? '')), $filterSemester) !== 0) {
         continue;
     }
+    $isLinkedAccount = (int)($row['student_user_id'] ?? 0) > 0 || (int)($row['ojt_user_id'] ?? 0) > 0;
+    if ($filterAccountStatus === 'linked' && !$isLinkedAccount) {
+        continue;
+    }
+    if ($filterAccountStatus === 'unlinked' && $isLinkedAccount) {
+        continue;
+    }
     if ($search !== '') {
         $haystack = strtolower(trim(implode(' ', [
             (string)($row['student_no'] ?? ''),
@@ -382,9 +409,12 @@ foreach ($rows as $row) {
 $rows = $normalizedRows;
 
 $linkedCount = 0;
+$unlinkedCount = 0;
 foreach ($rows as $row) {
     if ((int)($row['student_user_id'] ?? 0) > 0 || (int)($row['ojt_user_id'] ?? 0) > 0) {
         $linkedCount++;
+    } else {
+        $unlinkedCount++;
     }
 }
 
@@ -395,6 +425,7 @@ $exportQuery = array_filter([
     'course_id' => $filterCourseId > 0 ? (string)$filterCourseId : '',
     'section_id' => $filterSectionId > 0 ? (string)$filterSectionId : '',
     'search' => $search,
+    'account_status' => $filterAccountStatus !== 'all' ? $filterAccountStatus : '',
 ], static fn($value): bool => $value !== '' && $value !== null);
 $exportUrl = 'export-ojt-list.php?' . http_build_query($exportQuery);
 
@@ -424,6 +455,11 @@ if ($courseFilterLabel !== '') {
 }
 if ($sectionFilterLabel !== '') {
     $printFilterParts[] = 'Section: ' . $sectionFilterLabel;
+}
+if ($filterAccountStatus === 'linked') {
+    $printFilterParts[] = 'Account: Linked / Registered';
+} elseif ($filterAccountStatus === 'unlinked') {
+    $printFilterParts[] = 'Account: Not Linked';
 }
 if ($search !== '') {
     $printFilterParts[] = 'Search: ' . $search;
@@ -519,7 +555,12 @@ ob_end_flush();
                         </div>
                         <div class="col-12 col-md-2">
                             <label class="form-label" for="school_year">School Year</label>
-                            <input type="text" class="form-control" id="school_year" name="school_year" value="<?php echo htmlspecialchars($filterSchoolYear, ENT_QUOTES, 'UTF-8'); ?>" placeholder="2025-2026">
+                            <select class="form-select" id="school_year" name="school_year">
+                                <option value="">All School Years</option>
+                                <?php foreach ($schoolYearOptions as $schoolYearOption): ?>
+                                    <option value="<?php echo htmlspecialchars((string)$schoolYearOption, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $filterSchoolYear === (string)$schoolYearOption ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)$schoolYearOption, ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                         <div class="col-12 col-md-2">
                             <label class="form-label" for="semester">Semester</label>
@@ -548,6 +589,14 @@ ob_end_flush();
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        <div class="col-12 col-md-2">
+                            <label class="form-label" for="account_status">Account Status</label>
+                            <select class="form-select" id="account_status" name="account_status">
+                                <option value="all" <?php echo $filterAccountStatus === 'all' ? 'selected' : ''; ?>>All Accounts</option>
+                                <option value="linked" <?php echo $filterAccountStatus === 'linked' ? 'selected' : ''; ?>>Linked / Registered</option>
+                                <option value="unlinked" <?php echo $filterAccountStatus === 'unlinked' ? 'selected' : ''; ?>>Not Linked</option>
+                            </select>
+                        </div>
                         <div class="col-12 col-md-2 fm-actions">
                             <button type="submit" class="btn btn-primary">Apply</button>
                             <a href="ojt-external-list.php" class="btn btn-light">Clear</a>
@@ -555,7 +604,7 @@ ob_end_flush();
                     </form>
                 </div>
                 <div class="card-body py-2 border-bottom">
-                        <small class="text-muted">Total external rows: <?php echo count($rows); ?> | Linked with registered account: <?php echo $linkedCount; ?><?php echo $filterSchoolYear !== '' ? ' | SY: ' . htmlspecialchars($filterSchoolYear, ENT_QUOTES, 'UTF-8') : ''; ?><?php echo $filterSemester !== '' ? ' | ' . htmlspecialchars($filterSemester, ENT_QUOTES, 'UTF-8') : ''; ?></small>
+                        <small class="text-muted">Total external rows: <?php echo count($rows); ?> | Linked / registered: <?php echo $linkedCount; ?> | Not linked: <?php echo $unlinkedCount; ?><?php echo $filterSchoolYear !== '' ? ' | SY: ' . htmlspecialchars($filterSchoolYear, ENT_QUOTES, 'UTF-8') : ''; ?><?php echo $filterSemester !== '' ? ' | ' . htmlspecialchars($filterSemester, ENT_QUOTES, 'UTF-8') : ''; ?></small>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
