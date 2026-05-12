@@ -857,7 +857,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<tr class="single-item">';
             echo '<td data-label="Select"><div class="item-checkbox ms-1"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input checkbox" id="' . $checkboxId . '" data-attendance-id="' . (int)$attendance['id'] . '"><label class="custom-control-label" for="' . $checkboxId . '"></label></div></div></td>';
             // build avatar (use uploaded profile picture when available)
-            $avatar_html = '<a href="students-internal-dtr.php?id=' . (int)$attendance['student_id'] . '" class="hstack gap-3">';
+            $avatar_html = '<a href="students-view.php?id=' . (int)$attendance['student_id'] . '" class="hstack gap-3">';
             $pp_url = resolve_attendance_profile_image_url((string)($attendance['profile_picture'] ?? ''), (int)($attendance['user_id'] ?? 0));
             if ($pp_url !== null) {
                 $avatar_html .= '<div class="avatar-image avatar-md"><img src="' . htmlspecialchars($pp_url) . '" alt="" class="img-fluid"></div>';
@@ -930,10 +930,33 @@ function attendanceScheduleDisplayFallback(array $attendance, string $column): ?
     $scheduleOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
 
     if ($dayType === 'class' || $dayType === 'x2_schedule') {
+        $startsInAfternoon = $scheduleIn !== null && strcmp($scheduleIn, '12:00:00') >= 0;
+        $endsBeforeAfternoon = $scheduleOut !== null && strcmp($scheduleOut, '12:00:00') <= 0;
+
+        if ($startsInAfternoon) {
+            if ($column === 'afternoon_time_in') {
+                return $scheduleIn;
+            }
+            if ($column === 'afternoon_time_out') {
+                return $scheduleOut;
+            }
+            return null;
+        }
+
+        if ($endsBeforeAfternoon) {
+            if ($column === 'morning_time_in') {
+                return $scheduleIn;
+            }
+            if ($column === 'morning_time_out') {
+                return $scheduleOut;
+            }
+            return null;
+        }
+
         if ($column === 'morning_time_in') {
             return $scheduleIn;
         }
-        if ($column === 'morning_time_out') {
+        if ($column === 'afternoon_time_out') {
             return $scheduleOut;
         }
         return null;
@@ -2380,7 +2403,7 @@ echo (int)$index; ?>"></label>
                                                             </div>
                                                         </td>
                                                         <td data-label="Student Name">
-                                                            <a href="students-internal-dtr.php?id=<?php
+                                                            <a href="students-view.php?id=<?php
 echo $attendance['student_id']; ?>" class="hstack gap-3">
                                                                 <?php
 $pp = $attendance['profile_picture'] ?? '';
