@@ -6,7 +6,7 @@
     var dataTableInstance = null;
     var filterForm = document.getElementById("ojtFilterForm");
     var searchInput = document.getElementById("ojtHeaderSearchInput");
-    var forceStackBreakpoint = 1440;
+    var forceStackBreakpoint = 768;
 
     function submitFilters() {
       if (filterForm) filterForm.submit();
@@ -27,15 +27,11 @@
 
     function updateResponsiveWorklistMode() {
       if (!document.body) return;
-      var tableCard = document.querySelector(".app-ojt-table-card");
-      var tableWrap = document.querySelector(".app-ojt-table-wrap");
-      var tableEl = document.getElementById("ojtListTable");
-      var contentWidth = tableCard ? tableCard.clientWidth : window.innerWidth;
-      var needsStack = contentWidth < forceStackBreakpoint;
-
-      if (tableWrap && tableEl) {
-        needsStack = needsStack || tableEl.scrollWidth > tableWrap.clientWidth + 8;
-      }
+      var viewportWidth =
+        window.innerWidth ||
+        document.documentElement.clientWidth ||
+        forceStackBreakpoint;
+      var needsStack = viewportWidth <= forceStackBreakpoint;
 
       document.body.classList.toggle("app-ojt-force-stack", needsStack);
     }

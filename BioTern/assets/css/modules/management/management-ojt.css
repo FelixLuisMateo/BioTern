@@ -205,6 +205,10 @@ body { background: #f5f7fb; }
         text-align: center;
         padding-left: 0.35rem;
         padding-right: 0.2rem;
+        background-color: var(--app-ojt-surface, #ffffff) !important;
+        box-shadow: none !important;
+        border-left: 0 !important;
+        border-right: 0 !important;
     }
     .app-ojt-list-table .app-ojt-select-check {
         display: inline-flex;
@@ -288,9 +292,9 @@ body { background: #f5f7fb; }
         .app-skin-dark .page-subtitle,
         .app-skin-dark .app-ojt-page-subtitle,
         .app-skin-dark #ojtListTable thead th {
-            color: #99abc8;
+            color: var(--app-ojt-muted);
         }
-        .app-skin-dark .app-ojt-list-table thead th { color: #99abc8; }
+        .app-skin-dark .app-ojt-list-table thead th { color: var(--app-ojt-muted); }
         .app-skin-dark .app-ojt-list-table thead th {
             border-bottom-color: #2c3d61;
         }
@@ -310,7 +314,7 @@ body { background: #f5f7fb; }
         }
 
         .app-skin-dark .app-ojt-hours-pill-fill {
-            background: linear-gradient(90deg, #6aa7de, #8ab7ff);
+            background: linear-gradient(90deg, color-mix(in srgb, var(--biotern-primary) 70%, #ffffff 30%), color-mix(in srgb, var(--biotern-primary) 52%, #ffffff 48%));
         }
         .app-skin-dark .app-ojt-list-table tbody tr.is-selected {
             background: rgba(52, 84, 209, 0.14);
@@ -355,11 +359,11 @@ body { background: #f5f7fb; }
             border-color: #2b3b5e;
             color: #d7e3f7;
         }
-        .app-skin-dark .filter-panel .form-control::placeholder { color: #9fb2d1; }
+        .app-skin-dark .filter-panel .form-control::placeholder { color: var(--app-ojt-muted); }
         .app-skin-dark .filter-panel-label,
         .app-skin-dark .app-ojt-filter-panel-label { color: var(--biotern-primary-soft); }
         .app-skin-dark .filter-panel-sub,
-        .app-skin-dark .app-ojt-filter-panel-sub { color: #94a3b8; }
+        .app-skin-dark .app-ojt-filter-panel-sub { color: var(--app-ojt-muted); }
         .app-skin-dark .filter-toggle-btn {
             background-color: #0f172a;
             color: #e2e8f0;
@@ -539,6 +543,25 @@ html.app-skin-dark .app-page-ojt-dashboard {
     background: transparent;
 }
 
+/* Force neutral (non-blue) accents in gray scheme */
+html.app-theme-gray .app-page-ojt-dashboard {
+    --app-ojt-muted: #9ca3af;
+}
+
+html.app-theme-gray .app-page-ojt-dashboard .app-ojt-cell-title,
+html.app-theme-gray .app-page-ojt-dashboard .app-ojt-cell-meta,
+html.app-theme-gray .app-page-ojt-dashboard .app-ojt-student-meta,
+html.app-theme-gray .app-page-ojt-dashboard .app-ojt-student-submeta,
+html.app-theme-gray .app-page-ojt-dashboard .app-ojt-page-subtitle,
+html.app-theme-gray .app-page-ojt-dashboard .app-ojt-list-table thead th,
+html.app-theme-gray .app-page-ojt-dashboard #ojtListTable td::before {
+    color: var(--app-ojt-muted) !important;
+}
+
+html.app-theme-gray .app-page-ojt-dashboard .app-ojt-hours-pill-fill {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--biotern-primary) 66%, #ffffff 34%), color-mix(in srgb, var(--biotern-primary) 50%, #ffffff 50%)) !important;
+}
+
 .app-page-ojt-dashboard .app-ojt-list-table tbody tr.is-selected {
     background: rgba(52, 84, 209, 0.08);
 }
@@ -554,6 +577,27 @@ html.app-skin-dark .app-page-ojt-dashboard {
 .app-page-ojt-dashboard .app-ojt-list-table tbody tr:nth-child(odd) td,
 .app-page-ojt-dashboard .app-ojt-list-table tbody tr:nth-child(even) td {
     background-color: var(--app-ojt-surface) !important;
+}
+
+.app-page-ojt-dashboard .app-ojt-list-table.dataTable tbody tr.odd > td,
+.app-page-ojt-dashboard .app-ojt-list-table.dataTable tbody tr.even > td,
+.app-page-ojt-dashboard table.dataTable.app-ojt-list-table tbody tr.odd > td,
+.app-page-ojt-dashboard table.dataTable.app-ojt-list-table tbody tr.even > td {
+    background-color: var(--app-ojt-surface) !important;
+}
+
+html.app-theme-gray.app-skin-dark .app-page-ojt-dashboard .dataTables_wrapper table.dataTable.app-ojt-list-table > tbody > tr.odd > *,
+html.app-theme-gray.app-skin-dark .app-page-ojt-dashboard .dataTables_wrapper table.dataTable.app-ojt-list-table > tbody > tr.even > *,
+html.app-theme-gray.app-skin-dark .app-page-ojt-dashboard .table.dataTable.app-ojt-list-table > tbody > tr.odd > *,
+html.app-theme-gray.app-skin-dark .app-page-ojt-dashboard .table.dataTable.app-ojt-list-table > tbody > tr.even > * {
+    background-color: var(--app-ojt-surface) !important;
+}
+
+html.app-skin-dark .app-page-ojt-dashboard .app-ojt-list-table tbody tr > td,
+html.app-skin-dark .app-page-ojt-dashboard .app-ojt-list-table thead tr > th,
+html.app-skin-dark .app-page-ojt-dashboard .app-ojt-list-table.dataTable tbody tr.odd > td,
+html.app-skin-dark .app-page-ojt-dashboard .app-ojt-list-table.dataTable tbody tr.even > td {
+    background-color: #111821 !important;
 }
 
 .app-page-ojt-dashboard .app-ojt-list-table tbody tr.is-selected td {
@@ -582,9 +626,10 @@ html.app-skin-dark .app-page-ojt-dashboard {
     text-align: center;
     padding-left: 0.2rem;
     padding-right: 0.1rem;
-    background-color: inherit !important;
+    background-color: var(--app-ojt-surface, #ffffff) !important;
     box-shadow: none !important;
     border-left: 0 !important;
+    border-right: 0 !important;
 }
 
 .app-page-ojt-dashboard .app-ojt-list-table .app-ojt-select-check {
@@ -879,9 +924,17 @@ html.app-skin-dark .app-page-ojt-dashboard {
 
 .app-page-ojt-dashboard .app-ojt-list-table thead th.app-ojt-select-column,
 .app-page-ojt-dashboard .app-ojt-list-table tbody td.app-ojt-select-column {
-    background-color: inherit !important;
+    background-color: var(--app-ojt-surface, #ffffff) !important;
     box-shadow: none !important;
     border-left: 0 !important;
+    border-right: 0 !important;
+}
+
+html.app-skin-dark .app-page-ojt-dashboard .app-ojt-list-table thead th.app-ojt-select-column,
+html.app-skin-dark .app-page-ojt-dashboard .app-ojt-list-table tbody td.app-ojt-select-column,
+html.app-skin-dark .app-page-ojt-dashboard #ojtListTable thead th.app-ojt-select-column,
+html.app-skin-dark .app-page-ojt-dashboard #ojtListTable tbody td.app-ojt-select-column {
+    background-color: #111821 !important;
 }
 
 html.app-skin-dark .app-page-ojt-dashboard .app-ojt-hours-pill {
@@ -1446,6 +1499,15 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
             }
             .app-skin-dark #ojtListTable td::before,
             .app-skin-dark .app-ojt-list-table td::before { color: #99abc8; }
+            #ojtListTable td.app-ojt-select-column::before,
+            .app-ojt-list-table td.app-ojt-select-column::before {
+                content: none !important;
+                display: none !important;
+            }
+            #ojtListTable td.app-ojt-select-column,
+            .app-ojt-list-table td.app-ojt-select-column {
+                padding-bottom: 0.35rem;
+            }
             #ojtListTable td:last-child,
             .app-ojt-list-table td:last-child { padding-bottom: 0; }
             #ojtListTable td[colspan],
@@ -1513,6 +1575,15 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
         }
         .app-ojt-force-stack .app-skin-dark #ojtListTable td::before,
         .app-ojt-force-stack .app-skin-dark .app-ojt-list-table td::before { color: #99abc8; }
+        .app-ojt-force-stack #ojtListTable td.app-ojt-select-column::before,
+        .app-ojt-force-stack .app-ojt-list-table td.app-ojt-select-column::before {
+            content: none !important;
+            display: none !important;
+        }
+        .app-ojt-force-stack #ojtListTable td.app-ojt-select-column,
+        .app-ojt-force-stack .app-ojt-list-table td.app-ojt-select-column {
+            padding-bottom: 0.35rem;
+        }
         .app-ojt-force-stack #ojtListTable td:last-child,
         .app-ojt-force-stack .app-ojt-list-table td:last-child { padding-bottom: 0; }
         .app-ojt-force-stack #ojtListTable td[colspan],
@@ -2384,3 +2455,112 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
         }
 
 
+/* Final neutral lock for OJT colors (wins over earlier legacy blue/navy rules) */
+body.app-page-ojt-dashboard {
+    --app-ojt-surface: var(--biotern-surface, #ffffff);
+    --app-ojt-surface-muted: var(--biotern-surface-muted, #f4f6f8);
+    --app-ojt-border: var(--biotern-border, rgba(148, 163, 184, 0.3));
+    --app-ojt-text: var(--biotern-text, #111827);
+    --app-ojt-muted: var(--biotern-text-muted, #6b7280);
+}
+
+html.app-skin-dark body.app-page-ojt-dashboard {
+    --app-ojt-surface: var(--biotern-surface, #171b20);
+    --app-ojt-surface-muted: color-mix(in srgb, var(--app-ojt-surface) 84%, #ffffff 16%);
+    --app-ojt-border: color-mix(in srgb, var(--app-ojt-surface) 60%, #ffffff 40%);
+    --app-ojt-text: var(--biotern-text, #e5e7eb);
+    --app-ojt-muted: var(--biotern-text-muted, #9ca3af);
+}
+
+html.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table thead th,
+html.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table tbody td,
+html.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table.dataTable tbody tr.odd > td,
+html.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table.dataTable tbody tr.even > td,
+html.app-skin-dark body.app-page-ojt-dashboard #ojtListTable thead th,
+html.app-skin-dark body.app-page-ojt-dashboard #ojtListTable tbody td,
+html.app-skin-dark body.app-page-ojt-dashboard #ojtListTable.dataTable tbody tr.odd > td,
+html.app-skin-dark body.app-page-ojt-dashboard #ojtListTable.dataTable tbody tr.even > td {
+    background-color: var(--app-ojt-surface) !important;
+    color: var(--app-ojt-text) !important;
+    border-color: var(--app-ojt-border) !important;
+}
+
+html.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table thead th.app-ojt-select-column,
+html.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table tbody td.app-ojt-select-column,
+html.app-skin-dark body.app-page-ojt-dashboard #ojtListTable thead th.app-ojt-select-column,
+html.app-skin-dark body.app-page-ojt-dashboard #ojtListTable tbody td.app-ojt-select-column {
+    background-color: var(--app-ojt-surface) !important;
+    box-shadow: none !important;
+}
+
+body.app-page-ojt-dashboard .app-ojt-list-table td::before,
+body.app-page-ojt-dashboard #ojtListTable td::before {
+    color: var(--app-ojt-muted) !important;
+}
+
+html.app-skin-dark body.app-page-ojt-dashboard .app-ojt-hours-pill {
+    background: var(--app-ojt-surface-muted) !important;
+    border-color: var(--app-ojt-border) !important;
+    color: var(--app-ojt-text) !important;
+}
+
+html.app-skin-dark body.app-page-ojt-dashboard .app-ojt-hours-pill-track {
+    background: color-mix(in srgb, var(--app-ojt-muted) 24%, transparent) !important;
+}
+
+html.app-skin-dark body.app-page-ojt-dashboard .app-ojt-hours-pill-fill {
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--app-ojt-muted) 36%, transparent),
+        color-mix(in srgb, var(--app-ojt-muted) 54%, transparent)
+    ) !important;
+}
+
+body.app-page-ojt-dashboard .app-ojt-list-table tbody tr.is-selected td {
+    background-color: color-mix(in srgb, var(--app-ojt-surface) 86%, var(--app-ojt-muted) 14%) !important;
+}
+
+/* OJT list spacing + cleaner look */
+@media (min-width: 992px) {
+    body.app-page-ojt-dashboard .app-ojt-table-card {
+        margin: 0.7rem 0 1rem;
+    }
+}
+
+body.app-page-ojt-dashboard .app-ojt-list-table thead th + th,
+body.app-page-ojt-dashboard .app-ojt-list-table tbody td + td {
+    border-left: 0 !important;
+}
+
+body.app-page-ojt-dashboard .app-ojt-list-table tbody td,
+body.app-page-ojt-dashboard #ojtListTable tbody td {
+    border-bottom: 0 !important;
+}
+
+@media (max-width: 991.98px) {
+    body.mobile-bottom-nav.app-page-ojt-dashboard .nxl-content {
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
+    }
+
+    body.app-page-ojt-dashboard .app-ojt-table-card {
+        margin-left: 0.35rem;
+        margin-right: 0.35rem;
+    }
+
+    body.app-page-ojt-dashboard .app-ojt-mobile-list {
+        gap: 0.7rem !important;
+        padding: 0.1rem 0.15rem !important;
+    }
+
+    body.app-page-ojt-dashboard .app-ojt-mobile-item {
+        border-bottom: 0 !important;
+        margin: 0 !important;
+    }
+
+    body.app-page-ojt-dashboard .app-ojt-mobile-row + .app-ojt-mobile-row {
+        border-top: 0 !important;
+        padding-top: 0.6rem;
+        margin-top: 0.35rem;
+    }
+}

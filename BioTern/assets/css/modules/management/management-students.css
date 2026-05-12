@@ -481,12 +481,12 @@ html.app-skin-dark .students-action-menu-portal .dropdown-item {
 
 html.app-skin-dark .students-action-menu-portal .dropdown-item:hover,
 html.app-skin-dark .students-action-menu-portal .dropdown-item:focus {
-    background: #18212c;
-    color: #ffffff;
+    background: var(--biotern-surface-muted);
+    color: var(--biotern-text);
 }
 
 html.app-skin-dark .students-action-menu-portal .dropdown-item i {
-    color: #9fb0c6;
+    color: var(--biotern-text-muted);
 }
 
 html.app-skin-dark .students-action-menu-portal .dropdown-divider {
@@ -604,31 +604,31 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 .app-students-list-table thead th:nth-child(1),
 .app-students-list-table tbody td:nth-child(1) {
     width: 24px;
-    background: transparent !important;
+    background: var(--biotern-surface) !important;
     box-shadow: none !important;
     border-left: 0 !important;
 }
 
 .app-students-list-table thead th:nth-child(2),
 .app-students-list-table tbody td:nth-child(2) {
-    width: 12%;
+    width: 20%;
 }
 
 .app-students-list-table thead th:nth-child(3),
 .app-students-list-table tbody td:nth-child(3),
 .app-students-list-table thead th:nth-child(4),
 .app-students-list-table tbody td:nth-child(4) {
-    width: 20%;
+    width: 17%;
 }
 
 .app-students-list-table thead th:nth-child(5),
 .app-students-list-table tbody td:nth-child(5) {
-    width: 15%;
+    width: 14%;
 }
 
 .app-students-list-table thead th:nth-child(6),
 .app-students-list-table tbody td:nth-child(6) {
-    width: 12%;
+    width: 11%;
 }
 
 .app-students-list-table thead th:nth-child(7),
@@ -646,6 +646,26 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 
 .app-students-list-table tbody tr {
     background: transparent;
+}
+
+html.app-skin-dark .app-students-list-table tbody tr td,
+html.app-skin-dark .app-students-list-table tbody tr:nth-child(odd) td,
+html.app-skin-dark .app-students-list-table tbody tr:nth-child(even) td {
+    background: var(--biotern-surface) !important;
+}
+
+html.app-skin-dark .app-students-list-table tbody td:first-child,
+html.app-skin-dark .app-students-list-table thead th:first-child {
+    background: var(--biotern-surface) !important;
+    box-shadow: none !important;
+    border-left: 0 !important;
+}
+
+html.app-skin-dark .app-students-list-table thead th,
+html.app-skin-dark .app-students-list-table tbody td,
+html.app-skin-dark .app-students-list-table.dataTable tbody tr.odd > td,
+html.app-skin-dark .app-students-list-table.dataTable tbody tr.even > td {
+    background-color: var(--biotern-surface) !important;
 }
 
 .app-students-table-row > td {
@@ -711,6 +731,23 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 .app-students-cell-meta {
     font-size: 0.66rem;
     line-height: 1.15;
+}
+
+/* Student list spacing + cleaner look (match OJT behavior) */
+@media (min-width: 992px) {
+    .app-students-table-card {
+        margin: 0.7rem 0 1rem;
+    }
+}
+
+.app-students-list-table thead th + th,
+.app-students-list-table tbody td + td {
+    border-left: 0 !important;
+}
+
+.app-students-list-table tbody td,
+#customerList tbody td {
+    border-bottom: 0 !important;
 }
 
 .app-students-inline-collapse {
@@ -874,21 +911,21 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 }
 
 html.app-skin-dark .app-students-inline-details {
-    border-color: #273244;
-    background: #111821;
+    border-color: var(--biotern-border);
+    background: var(--biotern-surface);
 }
 
 html.app-skin-dark .app-students-section-pill,
 html.app-skin-dark .app-students-status-pill,
 html.app-skin-dark .app-students-biometric-pill {
-    border-color: #273244;
-    background: #18212c;
-    color: #dbe5f1;
+    border-color: var(--biotern-border);
+    background: var(--biotern-surface-muted);
+    color: var(--biotern-text);
 }
 
 html.app-skin-dark .app-students-status-pill.is-inactive,
 html.app-skin-dark .app-students-biometric-pill.is-missing {
-    color: #9fb0c6;
+    color: var(--biotern-text-muted);
 }
 
 html.app-skin-dark .app-students-student-meta,
@@ -896,7 +933,7 @@ html.app-skin-dark .app-students-student-submeta,
 html.app-skin-dark .app-students-cell-title,
 html.app-skin-dark .app-students-cell-meta,
 html.app-skin-dark .app-students-inline-detail-label {
-    color: #8ea1bd;
+    color: var(--biotern-text-muted);
 }
 
 /* Section: mobile student list UI */
@@ -1111,6 +1148,8 @@ html.app-skin-dark .app-students-mobile-empty {
         background: transparent;
         box-shadow: none;
         overflow: visible;
+        margin-left: 0.35rem;
+        margin-right: 0.35rem;
     }
 
     .app-students-table-card > .card-body {
@@ -1124,8 +1163,8 @@ html.app-skin-dark .app-students-mobile-empty {
 
     .app-students-mobile-list {
         display: grid;
-        gap: 0 !important;
-        padding: 0 !important;
+        gap: 0.7rem !important;
+        padding: 0.1rem 0.15rem !important;
     }
 
     .app-students-mobile-list .app-student-mobile-item {
@@ -1133,7 +1172,7 @@ html.app-skin-dark .app-students-mobile-empty {
         border-radius: 0 !important;
         background: transparent !important;
         box-shadow: none !important;
-        border-bottom: 1px solid var(--biotern-border) !important;
+        border-bottom: 0 !important;
         margin: 0 !important;
     }
 
@@ -1153,9 +1192,9 @@ html.app-skin-dark .app-students-mobile-empty {
     }
 
     .app-students-mobile-list .app-student-mobile-row + .app-student-mobile-row {
-        border-top: 1px solid var(--biotern-border);
-        padding-top: 0.75rem;
-        margin-top: 0.75rem;
+        border-top: 0 !important;
+        padding-top: 0.6rem;
+        margin-top: 0.35rem;
     }
 }
 
