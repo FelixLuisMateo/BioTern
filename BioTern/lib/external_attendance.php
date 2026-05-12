@@ -92,8 +92,32 @@ if (!function_exists('external_attendance_ensure_schema')) {
             ");
         }
 
-        $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
+        if (!external_attendance_column_exists($conn, 'students', 'external_start_allowed')) {
+            $conn->query("ALTER TABLE students ADD COLUMN external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
+        }
         external_attendance_ensure_attachment_schema($conn);
+    }
+}
+
+if (!function_exists('external_attendance_column_exists')) {
+    function external_attendance_column_exists(mysqli $conn, string $table, string $column): bool
+    {
+        $stmt = $conn->prepare("
+            SELECT 1
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = ?
+              AND COLUMN_NAME = ?
+            LIMIT 1
+        ");
+        if (!$stmt) {
+            return false;
+        }
+        $stmt->bind_param('ss', $table, $column);
+        $stmt->execute();
+        $exists = $stmt->get_result()->num_rows > 0;
+        $stmt->close();
+        return $exists;
     }
 }
 

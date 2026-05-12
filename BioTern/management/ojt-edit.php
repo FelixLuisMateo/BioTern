@@ -76,7 +76,13 @@ if (empty($_SESSION['ojt_edit_csrf'])) {
 $csrf = $_SESSION['ojt_edit_csrf'];
 $current_role = strtolower((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? ''));
 $can_edit_controls = in_array($current_role, ['admin', 'coordinator'], true);
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
+if (function_exists('biotern_table_has_column')) {
+    if (!biotern_table_has_column($conn, 'students', 'external_start_allowed')) {
+        $conn->query("ALTER TABLE students ADD COLUMN external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
+    }
+} elseif (!in_array('external_start_allowed', get_columns($conn, 'students'), true)) {
+    $conn->query("ALTER TABLE students ADD COLUMN external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
+}
 
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : intval($_POST['student_id'] ?? 0);
 $message = '';
