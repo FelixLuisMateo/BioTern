@@ -1,9 +1,19 @@
+:root {
+    --external-bio-accent: var(--biotern-primary, #3454d1);
+    --external-bio-accent-rgb: var(--biotern-primary-rgb, 52, 84, 209);
+    --external-bio-text: var(--biotern-text, #0f172a);
+    --external-bio-muted: var(--biotern-muted, #64748b);
+    --external-bio-surface: var(--biotern-surface, #ffffff);
+    --external-bio-surface-soft: var(--biotern-surface-muted, #f8fafc);
+    --external-bio-border: var(--biotern-border, rgba(15, 23, 42, 0.12));
+}
+
 .external-dtr-hero,
 .external-quick-card,
 .external-manual-card {
-    border: 1px solid #dbe7f3;
+    border: 1px solid var(--external-bio-border);
     border-radius: 8px;
-    background: #ffffff;
+    background: var(--external-bio-surface);
     box-shadow: 0 12px 30px rgba(31, 56, 88, 0.08);
 }
 
@@ -26,7 +36,7 @@
     align-items: center;
     gap: 0.45rem;
     margin-bottom: 0.75rem;
-    color: #315bdc;
+    color: var(--external-bio-accent);
     font-size: 0.78rem;
     font-weight: 800;
     letter-spacing: 0.08em;
@@ -35,7 +45,7 @@
 
 .external-dtr-hero h2 {
     margin: 0 0 0.45rem;
-    color: #12233d;
+    color: var(--external-bio-text);
     font-size: clamp(1.35rem, 2vw, 2rem);
     line-height: 1.15;
 }
@@ -43,7 +53,7 @@
 .external-dtr-hero p {
     max-width: 860px;
     margin: 0;
-    color: #5f728c;
+    color: var(--external-bio-muted);
     font-size: 0.92rem;
     line-height: 1.55;
 }
@@ -60,10 +70,10 @@
     align-items: center;
     min-height: 30px;
     padding: 0.32rem 0.65rem;
-    border: 1px solid #d8e4f0;
+    border: 1px solid var(--external-bio-border);
     border-radius: 999px;
-    background: #f7fbff;
-    color: #31506f;
+    background: var(--external-bio-surface-soft);
+    color: var(--external-bio-text);
     font-size: 0.78rem;
     font-weight: 700;
 }
@@ -87,15 +97,15 @@
     gap: 0.3rem;
     min-height: 150px;
     padding: 1rem;
-    border: 1px solid #dbe7f3;
+    border: 1px solid var(--external-bio-border);
     border-radius: 8px;
-    background: #f7fbff;
+    background: var(--external-bio-surface-soft);
     text-align: center;
 }
 
 .external-dtr-clock-label,
 .external-dtr-clock-date {
-    color: #69809a;
+    color: var(--external-bio-muted);
     font-size: 0.76rem;
     font-weight: 800;
     letter-spacing: 0.08em;
@@ -103,7 +113,7 @@
 }
 
 .external-dtr-clock {
-    color: #123455;
+    color: var(--external-bio-text);
     font-size: 1.55rem;
     font-weight: 900;
     line-height: 1.1;
@@ -120,16 +130,16 @@
 .external-dtr-stat {
     min-height: 86px;
     padding: 0.9rem 1rem;
-    border: 1px solid #dbe7f3;
+    border: 1px solid var(--external-bio-border);
     border-radius: 8px;
-    background: #ffffff;
+    background: var(--external-bio-surface);
     box-shadow: 0 10px 24px rgba(31, 56, 88, 0.06);
 }
 
 .external-dtr-stat span {
     display: block;
     margin-bottom: 0.35rem;
-    color: #69809a;
+    color: var(--external-bio-muted);
     font-size: 0.76rem;
     font-weight: 800;
     letter-spacing: 0.06em;
@@ -137,7 +147,7 @@
 }
 
 .external-dtr-stat strong {
-    color: #102f51;
+    color: var(--external-bio-text);
     font-size: 1.28rem;
     font-weight: 900;
 }
@@ -156,20 +166,20 @@
 
 .external-quick-heading h3 {
     margin: 0 0 0.25rem;
-    color: #102f51;
+    color: var(--external-bio-text);
     font-size: 1.1rem;
     font-weight: 900;
 }
 
 .external-quick-heading p {
     margin: 0;
-    color: #6a7f97;
+    color: var(--external-bio-muted);
     font-size: 0.86rem;
 }
 
 .external-quick-heading > span {
     flex: 0 0 auto;
-    color: #31506f;
+    color: var(--external-bio-text);
     font-size: 0.82rem;
     font-weight: 800;
 }
@@ -186,10 +196,10 @@
     gap: 0.35rem;
     min-height: 76px;
     padding: 0.75rem;
-    border: 1px solid #d8e4f0;
+    border: 1px solid var(--external-bio-border);
     border-radius: 8px;
-    background: #f8fbff;
-    color: #173b5f;
+    background: var(--external-bio-surface-soft);
+    color: var(--external-bio-text);
     font-weight: 850;
     transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
 }
@@ -204,9 +214,9 @@
 
 .external-clock-btn:hover:not(:disabled),
 .external-clock-btn.is-selected {
-    border-color: #315bdc;
-    background: #eef4ff;
-    color: #2348c8;
+    border-color: color-mix(in srgb, var(--external-bio-accent) 68%, var(--external-bio-border));
+    background: color-mix(in srgb, var(--external-bio-accent) 12%, var(--external-bio-surface-soft));
+    color: var(--external-bio-text);
     transform: translateY(-1px);
 }
 
@@ -225,7 +235,7 @@
 .external-note-field label {
     display: block;
     margin-bottom: 0.35rem;
-    color: #31506f;
+    color: var(--external-bio-muted);
     font-size: 0.76rem;
     font-weight: 800;
     letter-spacing: 0.06em;
@@ -235,10 +245,10 @@
 .external-note-field input {
     width: 100%;
     min-height: 44px;
-    border: 1px solid #c7d6e5;
+    border: 1px solid var(--external-bio-border);
     border-radius: 8px;
-    background: #f8fbff;
-    color: #0f3154;
+    background: var(--external-bio-surface-soft);
+    color: var(--external-bio-text);
     font-weight: 650;
     padding: 0.65rem 0.8rem;
 }
@@ -386,24 +396,24 @@
     gap: 0.55rem;
     padding: 0.95rem 1rem;
     border-radius: 1rem;
-    background: rgba(64, 117, 255, 0.1);
-    border: 1px solid rgba(91, 132, 255, 0.22);
-    color: #132f50;
+    background: color-mix(in srgb, var(--external-bio-accent) 10%, var(--external-bio-surface-soft));
+    border: 1px solid color-mix(in srgb, var(--external-bio-accent) 24%, var(--external-bio-border));
+    color: var(--external-bio-text);
 }
 
 .external-manual-guide strong {
-    color: #102f51;
+    color: var(--external-bio-text);
     font-size: 0.9rem;
 }
 
 .external-manual-guide span {
-    color: #587799;
+    color: var(--external-bio-muted);
     font-size: 0.82rem;
     line-height: 1.45;
 }
 
 .record-section .form-label {
-    color: #2d4f72;
+    color: var(--external-bio-muted);
     font-size: 0.76rem;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -412,18 +422,18 @@
 
 .record-section .form-control,
 .record-section .form-select {
-    border-color: #c7d6e5;
-    background: #f8fbff;
-    color: #0f3154;
+    border-color: var(--external-bio-border);
+    background: var(--external-bio-surface-soft);
+    color: var(--external-bio-text);
     font-weight: 600;
     box-shadow: none;
 }
 
 .record-section .form-control:focus,
 .record-section .form-select:focus {
-    border-color: #6aa7de;
-    background: #ffffff;
-    box-shadow: 0 0 0 4px rgba(47, 134, 206, 0.14);
+    border-color: color-mix(in srgb, var(--external-bio-accent) 60%, var(--external-bio-border));
+    background: var(--external-bio-surface);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--external-bio-accent) 20%, transparent);
 }
 
 .external-manual-table .external-manual-time-field,
@@ -502,7 +512,7 @@
 
 html.app-skin-dark .external-manual-table tr,
 html.app-skin-dark .external-history-table tr {
-    background: #0b1f35;
+    background: var(--biotern-surface-muted, #111827);
     border-color: rgba(160, 195, 230, 0.18);
 }
 
@@ -510,95 +520,95 @@ html.app-skin-dark .external-dtr-hero,
 html.app-skin-dark .external-quick-card,
 html.app-skin-dark .external-manual-card,
 html.app-skin-dark .external-dtr-stat {
-    background: #101b2e;
-    border-color: #22334d;
+    background: var(--biotern-surface, #0f172a);
+    border-color: var(--biotern-border, #1b2436);
     box-shadow: none;
 }
 
 html.app-skin-dark .external-dtr-clock-card,
 html.app-skin-dark .external-clock-btn {
-    background: #0c1728;
-    border-color: #243751;
+    background: var(--biotern-surface-muted, #111827);
+    border-color: var(--biotern-border, #1b2436);
 }
 
 html.app-skin-dark .external-dtr-hero h2,
 html.app-skin-dark .external-quick-heading h3,
 html.app-skin-dark .external-dtr-stat strong,
 html.app-skin-dark .external-manual-header h5 {
-    color: #f7fbff;
+    color: var(--biotern-text, #e5e7eb);
 }
 
 html.app-skin-dark .external-dtr-hero p,
 html.app-skin-dark .external-quick-heading p {
-    color: #a9bdd3;
+    color: var(--biotern-muted, #94a3b8);
 }
 
 html.app-skin-dark .external-dtr-meta span {
-    background: #0c1728;
-    border-color: #2c405f;
-    color: #d7e8fb;
+    background: var(--biotern-surface-muted, #111827);
+    border-color: var(--biotern-border, #1b2436);
+    color: var(--biotern-text, #e5e7eb);
 }
 
 html.app-skin-dark .external-dtr-clock,
 html.app-skin-dark .external-clock-btn,
 html.app-skin-dark .external-quick-heading > span {
-    color: #eaf4ff;
+    color: var(--biotern-text, #e5e7eb);
 }
 
 html.app-skin-dark .external-dtr-clock-label,
 html.app-skin-dark .external-dtr-clock-date,
 html.app-skin-dark .external-dtr-stat span,
 html.app-skin-dark .external-note-field label {
-    color: #9fb7d1;
+    color: var(--biotern-muted, #94a3b8);
 }
 
 html.app-skin-dark .external-clock-btn:hover:not(:disabled),
 html.app-skin-dark .external-clock-btn.is-selected {
-    background: #152746;
-    border-color: #6d8cff;
+    background: color-mix(in srgb, var(--external-bio-accent) 22%, #0f172a);
+    border-color: color-mix(in srgb, var(--external-bio-accent) 55%, var(--biotern-border, #1b2436));
     color: #ffffff;
 }
 
 html.app-skin-dark .external-note-field input {
-    background: #122d49;
-    border-color: #365a7f;
-    color: #f6fbff;
+    background: var(--biotern-surface-muted, #111827);
+    border-color: var(--biotern-border, #1b2436);
+    color: var(--biotern-text, #e5e7eb);
 }
 
 html.app-skin-dark .external-manual-card .form-text {
-    color: #9fb7d1;
+    color: var(--biotern-muted, #94a3b8);
 }
 
 html.app-skin-dark .external-file-upload {
-    background: #122d49;
-    border-color: #365a7f;
+    background: var(--biotern-surface-muted, #111827);
+    border-color: var(--biotern-border, #1b2436);
 }
 
 html.app-skin-dark .external-file-upload label {
-    background: #0c1728;
-    border-color: #365a7f;
-    color: #f6fbff;
+    background: var(--biotern-surface-muted, #111827);
+    border-color: var(--biotern-border, #1b2436);
+    color: var(--biotern-text, #e5e7eb);
 }
 
 html.app-skin-dark .external-file-upload > span {
-    color: #cfe6ff;
+    color: var(--biotern-text, #e5e7eb);
 }
 
 html.app-skin-dark .external-manual-rows-placeholder {
-    background: #0c1728;
-    border-color: #365a7f;
-    color: #9fb7d1;
+    background: var(--biotern-surface-muted, #111827);
+    border-color: var(--biotern-border, #1b2436);
+    color: var(--biotern-muted, #94a3b8);
 }
 
 html.app-skin-dark .external-manual-rows-generated {
-    background: #0c1728;
-    border-color: #365a7f;
+    background: var(--biotern-surface-muted, #111827);
+    border-color: var(--biotern-border, #1b2436);
 }
 
 html.app-skin-dark .external-date-range-hint {
-    background: #0c1728;
-    border-color: #365a7f;
-    color: #b7d2ed;
+    background: var(--biotern-surface-muted, #111827);
+    border-color: var(--biotern-border, #1b2436);
+    color: var(--biotern-muted, #94a3b8);
 }
 
 html.app-skin-dark .external-date-range-hint.is-success {
@@ -647,55 +657,55 @@ html.app-skin-dark .external-date-range-hint.is-warning {
 }
 
 html.app-skin-dark .external-manual-guide {
-    background: rgba(91, 132, 255, 0.11);
-    border-color: rgba(145, 190, 230, 0.28);
-    color: #eaf4ff;
+    background: color-mix(in srgb, var(--external-bio-accent) 14%, #0f172a);
+    border-color: color-mix(in srgb, var(--external-bio-accent) 34%, var(--biotern-border, #1b2436));
+    color: var(--biotern-text, #e5e7eb);
 }
 
 html.app-skin-dark .external-manual-guide strong {
-    color: #f7fbff;
+    color: var(--biotern-text, #e5e7eb);
 }
 
 html.app-skin-dark .external-manual-guide span {
-    color: #b7d2ed;
+    color: var(--biotern-muted, #94a3b8);
 }
 
 html.app-skin-dark .record-section .form-label {
-    color: #cfe6ff;
+    color: var(--biotern-text, #e5e7eb);
 }
 
 html.app-skin-dark .record-section .form-control,
 html.app-skin-dark .record-section .form-select {
-    background: #122d49 !important;
-    border-color: #365a7f !important;
-    color: #f6fbff !important;
-    -webkit-text-fill-color: #f6fbff !important;
+    background: var(--biotern-surface-muted, #111827) !important;
+    border-color: var(--biotern-border, #1b2436) !important;
+    color: var(--biotern-text, #e5e7eb) !important;
+    -webkit-text-fill-color: var(--biotern-text, #e5e7eb) !important;
     box-shadow: none !important;
 }
 
 html.app-skin-dark .record-section .form-control:focus,
 html.app-skin-dark .record-section .form-select:focus {
-    background: #163655 !important;
-    border-color: #6aa7de !important;
+    background: color-mix(in srgb, var(--external-bio-accent) 14%, var(--biotern-surface-muted, #111827)) !important;
+    border-color: color-mix(in srgb, var(--external-bio-accent) 62%, var(--biotern-border, #1b2436)) !important;
 }
 
 html.app-skin-dark .external-manual-table th,
 html.app-skin-dark .external-history-table th {
     background: #1a3a5a !important;
-    border-color: #32587e !important;
-    color: #dff0ff !important;
+    border-color: var(--biotern-border, #1b2436) !important;
+    color: var(--biotern-text, #e5e7eb) !important;
 }
 
 html.app-skin-dark .external-manual-table td,
 html.app-skin-dark .external-history-table td {
-    background: #0b1f35 !important;
-    border-color: #284a6d !important;
-    color: #cfe6ff !important;
+    background: var(--biotern-surface-muted, #111827) !important;
+    border-color: var(--biotern-border, #1b2436) !important;
+    color: var(--biotern-text, #e5e7eb) !important;
 }
 
 html.app-skin-dark .external-manual-table td::before,
 html.app-skin-dark .external-history-table td::before {
-    color: #9fc3e7;
+    color: var(--biotern-muted, #94a3b8);
 }
 
 .external-manual-card.student-dtr-fallback-card .external-manual-extra {
@@ -748,4 +758,76 @@ html.app-skin-dark .external-history-table td::before {
     .external-manual-card.student-dtr-fallback-card .external-manual-extra {
         grid-template-columns: 1fr;
     }
+}
+
+/* Final scheme lock: remove blue-only hardcoded accents */
+.external-manual-card .form-text,
+.external-file-upload > span,
+.external-manual-header h5,
+.external-manual-table th,
+.external-history-table th,
+.external-manual-table td,
+.external-history-table td,
+.external-date-range-hint,
+.external-manual-rows-placeholder {
+    color: var(--external-bio-muted);
+}
+
+.external-file-upload,
+.external-date-range-hint,
+.external-manual-rows-placeholder,
+.external-manual-rows-generated,
+.external-manual-table tr,
+.external-history-table tr {
+    border-color: var(--external-bio-border);
+    background: var(--external-bio-surface-soft);
+}
+
+.external-file-upload label {
+    background: color-mix(in srgb, var(--external-bio-accent) 24%, var(--external-bio-surface-soft));
+    border-color: var(--external-bio-border);
+    color: var(--external-bio-text);
+}
+
+.external-manual-table th,
+.external-history-table th {
+    background: color-mix(in srgb, var(--external-bio-accent) 8%, var(--external-bio-surface-soft));
+}
+
+@media (max-width: 767.98px) {
+    .external-manual-table td::before,
+    .external-history-table td::before {
+        color: var(--external-bio-muted);
+    }
+}
+
+html.app-skin-dark .external-note-field input,
+html.app-skin-dark .external-file-upload,
+html.app-skin-dark .external-manual-rows-placeholder,
+html.app-skin-dark .external-manual-rows-generated,
+html.app-skin-dark .record-section .form-control,
+html.app-skin-dark .record-section .form-select,
+html.app-skin-dark .external-manual-table td,
+html.app-skin-dark .external-history-table td {
+    background: var(--biotern-surface-muted, #111827) !important;
+    border-color: var(--biotern-border, #1b2436) !important;
+    color: var(--biotern-text, #e5e7eb) !important;
+    -webkit-text-fill-color: var(--biotern-text, #e5e7eb) !important;
+}
+
+html.app-skin-dark .external-manual-card .form-text,
+html.app-skin-dark .external-file-upload > span,
+html.app-skin-dark .external-date-range-hint,
+html.app-skin-dark .external-manual-guide span,
+html.app-skin-dark .external-manual-table td::before,
+html.app-skin-dark .external-history-table td::before,
+html.app-skin-dark .record-section .form-label {
+    color: var(--biotern-muted, #94a3b8) !important;
+}
+
+html.app-skin-dark .external-manual-table th,
+html.app-skin-dark .external-history-table th {
+    background: color-mix(in srgb, var(--external-bio-accent) 14%, #0f172a) !important;
+    border-color: var(--biotern-border, #1b2436) !important;
+    color: var(--biotern-text, #e5e7eb) !important;
 }

@@ -909,7 +909,7 @@ include 'includes/header.php';
                                                     echo $status_badge;
                                                 ?>
                                             </td>
-                                            <td style="font-size: 12px; color: #999;">
+                                            <td class="record-time-cell">
                                                 <?php echo date('h:i A', strtotime($record['created_at'])); ?>
                                             </td>
                                         </tr>

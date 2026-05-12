@@ -191,8 +191,8 @@
         .form-group-custom input:focus,
         .form-group-custom select:focus {
             outline: none;
-            border-color: #2f86ce;
-            box-shadow: 0 0 0 4px rgba(47, 134, 206, 0.16);
+            border-color: color-mix(in srgb, var(--demo-bio-accent) 60%, var(--demo-bio-border));
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--demo-bio-accent) 20%, transparent);
             background: #ffffff;
         }
 
@@ -234,7 +234,7 @@
 
         html.app-skin-dark .scan-label,
         html.app-skin-dark .scanner-stat {
-            color: #cfe6ff;
+            color: var(--biotern-text, #e5e7eb);
         }
 
         html.app-skin-dark .scanner-stat {
@@ -244,19 +244,19 @@
 
         html.app-skin-dark .clock-section h3,
         html.app-skin-dark .form-group-custom label {
-            color: #cfe6ff;
+            color: var(--biotern-text, #e5e7eb);
         }
 
         html.app-skin-dark .time-display {
-            background: #163655;
-            border-color: #4e82b4;
-            color: #f6fbff;
+            background: color-mix(in srgb, var(--demo-bio-accent) 14%, var(--biotern-surface-muted, #111827));
+            border-color: color-mix(in srgb, var(--demo-bio-accent) 50%, var(--biotern-border, #1b2436));
+            color: var(--biotern-text, #e5e7eb);
         }
 
         html.app-skin-dark .form-group-custom input,
         html.app-skin-dark .form-group-custom select {
-            background: #122d49 !important;
-            border-color: #365a7f !important;
+            background: var(--biotern-surface-muted, #111827) !important;
+            border-color: var(--biotern-border, #1b2436) !important;
             color: var(--biotern-surface-muted) !important;
             -webkit-text-fill-color: var(--biotern-surface-muted) !important;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23d9edff' d='M6 9L1.5 4.5h9z'/%3E%3C/svg%3E");
@@ -264,25 +264,25 @@
 
         html.app-skin-dark .form-group-custom input:focus,
         html.app-skin-dark .form-group-custom select:focus {
-            background: #163655 !important;
-            border-color: #6aa7de !important;
+            background: color-mix(in srgb, var(--demo-bio-accent) 14%, var(--biotern-surface-muted, #111827)) !important;
+            border-color: color-mix(in srgb, var(--demo-bio-accent) 62%, var(--biotern-border, #1b2436)) !important;
             box-shadow: 0 0 0 4px rgba(70, 145, 212, 0.2) !important;
         }
 
         html.app-skin-dark .form-group-custom select option {
-            background: #122d49;
+            background: var(--biotern-surface-muted, #111827);
             color: var(--biotern-surface-muted);
         }
 
         html.app-skin-dark .clock-btn {
-            background: #18395a;
-            border-color: #3f678f;
-            color: #d9edff;
+            background: var(--biotern-surface-muted, #111827);
+            border-color: var(--biotern-border, #1b2436);
+            color: var(--biotern-text, #e5e7eb);
         }
 
         html.app-skin-dark .clock-btn:hover {
-            background: #214a73;
-            border-color: #73a8dc;
+            background: color-mix(in srgb, var(--demo-bio-accent) 24%, var(--biotern-surface-muted, #111827));
+            border-color: color-mix(in srgb, var(--demo-bio-accent) 58%, var(--biotern-border, #1b2436));
         }
 
         /* Force readable text for native date/time controls */
@@ -333,22 +333,22 @@
         }
 
         html.app-skin-dark .record-section h3 {
-            color: #d9edff;
+            color: var(--biotern-text, #e5e7eb);
         }
 
         html.app-skin-dark .record-table th {
             background: #1a3a5a;
-            color: #dff0ff;
-            border-bottom-color: #32587e;
+            color: var(--biotern-text, #e5e7eb);
+            border-bottom-color: var(--biotern-border, #1b2436);
         }
 
         html.app-skin-dark .record-table td {
-            border-bottom-color: #284a6d;
-            color: #cfe6ff;
+            border-bottom-color: var(--biotern-border, #1b2436);
+            color: var(--biotern-text, #e5e7eb);
         }
 
         html.app-skin-dark .record-table tbody tr:hover {
-            background: #13314e;
+            background: var(--biotern-surface-muted, #111827);
         }
 
         html.app-skin-dark .no-records {
@@ -364,7 +364,7 @@
         .btn-clock {
             width: 100%;
             padding: 0.82rem 1rem;
-            background: linear-gradient(90deg, #1e6fb0, #2384b8 58%, #2f9bc0);
+            background: color-mix(in srgb, var(--demo-bio-accent) 26%, var(--demo-bio-surface-soft));
             color: #ffffff;
             border: 0;
             border-radius: 11px;
@@ -463,7 +463,7 @@
         }
 
         .clock-btn.active {
-            background: linear-gradient(135deg, #1f6daa, #3192bf);
+            background: color-mix(in srgb, var(--demo-bio-accent) 22%, var(--demo-bio-surface-soft));
             color: #ffffff;
             border-color: transparent;
             box-shadow: 0 8px 16px rgba(25, 91, 140, 0.3);
@@ -471,7 +471,7 @@
 
         /* Ensure active clock button remains visible in dark mode */
         html.app-skin-dark .clock-btn.active {
-            background: linear-gradient(135deg, #11405f, #1a5b7e);
+            background: color-mix(in srgb, var(--demo-bio-accent) 30%, #0f172a);
             color: #ffffff !important;
             border-color: transparent;
             box-shadow: 0 8px 18px rgba(8, 36, 58, 0.6);
@@ -523,7 +523,7 @@
 
         .badge-morning {
             background-color: #e3f2fd;
-            color: #1976d2;
+            color: var(--demo-bio-accent);
         }
 
         .badge-break {
@@ -555,7 +555,7 @@
             letter-spacing: 2px;
             padding: 0.85rem 1rem;
             border: 1px dashed #9ec2e2;
-            background: linear-gradient(180deg, #f2f8ff 0%, var(--biotern-surface-muted) 100%);
+            background: color-mix(in srgb, var(--demo-bio-accent) 8%, var(--biotern-surface-muted));
             border-radius: 11px;
             margin: 0.35rem 0 1rem;
             color: #0e355a;
@@ -642,4 +642,195 @@
                 margin-bottom: 0;
                 font-size: 18px;
             }
+        }
+
+        /* Theme-scheme adaptive overrides: remove hardcoded blue accents */
+        :root {
+            --demo-bio-accent: var(--biotern-primary, #3454d1);
+            --demo-bio-accent-rgb: var(--biotern-primary-rgb, 52, 84, 209);
+            --demo-bio-text: var(--biotern-text, #0f172a);
+            --demo-bio-muted: var(--biotern-muted, #64748b);
+            --demo-bio-surface: var(--biotern-surface, #ffffff);
+            --demo-bio-surface-soft: var(--biotern-surface-muted, #f8fafc);
+            --demo-bio-border: var(--biotern-border, rgba(15, 23, 42, 0.12));
+        }
+
+        .clock-section,
+        .clock-section h3,
+        .record-section h3,
+        .form-group-custom label,
+        .record-table th,
+        .record-table td,
+        .time-display {
+            color: var(--demo-bio-text);
+        }
+
+        .clock-btn {
+            background-color: var(--demo-bio-surface-soft);
+            border-color: var(--demo-bio-border);
+            color: var(--demo-bio-text);
+        }
+
+        .clock-btn:hover {
+            background-color: color-mix(in srgb, var(--demo-bio-accent) 10%, var(--demo-bio-surface-soft));
+            border-color: color-mix(in srgb, var(--demo-bio-accent) 40%, var(--demo-bio-border));
+        }
+
+        .clock-btn.active {
+            background: color-mix(in srgb, var(--demo-bio-accent) 22%, var(--demo-bio-surface-soft));
+            color: var(--demo-bio-text);
+            border-color: color-mix(in srgb, var(--demo-bio-accent) 58%, var(--demo-bio-border));
+            box-shadow: 0 8px 16px color-mix(in srgb, var(--demo-bio-accent) 28%, transparent);
+        }
+
+        .btn-clock {
+            background: color-mix(in srgb, var(--demo-bio-accent) 26%, var(--demo-bio-surface-soft));
+            color: var(--demo-bio-text);
+            box-shadow: none;
+        }
+
+        .btn-clock:hover {
+            box-shadow: 0 10px 22px color-mix(in srgb, var(--demo-bio-accent) 25%, transparent);
+            color: var(--demo-bio-text);
+        }
+
+        .time-display {
+            border-color: color-mix(in srgb, var(--demo-bio-accent) 42%, var(--demo-bio-border));
+            background: var(--demo-bio-surface-soft);
+        }
+
+        .form-group-custom input,
+        .form-group-custom select {
+            border-color: var(--demo-bio-border);
+            color: var(--demo-bio-text);
+            background-color: var(--demo-bio-surface-soft);
+        }
+
+        .form-group-custom input:focus,
+        .form-group-custom select:focus {
+            border-color: color-mix(in srgb, var(--demo-bio-accent) 60%, var(--demo-bio-border));
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--demo-bio-accent) 20%, transparent);
+            background: var(--demo-bio-surface);
+        }
+
+        .scan-label,
+        .scanner-stat div:first-child {
+            color: var(--demo-bio-accent);
+        }
+
+        html.app-skin-dark .clock-btn.active {
+            background: color-mix(in srgb, var(--demo-bio-accent) 30%, #0f172a);
+            color: var(--biotern-text, #e5e7eb) !important;
+            border-color: color-mix(in srgb, var(--demo-bio-accent) 62%, #1b2436);
+            box-shadow: none;
+        }
+
+        html.app-skin-dark .btn-clock {
+            background: color-mix(in srgb, var(--demo-bio-accent) 32%, #0f172a);
+            color: var(--biotern-text, #e5e7eb);
+            box-shadow: none;
+        }
+
+        /* Final scheme lock: remove blue-only hardcoded accents */
+        .scanner-card,
+        .clock-section,
+        .record-section {
+            border-color: var(--demo-bio-border);
+            background: var(--demo-bio-surface);
+        }
+
+        .clock-section h3,
+        .record-section h3,
+        .form-group-custom label,
+        .record-table th,
+        .record-table td,
+        .no-records,
+        .record-time-cell {
+            color: var(--demo-bio-text);
+        }
+
+        .record-table th {
+            background: var(--demo-bio-surface-soft);
+            border-bottom-color: var(--demo-bio-border);
+        }
+
+        .record-table td {
+            border-bottom-color: var(--demo-bio-border);
+        }
+
+        .record-table tbody tr:hover {
+            background-color: color-mix(in srgb, var(--demo-bio-accent) 6%, var(--demo-bio-surface-soft));
+        }
+
+        .badge-morning,
+        .badge-break,
+        .badge-afternoon {
+            background-color: color-mix(in srgb, var(--demo-bio-accent) 14%, var(--demo-bio-surface-soft));
+            color: var(--demo-bio-text);
+        }
+
+        .time-display {
+            color: var(--demo-bio-text);
+            background: var(--demo-bio-surface-soft);
+        }
+
+        .record-time-cell {
+            font-size: 12px;
+            color: var(--demo-bio-muted);
+        }
+
+        html.app-skin-dark .clock-section h3,
+        html.app-skin-dark .record-section h3,
+        html.app-skin-dark .form-group-custom label,
+        html.app-skin-dark .record-table th,
+        html.app-skin-dark .record-table td,
+        html.app-skin-dark .record-time-cell,
+        html.app-skin-dark .no-records {
+            color: var(--biotern-text, #e5e7eb) !important;
+        }
+
+        html.app-skin-dark .record-table th {
+            background: var(--biotern-surface-muted, #111827) !important;
+            border-bottom-color: var(--biotern-border, #1b2436) !important;
+        }
+
+        html.app-skin-dark .record-table td {
+            border-bottom-color: var(--biotern-border, #1b2436) !important;
+        }
+
+        html.app-skin-dark .record-table tbody tr:hover {
+            background: color-mix(in srgb, var(--demo-bio-accent) 16%, #0f172a) !important;
+        }
+
+        html.app-skin-dark .time-display {
+            background: var(--biotern-surface-muted, #111827) !important;
+            border-color: var(--biotern-border, #1b2436) !important;
+            color: var(--biotern-text, #e5e7eb) !important;
+        }
+
+        html.app-skin-dark .form-group-custom input,
+        html.app-skin-dark .form-group-custom select {
+            background: var(--biotern-surface-muted, #111827) !important;
+            border-color: var(--biotern-border, #1b2436) !important;
+            color: var(--biotern-text, #e5e7eb) !important;
+            -webkit-text-fill-color: var(--biotern-text, #e5e7eb) !important;
+        }
+
+        html.app-skin-dark .form-group-custom input:focus,
+        html.app-skin-dark .form-group-custom select:focus {
+            background: var(--biotern-surface, #0f172a) !important;
+            border-color: color-mix(in srgb, var(--demo-bio-accent) 62%, var(--biotern-border, #1b2436)) !important;
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--demo-bio-accent) 20%, transparent) !important;
+        }
+
+        html.app-skin-dark .clock-btn {
+            background: var(--biotern-surface-muted, #111827) !important;
+            border-color: var(--biotern-border, #1b2436) !important;
+            color: var(--biotern-text, #e5e7eb) !important;
+        }
+
+        html.app-skin-dark .clock-btn:hover:not(:disabled) {
+            background: color-mix(in srgb, var(--demo-bio-accent) 16%, #0f172a) !important;
+            border-color: color-mix(in srgb, var(--demo-bio-accent) 50%, var(--biotern-border, #1b2436)) !important;
+            color: var(--biotern-text, #e5e7eb) !important;
         }
