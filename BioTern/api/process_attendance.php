@@ -13,6 +13,7 @@ header('Content-Type: application/json');
 
 try {
     $conn = biometric_shared_db();
+    biotern_boot_session($conn);
 } catch (Exception $e) {
     http_response_code(500);
     die(json_encode(['success' => false, 'message' => 'Database Error: ' . $e->getMessage()]));
@@ -68,7 +69,7 @@ try {
             break;
         
         case 'review_correction':
-            require_roles_json(['admin', 'coordinator']);
+            require_roles_json(['admin', 'coordinator', 'supervisor']);
             $decision = isset($_POST['decision']) ? trim($_POST['decision']) : '';
             $response = reviewCorrection($conn, $ids, $decision, $remarks, $current_user_id);
             break;

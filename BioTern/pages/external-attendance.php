@@ -4,14 +4,15 @@ require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 
 biotern_boot_session(isset($conn) ? $conn : null);
 external_attendance_ensure_schema($conn);
 section_schedule_ensure_columns($conn);
 
-$currentUserId = (int)($_SESSION['user_id'] ?? 0);
-$currentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+$currentUserId = get_current_user_id_or_zero();
+$currentRole = get_current_user_role();
 $canManage = in_array($currentRole, ['admin', 'coordinator', 'supervisor'], true);
 if ($currentUserId <= 0) {
     header('Location: auth/auth-login.php');

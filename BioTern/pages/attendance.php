@@ -14,11 +14,14 @@ attendance_bonus_rules_ensure_schema($conn);
 external_attendance_ensure_schema($conn);
 
 $attendance_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+if (function_exists('get_current_user_role')) {
+    $attendance_role = get_current_user_role();
+}
 if ($attendance_role === 'student') {
     require __DIR__ . '/student-dtr.php';
     return;
 }
-$attendance_user_id = (int)($_SESSION['user_id'] ?? 0);
+$attendance_user_id = function_exists('get_current_user_id_or_zero') ? get_current_user_id_or_zero() : (int)($_SESSION['user_id'] ?? 0);
 $attendance_is_supervisor = ($attendance_role === 'supervisor');
 $attendance_supervisor_profile_id = 0;
 
