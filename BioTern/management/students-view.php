@@ -804,6 +804,51 @@ if (student_view_table_exists($conn, 'evaluations')) {
     }
 }
 
+$student_document_tiles = [
+    [
+        'title' => 'Evaluation Form',
+        'description' => 'Fill, save, and print the student performance evaluation.',
+        'href' => 'students-view.php?id=' . (int)$student_id . '&tab=evaluation',
+        'icon' => 'feather-star',
+        'tone' => 'primary',
+    ],
+    [
+        'title' => 'Endorsement',
+        'description' => 'Generate the endorsement letter for the host company.',
+        'href' => 'document_endorsement.php?id=' . (int)$student_id,
+        'icon' => 'feather-send',
+        'tone' => 'info',
+    ],
+    [
+        'title' => 'Application',
+        'description' => 'Prepare the student application letter.',
+        'href' => 'document_application.php?id=' . (int)$student_id,
+        'icon' => 'feather-file-text',
+        'tone' => 'success',
+    ],
+    [
+        'title' => 'MOA',
+        'description' => 'Open the memorandum of agreement builder.',
+        'href' => 'document_moa.php?id=' . (int)$student_id,
+        'icon' => 'feather-briefcase',
+        'tone' => 'warning',
+    ],
+    [
+        'title' => 'Certificate of Completion',
+        'description' => 'Print the completion certificate when requirements are ready.',
+        'href' => 'document_certificate.php?id=' . (int)$student_id,
+        'icon' => 'feather-award',
+        'tone' => 'danger',
+    ],
+    [
+        'title' => 'Waiver',
+        'description' => 'Open the parent consent and waiver document.',
+        'href' => 'document_parent_consent.php?id=' . (int)$student_id,
+        'icon' => 'feather-user-check',
+        'tone' => 'secondary',
+    ],
+];
+
 // Fetch Attendance Records for activity
 $activity_query = "
     SELECT 
@@ -1760,10 +1805,19 @@ endif; ?>
                                 <div class="tab-pane fade app-students-view-tab-pane" id="documentsTab" role="tabpanel">
                                     <div class="mb-4 pb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
                                         <h5 class="fw-bold mb-0">Student Documents</h5>
-                                        <a href="<?php echo htmlspecialchars(student_view_public_asset_url('documents/index.php?id=' . intval($student['id'])), ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-primary">Open Documents Hub</a>
+                                        <a href="<?php echo htmlspecialchars(student_view_public_asset_url('documents/index.php?id=' . (int)$student['id']), ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-primary">Open Documents Hub</a>
                                     </div>
-                                    <div class="ratio ratio-16x9 app-students-view-documents-frame">
-                                        <iframe src="<?php echo htmlspecialchars(student_view_public_asset_url('documents/index.php?id=' . intval($student['id'])), ENT_QUOTES, 'UTF-8'); ?>" title="Student Documents" loading="lazy"></iframe>
+                                    <div class="app-students-view-documents-grid">
+                                        <?php foreach ($student_document_tiles as $docTile): ?>
+                                            <a class="app-students-view-document-card app-students-view-document-card--<?php echo htmlspecialchars((string)$docTile['tone'], ENT_QUOTES, 'UTF-8'); ?>" href="<?php echo htmlspecialchars((string)$docTile['href'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                <span class="app-students-view-document-icon"><i class="<?php echo htmlspecialchars((string)$docTile['icon'], ENT_QUOTES, 'UTF-8'); ?>"></i></span>
+                                                <span class="app-students-view-document-copy">
+                                                    <strong><?php echo htmlspecialchars((string)$docTile['title'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                                                    <small><?php echo htmlspecialchars((string)$docTile['description'], ENT_QUOTES, 'UTF-8'); ?></small>
+                                                </span>
+                                                <i class="feather-arrow-up-right app-students-view-document-arrow" aria-hidden="true"></i>
+                                            </a>
+                                        <?php endforeach; ?>
                                     </div>
                                 </div>
                             </div>

@@ -144,6 +144,7 @@ $map = [
   'document_dtr.php' => 'documents/document_dtr.php',
   'document_waiver.php' => 'documents/document_waiver.php',
   'document_parent_consent.php' => 'documents/document_parent_consent.php',
+  'document_evaluation.php' => 'documents/document_evaluation.php',
   'document_certificate.php' => 'documents/document_certificate.php',
   'student-profile.php' => 'pages/student-profile.php',
   'student-dtr.php' => 'pages/student-dtr.php',

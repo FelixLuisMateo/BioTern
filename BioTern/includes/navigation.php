@@ -185,6 +185,7 @@ $nav_active_documents = biotern_nav_any_active($nav_current_file, [
     'document_dtr.php',
     'document_waiver.php',
     'document_parent_consent.php',
+    'document_evaluation.php',
     'document_certificate.php',
 ]);
 $nav_active_student = biotern_nav_any_active($nav_current_file, [
@@ -320,6 +321,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('document_moa.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_moa.php">MOA</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('document_dau_moa.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_dau_moa.php">DAU MOA</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('document_parent_consent.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_parent_consent.php">Parent Consent</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('document_evaluation.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_evaluation.php">Evaluation Form</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('document_certificate.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_certificate.php">Certificate of Completion</a></li>
                     </ul>
                 </li>

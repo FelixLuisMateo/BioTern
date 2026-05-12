@@ -1336,6 +1336,7 @@ include 'includes/header.php';
                                                                 <div class="app-students-student-copy">
                                                                     <span class="app-students-student-name"><?php echo htmlspecialchars($student_name); ?><?php if ((int)($student['is_sa_student'] ?? 0) === 1): ?> <span class="badge bg-soft-primary text-primary ms-1">SA</span><?php endif; ?></span>
                                                                     <span class="app-students-student-meta"><?php echo htmlspecialchars($student_id_label); ?></span>
+                                                                    <span class="app-students-student-section"><?php echo htmlspecialchars($section_name !== '' && $section_name !== '-' ? ('Section ' . $section_name) : 'No section'); ?></span>
                                                                 </div>
                                                             </a>
                                                         </td>
@@ -1344,6 +1345,7 @@ include 'includes/header.php';
                                                                 <span class="app-students-cell-title">Course</span>
                                                                 <span class="app-students-cell-value"><?php echo htmlspecialchars($course_name); ?></span>
                                                                 <span class="app-students-cell-meta"><?php echo htmlspecialchars($department_name !== '' ? $department_name : ('Section ' . $section_name)); ?></span>
+                                                                <span class="app-students-section-pill"><?php echo htmlspecialchars($section_name !== '' && $section_name !== '-' ? $section_name : 'No Section'); ?></span>
                                                             </div>
                                                         </td>
                                                         <td data-label="Mentors">
