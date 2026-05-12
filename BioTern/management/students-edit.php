@@ -375,9 +375,18 @@ if ($courses_result && $courses_result->num_rows > 0) {
     }
 }
 
-// Fetch departments for dropdown
+// Fetch departments for dropdown, including the courses where each department has sections.
 $departments = [];
-$departments_result = $conn->query("SELECT id, name FROM departments ORDER BY name ASC");
+$departments_result = $conn->query("
+    SELECT
+        d.id,
+        d.name,
+        GROUP_CONCAT(DISTINCT s.course_id ORDER BY s.course_id SEPARATOR ',') AS course_ids
+    FROM departments d
+    LEFT JOIN sections s ON s.department_id = d.id
+    GROUP BY d.id, d.name
+    ORDER BY d.name ASC
+");
 if ($departments_result && $departments_result->num_rows > 0) {
     while ($row = $departments_result->fetch_assoc()) {
         $departments[] = $row;
@@ -386,7 +395,7 @@ if ($departments_result && $departments_result->num_rows > 0) {
 
 // Fetch sections for dropdown
 $sections = [];
-$sections_result = $conn->query("SELECT id, course_id, code, name FROM sections ORDER BY code ASC, name ASC");
+$sections_result = $conn->query("SELECT id, course_id, department_id, code, name FROM sections ORDER BY code ASC, name ASC");
 if ($sections_result && $sections_result->num_rows > 0) {
     while ($row = $sections_result->fetch_assoc()) {
         $sections[] = $row;
@@ -742,12 +751,41 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     $section_course_valid = true;
     if ($course_id > 0 && $section_id > 0) {
-        $section_course_check = $conn->prepare("SELECT 1 FROM sections WHERE id = ? AND course_id = ? LIMIT 1");
+        $section_course_check = $conn->prepare("SELECT 1 FROM sections WHERE id = ? AND course_id = ? AND (? = '' OR department_id = CAST(? AS UNSIGNED)) LIMIT 1");
         if ($section_course_check) {
-            $section_course_check->bind_param("ii", $section_id, $course_id);
+            $section_course_check->bind_param("iiss", $section_id, $course_id, $department_id, $department_id);
             $section_course_check->execute();
             $section_course_valid = $section_course_check->get_result()->num_rows > 0;
             $section_course_check->close();
+        }
+    }
+
+    $department_course_valid = true;
+    if ($course_id > 0 && $department_id !== '') {
+        $department_course_check = $conn->prepare("SELECT 1 FROM sections WHERE course_id = ? AND department_id = CAST(? AS UNSIGNED) LIMIT 1");
+        if ($department_course_check) {
+            $department_course_check->bind_param("is", $course_id, $department_id);
+            $department_course_check->execute();
+            $department_course_valid = $department_course_check->get_result()->num_rows > 0;
+            $department_course_check->close();
+        }
+    }
+
+    $supervisor_assignment_valid = true;
+    if ($supervisor_id !== null && $supervisor_id > 0) {
+        $supervisor_assignment_check = $conn->prepare("
+            SELECT 1
+            FROM supervisors
+            WHERE id = ?
+              AND (? = 0 OR course_id IS NULL OR course_id = 0 OR course_id = ?)
+              AND (? = '' OR department_id IS NULL OR department_id = 0 OR department_id = CAST(? AS UNSIGNED))
+            LIMIT 1
+        ");
+        if ($supervisor_assignment_check) {
+            $supervisor_assignment_check->bind_param("iiiss", $supervisor_id, $course_id, $course_id, $department_id, $department_id);
+            $supervisor_assignment_check->execute();
+            $supervisor_assignment_valid = $supervisor_assignment_check->get_result()->num_rows > 0;
+            $supervisor_assignment_check->close();
         }
     }
 
@@ -756,8 +794,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error_message = "First Name, Last Name, and Email are required fields!";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error_message = "Invalid email format!";
+    } elseif (!$department_course_valid) {
+        $error_message = "Selected department does not belong to the selected course.";
     } elseif (!$section_course_valid) {
-        $error_message = "Selected section does not belong to the selected course.";
+        $error_message = "Selected section does not belong to the selected course and department.";
+    } elseif (!$supervisor_assignment_valid) {
+        $error_message = "Selected supervisor does not belong to the selected course and department.";
     } elseif ($requested_password_reset && !$can_admin_reset_student_password) {
         $error_message = "Only admin accounts can reset a student's account password.";
     } elseif ($requested_password_reset && empty($student['user_id'])) {
@@ -1345,6 +1387,7 @@ include 'includes/header.php';
                                                     <option value="">-- Select Department --</option>
                                                     <?php foreach ($departments as $department): ?>
                                                         <option value="<?php echo htmlspecialchars((string)$department['id']); ?>"
+                                                            data-course-ids="<?php echo htmlspecialchars((string)($department['course_ids'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                                                             <?php echo ((string)($student['department_id'] ?? '') === (string)$department['id']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($department['name']); ?>
                                                         </option>
@@ -1356,7 +1399,7 @@ include 'includes/header.php';
                                                 <select class="form-control" id="section_id" name="section_id">
                                                     <option value="0">-- Select Section --</option>
                                                     <?php foreach ($sections as $section): ?>
-                                                        <option value="<?php echo (int)$section['id']; ?>" data-course-id="<?php echo (int)($section['course_id'] ?? 0); ?>"
+                                                        <option value="<?php echo (int)$section['id']; ?>" data-course-id="<?php echo (int)($section['course_id'] ?? 0); ?>" data-department-id="<?php echo (int)($section['department_id'] ?? 0); ?>"
                                                             <?php echo ((int)($student['section_id'] ?? 0) === (int)$section['id']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars(biotern_format_section_label((string)($section['code'] ?? ''), (string)($section['name'] ?? ''))); ?>
                                                         </option>
@@ -1506,41 +1549,70 @@ include 'includes/header.php';
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var courseSelect = document.getElementById('course_id');
-    var sectionSelect = document.getElementById('section_id');
-    if (courseSelect && sectionSelect) {
-        var filterSections = function () {
-            var courseId = courseSelect.value || '';
-            var selectedOption = sectionSelect.options[sectionSelect.selectedIndex];
-            var selectedHidden = false;
-
-            Array.prototype.forEach.call(sectionSelect.options, function (option) {
-                if (!option.value || option.value === '0') {
-                    option.hidden = false;
-                    return;
-                }
-                var matches = option.getAttribute('data-course-id') === courseId;
-                option.hidden = !matches;
-                if (option.selected && !matches) {
-                    selectedHidden = true;
-                }
-            });
-
-            if (selectedHidden || (selectedOption && selectedOption.hidden)) {
-                sectionSelect.value = '0';
-            }
-        };
-
-        courseSelect.addEventListener('change', filterSections);
-        filterSections();
-    }
-
     var departmentSelect = document.getElementById('department_id');
+    var sectionSelect = document.getElementById('section_id');
+
     var supervisorSelect = document.getElementById('supervisor_id');
     var officeSelect = document.getElementById('office_id');
 
     function csvHas(csv, value) {
         if (!csv || !value) return false;
         return csv.split(',').indexOf(String(value)) !== -1;
+    }
+
+    function refreshSelect2(select) {
+        if (window.jQuery && select && window.jQuery.fn && window.jQuery.fn.select2) {
+            window.jQuery(select).trigger('change.select2');
+        }
+    }
+
+    function syncAcademicFields(forceDepartmentPick) {
+        var courseId = courseSelect ? (courseSelect.value || '0') : '0';
+        var firstVisibleDepartment = '';
+
+        if (departmentSelect) {
+            Array.prototype.forEach.call(departmentSelect.options, function (option) {
+                if (!option.value) {
+                    option.hidden = false;
+                    return;
+                }
+
+                var courseIds = option.getAttribute('data-course-ids') || '';
+                var matches = courseId === '0' || csvHas(courseIds, courseId);
+                option.hidden = !matches;
+                option.disabled = !matches;
+                if (matches && firstVisibleDepartment === '') {
+                    firstVisibleDepartment = option.value;
+                }
+            });
+
+            var selectedDepartment = departmentSelect.options[departmentSelect.selectedIndex];
+            if (forceDepartmentPick || (selectedDepartment && selectedDepartment.hidden)) {
+                departmentSelect.value = firstVisibleDepartment || '';
+            }
+            refreshSelect2(departmentSelect);
+        }
+
+        var departmentId = departmentSelect ? (departmentSelect.value || '') : '';
+        if (sectionSelect) {
+            Array.prototype.forEach.call(sectionSelect.options, function (option) {
+                if (!option.value || option.value === '0') {
+                    option.hidden = false;
+                    return;
+                }
+
+                var optionCourse = option.getAttribute('data-course-id') || '0';
+                var optionDepartment = option.getAttribute('data-department-id') || '0';
+                var courseMatches = courseId === '0' || optionCourse === courseId;
+                var departmentMatches = departmentId === '' || optionDepartment === departmentId;
+                option.hidden = !(courseMatches && departmentMatches);
+                option.disabled = option.hidden;
+                if (option.hidden && option.selected) {
+                    sectionSelect.value = '0';
+                }
+            });
+            refreshSelect2(sectionSelect);
+        }
     }
 
     function filterSupervisorsAndOffices() {
@@ -1550,6 +1622,7 @@ document.addEventListener('DOMContentLoaded', function () {
             Array.prototype.forEach.call(supervisorSelect.options, function (option) {
                 if (!option.value) {
                     option.hidden = false;
+                    option.disabled = false;
                     return;
                 }
                 var optionCourse = option.getAttribute('data-course-id') || '0';
@@ -1557,8 +1630,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 var courseMatches = courseId === '0' || optionCourse === '0' || optionCourse === courseId;
                 var departmentMatches = departmentId === '0' || optionDepartment === '0' || optionDepartment === departmentId;
                 option.hidden = !(courseMatches && departmentMatches);
-                if (option.hidden && option.selected) supervisorSelect.value = '';
+                option.disabled = option.hidden;
+                if (option.hidden && option.selected) {
+                    supervisorSelect.value = '';
+                }
             });
+            refreshSelect2(supervisorSelect);
         }
 
         if (officeSelect) {
@@ -1567,6 +1644,7 @@ document.addEventListener('DOMContentLoaded', function () {
             Array.prototype.forEach.call(officeSelect.options, function (option) {
                 if (!option.value) {
                     option.hidden = false;
+                    option.disabled = false;
                     return;
                 }
                 var officeCourse = option.getAttribute('data-course-id') || '0';
@@ -1576,18 +1654,31 @@ document.addEventListener('DOMContentLoaded', function () {
                 var departmentMatches = departmentId === '0' || officeDepartment === '0' || officeDepartment === departmentId;
                 var supervisorMatches = !supervisorId || csvHas(supervisorIds, supervisorId);
                 option.hidden = !(courseMatches && departmentMatches && supervisorMatches);
+                option.disabled = option.hidden;
                 if (!option.hidden) visibleOfficeValues.push(option.value);
                 if (option.hidden && option.selected) officeSelect.value = '';
             });
             if (supervisorId && visibleOfficeValues.length === 1 && !officeSelect.value) {
                 officeSelect.value = visibleOfficeValues[0];
             }
+            refreshSelect2(officeSelect);
         }
     }
 
-    if (courseSelect) courseSelect.addEventListener('change', filterSupervisorsAndOffices);
-    if (departmentSelect) departmentSelect.addEventListener('change', filterSupervisorsAndOffices);
+    if (courseSelect) {
+        courseSelect.addEventListener('change', function () {
+            syncAcademicFields(true);
+            filterSupervisorsAndOffices();
+        });
+    }
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', function () {
+            syncAcademicFields(false);
+            filterSupervisorsAndOffices();
+        });
+    }
     if (supervisorSelect) supervisorSelect.addEventListener('change', filterSupervisorsAndOffices);
+    syncAcademicFields(false);
     filterSupervisorsAndOffices();
 
     var toggle = document.getElementById('toggle_admin_reset_password');

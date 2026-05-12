@@ -177,6 +177,19 @@ biotern_announcements_ensure_tables($conn);
 
 $message = '';
 $error = '';
+$flash = $_SESSION['announcements_flash'] ?? null;
+if (is_array($flash)) {
+    $message = (string)($flash['message'] ?? '');
+    $error = (string)($flash['error'] ?? '');
+}
+unset($_SESSION['announcements_flash']);
+
+function announcements_redirect_with_flash(string $message = '', string $error = ''): void
+{
+    $_SESSION['announcements_flash'] = ['message' => $message, 'error' => $error];
+    header('Location: announcements.php');
+    exit;
+}
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $action = strtolower(trim((string)($_POST['announcement_action'] ?? '')));
@@ -269,6 +282,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                         if ($sentCount > 0) {
                             $message .= ' Notifications sent: ' . $sentCount . '.';
                         }
+                        announcements_redirect_with_flash($message, '');
                     }
                 } else {
                     $error = 'Unable to save announcement right now.';
@@ -288,6 +302,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $stmt->execute();
                 $stmt->close();
                 $message = $isActive === 1 ? 'Announcement reactivated.' : 'Announcement hidden.';
+                announcements_redirect_with_flash($message, '');
             }
         }
     } elseif ($action === 'delete') {
@@ -305,6 +320,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $stmt->bind_param('i', $announcementId);
                 if ($stmt->execute()) {
                     $message = 'Announcement deleted permanently.';
+                    announcements_redirect_with_flash($message, '');
                 } else {
                     $error = 'Unable to delete announcement right now.';
                 }
