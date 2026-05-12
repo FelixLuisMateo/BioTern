@@ -299,6 +299,8 @@ $filterSchoolYear = trim((string)($_GET['school_year'] ?? ''));
 $filterSemester = trim((string)($_GET['semester'] ?? ''));
 $search = trim((string)($_GET['search'] ?? ''));
 $filterOjtStatus = strtolower(trim((string)($_GET['ojt_status'] ?? 'all')));
+$isInternalMasterlistPage = basename((string)($_SERVER['SCRIPT_NAME'] ?? '')) === 'ojt-internal-masterlist.php'
+    || !empty($biotern_internal_masterlist_page);
 if (!in_array($filterSemester, ['', '1st Semester', '2nd Semester', 'Summer'], true)) {
     $filterSemester = '';
 }
@@ -334,7 +336,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['internal_action'] 
     if ($filterOjtStatus !== 'all') {
         $redirectQuery['ojt_status'] = $filterOjtStatus;
     }
-    $redirectTarget = 'ojt-internal-list.php' . ($redirectQuery !== [] ? ('?' . http_build_query($redirectQuery)) : '');
+    $redirectBase = $isInternalMasterlistPage ? 'ojt-internal-masterlist.php' : 'ojt-internal-list.php';
+    $redirectTarget = $redirectBase . ($redirectQuery !== [] ? ('?' . http_build_query($redirectQuery)) : '');
     $startDate = trim((string)($_POST['start_date'] ?? ''));
     $endDate = trim((string)($_POST['end_date'] ?? ''));
     $rawStudentIds = trim((string)($_POST['student_ids'] ?? ''));
@@ -638,7 +641,8 @@ if ($search !== '') {
 }
 $printFilterLabel = $mapFingerId > 0 ? 'Fingerprint mapping mode' : ($printFilterParts !== [] ? implode(' / ', $printFilterParts) : 'All internal students');
 
-$page_title = 'Internal List';
+$internalPageLabel = $isInternalMasterlistPage ? 'Internal Masterlist' : 'Internal List';
+$page_title = $internalPageLabel;
 $page_body_class = 'page-fingerprint-mapping page-ojt-internal-list mobile-bottom-nav';
 $page_styles = [
     'assets/css/layout/page_shell.css',
@@ -661,11 +665,11 @@ ob_end_flush();
         <div class="page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
-                    <h5 class="m-b-10">Internal List</h5>
+                    <h5 class="m-b-10"><?php echo htmlspecialchars($internalPageLabel, ENT_QUOTES, 'UTF-8'); ?></h5>
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                    <li class="breadcrumb-item">Internal List</li>
+                    <li class="breadcrumb-item"><?php echo htmlspecialchars($internalPageLabel, ENT_QUOTES, 'UTF-8'); ?></li>
                 </ul>
             </div>
             <div class="page-header-right ms-auto bio-console-header-actions">
@@ -728,7 +732,7 @@ ob_end_flush();
             <?php endif; ?>
 
             <div class="card mb-4 bio-console-panel">
-                <div class="card-header"><strong>Internal List Filters</strong></div>
+                <div class="card-header"><strong><?php echo htmlspecialchars($internalPageLabel, ENT_QUOTES, 'UTF-8'); ?> Filters</strong></div>
                 <div class="card-body border-bottom">
                     <form method="get" class="row g-2 align-items-end fingerprint-form" id="ojtInternalFilterForm">
                         <?php if ($mapFingerId > 0): ?>
@@ -780,7 +784,7 @@ ob_end_flush();
                         </div>
                         <div class="col-12 col-md-2 fm-actions">
                             <button type="submit" class="btn btn-primary">Apply</button>
-                            <a href="ojt-internal-list.php<?php echo $mapFingerId > 0 ? '?map_finger_id=' . $mapFingerId : ''; ?>" class="btn btn-light">Clear</a>
+                            <a href="<?php echo $isInternalMasterlistPage ? 'ojt-internal-masterlist.php' : 'ojt-internal-list.php'; ?><?php echo $mapFingerId > 0 ? '?map_finger_id=' . $mapFingerId : ''; ?>" class="btn btn-light">Clear</a>
                         </div>
                     </form>
                 </div>
@@ -791,7 +795,7 @@ ob_end_flush();
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtInternalListTable" data-ojt-select-table data-print-mode="internal-student-list" data-print-title="Internal Student List" data-print-subtitle="<?php echo htmlspecialchars($printFilterLabel, ENT_QUOTES, 'UTF-8'); ?>" data-print-filter-form="#ojtInternalFilterForm">
+                        <table class="table table-hover align-middle mb-0 bio-console-table" id="ojtInternalListTable" data-ojt-select-table data-print-mode="internal-student-list" data-print-title="<?php echo htmlspecialchars($internalPageLabel, ENT_QUOTES, 'UTF-8'); ?>" data-print-subtitle="<?php echo htmlspecialchars($printFilterLabel, ENT_QUOTES, 'UTF-8'); ?>" data-print-filter-form="#ojtInternalFilterForm">
                             <thead>
                                 <tr>
                                     <th class="app-ojt-select-column">
