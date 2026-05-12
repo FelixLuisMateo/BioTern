@@ -330,21 +330,21 @@ include __DIR__ . '/../includes/header.php';
         z-index: 1;
     }
     .certificate-logo {
-        width: 52px;
-        height: 52px;
+        width: 66px;
+        height: 66px;
         object-fit: contain;
-        margin-bottom: 4px;
+        margin: -4px 0 5px;
     }
     .certificate-school {
         font-family: Arial, sans-serif;
-        font-size: 13px;
+        font-size: 17px;
         font-weight: 800;
         letter-spacing: .06em;
         text-transform: uppercase;
     }
     .certificate-school-subtitle {
         font-family: Arial, sans-serif;
-        font-size: 10px;
+        font-size: 12px;
         color: #526171;
         margin-top: 2px;
     }
@@ -565,15 +565,15 @@ include __DIR__ . '/../includes/header.php';
             align-content: center !important;
         }
         .certificate-logo {
-            width: 52px !important;
-            height: 52px !important;
-            margin-bottom: 4px !important;
+            width: 66px !important;
+            height: 66px !important;
+            margin: -4px 0 5px !important;
         }
         .certificate-school {
-            font-size: 13px !important;
+            font-size: 17px !important;
         }
         .certificate-school-subtitle {
-            font-size: 10px !important;
+            font-size: 12px !important;
         }
         .certificate-title {
             margin-top: 10px !important;
