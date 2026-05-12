@@ -714,12 +714,18 @@ if (!function_exists('transfer_send_database_sql')) {
             $railway->close();
             $filePrefix = 'railway-biotern_db';
         } else {
+            transfer_clean_download_output();
+            http_response_code(500);
             $dump = "-- BioTern Railway Full Database SQL Export failed\n";
             $dump .= '-- Generated: ' . date('Y-m-d H:i:s') . "\n";
             $dump .= '-- Error: ' . str_replace(["\r", "\n"], ' ', $exportError) . "\n";
-            $dump .= "-- Fallback: exporting current app database instead.\n\n";
-            $dump .= transfer_sql_export($mysqli, $databaseName);
-            $filePrefix = preg_replace('/[^A-Za-z0-9_-]+/', '_', $databaseName);
+            $dump .= "-- No localhost fallback was exported, so this file cannot accidentally replace your local DB with stale data.\n";
+            header('Content-Type: application/sql; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="railway-export-failed-' . date('Ymd-His') . '.sql"');
+            header('Content-Length: ' . strlen($dump));
+            header('X-Content-Type-Options: nosniff');
+            echo $dump;
+            exit;
         }
         transfer_clean_download_output();
         header('Content-Type: application/sql; charset=UTF-8');
