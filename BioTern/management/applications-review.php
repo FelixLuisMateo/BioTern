@@ -13,27 +13,54 @@ if (!in_array($currentRole, ['admin', 'coordinator', 'supervisor'], true)) {
     exit;
 }
 
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_submitted_at DATETIME NULL");
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_by INT NULL");
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_at DATETIME NULL");
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_at DATETIME NULL");
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_notes VARCHAR(255) NULL");
-$conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS disciplinary_remark VARCHAR(255) NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS internal_total_hours_remaining INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_total_hours_remaining INT(11) DEFAULT NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS assignment_track VARCHAR(20) NOT NULL DEFAULT 'internal'");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS address VARCHAR(255) NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS phone VARCHAR(50) NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS date_of_birth DATE NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS gender VARCHAR(30) NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS emergency_contact VARCHAR(255) NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS emergency_contact_phone VARCHAR(50) NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS school_year VARCHAR(16) NULL");
-$conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS semester VARCHAR(30) NULL");
+function applications_review_has_column(mysqli $conn, string $table, string $column): bool
+{
+    $stmt = $conn->prepare("
+        SELECT 1
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?
+        LIMIT 1
+    ");
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('ss', $table, $column);
+    $stmt->execute();
+    $exists = $stmt->get_result()->num_rows > 0;
+    $stmt->close();
+    return $exists;
+}
+
+function applications_review_ensure_column(mysqli $conn, string $table, string $column, string $definition): void
+{
+    if (!applications_review_has_column($conn, $table, $column)) {
+        $conn->query("ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}");
+    }
+}
+
+applications_review_ensure_column($conn, 'users', 'application_status', "ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
+applications_review_ensure_column($conn, 'users', 'application_submitted_at', 'DATETIME NULL');
+applications_review_ensure_column($conn, 'users', 'approved_by', 'INT NULL');
+applications_review_ensure_column($conn, 'users', 'approved_at', 'DATETIME NULL');
+applications_review_ensure_column($conn, 'users', 'rejected_at', 'DATETIME NULL');
+applications_review_ensure_column($conn, 'users', 'approval_notes', 'VARCHAR(255) NULL');
+applications_review_ensure_column($conn, 'users', 'disciplinary_remark', 'VARCHAR(255) NULL');
+applications_review_ensure_column($conn, 'students', 'internal_total_hours', 'INT(11) DEFAULT NULL');
+applications_review_ensure_column($conn, 'students', 'internal_total_hours_remaining', 'INT(11) DEFAULT NULL');
+applications_review_ensure_column($conn, 'students', 'external_total_hours', 'INT(11) DEFAULT NULL');
+applications_review_ensure_column($conn, 'students', 'external_total_hours_remaining', 'INT(11) DEFAULT NULL');
+applications_review_ensure_column($conn, 'students', 'assignment_track', "VARCHAR(20) NOT NULL DEFAULT 'internal'");
+applications_review_ensure_column($conn, 'students', 'external_start_allowed', 'TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track');
+applications_review_ensure_column($conn, 'students', 'address', 'VARCHAR(255) NULL');
+applications_review_ensure_column($conn, 'students', 'phone', 'VARCHAR(50) NULL');
+applications_review_ensure_column($conn, 'students', 'date_of_birth', 'DATE NULL');
+applications_review_ensure_column($conn, 'students', 'gender', 'VARCHAR(30) NULL');
+applications_review_ensure_column($conn, 'students', 'emergency_contact', 'VARCHAR(255) NULL');
+applications_review_ensure_column($conn, 'students', 'emergency_contact_phone', 'VARCHAR(50) NULL');
+applications_review_ensure_column($conn, 'students', 'school_year', 'VARCHAR(16) NULL');
+applications_review_ensure_column($conn, 'students', 'semester', 'VARCHAR(30) NULL');
 
 $departmentOptions = [];
 $courseOptions = [];

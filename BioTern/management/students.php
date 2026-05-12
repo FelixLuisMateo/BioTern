@@ -77,7 +77,9 @@ function biotern_students_redirect_self(): void
     exit;
 }
 
-$db->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
+if (!biotern_students_has_column($db, 'students', 'external_start_allowed')) {
+    $db->query("ALTER TABLE students ADD COLUMN external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
+}
 
 $studentColumns = [];
 $studentColumnsRes = $db->query("SHOW COLUMNS FROM students");

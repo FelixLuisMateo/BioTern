@@ -4,8 +4,8 @@ require_once __DIR__ . '/ops_helpers.php';
 
 function documents_ensure_external_start_allowed_column(mysqli $conn): void
 {
-    if (table_exists($conn, 'students')) {
-        $conn->query("ALTER TABLE students ADD COLUMN IF NOT EXISTS external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
+    if (table_exists($conn, 'students') && !biotern_table_has_column($conn, 'students', 'external_start_allowed')) {
+        $conn->query("ALTER TABLE students ADD COLUMN external_start_allowed TINYINT(1) NOT NULL DEFAULT 0 AFTER assignment_track");
     }
 }
 
