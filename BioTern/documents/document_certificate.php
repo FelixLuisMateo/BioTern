@@ -145,12 +145,10 @@ if ($selectedStudentId > 0) {
         FROM students s
         LEFT JOIN courses c ON c.id = s.course_id
         LEFT JOIN sections sec ON sec.id = s.section_id
-        INNER JOIN internships i ON i.id = (
+        LEFT JOIN internships i ON i.id = (
             SELECT i2.id FROM internships i2
             WHERE i2.student_id = s.id
-              AND i2.type = 'external'
-              AND i2.status IN ('ongoing', 'completed', 'finished')
-            ORDER BY FIELD(i2.status, 'completed', 'finished', 'ongoing'), i2.id DESC
+            ORDER BY (i2.type = 'external') DESC, FIELD(i2.status, 'completed', 'finished', 'ongoing', 'pending', 'cancelled'), i2.id DESC
             LIMIT 1
         )
         LEFT JOIN (
@@ -167,7 +165,7 @@ if ($selectedStudentId > 0) {
         LEFT JOIN coordinators coord_s ON coord_s.id = s.coordinator_id
         LEFT JOIN supervisors sup_i ON sup_i.user_id = i.supervisor_id
         LEFT JOIN supervisors sup_s ON sup_s.id = s.supervisor_id
-        INNER JOIN evaluations e ON e.id = (
+        LEFT JOIN evaluations e ON e.id = (
             SELECT e2.id FROM evaluations e2
             WHERE e2.student_id = s.id
             ORDER BY e2.evaluation_date DESC, e2.id DESC
@@ -183,7 +181,7 @@ if ($selectedStudentId > 0) {
         $stmt->close();
     }
     if (!$certificate) {
-        $error = 'Certificate is not available yet. Make sure the student is an external OJT student, has an evaluation, and you have access to that student.';
+        $error = 'Certificate is not available yet. Make sure the student exists and you have access to that student.';
     }
 } else {
     $result = $conn->query("
@@ -250,13 +248,17 @@ include __DIR__ . '/../includes/header.php';
     .certificate-sheet {
         position: relative;
         overflow: hidden;
-        width: min(100%, 960px);
-        min-height: 680px;
+        width: min(100%, 980px);
+        aspect-ratio: 1.414 / 1;
+        min-height: 0;
         margin: 0 auto;
-        padding: 46px 72px 52px;
-        background: #fffaf0;
+        padding: 36px 74px 34px;
+        background:
+            radial-gradient(circle at 50% 50%, rgba(255, 251, 237, 0.95) 0 42%, rgba(249, 239, 212, 0.88) 100%),
+            #fff7df;
         color: #06243a;
-        border: 1px solid #f0c66e;
+        border: 1px solid #f3cf73;
+        border-radius: 8px;
         box-shadow: 0 18px 46px rgba(15, 23, 42, .16);
         text-align: center;
         font-family: Georgia, "Times New Roman", serif;
@@ -271,10 +273,17 @@ include __DIR__ . '/../includes/header.php';
     }
     .certificate-sheet::before {
         background:
-            linear-gradient(135deg, #06243a 0 6%, transparent 6% 100%),
-            linear-gradient(150deg, transparent 0 76%, #ffc20a 76% 84%, transparent 84% 100%),
-            linear-gradient(315deg, #06243a 0 5%, transparent 5% 100%),
-            linear-gradient(45deg, transparent 0 87%, #ffc20a 87% 91%, transparent 91% 100%);
+            linear-gradient(166deg, #06243a 0 8.6%, transparent 8.7% 100%),
+            linear-gradient(158deg, transparent 0 9.5%, #f27b0f 9.6% 11.6%, transparent 11.7% 100%),
+            linear-gradient(145deg, transparent 0 11.8%, #ffc20a 11.9% 21.2%, transparent 21.3% 100%),
+            linear-gradient(42deg, transparent 0 75.5%, #ffc20a 75.6% 83.2%, transparent 83.3% 100%),
+            linear-gradient(42deg, transparent 0 80.8%, #06243a 80.9% 89.4%, transparent 89.5% 100%),
+            linear-gradient(315deg, #06243a 0 5.8%, transparent 5.9% 100%),
+            linear-gradient(58deg, transparent 0 86.4%, #f27b0f 86.5% 88.1%, transparent 88.2% 100%),
+            repeating-linear-gradient(54deg, transparent 0 11px, rgba(255, 194, 10, 0.92) 11px 18px, transparent 18px 27px);
+        background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 158px 158px;
+        background-position: 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0, right -26px top -16px;
+        background-repeat: no-repeat;
     }
     .certificate-sheet::after {
         background:
@@ -288,80 +297,99 @@ include __DIR__ . '/../includes/header.php';
         z-index: 1;
     }
     .certificate-logo {
-        width: 72px;
-        height: 72px;
+        width: 52px;
+        height: 52px;
         object-fit: contain;
-        margin-bottom: 8px;
+        margin-bottom: 4px;
     }
     .certificate-school {
         font-family: Arial, sans-serif;
-        font-size: 18px;
+        font-size: 13px;
         font-weight: 800;
         letter-spacing: .06em;
         text-transform: uppercase;
     }
     .certificate-school-subtitle {
         font-family: Arial, sans-serif;
-        font-size: 12px;
+        font-size: 10px;
         color: #526171;
         margin-top: 2px;
     }
     .certificate-title {
-        margin: 22px 0 0;
+        position: relative;
+        display: inline-block;
+        margin: 12px 0 0;
+        padding: 0 72px;
         font-family: Arial, sans-serif;
-        font-size: 52px;
+        font-size: clamp(42px, 6vw, 72px);
         line-height: .95;
         font-weight: 900;
         text-transform: uppercase;
         letter-spacing: 0;
         color: #06243a;
     }
+    .certificate-title::before,
+    .certificate-title::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        width: 58px;
+        border-top: 5px solid #06243a;
+    }
+    .certificate-title::before {
+        left: 0;
+    }
+    .certificate-title::after {
+        right: 0;
+    }
     .certificate-title span {
         display: block;
-        margin-top: 8px;
-        font-size: 28px;
+        margin-top: 4px;
+        font-size: clamp(24px, 3vw, 36px);
         color: #e77817;
     }
     .certificate-name {
-        margin: 14px auto 8px;
-        padding-bottom: 8px;
-        max-width: 700px;
+        margin: 12px auto 8px;
+        padding-bottom: 3px;
+        max-width: 650px;
         border-bottom: 2px solid #e77817;
-        font-size: 46px;
+        font-size: clamp(42px, 6.5vw, 70px);
         font-weight: 700;
         font-style: italic;
         color: #06243a;
+        line-height: 1.02;
     }
     .certificate-body {
-        max-width: 700px;
-        margin: 12px auto;
-        font-size: 17px;
-        line-height: 1.6;
-    }
-    .certificate-presented {
-        margin-top: 16px;
+        max-width: 620px;
+        margin: 8px auto;
         font-family: Arial, sans-serif;
         font-size: 14px;
+        line-height: 1.34;
+    }
+    .certificate-presented {
+        margin-top: 10px;
+        font-family: Arial, sans-serif;
+        font-size: 13px;
         font-style: italic;
         color: #30475f;
     }
     .certificate-meta {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px 18px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px 12px;
         max-width: 720px;
-        margin: 22px auto 0;
-        text-align: left;
+        margin: 14px auto 0;
+        text-align: center;
         font-family: Arial, sans-serif;
-        font-size: 13px;
+        font-size: 11px;
         color: #27384a;
     }
     .certificate-signatures {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 64px;
-        max-width: 680px;
-        margin: 74px auto 0;
+        gap: 126px;
+        max-width: 640px;
+        margin: 54px auto 0;
         font-family: Arial, sans-serif;
         font-size: 13px;
     }
@@ -376,13 +404,50 @@ include __DIR__ . '/../includes/header.php';
         color: #526171;
         font-weight: 500;
     }
+    .certificate-seal {
+        position: absolute;
+        z-index: 2;
+        left: 50%;
+        bottom: 38px;
+        width: 82px;
+        height: 82px;
+        transform: translateX(-50%);
+        border-radius: 50%;
+        background:
+            radial-gradient(circle at 38% 32%, #fff2a7 0 10%, #f5c94d 24%, #d89b22 60%, #fff1a4 76%, #b97913 100%);
+        box-shadow: 0 2px 0 rgba(110, 72, 12, .22), inset 0 0 0 6px rgba(255, 244, 171, .75), inset 0 0 0 9px rgba(202, 138, 4, .45);
+    }
+    .certificate-seal::before,
+    .certificate-seal::after {
+        content: "";
+        position: absolute;
+        top: 58px;
+        width: 24px;
+        height: 52px;
+        background: linear-gradient(#f6c246, #d99019);
+        clip-path: polygon(0 0, 100% 0, 76% 100%, 50% 78%, 24% 100%);
+        z-index: -1;
+    }
+    .certificate-seal::before {
+        left: 14px;
+        transform: rotate(12deg);
+    }
+    .certificate-seal::after {
+        right: 14px;
+        transform: rotate(-12deg);
+    }
     @media (max-width: 768px) {
         .certificate-sheet {
             padding: 36px 24px 42px;
-            min-height: 0;
         }
         .certificate-title {
             font-size: 36px;
+            padding: 0 42px;
+        }
+        .certificate-title::before,
+        .certificate-title::after {
+            width: 32px;
+            border-top-width: 4px;
         }
         .certificate-title span {
             font-size: 22px;
@@ -415,7 +480,7 @@ include __DIR__ . '/../includes/header.php';
         }
         .certificate-sheet {
             width: 100%;
-            min-height: 100vh;
+            height: calc(100vh - 20mm);
             box-shadow: none;
             print-color-adjust: exact;
             -webkit-print-color-adjust: exact;
@@ -536,9 +601,10 @@ include __DIR__ . '/../includes/header.php';
                                     <div><strong>Section:</strong> <?php echo certificate_h($sectionLabel !== '' ? $sectionLabel : '-'); ?></div>
                                     <div><strong>Host Company:</strong> <?php echo certificate_h($certificate['company_name'] ?? '-'); ?></div>
                                     <div><strong>Rendered Hours:</strong> <?php echo number_format($renderedHours, 2); ?></div>
-                                    <div><strong>Evaluation Rating:</strong> <?php echo certificate_h($rating); ?></div>
+                                    <div><strong>Evaluation Rating:</strong> <?php echo certificate_h((int)($certificate['score'] ?? 0) > 0 ? $rating : '-'); ?></div>
                                     <div><strong>Date Issued:</strong> <?php echo certificate_h(certificate_display_date($certificate['evaluation_date'] ?? date('Y-m-d'))); ?></div>
                                 </div>
+                                <span class="certificate-seal" aria-hidden="true"></span>
                                 <div class="certificate-signatures">
                                     <div>
                                         <div class="certificate-sign-line">

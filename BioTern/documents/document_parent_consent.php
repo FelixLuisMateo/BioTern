@@ -244,6 +244,18 @@ include __DIR__ . '/../includes/header.php';
                     color: #111827 !important;
                 }
 
+                .parent-consent-builder-page #editor .parent-consent-inline-line {
+                    display: inline-block;
+                    min-width: 2.35in;
+                    padding: 0 6px 1px;
+                    border-bottom: 1px solid #111827;
+                    font-weight: 700;
+                    line-height: 1.05;
+                    text-align: center;
+                    print-color-adjust: exact;
+                    -webkit-print-color-adjust: exact;
+                }
+
                 .parent-consent-builder-page #editor .parent-consent-sign-student {
                     width: 2.42in;
                     margin-top: 45px;
@@ -547,7 +559,7 @@ include __DIR__ . '/../includes/header.php';
                                                     <h2 class="parent-consent-title">Parent Consent and Waiver</h2>
 
                                                     <p>
-                                                        I hereby give my consent for <strong id="pcStudent"><?php echo parent_consent_h($studentLine); ?></strong> to participate in the <strong>On-the-Job Training (OJT)</strong>
+                                                        I hereby give my consent for <strong class="parent-consent-inline-line" id="pcStudent"><?php echo parent_consent_h($studentLine); ?></strong> to participate in the <strong>On-the-Job Training (OJT)</strong>
                                                         required by <strong>Clark College of Science and Technology (CCST)</strong> at the school and/or its <strong>partner or host company<span id="pcCompanyClause"><?php echo parent_consent_h($companyClause); ?></span></strong>.
                                                     </p>
 
