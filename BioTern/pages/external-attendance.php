@@ -1157,8 +1157,19 @@ include 'includes/header.php';
 <?php include 'includes/footer.php'; ?>
 <script>
 (function () {
-    if (window.jQuery && jQuery.fn && jQuery.fn.DataTable && document.getElementById('externalAttendanceReviewTable')) {
-        jQuery('#externalAttendanceReviewTable').DataTable({
+    var reviewTable = document.getElementById('externalAttendanceReviewTable');
+    if (window.jQuery && jQuery.fn && jQuery.fn.DataTable && reviewTable) {
+        var $reviewTable = jQuery('#externalAttendanceReviewTable');
+        var hasPlaceholderRow = !!reviewTable.querySelector('tbody td[colspan]');
+        if (hasPlaceholderRow) {
+            var tbody = reviewTable.tBodies && reviewTable.tBodies[0] ? reviewTable.tBodies[0] : null;
+            if (tbody) {
+                tbody.innerHTML = '';
+            }
+        }
+
+        if (!jQuery.fn.DataTable.isDataTable('#externalAttendanceReviewTable')) {
+            $reviewTable.DataTable({
             pageLength: 10,
             ordering: true,
             searching: true,
@@ -1175,6 +1186,7 @@ include 'includes/header.php';
                 lengthMenu: '<span class="attendance-length-prefix">Show</span> _MENU_ <span class="attendance-length-suffix">entries</span>'
             }
         });
+        }
     }
 
     var form = document.getElementById('externalAttendanceFilterForm');

@@ -484,6 +484,30 @@ html.app-skin-dark .app-theme-toast-static-icon {
   pointer-events: none;
 }
 
+.biotern-system-toast-stack {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 12070;
+  display: grid;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.biotern-system-toast-stack .app-theme-toast-static {
+  position: relative;
+  top: auto;
+  right: auto;
+  z-index: auto;
+  width: min(380px, calc(100vw - 1.2rem));
+  max-width: min(380px, calc(100vw - 1.2rem));
+  margin: 0;
+  padding-right: 2.6rem;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 0.18s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+}
+
 .biotern-live-toast-stack .app-theme-toast-static {
   position: relative;
   top: auto;
@@ -600,6 +624,17 @@ html.app-skin-dark .app-theme-toast-static-icon {
   }
 
   .biotern-live-toast-stack .app-theme-toast-static {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .biotern-system-toast-stack {
+    left: 0.6rem;
+    right: 0.6rem;
+    top: 0.7rem;
+  }
+
+  .biotern-system-toast-stack .app-theme-toast-static {
     width: 100%;
     max-width: 100%;
   }
