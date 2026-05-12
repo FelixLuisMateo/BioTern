@@ -187,6 +187,7 @@ $internSql = "
     ) latest ON latest.latest_id = i.id
     WHERE i.deleted_at IS NULL
       AND LOWER(COALESCE(i.type, 'internal')) = 'internal'
+      AND LOWER(COALESCE(i.status, 'ongoing')) = 'ongoing'
     ORDER BY s.last_name ASC, s.first_name ASC
 ";
 $internRes = $conn->query($internSql);
@@ -217,6 +218,9 @@ foreach ($offices as &$office) {
     $office['student_count'] = $officeCounts[(int)$office['id']] ?? 0;
 }
 unset($office);
+if ($selectedOffice) {
+    $selectedOffice['student_count'] = $officeCounts[(int)$selectedOffice['id']] ?? 0;
+}
 $selectedOfficeInterns = $selectedOffice ? ($officeInternsById[(int)$selectedOffice['id']] ?? []) : [];
 
 $page_title = 'Offices';
@@ -242,176 +246,199 @@ if ($editOffice) {
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header">
+        <div class="page-header" data-phc-condensed="1">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title"><h5 class="m-b-10">Offices</h5></div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                    <li class="breadcrumb-item">Academic</li>
                     <li class="breadcrumb-item">Offices</li>
                 </ul>
+            </div>
+            <div class="page-header-right ms-auto companies-page-header-actions">
+                <?php if ($canManageOffices): ?>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#officeEditorModal">
+                        <i class="feather-plus me-2"></i>
+                        <span>Add Office</span>
+                    </button>
+                <?php endif; ?>
             </div>
         </div>
         <div class="main-content">
             <?php if ($message !== ''): ?><div class="alert alert-<?php echo h($message_type); ?>"><?php echo h($message); ?></div><?php endif; ?>
-            <div class="row g-3">
-                <?php if ($canManageOffices): ?>
-                <div class="col-lg-4">
-                    <div class="card stretch stretch-full">
-                        <div class="card-header"><h5 class="card-title mb-0"><?php echo $editOffice ? 'Edit Office' : 'Create Office'; ?></h5></div>
-                        <div class="card-body">
-                            <div class="alert alert-info py-2">Departments are academic groups for coordinators. Offices are work locations assigned to supervisors and OJT students.</div>
-                            <form method="post" class="row g-3" id="officeForm">
-                                <input type="hidden" name="id" value="<?php echo (int)($editOffice['id'] ?? 0); ?>">
-                                <div class="col-12"><label class="form-label">Office Name *</label><input type="text" name="name" class="form-control" value="<?php echo h($editOffice['name'] ?? ''); ?>" placeholder="ComLab 2" required></div>
-                                <div class="col-12"><label class="form-label">Code</label><input type="text" name="code" class="form-control" value="<?php echo h($editOffice['code'] ?? ''); ?>" placeholder="COMLAB-2"></div>
-                                <div class="col-12">
-                                    <label class="form-label">Course</label>
-                                    <select name="course_id" id="officeCourse" class="form-select">
-                                        <option value="0">Any course</option>
-                                        <?php foreach ($courses as $course): ?>
-                                            <option value="<?php echo (int)$course['id']; ?>" <?php echo (int)($editOffice['course_id'] ?? 0) === (int)$course['id'] ? 'selected' : ''; ?>><?php echo h($course['name']); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Department</label>
-                                    <select name="department_id" id="officeDepartment" class="form-select">
-                                        <option value="0">Any department</option>
-                                        <?php foreach ($departments as $department): ?>
-                                            <option value="<?php echo (int)$department['id']; ?>" <?php echo (int)($editOffice['department_id'] ?? 0) === (int)$department['id'] ? 'selected' : ''; ?>><?php echo h($department['name']); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label">Supervisors</label>
-                                    <select name="supervisor_ids[]" id="officeSupervisors" class="form-select" multiple size="6">
-                                        <?php foreach ($supervisors as $supervisor): ?>
-                                            <option value="<?php echo (int)$supervisor['id']; ?>"
-                                                data-course-id="<?php echo (int)($supervisor['course_id'] ?? 0); ?>"
-                                                data-department-id="<?php echo (int)($supervisor['department_id'] ?? 0); ?>"
-                                                <?php echo in_array((int)$supervisor['id'], $selectedSupervisorIds, true) ? 'selected' : ''; ?>>
-                                                <?php echo h($supervisor['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <small class="text-muted">Filtered by course first, then department.</small>
-                                </div>
-                                <div class="col-12"><label class="form-label">Notes</label><textarea name="description" rows="3" class="form-control"><?php echo h($editOffice['description'] ?? ''); ?></textarea></div>
-                                <div class="col-12 d-flex gap-2"><button class="btn btn-primary" type="submit">Save Office</button><?php if ($editOffice): ?><a class="btn btn-outline-secondary" href="offices.php">Cancel Edit</a><?php endif; ?></div>
-                            </form>
-                        </div>
+            <div class="companies-layout">
+                <aside class="companies-list-panel">
+                    <div class="companies-list-panel-head">
+                        <h6 class="mb-1">All Offices</h6>
+                        <p class="mb-0"><?php echo count($offices); ?> result(s)</p>
                     </div>
-                </div>
-                <?php endif; ?>
-                <div class="<?php echo $canManageOffices ? 'col-lg-8' : 'col-12'; ?>">
-                    <div class="card stretch stretch-full app-data-card app-data-toolbar app-academic-list-card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">All Offices</h5>
-                            <span class="badge bg-primary text-white px-3 py-1 fw-semibold"><?php echo count($offices); ?> total</span>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive app-data-table-wrap">
-                                <table class="table table-hover mb-0 app-data-table app-academic-list-table">
-                                    <thead><tr><th>Office</th><th>Course</th><th>Department</th><th>Supervisors</th><th>Internal Students</th><th>Actions</th></tr></thead>
-                                    <tbody>
-                                    <?php foreach ($offices as $office): ?>
-                                        <tr>
-                                            <td><a class="app-academic-name" href="offices.php?office=<?php echo (int)$office['id']; ?>"><?php echo h($office['name']); ?></a></td>
-                                            <td><span class="app-academic-code-pill"><?php echo h($office['course_name'] ?: 'Any'); ?></span></td>
-                                            <td><span class="app-academic-created"><?php echo h($office['department_name'] ?: 'Any'); ?></span></td>
-                                            <td><span class="app-academic-created"><?php echo h($office['supervisor_names'] ?: '-'); ?></span></td>
-                                            <td><span class="badge bg-primary text-white"><?php echo (int)($office['student_count'] ?? 0); ?></span></td>
-                                            <td>
-                                                <div class="d-flex gap-2">
-                                                <?php if ($canManageOffices): ?>
-                                                <a href="offices.php?edit=<?php echo (int)$office['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
-                                                <form method="post" data-confirm-message="Delete this office?">
-                                                    <input type="hidden" name="action" value="delete">
-                                                    <input type="hidden" name="id" value="<?php echo (int)$office['id']; ?>">
-                                                    <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
-                                                </form>
-                                                <?php endif; ?>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                    <?php if (!$offices): ?><tr><td colspan="6" class="text-center py-4 text-muted">No offices found.</td></tr><?php endif; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="card mt-3 companies-detail-card">
-                <div class="card-body">
-                    <?php if ($selectedOffice): ?>
-                        <div class="companies-detail-header">
-                            <div>
-                                <h4 class="mb-1"><?php echo h((string)$selectedOffice['name']); ?></h4>
-                                <p class="companies-detail-subtitle mb-0"><?php echo h(trim((string)($selectedOffice['description'] ?? '')) !== '' ? (string)$selectedOffice['description'] : 'Internal OJT office'); ?></p>
-                            </div>
-                            <span class="companies-intern-count"><?php echo count($selectedOfficeInterns); ?> internal student(s)</span>
-                        </div>
-                        <div class="companies-intern-list mt-3">
-                            <?php if (!$selectedOfficeInterns): ?>
-                                <div class="companies-empty-state companies-intern-empty-state">
-                                    <h6>No internal students linked yet</h6>
-                                    <p class="mb-0">Assign an internal internship office from the student or OJT edit flow to populate this list.</p>
-                                </div>
-                            <?php endif; ?>
-                            <?php foreach ($selectedOfficeInterns as $intern): ?>
-                                <article class="companies-intern-item">
-                                    <div class="companies-intern-primary">
-                                        <div class="companies-intern-avatar">
-                                            <?php if (!empty($intern['profile_url'])): ?>
-                                                <img src="<?php echo h((string)$intern['profile_url']); ?>" alt="<?php echo h((string)$intern['display_name']); ?>">
-                                            <?php else: ?>
-                                                <span><?php echo h(strtoupper(substr((string)($intern['first_name'] ?? 'S'), 0, 1))); ?></span>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="companies-intern-copy">
-                                            <div class="companies-intern-name-row">
-                                                <h6 class="mb-0"><?php echo h((string)$intern['display_name']); ?></h6>
-                                                <span class="companies-status-pill is-primary"><?php echo h(ucfirst((string)($intern['internship_status'] ?? 'Ongoing'))); ?></span>
-                                            </div>
-                                            <p class="mb-0">
-                                                <?php echo h((string)($intern['course_name'] ?? '-')); ?>
-                                                <span>|</span>
-                                                <?php echo h((string)($intern['section_label'] ?? '-')); ?>
-                                                <span>|</span>
-                                                Internal
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="companies-intern-meta">
-                                        <div class="companies-intern-chip-row">
-                                            <span class="companies-meta-chip"><?php echo h(trim((string)($intern['start_date'] ?? '')) !== '' ? date('M d, Y', strtotime((string)$intern['start_date'])) : 'Start date pending'); ?></span>
-                                        </div>
-                                        <div class="companies-progress-row">
-                                            <div class="companies-progress-track">
-                                                <span style="width: <?php echo (int)($intern['progress_pct'] ?? 0); ?>%"></span>
-                                            </div>
-                                            <div class="companies-progress-copy">
-                                                <span><?php echo (int)($intern['rendered_hours'] ?? 0); ?> / <?php echo (int)($intern['required_hours'] ?? 0); ?> hrs</span>
-                                                <strong><?php echo (int)($intern['progress_pct'] ?? 0); ?>%</strong>
-                                            </div>
-                                        </div>
-                                        <div class="companies-intern-actions">
-                                            <a href="students-view.php?id=<?php echo (int)($intern['student_record_id'] ?? 0); ?>" class="btn btn-sm btn-outline-primary">Student</a>
-                                            <a href="ojt-view.php?id=<?php echo (int)($intern['student_record_id'] ?? 0); ?>" class="btn btn-sm btn-outline-secondary">OJT</a>
-                                        </div>
-                                    </div>
-                                </article>
-                            <?php endforeach; ?>
+                    <?php if ($offices === []): ?>
+                        <div class="companies-empty-state companies-list-empty-state">
+                            <div class="companies-empty-icon"><i class="feather-map-pin"></i></div>
+                            <h6>No offices found</h6>
+                            <p class="mb-0">Create offices for internal OJT deployment.</p>
                         </div>
                     <?php else: ?>
-                        <div class="companies-empty-state">
-                            <h6>No office selected</h6>
-                            <p class="mb-0">Create or choose an office to view internal OJT students.</p>
+                        <div class="companies-list-scroll">
+                            <?php foreach ($offices as $office): ?>
+                                <?php
+                                $isActive = $selectedOffice && (int)$selectedOffice['id'] === (int)$office['id'];
+                                $officeHref = 'offices.php?office=' . (int)$office['id'];
+                                ?>
+                                <a href="<?php echo h($officeHref); ?>" class="companies-list-item<?php echo $isActive ? ' is-active' : ''; ?>">
+                                    <div class="companies-list-item-main">
+                                        <div class="companies-list-thumb">
+                                            <span><?php echo h(strtoupper(substr((string)$office['name'], 0, 2))); ?></span>
+                                        </div>
+                                        <div class="companies-list-item-copy">
+                                            <h6 class="mb-1"><?php echo h($office['name']); ?></h6>
+                                            <p class="mb-0"><?php echo h($office['supervisor_names'] ?: 'No supervisor assigned yet'); ?></p>
+                                        </div>
+                                        <span class="companies-list-count"><?php echo (int)($office['student_count'] ?? 0); ?></span>
+                                    </div>
+                                    <div class="companies-list-meta">
+                                        <span><?php echo (int)($office['student_count'] ?? 0); ?> ongoing</span>
+                                        <span><?php echo h($office['department_name'] ?: ($office['course_name'] ?: 'Any department')); ?></span>
+                                    </div>
+                                </a>
+                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
-                </div>
+                </aside>
+
+                <section class="companies-detail-panel">
+                    <?php if (!$selectedOffice): ?>
+                        <div class="companies-empty-state">
+                            <div class="companies-empty-icon"><i class="feather-map-pin"></i></div>
+                            <h6>Select an office</h6>
+                            <p class="mb-0">Choose an office from the list to view supervisor information and internal OJT students.</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="companies-detail-head">
+                            <div class="companies-detail-primary">
+                                <div class="companies-detail-thumb">
+                                    <span><?php echo h(strtoupper(substr((string)$selectedOffice['name'], 0, 2))); ?></span>
+                                </div>
+                                <div>
+                                    <h4 class="companies-detail-title mb-1"><?php echo h((string)$selectedOffice['name']); ?></h4>
+                                    <p class="companies-detail-subtitle mb-0"><?php echo h(trim((string)($selectedOffice['description'] ?? '')) !== '' ? (string)$selectedOffice['description'] : 'Internal OJT office'); ?></p>
+                                </div>
+                            </div>
+                            <div class="companies-detail-actions">
+                                <?php if ($canManageOffices): ?>
+                                    <a href="offices.php?edit=<?php echo (int)$selectedOffice['id']; ?>&office=<?php echo (int)$selectedOffice['id']; ?>" class="btn btn-outline-primary">
+                                        <i class="feather-edit-2 me-2"></i>
+                                        <span>Edit Office</span>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 companies-detail-grid">
+                            <div class="col-12 col-lg-4">
+                                <article class="companies-info-card h-100">
+                                    <h6 class="mb-3">Office Information</h6>
+                                    <dl class="companies-info-list mb-0">
+                                        <div>
+                                            <dt>Office</dt>
+                                            <dd><?php echo h((string)$selectedOffice['name']); ?></dd>
+                                        </div>
+                                        <div>
+                                            <dt>Code</dt>
+                                            <dd><?php echo h(trim((string)($selectedOffice['code'] ?? '')) !== '' ? (string)$selectedOffice['code'] : 'Not provided'); ?></dd>
+                                        </div>
+                                        <div>
+                                            <dt>Course</dt>
+                                            <dd><?php echo h((string)($selectedOffice['course_name'] ?: 'Any course')); ?></dd>
+                                        </div>
+                                        <div>
+                                            <dt>Department</dt>
+                                            <dd><?php echo h((string)($selectedOffice['department_name'] ?: 'Any department')); ?></dd>
+                                        </div>
+                                    </dl>
+                                    <hr>
+                                    <h6 class="mb-3">Supervisor Information</h6>
+                                    <dl class="companies-info-list mb-0">
+                                        <div>
+                                            <dt>Supervisor</dt>
+                                            <dd><?php echo h((string)($selectedOffice['supervisor_names'] ?: 'Not assigned')); ?></dd>
+                                        </div>
+                                        <div>
+                                            <dt>Assigned Students</dt>
+                                            <dd><?php echo (int)($selectedOffice['student_count'] ?? 0); ?> ongoing internal student(s)</dd>
+                                        </div>
+                                    </dl>
+                                </article>
+                            </div>
+                            <div class="col-12 col-lg-8">
+                                <article class="companies-intern-card h-100">
+                                    <div class="companies-intern-card-head">
+                                        <div>
+                                            <h6 class="mb-1">Internal Students</h6>
+                                            <p class="mb-0">Students whose latest ongoing internal OJT record is assigned to this office.</p>
+                                        </div>
+                                        <span class="companies-intern-count"><?php echo count($selectedOfficeInterns); ?> student(s)</span>
+                                    </div>
+
+                                    <?php if ($selectedOfficeInterns === []): ?>
+                                        <div class="companies-empty-state companies-intern-empty-state">
+                                            <div class="companies-empty-icon"><i class="feather-users"></i></div>
+                                            <h6>No ongoing internal students linked yet</h6>
+                                            <p class="mb-0">Assign this office from the student or OJT edit flow to populate this list.</p>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="companies-intern-list">
+                                            <?php foreach ($selectedOfficeInterns as $intern): ?>
+                                                <article class="companies-intern-item">
+                                                    <div class="companies-intern-primary">
+                                                        <div class="companies-intern-avatar">
+                                                            <?php if (!empty($intern['profile_url'])): ?>
+                                                                <img src="<?php echo h((string)$intern['profile_url']); ?>" alt="<?php echo h((string)$intern['display_name']); ?>">
+                                                            <?php else: ?>
+                                                                <span><?php echo h(strtoupper(substr((string)($intern['first_name'] ?? 'S'), 0, 1))); ?></span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                        <div class="companies-intern-copy">
+                                                            <div class="companies-intern-name-row">
+                                                                <h6 class="mb-0"><?php echo h((string)$intern['display_name']); ?></h6>
+                                                                <span class="companies-status-pill is-primary">Ongoing</span>
+                                                            </div>
+                                                            <p class="mb-0">
+                                                                <?php echo h((string)($intern['course_name'] ?? '-')); ?>
+                                                                <span class="companies-dot">|</span>
+                                                                <?php echo h((string)($intern['section_label'] ?? '-')); ?>
+                                                                <span class="companies-dot">|</span>
+                                                                Internal
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div class="companies-intern-meta">
+                                                        <div class="companies-intern-chip-row">
+                                                            <span class="companies-meta-chip"><?php echo h(trim((string)($intern['start_date'] ?? '')) !== '' ? date('M d, Y', strtotime((string)$intern['start_date'])) : 'Start date pending'); ?></span>
+                                                        </div>
+                                                        <div class="companies-progress-row">
+                                                            <div class="companies-progress-track">
+                                                                <span style="width: <?php echo (int)($intern['progress_pct'] ?? 0); ?>%"></span>
+                                                            </div>
+                                                            <div class="companies-progress-copy">
+                                                                <span><?php echo (int)($intern['rendered_hours'] ?? 0); ?> / <?php echo (int)($intern['required_hours'] ?? 0); ?> hrs</span>
+                                                                <strong><?php echo (int)($intern['progress_pct'] ?? 0); ?>%</strong>
+                                                            </div>
+                                                        </div>
+                                                        <div class="companies-intern-actions">
+                                                            <a href="students-view.php?id=<?php echo (int)($intern['student_record_id'] ?? 0); ?>" class="btn btn-sm btn-outline-primary">Student</a>
+                                                            <a href="ojt-view.php?id=<?php echo (int)($intern['student_record_id'] ?? 0); ?>" class="btn btn-sm btn-outline-secondary">OJT</a>
+                                                        </div>
+                                                    </div>
+                                                </article>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </article>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </section>
             </div>
         </div>
     </div>
