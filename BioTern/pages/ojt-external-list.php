@@ -26,6 +26,81 @@ if (!isset($conn) || !($conn instanceof mysqli)) {
     $conn->set_charset('utf8mb4');
 }
 
+function ojt_external_table_exists(mysqli $conn, string $table): bool
+{
+    $safe = $conn->real_escape_string($table);
+    $res = $conn->query("SHOW TABLES LIKE '{$safe}'");
+    $exists = $res instanceof mysqli_result && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+    return $exists;
+}
+
+function ojt_external_column_exists(mysqli $conn, string $table, string $column): bool
+{
+    $safeTable = $conn->real_escape_string($table);
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    $exists = $res instanceof mysqli_result && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+    return $exists;
+}
+
+function ojt_external_name_parts(string $name): array
+{
+    $name = trim(preg_replace('/\s+/', ' ', $name) ?? $name);
+    if ($name === '') {
+        return ['', '', ''];
+    }
+
+    if (strpos($name, ',') !== false) {
+        [$last, $rest] = array_pad(array_map('trim', explode(',', $name, 2)), 2, '');
+        $parts = preg_split('/\s+/', $rest, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $first = array_shift($parts) ?? '';
+        return [$last, $first, implode(' ', $parts)];
+    }
+
+    $parts = preg_split('/\s+/', $name, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    $last = count($parts) > 1 ? (string)array_pop($parts) : '';
+    return [$last, implode(' ', $parts), ''];
+}
+
+function ojt_external_course_prefix(string $value): string
+{
+    $value = strtoupper(trim($value));
+    if ($value === '') {
+        return '';
+    }
+    $value = preg_replace('/\s+/', ' ', $value) ?? $value;
+    if (strpos($value, '|') !== false) {
+        $value = trim((string)strtok($value, '|'));
+    }
+    if (strpos($value, '-') !== false) {
+        $value = trim((string)strtok($value, '-'));
+    }
+    return preg_replace('/[^A-Z0-9]+/', '', $value) ?? '';
+}
+
+function ojt_external_course_acronym(string $name): string
+{
+    $name = strtoupper(trim($name));
+    if ($name === '') {
+        return '';
+    }
+    $skip = ['IN', 'OF', 'AND', 'THE', 'A', 'AN'];
+    $letters = '';
+    foreach (preg_split('/[^A-Z0-9]+/', $name, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
+        if (in_array($word, $skip, true)) {
+            continue;
+        }
+        $letters .= substr($word, 0, 1);
+    }
+    return $letters;
+}
+
 $conn->query("CREATE TABLE IF NOT EXISTS ojt_external (
     student_no VARCHAR(100) NOT NULL,
     user_id INT NULL,
@@ -81,6 +156,65 @@ if ($sectionRes instanceof mysqli_result) {
 }
 
 $rows = [];
+$hasMasterlist = ojt_external_table_exists($conn, 'ojt_masterlist');
+if ($hasMasterlist && !ojt_external_column_exists($conn, 'ojt_masterlist', 'student_no')) {
+    $conn->query("ALTER TABLE ojt_masterlist ADD COLUMN student_no VARCHAR(100) DEFAULT NULL AFTER semester");
+}
+$hasMasterlist = $hasMasterlist && ojt_external_column_exists($conn, 'ojt_masterlist', 'student_no');
+
+if ($hasMasterlist) {
+    $representativePositionSelect = ojt_external_column_exists($conn, 'ojt_masterlist', 'company_representative_position')
+        ? "COALESCE(ml.company_representative_position, '') AS company_representative_position,"
+        : "'' AS company_representative_position,";
+    $masterlistSql = "
+        SELECT
+            COALESCE(ml.student_no, '') AS student_no,
+            NULL AS ojt_user_id,
+            COALESCE(ml.student_name, '') AS master_student_name,
+            COALESCE(ml.contact_no, '') AS ojt_email,
+            COALESCE(NULLIF(ml.status, ''), 'External') AS ojt_status,
+            ml.created_at AS ojt_created_at,
+            s.id AS student_row_id,
+            s.user_id AS student_user_id,
+            s.student_id,
+            s.status AS students_status,
+            COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'external') AS assignment_track,
+            COALESCE(NULLIF(TRIM(ml.school_year), ''), NULLIF(TRIM(s.school_year), ''), '') AS school_year,
+            COALESCE(NULLIF(TRIM(ml.semester), ''), NULLIF(TRIM(s.semester), ''), '') AS semester,
+            s.created_at AS students_created_at,
+            COALESCE(u.name, ml.student_name) AS account_name,
+            COALESCE(c.name, 'Masterlist') AS course_name,
+            COALESCE(NULLIF(ml.section, ''), NULLIF(sec.code, ''), sec.name, 'N/A') AS section_name,
+            COALESCE(s.course_id, 0) AS resolved_course_id,
+            COALESCE(s.section_id, 0) AS resolved_section_id,
+            COALESCE(ml.company_name, '') AS company_name,
+            COALESCE(ml.company_address, '') AS company_address,
+            COALESCE(ml.supervisor_name, '') AS supervisor_name,
+            COALESCE(ml.supervisor_position, '') AS supervisor_position,
+            COALESCE(ml.company_representative, '') AS company_representative,
+            {$representativePositionSelect}
+            'masterlist' AS row_source
+        FROM ojt_masterlist ml
+        LEFT JOIN students s ON TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci = TRIM(COALESCE(ml.student_no, '')) COLLATE utf8mb4_unicode_ci
+        LEFT JOIN users u ON u.id = s.user_id
+        LEFT JOIN courses c ON c.id = s.course_id
+        LEFT JOIN sections sec ON sec.id = s.section_id
+        WHERE TRIM(COALESCE(ml.company_name, '')) <> ''
+        ORDER BY ml.section ASC, ml.student_name ASC, ml.id ASC
+    ";
+    $masterlistRes = $conn->query($masterlistSql);
+    if ($masterlistRes instanceof mysqli_result) {
+        while ($row = $masterlistRes->fetch_assoc()) {
+            [$lastName, $firstName, $middleName] = ojt_external_name_parts((string)($row['master_student_name'] ?? ''));
+            $row['last_name'] = $lastName;
+            $row['first_name'] = $firstName;
+            $row['middle_name'] = $middleName;
+            $rows[] = $row;
+        }
+        $masterlistRes->close();
+    }
+}
+
 $sql = "
     SELECT
         oe.student_no,
@@ -103,7 +237,14 @@ $sql = "
         COALESCE(c1.name, c2.name, 'N/A') AS course_name,
         COALESCE(NULLIF(sec1.code, ''), sec1.name, NULLIF(sec2.code, ''), sec2.name, 'N/A') AS section_name,
         COALESCE(oe.course_id, s.course_id, 0) AS resolved_course_id,
-        COALESCE(oe.section_id, s.section_id, 0) AS resolved_section_id
+        COALESCE(oe.section_id, s.section_id, 0) AS resolved_section_id,
+        '' AS company_name,
+        '' AS company_address,
+        '' AS supervisor_name,
+        '' AS supervisor_position,
+        '' AS company_representative,
+        '' AS company_representative_position,
+        'legacy' AS row_source
     FROM ojt_external oe
     LEFT JOIN students s ON TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci = TRIM(COALESCE(oe.student_no, '')) COLLATE utf8mb4_unicode_ci
     LEFT JOIN users u ON u.id = COALESCE(NULLIF(oe.user_id, 0), s.user_id)
@@ -143,7 +284,14 @@ $studentsOnlySql = "
         COALESCE(c.name, 'N/A') AS course_name,
         COALESCE(NULLIF(sec.code, ''), sec.name, 'N/A') AS section_name,
         COALESCE(s.course_id, 0) AS resolved_course_id,
-        COALESCE(s.section_id, 0) AS resolved_section_id
+        COALESCE(s.section_id, 0) AS resolved_section_id,
+        '' AS company_name,
+        '' AS company_address,
+        '' AS supervisor_name,
+        '' AS supervisor_position,
+        '' AS company_representative,
+        '' AS company_representative_position,
+        'registered' AS row_source
     FROM students s
     LEFT JOIN ojt_external oe_match ON TRIM(COALESCE(oe_match.student_no, '')) COLLATE utf8mb4_unicode_ci = TRIM(COALESCE(s.student_id, '')) COLLATE utf8mb4_unicode_ci
     LEFT JOIN users u ON u.id = s.user_id
@@ -164,16 +312,38 @@ if ($studentsOnlyRes instanceof mysqli_result) {
 $normalizedRows = [];
 $seenRowKeys = [];
 foreach ($rows as $row) {
-    $rowKey = strtolower(trim((string)($row['student_no'] ?? ''))) . '|' . (int)($row['student_row_id'] ?? 0);
+    $rowKey = strtolower(trim((string)($row['student_no'] ?? '')));
+    if ($rowKey === '') {
+        $rowKey = strtolower(trim((string)($row['master_student_name'] ?? ''))) . '|' . (string)($row['row_source'] ?? '');
+    }
     if (isset($seenRowKeys[$rowKey])) {
         continue;
     }
     $seenRowKeys[$rowKey] = true;
+    if ((int)($row['resolved_course_id'] ?? 0) <= 0) {
+        $sectionPrefix = ojt_external_course_prefix((string)($row['section_name'] ?? ''));
+        foreach ($courses as $course) {
+            if ($sectionPrefix !== '' && $sectionPrefix === ojt_external_course_acronym((string)($course['name'] ?? ''))) {
+                $row['resolved_course_id'] = (int)($course['id'] ?? 0);
+                $row['course_name'] = (string)($course['name'] ?? $row['course_name'] ?? 'Masterlist');
+                break;
+            }
+        }
+    }
     if ($filterCourseId > 0 && (int)($row['resolved_course_id'] ?? 0) !== $filterCourseId) {
         continue;
     }
     if ($filterSectionId > 0 && (int)($row['resolved_section_id'] ?? 0) !== $filterSectionId) {
-        continue;
+        $selectedSectionLabel = '';
+        foreach ($sections as $section) {
+            if ((int)($section['id'] ?? 0) === $filterSectionId) {
+                $selectedSectionLabel = (string)($section['section_label'] ?? '');
+                break;
+            }
+        }
+        if ($selectedSectionLabel === '' || strcasecmp(trim((string)($row['section_name'] ?? '')), $selectedSectionLabel) !== 0) {
+            continue;
+        }
     }
     if ($filterSchoolYear !== '' && strcasecmp(trim((string)($row['school_year'] ?? '')), $filterSchoolYear) !== 0) {
         continue;
@@ -189,6 +359,8 @@ foreach ($rows as $row) {
             (string)($row['middle_name'] ?? ''),
             (string)($row['ojt_email'] ?? ''),
             (string)($row['account_name'] ?? ''),
+            (string)($row['company_name'] ?? ''),
+            (string)($row['supervisor_name'] ?? ''),
         ])));
         if (strpos($haystack, strtolower($search)) === false) {
             continue;
@@ -399,8 +571,16 @@ ob_end_flush();
                                 </tr>
                             <?php else: ?>
                                 <?php foreach ($rows as $row): ?>
-                                    <?php $externalViewHref = 'ojt-external-view.php?id=' . (int)($row['student_row_id'] ?? 0) . '&student_no=' . rawurlencode((string)($row['student_no'] ?? '')); ?>
-                                    <tr data-ojt-external-row-id="<?php echo (int)($row['student_row_id'] ?? 0); ?>" data-ojt-external-row-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-label="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-course="<?php echo htmlspecialchars((string)($row['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-section="<?php echo htmlspecialchars(biotern_format_section_code((string)($row['section_name'] ?? 'N/A')), ENT_QUOTES, 'UTF-8'); ?>" data-print-student-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-name="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>" data-print-course-section="<?php echo htmlspecialchars(trim((string)($row['course_name'] ?? 'N/A') . ' / ' . biotern_format_section_code((string)($row['section_name'] ?? 'N/A'))), ENT_QUOTES, 'UTF-8'); ?>" data-print-status="<?php echo htmlspecialchars(ucfirst((string)($row['ojt_status'] ?? 'External')), ENT_QUOTES, 'UTF-8'); ?>" data-row-href="<?php echo htmlspecialchars($externalViewHref, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <?php
+                                    $externalViewHref = 'ojt-external-view.php?id=' . (int)($row['student_row_id'] ?? 0) . '&student_no=' . rawurlencode((string)($row['student_no'] ?? ''));
+                                    $externalDisplayName = trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? ''));
+                                    if ($externalDisplayName === ',' || $externalDisplayName === '') {
+                                        $externalDisplayName = trim((string)($row['master_student_name'] ?? ''));
+                                    }
+                                    $externalCompany = trim((string)($row['company_name'] ?? ''));
+                                    $externalCourseSection = trim((string)($row['course_name'] ?? 'N/A') . ' / ' . biotern_format_section_code((string)($row['section_name'] ?? 'N/A')) . ($externalCompany !== '' ? ' / ' . $externalCompany : ''));
+                                    ?>
+                                    <tr data-ojt-external-row-id="<?php echo (int)($row['student_row_id'] ?? 0); ?>" data-ojt-external-row-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-label="<?php echo htmlspecialchars($externalDisplayName, ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-course="<?php echo htmlspecialchars((string)($row['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?>" data-ojt-external-row-section="<?php echo htmlspecialchars(biotern_format_section_code((string)($row['section_name'] ?? 'N/A')), ENT_QUOTES, 'UTF-8'); ?>" data-print-student-no="<?php echo htmlspecialchars((string)($row['student_no'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-print-name="<?php echo htmlspecialchars($externalDisplayName, ENT_QUOTES, 'UTF-8'); ?>" data-print-course-section="<?php echo htmlspecialchars($externalCourseSection, ENT_QUOTES, 'UTF-8'); ?>" data-print-status="<?php echo htmlspecialchars(ucfirst((string)($row['ojt_status'] ?? 'External')), ENT_QUOTES, 'UTF-8'); ?>" data-row-href="<?php echo htmlspecialchars($externalViewHref, ENT_QUOTES, 'UTF-8'); ?>">
                                         <td class="app-ojt-select-column" data-label="Select" data-print-exclude="1">
                                             <div class="form-check app-ojt-select-check">
                                                 <input class="form-check-input" type="checkbox" data-ojt-row-select aria-label="Select student <?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?>">
@@ -408,17 +588,24 @@ ob_end_flush();
                                         </td>
                                         <td data-label="Student No"><?php echo htmlspecialchars((string)$row['student_no'], ENT_QUOTES, 'UTF-8'); ?></td>
                                         <td data-label="Name">
-                                            <div class="fw-semibold"><?php echo htmlspecialchars(trim((string)$row['last_name'] . ', ' . (string)$row['first_name'] . ' ' . (string)$row['middle_name']), ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="fw-semibold"><?php echo htmlspecialchars($externalDisplayName, ENT_QUOTES, 'UTF-8'); ?></div>
                                             <small class="text-muted"><?php echo htmlspecialchars((string)($row['ojt_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></small>
                                         </td>
                                         <td data-label="Course / Section">
                                             <div><?php echo htmlspecialchars((string)($row['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></div>
                                             <small class="text-muted"><?php echo htmlspecialchars(biotern_format_section_code((string)($row['section_name'] ?? 'N/A')), ENT_QUOTES, 'UTF-8'); ?></small>
+                                            <?php if ($externalCompany !== ''): ?>
+                                                <div><small class="text-muted"><?php echo htmlspecialchars($externalCompany, ENT_QUOTES, 'UTF-8'); ?></small></div>
+                                            <?php endif; ?>
                                         </td>
                                         <td data-label="Account">
-                                            <div class="fw-semibold"><?php echo htmlspecialchars((string)($row['account_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></div>
                                             <?php $externalUserId = (int)($row['student_user_id'] ?: $row['ojt_user_id']); ?>
-                                            <small class="text-muted">User ID: <?php echo $externalUserId; ?></small>
+                                            <?php if ($externalUserId > 0): ?>
+                                                <div class="fw-semibold"><?php echo htmlspecialchars((string)($row['account_name'] ?? 'Linked Account'), ENT_QUOTES, 'UTF-8'); ?></div>
+                                                <small class="text-muted">User ID: <?php echo $externalUserId; ?></small>
+                                            <?php else: ?>
+                                                <span class="badge bg-soft-warning text-warning">Not Linked Yet</span>
+                                            <?php endif; ?>
                                         </td>
                                         <td data-label="Status">
                                             <span class="badge bg-soft-info text-info"><?php echo htmlspecialchars(ucfirst((string)($row['ojt_status'] ?? 'External')), ENT_QUOTES, 'UTF-8'); ?></span>
@@ -432,7 +619,7 @@ ob_end_flush();
                                                     data-bs-target="#ojtExternalActionModal"
                                                     data-ojt-external-action-trigger
                                                     data-ojt-row-href="<?php echo htmlspecialchars($externalViewHref, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    data-ojt-student-label="<?php echo htmlspecialchars(trim((string)($row['last_name'] ?? '') . ', ' . (string)($row['first_name'] ?? '') . ' ' . (string)($row['middle_name'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>"
+                                                    data-ojt-student-label="<?php echo htmlspecialchars($externalDisplayName, ENT_QUOTES, 'UTF-8'); ?>"
                                                 >
                                                     Actions
                                                 </button>

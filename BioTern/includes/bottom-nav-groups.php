@@ -87,7 +87,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'key' => 'student-documents',
                 'label' => 'Documents',
                 'icon' => 'feather-file-text',
-                'routes' => ['student-documents.php', 'document_application.php', 'document_endorsement.php', 'document_moa.php', 'document_dau_moa.php', 'document_parent_consent.php', 'generate_resume.php'],
+                'routes' => ['student-documents.php', 'document_application.php', 'document_endorsement.php', 'document_moa.php', 'document_dau_moa.php', 'document_parent_consent.php', 'document_certificate.php', 'generate_resume.php'],
                 'sections' => [
                     [
                         'title' => 'Documents',
@@ -110,11 +110,11 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'student-assistance.php',
                     'fingerprint_mapping.php', 'biometric-fleet.php', 'biometric-machine.php', 'biometric_machine_sync.php',
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
-                    'companies.php', 'ojt-internal-list.php', 'ojt-external-list.php',
+                    'companies.php', 'ojt-internal-list.php', 'ojt-internal-masterlist.php', 'ojt-external-list.php',
                     'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-hours-completion.php',
                     'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
                     'reports-unassigned-students.php', 'reports-document.php',
-                    'document_application.php', 'document_endorsement.php', 'document_moa.php', 'document_dau_moa.php', 'document_parent_consent.php',
+                    'document_application.php', 'document_endorsement.php', 'document_moa.php', 'document_dau_moa.php', 'document_parent_consent.php', 'document_certificate.php',
                 ],
                 'sections' => [
                     [
@@ -144,6 +144,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'OJT Create', 'href' => 'ojt-create.php', 'icon' => 'feather-plus-circle'],
                             ['label' => 'Companies', 'href' => 'companies.php', 'icon' => 'feather-map-pin'],
                             ['label' => 'Internal List', 'href' => 'ojt-internal-list.php', 'icon' => 'feather-list'],
+                            ['label' => 'Internal Masterlist', 'href' => 'ojt-internal-masterlist.php', 'icon' => 'feather-list'],
                             ['label' => 'External List', 'href' => 'ojt-external-list.php', 'icon' => 'feather-list'],
                         ],
                     ],
@@ -155,6 +156,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'MOA', 'href' => 'document_moa.php', 'icon' => 'feather-file-text'],
                             ['label' => 'DAU MOA', 'href' => 'document_dau_moa.php', 'icon' => 'feather-file-text'],
                             ['label' => 'Parent Consent', 'href' => 'document_parent_consent.php', 'icon' => 'feather-file-text'],
+                            ['label' => 'Certificate of Completion', 'href' => 'document_certificate.php', 'icon' => 'feather-award'],
                         ],
                     ],
                     [
