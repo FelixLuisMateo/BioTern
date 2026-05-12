@@ -21,6 +21,13 @@ $error = '';
 $message = '';
 $approvedFromEmail = (isset($_GET['approve']) && (string)$_GET['approve'] === '1');
 
+function auth_register_verify_users_has_column(mysqli $conn, string $column): bool
+{
+    $safeColumn = $conn->real_escape_string($column);
+    $res = $conn->query("SHOW COLUMNS FROM users LIKE '{$safeColumn}'");
+    return $res instanceof mysqli_result && $res->num_rows > 0;
+}
+
 if ($loginToken !== '' && $conn instanceof mysqli && !$conn->connect_errno) {
     $record = biotern_login_email_verify_load($conn, $loginToken);
     if (is_array($record)) {
@@ -130,7 +137,9 @@ if ($approvedFromEmail && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     if ($expiresAt <= time()) {
         $error = 'This verification link has expired. Please resend a new verification email.';
     } else {
-        $conn->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at DATETIME NULL");
+        if (!auth_register_verify_users_has_column($conn, 'email_verified_at')) {
+            $conn->query("ALTER TABLE users ADD COLUMN email_verified_at DATETIME NULL");
+        }
         $verifyStmt = $conn->prepare("UPDATE users SET email_verified_at = NOW() WHERE id = ? LIMIT 1");
         if ($verifyStmt) {
             $verifyStmt->bind_param('i', $userId);

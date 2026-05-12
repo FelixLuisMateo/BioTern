@@ -198,6 +198,26 @@ function login_logs_has_column(mysqli $mysqli, string $column): bool
     return $res && $res->num_rows > 0;
 }
 
+function auth_login_table_has_column(mysqli $mysqli, string $table, string $column): bool
+{
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+        return false;
+    }
+    $safeColumn = $mysqli->real_escape_string($column);
+    $res = $mysqli->query("SHOW COLUMNS FROM `{$table}` LIKE '{$safeColumn}'");
+    return $res instanceof mysqli_result && $res->num_rows > 0;
+}
+
+function auth_login_ensure_table_column(mysqli $mysqli, string $table, string $column, string $definition): void
+{
+    if (!preg_match('/^[A-Za-z0-9_]+$/', $table) || !preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+        return;
+    }
+    if (!auth_login_table_has_column($mysqli, $table, $column)) {
+        $mysqli->query("ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}");
+    }
+}
+
 function ensure_login_logs_schema(mysqli $mysqli): bool
 {
     static $initialized = false;
@@ -394,13 +414,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $login_error = 'Database connection failed.';
             error_log('BioTern login DB connect failed. host=' . $dbHost . ' db=' . $dbName . ' port=' . $dbPort . ' error=' . $mysqli->connect_error);
         } else {
-            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
-            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS application_submitted_at DATETIME NULL");
-            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_by INT NULL");
-            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_at DATETIME NULL");
-            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS rejected_at DATETIME NULL");
-            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_notes VARCHAR(255) NULL");
-            $mysqli->query("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at DATETIME NULL");
+            auth_login_ensure_table_column($mysqli, 'users', 'application_status', "ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'");
+            auth_login_ensure_table_column($mysqli, 'users', 'application_submitted_at', 'DATETIME NULL');
+            auth_login_ensure_table_column($mysqli, 'users', 'approved_by', 'INT NULL');
+            auth_login_ensure_table_column($mysqli, 'users', 'approved_at', 'DATETIME NULL');
+            auth_login_ensure_table_column($mysqli, 'users', 'rejected_at', 'DATETIME NULL');
+            auth_login_ensure_table_column($mysqli, 'users', 'approval_notes', 'VARCHAR(255) NULL');
+            auth_login_ensure_table_column($mysqli, 'users', 'email_verified_at', 'DATETIME NULL');
 
             ensure_login_logs_schema($mysqli);
             biotern_login_email_verify_ensure_table($mysqli);

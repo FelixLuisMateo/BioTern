@@ -259,8 +259,21 @@ function machine_ensure_ingest_events_table(mysqli $conn): void
         KEY idx_token_status (token_status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    $conn->query("ALTER TABLE biometric_ingest_events ADD COLUMN IF NOT EXISTS source_node VARCHAR(120) DEFAULT '' AFTER source_ip");
-    $conn->query("CREATE INDEX IF NOT EXISTS idx_source_node ON biometric_ingest_events (source_node)");
+    $sourceNodeColumn = $conn->query("SHOW COLUMNS FROM biometric_ingest_events LIKE 'source_node'");
+    if (!($sourceNodeColumn instanceof mysqli_result) || $sourceNodeColumn->num_rows === 0) {
+        $conn->query("ALTER TABLE biometric_ingest_events ADD COLUMN source_node VARCHAR(120) DEFAULT '' AFTER source_ip");
+    }
+    if ($sourceNodeColumn instanceof mysqli_result) {
+        $sourceNodeColumn->close();
+    }
+
+    $sourceNodeIndex = $conn->query("SHOW INDEX FROM biometric_ingest_events WHERE Key_name = 'idx_source_node'");
+    if (!($sourceNodeIndex instanceof mysqli_result) || $sourceNodeIndex->num_rows === 0) {
+        $conn->query("CREATE INDEX idx_source_node ON biometric_ingest_events (source_node)");
+    }
+    if ($sourceNodeIndex instanceof mysqli_result) {
+        $sourceNodeIndex->close();
+    }
 }
 
 function machine_fetch_ingest_health(mysqli $conn): array
