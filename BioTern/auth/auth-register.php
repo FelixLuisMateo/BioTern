@@ -363,6 +363,10 @@ if (isset($_GET['registered'])) {
 
                         <!-- STUDENT REGISTRATION FORM -->
                         <form id="studentForm" class="w-100 mt-4 pt-2 show-form" action="" method="post" autocomplete="off" novalidate>
+                            <div class="visually-hidden" aria-hidden="true">
+                                <input type="text" name="fake_student_username" tabindex="-1" autocomplete="username">
+                                <input type="password" name="fake_student_password" tabindex="-1" autocomplete="current-password">
+                            </div>
                             <input type="hidden" name="role" value="student">
                             <div class="form-section">
                                 <h3 class="fs-18 fw-bold mb-3">Student Application</h3>
@@ -384,22 +388,22 @@ if (isset($_GET['registered'])) {
                                 <h5 class="fs-14 fw-bold mb-3">Personal Information</h5>
                                 <div class="row g-3 register-field-grid register-field-grid-halves register-identity-grid">
                                     <div class="col-12 col-md-6 mb-2">
-                                        <input type="text" name="student_id" class="form-control register-field-input" placeholder="School ID Number" autocomplete="off" required pattern="^05-[0-9]{4,5}$" maxlength="8" title="Use format 05-1234 or 05-12345" value="05-">
+                                        <input type="text" name="student_id" class="form-control register-field-input" placeholder="School ID Number" autocomplete="off" autocapitalize="off" spellcheck="false" required pattern="^05-[0-9]{4,5}$" maxlength="8" title="Use format 05-1234 or 05-12345" value="05-">
                                     </div>
                                     <div class="col-12 col-md-6 mb-2">
-                                        <input type="text" name="first_name" class="form-control register-field-input" placeholder="First name" autocomplete="given-name" required>
+                                        <input type="text" name="first_name" class="form-control register-field-input" placeholder="First name" autocomplete="off" autocapitalize="words" spellcheck="false" required>
                                     </div>
                                     <div class="col-12 col-md-6 mb-2">
-                                        <input type="text" name="middle_name" class="form-control register-field-input" placeholder="Middle name" autocomplete="additional-name">
+                                        <input type="text" name="middle_name" class="form-control register-field-input" placeholder="Middle name" autocomplete="off" autocapitalize="words" spellcheck="false">
                                     </div>
                                     <div class="col-12 col-md-6 mb-2">
-                                        <input type="text" name="last_name" class="form-control register-field-input" placeholder="Last name" autocomplete="family-name" required>
+                                        <input type="text" name="last_name" class="form-control register-field-input" placeholder="Last name" autocomplete="off" autocapitalize="words" spellcheck="false" required>
                                     </div>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-12 mb-2">
                                         <label class="form-label fs-12 mb-1" for="studentStreetAddress">Current Address</label>
-                                        <input type="text" id="studentStreetAddress" class="form-control" placeholder="Street / House No. " autocomplete="street-address" data-no-floating="1">
+                                        <input type="text" id="studentStreetAddress" class="form-control" placeholder="Street / House No. " autocomplete="off" data-no-floating="1">
                                         <input type="hidden" name="address" id="studentAddress">
                                     </div>
                                 </div>

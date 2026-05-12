@@ -16,7 +16,10 @@ const registerDataEl = document.getElementById("registerData");
 const courseDepartmentMap = parseJSONDataset(registerDataEl, "courseMap", {});
 const sectionRecords = parseJSONDataset(registerDataEl, "sectionRecords", []);
 const departmentRecords = parseJSONDataset(registerDataEl, "departments", []);
-const studentDraftStorageKey = 'biotern.studentDraft.v1.' + window.location.pathname;
+const studentDraftStorageKey = 'biotern.studentDraft.v2.' + window.location.pathname;
+const legacyStudentDraftStorageKeys = [
+    'biotern.studentDraft.v1.' + window.location.pathname
+];
 let customSelectRefreshQueued = false;
 
 function refreshCustomSelectDropdown() {
@@ -595,6 +598,9 @@ function setupFloatingTextFields() {
         function clearStudentDraft() {
             try {
                 localStorage.removeItem(studentDraftStorageKey);
+                legacyStudentDraftStorageKeys.forEach(function(key) {
+                    localStorage.removeItem(key);
+                });
             } catch (err) {
                 // ignore localStorage errors
             }
@@ -678,6 +684,14 @@ function setupFloatingTextFields() {
                 return;
             }
 
+            legacyStudentDraftStorageKeys.forEach(function(key) {
+                try {
+                    localStorage.removeItem(key);
+                } catch (err) {
+                    // ignore localStorage errors
+                }
+            });
+
             form.addEventListener('input', saveStudentDraft);
             form.addEventListener('change', saveStudentDraft);
             form.addEventListener('click', function(e) {
@@ -689,7 +703,6 @@ function setupFloatingTextFields() {
 
             form.dataset.draftBound = '1';
             restoreStudentDraft();
-            saveStudentDraft();
         }
 
         function setupStudentFinalReview() {
@@ -808,7 +821,7 @@ function setupFloatingTextFields() {
 
             confirmBtn.addEventListener('click', function() {
                 confirmed = true;
-                saveStudentDraft();
+                clearStudentDraft();
                 submitAfterHide = true;
                 reviewModal.hide();
             });
