@@ -182,6 +182,92 @@ if (!function_exists('biotern_avatar_has_db_picture')) {
     }
 }
 
+if (!function_exists('biotern_avatar_save_db_picture')) {
+    function biotern_avatar_save_db_picture(mysqli $conn, int $userId, string $mime, string $binary): bool
+    {
+        if ($userId <= 0 || $binary === '') {
+            return false;
+        }
+
+        $mime = trim($mime) !== '' ? trim($mime) : 'image/png';
+        $created = $conn->query("CREATE TABLE IF NOT EXISTS user_profile_pictures (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id INT UNSIGNED NOT NULL,
+            image_mime VARCHAR(64) NOT NULL,
+            image_data LONGBLOB NOT NULL,
+            image_size INT UNSIGNED NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_user_profile_picture (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        if (!$created) {
+            return false;
+        }
+
+        $size = strlen($binary);
+        $stmt = $conn->prepare("INSERT INTO user_profile_pictures (user_id, image_mime, image_data, image_size, created_at, updated_at)
+            VALUES (?, ?, ?, ?, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE image_mime = VALUES(image_mime), image_data = VALUES(image_data), image_size = VALUES(image_size), updated_at = NOW()");
+        if (!$stmt) {
+            return false;
+        }
+
+        $null = null;
+        $stmt->bind_param('isbi', $userId, $mime, $null, $size);
+        $stmt->send_long_data(2, $binary);
+        $ok = $stmt->execute();
+        $stmt->close();
+
+        return (bool)$ok;
+    }
+}
+
+if (!function_exists('biotern_avatar_sync_profile_path')) {
+    function biotern_avatar_sync_profile_path(mysqli $conn, int $userId, string $profilePath): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+
+        $normalized = biotern_avatar_normalize_path($profilePath);
+        $storedPath = $normalized;
+        $absolutePath = $normalized !== '' ? dirname(__DIR__) . '/' . $normalized : '';
+
+        if ($absolutePath !== '' && is_file($absolutePath)) {
+            $binary = @file_get_contents($absolutePath);
+            $mime = '';
+            if (is_string($binary) && $binary !== '') {
+                if (function_exists('finfo_open')) {
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    if ($finfo) {
+                        $mime = (string)finfo_file($finfo, $absolutePath);
+                    }
+                }
+                if ($mime === '') {
+                    $info = @getimagesize($absolutePath);
+                    if (is_array($info) && !empty($info['mime'])) {
+                        $mime = (string)$info['mime'];
+                    }
+                }
+                if (biotern_avatar_save_db_picture($conn, $userId, $mime, $binary)) {
+                    $storedPath = 'db-avatar';
+                }
+            }
+        }
+
+        $stmt = $conn->prepare('UPDATE users SET profile_picture = ?, updated_at = NOW() WHERE id = ? LIMIT 1');
+        if (!$stmt) {
+            return false;
+        }
+        $stmt->bind_param('si', $storedPath, $userId);
+        $ok = $stmt->execute();
+        $stmt->close();
+
+        return (bool)$ok;
+    }
+}
+
 if (!function_exists('biotern_avatar_public_src')) {
     function biotern_avatar_public_src(string $rawPath, int $userId = 0): string
     {

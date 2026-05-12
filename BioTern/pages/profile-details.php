@@ -152,9 +152,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         $oldPath = biotern_avatar_normalize_path((string)($user['profile_picture'] ?? ''));
                         biotern_avatar_sync_profile_path($conn, $userId, $destRel);
+                        $freshPath = 'db-avatar';
+                        $freshStmt = $conn->prepare('SELECT profile_picture FROM users WHERE id = ? LIMIT 1');
+                        if ($freshStmt) {
+                            $freshStmt->bind_param('i', $userId);
+                            $freshStmt->execute();
+                            $freshRow = $freshStmt->get_result()->fetch_assoc() ?: null;
+                            $freshStmt->close();
+                            $freshPath = trim((string)($freshRow['profile_picture'] ?? $freshPath));
+                        }
 
-                        $_SESSION['profile_picture'] = $destRel;
-                        $user['profile_picture'] = $destRel;
+                        $_SESSION['profile_picture'] = $freshPath !== '' ? $freshPath : $destRel;
+                        $user['profile_picture'] = $_SESSION['profile_picture'];
                         $profile_flash_message = 'Profile picture updated successfully.';
                         $profile_flash_type = 'success';
 
