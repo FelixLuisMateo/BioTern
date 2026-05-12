@@ -277,7 +277,7 @@ include __DIR__ . '/../includes/header.php';
         aspect-ratio: 297 / 210;
         min-height: 0;
         margin: 0 auto;
-        padding: clamp(24px, 3.2vw, 34px) clamp(48px, 6vw, 70px) clamp(24px, 3.2vw, 32px);
+        padding: clamp(14px, 2vw, 22px) clamp(48px, 6vw, 70px) clamp(24px, 3.2vw, 32px);
         background:
             radial-gradient(circle at 50% 50%, rgba(255, 251, 237, 0.95) 0 42%, rgba(249, 239, 212, 0.88) 100%),
             #fff7df;
@@ -333,7 +333,7 @@ include __DIR__ . '/../includes/header.php';
         width: 66px;
         height: 66px;
         object-fit: contain;
-        margin: -4px 0 5px;
+        margin: -10px 0 4px;
     }
     .certificate-school {
         font-family: Arial, sans-serif;
@@ -550,7 +550,7 @@ include __DIR__ . '/../includes/header.php';
             max-height: none !important;
             aspect-ratio: auto !important;
             margin: 0 !important;
-            padding: 4.8% 6.8% 4.3% !important;
+            padding: 1.2% 6.8% 4.3% !important;
             border: 0 !important;
             border-radius: 0 !important;
             box-shadow: none !important;
@@ -562,21 +562,24 @@ include __DIR__ . '/../includes/header.php';
         .certificate-content {
             max-width: 850px !important;
             height: 100% !important;
-            align-content: center !important;
+            align-content: start !important;
+            padding-top: 2px !important;
         }
         .certificate-logo {
-            width: 66px !important;
-            height: 66px !important;
-            margin: -4px 0 5px !important;
+            width: 78px !important;
+            height: 78px !important;
+            margin: 0 0 6px !important;
         }
         .certificate-school {
-            font-size: 17px !important;
+            font-size: 21px !important;
+            letter-spacing: .07em !important;
         }
         .certificate-school-subtitle {
-            font-size: 12px !important;
+            font-size: 14px !important;
+            margin-top: 2px !important;
         }
         .certificate-title {
-            margin-top: 10px !important;
+            margin-top: 30px !important;
             padding: 0 64px !important;
             font-size: 64px !important;
         }
@@ -626,7 +629,8 @@ include __DIR__ . '/../includes/header.php';
         .certificate-seal {
             width: 76px !important;
             height: 76px !important;
-            bottom: 64px !important;
+            bottom: 92px !important;
+            pointer-events: none !important;
         }
         .certificate-seal::before,
         .certificate-seal::after {
