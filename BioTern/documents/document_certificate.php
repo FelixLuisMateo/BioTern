@@ -106,6 +106,15 @@ function certificate_scope_sql(mysqli $conn, string $role, int $userId): string
 }
 
 $scopeSql = certificate_scope_sql($conn, $currentRole, $currentUserId);
+$externalCompletionSql = "
+    LOWER(TRIM(COALESCE(s.assignment_track, ''))) = 'external'
+    AND (
+        LOWER(TRIM(COALESCE(i.status, ''))) IN ('completed', 'finished')
+        OR COALESCE(i.completion_percentage, 0) >= 100
+        OR COALESCE(ea_stats.approved_hours, i.rendered_hours, 0) >= COALESCE(NULLIF(i.required_hours, 0), NULLIF(s.external_total_hours, 0), 250)
+        OR COALESCE(s.external_total_hours_remaining, 999999) <= 0
+    )
+";
 $certificate = null;
 $eligibleStudents = [];
 $error = '';
@@ -126,8 +135,13 @@ if ($selectedStudentId > 0) {
             i.position,
             i.start_date,
             i.end_date,
-            i.required_hours,
-            i.rendered_hours,
+            COALESCE(NULLIF(i.required_hours, 0), NULLIF(s.external_total_hours, 0), 250) AS required_hours,
+            COALESCE(
+                NULLIF(ea_stats.approved_hours, 0),
+                NULLIF(i.rendered_hours, 0),
+                GREATEST(0, COALESCE(s.external_total_hours, 250) - COALESCE(s.external_total_hours_remaining, COALESCE(s.external_total_hours, 250))),
+                0
+            ) AS rendered_hours,
             i.completion_percentage,
             ea_stats.first_attendance_date,
             ea_stats.last_attendance_date,
@@ -148,7 +162,8 @@ if ($selectedStudentId > 0) {
         LEFT JOIN internships i ON i.id = (
             SELECT i2.id FROM internships i2
             WHERE i2.student_id = s.id
-            ORDER BY (i2.type = 'external') DESC, FIELD(i2.status, 'completed', 'finished', 'ongoing', 'pending', 'cancelled'), i2.id DESC
+              AND i2.type = 'external'
+            ORDER BY FIELD(i2.status, 'completed', 'finished', 'ongoing', 'pending', 'cancelled'), i2.id DESC
             LIMIT 1
         )
         LEFT JOIN (
@@ -171,7 +186,7 @@ if ($selectedStudentId > 0) {
             ORDER BY e2.evaluation_date DESC, e2.id DESC
             LIMIT 1
         )
-        WHERE s.id = ? AND {$scopeSql}
+        WHERE s.id = ? AND {$scopeSql} AND {$externalCompletionSql}
         LIMIT 1
     ");
     if ($stmt) {
@@ -190,13 +205,18 @@ if ($selectedStudentId > 0) {
             s.student_id,
             TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student_name,
             c.name AS course_name,
-            i.required_hours,
-            COALESCE(ea_stats.approved_hours, i.rendered_hours, 0) AS rendered_hours,
+            COALESCE(NULLIF(i.required_hours, 0), NULLIF(s.external_total_hours, 0), 250) AS required_hours,
+            COALESCE(
+                NULLIF(ea_stats.approved_hours, 0),
+                NULLIF(i.rendered_hours, 0),
+                GREATEST(0, COALESCE(s.external_total_hours, 250) - COALESCE(s.external_total_hours_remaining, COALESCE(s.external_total_hours, 250))),
+                0
+            ) AS rendered_hours,
             i.completion_percentage,
-            e.evaluation_date
+            COALESCE(e.evaluation_date, i.end_date, CURDATE()) AS evaluation_date
         FROM students s
         LEFT JOIN courses c ON c.id = s.course_id
-        INNER JOIN internships i ON i.id = (
+        LEFT JOIN internships i ON i.id = (
             SELECT i2.id FROM internships i2
             WHERE i2.student_id = s.id
               AND i2.type = 'external'
@@ -210,14 +230,14 @@ if ($selectedStudentId > 0) {
             WHERE status = 'approved'
             GROUP BY student_id
         ) ea_stats ON ea_stats.student_id = s.id
-        INNER JOIN evaluations e ON e.id = (
+        LEFT JOIN evaluations e ON e.id = (
             SELECT e2.id FROM evaluations e2
             WHERE e2.student_id = s.id
             ORDER BY e2.evaluation_date DESC, e2.id DESC
             LIMIT 1
         )
-        WHERE {$scopeSql}
-        ORDER BY e.evaluation_date DESC, s.last_name ASC, s.first_name ASC
+        WHERE {$scopeSql} AND {$externalCompletionSql}
+        ORDER BY COALESCE(e.evaluation_date, i.end_date, s.updated_at, s.created_at) DESC, s.last_name ASC, s.first_name ASC
         LIMIT 100
     ");
     if ($result instanceof mysqli_result) {
@@ -512,7 +532,7 @@ include __DIR__ . '/../includes/header.php';
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div>
                                 <h5 class="mb-1">External Student Certificates</h5>
-                                <p class="text-muted mb-0">Choose an evaluated external OJT student, then print the CCST certificate.</p>
+                                <p class="text-muted mb-0">Choose a completed external OJT student, then print the CCST certificate.</p>
                             </div>
                             <span class="badge bg-soft-primary text-primary"><?php echo count($eligibleStudents); ?> available</span>
                         </div>
@@ -524,7 +544,7 @@ include __DIR__ . '/../includes/header.php';
                                         <th>Student ID</th>
                                         <th>Course</th>
                                         <th>Hours</th>
-                                        <th>Evaluation Date</th>
+                                    <th>Certificate Date</th>
                                         <th class="text-end">Action</th>
                                     </tr>
                                 </thead>
@@ -564,7 +584,7 @@ include __DIR__ . '/../includes/header.php';
                     if ($requiredHours <= 0) {
                         $requiredHours = 250;
                     }
-                    $renderedHours = (float)($certificate['approved_hours'] ?? $certificate['rendered_hours'] ?? 0);
+                    $renderedHours = (float)($certificate['rendered_hours'] ?? $certificate['approved_hours'] ?? 0);
                     $dateFrom = certificate_display_date($certificate['first_attendance_date'] ?? $certificate['start_date'] ?? '');
                     $dateTo = certificate_display_date($certificate['last_attendance_date'] ?? $certificate['end_date'] ?? $certificate['evaluation_date'] ?? '');
                     $dateRange = $dateFrom !== '' && $dateTo !== '' ? ($dateFrom . ' to ' . $dateTo) : ($dateFrom . $dateTo);
