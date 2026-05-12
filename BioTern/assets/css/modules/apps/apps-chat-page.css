@@ -2141,6 +2141,34 @@
         padding: 2rem;
     }
 
+    .btchat-empty-title {
+        color: var(--chat-header-name-color) !important;
+        font-weight: 800;
+    }
+
+    .btchat-empty-copy,
+    .btchat-empty-note {
+        color: var(--chat-empty-color) !important;
+    }
+
+    html:not(.app-skin-dark) .btchat-empty-title {
+        color: #1f2937 !important;
+    }
+
+    html:not(.app-skin-dark) .btchat-empty-copy,
+    html:not(.app-skin-dark) .btchat-empty-note {
+        color: #64748b !important;
+    }
+
+    html.app-skin-dark .btchat-empty-title {
+        color: #f8fafc !important;
+    }
+
+    html.app-skin-dark .btchat-empty-copy,
+    html.app-skin-dark .btchat-empty-note {
+        color: #cbd5e1 !important;
+    }
+
     @media (max-width: 1199px) {
         .btchat-shell {
             grid-template-columns: 300px minmax(0, 1fr);

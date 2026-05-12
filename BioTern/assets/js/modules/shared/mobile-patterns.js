@@ -11,6 +11,17 @@
     }
   }
 
+  function toggleClass(el, name, enabled) {
+    if (!el) {
+      return;
+    }
+    if (enabled) {
+      addClass(el, name);
+    } else {
+      el.classList.remove(name);
+    }
+  }
+
   function enhanceKpiRows(root) {
     root.querySelectorAll(".dashboard-shell .row, .dashboard-shell .g-3").forEach(function (row) {
       var directKpiChildren = Array.prototype.some.call(row.children || [], function (child) {
@@ -39,7 +50,9 @@
   }
 
   function enhanceDataWrappers(root) {
-    root.querySelectorAll(".app-data-card").forEach(function (card) {
+    root.querySelectorAll(".app-data-card, .app-mobile-inline-list-card, .app-students-table-card, .app-ojt-table-card").forEach(function (card) {
+      var hasMobileList = !!card.querySelector(".app-mobile-list, .app-students-mobile-list, .app-ojt-mobile-list");
+      toggleClass(card, "app-has-mobile-list", hasMobileList);
       addClass(card, "app-mobile-surface");
       var wrapper = card.querySelector(".dataTables_wrapper");
       if (wrapper) {
@@ -77,7 +90,9 @@
     enhanceMobilePatterns();
   }
 
+  var resizeTimer = 0;
   window.addEventListener("resize", function () {
-    enhanceMobilePatterns();
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(enhanceMobilePatterns, 120);
   });
 })();

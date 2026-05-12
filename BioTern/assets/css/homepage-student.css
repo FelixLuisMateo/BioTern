@@ -37,6 +37,19 @@
     padding-top: 0 !important;
 }
 
+.student-home-top-grid {
+    display: grid;
+    grid-template-columns: minmax(420px, 1fr) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.student-home-top-grid > .card {
+    min-width: 0;
+    height: 100%;
+    margin-bottom: 0;
+}
+
 .student-home-hero {
     background: var(--student-card-bg);
     border: 1px solid var(--student-card-border);
@@ -488,6 +501,10 @@ html.app-skin-dark .student-shortcut-card i {
 }
 
 @media (max-width: 1199.98px) {
+    .student-home-top-grid {
+        grid-template-columns: 1fr;
+    }
+
     .student-quick-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }

@@ -9,14 +9,15 @@ body.analytics-page {
     --analytics-surface-muted: var(--biotern-surface-muted, #f8fafc);
     --analytics-border: var(--biotern-border, #e5e7eb);
     --analytics-text: var(--bs-body-color, #1f2937);
-    --analytics-muted: color-mix(in srgb, var(--analytics-text) 62%, transparent);
+    --analytics-muted: color-mix(in srgb, var(--bs-secondary-color, #64748b) 92%, transparent);
     --analytics-accent: var(--biotern-primary, #6b7280);
     --analytics-accent-soft: color-mix(in srgb, var(--analytics-accent) 20%, var(--analytics-surface-muted) 80%);
     --analytics-track: color-mix(in srgb, var(--analytics-surface-muted) 82%, var(--analytics-border) 18%);
 }
 
 html.app-skin-dark body.analytics-page {
-    --analytics-muted: color-mix(in srgb, var(--analytics-text) 74%, transparent);
+    --analytics-text: var(--bs-body-color, #e5e7eb);
+    --analytics-muted: color-mix(in srgb, var(--bs-secondary-color, #94a3b8) 92%, transparent);
     --analytics-accent-soft: color-mix(in srgb, var(--analytics-accent) 30%, var(--analytics-surface-muted) 70%);
     --analytics-track: color-mix(in srgb, var(--analytics-surface-muted) 80%, #ffffff 8%);
 }

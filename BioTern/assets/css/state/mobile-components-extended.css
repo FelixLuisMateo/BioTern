@@ -186,3 +186,300 @@ html.app-skin-dark .mobile-empty-state,
 html.app-skin-dark .mobile-table-stack tbody td::before {
   color: #94a3b8;
 }
+
+/* Shared mobile list reset
+ * This sits late in the cascade to replace older page-specific mobile table/list
+ * patches with one predictable card pattern for Students, OJT, and app data lists.
+ */
+@media (max-width: 991.98px) {
+  body.mobile-bottom-nav {
+    --mobile-list-bg: var(--biotern-body-bg, #f3f4f6);
+    --mobile-list-card-bg: var(--biotern-surface, #ffffff);
+    --mobile-list-card-muted-bg: var(--biotern-surface-muted, #f8fafc);
+    --mobile-list-border: var(--biotern-border, #e5e7eb);
+    --mobile-list-text: var(--bs-body-color, #1f2937);
+    --mobile-list-muted: var(--bs-secondary-color, #64748b);
+    --mobile-list-radius: 18px;
+    --mobile-list-gap: 0.75rem;
+  }
+
+  body.mobile-bottom-nav .app-data-card.app-has-mobile-list,
+  body.mobile-bottom-nav .app-students-table-card,
+  body.mobile-bottom-nav .app-ojt-table-card,
+  body.mobile-bottom-nav .app-mobile-inline-list-card {
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  body.mobile-bottom-nav .app-data-card.app-has-mobile-list > .card-body,
+  body.mobile-bottom-nav .app-students-table-card > .card-body,
+  body.mobile-bottom-nav .app-ojt-table-card > .card-body,
+  body.mobile-bottom-nav .app-mobile-inline-list-card > .card-body {
+    padding: 0 !important;
+    background: transparent !important;
+  }
+
+  body.mobile-bottom-nav .app-data-card.app-has-mobile-list .app-data-table-wrap,
+  body.mobile-bottom-nav .students-table-wrap,
+  body.mobile-bottom-nav .app-ojt-table-wrap,
+  body.mobile-bottom-nav .app-students-table-card.app-has-mobile-list .table-responsive,
+  body.mobile-bottom-nav .app-ojt-table-card.app-has-mobile-list .table-responsive,
+  body.mobile-bottom-nav .app-mobile-inline-list-card.app-has-mobile-list .table-responsive {
+    display: none !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-list,
+  body.mobile-bottom-nav .app-students-mobile-list,
+  body.mobile-bottom-nav .app-ojt-mobile-list {
+    display: grid !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0.65rem !important;
+    gap: var(--mobile-list-gap) !important;
+    background: transparent !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-list > details,
+  body.mobile-bottom-nav .app-mobile-list > .app-mobile-item,
+  body.mobile-bottom-nav .app-students-mobile-list > details,
+  body.mobile-bottom-nav .app-students-mobile-list > .app-student-mobile-item,
+  body.mobile-bottom-nav .app-ojt-mobile-list > details,
+  body.mobile-bottom-nav .app-ojt-mobile-list > .app-ojt-mobile-item {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    border: 1px solid var(--mobile-list-border) !important;
+    border-radius: var(--mobile-list-radius) !important;
+    background: var(--mobile-list-card-bg) !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    color: var(--mobile-list-text) !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-summary,
+  body.mobile-bottom-nav .app-student-mobile-summary,
+  body.mobile-bottom-nav .app-ojt-mobile-summary {
+    min-height: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    padding: 0.85rem 0.9rem !important;
+    background: var(--mobile-list-card-bg) !important;
+    color: var(--mobile-list-text) !important;
+    border: 0 !important;
+    cursor: pointer;
+  }
+
+  body.mobile-bottom-nav .app-mobile-summary::-webkit-details-marker,
+  body.mobile-bottom-nav .app-student-mobile-summary::-webkit-details-marker,
+  body.mobile-bottom-nav .app-ojt-mobile-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  body.mobile-bottom-nav .app-mobile-summary::marker,
+  body.mobile-bottom-nav .app-student-mobile-summary::marker,
+  body.mobile-bottom-nav .app-ojt-mobile-summary::marker {
+    content: "";
+  }
+
+  body.mobile-bottom-nav .app-mobile-summary::after,
+  body.mobile-bottom-nav .app-student-mobile-summary::after,
+  body.mobile-bottom-nav .app-ojt-mobile-summary::after {
+    content: "\25BE" !important;
+    flex: 0 0 auto;
+    margin-left: auto !important;
+    color: var(--mobile-list-muted) !important;
+    font-size: 0.82rem !important;
+    line-height: 1 !important;
+    transform: rotate(0deg);
+    transition: transform 0.18s ease;
+  }
+
+  body.mobile-bottom-nav details[open] > .app-mobile-summary::after,
+  body.mobile-bottom-nav details[open] > .app-student-mobile-summary::after,
+  body.mobile-bottom-nav details[open] > .app-ojt-mobile-summary::after {
+    transform: rotate(180deg);
+  }
+
+  body.mobile-bottom-nav .app-mobile-summary-main,
+  body.mobile-bottom-nav .app-student-mobile-summary-main,
+  body.mobile-bottom-nav .app-ojt-mobile-summary-main {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.7rem !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-summary-main .avatar-image,
+  body.mobile-bottom-nav .app-student-mobile-summary-main .avatar-image,
+  body.mobile-bottom-nav .app-ojt-mobile-summary-main .avatar-image {
+    width: 2.65rem !important;
+    height: 2.65rem !important;
+    flex: 0 0 2.65rem !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-summary-text,
+  body.mobile-bottom-nav .app-student-mobile-summary-text,
+  body.mobile-bottom-nav .app-ojt-mobile-summary-text {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.18rem !important;
+    min-width: 0 !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-name,
+  body.mobile-bottom-nav .app-student-mobile-name,
+  body.mobile-bottom-nav .app-ojt-mobile-name {
+    color: var(--mobile-list-text) !important;
+    font-size: 0.98rem !important;
+    font-weight: 800 !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-subtext,
+  body.mobile-bottom-nav .app-student-mobile-subtext,
+  body.mobile-bottom-nav .app-ojt-mobile-subtext {
+    color: var(--mobile-list-muted) !important;
+    font-size: 0.78rem !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-details,
+  body.mobile-bottom-nav .app-student-mobile-details,
+  body.mobile-bottom-nav .app-ojt-mobile-details {
+    display: grid !important;
+    gap: 0.6rem !important;
+    padding: 0.15rem 0.9rem 0.95rem !important;
+    background: var(--mobile-list-card-bg) !important;
+    color: var(--mobile-list-text) !important;
+    border-top: 0 !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-row,
+  body.mobile-bottom-nav .app-student-mobile-row,
+  body.mobile-bottom-nav .app-ojt-mobile-row {
+    display: grid !important;
+    grid-template-columns: minmax(6.25rem, 34%) minmax(0, 1fr) !important;
+    align-items: start !important;
+    gap: 0.35rem 0.7rem !important;
+    padding: 0.55rem 0 0 !important;
+    margin: 0 !important;
+    border-top: 1px solid color-mix(in srgb, var(--mobile-list-border) 82%, transparent) !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-row:first-child,
+  body.mobile-bottom-nav .app-student-mobile-row:first-child,
+  body.mobile-bottom-nav .app-ojt-mobile-row:first-child {
+    border-top: 0 !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-row-stack,
+  body.mobile-bottom-nav .app-student-mobile-row-stack,
+  body.mobile-bottom-nav .app-ojt-mobile-row-stack {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-label,
+  body.mobile-bottom-nav .app-student-mobile-label,
+  body.mobile-bottom-nav .app-ojt-mobile-label {
+    color: var(--mobile-list-muted) !important;
+    font-size: 0.68rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.06em !important;
+    line-height: 1.25 !important;
+    text-transform: uppercase !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-value,
+  body.mobile-bottom-nav .app-student-mobile-value,
+  body.mobile-bottom-nav .app-ojt-mobile-value {
+    color: var(--mobile-list-text) !important;
+    font-size: 0.86rem !important;
+    font-weight: 650 !important;
+    line-height: 1.3 !important;
+    text-align: left !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  body.mobile-bottom-nav .app-student-mobile-actions,
+  body.mobile-bottom-nav .app-ojt-mobile-actions,
+  body.mobile-bottom-nav .app-mobile-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.45rem !important;
+    margin-top: 0.2rem !important;
+  }
+
+  body.mobile-bottom-nav .app-student-mobile-actions .btn,
+  body.mobile-bottom-nav .app-ojt-mobile-actions .btn,
+  body.mobile-bottom-nav .app-mobile-actions .btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    justify-content: center !important;
+  }
+
+  body.mobile-bottom-nav .app-ojt-mobile-topline {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.45rem !important;
+    padding-top: 0.35rem !important;
+  }
+
+  body.mobile-bottom-nav .app-ojt-chip-stack,
+  body.mobile-bottom-nav .app-ojt-risk-stack {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.35rem !important;
+  }
+
+  body.mobile-bottom-nav .app-students-mobile-empty,
+  body.mobile-bottom-nav .app-ojt-mobile-empty,
+  body.mobile-bottom-nav .app-data-empty {
+    border: 1px dashed var(--mobile-list-border) !important;
+    border-radius: var(--mobile-list-radius) !important;
+    background: var(--mobile-list-card-bg) !important;
+    color: var(--mobile-list-muted) !important;
+    padding: 1rem !important;
+    text-align: center !important;
+  }
+
+  body.mobile-bottom-nav .filter-form,
+  body.mobile-bottom-nav .app-students-filter-form,
+  body.mobile-bottom-nav .app-ojt-filter-form {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0.7rem !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  body.mobile-bottom-nav .app-mobile-list,
+  body.mobile-bottom-nav .app-students-mobile-list,
+  body.mobile-bottom-nav .app-ojt-mobile-list {
+    padding: 0.55rem !important;
+    gap: 0.6rem !important;
+  }
+
+  body.mobile-bottom-nav .app-mobile-row,
+  body.mobile-bottom-nav .app-student-mobile-row,
+  body.mobile-bottom-nav .app-ojt-mobile-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.mobile-bottom-nav .app-student-mobile-actions,
+  body.mobile-bottom-nav .app-ojt-mobile-actions,
+  body.mobile-bottom-nav .app-mobile-actions {
+    grid-template-columns: 1fr !important;
+  }
+}
