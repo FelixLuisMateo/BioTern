@@ -553,8 +553,8 @@ include 'includes/header.php';
             </div>
 
             <div class="col-12 col-xl-6">
-                <div class="student-profile-metric-grid">
-                    <div class="student-profile-timer-row mb-3">
+                <div class="student-profile-metric-grid <?php echo $studentHasExternalAccess ? 'student-profile-metric-grid--external' : 'student-profile-metric-grid--internal'; ?>">
+                    <div class="student-profile-timer-row student-profile-timer-row--<?php echo $studentHasExternalAccess ? 'external' : 'internal'; ?> mb-3">
                         <div class="student-profile-timer-card student-profile-timer-card--primary">
                             <span class="student-metric-label"><?php echo htmlspecialchars($timerHeading, ENT_QUOTES, 'UTF-8'); ?></span>
                             <div class="student-profile-timer-value" id="studentProfileTimerValue"><?php echo htmlspecialchars($timerDisplay, ENT_QUOTES, 'UTF-8'); ?></div>
@@ -587,13 +587,6 @@ include 'includes/header.php';
                             <span class="student-metric-label">Pending Logs</span>
                             <h3><?php echo (int)($profileStats['pending_logs'] ?? 0); ?></h3>
                             <p>Entries still waiting for review.</p>
-                        </div>
-                    </article>
-                    <article class="card student-metric-card">
-                        <div class="card-body">
-                            <span class="student-metric-label">Remaining Internal Hours</span>
-                            <h3><?php echo number_format($internalRemainingHours, 1); ?></h3>
-                            <p>Internal hours still needed before completion.</p>
                         </div>
                     </article>
                     <article class="card student-metric-card student-profile-evaluation-card">

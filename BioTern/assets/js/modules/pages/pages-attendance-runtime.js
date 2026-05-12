@@ -30,7 +30,7 @@
                 "order": [[2, "desc"]],
                 "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
                 "columnDefs": [
-                    { "orderable": false, "targets": [0, 10, 11, 12, 13] }
+                    { "orderable": false, "targets": [0, 9] }
                 ],
                 "language": {
                     "emptyTable": "No attendance records found",
@@ -355,14 +355,12 @@
             var selectedCount = $('.checkbox:checked').length;
             $('#selectedCount').text(selectedCount);
             
-            // Show bulk toolbar only when multiple rows are selected.
-            if (selectedCount > 1) {
+            // Show bulk toolbar as soon as at least one row is selected.
+            if (selectedCount > 0) {
                 $('#bulkActionsToolbar').slideDown(200);
             } else {
                 $('#bulkActionsToolbar').slideUp(200);
-                if (selectedCount === 0) {
-                    $('#checkAllAttendance').prop('checked', false);
-                }
+                $('#checkAllAttendance').prop('checked', false);
             }
         }
 

@@ -18,6 +18,18 @@
   gap:1rem;
   flex-wrap:wrap;
 }
+@media (max-width:991.98px){
+  body .footer{
+    display:none !important;
+  }
+}
+
+@media (min-width:992px){
+  body .footer{
+    display:flex !important;
+  }
+}
+
 @media (max-width:575.98px){
   .footer{
     flex-direction:column;

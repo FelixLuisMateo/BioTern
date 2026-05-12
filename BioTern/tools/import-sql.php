@@ -164,6 +164,66 @@ if (!function_exists('transfer_host_is_local_target')) {
     }
 }
 
+if (!function_exists('transfer_env_pick')) {
+    function transfer_env_pick(array $keys, string $default = ''): string
+    {
+        foreach ($keys as $key) {
+            $value = getenv($key);
+            if ($value !== false && trim((string)$value) !== '') {
+                return (string)$value;
+            }
+        }
+        return $default;
+    }
+}
+
+if (!function_exists('transfer_open_railway_export_connection')) {
+    function transfer_open_railway_export_connection(string &$errorMessage): ?mysqli
+    {
+        $railwayUrl = transfer_env_pick(
+            ['MYSQL_PUBLIC_URL', 'RAILWAY_MYSQL_PUBLIC_URL', 'DB_PUBLIC_URL'],
+            'mysql://root:MeALnsFRncgRImQnWKGlESPGqUDVmWmP@switchback.proxy.rlwy.net:40818/railway'
+        );
+
+        $host = 'switchback.proxy.rlwy.net';
+        $user = 'root';
+        $pass = 'MeALnsFRncgRImQnWKGlESPGqUDVmWmP';
+        $name = 'railway';
+        $port = 40818;
+
+        $parsed = parse_url($railwayUrl);
+        if (is_array($parsed)) {
+            $host = isset($parsed['host']) ? (string)$parsed['host'] : $host;
+            $user = isset($parsed['user']) ? (string)$parsed['user'] : $user;
+            $pass = array_key_exists('pass', $parsed) ? (string)$parsed['pass'] : $pass;
+            $name = isset($parsed['path']) ? ltrim((string)$parsed['path'], '/') : $name;
+            $port = isset($parsed['port']) ? (int)$parsed['port'] : $port;
+        }
+
+        if ($host === '' || $user === '' || $name === '' || $port <= 0) {
+            $errorMessage = 'Railway export connection is incomplete. Check MYSQL_PUBLIC_URL.';
+            return null;
+        }
+
+        mysqli_report(MYSQLI_REPORT_OFF);
+        $remote = mysqli_init();
+        if ($remote instanceof mysqli) {
+            $remote->options(MYSQLI_OPT_CONNECT_TIMEOUT, 15);
+            @mysqli_real_connect($remote, $host, $user, $pass, $name, $port);
+        } else {
+            $remote = @new mysqli($host, $user, $pass, $name, $port);
+        }
+
+        if (!($remote instanceof mysqli) || $remote->connect_errno) {
+            $errorMessage = 'Railway export connection failed: ' . ($remote instanceof mysqli ? $remote->connect_error : 'unknown error');
+            return null;
+        }
+
+        $remote->set_charset('utf8mb4');
+        return $remote;
+    }
+}
+
 if (!function_exists('transfer_sql_inspect')) {
     function transfer_sql_inspect(mysqli $mysqli, string $sql, string $databaseName): array
     {
@@ -569,15 +629,23 @@ if (!function_exists('transfer_sql_export')) {
         $dump .= "CREATE DATABASE IF NOT EXISTS `{$safeDatabase}` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;\n";
         $dump .= "USE `{$safeDatabase}`;\n\n";
 
-        $tablesResult = $mysqli->query('SHOW TABLES');
+        $tablesResult = $mysqli->query('SHOW FULL TABLES');
         if (!$tablesResult) {
-            return $dump;
+            return $dump . "SET FOREIGN_KEY_CHECKS = 1;\n";
         }
 
         $tables = [];
+        $views = [];
         while ($row = $tablesResult->fetch_row()) {
-            if (isset($row[0])) {
-                $tables[] = (string)$row[0];
+            $name = isset($row[0]) ? (string)$row[0] : '';
+            $type = strtolower((string)($row[1] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            if ($type === 'view') {
+                $views[] = $name;
+            } else {
+                $tables[] = $name;
             }
         }
         $tablesResult->free();
@@ -616,6 +684,21 @@ if (!function_exists('transfer_sql_export')) {
             }
         }
 
+        foreach ($views as $view) {
+            $escapedView = str_replace('`', '``', $view);
+            $createResult = $mysqli->query("SHOW CREATE VIEW `{$escapedView}`");
+            if ($createResult instanceof mysqli_result) {
+                $createRow = $createResult->fetch_assoc();
+                $createResult->free();
+                $createSql = (string)($createRow['Create View'] ?? '');
+                if ($createSql !== '') {
+                    $createSql = (string)preg_replace('/\sDEFINER=`[^`]+`@`[^`]+`/i', '', $createSql);
+                    $dump .= "DROP VIEW IF EXISTS `{$escapedView}`;\n";
+                    $dump .= $createSql . ";\n\n";
+                }
+            }
+        }
+
         $dump .= "SET FOREIGN_KEY_CHECKS = 1;\n";
         return $dump;
     }
@@ -624,10 +707,23 @@ if (!function_exists('transfer_sql_export')) {
 if (!function_exists('transfer_send_database_sql')) {
     function transfer_send_database_sql(mysqli $mysqli, string $databaseName): void
     {
-        $dump = transfer_sql_export($mysqli, $databaseName);
+        $exportError = '';
+        $railway = transfer_open_railway_export_connection($exportError);
+        if ($railway instanceof mysqli) {
+            $dump = transfer_sql_export($railway, 'biotern_db');
+            $railway->close();
+            $filePrefix = 'railway-biotern_db';
+        } else {
+            $dump = "-- BioTern Railway Full Database SQL Export failed\n";
+            $dump .= '-- Generated: ' . date('Y-m-d H:i:s') . "\n";
+            $dump .= '-- Error: ' . str_replace(["\r", "\n"], ' ', $exportError) . "\n";
+            $dump .= "-- Fallback: exporting current app database instead.\n\n";
+            $dump .= transfer_sql_export($mysqli, $databaseName);
+            $filePrefix = preg_replace('/[^A-Za-z0-9_-]+/', '_', $databaseName);
+        }
         transfer_clean_download_output();
         header('Content-Type: application/sql; charset=UTF-8');
-        header('Content-Disposition: attachment; filename="' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $databaseName) . '-full-export-' . date('Ymd-His') . '.sql"');
+        header('Content-Disposition: attachment; filename="' . $filePrefix . '-full-export-' . date('Ymd-His') . '.sql"');
         header('Content-Length: ' . strlen($dump));
         header('X-Content-Type-Options: nosniff');
         echo $dump;
@@ -1376,7 +1472,7 @@ include dirname(__DIR__) . '/includes/header.php';
                         </div>
 
                         <div class="mb-3 d-flex flex-wrap gap-2">
-                            <a href="?download=database_sql" class="btn btn-success">Export Full Database (.sql)</a>
+                            <a href="import-sql.php?download=database_sql" class="btn btn-success">Export Full Database (.sql)</a>
                             <a href="?download=students_template" class="btn btn-outline-secondary">Download Import Template (.csv)</a>
                             <a href="?download=students_csv" class="btn btn-outline-primary">Export Students CSV</a>
                             <a href="?download=students_xls" class="btn btn-outline-primary">Export Students Excel (.xls)</a>

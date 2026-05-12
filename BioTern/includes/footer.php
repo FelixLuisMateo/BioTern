@@ -1,7 +1,7 @@
 <?php
 // Shared footer include.  It closes main container and adds global scripts.
 $page_is_public = isset($page_is_public) && $page_is_public === true;
-$page_render_footer = isset($page_render_footer) ? (bool)$page_render_footer : !$page_is_public;
+$page_render_footer = isset($page_render_footer) ? (bool)$page_render_footer : true;
 
 if (!function_exists('footer_asset_versioned_src')) {
     function footer_asset_versioned_src(string $src): string

@@ -413,17 +413,5 @@ html.app-skin-dark .biotern-bottom-sheet-panel {
     background: var(--mobile-surface);
 }
 
-/* Footer visibility rules by viewport. */
-@media (max-width: 991.98px) {
-    .footer {
-        display: none !important;
-    }
-}
-
-/* Ensure footer is visible on desktop widths. */
-@media (min-width: 992px) {
-    .footer {
-        display: flex !important;
-    }
-}
+/* Footer visibility is handled globally in footer-responsive.css. */
 

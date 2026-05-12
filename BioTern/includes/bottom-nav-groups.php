@@ -56,6 +56,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'label' => 'Student',
                 'icon' => 'feather-user-check',
                 'routes' => [
+                    'profile-details.php',
                     'student-profile.php',
                     'student-dtr.php', 'student-internal-dtr.php',
                     'student-external-dtr.php', 'external-biometric.php',
@@ -66,7 +67,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     [
                         'title' => 'My Profile',
                         'items' => [
-                            ['label' => 'My Profile', 'href' => 'student-profile.php', 'icon' => 'feather-user'],
+                            ['label' => 'My Profile', 'href' => 'profile-details.php', 'icon' => 'feather-user'],
                         ],
                     ],
                     [

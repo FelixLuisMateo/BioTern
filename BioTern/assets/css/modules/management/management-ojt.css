@@ -597,7 +597,7 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-list-table tbody tr > td,
 html.app-skin-dark .app-page-ojt-dashboard .app-ojt-list-table thead tr > th,
 html.app-skin-dark .app-page-ojt-dashboard .app-ojt-list-table.dataTable tbody tr.odd > td,
 html.app-skin-dark .app-page-ojt-dashboard .app-ojt-list-table.dataTable tbody tr.even > td {
-    background-color: #111821 !important;
+    background-color: var(--app-ojt-surface) !important;
 }
 
 .app-page-ojt-dashboard .app-ojt-list-table tbody tr.is-selected td {
@@ -934,7 +934,7 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-list-table thead th.app-ojt-
 html.app-skin-dark .app-page-ojt-dashboard .app-ojt-list-table tbody td.app-ojt-select-column,
 html.app-skin-dark .app-page-ojt-dashboard #ojtListTable thead th.app-ojt-select-column,
 html.app-skin-dark .app-page-ojt-dashboard #ojtListTable tbody td.app-ojt-select-column {
-    background-color: #111821 !important;
+    background-color: var(--app-ojt-surface) !important;
 }
 
 html.app-skin-dark .app-page-ojt-dashboard .app-ojt-hours-pill {
@@ -1967,8 +1967,8 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
 
         @media (max-width: 991.98px) {
             .app-page-ojt-dashboard .nxl-content {
-                padding-left: 0.65rem;
-                padding-right: 0.65rem;
+                padding-left: 0.4rem !important;
+                padding-right: 0.4rem !important;
                 padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
             }
 
@@ -1978,6 +1978,9 @@ html.app-skin-dark .app-page-ojt-dashboard .app-ojt-risk-pill {
                 background: transparent;
                 box-shadow: none;
                 overflow: visible;
+                margin-left: 0.35rem !important;
+                margin-right: 0.35rem !important;
+                width: auto !important;
             }
 
             .app-page-ojt-dashboard .app-ojt-table-card > .card-body {
@@ -2465,11 +2468,46 @@ body.app-page-ojt-dashboard {
 }
 
 html.app-skin-dark body.app-page-ojt-dashboard {
-    --app-ojt-surface: var(--biotern-surface, #171b20);
-    --app-ojt-surface-muted: color-mix(in srgb, var(--app-ojt-surface) 84%, #ffffff 16%);
-    --app-ojt-border: color-mix(in srgb, var(--app-ojt-surface) 60%, #ffffff 40%);
+    --app-ojt-surface: var(--biotern-surface);
+    --app-ojt-surface-muted: var(--biotern-surface);
+    --app-ojt-border: var(--biotern-border);
     --app-ojt-text: var(--biotern-text, #e5e7eb);
     --app-ojt-muted: var(--biotern-text-muted, #9ca3af);
+}
+
+/* Remove gray outer shell and keep a clean darker list card */
+html.app-skin-dark body.app-page-ojt-dashboard .app-ojt-table-card {
+    background: var(--app-ojt-surface) !important;
+    border-color: rgba(255, 255, 255, 0.06) !important;
+    box-shadow: none !important;
+}
+
+html.app-skin-dark body.app-page-ojt-dashboard .app-ojt-table-card > .card-body,
+html.app-skin-dark body.app-page-ojt-dashboard .app-ojt-table-wrap {
+    background: var(--app-ojt-surface) !important;
+}
+
+/* Gray scheme lock: one exact tone across OJT table header/body, including checkbox column */
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable thead th,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable tbody td,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table thead th,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table tbody td,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable thead th.app-ojt-select-column,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable tbody td.app-ojt-select-column,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table thead th.app-ojt-select-column,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table tbody td.app-ojt-select-column {
+    background: var(--biotern-surface) !important;
+    background-color: var(--biotern-surface) !important;
+}
+
+/* Extra lock: first column must exactly match the rest in gray scheme */
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable tr > th:first-child,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable tr > td:first-child,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table tr > th:first-child,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table tr > td:first-child {
+    background: var(--biotern-surface) !important;
+    background-color: var(--biotern-surface) !important;
+    box-shadow: none !important;
 }
 
 html.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table thead th,
@@ -2523,13 +2561,25 @@ body.app-page-ojt-dashboard .app-ojt-list-table tbody tr.is-selected td {
 /* OJT list spacing + cleaner look */
 @media (min-width: 992px) {
     body.app-page-ojt-dashboard .app-ojt-table-card {
-        margin: 0.7rem 0 1rem;
+        margin: 0.7rem 0.35rem 1rem !important;
     }
 }
 
 body.app-page-ojt-dashboard .app-ojt-list-table thead th + th,
 body.app-page-ojt-dashboard .app-ojt-list-table tbody td + td {
     border-left: 0 !important;
+}
+
+/* Risk column centered */
+body.app-page-ojt-dashboard .app-ojt-list-table th:nth-child(7),
+body.app-page-ojt-dashboard .app-ojt-list-table td:nth-child(7) {
+    text-align: center !important;
+}
+
+body.app-page-ojt-dashboard .app-ojt-list-table td:nth-child(7) .app-ojt-cell-stack,
+body.app-page-ojt-dashboard .app-ojt-list-table td:nth-child(7) .app-ojt-risk-stack {
+    justify-items: center !important;
+    text-align: center !important;
 }
 
 body.app-page-ojt-dashboard .app-ojt-list-table tbody td,
@@ -2544,8 +2594,8 @@ body.app-page-ojt-dashboard #ojtListTable tbody td {
     }
 
     body.app-page-ojt-dashboard .app-ojt-table-card {
-        margin-left: 0.35rem;
-        margin-right: 0.35rem;
+        margin-left: 0.35rem !important;
+        margin-right: 0.35rem !important;
     }
 
     body.app-page-ojt-dashboard .app-ojt-mobile-list {
@@ -2563,4 +2613,64 @@ body.app-page-ojt-dashboard #ojtListTable tbody td {
         padding-top: 0.6rem;
         margin-top: 0.35rem;
     }
+}
+
+/* Zoom-safe responsive table behavior (avoid overlap by preferring horizontal flow) */
+body.app-page-ojt-dashboard .app-ojt-table-wrap {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+}
+
+body.app-page-ojt-dashboard .app-ojt-list-table,
+body.app-page-ojt-dashboard #ojtListTable {
+    min-width: 1120px !important;
+}
+
+@media (max-width: 1200px) {
+    body.app-page-ojt-dashboard .app-ojt-list-table,
+    body.app-page-ojt-dashboard #ojtListTable {
+        min-width: 980px !important;
+    }
+}
+
+/* Absolute gray-scheme blend lock: one tone for the whole OJT table shell */
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-table-card,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-table-card > .card-body,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-table-wrap,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-table-card .dataTables_wrapper,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable thead,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable tbody,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable tr,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table thead,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table tbody,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table tr {
+    background: var(--biotern-surface) !important;
+    background-color: var(--biotern-surface) !important;
+}
+
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable thead th,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable tbody td,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table thead th,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table tbody td,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable tbody tr.odd > td,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable tbody tr.even > td,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table.dataTable tbody tr.odd > td,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table.dataTable tbody tr.even > td,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable thead th.app-ojt-select-column,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable tbody td.app-ojt-select-column,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table thead th.app-ojt-select-column,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table tbody td.app-ojt-select-column {
+    background: var(--biotern-surface) !important;
+    background-color: var(--biotern-surface) !important;
+    border-color: var(--biotern-border) !important;
+}
+
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable.table-hover > tbody > tr:hover > *,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table.table-hover > tbody > tr:hover > *,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard #ojtListTable tbody tr.is-selected > td,
+html.app-theme-gray.app-skin-dark body.app-page-ojt-dashboard .app-ojt-list-table tbody tr.is-selected > td {
+    background: var(--biotern-surface) !important;
+    background-color: var(--biotern-surface) !important;
 }

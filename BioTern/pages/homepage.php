@@ -712,7 +712,7 @@ include 'includes/header.php';
                     : 'Check attendance and hours.';
                 $student_timer_route = $student_timer_total_hours > 0
                     ? $student_dtr_route
-                    : 'student-profile.php';
+                    : 'profile-details.php';
                 $student_timer_button_label = $student_timer_total_hours > 0 ? 'Open DTR' : 'View Profile';
                 $student_has_started = (
                     (int)($student_dashboard['attendance_this_month'] ?? 0) > 0
@@ -794,7 +794,7 @@ include 'includes/header.php';
                             </div>
                             <div class="student-home-actions">
                                 <a href="<?php echo htmlspecialchars($student_dtr_route, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary"><i class="feather-clock me-1"></i> <?php echo htmlspecialchars($student_dtr_label, ENT_QUOTES, 'UTF-8'); ?></a>
-                                <a href="student-profile.php" class="btn btn-light-brand"><i class="feather-user me-1"></i> My Profile</a>
+                                <a href="profile-details.php" class="btn btn-light-brand"><i class="feather-user me-1"></i> My Profile</a>
                             </div>
                         </div>
                     </div>
@@ -813,7 +813,7 @@ include 'includes/header.php';
                             <div class="card-header"><h5 class="card-title mb-0">Quick Access</h5></div>
                             <div class="card-body">
                                 <div class="student-quick-grid">
-                                    <a href="student-profile.php" class="student-shortcut-card"><i class="feather-user"></i><span>My Profile</span><small>Review your student details.</small></a>
+                                    <a href="profile-details.php" class="student-shortcut-card"><i class="feather-user"></i><span>My Profile</span><small>Review your student details.</small></a>
                                     <a href="<?php echo htmlspecialchars($student_dtr_route, ENT_QUOTES, 'UTF-8'); ?>" class="student-shortcut-card"><i class="feather-clock"></i><span><?php echo htmlspecialchars($student_dtr_label, ENT_QUOTES, 'UTF-8'); ?></span><small><?php echo htmlspecialchars($student_dtr_summary, ENT_QUOTES, 'UTF-8'); ?></small></a>
                                     <a href="student-documents.php" class="student-shortcut-card"><i class="feather-file-text"></i><span>Documents</span><small>Open your internship documents.</small></a>
                                     <a href="apps-storage.php" class="student-shortcut-card"><i class="feather-folder"></i><span>Storage</span><small>Manage files and requirements.</small></a>

@@ -1570,3 +1570,53 @@ html.app-skin-dark .app-students-mobile-empty {
                 text-align: center;
             }
         }
+
+/* Absolute blend lock: keep Student list shell and rows in one unified dark surface */
+html.app-skin-dark body.students-page {
+    --app-students-surface: var(--biotern-surface, #0f172a);
+    --app-students-border: var(--biotern-border, #233045);
+}
+
+html.app-theme-gray.app-skin-dark body.students-page .app-students-table-card,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-table-card > .card-body,
+html.app-theme-gray.app-skin-dark body.students-page .students-table-wrap,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-table-card .dataTables_wrapper,
+html.app-theme-gray.app-skin-dark body.students-page #customerList,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-list-table,
+html.app-theme-gray.app-skin-dark body.students-page #customerList thead,
+html.app-theme-gray.app-skin-dark body.students-page #customerList tbody,
+html.app-theme-gray.app-skin-dark body.students-page #customerList tr,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-list-table thead,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-list-table tbody,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-list-table tr {
+    background-color: var(--app-students-surface) !important;
+}
+
+html.app-theme-gray.app-skin-dark body.students-page #customerList thead th,
+html.app-theme-gray.app-skin-dark body.students-page #customerList tbody td,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-list-table thead th,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-list-table tbody td,
+html.app-theme-gray.app-skin-dark body.students-page #customerList tbody tr.odd > td,
+html.app-theme-gray.app-skin-dark body.students-page #customerList tbody tr.even > td,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-list-table.dataTable tbody tr.odd > td,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-list-table.dataTable tbody tr.even > td,
+html.app-theme-gray.app-skin-dark body.students-page #customerList thead th:first-child,
+html.app-theme-gray.app-skin-dark body.students-page #customerList tbody td:first-child,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-list-table thead th:first-child,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-list-table tbody td:first-child {
+    background-color: var(--app-students-surface) !important;
+    box-shadow: none !important;
+}
+
+html.app-theme-gray.app-skin-dark body.students-page #customerList.table-hover > tbody > tr:hover > *,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-list-table.table-hover > tbody > tr:hover > *,
+html.app-theme-gray.app-skin-dark body.students-page #customerList tbody tr.is-selected > td,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-list-table tbody tr.is-selected > td {
+    background-color: var(--app-students-surface) !important;
+}
+
+html.app-theme-gray.app-skin-dark body.students-page .app-students-table-card,
+html.app-theme-gray.app-skin-dark body.students-page #customerList,
+html.app-theme-gray.app-skin-dark body.students-page .app-students-list-table {
+    border-color: var(--app-students-border) !important;
+}
