@@ -144,7 +144,13 @@
       window.BioTernSelectDropdown.refresh();
     }
 
-    window.addEventListener("resize", updateResponsiveWorklistMode);
+    var responsiveWorklistTimer = 0;
+    function scheduleResponsiveWorklistUpdate() {
+      window.clearTimeout(responsiveWorklistTimer);
+      responsiveWorklistTimer = window.setTimeout(updateResponsiveWorklistMode, 120);
+    }
+
+    window.addEventListener("resize", scheduleResponsiveWorklistUpdate);
 
     (function initInlineDetailRows() {
       var tableEl = document.getElementById("ojtListTable");
@@ -291,7 +297,7 @@
       });
 
       window.addEventListener("resize", function () {
-        updateResponsiveWorklistMode();
+        scheduleResponsiveWorklistUpdate();
         if (activeActionMenu && activeActionMenu.dropdown && activeActionMenu.menu) {
           positionActionMenu(activeActionMenu.dropdown, activeActionMenu.menu);
         }

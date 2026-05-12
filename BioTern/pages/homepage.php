@@ -735,66 +735,68 @@ include 'includes/header.php';
                 </div>
             </div>
             <div class="main-content student-home-shell">
-                <div class="card student-panel student-hours-timer-card">
-                    <div class="card-body">
-                        <div
-                            class="student-hours-timer"
-                            data-student-hours-timer
-                            data-remaining-seconds="<?php echo (int)$student_timer_seconds; ?>"
-                            data-live-countdown="<?php echo $student_timer_is_live ? '1' : '0'; ?>"
-                        >
-                            <div class="student-hours-timer__header">
-                                <div>
-                                    <h6><?php echo htmlspecialchars($student_timer_label, ENT_QUOTES, 'UTF-8'); ?></h6>
+                <div class="student-home-top-grid">
+                    <div class="card student-panel student-hours-timer-card">
+                        <div class="card-body">
+                            <div
+                                class="student-hours-timer"
+                                data-student-hours-timer
+                                data-remaining-seconds="<?php echo (int)$student_timer_seconds; ?>"
+                                data-live-countdown="<?php echo $student_timer_is_live ? '1' : '0'; ?>"
+                            >
+                                <div class="student-hours-timer__header">
+                                    <div>
+                                        <h6><?php echo htmlspecialchars($student_timer_label, ENT_QUOTES, 'UTF-8'); ?></h6>
+                                    </div>
+                                    <span class="student-hours-timer__badge"><?php echo htmlspecialchars($student_timer_track_label, ENT_QUOTES, 'UTF-8'); ?></span>
                                 </div>
-                                <span class="student-hours-timer__badge"><?php echo htmlspecialchars($student_timer_track_label, ENT_QUOTES, 'UTF-8'); ?></span>
-                            </div>
-                            <div class="student-hours-timer__clock">
-                                <div class="student-hours-timer__segment">
-                                    <strong data-student-hours-part="hours"><?php echo htmlspecialchars((string)($student_timer_clock[0] ?? '000'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                                    <small>Hours</small>
+                                <div class="student-hours-timer__clock">
+                                    <div class="student-hours-timer__segment">
+                                        <strong data-student-hours-part="hours"><?php echo htmlspecialchars((string)($student_timer_clock[0] ?? '000'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                        <small>Hours</small>
+                                    </div>
+                                    <span class="student-hours-timer__divider">:</span>
+                                    <div class="student-hours-timer__segment">
+                                        <strong data-student-hours-part="minutes"><?php echo htmlspecialchars((string)($student_timer_clock[1] ?? '00'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                        <small>Minutes</small>
+                                    </div>
+                                    <span class="student-hours-timer__divider">:</span>
+                                    <div class="student-hours-timer__segment">
+                                        <strong data-student-hours-part="seconds"><?php echo htmlspecialchars((string)($student_timer_clock[2] ?? '00'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                        <small>Seconds</small>
+                                    </div>
                                 </div>
-                                <span class="student-hours-timer__divider">:</span>
-                                <div class="student-hours-timer__segment">
-                                    <strong data-student-hours-part="minutes"><?php echo htmlspecialchars((string)($student_timer_clock[1] ?? '00'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                                    <small>Minutes</small>
+                                <p class="student-hours-timer__summary"><?php echo htmlspecialchars($student_timer_summary, ENT_QUOTES, 'UTF-8'); ?></p>
+                                <div class="student-hours-timer__progress" aria-hidden="true">
+                                    <span style="width: <?php echo htmlspecialchars(number_format($student_timer_progress, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>%;"></span>
                                 </div>
-                                <span class="student-hours-timer__divider">:</span>
-                                <div class="student-hours-timer__segment">
-                                    <strong data-student-hours-part="seconds"><?php echo htmlspecialchars((string)($student_timer_clock[2] ?? '00'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                                    <small>Seconds</small>
+                                <div class="student-hours-timer__footer">
+                                    <span class="student-hours-timer__sync">
+                                        <i class="feather-activity"></i>
+                                        Synced at <strong data-student-hours-sync><?php echo htmlspecialchars(date('h:i:s A'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                    </span>
+                                    <a href="<?php echo htmlspecialchars($student_timer_route, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-primary"><?php echo htmlspecialchars($student_timer_button_label, ENT_QUOTES, 'UTF-8'); ?></a>
                                 </div>
-                            </div>
-                            <p class="student-hours-timer__summary"><?php echo htmlspecialchars($student_timer_summary, ENT_QUOTES, 'UTF-8'); ?></p>
-                            <div class="student-hours-timer__progress" aria-hidden="true">
-                                <span style="width: <?php echo htmlspecialchars(number_format($student_timer_progress, 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>%;"></span>
-                            </div>
-                            <div class="student-hours-timer__footer">
-                                <span class="student-hours-timer__sync">
-                                    <i class="feather-activity"></i>
-                                    Synced at <strong data-student-hours-sync><?php echo htmlspecialchars(date('h:i:s A'), ENT_QUOTES, 'UTF-8'); ?></strong>
-                                </span>
-                                <a href="<?php echo htmlspecialchars($student_timer_route, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-primary"><?php echo htmlspecialchars($student_timer_button_label, ENT_QUOTES, 'UTF-8'); ?></a>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="student-home-hero card border-0">
-                    <div class="card-body">
-                        <div class="student-home-hero__content">
-                            <div>
-                                <span class="student-home-eyebrow">Student Workspace</span>
-                                <h2><?php echo htmlspecialchars($student_greeting, ENT_QUOTES, 'UTF-8'); ?></h2>
-                                <p>Keep track of your attendance, internship progress, documents, and daily tools in one place.</p>
-                                <div class="student-home-meta">
-                                    <?php if ($student_course !== ''): ?><span><?php echo htmlspecialchars($student_course, ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
-                                    <?php if ($student_section !== ''): ?><span><?php echo htmlspecialchars($student_section, ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
+                    <div class="student-home-hero card border-0">
+                        <div class="card-body">
+                            <div class="student-home-hero__content">
+                                <div>
+                                    <span class="student-home-eyebrow">Student Workspace</span>
+                                    <h2><?php echo htmlspecialchars($student_greeting, ENT_QUOTES, 'UTF-8'); ?></h2>
+                                    <p>Keep track of your attendance, internship progress, documents, and daily tools in one place.</p>
+                                    <div class="student-home-meta">
+                                        <?php if ($student_course !== ''): ?><span><?php echo htmlspecialchars($student_course, ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
+                                        <?php if ($student_section !== ''): ?><span><?php echo htmlspecialchars($student_section, ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="student-home-actions">
-                                <a href="<?php echo htmlspecialchars($student_dtr_route, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary"><i class="feather-clock me-1"></i> <?php echo htmlspecialchars($student_dtr_label, ENT_QUOTES, 'UTF-8'); ?></a>
-                                <a href="profile-details.php" class="btn btn-light-brand"><i class="feather-user me-1"></i> My Profile</a>
+                                <div class="student-home-actions">
+                                    <a href="<?php echo htmlspecialchars($student_dtr_route, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary"><i class="feather-clock me-1"></i> <?php echo htmlspecialchars($student_dtr_label, ENT_QUOTES, 'UTF-8'); ?></a>
+                                    <a href="profile-details.php" class="btn btn-light-brand"><i class="feather-user me-1"></i> My Profile</a>
+                                </div>
                             </div>
                         </div>
                     </div>

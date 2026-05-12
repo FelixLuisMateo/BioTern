@@ -37,6 +37,37 @@
   background-color: var(--biotern-surface) !important;
 }
 
+.nxl-container .nxl-content .main-content.theme-customizer-page,
+.nxl-container .nxl-content .main-content.settings-theme-customizer,
+.nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card,
+.nxl-container .nxl-content .main-content.theme-customizer-page .option-row,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .option-row {
+  color: var(--bs-body-color) !important;
+}
+
+.nxl-container .nxl-content .main-content.theme-customizer-page h1,
+.nxl-container .nxl-content .main-content.theme-customizer-page h2,
+.nxl-container .nxl-content .main-content.theme-customizer-page h3,
+.nxl-container .nxl-content .main-content.theme-customizer-page h4,
+.nxl-container .nxl-content .main-content.theme-customizer-page h5,
+.nxl-container .nxl-content .main-content.theme-customizer-page h6,
+.nxl-container .nxl-content .main-content.theme-customizer-page .form-label,
+.nxl-container .nxl-content .main-content.settings-theme-customizer h1,
+.nxl-container .nxl-content .main-content.settings-theme-customizer h2,
+.nxl-container .nxl-content .main-content.settings-theme-customizer h3,
+.nxl-container .nxl-content .main-content.settings-theme-customizer h4,
+.nxl-container .nxl-content .main-content.settings-theme-customizer h5,
+.nxl-container .nxl-content .main-content.settings-theme-customizer h6,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .form-label {
+  color: var(--bs-heading-color, var(--bs-body-color)) !important;
+}
+
+.nxl-container .nxl-content .main-content.theme-customizer-page .text-muted,
+.nxl-container .nxl-content .main-content.settings-theme-customizer .text-muted {
+  color: var(--bs-secondary-color) !important;
+}
+
 .nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card .option-row,
 .nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card .option-row {
   background-color: var(--biotern-surface-muted) !important;

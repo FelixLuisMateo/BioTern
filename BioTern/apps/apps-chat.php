@@ -2020,7 +2020,7 @@ include 'includes/header.php';
             </div>
             <div class="btchat-list" id="btchat-list">
                 <?php if (empty($contacts)): ?>
-                    <div class="px-3 py-4 text-white-50"><?php echo chat_esc($emptyContactsMessage); ?></div>
+                    <div class="btchat-empty-note px-3 py-4"><?php echo chat_esc($emptyContactsMessage); ?></div>
                 <?php else: ?>
                     <?php $currentContactGroupKey = ''; ?>
                     <?php foreach ($normalizedContacts as $contact): ?>
@@ -2100,8 +2100,8 @@ include 'includes/header.php';
                     <?php if (empty($normalizedMessages)): ?>
                         <div class="btchat-empty">
                             <div>
-                                <h6 class="mb-2 text-white">No messages yet</h6>
-                                <div class="text-white-50">Start the conversation with <?php echo chat_esc($selectedName); ?>.</div>
+                                <h6 class="btchat-empty-title mb-2">No messages yet</h6>
+                                <div class="btchat-empty-copy">Start the conversation with <?php echo chat_esc($selectedName); ?>.</div>
                             </div>
                         </div>
                     <?php else: ?>
@@ -2214,8 +2214,8 @@ include 'includes/header.php';
             <?php else: ?>
                 <div class="btchat-empty">
                     <div>
-                        <h5 class="mb-2 text-white">Choose a conversation</h5>
-                        <div class="text-white-50">Select someone from the left to start chatting.</div>
+                        <h5 class="btchat-empty-title mb-2">Choose a conversation</h5>
+                        <div class="btchat-empty-copy">Select someone from the left to start chatting.</div>
                     </div>
                 </div>
             <?php endif; ?>

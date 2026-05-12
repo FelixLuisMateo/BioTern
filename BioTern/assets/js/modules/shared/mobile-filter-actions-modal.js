@@ -876,14 +876,20 @@
     boot: boot,
   };
 
+  var bootTimer = 0;
+  function scheduleBoot() {
+    global.clearTimeout(bootTimer);
+    bootTimer = global.setTimeout(boot, 120);
+  }
+
   global.addEventListener("resize", function () {
-    boot();
+    scheduleBoot();
   });
 
   if ("MutationObserver" in global) {
     var mobileObserver = new MutationObserver(function () {
       if (isMobile()) {
-        boot();
+        scheduleBoot();
       }
     });
     mobileObserver.observe(document.documentElement || document.body, {

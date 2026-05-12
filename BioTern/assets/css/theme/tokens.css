@@ -17,6 +17,19 @@
   --biotern-surface: #ffffff;
   --biotern-surface-muted: #f8fafc;
   --biotern-border: #e5e7eb;
+  --bs-primary: var(--biotern-primary);
+  --bs-primary-rgb: var(--biotern-primary-rgb);
+  --bs-link-color: var(--biotern-link);
+  --bs-link-hover-color: var(--biotern-link-hover);
+  --bs-body-bg: var(--biotern-body-bg);
+  --bs-body-color: #1f2937;
+  --bs-body-color-rgb: 31, 41, 55;
+  --bs-secondary-color: #64748b;
+  --bs-secondary-rgb: 100, 116, 139;
+  --bs-heading-color: #0f172a;
+  --bs-border-color: var(--biotern-border);
+  --bs-light: var(--biotern-surface);
+  --bs-dark: #0f172a;
 }
 
 html.app-skin-dark {
@@ -24,6 +37,15 @@ html.app-skin-dark {
   --biotern-surface: #0f172a;
   --biotern-surface-muted: #111827;
   --biotern-border: #1b2436;
+  --bs-body-bg: var(--biotern-body-bg);
+  --bs-body-color: #e5e7eb;
+  --bs-body-color-rgb: 229, 231, 235;
+  --bs-secondary-color: #94a3b8;
+  --bs-secondary-rgb: 148, 163, 184;
+  --bs-heading-color: #f8fafc;
+  --bs-border-color: var(--biotern-border);
+  --bs-light: var(--biotern-surface);
+  --bs-dark: #050816;
 }
 
 html.app-theme-blue {
@@ -39,6 +61,19 @@ html.app-theme-blue {
   --biotern-surface: #ffffff;
   --biotern-surface-muted: #f8fafc;
   --biotern-border: #e5e7eb;
+  --bs-primary: var(--biotern-primary);
+  --bs-primary-rgb: var(--biotern-primary-rgb);
+  --bs-link-color: var(--biotern-link);
+  --bs-link-hover-color: var(--biotern-link-hover);
+  --bs-body-bg: var(--biotern-body-bg);
+  --bs-body-color: #1f2937;
+  --bs-body-color-rgb: 31, 41, 55;
+  --bs-secondary-color: #64748b;
+  --bs-secondary-rgb: 100, 116, 139;
+  --bs-heading-color: #0f172a;
+  --bs-border-color: var(--biotern-border);
+  --bs-light: var(--biotern-surface);
+  --bs-dark: #0f172a;
 }
 
 html.app-theme-blue.app-skin-dark {
@@ -54,6 +89,19 @@ html.app-theme-blue.app-skin-dark {
   --biotern-surface: #0f172a;
   --biotern-surface-muted: #111827;
   --biotern-border: #1b2436;
+  --bs-primary: var(--biotern-primary);
+  --bs-primary-rgb: var(--biotern-primary-rgb);
+  --bs-link-color: var(--biotern-link);
+  --bs-link-hover-color: var(--biotern-link-hover);
+  --bs-body-bg: var(--biotern-body-bg);
+  --bs-body-color: #e5e7eb;
+  --bs-body-color-rgb: 229, 231, 235;
+  --bs-secondary-color: #94a3b8;
+  --bs-secondary-rgb: 148, 163, 184;
+  --bs-heading-color: #f8fafc;
+  --bs-border-color: var(--biotern-border);
+  --bs-light: var(--biotern-surface);
+  --bs-dark: #050816;
 }
 
 html.app-theme-gray {
