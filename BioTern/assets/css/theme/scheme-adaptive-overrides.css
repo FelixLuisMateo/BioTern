@@ -216,39 +216,6 @@ html[class*="app-theme-"]:not(.app-theme-blue) .nxl-navigation .navbar-content .
   color: inherit !important;
 }
 
-/* Gray scheme repaint guard:
- * prevent legacy blue base layers from flashing during browser zoom.
- */
-html.app-theme-gray,
-html.app-theme-gray body {
-  background-color: var(--biotern-body-bg) !important;
-  background-image: none !important;
-}
-
-html.app-theme-gray .nxl-container,
-html.app-theme-gray .nxl-content,
-html.app-theme-gray .main-content,
-html.app-theme-gray .content-area,
-html.app-theme-gray .content-area .content-area-body {
-  background-color: var(--biotern-body-bg) !important;
-  background-image: none !important;
-}
-
-html.app-theme-gray .nxl-header,
-html.app-theme-gray .nxl-header .header-wrapper,
-html.app-theme-gray .page-header,
-html.app-theme-gray .nxl-navigation,
-html.app-theme-gray .nxl-navigation .m-header,
-html.app-theme-gray .nxl-navigation .navbar-content,
-html.app-theme-gray .content-area .content-area-header,
-html.app-theme-gray .content-sidebar,
-html.app-theme-gray .content-sidebar .content-sidebar-header,
-html.app-theme-gray .nxl-container .footer {
-  background-color: var(--biotern-surface) !important;
-  background-image: none !important;
-  border-color: var(--biotern-border) !important;
-}
-
 .nxl-navigation .navbar-content {
   scrollbar-width: none !important;
   -ms-overflow-style: none;

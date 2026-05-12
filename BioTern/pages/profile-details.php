@@ -56,6 +56,33 @@ function profile_details_format_date(?string $value, string $fallback = 'Not yet
     return $timestamp !== false ? date('M d, Y', $timestamp) : $fallback;
 }
 
+function profile_details_table_exists(mysqli $conn, string $table): bool
+{
+    $safeTable = $conn->real_escape_string($table);
+    $result = $conn->query("SHOW TABLES LIKE '{$safeTable}'");
+    return $result instanceof mysqli_result && $result->num_rows > 0;
+}
+
+function profile_details_build_person_name(?string $firstName, ?string $middleName, ?string $lastName): string
+{
+    $parts = [];
+    $firstName = trim((string)$firstName);
+    $middleName = trim((string)$middleName);
+    $lastName = trim((string)$lastName);
+
+    if ($firstName !== '') {
+        $parts[] = $firstName;
+    }
+    if ($middleName !== '') {
+        $parts[] = $middleName;
+    }
+    if ($lastName !== '') {
+        $parts[] = $lastName;
+    }
+
+    return trim(implode(' ', $parts));
+}
+
 $profile_flash_message = '';
 $profile_flash_type = 'success';
 
@@ -326,6 +353,197 @@ if ($currentRole === 'student') {
     }
 }
 
+$roleProfileTitle = '';
+$roleProfileFields = [];
+$roleProfileEmptyMessage = '';
+if ($currentRole !== 'student') {
+    if ($currentRole === 'coordinator') {
+        $roleProfileTitle = 'Coordinator Profile';
+        if (profile_details_table_exists($conn, 'coordinators')) {
+            $coordinatorStmt = $conn->prepare("
+                SELECT c.id, c.first_name, c.middle_name, c.last_name, c.email, c.phone, c.office_location, c.bio,
+                       c.is_active, c.created_at, c.updated_at,
+                       d.name AS department_name, d.code AS department_code, d.department_head
+                FROM coordinators c
+                LEFT JOIN departments d ON d.id = c.department_id
+                WHERE c.user_id = ?
+                LIMIT 1
+            ");
+            $coordinatorProfile = null;
+            if ($coordinatorStmt) {
+                $coordinatorStmt->bind_param('i', $userId);
+                $coordinatorStmt->execute();
+                $coordinatorProfile = $coordinatorStmt->get_result()->fetch_assoc() ?: null;
+                $coordinatorStmt->close();
+            }
+
+            if (is_array($coordinatorProfile)) {
+                $courseLabels = [];
+                if (profile_details_table_exists($conn, 'coordinator_courses') && profile_details_table_exists($conn, 'courses')) {
+                    $coordinatorCoursesStmt = $conn->prepare("
+                        SELECT crs.code, crs.name
+                        FROM coordinator_courses cc
+                        INNER JOIN courses crs ON crs.id = cc.course_id
+                        WHERE cc.coordinator_user_id = ?
+                        ORDER BY crs.name ASC
+                    ");
+                    if ($coordinatorCoursesStmt) {
+                        $coordinatorCoursesStmt->bind_param('i', $userId);
+                        $coordinatorCoursesStmt->execute();
+                        $coursesResult = $coordinatorCoursesStmt->get_result();
+                        while ($courseRow = $coursesResult->fetch_assoc()) {
+                            $courseCode = trim((string)($courseRow['code'] ?? ''));
+                            $courseName = trim((string)($courseRow['name'] ?? ''));
+                            $courseLabels[] = trim($courseCode . ($courseName !== '' ? ' - ' . $courseName : ''));
+                        }
+                        $coordinatorCoursesStmt->close();
+                    }
+                }
+
+                $coordinatorName = profile_details_build_person_name(
+                    (string)($coordinatorProfile['first_name'] ?? ''),
+                    (string)($coordinatorProfile['middle_name'] ?? ''),
+                    (string)($coordinatorProfile['last_name'] ?? '')
+                );
+                $coordinatorStatus = ((int)($coordinatorProfile['is_active'] ?? 0) === 1) ? 'Active' : 'Inactive';
+                $coordinatorDepartment = trim((string)($coordinatorProfile['department_name'] ?? ''));
+                $departmentCode = trim((string)($coordinatorProfile['department_code'] ?? ''));
+                if ($coordinatorDepartment !== '' && $departmentCode !== '') {
+                    $coordinatorDepartment .= ' (' . $departmentCode . ')';
+                }
+
+                $roleProfileFields = [
+                    ['label' => 'Coordinator Name', 'value' => profile_details_value($coordinatorName, profile_details_value((string)($user['name'] ?? '')))],
+                    ['label' => 'Department', 'value' => profile_details_value($coordinatorDepartment)],
+                    ['label' => 'Assigned Courses', 'value' => !empty($courseLabels) ? implode(', ', $courseLabels) : 'No assigned courses yet', 'full' => true],
+                    ['label' => 'Office Location', 'value' => profile_details_value((string)($coordinatorProfile['office_location'] ?? ''))],
+                    ['label' => 'Phone', 'value' => profile_details_value((string)($coordinatorProfile['phone'] ?? ''))],
+                    ['label' => 'Coordinator Email', 'value' => profile_details_value((string)($coordinatorProfile['email'] ?? ($user['email'] ?? '')))],
+                    ['label' => 'Department Head', 'value' => profile_details_value((string)($coordinatorProfile['department_head'] ?? ''))],
+                    ['label' => 'Profile Status', 'value' => $coordinatorStatus],
+                    ['label' => 'Created', 'value' => profile_details_format_date((string)($coordinatorProfile['created_at'] ?? ''))],
+                    ['label' => 'Last Updated', 'value' => profile_details_format_date((string)($coordinatorProfile['updated_at'] ?? ''))],
+                    ['label' => 'Bio', 'value' => profile_details_value((string)($coordinatorProfile['bio'] ?? '')), 'full' => true],
+                ];
+            } else {
+                $roleProfileEmptyMessage = 'No linked coordinator profile record was found for this account yet.';
+            }
+        } else {
+            $roleProfileEmptyMessage = 'Coordinator profile table is not available in this database.';
+        }
+    } elseif ($currentRole === 'supervisor') {
+        $roleProfileTitle = 'Supervisor Profile';
+        if (profile_details_table_exists($conn, 'supervisors')) {
+            $supervisorStmt = $conn->prepare("
+                SELECT s.id, s.first_name, s.middle_name, s.last_name, s.email, s.phone, s.specialization, s.bio,
+                       s.is_active, s.office_location, s.created_at, s.updated_at,
+                       d.name AS department_name, d.code AS department_code, d.department_head,
+                       c.name AS course_name, c.code AS course_code
+                FROM supervisors s
+                LEFT JOIN departments d ON d.id = s.department_id
+                LEFT JOIN courses c ON c.id = s.course_id
+                WHERE s.user_id = ?
+                LIMIT 1
+            ");
+            $supervisorProfile = null;
+            if ($supervisorStmt) {
+                $supervisorStmt->bind_param('i', $userId);
+                $supervisorStmt->execute();
+                $supervisorProfile = $supervisorStmt->get_result()->fetch_assoc() ?: null;
+                $supervisorStmt->close();
+            }
+
+            if (is_array($supervisorProfile)) {
+                $supervisorName = profile_details_build_person_name(
+                    (string)($supervisorProfile['first_name'] ?? ''),
+                    (string)($supervisorProfile['middle_name'] ?? ''),
+                    (string)($supervisorProfile['last_name'] ?? '')
+                );
+                $supervisorDepartment = trim((string)($supervisorProfile['department_name'] ?? ''));
+                $supervisorDepartmentCode = trim((string)($supervisorProfile['department_code'] ?? ''));
+                if ($supervisorDepartment !== '' && $supervisorDepartmentCode !== '') {
+                    $supervisorDepartment .= ' (' . $supervisorDepartmentCode . ')';
+                }
+                $supervisorCourseCode = trim((string)($supervisorProfile['course_code'] ?? ''));
+                $supervisorCourseName = trim((string)($supervisorProfile['course_name'] ?? ''));
+                $supervisorCourseLabel = trim($supervisorCourseCode . ($supervisorCourseName !== '' ? ' - ' . $supervisorCourseName : ''));
+                $supervisorStatus = ((int)($supervisorProfile['is_active'] ?? 0) === 1) ? 'Active' : 'Inactive';
+
+                $roleProfileFields = [
+                    ['label' => 'Supervisor Name', 'value' => profile_details_value($supervisorName, profile_details_value((string)($user['name'] ?? '')))],
+                    ['label' => 'Department', 'value' => profile_details_value($supervisorDepartment)],
+                    ['label' => 'Course', 'value' => profile_details_value($supervisorCourseLabel)],
+                    ['label' => 'Specialization', 'value' => profile_details_value((string)($supervisorProfile['specialization'] ?? ''))],
+                    ['label' => 'Office Location', 'value' => profile_details_value((string)($supervisorProfile['office_location'] ?? ''))],
+                    ['label' => 'Phone', 'value' => profile_details_value((string)($supervisorProfile['phone'] ?? ''))],
+                    ['label' => 'Supervisor Email', 'value' => profile_details_value((string)($supervisorProfile['email'] ?? ($user['email'] ?? '')))],
+                    ['label' => 'Department Head', 'value' => profile_details_value((string)($supervisorProfile['department_head'] ?? ''))],
+                    ['label' => 'Profile Status', 'value' => $supervisorStatus],
+                    ['label' => 'Created', 'value' => profile_details_format_date((string)($supervisorProfile['created_at'] ?? ''))],
+                    ['label' => 'Last Updated', 'value' => profile_details_format_date((string)($supervisorProfile['updated_at'] ?? ''))],
+                    ['label' => 'Bio', 'value' => profile_details_value((string)($supervisorProfile['bio'] ?? '')), 'full' => true],
+                ];
+            } else {
+                $roleProfileEmptyMessage = 'No linked supervisor profile record was found for this account yet.';
+            }
+        } else {
+            $roleProfileEmptyMessage = 'Supervisor profile table is not available in this database.';
+        }
+    } elseif ($currentRole === 'admin') {
+        $roleProfileTitle = 'Admin Profile';
+        if (profile_details_table_exists($conn, 'admin')) {
+            $adminStmt = $conn->prepare("
+                SELECT a.id, a.first_name, a.middle_name, a.institution_email_address, a.phone_number,
+                       a.admin_level, a.admin_position, a.username, a.email,
+                       d.name AS department_name, d.code AS department_code, d.department_head
+                FROM admin a
+                LEFT JOIN departments d ON d.id = a.department_id
+                WHERE a.user_id = ?
+                LIMIT 1
+            ");
+            $adminProfile = null;
+            if ($adminStmt) {
+                $adminStmt->bind_param('i', $userId);
+                $adminStmt->execute();
+                $adminProfile = $adminStmt->get_result()->fetch_assoc() ?: null;
+                $adminStmt->close();
+            }
+
+            if (is_array($adminProfile)) {
+                $adminName = profile_details_build_person_name(
+                    (string)($adminProfile['first_name'] ?? ''),
+                    (string)($adminProfile['middle_name'] ?? ''),
+                    ''
+                );
+                $adminDepartment = trim((string)($adminProfile['department_name'] ?? ''));
+                $adminDepartmentCode = trim((string)($adminProfile['department_code'] ?? ''));
+                if ($adminDepartment !== '' && $adminDepartmentCode !== '') {
+                    $adminDepartment .= ' (' . $adminDepartmentCode . ')';
+                }
+
+                $roleProfileFields = [
+                    ['label' => 'Admin Name', 'value' => profile_details_value($adminName, profile_details_value((string)($user['name'] ?? '')))],
+                    ['label' => 'Admin Level', 'value' => profile_details_value((string)($adminProfile['admin_level'] ?? ''))],
+                    ['label' => 'Admin Position', 'value' => profile_details_value((string)($adminProfile['admin_position'] ?? ''))],
+                    ['label' => 'Department', 'value' => profile_details_value($adminDepartment)],
+                    ['label' => 'Department Head', 'value' => profile_details_value((string)($adminProfile['department_head'] ?? ''))],
+                    ['label' => 'Institution Email', 'value' => profile_details_value((string)($adminProfile['institution_email_address'] ?? ''))],
+                    ['label' => 'Phone', 'value' => profile_details_value((string)($adminProfile['phone_number'] ?? ''))],
+                    ['label' => 'Admin Username', 'value' => profile_details_value((string)($adminProfile['username'] ?? ($user['username'] ?? '')))],
+                    ['label' => 'Admin Email', 'value' => profile_details_value((string)($adminProfile['email'] ?? ($user['email'] ?? '')))],
+                ];
+            } else {
+                $roleProfileEmptyMessage = 'No linked admin profile record was found for this account yet.';
+            }
+        } else {
+            $roleProfileEmptyMessage = 'Admin profile table is not available in this database.';
+        }
+    } else {
+        $roleProfileTitle = 'Role Profile';
+        $roleProfileEmptyMessage = 'No extended role profile is configured for this account role yet.';
+    }
+}
+
 $lastLoginAt = null;
 $loginStmt = $conn->prepare('SELECT created_at FROM login_logs WHERE user_id = ? AND status = ? ORDER BY created_at DESC LIMIT 1');
 if ($loginStmt) {
@@ -529,43 +747,79 @@ include 'includes/header.php';
             </div>
 
             <div class="row g-3">
-                <div class="col-lg-7">
-                    <div class="card profile-panel">
-                        <div class="card-header">
-                            <h6 class="mb-0">My Account</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="profile-grid">
-                                <div class="profile-field">
-                                    <div class="profile-field-label">Full Name</div>
-                                    <div class="profile-field-value"><?php echo htmlspecialchars((string)($user['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                <div class="col-12">
+                    <div class="row g-3 profile-account-role-grid">
+                        <div class="<?php echo $currentRole !== 'student' ? 'col-xl-6' : 'col-12'; ?>">
+                            <div class="card profile-panel">
+                                <div class="card-header">
+                                    <h6 class="mb-0">My Account</h6>
                                 </div>
-                                <div class="profile-field">
-                                    <div class="profile-field-label">Username</div>
-                                    <div class="profile-field-value"><?php echo htmlspecialchars((string)($user['username'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
-                                </div>
-                                <div class="profile-field full">
-                                    <div class="profile-field-label">Email</div>
-                                    <div class="profile-field-value"><?php echo htmlspecialchars((string)($user['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
-                                </div>
-                                <div class="profile-field">
-                                    <div class="profile-field-label">Role</div>
-                                    <div class="profile-field-value"><?php echo htmlspecialchars(ucfirst((string)($user['role'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></div>
-                                </div>
-                                <div class="profile-field">
-                                    <div class="profile-field-label">Status</div>
-                                    <div class="profile-field-value"><?php echo ((int)($user['is_active'] ?? 0) === 1) ? 'Active' : 'Inactive'; ?></div>
-                                </div>
-                                <div class="profile-field">
-                                    <div class="profile-field-label">Last Login</div>
-                                    <div class="profile-field-value"><?php echo htmlspecialchars($lastLoginDisplay, ENT_QUOTES, 'UTF-8'); ?></div>
-                                </div>
-                                <div class="profile-field">
-                                    <div class="profile-field-label">Member Since</div>
-                                    <div class="profile-field-value"><?php echo htmlspecialchars($memberSinceDisplay, ENT_QUOTES, 'UTF-8'); ?></div>
+                                <div class="card-body">
+                                    <div class="profile-grid">
+                                        <div class="profile-field">
+                                            <div class="profile-field-label">Full Name</div>
+                                            <div class="profile-field-value"><?php echo htmlspecialchars((string)($user['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                        </div>
+                                        <div class="profile-field">
+                                            <div class="profile-field-label">Username</div>
+                                            <div class="profile-field-value"><?php echo htmlspecialchars((string)($user['username'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                        </div>
+                                        <div class="profile-field full">
+                                            <div class="profile-field-label">Email</div>
+                                            <div class="profile-field-value"><?php echo htmlspecialchars((string)($user['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                        </div>
+                                        <div class="profile-field">
+                                            <div class="profile-field-label">Role</div>
+                                            <div class="profile-field-value"><?php echo htmlspecialchars(ucfirst((string)($user['role'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></div>
+                                        </div>
+                                        <div class="profile-field">
+                                            <div class="profile-field-label">Status</div>
+                                            <div class="profile-field-value"><?php echo ((int)($user['is_active'] ?? 0) === 1) ? 'Active' : 'Inactive'; ?></div>
+                                        </div>
+                                        <div class="profile-field">
+                                            <div class="profile-field-label">Last Login</div>
+                                            <div class="profile-field-value"><?php echo htmlspecialchars($lastLoginDisplay, ENT_QUOTES, 'UTF-8'); ?></div>
+                                        </div>
+                                        <div class="profile-field">
+                                            <div class="profile-field-label">Member Since</div>
+                                            <div class="profile-field-value"><?php echo htmlspecialchars($memberSinceDisplay, ENT_QUOTES, 'UTF-8'); ?></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        <?php if ($currentRole !== 'student'): ?>
+                        <div class="col-xl-6">
+                            <div class="card profile-panel">
+                                <div class="card-header">
+                                    <h6 class="mb-0"><?php echo htmlspecialchars($roleProfileTitle !== '' ? $roleProfileTitle : 'Role Profile', ENT_QUOTES, 'UTF-8'); ?></h6>
+                                </div>
+                                <div class="card-body">
+                                    <?php if (!empty($roleProfileFields)): ?>
+                                    <div class="profile-grid">
+                                        <?php foreach ($roleProfileFields as $roleField): ?>
+                                        <?php
+                                        $fieldLabel = (string)($roleField['label'] ?? '');
+                                        $fieldValue = (string)($roleField['value'] ?? '');
+                                        $fieldFull = (bool)($roleField['full'] ?? false);
+                                        ?>
+                                        <div class="profile-field<?php echo $fieldFull ? ' full' : ''; ?>">
+                                            <div class="profile-field-label"><?php echo htmlspecialchars($fieldLabel, ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="profile-field-value"><?php echo nl2br(htmlspecialchars($fieldValue, ENT_QUOTES, 'UTF-8')); ?></div>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <?php else: ?>
+                                    <div class="profile-field">
+                                        <div class="profile-field-label">Status</div>
+                                        <div class="profile-field-value"><?php echo htmlspecialchars(profile_details_value($roleProfileEmptyMessage, 'No additional role profile details found.'), ENT_QUOTES, 'UTF-8'); ?></div>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
 
                     <?php if (is_array($studentProfile)): ?>

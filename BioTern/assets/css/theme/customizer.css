@@ -42,47 +42,6 @@
   background-color: var(--biotern-surface-muted) !important;
 }
 
-/* Gray scheme hard override: match/exceed theme.min dark selector specificity. */
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .content-area,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .content-area .content-area-body,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .content-area,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .content-area .content-area-body {
-  background-color: var(--biotern-body-bg) !important;
-  background-image: none !important;
-}
-
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .content-area .content-area-header,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .content-area .content-area-header,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .content-sidebar .content-sidebar-header,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .content-area .content-area-header .search-form .search-form-inner,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .content-area .content-area-header .search-form .search-form-inner {
-  background-color: var(--biotern-surface) !important;
-  background-image: none !important;
-  border-color: var(--biotern-border) !important;
-}
-
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card .card-header,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card .card-header,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card .option-row,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card .option-row {
-  border-color: var(--biotern-border) !important;
-  background-image: none !important;
-}
-
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card .card-header,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card .card-header {
-  background-color: var(--biotern-surface) !important;
-}
-
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.theme-customizer-page .theme-setting-card .option-row,
-html.app-theme-gray.app-skin-dark .nxl-container .nxl-content .main-content.settings-theme-customizer .theme-setting-card .option-row {
-  background-color: var(--biotern-surface-muted) !important;
-}
-
 .theme-customizer-page .content-area-body {
   padding: 1.75rem;
 }
@@ -141,20 +100,6 @@ html.app-skin-dark .theme-setting-card .option-row {
   background: rgba(255, 255, 255, 0.04);
 }
 
-html.app-theme-gray .theme-setting-card,
-html.app-theme-gray .theme-setting-card .option-row {
-  background: var(--biotern-surface);
-  border-color: var(--biotern-border);
-}
-
-html.app-theme-gray .theme-setting-card .option-row {
-  background: var(--biotern-surface-muted);
-}
-
-html.app-theme-gray .theme-setting-card .badge {
-  border-color: var(--biotern-border);
-  color: var(--biotern-primary);
-}
 
 .theme-setting-card .btn-check + .btn {
   min-width: 110px;
@@ -205,32 +150,6 @@ html.app-theme-gray .theme-setting-card .badge {
 
 .theme-customizer-page .theme-setting-card {
   height: 100%;
-}
-
-html.app-theme-gray.app-skin-dark .theme-customizer-page .content-area,
-html.app-theme-gray.app-skin-dark .theme-customizer-page .content-area-body {
-  background-color: var(--biotern-body-bg);
-}
-
-html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar,
-html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .content-sidebar-header,
-html.app-theme-gray.app-skin-dark .theme-customizer-page .content-area .content-area-header {
-  background-color: var(--biotern-surface);
-  border-color: var(--biotern-border);
-}
-
-html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar {
-  border-right-color: var(--biotern-border);
-}
-
-html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .nav-link {
-  color: var(--bs-body-color);
-}
-
-html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .nav-link.active,
-html.app-theme-gray.app-skin-dark .theme-customizer-page .content-sidebar .nav-link:hover {
-  background-color: var(--biotern-primary-soft);
-  color: var(--biotern-primary-soft-text);
 }
 
 .settings-theme-customizer .content-sidebar-header,
