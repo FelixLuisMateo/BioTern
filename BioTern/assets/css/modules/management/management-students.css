@@ -558,10 +558,38 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
     margin-left: auto !important;
     float: none !important;
     text-align: right !important;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    width: 100% !important;
 }
 
 .app-students-table-card .dataTables_wrapper .dataTables_paginate .pagination {
     justify-content: flex-end !important;
+    order: 1;
+    margin-left: auto;
+}
+
+.app-students-table-card .dataTables_wrapper .app-students-pagination-viewall {
+    display: inline-flex;
+    align-items: center;
+    order: 2;
+}
+
+.app-students-table-card .dataTables_wrapper .row:last-child {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    column-gap: 0.75rem;
+}
+
+.app-students-table-card .dataTables_wrapper .row:last-child .dataTables_info {
+    justify-self: start;
+}
+
+.app-students-table-card .dataTables_wrapper .row:last-child .dataTables_paginate {
+    justify-self: end;
 }
 
 /* Keep the desktop table visible at all widths; avoid mobile list toggles */
@@ -576,6 +604,9 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 .app-students-list-table thead th:nth-child(1),
 .app-students-list-table tbody td:nth-child(1) {
     width: 24px;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-left: 0 !important;
 }
 
 .app-students-list-table thead th:nth-child(2),
@@ -610,6 +641,11 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
     padding-top: 0.35rem;
     padding-bottom: 0.35rem;
     vertical-align: top;
+    background: transparent;
+}
+
+.app-students-list-table tbody tr {
+    background: transparent;
 }
 
 .app-students-table-row > td {
@@ -640,16 +676,10 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
     min-width: 0;
 }
 
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 .app-students-student-block .avatar-image.avatar-md {
     width: 32px;
     height: 32px;
     max-width: 32px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     max-height: 32px;
     min-width: 32px;
     min-height: 32px;
@@ -706,6 +736,14 @@ html.app-skin-dark .students-action-menu-portal .dropdown-divider {
 .app-students-inline-detail-label,
 .app-students-cell-title {
     display: none;
+}
+
+#studentsDetailsModal .app-students-inline-detail-label {
+    display: inline-flex;
+}
+
+#studentsDetailsModal .app-students-inline-detail-value {
+    text-align: right;
 }
 
 .app-students-inline-detail-value,

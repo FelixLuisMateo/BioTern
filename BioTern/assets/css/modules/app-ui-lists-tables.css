@@ -174,6 +174,38 @@ html.app-skin-dark {
   color: var(--biotern-data-page-text);
 }
 
+/* Global fallback: pages not yet migrated to .app-data-toolbar still inherit theme-safe pagination */
+.dataTables_wrapper .dataTables_paginate .pagination .page-link {
+  background: var(--biotern-data-page-bg);
+  border-color: var(--biotern-data-page-border);
+  color: var(--biotern-data-page-text);
+  box-shadow: none !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .pagination .page-link:hover,
+.dataTables_wrapper .dataTables_paginate .pagination .page-link:focus {
+  background: var(--biotern-data-page-hover-bg);
+  border-color: var(--biotern-data-page-border);
+  color: var(--biotern-data-page-hover-text);
+}
+
+.dataTables_wrapper .dataTables_paginate .pagination .page-item.active .page-link,
+.dataTables_wrapper .dataTables_paginate .pagination .active > .page-link,
+.dataTables_wrapper .dataTables_paginate .pagination .page-link.active {
+  background: var(--biotern-data-page-active-bg);
+  border-color: var(--biotern-data-page-active-border);
+  color: var(--biotern-data-page-active-text) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .pagination .page-item.disabled .page-link,
+.dataTables_wrapper .dataTables_paginate .pagination .disabled > .page-link,
+.dataTables_wrapper .dataTables_paginate .pagination .page-link.disabled {
+  opacity: 0.56;
+  background: var(--biotern-data-page-bg);
+  border-color: var(--biotern-data-page-border);
+  color: var(--biotern-data-page-text);
+}
+
 .app-data-table-wrap {
   overflow-x: auto;
   overflow-y: hidden;

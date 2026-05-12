@@ -800,7 +800,7 @@ include 'includes/header.php';
                     <i class="feather-filter me-1"></i>
                     <span>Filters</span>
                 </button>
-                <button type="button" class="btn btn-sm btn-light-brand page-header-actions-toggle" aria-expanded="false" aria-controls="ojtActionsMenu">
+                <button type="button" class="btn btn-sm btn-light page-header-actions-toggle" aria-expanded="false" aria-controls="ojtActionsMenu">
                     <i class="feather-grid me-1"></i>
                     <span>Actions</span>
                 </button>
@@ -933,7 +933,7 @@ include 'includes/header.php';
                     <table class="table table-hover mb-0 app-ojt-list-table app-data-table" id="ojtListTable" data-ojt-select-table data-print-mode="ojt-student-list" data-print-title="OJT Student List" data-print-subtitle="<?php echo htmlspecialchars($print_filter_label, ENT_QUOTES, 'UTF-8'); ?>" data-print-filter-form="#ojtFilterForm">
                         <thead>
                         <tr>
-                            <th class="app-ojt-select-column">
+                            <th class="app-ojt-select-column app-ojt-no-sort">
                                 <div class="form-check app-ojt-select-check">
                                     <input class="form-check-input" type="checkbox" data-ojt-select-all aria-label="Select all OJT students">
                                 </div>
@@ -944,13 +944,12 @@ include 'includes/header.php';
                             <th>Document Checklist</th>
                             <th>Hours</th>
                             <th>Risk</th>
-                            <th>Risk Score</th>
                             <th class="text-end" data-print-exclude="1">Actions</th>
                         </tr>
                         </thead>
                         <tbody>
                         <?php if (!$rows): ?>
-                            <tr><td colspan="9" class="text-center py-4 text-muted">No records found.</td></tr>
+                            <tr><td colspan="8" class="text-center py-4 text-muted">No records found.</td></tr>
                         <?php endif; ?>
                         <?php foreach ($rows as $index => $r): ?>
                             <?php
@@ -1050,7 +1049,6 @@ include 'includes/header.php';
                                                 <span class="app-ojt-hours-pill-fill"></span>
                                             </span>
                                         </div>
-                                        <span class="app-ojt-cell-meta"><?php echo (float)$r['progress_pct']; ?>%</span>
                                     </div>
                                 </td>
                                 <td data-label="Risk">
@@ -1064,11 +1062,6 @@ include 'includes/header.php';
                                                 <?php endforeach; ?>
                                             </div>
                                         <?php endif; ?>
-                                    </div>
-                                </td>
-                                <td data-label="Risk Score" data-order="<?php echo $risk_score_int; ?>">
-                                    <div class="app-ojt-status-block app-ojt-risk-block">
-                                        <span class="app-ojt-risk-score app-ojt-risk-score-<?php echo htmlspecialchars($risk_band); ?>"><?php echo $risk_score_int; ?></span>
                                     </div>
                                 </td>
                                 <td data-label="Actions" data-print-exclude="1">

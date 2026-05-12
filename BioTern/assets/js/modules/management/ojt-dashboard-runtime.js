@@ -6,7 +6,7 @@
     var dataTableInstance = null;
     var filterForm = document.getElementById("ojtFilterForm");
     var searchInput = document.getElementById("ojtHeaderSearchInput");
-    var forceStackBreakpoint = 1280;
+    var forceStackBreakpoint = 1440;
 
     function submitFilters() {
       if (filterForm) filterForm.submit();
@@ -34,7 +34,7 @@
       var needsStack = contentWidth < forceStackBreakpoint;
 
       if (tableWrap && tableEl) {
-        needsStack = needsStack || tableEl.scrollWidth > tableWrap.clientWidth + 16;
+        needsStack = needsStack || tableEl.scrollWidth > tableWrap.clientWidth + 8;
       }
 
       document.body.classList.toggle("app-ojt-force-stack", needsStack);
@@ -43,6 +43,28 @@
     function bindViewAllButton() {
       var button = document.querySelector('[data-view-all-table="ojtListTable"]');
       if (!button || !dataTableInstance) return;
+      var tableEl = document.getElementById("ojtListTable");
+      var wrapper = tableEl ? tableEl.closest(".dataTables_wrapper") : null;
+      var paginateHost = wrapper ? wrapper.querySelector(".dataTables_paginate") : null;
+      var legacyWrap = button.closest(".d-flex.justify-content-end.px-3.py-2");
+
+      if (paginateHost) {
+        var viewAllSlot = paginateHost.querySelector(".app-ojt-pagination-viewall");
+        var paginationList = paginateHost.querySelector("ul.pagination");
+        if (!viewAllSlot) {
+          viewAllSlot = document.createElement("div");
+          viewAllSlot.className = "app-ojt-pagination-viewall";
+          if (paginationList && paginationList.nextSibling) {
+            paginateHost.insertBefore(viewAllSlot, paginationList.nextSibling);
+          } else {
+            paginateHost.appendChild(viewAllSlot);
+          }
+        }
+        viewAllSlot.appendChild(button);
+        if (legacyWrap && legacyWrap !== viewAllSlot && legacyWrap.children.length === 0) {
+          legacyWrap.remove();
+        }
+      }
 
       function syncLabel() {
         button.textContent = dataTableInstance.page.len() === -1 ? "Show paged list" : "View all list";
@@ -86,7 +108,7 @@
         dom: "rtip",
         order: [[6, "desc"]],
         columnDefs: [
-          { orderable: false, targets: [7] },
+          { orderable: false, targets: [0, 7] },
         ],
       });
     } else if (
