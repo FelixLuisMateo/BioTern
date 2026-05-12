@@ -160,6 +160,10 @@ $hasMasterlist = ojt_external_table_exists($conn, 'ojt_masterlist');
 if ($hasMasterlist && !ojt_external_column_exists($conn, 'ojt_masterlist', 'student_no')) {
     $conn->query("ALTER TABLE ojt_masterlist ADD COLUMN student_no VARCHAR(100) DEFAULT NULL AFTER semester");
 }
+if ($hasMasterlist && !ojt_external_column_exists($conn, 'ojt_masterlist', 'assignment_track')) {
+    $conn->query("ALTER TABLE ojt_masterlist ADD COLUMN assignment_track VARCHAR(30) NOT NULL DEFAULT 'external' AFTER section");
+    $conn->query("UPDATE ojt_masterlist SET assignment_track = 'external' WHERE TRIM(COALESCE(assignment_track, '')) = ''");
+}
 $hasMasterlist = $hasMasterlist && ojt_external_column_exists($conn, 'ojt_masterlist', 'student_no');
 
 if ($hasMasterlist) {
@@ -174,15 +178,17 @@ if ($hasMasterlist) {
             COALESCE(ml.contact_no, '') AS ojt_email,
             COALESCE(NULLIF(ml.status, ''), 'External') AS ojt_status,
             ml.created_at AS ojt_created_at,
-            s.id AS student_row_id,
-            s.user_id AS student_user_id,
+            CASE WHEN LOWER(TRIM(COALESCE(s.assignment_track, 'internal'))) = 'external' THEN s.id ELSE NULL END AS student_row_id,
+            CASE WHEN LOWER(TRIM(COALESCE(s.assignment_track, 'internal'))) = 'external' THEN s.user_id ELSE NULL END AS student_user_id,
+            s.id AS matched_student_row_id,
+            s.user_id AS matched_student_user_id,
             s.student_id,
             s.status AS students_status,
             COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'external') AS assignment_track,
             COALESCE(NULLIF(TRIM(ml.school_year), ''), NULLIF(TRIM(s.school_year), ''), '') AS school_year,
             COALESCE(NULLIF(TRIM(ml.semester), ''), NULLIF(TRIM(s.semester), ''), '') AS semester,
             s.created_at AS students_created_at,
-            COALESCE(u.name, ml.student_name) AS account_name,
+            CASE WHEN LOWER(TRIM(COALESCE(s.assignment_track, 'internal'))) = 'external' THEN COALESCE(u.name, ml.student_name) ELSE ml.student_name END AS account_name,
             COALESCE(c.name, 'Masterlist') AS course_name,
             COALESCE(NULLIF(ml.section, ''), NULLIF(sec.code, ''), sec.name, 'N/A') AS section_name,
             COALESCE(s.course_id, 0) AS resolved_course_id,
@@ -200,6 +206,7 @@ if ($hasMasterlist) {
         LEFT JOIN courses c ON c.id = s.course_id
         LEFT JOIN sections sec ON sec.id = s.section_id
         WHERE TRIM(COALESCE(ml.company_name, '')) <> ''
+          AND LOWER(TRIM(COALESCE(ml.assignment_track, 'external'))) = 'external'
         ORDER BY ml.section ASC, ml.student_name ASC, ml.id ASC
     ";
     $masterlistRes = $conn->query($masterlistSql);
@@ -225,8 +232,10 @@ $sql = "
         oe.email AS ojt_email,
         oe.status AS ojt_status,
         oe.created_at AS ojt_created_at,
-        s.id AS student_row_id,
-        s.user_id AS student_user_id,
+        CASE WHEN LOWER(TRIM(COALESCE(s.assignment_track, 'internal'))) = 'external' THEN s.id ELSE NULL END AS student_row_id,
+        CASE WHEN LOWER(TRIM(COALESCE(s.assignment_track, 'internal'))) = 'external' THEN s.user_id ELSE NULL END AS student_user_id,
+        s.id AS matched_student_row_id,
+        s.user_id AS matched_student_user_id,
         s.student_id,
         s.status AS students_status,
         COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'external') AS assignment_track,
@@ -274,6 +283,8 @@ $studentsOnlySql = "
         NULL AS ojt_created_at,
         s.id AS student_row_id,
         s.user_id AS student_user_id,
+        s.id AS matched_student_row_id,
+        s.user_id AS matched_student_user_id,
         s.student_id,
         s.status AS students_status,
         COALESCE(NULLIF(TRIM(s.assignment_track), ''), 'external') AS assignment_track,
@@ -603,6 +614,9 @@ ob_end_flush();
                                             <?php if ($externalUserId > 0): ?>
                                                 <div class="fw-semibold"><?php echo htmlspecialchars((string)($row['account_name'] ?? 'Linked Account'), ENT_QUOTES, 'UTF-8'); ?></div>
                                                 <small class="text-muted">User ID: <?php echo $externalUserId; ?></small>
+                                            <?php elseif ((int)($row['matched_student_row_id'] ?? 0) > 0 && strtolower(trim((string)($row['assignment_track'] ?? ''))) === 'internal'): ?>
+                                                <span class="badge bg-soft-warning text-warning">Matched Internal Account</span>
+                                                <div><small class="text-muted">Review in Pending Accounts</small></div>
                                             <?php else: ?>
                                                 <span class="badge bg-soft-warning text-warning">Not Linked Yet</span>
                                             <?php endif; ?>

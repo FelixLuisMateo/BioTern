@@ -117,6 +117,7 @@ function biotern_ojt_masterlist_ensure(mysqli $conn): void
         student_name VARCHAR(255) NOT NULL,
         contact_no VARCHAR(50) DEFAULT NULL,
         section VARCHAR(100) DEFAULT NULL,
+        assignment_track VARCHAR(30) NOT NULL DEFAULT 'external',
         company_id BIGINT UNSIGNED DEFAULT NULL,
         company_name VARCHAR(255) DEFAULT NULL,
         company_address TEXT DEFAULT NULL,
@@ -128,7 +129,7 @@ function biotern_ojt_masterlist_ensure(mysqli $conn): void
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
-        UNIQUE KEY uniq_masterlist_student_term (school_year, semester, student_lookup_key, section)
+        UNIQUE KEY uniq_masterlist_student_term (school_year, semester, assignment_track, student_lookup_key, section)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     $res = $conn->query("SHOW COLUMNS FROM ojt_masterlist LIKE 'student_no'");
@@ -148,18 +149,48 @@ function biotern_ojt_masterlist_ensure(mysqli $conn): void
     if (!$hasRepresentativePosition) {
         $conn->query("ALTER TABLE ojt_masterlist ADD COLUMN company_representative_position VARCHAR(255) DEFAULT NULL AFTER company_representative");
     }
+
+    $res = $conn->query("SHOW COLUMNS FROM ojt_masterlist LIKE 'assignment_track'");
+    $hasAssignmentTrack = $res instanceof mysqli_result && $res->num_rows > 0;
+    if ($res instanceof mysqli_result) {
+        $res->close();
+    }
+    if (!$hasAssignmentTrack) {
+        $conn->query("ALTER TABLE ojt_masterlist ADD COLUMN assignment_track VARCHAR(30) NOT NULL DEFAULT 'external' AFTER section");
+        $conn->query("UPDATE ojt_masterlist SET assignment_track = 'external' WHERE TRIM(COALESCE(assignment_track, '')) = ''");
+    }
+
+    $indexColumns = [];
+    $indexRes = $conn->query("SHOW INDEX FROM ojt_masterlist WHERE Key_name = 'uniq_masterlist_student_term'");
+    if ($indexRes instanceof mysqli_result) {
+        while ($indexRow = $indexRes->fetch_assoc()) {
+            $indexColumns[(int)($indexRow['Seq_in_index'] ?? 0)] = (string)($indexRow['Column_name'] ?? '');
+        }
+        $indexRes->close();
+    }
+    ksort($indexColumns);
+    if (array_values($indexColumns) !== ['school_year', 'semester', 'assignment_track', 'student_lookup_key', 'section']) {
+        if ($indexColumns !== []) {
+            $conn->query("ALTER TABLE ojt_masterlist DROP INDEX uniq_masterlist_student_term");
+        }
+        $conn->query("ALTER TABLE ojt_masterlist ADD UNIQUE KEY uniq_masterlist_student_term (school_year, semester, assignment_track, student_lookup_key, section)");
+    }
 }
 
 function biotern_ojt_masterlist_import_rows(mysqli $conn, array $rows, string $sourceWorkbook, string $defaultType, array &$errors = []): int
 {
     biotern_ojt_masterlist_ensure($conn);
     $imported = 0;
+    $assignmentTrack = strtolower(trim($defaultType));
+    if (!in_array($assignmentTrack, ['internal', 'external'], true)) {
+        $assignmentTrack = 'external';
+    }
 
     $stmt = $conn->prepare("INSERT INTO ojt_masterlist (
             school_year, semester, student_no, source_workbook, source_sheet, source_row_number,
-            student_lookup_key, student_name, contact_no, section, company_name, company_address,
+            student_lookup_key, student_name, contact_no, section, assignment_track, company_name, company_address,
             supervisor_name, supervisor_position, company_representative, company_representative_position, status, created_at, updated_at
-        ) VALUES (?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ) VALUES (?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ON DUPLICATE KEY UPDATE
             student_no = COALESCE(NULLIF(VALUES(student_no), ''), ojt_masterlist.student_no),
             source_workbook = VALUES(source_workbook),
@@ -167,6 +198,7 @@ function biotern_ojt_masterlist_import_rows(mysqli $conn, array $rows, string $s
             source_row_number = VALUES(source_row_number),
             student_name = VALUES(student_name),
             contact_no = VALUES(contact_no),
+            assignment_track = VALUES(assignment_track),
             company_name = VALUES(company_name),
             company_address = VALUES(company_address),
             supervisor_name = VALUES(supervisor_name),
@@ -202,7 +234,7 @@ function biotern_ojt_masterlist_import_rows(mysqli $conn, array $rows, string $s
         $sheetName = $defaultType . '_students';
         $rowNumber = $index + 2;
         $stmt->bind_param(
-            'sssssisssssssssss',
+            'sssssissssssssssss',
             $schoolYear,
             $semester,
             $studentNo,
@@ -213,6 +245,7 @@ function biotern_ojt_masterlist_import_rows(mysqli $conn, array $rows, string $s
             $studentName,
             $contactNo,
             $section,
+            $assignmentTrack,
             $companyName,
             $companyAddress,
             $supervisorName,

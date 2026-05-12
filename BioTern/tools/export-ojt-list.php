@@ -182,6 +182,10 @@ $hasMasterlist = export_ojt_table_exists($conn, 'ojt_masterlist');
 if ($hasMasterlist && !export_ojt_column_exists($conn, 'ojt_masterlist', 'student_no')) {
     $conn->query("ALTER TABLE ojt_masterlist ADD COLUMN student_no VARCHAR(100) DEFAULT NULL AFTER semester");
 }
+if ($hasMasterlist && !export_ojt_column_exists($conn, 'ojt_masterlist', 'assignment_track')) {
+    $conn->query("ALTER TABLE ojt_masterlist ADD COLUMN assignment_track VARCHAR(30) NOT NULL DEFAULT 'external' AFTER section");
+    $conn->query("UPDATE ojt_masterlist SET assignment_track = 'external' WHERE TRIM(COALESCE(assignment_track, '')) = ''");
+}
 $hasMasterlist = $hasMasterlist && export_ojt_column_exists($conn, 'ojt_masterlist', 'student_no');
 $hasInternships = export_ojt_table_exists($conn, 'internships');
 $hasCompanyProfiles = export_ojt_table_exists($conn, 'ojt_partner_companies');
@@ -488,7 +492,7 @@ while ($row = $res->fetch_assoc()) {
 $stmt->close();
 
 if ($type === 'external' && $hasMasterlist) {
-    $masterOnlyWhere = ["TRIM(COALESCE(ml.company_name, '')) <> ''"];
+    $masterOnlyWhere = ["TRIM(COALESCE(ml.company_name, '')) <> ''", "LOWER(TRIM(COALESCE(ml.assignment_track, 'external'))) = 'external'"];
     $masterOnlyTypes = '';
     $masterOnlyParams = [];
     if ($schoolYear !== '') {

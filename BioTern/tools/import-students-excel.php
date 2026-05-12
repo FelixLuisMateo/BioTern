@@ -589,7 +589,7 @@ function students_excel_sync_masterlist_to_internships(mysqli $mysqli, string $s
         }
     }
 
-    $masterSql = "SELECT school_year, semester, student_no, student_lookup_key, section, company_name, supervisor_name, supervisor_position, status
+    $masterSql = "SELECT school_year, semester, student_no, student_lookup_key, section, assignment_track, company_name, supervisor_name, supervisor_position, status
         FROM ojt_masterlist
         WHERE school_year = ?";
     $types = 's';
@@ -633,6 +633,19 @@ function students_excel_sync_masterlist_to_internships(mysqli $mysqli, string $s
         }
 
         if ($picked === null) {
+            continue;
+        }
+
+        $masterTrack = strtolower(trim((string)($row['assignment_track'] ?? 'external')));
+        if (!in_array($masterTrack, ['internal', 'external'], true)) {
+            $masterTrack = 'external';
+        }
+        $studentTrack = strtolower(trim((string)($picked['assignment_track'] ?? 'internal')));
+        if (!in_array($studentTrack, ['internal', 'external'], true)) {
+            $studentTrack = 'internal';
+        }
+        if ($masterTrack !== $studentTrack) {
+            $summary['masterlist_account_track_conflicts'] = (int)($summary['masterlist_account_track_conflicts'] ?? 0) + 1;
             continue;
         }
 
@@ -1098,6 +1111,7 @@ function students_excel_ensure_masterlist_tables(mysqli $mysqli, string &$errorM
         student_name VARCHAR(255) NOT NULL,
         contact_no VARCHAR(50) DEFAULT NULL,
         section VARCHAR(100) DEFAULT NULL,
+        assignment_track VARCHAR(30) NOT NULL DEFAULT 'external',
         company_id BIGINT UNSIGNED DEFAULT NULL,
         company_name VARCHAR(255) DEFAULT NULL,
         company_address TEXT DEFAULT NULL,
@@ -1108,7 +1122,7 @@ function students_excel_ensure_masterlist_tables(mysqli $mysqli, string &$errorM
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
-        UNIQUE KEY uniq_masterlist_student_term (school_year, semester, student_lookup_key, section),
+        UNIQUE KEY uniq_masterlist_student_term (school_year, semester, assignment_track, student_lookup_key, section),
         KEY idx_masterlist_company (company_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
 
@@ -1119,19 +1133,21 @@ function students_excel_ensure_masterlist_tables(mysqli $mysqli, string &$errorM
 
     biotern_db_add_column_if_missing($mysqli, 'ojt_masterlist', 'semester', "semester VARCHAR(30) NOT NULL DEFAULT '' AFTER school_year");
     biotern_db_add_column_if_missing($mysqli, 'ojt_masterlist', 'student_no', "student_no VARCHAR(100) DEFAULT NULL AFTER semester");
+    biotern_db_add_column_if_missing($mysqli, 'ojt_masterlist', 'assignment_track', "assignment_track VARCHAR(30) NOT NULL DEFAULT 'external' AFTER section");
+    $mysqli->query("UPDATE ojt_masterlist SET assignment_track = 'external' WHERE TRIM(COALESCE(assignment_track, '')) = ''");
 
     $legacyIndexColumns = students_excel_index_columns($mysqli, 'ojt_masterlist', 'uniq_masterlist_student');
     if ($legacyIndexColumns !== []) {
         $mysqli->query("ALTER TABLE `ojt_masterlist` DROP INDEX `uniq_masterlist_student`");
     }
 
-    $expectedUnique = ['school_year', 'semester', 'student_lookup_key', 'section'];
+    $expectedUnique = ['school_year', 'semester', 'assignment_track', 'student_lookup_key', 'section'];
     $currentUnique = students_excel_index_columns($mysqli, 'ojt_masterlist', 'uniq_masterlist_student_term');
     if ($currentUnique !== $expectedUnique) {
         if ($currentUnique !== []) {
             $mysqli->query("ALTER TABLE `ojt_masterlist` DROP INDEX `uniq_masterlist_student_term`");
         }
-        if (!$mysqli->query("ALTER TABLE `ojt_masterlist` ADD UNIQUE KEY `uniq_masterlist_student_term` (`school_year`, `semester`, `student_lookup_key`, `section`)")) {
+        if (!$mysqli->query("ALTER TABLE `ojt_masterlist` ADD UNIQUE KEY `uniq_masterlist_student_term` (`school_year`, `semester`, `assignment_track`, `student_lookup_key`, `section`)")) {
             $errorMessage = 'Failed to ensure semester-aware masterlist unique key: ' . $mysqli->error;
             return false;
         }
@@ -1234,9 +1250,10 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
         }
 
         if ($studentNo !== '') {
-            $duplicateStmt = $mysqli->prepare("SELECT id FROM ojt_masterlist WHERE school_year = ? AND semester = ? AND TRIM(COALESCE(student_no, '')) = ? LIMIT 1");
+            $assignmentTrack = 'external';
+            $duplicateStmt = $mysqli->prepare("SELECT id FROM ojt_masterlist WHERE school_year = ? AND semester = ? AND assignment_track = ? AND TRIM(COALESCE(student_no, '')) = ? LIMIT 1");
             if ($duplicateStmt) {
-                $duplicateStmt->bind_param('sss', $rowSchoolYear, $rowSemester, $studentNo);
+                $duplicateStmt->bind_param('ssss', $rowSchoolYear, $rowSemester, $assignmentTrack, $studentNo);
                 $duplicateStmt->execute();
                 $duplicateRow = $duplicateStmt->get_result()->fetch_assoc();
                 $duplicateStmt->close();
@@ -1258,9 +1275,9 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
 
         $stmt = $mysqli->prepare("INSERT INTO ojt_masterlist (
                 school_year, semester, student_no, source_workbook, source_sheet, source_row_number, student_lookup_key, student_name,
-                contact_no, section, company_id, company_name, company_address, supervisor_name, supervisor_position,
+                contact_no, section, assignment_track, company_id, company_name, company_address, supervisor_name, supervisor_position,
                 company_representative, status, created_at, updated_at
-            ) VALUES (?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, 0), ?, ?, ?, ?, ?, ?, NOW(), NOW())
             ON DUPLICATE KEY UPDATE
                 semester = VALUES(semester),
                 student_no = COALESCE(NULLIF(VALUES(student_no), ''), ojt_masterlist.student_no),
@@ -1269,6 +1286,7 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
                 source_row_number = VALUES(source_row_number),
                 student_name = VALUES(student_name),
                 contact_no = VALUES(contact_no),
+                assignment_track = VALUES(assignment_track),
                 company_id = VALUES(company_id),
                 company_name = VALUES(company_name),
                 company_address = VALUES(company_address),
@@ -1283,9 +1301,10 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
             continue;
         }
 
+        $assignmentTrack = 'external';
         $rowNumber = $index + 2;
         $stmt->bind_param(
-            'sssssissssissssss',
+            'sssssisssssissssss',
             $rowSchoolYear,
             $rowSemester,
             $studentNo,
@@ -1296,6 +1315,7 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
             $studentName,
             $contactNo,
             $section,
+            $assignmentTrack,
             $companyId,
             $companyName,
             $companyAddress,
@@ -1316,7 +1336,7 @@ function students_excel_import_masterlist(mysqli $mysqli, string $sheetName, arr
                 'student_name' => $studentName,
                 'school_year' => $rowSchoolYear,
                 'semester' => $rowSemester,
-                'assignment_track' => 'ojt',
+                'assignment_track' => $assignmentTrack,
                 'section_label' => $section,
                 'status' => 'pending',
                 'raw_payload' => $row,
