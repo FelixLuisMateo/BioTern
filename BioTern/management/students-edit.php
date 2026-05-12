@@ -142,6 +142,30 @@ function biotern_student_edit_ensure_column(mysqli $conn, string $table, string 
     return $ok === true || biotern_student_edit_column_exists($conn, $table, $column);
 }
 
+function biotern_student_edit_setting(mysqli $conn, string $key, string $fallback): string
+{
+    static $cache = null;
+
+    if ($cache === null) {
+        $cache = [];
+        $tableCheck = $conn->query("SHOW TABLES LIKE 'system_settings'");
+        if ($tableCheck instanceof mysqli_result && $tableCheck->num_rows > 0) {
+            $stmt = $conn->prepare("SELECT `key`, `value` FROM system_settings WHERE category = 'students'");
+            if ($stmt) {
+                $stmt->execute();
+                $result = $stmt->get_result();
+                while ($row = $result->fetch_assoc()) {
+                    $cache[(string)($row['key'] ?? '')] = trim((string)($row['value'] ?? ''));
+                }
+                $stmt->close();
+            }
+        }
+    }
+
+    $value = trim((string)($cache[$key] ?? ''));
+    return $value !== '' ? $value : $fallback;
+}
+
 // Ensure student-edit can run against older deployed schemas.
 $student_edit_columns = [
     'profile_picture' => 'VARCHAR(255) DEFAULT NULL',
@@ -175,6 +199,9 @@ biotern_student_edit_ensure_column($conn, 'supervisors', 'department_id', 'INT D
 biotern_student_edit_ensure_column($conn, 'coordinators', 'user_id', 'INT DEFAULT NULL');
 biotern_student_edit_ensure_column($conn, 'coordinators', 'department_id', 'INT DEFAULT NULL');
 biotern_student_edit_ensure_column($conn, 'internships', 'office_id', 'BIGINT UNSIGNED NULL');
+
+$student_edit_default_internal_hours = max(0, (int)biotern_student_edit_setting($conn, 'default_internal_hours', '140'));
+$student_edit_default_external_hours = max(0, (int)biotern_student_edit_setting($conn, 'default_external_hours', '250'));
 
 // Get student ID from URL parameter
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -259,6 +286,65 @@ if ($result->num_rows == 0) {
 }
 
 $student = $result->fetch_assoc();
+$student_internal_total_was_empty = !isset($student['internal_total_hours']) || $student['internal_total_hours'] === '' || (is_numeric($student['internal_total_hours']) && (int)$student['internal_total_hours'] <= 0);
+$student_external_total_was_empty = !isset($student['external_total_hours']) || $student['external_total_hours'] === '' || (is_numeric($student['external_total_hours']) && (int)$student['external_total_hours'] <= 0);
+if ($student_internal_total_was_empty) {
+    $student['internal_total_hours'] = $student_edit_default_internal_hours;
+}
+if ($student_external_total_was_empty) {
+    $student['external_total_hours'] = $student_edit_default_external_hours;
+}
+if (!isset($student['internal_total_hours_remaining']) || $student['internal_total_hours_remaining'] === '' || $student_internal_total_was_empty) {
+    $student['internal_total_hours_remaining'] = $student_edit_default_internal_hours;
+}
+if (!isset($student['external_total_hours_remaining']) || $student['external_total_hours_remaining'] === '' || $student_external_total_was_empty) {
+    $student['external_total_hours_remaining'] = $student_edit_default_external_hours;
+}
+
+$biometric_registered = (int)($student['biometric_registered'] ?? 0) === 1;
+$biometric_finger_id = null;
+$biometric_registered_at = $student['biometric_registered_at'] ?? null;
+if (!empty($student['user_id']) && biotern_student_edit_table_exists($conn, 'fingerprint_user_map')) {
+    $finger_stmt = $conn->prepare('SELECT finger_id, created_at, updated_at FROM fingerprint_user_map WHERE user_id = ? LIMIT 1');
+    if ($finger_stmt) {
+        $user_id_for_fingerprint = (int)$student['user_id'];
+        $finger_stmt->bind_param('i', $user_id_for_fingerprint);
+        $finger_stmt->execute();
+        $finger_res = $finger_stmt->get_result();
+        $finger_row = $finger_res ? $finger_res->fetch_assoc() : null;
+        $finger_stmt->close();
+
+        if ($finger_row) {
+            $biometric_finger_id = (int)($finger_row['finger_id'] ?? 0);
+            $biometric_registered = $biometric_finger_id > 0;
+            if ($biometric_registered) {
+                $biometric_registered_at = $finger_row['created_at'] ?: ($finger_row['updated_at'] ?? $biometric_registered_at);
+            }
+        }
+    }
+}
+
+$needs_biometric_backfill = $biometric_registered
+    && ((int)($student['biometric_registered'] ?? 0) !== 1 || trim((string)($student['biometric_registered_at'] ?? '')) === '');
+if ($needs_biometric_backfill) {
+    $backfill_registered_at = trim((string)($student['biometric_registered_at'] ?? ''));
+    if ($backfill_registered_at === '') {
+        $backfill_registered_at = trim((string)($biometric_registered_at ?? ''));
+    }
+    if ($backfill_registered_at === '') {
+        $backfill_registered_at = date('Y-m-d H:i:s');
+    }
+
+    $backfill_stmt = $conn->prepare('UPDATE students SET biometric_registered = 1, biometric_registered_at = ? WHERE id = ?');
+    if ($backfill_stmt) {
+        $backfill_stmt->bind_param('si', $backfill_registered_at, $student_id);
+        $backfill_stmt->execute();
+        $backfill_stmt->close();
+    }
+    $student['biometric_registered'] = 1;
+    $student['biometric_registered_at'] = $backfill_registered_at;
+    $biometric_registered_at = $backfill_registered_at;
+}
 
 // Fetch all courses for dropdown (be tolerant of differing schema columns)
 $courses = [];
@@ -374,7 +460,61 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $profile_picture_path = $student['profile_picture'] ?? '';
     $profile_picture_uploaded = false;
     
-    if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == UPLOAD_ERR_OK) {
+    $cropped_profile_picture = trim((string)($_POST['profile_picture_cropped'] ?? ''));
+    if ($cropped_profile_picture !== '') {
+        $linked_user_id = !empty($student['user_id']) ? (int)$student['user_id'] : 0;
+        $allowed_mimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        $max_file_size = 5 * 1024 * 1024;
+
+        if (!preg_match('#^data:(image/(?:png|jpeg|jpg|webp|gif));base64,([a-zA-Z0-9+/=\r\n]+)$#', $cropped_profile_picture, $parts)) {
+            $error_message = "Invalid cropped profile picture. Please crop the image again.";
+        } else {
+            $mime_type = strtolower((string)$parts[1]);
+            if ($mime_type === 'image/jpg') {
+                $mime_type = 'image/jpeg';
+            }
+            $binary = base64_decode(preg_replace('/\s+/', '', (string)$parts[2]), true);
+            $img_info = is_string($binary) && $binary !== '' && function_exists('getimagesizefromstring')
+                ? @getimagesizefromstring($binary)
+                : false;
+
+            if (!is_string($binary) || $binary === '' || strlen($binary) > $max_file_size || !$img_info || !in_array($mime_type, $allowed_mimes, true)) {
+                $error_message = "Invalid cropped profile picture. Allowed types: JPG, PNG, GIF, WEBP up to 5MB.";
+            } elseif ($linked_user_id > 0) {
+                if (biotern_student_edit_save_profile_picture_blob($conn, $linked_user_id, $mime_type, $binary)) {
+                    $profile_picture_path = 'db-avatar';
+                    $profile_picture_uploaded = true;
+                } else {
+                    $error_message = "Failed to save profile picture to user_profile_pictures.";
+                }
+            } elseif (!$uploads_available) {
+                $error_message = "Profile picture uploads are currently unavailable because the upload folder is missing or not writable.";
+            } else {
+                $ext_map = [
+                    'image/jpeg' => 'jpg',
+                    'image/png' => 'png',
+                    'image/gif' => 'gif',
+                    'image/webp' => 'webp',
+                ];
+                $unique_name = 'student_' . $student_id . '_' . time() . '.' . ($ext_map[$mime_type] ?? 'jpg');
+                $file_path = $uploads_dir . '/' . $unique_name;
+                $destination_dir = dirname($file_path);
+                $old_profile_file = $project_root . '/' . ltrim(str_replace('\\', '/', (string)$profile_picture_path), '/');
+                if (!empty($profile_picture_path) && file_exists($old_profile_file)) {
+                    unlink($old_profile_file);
+                }
+
+                if (!is_dir($destination_dir) && !biotern_student_edit_ensure_runtime_dir($destination_dir)) {
+                    $error_message = "Failed to upload profile picture because the destination folder is not available on this deployment.";
+                } elseif (@file_put_contents($file_path, $binary) !== false) {
+                    $profile_picture_path = 'uploads/profile_pictures/' . $unique_name;
+                    $profile_picture_uploaded = true;
+                } else {
+                    $error_message = "Failed to upload profile picture. Please try again.";
+                }
+            }
+        }
+    } elseif (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == UPLOAD_ERR_OK) {
         $file_tmp = $_FILES['profile_picture']['tmp_name'];
         $file_name = $_FILES['profile_picture']['name'];
         $file_size = $_FILES['profile_picture']['size'];
@@ -1077,16 +1217,20 @@ include 'includes/header.php';
                                                 <div class="mb-2">
                                                     <?php $student_profile_src = biotern_avatar_public_src((string)($student['profile_picture'] ?? ''), (int)($student['user_id'] ?? 0)); ?>
                                                     <?php if (!empty($student_profile_src)): ?>
-                                                        <div class="mb-2">
-                                                            <img src="<?php echo htmlspecialchars($student_profile_src); ?>" alt="Profile" class="img-thumbnail app-thumb-150">
+                                                        <div class="mb-2" data-student-avatar-preview-wrap>
+                                                            <img src="<?php echo htmlspecialchars($student_profile_src); ?>" alt="Profile" class="img-thumbnail app-thumb-150" data-student-avatar-preview>
                                                         </div>
                                                     <?php else: ?>
-                                                        <div class="alert alert-info mb-2 py-2 px-3">No profile picture uploaded</div>
+                                                        <div class="alert alert-info mb-2 py-2 px-3" data-student-avatar-empty>No profile picture uploaded</div>
+                                                        <div class="mb-2 d-none" data-student-avatar-preview-wrap>
+                                                            <img src="" alt="Profile preview" class="img-thumbnail app-thumb-150" data-student-avatar-preview>
+                                                        </div>
                                                     <?php endif; ?>
                                                 </div>
+                                                <input type="hidden" id="profile_picture_cropped" name="profile_picture_cropped" value="" data-student-avatar-cropped-input>
                                                 <input type="file" class="form-control" id="profile_picture" name="profile_picture" 
-                                                       accept="image/*">
-                                                <small class="form-text text-muted">JPG, PNG, GIF (Max 5MB)</small>
+                                                       accept=".jpg,.jpeg,.png,.webp,.gif,image/*" data-student-avatar-file-input>
+                                                <small class="form-text text-muted">JPG, PNG, GIF, WEBP (Max 5MB)</small>
                                             </div>
                                         </div>
                                     </div>
@@ -1273,12 +1417,17 @@ include 'includes/header.php';
                                             <div class="col-md-6">
                                                 <label class="form-label fw-semibold text-muted">Biometric Status</label>
                                                 <div class="form-text">
-                                                    <?php if ($student['biometric_registered']): ?>
+                                                    <?php if ($biometric_registered): ?>
                                                         <span class="badge bg-success">
                                                             <i class="feather-check me-1"></i>Registered
                                                         </span>
+                                                        <?php if ($biometric_finger_id !== null && $biometric_finger_id > 0): ?>
+                                                            <small class="d-block mt-2 text-muted">
+                                                                Finger ID: <?php echo htmlspecialchars((string)$biometric_finger_id); ?>
+                                                            </small>
+                                                        <?php endif; ?>
                                                         <small class="d-block mt-2 text-muted">
-                                                            Registered on: <?php echo formatDateTime($student['biometric_registered_at']); ?>
+                                                            Registered on: <?php echo formatDateTime($biometric_registered_at); ?>
                                                         </small>
                                                     <?php else: ?>
                                                         <span class="badge bg-warning">
@@ -1326,6 +1475,32 @@ include 'includes/header.php';
 
 </div> <!-- .nxl-content -->
 </main>
+<div class="modal fade" id="studentAvatarCropModal" tabindex="-1" aria-hidden="true" data-student-avatar-crop-modal>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crop Profile Picture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="avatar-crop-editor">
+                    <div class="avatar-crop-canvas-wrap">
+                        <canvas width="320" height="320" data-student-avatar-crop-canvas></canvas>
+                    </div>
+                    <div class="mt-2">
+                        <label class="form-label mb-1" for="student_avatar_crop_zoom">Zoom</label>
+                        <input type="range" id="student_avatar_crop_zoom" min="100" max="400" step="1" value="100" class="form-range" data-student-avatar-crop-zoom>
+                    </div>
+                    <p class="form-text mb-0 mt-2" data-student-avatar-crop-status>Drag the image to position the crop area.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-student-avatar-crop-reset>Reset</button>
+                <button type="button" class="btn btn-primary" data-student-avatar-crop-apply>Crop and Preview</button>
+            </div>
+        </div>
+    </div>
+</div>
 <?php include 'includes/footer.php'; ?>
 
 <script>

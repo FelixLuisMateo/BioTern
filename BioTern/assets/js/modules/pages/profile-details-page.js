@@ -1,4 +1,5 @@
-document.body.classList.add('apps-account-page');
+(function () {
+    document.body.classList.add('apps-account-page');
 
     var initProfilePasswordToggle = function () {
         var toggle = document.getElementById('toggle-password-visibility');
@@ -31,8 +32,22 @@ document.body.classList.add('apps-account-page');
         syncFieldTypes(toggle.checked);
     };
 
+    var initAccountSettingsLinks = function () {
+        document.querySelectorAll('[data-profile-account-settings-link]').forEach(function (link) {
+            link.addEventListener('click', function (event) {
+                event.preventDefault();
+                window.location.assign('account-settings.php');
+            });
+        });
+    };
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initProfilePasswordToggle);
+        document.addEventListener('DOMContentLoaded', function () {
+            initProfilePasswordToggle();
+            initAccountSettingsLinks();
+        });
     } else {
         initProfilePasswordToggle();
+        initAccountSettingsLinks();
     }
+})();

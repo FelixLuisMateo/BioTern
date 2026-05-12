@@ -372,7 +372,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     [
                         'title' => 'Account',
                         'items' => [
-                            ['label' => 'Account Settings', 'href' => 'account-settings.php#security', 'icon' => 'feather-settings'],
+                            ['label' => 'Account Settings', 'href' => 'account-settings.php', 'icon' => 'feather-settings'],
                             ['label' => 'Notifications', 'href' => 'notifications.php', 'icon' => 'feather-bell'],
                             ['label' => 'Logout', 'href' => 'auth-login.php?logout=1', 'icon' => 'feather-log-out'],
                         ],

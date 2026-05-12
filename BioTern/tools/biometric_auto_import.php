@@ -58,6 +58,7 @@ if (!function_exists('run_biometric_auto_import_stats')) {
 
         $fingerprintMap = buildFingerprintStudentMap($conn);
         $fingerprintUserMap = buildFingerprintUserMap($conn);
+        $attendanceChanged += reconcileBiometricAttendanceOwnership($conn, $fingerprintMap);
         $studentScheduleMap = buildStudentAttendanceScheduleMap($conn);
         $studentRecordingStopMap = buildStudentRecordingStopMap($conn);
         $autoCleanupQueued = queueFingerprintCleanupForCompletedStudents($conn, $fingerprintMap, $studentRecordingStopMap);
@@ -224,6 +225,179 @@ if (!function_exists('run_biometric_auto_import_stats')) {
             'cleanup_queued' => $autoCleanupQueued,
             'cleanup_applied' => $autoCleanupApplied,
         ];
+    }
+}
+
+if (!function_exists('reconcileBiometricAttendanceOwnership')) {
+    function reconcileBiometricAttendanceOwnership(mysqli $conn, array $fingerprintMap): int
+    {
+        if (empty($fingerprintMap)) {
+            return 0;
+        }
+
+        $changed = 0;
+        $slotColumns = ['morning_time_in', 'morning_time_out', 'afternoon_time_in', 'afternoon_time_out'];
+        $rawRes = $conn->query("SELECT id, raw_data FROM biometric_raw_logs WHERE processed = 0 ORDER BY id ASC LIMIT 5000");
+        if (!($rawRes instanceof mysqli_result)) {
+            return 0;
+        }
+
+        $lookup = $conn->prepare("
+            SELECT id, student_id, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out
+            FROM attendances
+            WHERE attendance_date = ?
+              AND source = 'biometric'
+              AND (
+                morning_time_in = ?
+                OR morning_time_out = ?
+                OR afternoon_time_in = ?
+                OR afternoon_time_out = ?
+              )
+            ORDER BY id ASC
+        ");
+        $targetLookup = $conn->prepare("
+            SELECT id, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out
+            FROM attendances
+            WHERE student_id = ? AND attendance_date = ?
+            ORDER BY id DESC
+            LIMIT 1
+        ");
+        $insertTarget = $conn->prepare("
+            INSERT INTO attendances (student_id, attendance_date, source, status, approved_at, created_at, updated_at)
+            VALUES (?, ?, 'biometric', 'approved', NOW(), NOW(), NOW())
+        ");
+        $moveSlot = $conn->prepare("UPDATE attendances SET student_id = ?, status = 'approved', approved_at = COALESCE(approved_at, NOW()), updated_at = NOW() WHERE id = ?");
+        $clearSlotStatements = [];
+        $fillSlotStatements = [];
+        foreach ($slotColumns as $slotColumn) {
+            $clearSlotStatements[$slotColumn] = $conn->prepare("UPDATE attendances SET {$slotColumn} = NULL, updated_at = NOW() WHERE id = ?");
+            $fillSlotStatements[$slotColumn] = $conn->prepare("UPDATE attendances SET {$slotColumn} = ?, source = 'biometric', status = 'approved', approved_at = COALESCE(approved_at, NOW()), updated_at = NOW() WHERE id = ?");
+        }
+        $deleteEmpty = $conn->prepare("
+            DELETE FROM attendances
+            WHERE id = ?
+              AND COALESCE(NULLIF(morning_time_in, '00:00:00'), '') = ''
+              AND COALESCE(NULLIF(morning_time_out, '00:00:00'), '') = ''
+              AND COALESCE(NULLIF(afternoon_time_in, '00:00:00'), '') = ''
+              AND COALESCE(NULLIF(afternoon_time_out, '00:00:00'), '') = ''
+        ");
+
+        if (!$lookup || !$targetLookup || !$insertTarget || !$moveSlot || !$deleteEmpty) {
+            $rawRes->close();
+            return 0;
+        }
+
+        while ($raw = $rawRes->fetch_assoc()) {
+            $entry = json_decode((string)($raw['raw_data'] ?? ''), true);
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $fingerId = isset($entry['finger_id']) ? (int)$entry['finger_id'] : (isset($entry['id']) ? (int)$entry['id'] : 0);
+            $targetStudentId = (int)($fingerprintMap[$fingerId] ?? 0);
+            $datetime = trim((string)($entry['time'] ?? ''));
+            if ($fingerId <= 0 || $targetStudentId <= 0 || $datetime === '') {
+                continue;
+            }
+
+            $date = substr($datetime, 0, 10);
+            $time = substr($datetime, 11, 8);
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !preg_match('/^\d{2}:\d{2}:\d{2}$/', $time)) {
+                continue;
+            }
+
+            $lookup->bind_param('sssss', $date, $time, $time, $time, $time);
+            $lookup->execute();
+            $matches = $lookup->get_result();
+            if (!($matches instanceof mysqli_result)) {
+                continue;
+            }
+
+            while ($attendance = $matches->fetch_assoc()) {
+                $sourceAttendanceId = (int)($attendance['id'] ?? 0);
+                $sourceStudentId = (int)($attendance['student_id'] ?? 0);
+                if ($sourceAttendanceId <= 0 || $sourceStudentId === $targetStudentId) {
+                    continue;
+                }
+
+                $matchedSlots = [];
+                foreach ($slotColumns as $slotColumn) {
+                    if ((string)($attendance[$slotColumn] ?? '') === $time) {
+                        $matchedSlots[] = $slotColumn;
+                    }
+                }
+                if ($matchedSlots === []) {
+                    continue;
+                }
+
+                $targetLookup->bind_param('is', $targetStudentId, $date);
+                $targetLookup->execute();
+                $targetRow = $targetLookup->get_result()->fetch_assoc();
+                $targetAttendanceId = (int)($targetRow['id'] ?? 0);
+
+                if ($targetAttendanceId <= 0) {
+                    $canMoveWholeRow = true;
+                    foreach ($slotColumns as $slotColumn) {
+                        $slotValue = trim((string)($attendance[$slotColumn] ?? ''));
+                        if ($slotValue !== '' && $slotValue !== '00:00:00' && !in_array($slotColumn, $matchedSlots, true)) {
+                            $canMoveWholeRow = false;
+                            break;
+                        }
+                    }
+
+                    if ($canMoveWholeRow) {
+                        $moveSlot->bind_param('ii', $targetStudentId, $sourceAttendanceId);
+                        $moveSlot->execute();
+                        if ($moveSlot->affected_rows > 0) {
+                            $changed++;
+                        }
+                        continue;
+                    }
+
+                    $insertTarget->bind_param('is', $targetStudentId, $date);
+                    $insertTarget->execute();
+                    $targetAttendanceId = (int)$conn->insert_id;
+                    if ($targetAttendanceId > 0) {
+                        $targetRow = [];
+                        $changed++;
+                    }
+                }
+
+                foreach ($matchedSlots as $slotColumn) {
+                    $targetSlotValue = trim((string)($targetRow[$slotColumn] ?? ''));
+                    $sourceSlotCanClear = false;
+                    if ($targetAttendanceId > 0 && ($targetSlotValue === '' || $targetSlotValue === '00:00:00')) {
+                        $fill = $fillSlotStatements[$slotColumn] ?? null;
+                        if ($fill) {
+                            $fill->bind_param('si', $time, $targetAttendanceId);
+                            $fill->execute();
+                            if ($fill->affected_rows > 0) {
+                                $changed++;
+                                $sourceSlotCanClear = true;
+                            }
+                        }
+                    } elseif ($targetSlotValue === $time) {
+                        $sourceSlotCanClear = true;
+                    }
+
+                    $clear = $clearSlotStatements[$slotColumn] ?? null;
+                    if ($sourceSlotCanClear && $clear) {
+                        $clear->bind_param('i', $sourceAttendanceId);
+                        $clear->execute();
+                        if ($clear->affected_rows > 0) {
+                            $changed++;
+                        }
+                    }
+                }
+
+                $deleteEmpty->bind_param('i', $sourceAttendanceId);
+                $deleteEmpty->execute();
+            }
+            $matches->close();
+        }
+
+        $rawRes->close();
+        return $changed;
     }
 }
 

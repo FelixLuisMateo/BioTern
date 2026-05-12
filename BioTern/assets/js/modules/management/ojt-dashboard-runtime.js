@@ -40,6 +40,22 @@
       document.body.classList.toggle("app-ojt-force-stack", needsStack);
     }
 
+    function bindViewAllButton() {
+      var button = document.querySelector('[data-view-all-table="ojtListTable"]');
+      if (!button || !dataTableInstance) return;
+
+      function syncLabel() {
+        button.textContent = dataTableInstance.page.len() === -1 ? "Show paged list" : "View all list";
+      }
+
+      button.addEventListener("click", function () {
+        dataTableInstance.page.len(dataTableInstance.page.len() === -1 ? 10 : -1).draw();
+        syncLabel();
+        window.setTimeout(updateResponsiveWorklistMode, 0);
+      });
+      syncLabel();
+    }
+
     updateResponsiveWorklistMode();
 
     if (
@@ -62,6 +78,10 @@
 
       dataTableInstance = window.jQuery("#ojtListTable").DataTable({
         pageLength: 10,
+        lengthMenu: [
+          [10, 25, 50, -1],
+          [10, 25, 50, "All"],
+        ],
         lengthChange: false,
         dom: "rtip",
         order: [[6, "desc"]],
@@ -78,6 +98,8 @@
     ) {
       dataTableInstance = window.jQuery("#ojtListTable").DataTable();
     }
+
+    bindViewAllButton();
 
     if (searchInput && dataTableInstance) {
       var searchTimer;

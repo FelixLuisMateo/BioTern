@@ -26,10 +26,12 @@ $courseDepartmentMap = [];
 $register_toast = null;
 $register_default_school_year = '';
 $register_default_semester = '';
+$register_default_internal_hours = '140';
+$register_default_external_hours = '250';
 
 if ($conn && $conn->connect_errno === 0) {
     $settingsStmt = $conn->prepare(
-        "SELECT `key`, `value` FROM system_settings WHERE category = 'general' AND `key` IN ('default_school_year', 'default_semester')"
+        "SELECT `key`, `value`, category FROM system_settings WHERE (category = 'general' AND `key` IN ('default_school_year', 'default_semester')) OR (category = 'students' AND `key` IN ('default_internal_hours', 'default_external_hours'))"
     );
     if ($settingsStmt) {
         $settingsStmt->execute();
@@ -37,10 +39,15 @@ if ($conn && $conn->connect_errno === 0) {
         while ($settingsRow = $settingsResult->fetch_assoc()) {
             $settingsKey = trim((string)($settingsRow['key'] ?? ''));
             $settingsValue = trim((string)($settingsRow['value'] ?? ''));
+            $settingsCategory = trim((string)($settingsRow['category'] ?? ''));
             if ($settingsKey === 'default_school_year') {
                 $register_default_school_year = $settingsValue;
             } elseif ($settingsKey === 'default_semester') {
                 $register_default_semester = $settingsValue;
+            } elseif ($settingsCategory === 'students' && $settingsKey === 'default_internal_hours' && is_numeric($settingsValue) && (int)$settingsValue >= 0) {
+                $register_default_internal_hours = (string)(int)$settingsValue;
+            } elseif ($settingsCategory === 'students' && $settingsKey === 'default_external_hours' && is_numeric($settingsValue) && (int)$settingsValue >= 0) {
+                $register_default_external_hours = (string)(int)$settingsValue;
             }
         }
         $settingsStmt->close();
@@ -558,8 +565,8 @@ endforeach; ?>
                                         <small class="text-muted">Tip: If you are not sure yet, select "To be assigned" and the approver can update it later.</small>
                                     </div>
                                 </div>
-                                <input type="hidden" id="studentInternalTotalHours" name="internal_total_hours" value="140">
-                                <input type="hidden" name="external_total_hours" id="externalTotalHoursInput" value="250">
+                                <input type="hidden" id="studentInternalTotalHours" name="internal_total_hours" value="<?php echo htmlspecialchars($register_default_internal_hours, ENT_QUOTES, 'UTF-8'); ?>">
+                                <input type="hidden" name="external_total_hours" id="externalTotalHoursInput" value="<?php echo htmlspecialchars($register_default_external_hours, ENT_QUOTES, 'UTF-8'); ?>">
                                 <input type="hidden" name="finished_internal" id="finishedInternalSelect" value="no">
                                 <div class="step-actions">
                                     <button type="button" class="btn btn-outline-secondary" data-step-action="prev">Back</button>

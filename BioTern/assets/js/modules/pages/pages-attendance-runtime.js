@@ -4,8 +4,22 @@
  * - pages/attendance.php
  */
 
+        function bindViewAllButton(table, selector) {
+            var $button = $(selector);
+            if (!$button.length || !table) {
+                return;
+            }
+            var allMode = table.page.len() === -1;
+            $button.text(allMode ? 'Show paged list' : 'View all list');
+            $button.off('click.bioternViewAll').on('click.bioternViewAll', function () {
+                allMode = table.page.len() === -1;
+                table.page.len(allMode ? 10 : -1).draw();
+                $button.text(allMode ? 'View all list' : 'Show paged list');
+            });
+        }
+
         function initAttendanceDataTable() {
-            return $('#attendanceList').DataTable({
+            var table = $('#attendanceList').DataTable({
                 "pageLength": 10,
                 "ordering": true,
                 "searching": true,
@@ -14,6 +28,7 @@
                 "paging": true,
                 "autoWidth": false,
                 "order": [[2, "desc"]],
+                "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
                 "columnDefs": [
                     { "orderable": false, "targets": [0, 10, 11, 12, 13] }
                 ],
@@ -22,6 +37,8 @@
                     "lengthMenu": '<span class="attendance-length-prefix">Show</span> _MENU_ <span class="attendance-length-suffix">entries</span>'
                 }
             });
+            bindViewAllButton(table, '#attendanceViewAllList');
+            return table;
         }
 
         var biometricAutoSyncInFlight = false;
