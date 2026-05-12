@@ -582,6 +582,41 @@ html.app-skin-dark .filter-toggle-btn:focus {
             max-width: 220px;
         }
 
+        .attendance-row-actions-menu {
+            min-width: 280px;
+            max-width: min(360px, calc(100vw - 32px));
+            padding: 0.55rem;
+        }
+
+        .attendance-row-details {
+            display: grid;
+            gap: 0.6rem;
+            padding: 0.35rem 0.25rem;
+        }
+
+        .attendance-row-detail-block {
+            display: grid;
+            gap: 0.25rem;
+        }
+
+        .attendance-row-detail-label {
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+
+        .attendance-row-detail-content {
+            font-size: 0.78rem;
+            color: var(--bs-body-color, #0f172a);
+        }
+
+        .attendance-row-actions-menu .attendance-review-form {
+            min-width: 0;
+            max-width: none;
+        }
+
         .attendance-notes-cell {
             min-width: 150px;
             max-width: 260px;
@@ -617,6 +652,14 @@ html.app-skin-dark .filter-toggle-btn:focus {
         }
 
         html.app-skin-dark .attendance-notes-cell {
+            color: #dbeafe;
+        }
+
+        html.app-skin-dark .attendance-row-detail-label {
+            color: #9fb0c5;
+        }
+
+        html.app-skin-dark .attendance-row-detail-content {
             color: #dbeafe;
         }
 
