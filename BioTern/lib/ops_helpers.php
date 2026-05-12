@@ -132,6 +132,11 @@ function insert_audit_log(
 
 function create_notification(mysqli $conn, int $user_id, string $title, string $message): void
 {
+    if (function_exists('biotern_notify')) {
+        biotern_notify($conn, $user_id, $title, $message);
+        return;
+    }
+
     if (!table_exists($conn, 'notifications')) {
         return;
     }

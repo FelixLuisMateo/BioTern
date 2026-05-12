@@ -59,6 +59,39 @@ if (!function_exists('biotern_notify')) {
         $resolvedType = biotern_notification_normalize_type($type, $title, $message, (string)$actionUrl);
         $resolvedActionUrl = biotern_notification_infer_target((string)$actionUrl, $title, $message, $resolvedType, 'homepage.php');
 
+        $dedupeWhere = "user_id = ? AND title = ? AND message = ?";
+        $dedupeTypes = 'iss';
+        $dedupeValues = [$userId, $title, $message];
+        if ($hasType) {
+            $dedupeWhere .= " AND COALESCE(type, '') = ?";
+            $dedupeTypes .= 's';
+            $dedupeValues[] = $resolvedType;
+        }
+        if ($hasActionUrl) {
+            $dedupeWhere .= " AND COALESCE(action_url, '') = ?";
+            $dedupeTypes .= 's';
+            $dedupeValues[] = $resolvedActionUrl;
+        }
+        if (isset($columns['deleted_at'])) {
+            $dedupeWhere .= " AND deleted_at IS NULL";
+        }
+        $dedupeWhere .= " AND created_at >= DATE_SUB(NOW(), INTERVAL 30 SECOND)";
+        $dedupeStmt = $conn->prepare("SELECT id FROM notifications WHERE {$dedupeWhere} ORDER BY id DESC LIMIT 1");
+        if ($dedupeStmt) {
+            $bindValues = [$dedupeTypes];
+            foreach ($dedupeValues as $idx => $value) {
+                $dedupeValues[$idx] = $value;
+                $bindValues[] = &$dedupeValues[$idx];
+            }
+            call_user_func_array([$dedupeStmt, 'bind_param'], $bindValues);
+            $dedupeStmt->execute();
+            $recent = $dedupeStmt->get_result()->fetch_assoc();
+            $dedupeStmt->close();
+            if ($recent) {
+                return true;
+            }
+        }
+
         if ($hasType && $hasActionUrl) {
             $stmt = $conn->prepare("INSERT INTO notifications (user_id, title, message, type, action_url, is_read, created_at) VALUES (?, ?, ?, ?, ?, 0, NOW())");
             if (!$stmt) {
