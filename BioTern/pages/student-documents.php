@@ -174,7 +174,7 @@ include 'includes/header.php';
                 </ul>
             </div>
             <div class="page-header-right ms-auto">
-                <a href="student-profile.php" class="btn btn-outline-primary">Back to Profile</a>
+                <a href="profile-details.php" class="btn btn-outline-primary">Back to Profile</a>
             </div>
         </div>
         <div class="main-content">

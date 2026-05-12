@@ -386,9 +386,6 @@ if ($page_render_header) {
         $header_user_email = 'admin@biotern.local';
     }
     $header_user_role = strtolower(trim((string)($_SESSION['role'] ?? '')));
-    if ($header_user_role === 'student') {
-        $header_profile_url = 'student-profile.php';
-    }
 
     $session_avatar = trim((string)($_SESSION['profile_picture'] ?? ''));
     $header_avatar_path = biotern_avatar_public_src($session_avatar, $header_user_id_session);

@@ -1,8 +1,7 @@
 /* Clean shell for generate pages that use shared header/footer includes. */
 
 body.app-generate-page .nxl-navigation,
-body.app-generate-page .nxl-header,
-body.app-generate-page .footer {
+body.app-generate-page .nxl-header {
     display: none !important;
 }
 
@@ -30,8 +29,7 @@ body.app-generate-page .app-resume-sheet * {
 
 @media print {
     body.app-generate-page .nxl-navigation,
-    body.app-generate-page .nxl-header,
-    body.app-generate-page .footer {
+    body.app-generate-page .nxl-header {
         display: none !important;
     }
 

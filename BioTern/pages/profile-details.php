@@ -945,20 +945,7 @@ include 'includes/header.php';
     </div>
 </div>
 </div>
-    <footer class="footer">
-        <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
-            <span>Copyright &copy;</span>
-            <span class="app-current-year"></span>
-        </p>
-        <p><span>By: <a href="#">ACT 2A</a> </span><span>Distributed by: <a href="#">Group 5</a></span></p>
-        <div class="d-flex align-items-center gap-4">
-            <a href="#" class="fs-11 fw-semibold text-uppercase">Help</a>
-            <a href="#" class="fs-11 fw-semibold text-uppercase">Terms</a>
-            <a href="#" class="fs-11 fw-semibold text-uppercase">Privacy</a>
-        </div>
-    </footer>
 </main>
 
-<?php $page_render_footer = false; ?>
 <?php include 'includes/footer.php'; ?>
 

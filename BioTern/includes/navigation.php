@@ -345,8 +345,8 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                 <li class="nxl-item nxl-caption">
                     <span>Student</span>
                 </li>
-                <li class="nxl-item<?php echo biotern_nav_is_active('student-profile.php', $nav_current_file) ? ' active' : ''; ?>">
-                    <a href="student-profile.php" class="nxl-link">
+                <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['student-profile.php', 'profile-details.php']) ? ' active' : ''; ?>">
+                    <a href="profile-details.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-user"></i></span>
                         <span class="nxl-mtext">My Profile</span>
                     </a>

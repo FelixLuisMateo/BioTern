@@ -1126,7 +1126,7 @@ include 'includes/header.php';
                                 <h3 class="mb-1">My Internal DTR Entries</h3>
                                 <div class="student-dtr-meta">Daily attendance records for the selected month.</div>
                             </div>
-                            <a href="student-profile.php" class="btn btn-outline-primary">Back to Profile</a>
+                            <a href="profile-details.php" class="btn btn-outline-primary">Back to Profile</a>
                         </div>
 
                         <?php if (!empty($attendanceRows)): ?>
