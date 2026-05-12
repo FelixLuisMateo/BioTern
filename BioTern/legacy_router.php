@@ -76,6 +76,7 @@ $map = [
   'sections-create.php' => 'management/sections-create.php',
   'sections-edit.php' => 'management/sections-edit.php',
   'companies.php' => 'management/companies.php',
+  'certificate.php' => 'management/certificate.php',
   'coordinators.php' => 'management/coordinators.php',
   'coordinators-create.php' => 'management/coordinators-create.php',
   'coordinators-edit.php' => 'management/coordinators-edit.php',
