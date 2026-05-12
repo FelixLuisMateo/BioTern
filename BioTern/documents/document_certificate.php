@@ -111,7 +111,11 @@ $externalCompletionSql = "
     AND (
         LOWER(TRIM(COALESCE(i.status, ''))) IN ('completed', 'finished')
         OR COALESCE(i.completion_percentage, 0) >= 100
-        OR COALESCE(ea_stats.approved_hours, i.rendered_hours, 0) >= COALESCE(NULLIF(i.required_hours, 0), NULLIF(s.external_total_hours, 0), 250)
+        OR GREATEST(
+            COALESCE(ea_stats.approved_hours, 0),
+            COALESCE(i.rendered_hours, 0),
+            GREATEST(0, COALESCE(s.external_total_hours, 250) - COALESCE(s.external_total_hours_remaining, COALESCE(s.external_total_hours, 250)))
+        ) >= COALESCE(NULLIF(i.required_hours, 0), NULLIF(s.external_total_hours, 0), 250)
         OR COALESCE(s.external_total_hours_remaining, 999999) <= 0
     )
 ";
@@ -136,11 +140,10 @@ if ($selectedStudentId > 0) {
             i.start_date,
             i.end_date,
             COALESCE(NULLIF(i.required_hours, 0), NULLIF(s.external_total_hours, 0), 250) AS required_hours,
-            COALESCE(
-                NULLIF(ea_stats.approved_hours, 0),
-                NULLIF(i.rendered_hours, 0),
-                GREATEST(0, COALESCE(s.external_total_hours, 250) - COALESCE(s.external_total_hours_remaining, COALESCE(s.external_total_hours, 250))),
-                0
+            GREATEST(
+                COALESCE(ea_stats.approved_hours, 0),
+                COALESCE(i.rendered_hours, 0),
+                GREATEST(0, COALESCE(s.external_total_hours, 250) - COALESCE(s.external_total_hours_remaining, COALESCE(s.external_total_hours, 250)))
             ) AS rendered_hours,
             i.completion_percentage,
             ea_stats.first_attendance_date,
@@ -206,11 +209,10 @@ if ($selectedStudentId > 0) {
             TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student_name,
             c.name AS course_name,
             COALESCE(NULLIF(i.required_hours, 0), NULLIF(s.external_total_hours, 0), 250) AS required_hours,
-            COALESCE(
-                NULLIF(ea_stats.approved_hours, 0),
-                NULLIF(i.rendered_hours, 0),
-                GREATEST(0, COALESCE(s.external_total_hours, 250) - COALESCE(s.external_total_hours_remaining, COALESCE(s.external_total_hours, 250))),
-                0
+            GREATEST(
+                COALESCE(ea_stats.approved_hours, 0),
+                COALESCE(i.rendered_hours, 0),
+                GREATEST(0, COALESCE(s.external_total_hours, 250) - COALESCE(s.external_total_hours_remaining, COALESCE(s.external_total_hours, 250)))
             ) AS rendered_hours,
             i.completion_percentage,
             COALESCE(e.evaluation_date, i.end_date, CURDATE()) AS evaluation_date
@@ -264,15 +266,18 @@ include __DIR__ . '/../includes/header.php';
     .certificate-print-area {
         display: flex;
         justify-content: center;
+        overflow-x: auto;
+        padding: .25rem 0;
     }
     .certificate-sheet {
         position: relative;
+        box-sizing: border-box;
         overflow: hidden;
-        width: min(100%, 980px);
-        aspect-ratio: 1.414 / 1;
+        width: min(100%, 1056px);
+        aspect-ratio: 297 / 210;
         min-height: 0;
         margin: 0 auto;
-        padding: 36px 74px 34px;
+        padding: clamp(24px, 3.2vw, 34px) clamp(48px, 6vw, 70px) clamp(24px, 3.2vw, 32px);
         background:
             radial-gradient(circle at 50% 50%, rgba(255, 251, 237, 0.95) 0 42%, rgba(249, 239, 212, 0.88) 100%),
             #fff7df;
@@ -313,6 +318,14 @@ include __DIR__ . '/../includes/header.php';
         mask-image: radial-gradient(circle at 86% 27%, #000 0 95px, transparent 96px), radial-gradient(circle at 16% 55%, #000 0 128px, transparent 129px);
     }
     .certificate-content {
+        position: static;
+        display: grid;
+        width: 100%;
+        max-width: 850px;
+        margin: 0 auto;
+        justify-items: center;
+    }
+    .certificate-content > :not(.certificate-seal) {
         position: relative;
         z-index: 1;
     }
@@ -338,10 +351,10 @@ include __DIR__ . '/../includes/header.php';
     .certificate-title {
         position: relative;
         display: inline-block;
-        margin: 12px 0 0;
-        padding: 0 72px;
+        margin: 10px 0 0;
+        padding: 0 64px;
         font-family: Arial, sans-serif;
-        font-size: clamp(42px, 6vw, 72px);
+        font-size: clamp(38px, 5.2vw, 64px);
         line-height: .95;
         font-weight: 900;
         text-transform: uppercase;
@@ -364,24 +377,24 @@ include __DIR__ . '/../includes/header.php';
     }
     .certificate-title span {
         display: block;
-        margin-top: 4px;
-        font-size: clamp(24px, 3vw, 36px);
+        margin-top: 2px;
+        font-size: clamp(22px, 2.7vw, 32px);
         color: #e77817;
     }
     .certificate-name {
-        margin: 12px auto 8px;
+        margin: 12px auto 6px;
         padding-bottom: 3px;
-        max-width: 650px;
+        width: min(100%, 680px);
         border-bottom: 2px solid #e77817;
-        font-size: clamp(42px, 6.5vw, 70px);
+        font-size: clamp(42px, 6vw, 68px);
         font-weight: 700;
         font-style: italic;
         color: #06243a;
         line-height: 1.02;
     }
     .certificate-body {
-        max-width: 620px;
-        margin: 8px auto;
+        max-width: 700px;
+        margin: 6px auto;
         font-family: Arial, sans-serif;
         font-size: 14px;
         line-height: 1.34;
@@ -396,9 +409,9 @@ include __DIR__ . '/../includes/header.php';
     .certificate-meta {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 8px 12px;
-        max-width: 720px;
-        margin: 14px auto 0;
+        gap: 8px 20px;
+        width: min(100%, 760px);
+        margin: 12px auto 0;
         text-align: center;
         font-family: Arial, sans-serif;
         font-size: 11px;
@@ -407,9 +420,9 @@ include __DIR__ . '/../includes/header.php';
     .certificate-signatures {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 126px;
-        max-width: 640px;
-        margin: 54px auto 0;
+        gap: 92px;
+        width: min(100%, 640px);
+        margin: 70px auto 0;
         font-family: Arial, sans-serif;
         font-size: 13px;
     }
@@ -428,9 +441,9 @@ include __DIR__ . '/../includes/header.php';
         position: absolute;
         z-index: 2;
         left: 50%;
-        bottom: 38px;
-        width: 82px;
-        height: 82px;
+        bottom: 64px;
+        width: 76px;
+        height: 76px;
         transform: translateX(-50%);
         border-radius: 50%;
         background:
@@ -458,7 +471,7 @@ include __DIR__ . '/../includes/header.php';
     }
     @media (max-width: 768px) {
         .certificate-sheet {
-            padding: 36px 24px 42px;
+            padding: 32px 22px 42px;
         }
         .certificate-title {
             font-size: 36px;
@@ -480,10 +493,32 @@ include __DIR__ . '/../includes/header.php';
             grid-template-columns: 1fr;
         }
     }
+    @page {
+        size: landscape;
+        margin: 0;
+    }
     @media print {
-        @page {
-            size: landscape;
-            margin: 10mm;
+        html,
+        body {
+            width: auto !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #fff !important;
+        }
+        body > * {
+            display: none !important;
+        }
+        body > .nxl-container {
+            display: block !important;
+            visibility: visible !important;
+            position: static !important;
+            inset: 0 !important;
+            width: auto !important;
+            height: 0 !important;
+            min-height: 0 !important;
+            overflow: visible !important;
         }
         body * {
             visibility: hidden !important;
@@ -493,20 +528,129 @@ include __DIR__ . '/../includes/header.php';
             visibility: visible !important;
         }
         .certificate-print-area {
-            position: absolute;
+            position: fixed;
             inset: 0;
-            padding: 0;
+            display: block !important;
+            width: auto !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
             background: #fff;
+            contain: size layout paint;
+            break-after: avoid;
+            page-break-after: avoid;
         }
         .certificate-sheet {
-            width: 100%;
-            height: calc(100vh - 20mm);
-            box-shadow: none;
+            position: absolute !important;
+            inset: 0 !important;
+            width: auto !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            aspect-ratio: auto !important;
+            margin: 0 !important;
+            padding: 4.8% 6.8% 4.3% !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            break-inside: avoid;
+            page-break-inside: avoid;
             print-color-adjust: exact;
             -webkit-print-color-adjust: exact;
         }
+        .certificate-content {
+            max-width: 850px !important;
+            height: 100% !important;
+            align-content: center !important;
+        }
+        .certificate-logo {
+            width: 52px !important;
+            height: 52px !important;
+            margin-bottom: 4px !important;
+        }
+        .certificate-school {
+            font-size: 13px !important;
+        }
+        .certificate-school-subtitle {
+            font-size: 10px !important;
+        }
+        .certificate-title {
+            margin-top: 10px !important;
+            padding: 0 64px !important;
+            font-size: 64px !important;
+        }
+        .certificate-title::before,
+        .certificate-title::after {
+            width: 58px !important;
+            border-top-width: 5px !important;
+        }
+        .certificate-title span {
+            font-size: 32px !important;
+        }
+        .certificate-presented {
+            margin-top: 10px !important;
+            font-size: 13px !important;
+        }
+        .certificate-name {
+            width: min(100%, 680px) !important;
+            margin: 12px auto 6px !important;
+            font-size: 68px !important;
+            line-height: 1.02 !important;
+        }
+        .certificate-body {
+            max-width: 700px !important;
+            margin: 6px auto !important;
+            font-size: 14px !important;
+            line-height: 1.35 !important;
+        }
+        .certificate-meta {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            width: min(100%, 760px) !important;
+            margin-top: 12px !important;
+            gap: 8px 20px !important;
+            font-size: 11px !important;
+        }
+        .certificate-signatures {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            width: min(100%, 640px) !important;
+            gap: 92px !important;
+            margin-top: 70px !important;
+            font-size: 13px !important;
+        }
+        .certificate-sign-line {
+            padding-top: 9px !important;
+        }
+        .certificate-seal {
+            width: 76px !important;
+            height: 76px !important;
+            bottom: 64px !important;
+        }
+        .certificate-seal::before,
+        .certificate-seal::after {
+            top: 58px !important;
+            width: 24px !important;
+            height: 52px !important;
+        }
         .certificate-no-print {
             display: none !important;
+        }
+        .nxl-container,
+        .nxl-content,
+        .main-content {
+            width: auto !important;
+            height: 0 !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #fff !important;
+        }
+        .nxl-content,
+        .main-content {
+            display: contents !important;
         }
     }
 </style>
