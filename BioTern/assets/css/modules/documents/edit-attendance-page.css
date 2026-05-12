@@ -2,6 +2,12 @@ body { background-color: #f5f5f5; }
         .edit-container { max-width: 800px; margin: 30px auto; }
         .time-input { max-width: 150px; }
         .status-badge { font-size: 0.9rem; }
+        .edit-attendance-avatar {
+                width: 96px;
+                height: 96px;
+                object-fit: cover;
+                background: #f8fafc;
+        }
 
         .edit-attendance-avatar-fallback-initial {
                 font-size: 2rem;

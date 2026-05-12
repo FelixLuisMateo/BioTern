@@ -1437,7 +1437,7 @@ include 'includes/header.php';
                                             </div>
                                         </div>
 
-                                        <div class="row">
+                                        <div class="row app-students-hours-grid">
                                             <div class="col-md-3 mb-4">
                                                 <label for="internal_total_hours" class="form-label fw-semibold">Internal Total Hours</label>
                                                 <input type="number" class="form-control" id="internal_total_hours" name="internal_total_hours" min="0" step="1" <?php echo $can_edit_hours ? '' : 'disabled'; ?> value="<?php echo htmlspecialchars((string)($student['internal_total_hours'] ?? '')); ?>">

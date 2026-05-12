@@ -4,6 +4,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
@@ -12,11 +13,33 @@ $attendance = null;
 $student = null;
 attendance_workflow_ensure_correction_schema($conn);
 
+function edit_attendance_post_time(string $key): ?string
+{
+    if (!array_key_exists($key, $_POST)) {
+        return null;
+    }
+
+    $value = trim((string)$_POST[$key]);
+    return $value === '' ? null : $value;
+}
+
+function edit_attendance_time_value(?string $value): string
+{
+    $value = trim((string)$value);
+    if ($value === '' || $value === '00:00:00') {
+        return '';
+    }
+
+    $timestamp = strtotime($value);
+    return $timestamp === false ? '' : date('H:i:s', $timestamp);
+}
+
 if ($attendance_id > 0) {
     $query = "
         SELECT 
             a.*,
             s.id as student_id,
+            s.user_id as student_user_id,
             s.first_name,
             s.last_name,
             s.student_id as student_number,
@@ -36,6 +59,7 @@ if ($attendance_id > 0) {
         $attendance = $result->fetch_assoc();
         $student = [
             'id' => $attendance['student_id'],
+            'user_id' => $attendance['student_user_id'],
             'name' => $attendance['first_name'] . ' ' . $attendance['last_name'],
             'number' => $attendance['student_number'],
             'picture' => $attendance['profile_picture']
@@ -48,14 +72,14 @@ if ($attendance_id > 0) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $attendance_id > 0) {
     $current_user_id = get_current_user_id_or_zero();
     $current_role = get_current_user_role();
-    $can_direct_edit = in_array($current_role, ['admin', 'coordinator'], true);
+    $can_direct_edit = in_array($current_role, ['admin', 'coordinator', 'supervisor'], true);
     $openInfo = $attendance ? attendance_workflow_open_session_info($conn, $attendance) : ['requires_correction' => false];
-    $morning_in = isset($_POST['morning_time_in']) ? $_POST['morning_time_in'] : $attendance['morning_time_in'];
-    $morning_out = isset($_POST['morning_time_out']) ? $_POST['morning_time_out'] : $attendance['morning_time_out'];
-    $break_in = isset($_POST['break_time_in']) ? $_POST['break_time_in'] : $attendance['break_time_in'];
-    $break_out = isset($_POST['break_time_out']) ? $_POST['break_time_out'] : $attendance['break_time_out'];
-    $afternoon_in = isset($_POST['afternoon_time_in']) ? $_POST['afternoon_time_in'] : $attendance['afternoon_time_in'];
-    $afternoon_out = isset($_POST['afternoon_time_out']) ? $_POST['afternoon_time_out'] : $attendance['afternoon_time_out'];
+    $morning_in = edit_attendance_post_time('morning_time_in');
+    $morning_out = edit_attendance_post_time('morning_time_out');
+    $break_in = null;
+    $break_out = null;
+    $afternoon_in = edit_attendance_post_time('afternoon_time_in');
+    $afternoon_out = edit_attendance_post_time('afternoon_time_out');
     $status = isset($_POST['status']) ? $_POST['status'] : $attendance['status'];
     $remarks = isset($_POST['remarks']) ? $_POST['remarks'] : $attendance['remarks'];
     
@@ -75,12 +99,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $attendance_id > 0) {
         $total_hours = attendance_workflow_calculate_internal_hours($conn, array_merge($attendance, $candidate));
         $update_query = "
             UPDATE attendances SET
-                morning_time_in = ?,
-                morning_time_out = ?,
-                break_time_in = ?,
-                break_time_out = ?,
-                afternoon_time_in = ?,
-                afternoon_time_out = ?,
+                morning_time_in = NULLIF(?, ''),
+                morning_time_out = NULLIF(?, ''),
+                break_time_in = NULL,
+                break_time_out = NULL,
+                afternoon_time_in = NULLIF(?, ''),
+                afternoon_time_out = NULLIF(?, ''),
                 total_hours = ?,
                 status = ?,
                 remarks = ?,
@@ -89,7 +113,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $attendance_id > 0) {
         ";
         
         $stmt = $conn->prepare($update_query);
-        $stmt->bind_param('ssssssdssi', $morning_in, $morning_out, $break_in, $break_out, $afternoon_in, $afternoon_out, $total_hours, $status, $remarks, $attendance_id);
+        $morning_in_value = (string)($morning_in ?? '');
+        $morning_out_value = (string)($morning_out ?? '');
+        $afternoon_in_value = (string)($afternoon_in ?? '');
+        $afternoon_out_value = (string)($afternoon_out ?? '');
+        $stmt->bind_param('ssssdssi', $morning_in_value, $morning_out_value, $afternoon_in_value, $afternoon_out_value, $total_hours, $status, $remarks, $attendance_id);
         
         if ($stmt->execute()) {
             $success_msg = "Attendance record updated successfully!";
@@ -239,12 +267,9 @@ include 'includes/header.php';
                     <!-- Student Info -->
                     <div class="row mb-4 pb-3 border-bottom">
                         <div class="col-md-2">
-                            <?php
-                                $student_picture_rel = ltrim(str_replace('\\', '/', (string)($student['picture'] ?? '')), '/');
-                                $student_picture_abs = $student_picture_rel !== '' ? dirname(__DIR__) . '/' . $student_picture_rel : '';
-                            ?>
-                            <?php if ($student_picture_rel !== '' && is_file($student_picture_abs)): ?>
-                                <img src="<?php echo htmlspecialchars($student['picture']); ?>" alt="Student" class="img-fluid rounded">
+                            <?php $student_picture_src = biotern_avatar_public_src((string)($student['picture'] ?? ''), (int)($student['user_id'] ?? 0)); ?>
+                            <?php if ($student_picture_src !== ''): ?>
+                                <img src="<?php echo htmlspecialchars($student_picture_src, ENT_QUOTES, 'UTF-8'); ?>" alt="Student" class="img-fluid rounded edit-attendance-avatar">
                             <?php else: ?>
                                 <div class="bg-light rounded p-3 text-center">
                                     <div class="edit-attendance-avatar-fallback-initial">
@@ -265,23 +290,11 @@ include 'includes/header.php';
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Morning Time In</label>
-                                <input type="time" name="morning_time_in" class="form-control time-input" value="<?php echo htmlspecialchars($attendance['morning_time_in'] ?? ''); ?>">
+                                <input type="time" name="morning_time_in" class="form-control time-input" step="1" value="<?php echo htmlspecialchars(edit_attendance_time_value($attendance['morning_time_in'] ?? null), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Morning Time Out</label>
-                                <input type="time" name="morning_time_out" class="form-control time-input" value="<?php echo htmlspecialchars($attendance['morning_time_out'] ?? ''); ?>">
-                            </div>
-                        </div>
-                        
-                        <!-- Break Session -->
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Break Time In</label>
-                                <input type="time" name="break_time_in" class="form-control time-input" value="<?php echo htmlspecialchars($attendance['break_time_in'] ?? ''); ?>">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Break Time Out</label>
-                                <input type="time" name="break_time_out" class="form-control time-input" value="<?php echo htmlspecialchars($attendance['break_time_out'] ?? ''); ?>">
+                                <input type="time" name="morning_time_out" class="form-control time-input" step="1" value="<?php echo htmlspecialchars(edit_attendance_time_value($attendance['morning_time_out'] ?? null), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                         </div>
                         
@@ -289,11 +302,11 @@ include 'includes/header.php';
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Afternoon Time In</label>
-                                <input type="time" name="afternoon_time_in" class="form-control time-input" value="<?php echo htmlspecialchars($attendance['afternoon_time_in'] ?? ''); ?>">
+                                <input type="time" name="afternoon_time_in" class="form-control time-input" step="1" value="<?php echo htmlspecialchars(edit_attendance_time_value($attendance['afternoon_time_in'] ?? null), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Afternoon Time Out</label>
-                                <input type="time" name="afternoon_time_out" class="form-control time-input" value="<?php echo htmlspecialchars($attendance['afternoon_time_out'] ?? ''); ?>">
+                                <input type="time" name="afternoon_time_out" class="form-control time-input" step="1" value="<?php echo htmlspecialchars(edit_attendance_time_value($attendance['afternoon_time_out'] ?? null), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                         </div>
                         
