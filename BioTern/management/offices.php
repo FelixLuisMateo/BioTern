@@ -2,10 +2,14 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/offices.php';
+require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/includes/avatar.php';
 /** @var mysqli $conn */
 
-require_roles_page(['admin']);
+require_roles_page(['admin', 'coordinator', 'supervisor']);
 biotern_offices_ensure_schema($conn);
+$officeRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
+$canManageOffices = in_array($officeRole, ['admin', 'coordinator'], true);
 
 function h($value): string
 {
@@ -61,7 +65,10 @@ if (isset($_GET['edit'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? 'create');
     $id = (int)($_POST['id'] ?? 0);
-    if ($action === 'delete' && $id > 0) {
+    if (!$canManageOffices) {
+        $message = 'You do not have permission to modify offices.';
+        $message_type = 'danger';
+    } elseif ($action === 'delete' && $id > 0) {
         $stmt = $conn->prepare('UPDATE offices SET deleted_at = NOW(), is_active = 0 WHERE id = ?');
         if ($stmt) {
             $stmt->bind_param('i', $id);
@@ -137,7 +144,86 @@ if ($res) {
     }
 }
 
+$selectedOfficeId = (int)($_GET['office'] ?? ($offices[0]['id'] ?? 0));
+$selectedOffice = null;
+foreach ($offices as $office) {
+    if ((int)$office['id'] === $selectedOfficeId) {
+        $selectedOffice = $office;
+        break;
+    }
+}
+
+$officeInternsById = [];
+$officeCounts = [];
+$internSql = "
+    SELECT
+        o.id AS office_id,
+        s.id AS student_record_id,
+        s.user_id,
+        s.student_id,
+        s.first_name,
+        s.middle_name,
+        s.last_name,
+        COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
+        COALESCE(c.name, '') AS course_name,
+        COALESCE(NULLIF(sec.code, ''), NULLIF(sec.name, ''), '') AS section_code,
+        COALESCE(sec.name, '') AS section_name,
+        COALESCE(i.status, 'ongoing') AS internship_status,
+        COALESCE(i.start_date, '') AS start_date,
+        COALESCE(i.required_hours, s.internal_total_hours, 0) AS required_hours,
+        COALESCE(i.rendered_hours, GREATEST(COALESCE(s.internal_total_hours, 0) - COALESCE(s.internal_total_hours_remaining, 0), 0), 0) AS rendered_hours
+    FROM internships i
+    INNER JOIN offices o ON o.id = i.office_id AND o.deleted_at IS NULL
+    INNER JOIN students s ON s.id = i.student_id AND s.deleted_at IS NULL
+    LEFT JOIN users u ON u.id = s.user_id
+    LEFT JOIN courses c ON c.id = s.course_id
+    LEFT JOIN sections sec ON sec.id = s.section_id
+    INNER JOIN (
+        SELECT student_id, MAX(id) AS latest_id
+        FROM internships
+        WHERE deleted_at IS NULL
+          AND LOWER(COALESCE(type, 'internal')) = 'internal'
+        GROUP BY student_id
+    ) latest ON latest.latest_id = i.id
+    WHERE i.deleted_at IS NULL
+      AND LOWER(COALESCE(i.type, 'internal')) = 'internal'
+    ORDER BY s.last_name ASC, s.first_name ASC
+";
+$internRes = $conn->query($internSql);
+if ($internRes instanceof mysqli_result) {
+    while ($row = $internRes->fetch_assoc()) {
+        $officeId = (int)($row['office_id'] ?? 0);
+        if ($officeId <= 0) {
+            continue;
+        }
+        $displayName = trim(implode(' ', array_filter([
+            (string)($row['first_name'] ?? ''),
+            (string)($row['middle_name'] ?? ''),
+            (string)($row['last_name'] ?? ''),
+        ])));
+        $row['display_name'] = $displayName !== '' ? $displayName : 'Unnamed Student';
+        $row['section_label'] = biotern_format_section_label((string)($row['section_code'] ?? ''), (string)($row['section_name'] ?? ''));
+        $row['profile_url'] = biotern_avatar_public_src((string)($row['profile_picture'] ?? ''), (int)($row['user_id'] ?? 0));
+        $required = max(0, (float)($row['required_hours'] ?? 0));
+        $rendered = max(0, (float)($row['rendered_hours'] ?? 0));
+        $row['progress_pct'] = $required > 0 ? min(100, max(0, (int)round(($rendered / $required) * 100))) : 0;
+        $officeInternsById[$officeId][] = $row;
+        $officeCounts[$officeId] = ($officeCounts[$officeId] ?? 0) + 1;
+    }
+    $internRes->close();
+}
+
+foreach ($offices as &$office) {
+    $office['student_count'] = $officeCounts[(int)$office['id']] ?? 0;
+}
+unset($office);
+$selectedOfficeInterns = $selectedOffice ? ($officeInternsById[(int)$selectedOffice['id']] ?? []) : [];
+
 $page_title = 'Offices';
+$page_body_class = 'companies-page offices-page';
+$page_styles = [
+    'assets/css/modules/management/management-companies.css',
+];
 include 'includes/header.php';
 $selectedSupervisorIds = [];
 if ($editOffice) {
@@ -168,6 +254,7 @@ if ($editOffice) {
         <div class="main-content">
             <?php if ($message !== ''): ?><div class="alert alert-<?php echo h($message_type); ?>"><?php echo h($message); ?></div><?php endif; ?>
             <div class="row g-3">
+                <?php if ($canManageOffices): ?>
                 <div class="col-lg-4">
                     <div class="card stretch stretch-full">
                         <div class="card-header"><h5 class="card-title mb-0"><?php echo $editOffice ? 'Edit Office' : 'Create Office'; ?></h5></div>
@@ -215,7 +302,8 @@ if ($editOffice) {
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-8">
+                <?php endif; ?>
+                <div class="<?php echo $canManageOffices ? 'col-lg-8' : 'col-12'; ?>">
                     <div class="card stretch stretch-full app-data-card app-data-toolbar app-academic-list-card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="card-title mb-0">All Offices</h5>
@@ -224,32 +312,105 @@ if ($editOffice) {
                         <div class="card-body p-0">
                             <div class="table-responsive app-data-table-wrap">
                                 <table class="table table-hover mb-0 app-data-table app-academic-list-table">
-                                    <thead><tr><th>Office</th><th>Course</th><th>Department</th><th>Supervisors</th><th>Actions</th></tr></thead>
+                                    <thead><tr><th>Office</th><th>Course</th><th>Department</th><th>Supervisors</th><th>Internal Students</th><th>Actions</th></tr></thead>
                                     <tbody>
                                     <?php foreach ($offices as $office): ?>
                                         <tr>
-                                            <td><span class="app-academic-name"><?php echo h($office['name']); ?></span></td>
+                                            <td><a class="app-academic-name" href="offices.php?office=<?php echo (int)$office['id']; ?>"><?php echo h($office['name']); ?></a></td>
                                             <td><span class="app-academic-code-pill"><?php echo h($office['course_name'] ?: 'Any'); ?></span></td>
                                             <td><span class="app-academic-created"><?php echo h($office['department_name'] ?: 'Any'); ?></span></td>
                                             <td><span class="app-academic-created"><?php echo h($office['supervisor_names'] ?: '-'); ?></span></td>
+                                            <td><span class="badge bg-primary text-white"><?php echo (int)($office['student_count'] ?? 0); ?></span></td>
                                             <td>
                                                 <div class="d-flex gap-2">
+                                                <?php if ($canManageOffices): ?>
                                                 <a href="offices.php?edit=<?php echo (int)$office['id']; ?>" class="btn btn-sm btn-outline-primary">Edit</a>
                                                 <form method="post" data-confirm-message="Delete this office?">
                                                     <input type="hidden" name="action" value="delete">
                                                     <input type="hidden" name="id" value="<?php echo (int)$office['id']; ?>">
                                                     <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
                                                 </form>
+                                                <?php endif; ?>
                                                 </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
-                                    <?php if (!$offices): ?><tr><td colspan="5" class="text-center py-4 text-muted">No offices found.</td></tr><?php endif; ?>
+                                    <?php if (!$offices): ?><tr><td colspan="6" class="text-center py-4 text-muted">No offices found.</td></tr><?php endif; ?>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+            <div class="card mt-3 companies-detail-card">
+                <div class="card-body">
+                    <?php if ($selectedOffice): ?>
+                        <div class="companies-detail-header">
+                            <div>
+                                <h4 class="mb-1"><?php echo h((string)$selectedOffice['name']); ?></h4>
+                                <p class="companies-detail-subtitle mb-0"><?php echo h(trim((string)($selectedOffice['description'] ?? '')) !== '' ? (string)$selectedOffice['description'] : 'Internal OJT office'); ?></p>
+                            </div>
+                            <span class="companies-intern-count"><?php echo count($selectedOfficeInterns); ?> internal student(s)</span>
+                        </div>
+                        <div class="companies-intern-list mt-3">
+                            <?php if (!$selectedOfficeInterns): ?>
+                                <div class="companies-empty-state companies-intern-empty-state">
+                                    <h6>No internal students linked yet</h6>
+                                    <p class="mb-0">Assign an internal internship office from the student or OJT edit flow to populate this list.</p>
+                                </div>
+                            <?php endif; ?>
+                            <?php foreach ($selectedOfficeInterns as $intern): ?>
+                                <article class="companies-intern-item">
+                                    <div class="companies-intern-primary">
+                                        <div class="companies-intern-avatar">
+                                            <?php if (!empty($intern['profile_url'])): ?>
+                                                <img src="<?php echo h((string)$intern['profile_url']); ?>" alt="<?php echo h((string)$intern['display_name']); ?>">
+                                            <?php else: ?>
+                                                <span><?php echo h(strtoupper(substr((string)($intern['first_name'] ?? 'S'), 0, 1))); ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="companies-intern-copy">
+                                            <div class="companies-intern-name-row">
+                                                <h6 class="mb-0"><?php echo h((string)$intern['display_name']); ?></h6>
+                                                <span class="companies-status-pill is-primary"><?php echo h(ucfirst((string)($intern['internship_status'] ?? 'Ongoing'))); ?></span>
+                                            </div>
+                                            <p class="mb-0">
+                                                <?php echo h((string)($intern['course_name'] ?? '-')); ?>
+                                                <span>|</span>
+                                                <?php echo h((string)($intern['section_label'] ?? '-')); ?>
+                                                <span>|</span>
+                                                Internal
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="companies-intern-meta">
+                                        <div class="companies-intern-chip-row">
+                                            <span class="companies-meta-chip"><?php echo h(trim((string)($intern['start_date'] ?? '')) !== '' ? date('M d, Y', strtotime((string)$intern['start_date'])) : 'Start date pending'); ?></span>
+                                        </div>
+                                        <div class="companies-progress-row">
+                                            <div class="companies-progress-track">
+                                                <span style="width: <?php echo (int)($intern['progress_pct'] ?? 0); ?>%"></span>
+                                            </div>
+                                            <div class="companies-progress-copy">
+                                                <span><?php echo (int)($intern['rendered_hours'] ?? 0); ?> / <?php echo (int)($intern['required_hours'] ?? 0); ?> hrs</span>
+                                                <strong><?php echo (int)($intern['progress_pct'] ?? 0); ?>%</strong>
+                                            </div>
+                                        </div>
+                                        <div class="companies-intern-actions">
+                                            <a href="students-view.php?id=<?php echo (int)($intern['student_record_id'] ?? 0); ?>" class="btn btn-sm btn-outline-primary">Student</a>
+                                            <a href="ojt-view.php?id=<?php echo (int)($intern['student_record_id'] ?? 0); ?>" class="btn btn-sm btn-outline-secondary">OJT</a>
+                                        </div>
+                                    </div>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="companies-empty-state">
+                            <h6>No office selected</h6>
+                            <p class="mb-0">Create or choose an office to view internal OJT students.</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

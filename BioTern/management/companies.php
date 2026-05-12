@@ -138,6 +138,7 @@ function companies_cleanup_orphan_directory(mysqli $conn): int
         LEFT JOIN internships i
             ON TRIM(LOWER(COALESCE(i.company_name, ''))) = TRIM(LOWER(COALESCE(pc.company_name, '')))
             AND i.deleted_at IS NULL
+            AND LOWER(COALESCE(i.type, 'external')) = 'external'
         ";
         $internshipWhere = 'i.id IS NULL';
     }
@@ -1042,13 +1043,16 @@ if ($internshipsTableReady) {
                 SELECT student_id, MAX(id) AS latest_id
                 FROM internships
                 WHERE deleted_at IS NULL
+                  AND LOWER(COALESCE(type, 'external')) = 'external'
                 GROUP BY student_id
             ) i_latest ON i_latest.latest_id = i_full.id
             WHERE i_full.deleted_at IS NULL
+              AND LOWER(COALESCE(i_full.type, 'external')) = 'external'
         ) i ON i.student_id = s.id
         LEFT JOIN users u ON s.user_id = u.id
         LEFT JOIN sections sec ON s.section_id = sec.id
         LEFT JOIN courses c ON s.course_id = c.id
+        WHERE LOWER(COALESCE(s.assignment_track, 'external')) = 'external'
         ORDER BY s.last_name ASC, s.first_name ASC
     ";
 
@@ -1074,7 +1078,6 @@ if ($internshipsTableReady) {
             if (!in_array($track, ['internal', 'external'], true)) {
                 $track = 'external';
             }
-            $track = 'external';
             $row['resolved_track'] = $track;
 
             $requiredHours = (int)($row['external_total_hours'] ?? 0);
@@ -1197,8 +1200,8 @@ if ($internshipsTableReady) {
               AND LOWER(COALESCE(i_full.type, 'external')) = 'external'
         ) i ON i.student_id = s.id
         WHERE s.deleted_at IS NULL
+          AND LOWER(COALESCE(s.assignment_track, 'external')) = 'external'
         ORDER BY
-            CASE WHEN LOWER(COALESCE(s.assignment_track, 'internal')) = 'external' THEN 0 ELSE 1 END,
             s.last_name ASC,
             s.first_name ASC
     ";
@@ -1289,6 +1292,7 @@ if (companies_table_exists($conn, 'ojt_masterlist')) {
         LEFT JOIN sections sec ON s.section_id = sec.id
         LEFT JOIN courses c ON s.course_id = c.id
         WHERE TRIM(COALESCE(ml.company_name, '')) <> ''
+          AND LOWER(TRIM(COALESCE(ml.assignment_track, 'external'))) = 'external'
         ORDER BY ml.section ASC, ml.student_name ASC, ml.id ASC
     ";
     $masterlistResult = $conn->query($masterlistSql);
@@ -1371,7 +1375,7 @@ if (companies_table_exists($conn, 'ojt_masterlist')) {
                 $row['rendered_hours'] = $requiredHours;
                 $row['progress_pct'] = 100;
             }
-            $row['position'] = trim((string)($row['supervisor_position'] ?? ''));
+            $row['position'] = '';
             $row['start_date'] = '';
             $row['end_date'] = '';
             $row['latest_activity'] = trim((string)($row['updated_at'] ?? ''));
@@ -2045,7 +2049,6 @@ include 'includes/header.php';
                                                             </div>
                                                             <div class="companies-intern-meta">
                                                                 <div class="companies-intern-chip-row">
-                                                                    <span class="companies-meta-chip"><?php echo h(trim((string)($intern['position'] ?? '')) !== '' ? (string)$intern['position'] : 'Position pending'); ?></span>
                                                                     <span class="companies-meta-chip"><?php echo h(trim((string)($intern['start_date'] ?? '')) !== '' ? date('M d, Y', strtotime((string)$intern['start_date'])) : 'Start date pending'); ?></span>
                                                                 </div>
                                                                 <div class="companies-progress-row">

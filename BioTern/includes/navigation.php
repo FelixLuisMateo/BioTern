@@ -171,7 +171,7 @@ $nav_active_students = biotern_nav_any_active($nav_current_file, [
 ]);
 $nav_active_ojt = biotern_nav_any_active($nav_current_file, [
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
-    'ojt-internal-list.php', 'ojt-internal-masterlist.php', 'ojt-external-list.php', 'companies.php',
+    'ojt-internal-list.php', 'ojt-internal-masterlist.php', 'ojt-external-list.php',
 ]);
 $nav_active_machine = biotern_nav_any_active($nav_current_file, [
     'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric-fleet.php', 'biometric_machine_sync.php',
@@ -204,6 +204,7 @@ $nav_active_academic = biotern_nav_any_active($nav_current_file, [
     'courses.php', 'courses-create.php', 'courses-edit.php',
     'departments.php', 'departments-create.php', 'departments-edit.php',
     'offices.php',
+    'companies.php',
     'sections.php', 'sections-create.php', 'sections-edit.php',
 ]);
 $nav_active_apps = biotern_nav_any_active($nav_current_file, [
@@ -293,7 +294,6 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                     <ul class="nxl-submenu">
                         <li class="nxl-item<?php echo biotern_nav_is_active('ojt.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt.php">OJT List</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('ojt-create.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt-create.php">OJT Create</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('companies.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="companies.php">Companies</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('ojt-internal-list.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt-internal-list.php">Internal List</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('ojt-internal-masterlist.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt-internal-masterlist.php">Internal Masterlist</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('ojt-external-list.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="ojt-external-list.php">External List</a></li>
@@ -401,6 +401,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('courses.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="courses.php">Courses</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('departments.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="departments.php">Departments</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('offices.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="offices.php">Offices</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('companies.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="companies.php">Companies</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('sections.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="sections.php">Sections</a></li>
                     </ul>
                 </li>
