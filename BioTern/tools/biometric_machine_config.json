@@ -3,7 +3,7 @@
     "attendanceEndTime":  "20:00:00",
     "ipAddress":  "192.168.100.201",
     "attendanceWindowEnabled":  false,
-    "duplicateGuardMinutes":  10,
+    "duplicateGuardMinutes":  60,
     "deviceNumber":  1,
     "gateway":  "192.168.100.1",
     "attendanceStartTime":  "08:00:00",
@@ -11,7 +11,7 @@
     "mask":  "255.255.255.0",
     "selectedRouterPreset":  "router_1",
     "syncMode":  "connector_fallback",
-    "slotAdvanceMinimumMinutes":  10,
+    "slotAdvanceMinimumMinutes":  60,
     "port":  5001,
     "communicationPassword":  "0"
 }

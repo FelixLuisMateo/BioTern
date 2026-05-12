@@ -874,15 +874,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<td data-label="Afternoon In">' . attendanceDisplayTimeHtml($attendance, 'afternoon_time_in', 'bg-soft-warning text-warning') . '</td>';
             echo '<td data-label="Afternoon Out">' . attendanceDisplayTimeHtml($attendance, 'afternoon_time_out', 'bg-soft-warning text-warning') . '</td>';
             echo '<td data-label="Total Hours">' . attendance_hours_cell_html($attendance) . '</td>';
-            echo '<td data-label="Status">' . attendance_status_cell_html($attendance) . '</td>';
             echo '<td data-label="Source">' . getSourceBadge($attendance['source'] ?? 'manual', $attendance) . '</td>';
-            echo '<td data-label="Reports">' . attendance_reports_cell_html($attendance) . '</td>';
-            $student_name = trim((string)($attendance['first_name'] ?? '') . ' ' . (string)($attendance['last_name'] ?? ''));
-            $approval_status_label = ucfirst((string)($attendance['status'] ?? 'pending'));
-            $morning_in_text = $attendance['morning_time_in'] ? date('h:i A', strtotime($attendance['morning_time_in'])) : '-';
-            $morning_out_text = $attendance['morning_time_out'] ? date('h:i A', strtotime($attendance['morning_time_out'])) : '-';
-            $afternoon_in_text = $attendance['afternoon_time_in'] ? date('h:i A', strtotime($attendance['afternoon_time_in'])) : '-';
-            $afternoon_out_text = $attendance['afternoon_time_out'] ? date('h:i A', strtotime($attendance['afternoon_time_out'])) : '-';
             echo '<td data-label="Actions">' . attendanceActionMenuItems($attendance) . '</td>';
             echo '</tr>';
         }
@@ -958,22 +950,12 @@ function attendanceScheduleDisplayFallback(array $attendance, string $column): ?
     }
 
     if ($session === 'afternoon_only') {
-        if ($column === 'afternoon_time_in') {
-            return $scheduleIn;
-        }
-        if ($column === 'afternoon_time_out') {
-            return $scheduleOut;
-        }
         return null;
     }
 
     if ($column === 'morning_time_in') {
         return $scheduleIn;
     }
-    if ($column === 'afternoon_time_out') {
-        return $scheduleOut;
-    }
-
     return null;
 }
 
@@ -1823,19 +1805,28 @@ function attendanceActionMenuItems(array $attendance): string
 {
     $attendanceId = (int)($attendance['id'] ?? 0);
     $studentId = (int)($attendance['student_id'] ?? 0);
+    $details = attendance_details_dropdown_html($attendance);
 
     if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
         $items = [];
         $proofPath = trim((string)($attendance['proof_photo_path'] ?? ''));
+        if ($details !== '') {
+            $items[] = $details;
+            $items[] = '<li class="dropdown-divider"></li>';
+        }
         $items[] = '<li><a class="dropdown-item" href="external-attendance.php?status=approved"><i class="feather feather-briefcase me-3"></i><span>Open External Queue</span></a></li>';
         if ($proofPath !== '') {
             $items[] = '<li><a class="dropdown-item" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener"><i class="feather feather-image me-3"></i><span>Open Proof</span></a></li>';
         }
-        return '<div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $studentId . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end">' . implode('', $items) . '</ul></div></div>';
+        return '<div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $studentId . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-bs-offset="0,21" title="More actions"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end attendance-row-actions-menu">' . implode('', $items) . '</ul></div></div>';
     }
 
     $items = [];
     $proofPath = trim((string)($attendance['proof_photo_path'] ?? ''));
+    if ($details !== '') {
+        $items[] = $details;
+        $items[] = '<li class="dropdown-divider"></li>';
+    }
 
     if (attendanceCanReview($attendance)) {
         $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(' . $attendanceId . ')"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li>';
@@ -1853,7 +1844,26 @@ function attendanceActionMenuItems(array $attendance): string
     $items[] = '<li class="dropdown-divider"></li>';
     $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(' . $attendanceId . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li>';
 
-    return '<div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $studentId . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-offset="0,21"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end">' . implode('', $items) . '</ul></div></div>';
+    return '<div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $studentId . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-bs-offset="0,21" title="More actions"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end attendance-row-actions-menu">' . implode('', $items) . '</ul></div></div>';
+}
+
+function attendance_details_dropdown_html(array $attendance): string
+{
+    $sections = [
+        'Photo' => attendance_photo_cell_html($attendance),
+        'Reports' => attendance_reports_cell_html($attendance),
+        'Notes' => attendance_notes_cell_html($attendance),
+        'Review' => attendance_review_cell_html($attendance),
+    ];
+
+    $html = '<li><div class="attendance-row-details">';
+    foreach ($sections as $label => $content) {
+        $html .= '<div class="attendance-row-detail-block">'
+            . '<div class="attendance-row-detail-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</div>'
+            . '<div class="attendance-row-detail-content">' . $content . '</div>'
+            . '</div>';
+    }
+    return $html . '</div></li>';
 }
 
 // Determine attendance status based on the section schedule.
@@ -2346,12 +2356,8 @@ echo $stats['total_count'] ?? 0; ?></span>
                                                 <th>Afternoon In</th>
                                                 <th>Afternoon Out</th>
                                                 <th>Total Hours</th>
-                                                <th>Status</th>
                                                 <th>Source</th>
-                                                <th>Photo</th>
-                                                <th>Reports</th>
-                                                <th>Notes</th>
-                                                <th>Review</th>
+                                                <th>Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -2403,21 +2409,10 @@ echo date('Y-m-d', strtotime($attendance['attendance_date'])); ?></span></td>
                                                             <?php
 echo attendance_hours_cell_html($attendance); ?>
                                                         </td>
-                                                        <td data-label="Status">
-                                                            <?php
-echo attendance_status_cell_html($attendance);
-                                                            ?>
-                                                        </td>
                                                         <td data-label="Source"><?php
 echo getSourceBadge($attendance['source'] ?? 'manual', $attendance); ?></td>
-                                                        <td data-label="Photo"><?php
-echo attendance_photo_cell_html($attendance); ?></td>
-                                                        <td data-label="Reports"><?php
-echo attendance_reports_cell_html($attendance); ?></td>
-                                                        <td data-label="Notes"><?php
-echo attendance_notes_cell_html($attendance); ?></td>
-                                                        <td data-label="Review">
-                                                            <?php echo attendance_review_cell_html($attendance); ?>
+                                                        <td data-label="Actions">
+                                                            <?php echo attendanceActionMenuItems($attendance); ?>
                                                         </td>
                                                     </tr>
                                                 <?php

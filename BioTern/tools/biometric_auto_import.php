@@ -406,7 +406,7 @@ if (!function_exists('biometricInsertRawLogEntries')) {
     {
         $inserted = 0;
         $incomingSeen = [];
-        $duplicateWindowMinutes = biometricMachineConfigInt($machineConfig, 'duplicateGuardMinutes', 10);
+        $duplicateWindowMinutes = biometricMachineConfigInt($machineConfig, 'duplicateGuardMinutes', 60);
 
         foreach ($entries as $entry) {
             if (!is_array($entry)) {
@@ -1022,7 +1022,7 @@ if (!function_exists('syncAttendanceFromBiometricLog')) {
         }
         $row['attendance_date'] = $date;
 
-        $duplicateWindowMinutes = biometricMachineConfigInt($machineConfig, 'duplicateGuardMinutes', 10);
+        $duplicateWindowMinutes = biometricMachineConfigInt($machineConfig, 'duplicateGuardMinutes', 60);
         if (isDuplicateBiometricPunch($row, $time, $duplicateWindowMinutes)) {
             biometric_ops_record_anomaly(
                 $conn,
@@ -1113,14 +1113,14 @@ if (!function_exists('resolveAttendanceColumnForPunch')) {
                 }
                 if (trim((string)($attendanceRow['afternoon_time_out'] ?? '')) === '') {
                     $minutesSinceLast = minutesBetweenPunches((string)($attendanceRow['afternoon_time_in'] ?? ''), $incomingTime);
-                    $slotAdvanceMinimumMinutes = biometricMachineConfigInt($machineConfig, 'slotAdvanceMinimumMinutes', 10);
+                    $slotAdvanceMinimumMinutes = biometricMachineConfigInt($machineConfig, 'slotAdvanceMinimumMinutes', 60);
                     return ($minutesSinceLast !== null && $minutesSinceLast < $slotAdvanceMinimumMinutes) ? null : 'afternoon_time_out';
                 }
                 return null;
             }
 
             if ($session === 'morning_only') {
-                $slotAdvanceMinimumMinutes = biometricMachineConfigInt($machineConfig, 'slotAdvanceMinimumMinutes', 10);
+                $slotAdvanceMinimumMinutes = biometricMachineConfigInt($machineConfig, 'slotAdvanceMinimumMinutes', 60);
                 $morningIn = trim((string)($attendanceRow['morning_time_in'] ?? ''));
                 $morningOut = trim((string)($attendanceRow['morning_time_out'] ?? ''));
                 $afternoonIn = trim((string)($attendanceRow['afternoon_time_in'] ?? ''));
@@ -1164,7 +1164,7 @@ if (!function_exists('resolveAttendanceColumnForPunch')) {
             }
 
             if ($session === 'whole_day') {
-                $slotAdvanceMinimumMinutes = biometricMachineConfigInt($machineConfig, 'slotAdvanceMinimumMinutes', 10);
+                $slotAdvanceMinimumMinutes = biometricMachineConfigInt($machineConfig, 'slotAdvanceMinimumMinutes', 60);
                 $middayBoundary = resolveWholeDayAttendanceSplitTime($effectiveSchedule);
                 $lateDayBoundary = resolveWholeDayAttendanceExitTime($effectiveSchedule);
 
@@ -1211,7 +1211,7 @@ if (!function_exists('resolveAttendanceColumnForPunch')) {
             $lastTime = lastBiometricPunchTime($attendanceRow);
             if ($lastTime !== null) {
                 $minutesSinceLast = minutesBetweenPunches($lastTime, $incomingTime);
-                $slotAdvanceMinimumMinutes = biometricMachineConfigInt($machineConfig, 'slotAdvanceMinimumMinutes', 10);
+                $slotAdvanceMinimumMinutes = biometricMachineConfigInt($machineConfig, 'slotAdvanceMinimumMinutes', 60);
                 if ($minutesSinceLast !== null && $minutesSinceLast < $slotAdvanceMinimumMinutes) {
                     return null;
                 }
@@ -1354,6 +1354,9 @@ if (!function_exists('biometricMachineConfigInt')) {
     function biometricMachineConfigInt(array $machineConfig, string $key, int $default): int
     {
         $value = isset($machineConfig[$key]) ? (int)$machineConfig[$key] : $default;
+        if (in_array($key, ['duplicateGuardMinutes', 'slotAdvanceMinimumMinutes'], true)) {
+            return max(60, $value);
+        }
         return max(1, $value);
     }
 }
