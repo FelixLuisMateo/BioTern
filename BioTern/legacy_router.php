@@ -112,6 +112,7 @@ $map = [
   'fingerprint_mapping.php' => 'pages/fingerprint_mapping.php',
   'fingerprint-unmapped-internal.php' => 'pages/fingerprint-unmapped-internal.php',
   'ojt-internal-list.php' => 'pages/ojt-internal-list.php',
+  'ojt-internal-masterlist.php' => 'pages/ojt-internal-masterlist.php',
   'ojt-external-list.php' => 'pages/ojt-external-list.php',
   'ojt-external-view.php' => 'pages/ojt-external-view.php',
   'biometric-machine.php' => 'pages/biometric-machine.php',
@@ -388,7 +389,7 @@ if ($is_logged_in) {
     'attendance.php', 'attendance-corrections.php', 'edit_attendance.php', 'print_attendance.php',
     'external-attendance.php', 'external-attendance-manual.php',
     'demo-biometric.php', 'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric-fleet.php', 'bridge-setup-manual.php', 'biometric_machine_sync.php', 'f20h_offline_excel_import.php',
-    'ojt-internal-list.php', 'ojt-external-list.php', 'ojt-external-view.php',
+    'ojt-internal-list.php', 'ojt-internal-masterlist.php', 'ojt-external-list.php', 'ojt-external-view.php',
     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
     'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php',
   ];
