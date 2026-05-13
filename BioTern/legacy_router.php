@@ -116,6 +116,7 @@ $map = [
   'ojt-external-list.php' => 'pages/ojt-external-list.php',
   'ojt-external-view.php' => 'pages/ojt-external-view.php',
   'biometric-machine.php' => 'pages/biometric-machine.php',
+  'biometric-machine-bridge2.php' => 'pages/biometric-machine-bridge2.php',
   'biometric-fleet.php' => 'pages/biometric-fleet.php',
   'bridge-setup-manual.php' => 'pages/bridge-setup-manual.php',
   'biometric_machine_sync.php' => 'tools/biometric_machine_sync.php',
