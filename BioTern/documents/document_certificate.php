@@ -535,9 +535,9 @@ include __DIR__ . '/../includes/header.php';
     }
     .certificate-given-line {
         max-width: 700px;
-        margin: 5px auto 0;
+        margin: 7px auto 0;
         font-family: Arial, sans-serif;
-        font-size: 12px;
+        font-size: 14px;
         color: #27384a;
     }
     .certificate-presented {
@@ -555,7 +555,7 @@ include __DIR__ . '/../includes/header.php';
         margin: 12px auto 0;
         text-align: center;
         font-family: Arial, sans-serif;
-        font-size: 11px;
+        font-size: 13px;
         color: #27384a;
     }
     .certificate-signatures {
@@ -779,8 +779,8 @@ include __DIR__ . '/../includes/header.php';
         }
         .certificate-given-line {
             max-width: 700px !important;
-            margin: 5px auto 0 !important;
-            font-size: 12px !important;
+            margin: 7px auto 0 !important;
+            font-size: 14px !important;
         }
         .certificate-meta {
             display: grid !important;
@@ -788,7 +788,7 @@ include __DIR__ . '/../includes/header.php';
             width: min(100%, 760px) !important;
             margin-top: 12px !important;
             gap: 8px 20px !important;
-            font-size: 11px !important;
+            font-size: 13px !important;
         }
         .certificate-signatures {
             display: grid !important;
