@@ -406,7 +406,8 @@ html.app-skin-dark #ojtExternalActionModal .btn-close {
 }
 
 .page-fingerprint-mapping .bio-console-hero,
-.page-biometric-machine .bio-console-hero {
+.page-biometric-machine .bio-console-hero,
+.page-bridge-setup-manual .bio-console-hero {
     background: var(--biotern-surface, #ffffff);
     border: 1px solid rgba(148, 163, 184, 0.22);
     box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
@@ -414,7 +415,8 @@ html.app-skin-dark #ojtExternalActionModal .btn-close {
 }
 
 .page-fingerprint-mapping .bio-console-eyebrow,
-.page-biometric-machine .bio-console-eyebrow {
+.page-biometric-machine .bio-console-eyebrow,
+.page-bridge-setup-manual .bio-console-eyebrow {
     color: #64748b;
 }
 
@@ -423,17 +425,22 @@ html.app-skin-dark #ojtExternalActionModal .btn-close {
 .page-fingerprint-mapping .bio-console-hero h5,
 .page-biometric-machine .bio-console-hero h3,
 .page-biometric-machine .bio-console-hero h4,
-.page-biometric-machine .bio-console-hero h5 {
+.page-biometric-machine .bio-console-hero h5,
+.page-bridge-setup-manual .bio-console-hero h3,
+.page-bridge-setup-manual .bio-console-hero h4,
+.page-bridge-setup-manual .bio-console-hero h5 {
     color: var(--bs-body-color, #0f172a);
 }
 
 .page-fingerprint-mapping .bio-console-hero p,
-.page-biometric-machine .bio-console-hero p {
+.page-biometric-machine .bio-console-hero p,
+.page-bridge-setup-manual .bio-console-hero p {
     color: #475569;
 }
 
 .page-fingerprint-mapping .bio-console-pill,
-.page-biometric-machine .bio-console-pill {
+.page-biometric-machine .bio-console-pill,
+.page-bridge-setup-manual .bio-console-pill {
     background: rgba(var(--biotern-primary-rgb), 0.12);
     border-color: rgba(var(--biotern-primary-rgb), 0.24);
     color: var(--biotern-primary-hover);
@@ -442,7 +449,9 @@ html.app-skin-dark #ojtExternalActionModal .btn-close {
 .page-fingerprint-mapping .bio-console-hero-side,
 .page-fingerprint-mapping .bio-console-note-surface,
 .page-biometric-machine .bio-console-hero-side,
-.page-biometric-machine .bio-console-note-surface {
+.page-biometric-machine .bio-console-note-surface,
+.page-bridge-setup-manual .bio-console-hero-side,
+.page-bridge-setup-manual .bio-console-note-surface {
     background: rgba(248, 250, 252, 0.92);
     border-color: rgba(148, 163, 184, 0.24);
 }
@@ -450,7 +459,9 @@ html.app-skin-dark #ojtExternalActionModal .btn-close {
 .page-fingerprint-mapping .bio-console-hero-side h6,
 .page-fingerprint-mapping .bio-console-note-surface h6,
 .page-biometric-machine .bio-console-hero-side h6,
-.page-biometric-machine .bio-console-note-surface h6 {
+.page-biometric-machine .bio-console-note-surface h6,
+.page-bridge-setup-manual .bio-console-hero-side h6,
+.page-bridge-setup-manual .bio-console-note-surface h6 {
     color: var(--bs-body-color, #0f172a);
 }
 
@@ -459,7 +470,10 @@ html.app-skin-dark #ojtExternalActionModal .btn-close {
 .page-fingerprint-mapping .bio-console-hero-side small,
 .page-biometric-machine .bio-console-hero-side p,
 .page-biometric-machine .bio-console-note-surface p,
-.page-biometric-machine .bio-console-hero-side small {
+.page-biometric-machine .bio-console-hero-side small,
+.page-bridge-setup-manual .bio-console-hero-side p,
+.page-bridge-setup-manual .bio-console-note-surface p,
+.page-bridge-setup-manual .bio-console-hero-side small {
     color: #475569 !important;
 }
 
@@ -550,7 +564,8 @@ html.app-skin-dark #ojtExternalActionModal .btn-close {
 .bio-console-stat-card,
 .bio-console-panel,
 .page-biometric-machine .card:not(.bio-console-hero),
-.page-fingerprint-mapping .card:not(.bio-console-hero) {
+.page-fingerprint-mapping .card:not(.bio-console-hero),
+.page-bridge-setup-manual .card:not(.bio-console-hero) {
     border: 1px solid rgba(148, 163, 184, 0.22);
     border-radius: 16px;
     box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
@@ -564,7 +579,8 @@ html.app-skin-dark #ojtExternalActionModal .btn-close {
 
 .bio-console-panel .card-header,
 .page-biometric-machine .card:not(.bio-console-hero) .card-header,
-.page-fingerprint-mapping .card:not(.bio-console-hero) .card-header {
+.page-fingerprint-mapping .card:not(.bio-console-hero) .card-header,
+.page-bridge-setup-manual .card:not(.bio-console-hero) .card-header {
     padding: 0.9rem 1.05rem;
     border-bottom: 1px solid rgba(148, 163, 184, 0.18);
     background: rgba(248, 250, 252, 0.86);
@@ -754,7 +770,8 @@ html.app-skin-dark #ojtExternalActionModal .btn-close {
 html.app-skin-dark .bio-console-stat-card,
 html.app-skin-dark .bio-console-panel,
 html.app-skin-dark .page-biometric-machine .card:not(.bio-console-hero),
-html.app-skin-dark .page-fingerprint-mapping .card:not(.bio-console-hero) {
+html.app-skin-dark .page-fingerprint-mapping .card:not(.bio-console-hero),
+html.app-skin-dark .page-bridge-setup-manual .card:not(.bio-console-hero) {
     background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(12, 20, 36, 0.96));
     border-color: rgba(129, 153, 199, 0.22);
     box-shadow: 0 18px 40px rgba(2, 6, 23, 0.38);
@@ -762,7 +779,8 @@ html.app-skin-dark .page-fingerprint-mapping .card:not(.bio-console-hero) {
 
 html.app-skin-dark .bio-console-panel .card-header,
 html.app-skin-dark .page-biometric-machine .card:not(.bio-console-hero) .card-header,
-html.app-skin-dark .page-fingerprint-mapping .card:not(.bio-console-hero) .card-header {
+html.app-skin-dark .page-fingerprint-mapping .card:not(.bio-console-hero) .card-header,
+html.app-skin-dark .page-bridge-setup-manual .card:not(.bio-console-hero) .card-header {
     background: rgba(30, 41, 59, 0.72);
     border-bottom-color: rgba(129, 153, 199, 0.16);
 }
@@ -791,7 +809,8 @@ html.app-skin-dark .bio-console-inline-note,
 html.app-skin-dark .bio-console-empty,
 html.app-skin-dark .bio-console-table td,
 html.app-skin-dark .page-biometric-machine .text-muted,
-html.app-skin-dark .page-fingerprint-mapping .text-muted {
+html.app-skin-dark .page-fingerprint-mapping .text-muted,
+html.app-skin-dark .page-bridge-setup-manual .text-muted {
     color: #9fb0cc !important;
 }
 
@@ -824,7 +843,8 @@ html.app-skin-dark .bio-console-table tbody tr:hover {
 }
 
 html.app-skin-dark .page-fingerprint-mapping .bio-console-hero,
-html.app-skin-dark .page-biometric-machine .bio-console-hero {
+html.app-skin-dark .page-biometric-machine .bio-console-hero,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-hero {
     background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(12, 20, 36, 0.96));
     border-color: rgba(129, 153, 199, 0.22);
     box-shadow: 0 18px 40px rgba(2, 6, 23, 0.38);
@@ -832,7 +852,8 @@ html.app-skin-dark .page-biometric-machine .bio-console-hero {
 }
 
 html.app-skin-dark .page-fingerprint-mapping .bio-console-eyebrow,
-html.app-skin-dark .page-biometric-machine .bio-console-eyebrow {
+html.app-skin-dark .page-biometric-machine .bio-console-eyebrow,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-eyebrow {
     color: #9fb0cc;
 }
 
@@ -841,17 +862,22 @@ html.app-skin-dark .page-fingerprint-mapping .bio-console-hero h4,
 html.app-skin-dark .page-fingerprint-mapping .bio-console-hero h5,
 html.app-skin-dark .page-biometric-machine .bio-console-hero h3,
 html.app-skin-dark .page-biometric-machine .bio-console-hero h4,
-html.app-skin-dark .page-biometric-machine .bio-console-hero h5 {
+html.app-skin-dark .page-biometric-machine .bio-console-hero h5,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-hero h3,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-hero h4,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-hero h5 {
     color: var(--biotern-surface-muted);
 }
 
 html.app-skin-dark .page-fingerprint-mapping .bio-console-hero p,
-html.app-skin-dark .page-biometric-machine .bio-console-hero p {
+html.app-skin-dark .page-biometric-machine .bio-console-hero p,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-hero p {
     color: #9fb0cc;
 }
 
 html.app-skin-dark .page-fingerprint-mapping .bio-console-pill,
-html.app-skin-dark .page-biometric-machine .bio-console-pill {
+html.app-skin-dark .page-biometric-machine .bio-console-pill,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-pill {
     background: rgba(var(--biotern-primary-rgb), 0.2);
     border-color: rgba(129, 153, 199, 0.28);
     color: #dbe8ff;
@@ -860,7 +886,9 @@ html.app-skin-dark .page-biometric-machine .bio-console-pill {
 html.app-skin-dark .page-fingerprint-mapping .bio-console-hero-side,
 html.app-skin-dark .page-fingerprint-mapping .bio-console-note-surface,
 html.app-skin-dark .page-biometric-machine .bio-console-hero-side,
-html.app-skin-dark .page-biometric-machine .bio-console-note-surface {
+html.app-skin-dark .page-biometric-machine .bio-console-note-surface,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-hero-side,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-note-surface {
     background: rgba(30, 41, 59, 0.72);
     border-color: rgba(129, 153, 199, 0.2);
 }
@@ -868,7 +896,9 @@ html.app-skin-dark .page-biometric-machine .bio-console-note-surface {
 html.app-skin-dark .page-fingerprint-mapping .bio-console-hero-side h6,
 html.app-skin-dark .page-fingerprint-mapping .bio-console-note-surface h6,
 html.app-skin-dark .page-biometric-machine .bio-console-hero-side h6,
-html.app-skin-dark .page-biometric-machine .bio-console-note-surface h6 {
+html.app-skin-dark .page-biometric-machine .bio-console-note-surface h6,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-hero-side h6,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-note-surface h6 {
     color: var(--biotern-surface-muted);
 }
 
@@ -877,8 +907,33 @@ html.app-skin-dark .page-fingerprint-mapping .bio-console-note-surface p,
 html.app-skin-dark .page-fingerprint-mapping .bio-console-hero-side small,
 html.app-skin-dark .page-biometric-machine .bio-console-hero-side p,
 html.app-skin-dark .page-biometric-machine .bio-console-note-surface p,
-html.app-skin-dark .page-biometric-machine .bio-console-hero-side small {
+html.app-skin-dark .page-biometric-machine .bio-console-hero-side small,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-hero-side p,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-note-surface p,
+html.app-skin-dark .page-bridge-setup-manual .bio-console-hero-side small {
     color: #9fb0cc !important;
+}
+
+html.app-skin-dark .page-bridge-setup-manual .bg-light {
+    background: rgba(30, 41, 59, 0.72) !important;
+    color: #e5e7eb !important;
+    border-color: rgba(129, 153, 199, 0.2) !important;
+}
+
+html.app-skin-dark .page-bridge-setup-manual .bg-light div {
+    color: #e5e7eb !important;
+}
+
+.page-bridge-setup-manual .alert .btn-close {
+    width: 1.75rem;
+    height: 1.75rem;
+    background-size: 1.25rem 1.25rem;
+    opacity: 0.9;
+}
+
+.page-bridge-setup-manual .alert .btn-close:hover,
+.page-bridge-setup-manual .alert .btn-close:focus {
+    opacity: 1;
 }
 
 @media (max-width: 1199.98px) {

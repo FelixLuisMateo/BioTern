@@ -384,7 +384,7 @@ include __DIR__ . '/../includes/header.php';
         </div>
 
         <?php if (is_array($bridgeManualFlash)): ?>
-            <div class="alert alert-<?php echo bridge_manual_h((string)($bridgeManualFlash['type'] ?? 'info')); ?> alert-dismissible fade show" role="alert">
+            <div class="alert alert-<?php echo bridge_manual_h((string)($bridgeManualFlash['type'] ?? 'info')); ?> alert-dismissible fade show" role="alert" data-auto-dismiss="12000">
                 <?php echo nl2br(bridge_manual_h((string)($bridgeManualFlash['message'] ?? ''))); ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
@@ -473,7 +473,7 @@ include __DIR__ . '/../includes/header.php';
                 <div class="card stretch stretch-full">
                     <div class="card-header"><h6 class="card-title mb-0">Step 3: Install Bridge Auto-Start</h6></div>
                     <div class="card-body">
-                        <div class="alert alert-light border mb-3">
+                        <div class="alert alert-light border alert-dismissible mb-3" role="alert">
                             <div class="fw-semibold mb-1">Method A: Right click script (quick)</div>
                             <ol class="mb-0">
                                 <li>Open extracted <strong>BioTernBridgeKit</strong> folder.</li>
@@ -483,9 +483,10 @@ include __DIR__ . '/../includes/header.php';
                                 <li>If a security prompt appears, allow/Run anyway.</li>
                                 <li>If it closes too quickly or fails, use Method B below.</li>
                             </ol>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
 
-                        <div class="alert alert-light border mb-3">
+                        <div class="alert alert-light border alert-dismissible mb-3" role="alert">
                             <div class="fw-semibold mb-1">Method B: PowerShell command (recommended)</div>
                             <ol class="mb-0">
                                 <li>Inside extracted <strong>BioTernBridgeKit</strong> folder, hold <strong>Shift</strong> and right click empty space.</li>
@@ -494,6 +495,7 @@ include __DIR__ . '/../includes/header.php';
                                 <li>Run install command from this page.</li>
                                 <li>Run status command and verify task is Running.</li>
                             </ol>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
 
                         <label class="form-label">Run this first if scripts are blocked</label>
@@ -510,6 +512,16 @@ include __DIR__ . '/../includes/header.php';
                         </div>
                         <small class="text-muted d-block">This installs and starts BioTernBridgeWorker as a scheduled background task that auto-starts the PowerShell bridge worker at startup/logon, runs forever, and auto-recovers if it stops.</small>
                         <small class="text-muted">If right-click method does not pass parameters correctly on your PC, use this command method.</small>
+                        <div class="mt-3">
+                            <div class="fw-semibold mb-1">How to run these commands</div>
+                            <ol class="mb-0 text-muted">
+                                <li>Open the extracted <strong>BioTernBridgeKit</strong> folder.</li>
+                                <li>Shift + right click empty space, then choose <strong>Open PowerShell window here</strong>.</li>
+                                <li>Paste the execution-policy command first, then press <strong>Enter</strong>.</li>
+                                <li>Paste the install command next, then press <strong>Enter</strong>.</li>
+                                <li>Wait for success output, then run the Status command in Step 4.</li>
+                            </ol>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -604,6 +616,20 @@ include __DIR__ . '/../includes/header.php';
                 setTimeout(function () { btn.textContent = 'Copy'; }, 1400);
             }
         });
+    });
+
+    var alerts = document.querySelectorAll('.alert[data-auto-dismiss]');
+    alerts.forEach(function (alertEl) {
+        var delay = parseInt(alertEl.getAttribute('data-auto-dismiss'), 10);
+        if (!delay || delay <= 0) {
+            return;
+        }
+        setTimeout(function () {
+            if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
+                var instance = bootstrap.Alert.getOrCreateInstance(alertEl);
+                instance.close();
+            }
+        }, delay);
     });
 })();
 </script>
