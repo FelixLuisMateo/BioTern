@@ -201,7 +201,9 @@ if ($selectedStudentId > 0) {
     if (!$certificate) {
         $error = 'Certificate is not available yet. Make sure the student exists and you have access to that student.';
     }
-} else {
+}
+
+if ($eligibleStudents === []) {
     $result = $conn->query("
         SELECT
             s.id,
@@ -268,6 +270,138 @@ include __DIR__ . '/../includes/header.php';
         justify-content: center;
         overflow-x: auto;
         padding: .25rem 0;
+    }
+    .certificate-builder-grid {
+        display: grid;
+        grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+        gap: 20px;
+        align-items: start;
+    }
+    .certificate-builder-panel {
+        position: sticky;
+        top: 92px;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 14px;
+        background: var(--bs-card-bg);
+        padding: 18px;
+    }
+    .certificate-builder-panel h6 {
+        margin: 0;
+        font-size: 1rem;
+    }
+    .certificate-builder-panel p {
+        margin: 6px 0 0;
+        color: var(--bs-secondary-color);
+        font-size: .84rem;
+        line-height: 1.4;
+    }
+    .certificate-builder-field {
+        margin-top: 14px;
+    }
+    .certificate-student-info {
+        margin-top: 16px;
+        padding: 14px;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 12px;
+        background: var(--bs-tertiary-bg);
+    }
+    .certificate-student-info-title {
+        margin: 0 0 10px;
+        font-size: .78rem;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+    .certificate-student-info-row {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        gap: 10px;
+        padding: 7px 0;
+        border-top: 1px solid var(--bs-border-color);
+        font-size: .82rem;
+        line-height: 1.35;
+    }
+    .certificate-student-info-row:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+    }
+    .certificate-student-info-label {
+        color: var(--bs-secondary-color);
+        font-weight: 700;
+    }
+    .certificate-student-info-value {
+        color: var(--bs-body-color);
+        font-weight: 700;
+        overflow-wrap: anywhere;
+    }
+    .certificate-builder-field .form-label {
+        margin-bottom: 6px;
+        font-size: .76rem;
+        font-weight: 800;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+    .certificate-builder-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 18px;
+    }
+    .certificate-builder-actions .btn {
+        min-height: 42px;
+    }
+    .certificate-preview-card {
+        --certificate-preview-scale: 1;
+        --certificate-preview-height: auto;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 14px;
+        background: var(--bs-card-bg);
+        padding: 16px;
+        min-width: 0;
+        overflow: hidden;
+    }
+    .certificate-preview-card .certificate-print-area {
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+        height: var(--certificate-preview-height);
+        min-height: 360px;
+        padding: 0;
+    }
+    .certificate-preview-card .certificate-sheet {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        flex: 0 0 auto;
+        width: 1056px;
+        max-width: none;
+        margin: 0;
+        transform: translateX(-50%) scale(var(--certificate-preview-scale));
+        transform-origin: top center;
+    }
+    .certificate-fill-line {
+        display: inline;
+        min-width: 0;
+        border-bottom: 0;
+        padding: 0;
+        line-height: inherit;
+        vertical-align: baseline;
+    }
+    .certificate-name .certificate-fill-line {
+        min-width: 0;
+        border-bottom: 0;
+    }
+    .certificate-body .certificate-fill-line {
+        min-width: 0;
+        font-weight: 700;
+    }
+    .certificate-meta .certificate-fill-line {
+        min-width: 0;
+    }
+    .certificate-sign-line .certificate-fill-line {
+        min-width: 0;
+        border-bottom: 0;
+        padding: 0;
     }
     .certificate-sheet {
         position: relative;
@@ -399,6 +533,13 @@ include __DIR__ . '/../includes/header.php';
         font-size: 14px;
         line-height: 1.34;
     }
+    .certificate-given-line {
+        max-width: 700px;
+        margin: 5px auto 0;
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        color: #27384a;
+    }
     .certificate-presented {
         margin-top: 10px;
         font-family: Arial, sans-serif;
@@ -470,6 +611,12 @@ include __DIR__ . '/../includes/header.php';
         transform: rotate(-12deg);
     }
     @media (max-width: 768px) {
+        .certificate-builder-grid {
+            grid-template-columns: 1fr;
+        }
+        .certificate-builder-panel {
+            position: static;
+        }
         .certificate-sheet {
             padding: 32px 22px 42px;
         }
@@ -491,6 +638,12 @@ include __DIR__ . '/../includes/header.php';
         .certificate-meta,
         .certificate-signatures {
             grid-template-columns: 1fr;
+        }
+    }
+    @media (min-width: 992px) {
+        .certificate-builder-panel {
+            max-height: calc(100vh - 120px);
+            overflow: auto;
         }
     }
     @page {
@@ -540,6 +693,23 @@ include __DIR__ . '/../includes/header.php';
             contain: size layout paint;
             break-after: avoid;
             page-break-after: avoid;
+        }
+        .certificate-preview-card .certificate-print-area {
+            position: fixed !important;
+            height: auto !important;
+            min-height: 0 !important;
+        }
+        .certificate-preview-card .certificate-sheet {
+            top: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            left: 0 !important;
+            width: auto !important;
+            height: auto !important;
+            max-width: none !important;
+            margin: 0 !important;
+            transform: none !important;
+            transform-origin: initial !important;
         }
         .certificate-sheet {
             position: absolute !important;
@@ -607,6 +777,11 @@ include __DIR__ . '/../includes/header.php';
             font-size: 14px !important;
             line-height: 1.35 !important;
         }
+        .certificate-given-line {
+            max-width: 700px !important;
+            margin: 5px auto 0 !important;
+            font-size: 12px !important;
+        }
         .certificate-meta {
             display: grid !important;
             grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -641,6 +816,12 @@ include __DIR__ . '/../includes/header.php';
         .certificate-no-print {
             display: none !important;
         }
+        .certificate-preview-card {
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            padding: 0 !important;
+        }
         .nxl-container,
         .nxl-content,
         .main-content {
@@ -674,81 +855,150 @@ include __DIR__ . '/../includes/header.php';
         </div>
 
         <div class="main-content">
-            <?php if ($selectedStudentId <= 0): ?>
-                <div class="card certificate-picker-card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h5 class="mb-1">External Student Certificates</h5>
-                                <p class="text-muted mb-0">Choose a completed external OJT student, then print the CCST certificate.</p>
+            <?php
+            $studentName = '';
+            $sectionLabel = '';
+            $rating = '-';
+            $requiredHours = 250.0;
+            $renderedHours = 0.0;
+            $dateRange = '';
+            $coordinatorName = 'OJT Coordinator';
+            $supervisorName = 'Supervisor';
+            $dateIssued = certificate_display_date(date('Y-m-d'));
+            $positionLabel = '';
+            $schoolYearLabel = '';
+            $completionLabel = '';
+
+            if ($certificate) {
+                $studentName = trim((string)($certificate['first_name'] ?? '') . ' ' . (string)($certificate['middle_name'] ?? '') . ' ' . (string)($certificate['last_name'] ?? ''));
+                $sectionLabel = biotern_format_section_label((string)($certificate['section_code'] ?? ''), (string)($certificate['section_name'] ?? ''));
+                $score = (int)($certificate['score'] ?? 0);
+                $rating = $score > 0 ? ($score > 5 ? ($score . '%') : ($score . '/5')) : '-';
+                $requiredHours = (float)($certificate['required_hours'] ?? 250);
+                if ($requiredHours <= 0) {
+                    $requiredHours = 250;
+                }
+                $renderedHours = (float)($certificate['rendered_hours'] ?? $certificate['approved_hours'] ?? 0);
+                $dateFrom = certificate_display_date($certificate['first_attendance_date'] ?? $certificate['start_date'] ?? '');
+                $dateTo = certificate_display_date($certificate['last_attendance_date'] ?? $certificate['end_date'] ?? $certificate['evaluation_date'] ?? '');
+                $dateRange = $dateFrom !== '' && $dateTo !== '' ? ($dateFrom . ' to ' . $dateTo) : ($dateFrom . $dateTo);
+                $coordinatorName = certificate_person_name($certificate, 'coordinator');
+                if ($coordinatorName === '') {
+                    $coordinatorName = trim((string)($certificate['fallback_coordinator_name'] ?? '')) ?: 'OJT Coordinator';
+                }
+                $supervisorName = certificate_person_name($certificate, 'supervisor');
+                if ($supervisorName === '') {
+                    $supervisorName = trim((string)($certificate['fallback_supervisor_name'] ?? '')) ?: 'Supervisor';
+                }
+                $dateIssued = certificate_display_date($certificate['evaluation_date'] ?? date('Y-m-d'));
+                $positionLabel = trim((string)($certificate['position'] ?? ''));
+                $schoolYearLabel = trim((string)($certificate['school_year'] ?? ''));
+                $completionValue = (float)($certificate['completion_percentage'] ?? 0);
+                $completionLabel = $completionValue > 0 ? number_format($completionValue, 2) . '%' : '';
+            }
+            $studentInfoRows = [
+                'Name' => $studentName,
+                'Student ID' => (string)($certificate['student_id'] ?? ''),
+                'Course' => (string)($certificate['course_name'] ?? ''),
+                'Section' => $sectionLabel,
+                'School Year' => $schoolYearLabel,
+                'Host Company' => (string)($certificate['company_name'] ?? ''),
+                'Position' => $positionLabel,
+                'Training Dates' => $dateRange,
+                'Hours' => number_format($renderedHours, 2) . ' / ' . number_format($requiredHours, 0),
+                'Completion' => $completionLabel,
+                'Evaluation' => $rating,
+                'Date Given' => $dateIssued,
+            ];
+            ?>
+            <?php if ($error !== ''): ?>
+                <div class="alert alert-danger certificate-no-print"><?php echo certificate_h($error); ?></div>
+            <?php endif; ?>
+
+            <div class="certificate-builder-grid">
+                <aside class="certificate-builder-panel certificate-no-print">
+                    <h6>Certificate Builder</h6>
+                    <p>Select an eligible external OJT student, then adjust any fill-in fields before printing.</p>
+
+                    <div class="certificate-builder-field">
+                        <label class="form-label" for="certificate_student_select">Completed Student</label>
+                        <select id="certificate_student_select" class="form-select">
+                            <option value="">Choose completed student</option>
+                            <?php foreach ($eligibleStudents as $row): ?>
+                                <option value="<?php echo (int)($row['id'] ?? 0); ?>" <?php echo (int)($row['id'] ?? 0) === $selectedStudentId ? 'selected' : ''; ?>>
+                                    <?php echo certificate_h(($row['student_name'] ?? 'Student') . ' - ' . ($row['student_id'] ?? '')); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <div class="certificate-student-info">
+                        <p class="certificate-student-info-title">Autofilled Student Info</p>
+                        <?php foreach ($studentInfoRows as $label => $value): ?>
+                            <?php $displayValue = trim((string)$value); ?>
+                            <div class="certificate-student-info-row">
+                                <span class="certificate-student-info-label"><?php echo certificate_h($label); ?></span>
+                                <span class="certificate-student-info-value"><?php echo certificate_h($displayValue !== '' ? $displayValue : '-'); ?></span>
                             </div>
-                            <span class="badge bg-soft-primary text-primary"><?php echo count($eligibleStudents); ?> available</span>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Student</th>
-                                        <th>Student ID</th>
-                                        <th>Course</th>
-                                        <th>Hours</th>
-                                    <th>Certificate Date</th>
-                                        <th class="text-end">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if ($eligibleStudents === []): ?>
-                                        <tr><td colspan="6" class="text-center text-muted py-4">No evaluated external students available yet.</td></tr>
-                                    <?php else: ?>
-                                        <?php foreach ($eligibleStudents as $row): ?>
-                                            <tr>
-                                                <td class="fw-semibold"><?php echo certificate_h($row['student_name'] ?? ''); ?></td>
-                                                <td><?php echo certificate_h($row['student_id'] ?? ''); ?></td>
-                                                <td><?php echo certificate_h($row['course_name'] ?? '-'); ?></td>
-                                                <td><?php echo number_format((float)($row['rendered_hours'] ?? 0), 2); ?> / <?php echo number_format((float)($row['required_hours'] ?? 250), 0); ?></td>
-                                                <td><?php echo certificate_h($row['evaluation_date'] ?? ''); ?></td>
-                                                <td class="text-end">
-                                                    <a class="btn btn-sm btn-primary" href="document_certificate.php?id=<?php echo (int)($row['id'] ?? 0); ?>">Open Certificate</a>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                        <?php endforeach; ?>
                     </div>
-                </div>
-            <?php else: ?>
-                <?php if ($error !== ''): ?>
-                    <div class="alert alert-danger certificate-no-print"><?php echo certificate_h($error); ?></div>
-                    <a class="btn btn-light certificate-no-print" href="document_certificate.php">Back to certificates</a>
-                <?php elseif ($certificate): ?>
-                    <?php
-                    $studentName = trim((string)($certificate['first_name'] ?? '') . ' ' . (string)($certificate['middle_name'] ?? '') . ' ' . (string)($certificate['last_name'] ?? ''));
-                    $sectionLabel = biotern_format_section_label((string)($certificate['section_code'] ?? ''), (string)($certificate['section_name'] ?? ''));
-                    $score = (int)($certificate['score'] ?? 0);
-                    $rating = $score > 5 ? ($score . '%') : ($score . '/5');
-                    $requiredHours = (float)($certificate['required_hours'] ?? 250);
-                    if ($requiredHours <= 0) {
-                        $requiredHours = 250;
-                    }
-                    $renderedHours = (float)($certificate['rendered_hours'] ?? $certificate['approved_hours'] ?? 0);
-                    $dateFrom = certificate_display_date($certificate['first_attendance_date'] ?? $certificate['start_date'] ?? '');
-                    $dateTo = certificate_display_date($certificate['last_attendance_date'] ?? $certificate['end_date'] ?? $certificate['evaluation_date'] ?? '');
-                    $dateRange = $dateFrom !== '' && $dateTo !== '' ? ($dateFrom . ' to ' . $dateTo) : ($dateFrom . $dateTo);
-                    $coordinatorName = certificate_person_name($certificate, 'coordinator');
-                    if ($coordinatorName === '') {
-                        $coordinatorName = trim((string)($certificate['fallback_coordinator_name'] ?? ''));
-                    }
-                    $supervisorName = certificate_person_name($certificate, 'supervisor');
-                    if ($supervisorName === '') {
-                        $supervisorName = trim((string)($certificate['fallback_supervisor_name'] ?? ''));
-                    }
-                    ?>
-                    <div class="d-flex justify-content-end gap-2 mb-3 certificate-no-print">
-                        <a class="btn btn-light" href="document_certificate.php">Back</a>
-                        <button type="button" class="btn btn-primary" onclick="window.print()">Print Certificate</button>
+
+                    <div class="certificate-builder-field">
+                        <label class="form-label" for="certificate_student_name_input">Student Name</label>
+                        <input id="certificate_student_name_input" class="form-control" data-certificate-target="certificate_student_name" value="<?php echo certificate_h($studentName); ?>" placeholder="Student full name">
                     </div>
+                    <div class="certificate-builder-field">
+                        <label class="form-label" for="certificate_required_hours_input">Required Hours</label>
+                        <input id="certificate_required_hours_input" class="form-control" data-certificate-target="certificate_required_hours" value="<?php echo certificate_h(number_format($requiredHours, 0)); ?>" placeholder="250">
+                    </div>
+                    <div class="certificate-builder-field">
+                        <label class="form-label" for="certificate_date_range_input">Training Date Range</label>
+                        <input id="certificate_date_range_input" class="form-control" data-certificate-target="certificate_date_range" value="<?php echo certificate_h($dateRange); ?>" placeholder="May 1, 2026 to May 30, 2026">
+                    </div>
+                    <div class="certificate-builder-field">
+                        <label class="form-label" for="certificate_course_input">Course</label>
+                        <input id="certificate_course_input" class="form-control" data-certificate-target="certificate_course" value="<?php echo certificate_h((string)($certificate['course_name'] ?? '')); ?>" placeholder="Course name">
+                    </div>
+                    <div class="certificate-builder-field">
+                        <label class="form-label" for="certificate_student_id_input">Student ID</label>
+                        <input id="certificate_student_id_input" class="form-control" data-certificate-target="certificate_student_id" value="<?php echo certificate_h($certificate['student_id'] ?? ''); ?>" placeholder="Student ID">
+                    </div>
+                    <div class="certificate-builder-field">
+                        <label class="form-label" for="certificate_section_input">Section</label>
+                        <input id="certificate_section_input" class="form-control" data-certificate-target="certificate_section" value="<?php echo certificate_h($sectionLabel); ?>" placeholder="Section">
+                    </div>
+                    <div class="certificate-builder-field">
+                        <label class="form-label" for="certificate_company_input">Host Company</label>
+                        <input id="certificate_company_input" class="form-control" data-certificate-target="certificate_company" value="<?php echo certificate_h($certificate['company_name'] ?? ''); ?>" placeholder="Host company">
+                    </div>
+                    <div class="certificate-builder-field">
+                        <label class="form-label" for="certificate_rendered_hours_input">Rendered Hours</label>
+                        <input id="certificate_rendered_hours_input" class="form-control" data-certificate-target="certificate_rendered_hours" value="<?php echo certificate_h(number_format($renderedHours, 2)); ?>" placeholder="0.00">
+                    </div>
+                    <div class="certificate-builder-field">
+                        <label class="form-label" for="certificate_rating_input">Evaluation Rating</label>
+                        <input id="certificate_rating_input" class="form-control" data-certificate-target="certificate_rating" value="<?php echo certificate_h($rating); ?>" placeholder="-">
+                    </div>
+                    <div class="certificate-builder-field">
+                        <label class="form-label" for="certificate_date_issued_input">Date Issued</label>
+                        <input id="certificate_date_issued_input" class="form-control" data-certificate-targets="certificate_date_issued certificate_given_date" value="<?php echo certificate_h($dateIssued); ?>" placeholder="Date issued">
+                    </div>
+                    <div class="certificate-builder-field">
+                        <label class="form-label" for="certificate_coordinator_input">Coordinator</label>
+                        <input id="certificate_coordinator_input" class="form-control" data-certificate-target="certificate_coordinator" value="<?php echo certificate_h($coordinatorName); ?>" placeholder="OJT Coordinator">
+                    </div>
+                    <div class="certificate-builder-field">
+                        <label class="form-label" for="certificate_supervisor_input">Supervisor</label>
+                        <input id="certificate_supervisor_input" class="form-control" data-certificate-target="certificate_supervisor" value="<?php echo certificate_h($supervisorName); ?>" placeholder="Supervisor">
+                    </div>
+
+                    <div class="certificate-builder-actions">
+                        <a class="btn btn-light" href="document_certificate.php">Reset</a>
+                        <button type="button" class="btn btn-primary" id="certificate_print_btn">Print</button>
+                    </div>
+                </aside>
+
+                <div class="certificate-preview-card">
                     <section class="certificate-print-area">
                         <div class="certificate-sheet">
                             <div class="certificate-content">
@@ -757,32 +1007,35 @@ include __DIR__ . '/../includes/header.php';
                                 <div class="certificate-school-subtitle">SNS Bldg. Aurea St., Samsonville Subd., Dau, Mabalacat, Pampanga</div>
                                 <div class="certificate-title">Certificate <span>of Completion</span></div>
                                 <div class="certificate-presented">This certificate is presented to</div>
-                                <div class="certificate-name"><?php echo certificate_h($studentName); ?></div>
+                                <div class="certificate-name"><span id="certificate_student_name" class="certificate-live-field certificate-fill-line" data-certificate-placeholder="Student Name"><?php echo certificate_h($studentName !== '' ? $studentName : 'Student Name'); ?></span></div>
                                 <div class="certificate-body">
-                                    Congratulations on completing <strong><?php echo number_format($requiredHours, 0); ?> hours</strong>
-                                    of external internship training<?php echo $dateRange !== '' ? ' from <strong>' . certificate_h($dateRange) . '</strong>' : ''; ?>.
+                                    Congratulations on completing <strong><span id="certificate_required_hours" class="certificate-live-field" data-certificate-placeholder="250"><?php echo certificate_h(number_format($requiredHours, 0)); ?></span> hours</strong>
+                                    of external internship training from <strong><span id="certificate_date_range" class="certificate-live-field certificate-fill-line" data-certificate-placeholder="Training Date Range"><?php echo certificate_h($dateRange !== '' ? $dateRange : 'Training Date Range'); ?></span></strong>.
                                     This achievement is recognized by CCST as part of the required OJT completion for
-                                    <strong><?php echo certificate_h((string)($certificate['course_name'] ?? '')); ?></strong>.
+                                    <strong><span id="certificate_course" class="certificate-live-field certificate-fill-line" data-certificate-placeholder="Course Name"><?php echo certificate_h((string)($certificate['course_name'] ?? 'Course Name')); ?></span></strong>.
+                                </div>
+                                <div class="certificate-given-line">
+                                    Given this day of <strong><span id="certificate_given_date" class="certificate-live-field" data-certificate-placeholder="<?php echo certificate_h($dateIssued); ?>"><?php echo certificate_h($dateIssued); ?></span></strong>.
                                 </div>
                                 <div class="certificate-meta">
-                                    <div><strong>Student ID:</strong> <?php echo certificate_h($certificate['student_id'] ?? ''); ?></div>
-                                    <div><strong>Section:</strong> <?php echo certificate_h($sectionLabel !== '' ? $sectionLabel : '-'); ?></div>
-                                    <div><strong>Host Company:</strong> <?php echo certificate_h($certificate['company_name'] ?? '-'); ?></div>
-                                    <div><strong>Rendered Hours:</strong> <?php echo number_format($renderedHours, 2); ?></div>
-                                    <div><strong>Evaluation Rating:</strong> <?php echo certificate_h((int)($certificate['score'] ?? 0) > 0 ? $rating : '-'); ?></div>
-                                    <div><strong>Date Issued:</strong> <?php echo certificate_h(certificate_display_date($certificate['evaluation_date'] ?? date('Y-m-d'))); ?></div>
+                                    <div><strong>Student ID:</strong> <span id="certificate_student_id" class="certificate-live-field certificate-fill-line" data-certificate-placeholder="Student ID"><?php echo certificate_h(($certificate['student_id'] ?? '') !== '' ? $certificate['student_id'] : 'Student ID'); ?></span></div>
+                                    <div><strong>Section:</strong> <span id="certificate_section" class="certificate-live-field certificate-fill-line" data-certificate-placeholder="-"><?php echo certificate_h($sectionLabel !== '' ? $sectionLabel : '-'); ?></span></div>
+                                    <div><strong>Host Company:</strong> <span id="certificate_company" class="certificate-live-field certificate-fill-line" data-certificate-placeholder="-"><?php echo certificate_h(($certificate['company_name'] ?? '') !== '' ? $certificate['company_name'] : '-'); ?></span></div>
+                                    <div><strong>Rendered Hours:</strong> <span id="certificate_rendered_hours" class="certificate-live-field certificate-fill-line" data-certificate-placeholder="0.00"><?php echo certificate_h(number_format($renderedHours, 2)); ?></span></div>
+                                    <div><strong>Evaluation Rating:</strong> <span id="certificate_rating" class="certificate-live-field certificate-fill-line" data-certificate-placeholder="-"><?php echo certificate_h($rating); ?></span></div>
+                                    <div><strong>Date Issued:</strong> <span id="certificate_date_issued" class="certificate-live-field certificate-fill-line" data-certificate-placeholder="<?php echo certificate_h($dateIssued); ?>"><?php echo certificate_h($dateIssued); ?></span></div>
                                 </div>
                                 <span class="certificate-seal" aria-hidden="true"></span>
                                 <div class="certificate-signatures">
                                     <div>
                                         <div class="certificate-sign-line">
-                                            <?php echo certificate_h($coordinatorName !== '' ? $coordinatorName : 'OJT Coordinator'); ?>
+                                            <span id="certificate_coordinator" class="certificate-live-field certificate-fill-line" data-certificate-placeholder="OJT Coordinator"><?php echo certificate_h($coordinatorName); ?></span>
                                             <span class="certificate-sign-role">OJT Coordinator</span>
                                         </div>
                                     </div>
                                     <div>
                                         <div class="certificate-sign-line">
-                                            <?php echo certificate_h($supervisorName !== '' ? $supervisorName : 'Supervisor'); ?>
+                                            <span id="certificate_supervisor" class="certificate-live-field certificate-fill-line" data-certificate-placeholder="Supervisor"><?php echo certificate_h($supervisorName); ?></span>
                                             <span class="certificate-sign-role">Supervisor</span>
                                         </div>
                                     </div>
@@ -790,9 +1043,74 @@ include __DIR__ . '/../includes/header.php';
                             </div>
                         </div>
                     </section>
-                <?php endif; ?>
-            <?php endif; ?>
+                </div>
+            </div>
         </div>
     </div>
 </main>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var studentSelect = document.getElementById('certificate_student_select');
+    var printButton = document.getElementById('certificate_print_btn');
+    var previewCard = document.querySelector('.certificate-preview-card');
+    var previewSheet = previewCard ? previewCard.querySelector('.certificate-sheet') : null;
+
+    function resizeCertificatePreview() {
+        if (!previewCard || !previewSheet) {
+            return;
+        }
+
+        var availableWidth = Math.max(280, previewCard.clientWidth - 32);
+        var sheetWidth = 1056;
+        var sheetHeight = sheetWidth / (297 / 210);
+        var scale = Math.min(1, availableWidth / sheetWidth);
+
+        previewCard.style.setProperty('--certificate-preview-scale', scale.toFixed(4));
+        previewCard.style.setProperty('--certificate-preview-height', Math.ceil(sheetHeight * scale) + 'px');
+    }
+
+    function normalizeValue(value, target) {
+        var text = String(value || '').trim();
+        return text !== '' ? text : (target.getAttribute('data-certificate-placeholder') || '-');
+    }
+
+    function syncCertificateField(input) {
+        var targetIds = input.getAttribute('data-certificate-targets') || input.getAttribute('data-certificate-target') || '';
+        targetIds.split(/\s+/).forEach(function (targetId) {
+            var target = targetId ? document.getElementById(targetId) : null;
+            if (!target) {
+                return;
+            }
+            target.textContent = normalizeValue(input.value, target);
+        });
+    }
+
+    document.querySelectorAll('[data-certificate-target], [data-certificate-targets]').forEach(function (input) {
+        syncCertificateField(input);
+        input.addEventListener('input', function () {
+            syncCertificateField(input);
+            resizeCertificatePreview();
+        });
+    });
+
+    if (studentSelect) {
+        studentSelect.addEventListener('change', function () {
+            var id = String(studentSelect.value || '').trim();
+            if (id !== '') {
+                window.location.href = 'document_certificate.php?id=' + encodeURIComponent(id);
+            }
+        });
+    }
+
+    if (printButton) {
+        printButton.addEventListener('click', function () {
+            document.querySelectorAll('[data-certificate-target], [data-certificate-targets]').forEach(syncCertificateField);
+            window.print();
+        });
+    }
+
+    resizeCertificatePreview();
+    window.addEventListener('resize', resizeCertificatePreview);
+});
+</script>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
