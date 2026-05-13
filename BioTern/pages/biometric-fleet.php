@@ -207,7 +207,10 @@ include __DIR__ . '/../includes/header.php';
                 <div class="page-header-title"><h5 class="m-b-10">Biometric Machine Fleet</h5></div>
                 <ul class="breadcrumb"><li class="breadcrumb-item"><a href="homepage.php">Home</a></li><li class="breadcrumb-item">Machine Fleet</li></ul>
             </div>
-            <div class="page-header-right ms-auto"><a href="biometric-machine.php" class="btn btn-outline-secondary">F20H Manager</a></div>
+            <div class="page-header-right ms-auto d-flex gap-2">
+                <a href="biometric-machine.php" class="btn btn-outline-secondary">F20H Manager</a>
+                <a href="biometric-machine-bridge2.php" class="btn btn-outline-secondary">Bridge 2 Manager</a>
+            </div>
         </div>
         <div class="main-content">
             <?php if ($fleetTokenNotice !== ''): ?>

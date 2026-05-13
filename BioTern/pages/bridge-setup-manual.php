@@ -132,12 +132,16 @@ function bridge_manual_send_kit_zip(string $workspaceRoot): void
         . "   - tools\\install-bridge-worker-task.ps1\r\n"
         . "   - tools\\manage-bridge-worker-task.ps1\r\n"
         . "   - tools\\bridge-worker.ps1\r\n"
+        . "   - tools\\bridge-worker-autostart.ps1\r\n"
         . "   - tools\\device_connector\\bin\\Release\\net9.0-windows\\BioTernMachineConnector.exe\r\n"
         . "3) In website Machine Manager, save Bridge Profile first (token, URL, F20H IP, gateway).\r\n"
-        . "4) In the extracted folder, open PowerShell and run install command from Bridge Setup Manual page.\r\n"
+        . "4) In the extracted folder, open PowerShell and run the install command from Bridge Setup Manual page.\r\n"
         . "5) Check status: powershell -NoProfile -ExecutionPolicy Bypass -File .\\tools\\manage-bridge-worker-task.ps1 -Action status -TaskName BioTernBridgeWorker\r\n"
-        . "6) If status is Running, open website and click Read All Users / Process Ingest Queue.\r\n"
-        . "7) Keep bridge account signed in for user-logon mode task execution.\r\n\r\n"
+        . "6) Confirm State = Running.\r\n"
+        . "7) Confirm BridgeHealth = ONLINE or LIKELY ONLINE and BridgeLogAgeSeconds is small (recent).\r\n"
+        . "8) Optional: reboot or sign out/in, then run the status command again to confirm auto-start.\r\n"
+        . "9) If status is Running, open website and click Read All Users / Process Ingest Queue.\r\n"
+        . "10) Keep bridge account signed in for user-logon mode task execution.\r\n\r\n"
         . "TROUBLESHOOTING\r\n"
         . "---------------\r\n"
         . "- If scripts are blocked: run PowerShell as current user and set process policy only:\r\n"
@@ -233,6 +237,9 @@ if ($download !== '') {
             break;
         case 'worker-script':
             bridge_manual_send_file($workspaceRoot . '/tools/bridge-worker.ps1', 'bridge-worker.ps1');
+            break;
+        case 'autostart-script':
+            bridge_manual_send_file($workspaceRoot . '/tools/bridge-worker-autostart.ps1', 'bridge-worker-autostart.ps1');
             break;
         default:
             http_response_code(400);
@@ -389,7 +396,7 @@ include __DIR__ . '/../includes/header.php';
                     <div>
                         <span class="bio-console-eyebrow">Deployment Guide</span>
                         <h3>Set up a new bridge PC in minutes</h3>
-                        <p>Use this page as your installation manual when switching to a new laptop/computer or router. Download the kit, run one install command, and verify status.</p>
+                        <p>Use this page as your installation manual when switching to a new laptop/computer or router. Download the kit, run one install command, and verify the scheduled auto-start task is running.</p>
                         <div class="bio-console-pill-list">
                             <span class="bio-console-pill">Cloud URL: <?php echo bridge_manual_h($baseUrl); ?></span>
                             <span class="bio-console-pill">Bridge Token: <?php echo bridge_manual_h($bridgeToken); ?></span>
@@ -435,6 +442,7 @@ include __DIR__ . '/../includes/header.php';
                             <a href="bridge-setup-manual.php?download=install-script" class="btn btn-outline-secondary">Install Script</a>
                             <a href="bridge-setup-manual.php?download=manage-script" class="btn btn-outline-secondary">Manage Script</a>
                             <a href="bridge-setup-manual.php?download=worker-script" class="btn btn-outline-secondary">Worker Script</a>
+                            <a href="bridge-setup-manual.php?download=autostart-script" class="btn btn-outline-secondary">Auto-Start Script</a>
                         </div>
                     </div>
                 </div>
@@ -453,6 +461,7 @@ include __DIR__ . '/../includes/header.php';
                             <div>tools\install-bridge-worker-task.ps1</div>
                             <div>tools\manage-bridge-worker-task.ps1</div>
                             <div>tools\bridge-worker.ps1</div>
+                            <div>tools\bridge-worker-autostart.ps1</div>
                             <div>tools\device_connector\bin\Release\net9.0-windows\BioTernMachineConnector.exe</div>
                         </div>
                         <p class="text-muted mb-0"><?php echo bridge_manual_h($openFolderHint); ?></p>
@@ -499,7 +508,7 @@ include __DIR__ . '/../includes/header.php';
                             <input type="text" class="form-control" id="bridgeManualInstallCmd" value="<?php echo bridge_manual_h($installCommand); ?>" readonly>
                             <button type="button" class="btn btn-outline-secondary" data-copy-target="bridgeManualInstallCmd">Copy</button>
                         </div>
-                        <small class="text-muted d-block">This installs and starts BioTernBridgeWorker as a scheduled background task.</small>
+                        <small class="text-muted d-block">This installs and starts BioTernBridgeWorker as a scheduled background task that auto-starts the PowerShell bridge worker at startup/logon, runs forever, and auto-recovers if it stops.</small>
                         <small class="text-muted">If right-click method does not pass parameters correctly on your PC, use this command method.</small>
                     </div>
                 </div>
@@ -543,11 +552,13 @@ include __DIR__ . '/../includes/header.php';
                             <li>Open website and save Bridge Profile first (URL/token/F20H network).</li>
                             <li>Extract Bridge Kit on new Windows PC.</li>
                             <li>Open extracted folder, confirm required files are present.</li>
-                            <li>Try Method A: right click install-bridge-worker-task.ps1, Run with PowerShell.</li>
-                            <li>If Method A fails/unknown result, use Method B command flow.</li>
+                            <li>Open PowerShell in the extracted folder (Shift + right click &gt; Open PowerShell window here).</li>
                             <li>If PowerShell blocks scripts, run temporary execution policy command.</li>
-                            <li>Run install command from this page once.</li>
+                            <li>Run install command from this page once (installs the scheduled task).</li>
                             <li>Run status command and confirm task is Running.</li>
+                            <li>Confirm BridgeHealth shows ONLINE or LIKELY ONLINE in the status output.</li>
+                            <li>Confirm BridgeLogAgeSeconds is small (recent log activity).</li>
+                            <li>Optional verification: reboot or sign out/in, then run status again to confirm it auto-starts.</li>
                             <li>Go to F20H Machine Manager and click Read All Users / Process Ingest Queue.</li>
                             <li>If changing to a new domain (e.g. ClarkCollege.edu.ph), re-run install using new SiteBaseUrl.</li>
                         </ol>
