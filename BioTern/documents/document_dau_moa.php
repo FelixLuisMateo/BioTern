@@ -52,7 +52,7 @@ if (isset($_GET['action'])) {
         $out = [];
         if ($res) {
             while ($r = $res->fetch_assoc()) {
-                $text = trim($r['first_name'] . ' ' . ($r['middle_name'] ? $r['middle_name'] . ' ' : '') . $r['last_name']) . ' — ' . $r['student_id'];
+                $text = trim($r['first_name'] . ' ' . ($r['middle_name'] ? $r['middle_name'] . ' ' : '') . $r['last_name']) . ' - ' . $r['student_id'];
                 $out[] = ['id' => $r['id'], 'text' => $text];
             }
         }
@@ -77,6 +77,10 @@ if (isset($_GET['action'])) {
                 'text' => implode(' - ', array_filter($labelParts, static function ($value): bool {
                     return trim((string)$value) !== '';
                 })),
+                'name' => trim((string)($company['company_name'] ?? '')),
+                'address' => trim((string)($company['company_address'] ?? '')),
+                'contact_name' => trim((string)($company['contact_name'] ?? $company['company_representative'] ?? $company['supervisor_name'] ?? '')),
+                'contact_position' => trim((string)($company['contact_position'] ?? $company['company_representative_position'] ?? $company['supervisor_position'] ?? '')),
             ];
         }
         echo json_encode(['results' => $results]);
@@ -373,9 +377,9 @@ include __DIR__ . '/../includes/header.php';
                             <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.24in 0.45in 0.4in 0.45in; background:#fff;">
                             <h5 class="text-center-inline">Memorandum of Agreement</h5>
                             <p>Date: <span id="moa_date" class="moa-fill-line">&nbsp;</span></p>
-                            <p>This Memorandum of Agreement made and executed between: <strong>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</strong>a Higher Education Institution, duly organized and existing under Philippine Laws with office/business address at <strong>AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA</strong> represented herein by <strong>MR. JOMAR G. SANGIL (IT, DEPARTMENT HEAD)</strong>, here in after referred to as the Higher Education Institution.<strong></p>
-                            And<br>
-                            <strong><span id="pv_partner_company_name" class="moa-fill-line">&nbsp;</span></strong> a LOCAL GOVERNMENT UNIT duly organized and existing under Philippine Laws with office/ business address at <strong><span id="pv_partner_address" class="moa-fill-line">&nbsp;</span></strong>represented herein by <strong><span id="pv_partner_name" class="moa-fill-line">&nbsp;</span></strong> herein after referred to as the PARTNER LOCAL GOVERNMENT UNIT.</p>
+                            <p>This Memorandum of Agreement made and executed between: <strong>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</strong>, a Higher Education Institution, duly organized and existing under Philippine Laws with office/business address at <strong>AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA</strong> represented herein by <strong>MR. JOMAR G. SANGIL (IT, DEPARTMENT HEAD)</strong>, hereinafter referred to as the Higher Education Institution.</p>
+                            <p>And</p>
+                            <p><strong><span id="pv_partner_company_name" class="moa-fill-line">&nbsp;</span></strong>, a Local Government Unit duly organized and existing under Philippine Laws with office/business address at <strong><span id="pv_partner_address" class="moa-fill-line">&nbsp;</span></strong>, represented herein by <strong><span id="pv_partner_name" class="moa-fill-line">&nbsp;</span></strong>, hereinafter referred to as the Partner Local Government Unit.</p>
                             <p>Barangay Receipt / Ref.: <span id="pv_company_receipt" class="moa-fill-line">&nbsp;</span></p>
                             Witnesseth: <br><br>
                             <p>The parties hereby bind themselves to undertake a Memorandum of Agreement for the purpose of supporting the Internship for Learners under the following terms and condition</p>
@@ -383,16 +387,16 @@ include __DIR__ . '/../includes/header.php';
                             <ol>
                                 <li>The <b>Clark College of Science and Technology</b> shall be responsible for briefing the Learners as part of the CCST orientation and induction program;</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall provide the learner undergoing the OJT/Internship with the basic orientation on work values, behavior, and discipline to ensure smooth cooperation with the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong>.</li>
-                                <li>The <b>Clark College of Science and Technology</b> shall issue and official endorsement vouching for the well-being of the Learner which shall be used by the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong>. for the processing the learner’s application for OJT/Internship;</li>
+                                <li>The <b>Clark College of Science and Technology</b> shall issue an official endorsement vouching for the well-being of the learner, which shall be used by the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> for processing the learner's application for OJT/Internship;</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall voluntarily withdraw a Learner who of the PARTNER LOCAL GOVERNMENT UNIT can impose necessary HEI sanctions to the said learner;</li>
-                                <li>The <b>Clark College of Science and Technology</b> through its Industry Coordinator shall make onsite sit/follow ups to the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> during the training period and evaluate the Learner’s progress based on the training plan and discuss training problems;</li>
+                                <li>The <b>Clark College of Science and Technology</b> through its Industry Coordinator shall make onsite visits/follow-ups to the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> during the training period and evaluate the learner's progress based on the training plan and discuss training problems;</li>
                                 <li>The <b>Clark College of Science and Technology</b> has the discretion to pull out the Learner if there is an apparent risk and/or exploitation on the rights of the Learner;</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall ensure that the Learner shall ensure that the Learner has an on-and off the campus insurance coverage within the duration of the training as part of their training fee.</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall ensure Learner shall be personally responsible for any and all liabilities arising from negligence in the performance of his/her duties and functions while under OJT/Internship;</li>
                                 <li>There is no employer-employee relationship between the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> and the Learner;</li>
                                 <li>The duration of the program shall be equivalent to <span id="pv_total_hours">250</span> working hours unless otherwise agreed upon by the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> and the Clark College of Science and Technology;</li>
                                 <li>Any violation of the foregoing covenants will warrant the cancellation of the Memorandum of Agreement by the <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> within thirty (30) days upon notice to the Clark College of Science and Technology.</li>
-                                <li>The <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> may grant allowance to Learner in accordance with the PARTNER ENTERPISE’S existing rules and regulations;</li>
+                                <li>The <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> may grant allowance to the learner in accordance with the partner enterprise's existing rules and regulations;</li>
                                 <li>The <strong>PARTNER LOCAL GOVERNMENT UNIT</strong> is not allowed to employ Learner within the OJT/Internship period in order for the Learner to graduate from the program he/she is enrolled in.</li>
                             </ol>
 
@@ -464,14 +468,3 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 <?php endif; ?>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
-
-
-
-
-
-
-
-
-
-
-

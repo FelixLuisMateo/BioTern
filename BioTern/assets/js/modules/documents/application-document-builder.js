@@ -6,7 +6,7 @@
         return;
     }
 
-    var STORAGE_TEMPLATE = 'biotern_application_template_html_v6';
+    var STORAGE_TEMPLATE = 'biotern_application_template_html_v7';
     var STORAGE_FORM = 'biotern_application_builder_form_v6';
     var STORAGE_STUDENT = 'biotern_application_builder_student_v6';
     var endpoint = 'documents/document_application.php';
@@ -42,6 +42,7 @@
             'biotern_application_template_html_v3',
             'biotern_application_template_html_v4',
             'biotern_application_template_html_v5',
+            'biotern_application_template_html_v6',
             'biotern_application_builder_form_v1',
             'biotern_application_builder_form_v2',
             'biotern_application_builder_form_v3',
@@ -179,7 +180,7 @@
         }
         var nextValue = value || fallback || '';
         if (!value && node.classList && node.classList.contains('app-fill-line')) {
-            nextValue = '\u00A0';
+            nextValue = '__________________________';
         }
         node.textContent = nextValue;
     }

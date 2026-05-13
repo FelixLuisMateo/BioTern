@@ -391,26 +391,26 @@ include __DIR__ . '/../includes/header.php';
                             <div class="a4-page" data-a4-width-mm="210" data-a4-height-mm="297" style="width:210mm; min-height:297mm; box-sizing:border-box; padding:0.24in 0.45in 0.4in 0.45in; background:#fff;">
                             <h5 class="text-center-inline">Memorandum of Agreement</h5>
                             <p>Date: <span id="moa_date" class="moa-fill-line">&nbsp;</span></p>
-                            <p>This Memorandum of Agreement made and executed between: <strong>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</strong>, a Higher Education Institution, duly organized and existing under Philippine Laws with office/business address at <strong>AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA</strong> represented herein by <strong>MR. JOMAR G. SANGIL (IT, DEPARTMENT HEAD)</strong>, here in after referred to as the Higher Education Institution.</p>
+                            <p>This Memorandum of Agreement made and executed between: <strong>CLARK COLLEGE OF SCIENCE AND TECHNOLOGY</strong>, a Higher Education Institution, duly organized and existing under Philippine Laws with office/business address at <strong>AUREA ST. SAMSONVILLE, DAU MABALACAT CITY PAMPANGA</strong> represented herein by <strong>MR. JOMAR G. SANGIL (IT, DEPARTMENT HEAD)</strong>, hereinafter referred to as the Higher Education Institution.</p>
                             <p>And</p>
-                            <p><strong><span id="pv_partner_company_name" class="moa-fill-line">&nbsp;</span></strong> an enterprise duly organized and existing under Philippine Laws with office/business address at <strong><span id="pv_partner_address" class="moa-fill-line">&nbsp;</span></strong> represented herein by <strong><span id="pv_partner_name" class="moa-fill-line">&nbsp;</span></strong> herein after referred to as the PARTNER COMPANY.</p>
+                            <p><strong><span id="pv_partner_company_name" class="moa-fill-line">&nbsp;</span></strong>, an enterprise duly organized and existing under Philippine Laws with office/business address at <strong><span id="pv_partner_address" class="moa-fill-line">&nbsp;</span></strong>, represented herein by <strong><span id="pv_partner_name" class="moa-fill-line">&nbsp;</span></strong>, hereinafter referred to as the Partner Company.</p>
                             <p>Company Receipt / Ref.: <span id="pv_company_receipt" class="moa-fill-line">&nbsp;</span></p>
                             Witnesseth: <br><br>
                             <p>The parties hereby bind themselves to undertake a Memorandum of Agreement for the purpose of supporting the HEI Internship for Learners under the following terms and condition</p>
                             <strong>Clark College of Science and Technology:</strong><br>
                             <ol>
-                                <li>The <b>Clark College of Science and Technology</b> shall be responsible for briefing the Learners as part of the HEI’s and Job Induction Program;</li>
+                                <li>The <b>Clark College of Science and Technology</b> shall be responsible for briefing the Learners as part of the HEI's and Job Induction Program;</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall provide the learner undergoing the INTERNSHIP with the basic orientation on work values, behavior, and discipline to ensure smooth cooperation with the <strong>PARTNER COMPANY</strong>.</li>
-                                <li>The <b>Clark College of Science and Technology</b> shall issue and official endorsement vouching for the well-being of the Learner which shall be used by the <strong>PARTNER COMPANY</strong>. for the processing the learner’s application for INTERNSHIP;</li>
+                                <li>The <b>Clark College of Science and Technology</b> shall issue an official endorsement vouching for the well-being of the learner, which shall be used by the <strong>PARTNER COMPANY</strong> for processing the learner's application for INTERNSHIP;</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall voluntarily withdraw a Learner who of the PARTNER COMPANY can impose necessary HEI sanctions to the said learner;</li>
-                                <li>The <b>Clark College of Science and Technology</b> through its Industry Coordinator shall make onsite sit/follow ups to the <strong>PARTNER COMPANY</strong> during the training period and evaluate the Learner’s progress based on the training plan and discuss training problems;</li>
+                                <li>The <b>Clark College of Science and Technology</b> through its Industry Coordinator shall make onsite sit/follow ups to the <strong>PARTNER COMPANY</strong> during the training period and evaluate the Learner's progress based on the training plan and discuss training problems;</li>
                                 <li>The <b>Clark College of Science and Technology</b> has the discretion to pull out the Learner if there is an apparent risk and/or exploitation on the rights of the Learner;</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall ensure that the Learner shall ensure that the Learner has an on-and off the campus insurance coverage within the duration of the training as part of their training fee.</li>
                                 <li>The <b>Clark College of Science and Technology</b> shall ensure Learner shall be personally responsible for any and all liabilities arising from negligence in the performance of his/her duties and functions while under INTERNSHIP;</li>
                                 <li>There is no employer-employee relationship between the <strong>PARTNER COMPANY</strong> and the Learner;</li>
                                 <li>The duration of the program shall be equivalent to <span id="pv_total_hours">250</span> working hours unless otherwise agreed upon by the <strong>PARTNER COMPANY</strong> and the Clark College of Science and Technology;</li>
                                 <li>Any violation of the foregoing covenants will warrant the cancellation of the Memorandum of Agreement by the <strong>PARTNER COMPANY</strong> within thirty (30) days upon notice to the Clark College of Science and Technology.</li>
-                                <li>The <strong>PARTNER COMPANY</strong> may grant allowance to Learner in accordance with the PARTNER ENTERPISE’S existing rules and regulations;</li>
+                                <li>The <strong>PARTNER COMPANY</strong> may grant allowance to the learner in accordance with the partner enterprise's existing rules and regulations;</li>
                                 <li>The <strong>PARTNER COMPANY</strong> is not allowed to employ Learner within the INTERNSHIP period in order for the Learner to graduate from the program he/she is enrolled in.</li>
                             </ol>
 
@@ -481,11 +481,3 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 <?php endif; ?>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
-
-
-
-
-
-
-
-

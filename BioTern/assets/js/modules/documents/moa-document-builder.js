@@ -15,7 +15,7 @@
     var prefillStudentId = parseInt(root.getAttribute('data-prefill-student-id') || '0', 10) || 0;
     var prefillCompanyKey = (root.getAttribute('data-prefill-company') || '').trim();
     var pageUrl = isDau ? 'documents/document_dau_moa.php' : 'documents/document_moa.php';
-    var templateStorageKey = isDau ? 'biotern_dau_moa_template_html_v2' : 'biotern_moa_template_html_v2';
+    var templateStorageKey = isDau ? 'biotern_dau_moa_template_html_v3' : 'biotern_moa_template_html_v3';
     var legacyStorageKey = isDau ? 'biotern_dau_moa_template_html_v1' : 'biotern_moa_template_html_v1';
 
     var editor = document.getElementById('moa_content');
@@ -180,7 +180,7 @@
             if (el) {
                 var nextValue = value;
                 if ((!value || !String(value).trim()) && el.classList && el.classList.contains('moa-fill-line')) {
-                    nextValue = '\u00A0';
+                    nextValue = '__________________';
                 }
                 el.textContent = nextValue;
             }

@@ -448,6 +448,37 @@ html.app-skin-dark .select2-container--open .biotern-doc-select2-dropdown .selec
     color: #111;
 }
 
+.application-builder-page #editor .app-fill-line {
+    display: inline-block;
+    min-width: 1.85in;
+    padding: 0 4px 1px;
+    line-height: 1.18;
+    border-bottom: 1px solid currentColor;
+    vertical-align: baseline;
+}
+
+.application-builder-page #editor #ap_date.app-fill-line {
+    min-width: 1.28in;
+}
+
+.application-builder-page #editor #ap_hours.app-fill-line {
+    min-width: 0.42in;
+    text-align: center;
+}
+
+.application-builder-page #editor #ap_student_address.app-fill-line,
+.application-builder-page #editor #ap_address.app-fill-line {
+    min-width: 2.25in;
+}
+
+.application-builder-page #editor .app-letter-recipient-block {
+    margin: 18px 0 24px;
+}
+
+.application-builder-page #editor .app-letter-student-details {
+    margin-top: 18px;
+}
+
 .application-builder-page #editor .header h2,
 .application-builder-page #editor .app-application-header .app-application-title,
 .application-builder-page #editor .header .meta,
