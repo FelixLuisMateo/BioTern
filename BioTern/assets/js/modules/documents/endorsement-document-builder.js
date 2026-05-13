@@ -341,13 +341,38 @@
     function inferTitleFromName(name) {
         var n = String(name || '').trim().toLowerCase();
         if (!n) return 'none';
+        if (n.indexOf('mr/ms') === 0 || n.indexOf('mr./ms') === 0 || n.indexOf('mr./ms.') === 0) return 'none';
         if (n.indexOf('mr ') === 0 || n.indexOf('mr.') === 0 || n.indexOf('sir ') === 0) return 'mr';
         if (
             n.indexOf('ms ') === 0 || n.indexOf('ms.') === 0 || n.indexOf('mrs ') === 0 ||
             n.indexOf('mrs.') === 0 || n.indexOf('maam') === 0 || n.indexOf("ma'am") === 0 ||
             n.indexOf('madam') === 0
         ) return 'ms';
+
+        var normalized = n.replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        var firstName = (normalized.split(' ')[0] || '').trim();
+        var maleNames = [
+            'aaron', 'angelo', 'ben', 'carlos', 'daniel', 'david', 'edward', 'felix',
+            'ivan', 'james', 'jomar', 'jomer', 'john', 'jose', 'juan', 'julius',
+            'kevin', 'lucky', 'mark', 'michael', 'paul', 'peter', 'rafael', 'rence',
+            'robert', 'rodolfo', 'ross', 'steven', 'tyron', 'von', 'wil', 'winlub'
+        ];
+        var femaleNames = [
+            'ana', 'anna', 'angel', 'claire', 'diana', 'grace', 'jane', 'joy',
+            'karen', 'kim', 'kristine', 'liza', 'marie', 'maria', 'michelle',
+            'natalie', 'patricia', 'rose', 'sarah'
+        ];
+
+        if (maleNames.indexOf(firstName) !== -1) return 'mr';
+        if (femaleNames.indexOf(firstName) !== -1) return 'ms';
         return 'none';
+    }
+
+    function stripRecipientTitlePrefix(value) {
+        return String(value || '')
+            .trim()
+            .replace(/^(mr\.?\/ms\.?|mr\.?|sir|ms\.?|mrs\.?|ma'?am|madam)\s+/i, '')
+            .trim();
     }
 
     function resolveRecipientTitle() {
@@ -368,13 +393,14 @@
     }
 
     function formatRecipientName(value) {
-        var name = String(value || '').trim();
+        var rawName = String(value || '').trim();
+        var name = stripRecipientTitlePrefix(rawName);
         if (!name) return '__________________________';
         var title = resolveRecipientTitle();
         if (title === 'mr') return 'Mr. ' + name;
         if (title === 'ms') return 'Ms. ' + name;
         if (title === 'none') return 'Mr./Ms. ' + name;
-        return name;
+        return rawName;
     }
 
     function setSelectValue(value, label) {
