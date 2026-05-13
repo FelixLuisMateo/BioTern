@@ -345,10 +345,10 @@ include __DIR__ . '/../includes/header.php';
                                             </div>
                                             <div class="preview-content" id="preview_content">
                                                 <h5>ENDORSEMENT LETTER</h5>
-                                                <p><strong id="pv_recipient" class="endorsement-fill-line">__________________________</strong><br>
-                                                <span id="pv_position" class="endorsement-fill-line">__________________________</span><br>
-                                                <span id="pv_company" class="endorsement-fill-line">__________________________</span><br>
-                                                <span id="pv_company_address" class="endorsement-fill-line">__________________________</span></p>
+                                                <p><strong id="pv_recipient" class="endorsement-fill-line" data-empty-line="true">__________________________</strong><br>
+                                                <span id="pv_position" class="endorsement-fill-line" data-empty-line="true">__________________________</span><br>
+                                                <span id="pv_company" class="endorsement-fill-line" data-empty-line="true">__________________________</span><br>
+                                                <span id="pv_company_address" class="endorsement-fill-line" data-empty-line="true">__________________________</span></p>
 
                                                 <p><span id="pv_salutation">Dear Ma'am,</span></p>
                                                 <p>Greetings from Clark College of Science and Technology!</p>

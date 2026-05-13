@@ -153,15 +153,21 @@
 
 .endorsement-builder-page #editor .preview-header {
     position: relative;
-    min-height: 72px;
+    display: grid;
+    grid-template-columns: 56px max-content;
+    justify-content: center;
+    align-items: center;
+    column-gap: 26px;
+    min-height: 76px;
     text-align: left;
     border-bottom: 1px solid #8ab0e6;
-    padding: 8px 0 6px;
+    padding: 8px 0 7px;
     margin-bottom: 10px;
 }
 
 .endorsement-builder-page #editor .preview-header-copy {
-    padding-left: 96px;
+    min-height: 0;
+    padding-left: 0;
     text-align: left;
 }
 
@@ -169,7 +175,8 @@
 .endorsement-builder-page #editor .preview-header > .school-name,
 .endorsement-builder-page #editor .preview-header > .school-meta,
 .endorsement-builder-page #editor .preview-header > .school-tel {
-    padding-left: 96px;
+    grid-column: 2;
+    padding-left: 0;
     text-align: left;
     display: block;
 }
@@ -205,6 +212,25 @@
     font-weight: 700;
 }
 
+.endorsement-builder-page #editor .endorsement-fill-line {
+    display: inline-block;
+    min-width: 2.65in;
+    padding: 0 4px 1px;
+    border-bottom: 0;
+    line-height: 1.12;
+    text-decoration: underline !important;
+    text-decoration-color: #111 !important;
+    text-decoration-thickness: 1px !important;
+    text-underline-offset: 3px;
+    background-image: none !important;
+    box-shadow: none !important;
+    vertical-align: baseline;
+}
+
+.endorsement-builder-page #editor .endorsement-fill-line[data-empty-line="true"] {
+    text-decoration: none !important;
+}
+
 .endorsement-builder-page #editor .signature {
     margin-top: 28px;
 }
@@ -232,21 +258,94 @@
 }
 
 .endorsement-builder-page #editor .crest-preview-position {
-    position: absolute;
-    top: 10px;
-    left: 12px;
+    position: static;
     width: 56px;
     height: 56px;
     object-fit: contain;
 }
 
 .endorsement-builder-page #editor .preview-header .crest-preview {
-    position: absolute;
-    top: 10px;
-    left: 12px;
+    position: static;
     width: 56px;
     height: 56px;
     object-fit: contain;
+    display: block;
+}
+
+@media print {
+    body.endorsement-builder-page #editor .preview-header {
+        position: relative !important;
+        display: grid !important;
+        grid-template-columns: 56px max-content !important;
+        justify-content: center !important;
+        align-items: center !important;
+        column-gap: 26px !important;
+        min-height: 76px !important;
+        text-align: left !important;
+        border-bottom: 1px solid #8ab0e6 !important;
+        padding: 8px 0 7px !important;
+        margin-bottom: 10px !important;
+        overflow: visible !important;
+    }
+
+    body.endorsement-builder-page #editor .preview-header-copy {
+        min-height: 0 !important;
+        padding-left: 0 !important;
+        text-align: left !important;
+    }
+
+    body.endorsement-builder-page #editor .preview-header > .school-name,
+    body.endorsement-builder-page #editor .preview-header > .school-meta,
+    body.endorsement-builder-page #editor .preview-header > .school-tel {
+        grid-column: 2 !important;
+        padding-left: 0 !important;
+        text-align: left !important;
+        display: block !important;
+    }
+
+    body.endorsement-builder-page #editor .preview-header .crest-preview,
+    body.endorsement-builder-page #editor .crest-preview-position {
+        position: static !important;
+        width: 56px !important;
+        height: 56px !important;
+        object-fit: contain !important;
+        display: block !important;
+        visibility: visible !important;
+    }
+
+    body.endorsement-builder-page #editor .school-name {
+        color: #1b4f9c !important;
+        font-size: 20px !important;
+        margin: 0 0 6px !important;
+        font-weight: 700 !important;
+    }
+
+    body.endorsement-builder-page #editor .school-meta,
+    body.endorsement-builder-page #editor .school-tel {
+        color: #1b4f9c !important;
+        font-size: 14px !important;
+        line-height: 1.2 !important;
+        margin: 0 !important;
+    }
+
+    body.endorsement-builder-page #editor .endorsement-fill-line {
+        display: inline-block !important;
+        min-width: 2.65in !important;
+        padding: 0 4px 1px !important;
+        border-bottom: 0 !important;
+        line-height: 1.12 !important;
+        text-decoration: underline !important;
+        text-decoration-color: #111 !important;
+        text-decoration-thickness: 1px !important;
+        text-underline-offset: 3px !important;
+        background-image: none !important;
+        box-shadow: none !important;
+        vertical-align: baseline !important;
+    }
+
+    body.endorsement-builder-page #editor .endorsement-fill-line[data-empty-line="true"] {
+        text-decoration: none !important;
+    }
 }
 
 @media (max-width: 1199.98px) {

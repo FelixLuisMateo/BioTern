@@ -139,6 +139,24 @@
         margin-bottom: 10px !important;
         padding-bottom: 0.08in !important;
         position: relative !important;
+        display: grid !important;
+        grid-template-columns: 56px max-content !important;
+        justify-content: center !important;
+        align-items: center !important;
+        column-gap: 26px !important;
+    }
+
+    body.endorsement-builder-page #editor .preview-header-copy {
+        padding-left: 0 !important;
+        text-align: left !important;
+    }
+
+    body.endorsement-builder-page #editor .preview-header > .school-name,
+    body.endorsement-builder-page #editor .preview-header > .school-meta,
+    body.endorsement-builder-page #editor .preview-header > .school-tel {
+        grid-column: 2 !important;
+        padding-left: 0 !important;
+        text-align: left !important;
     }
 
     body.application-document-builder-page #editor .app-application-header-inner {
@@ -159,6 +177,15 @@
     body.moa-builder-page #moa_content .crest {
         print-color-adjust: exact !important;
         -webkit-print-color-adjust: exact !important;
+    }
+
+    body.endorsement-builder-page #editor .preview-header .crest-preview {
+        position: static !important;
+        width: 56px !important;
+        height: 56px !important;
+        object-fit: contain !important;
+        display: block !important;
+        visibility: visible !important;
     }
 
     body.application-builder-page img {

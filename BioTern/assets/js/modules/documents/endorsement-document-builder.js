@@ -58,6 +58,15 @@
         } catch (err) {}
     }
 
+    function assetUrl(path) {
+        try {
+            var base = document.querySelector('base[href]');
+            return new URL(path, base ? base.href : window.location.href).href;
+        } catch (err) {
+            return path;
+        }
+    }
+
     function purgeLegacyState() {
         var legacyTemplate = storageGet(LEGACY_TEMPLATE);
         if (!storageGet(STORAGE_TEMPLATE) && legacyTemplate) {
@@ -188,6 +197,92 @@
         });
     }
 
+    function repairEndorsementTemplateDetails() {
+        if (!editor) {
+            return;
+        }
+
+        var logoUrl = assetUrl('assets/images/ccstlogo.png');
+        var headers = Array.prototype.slice.call(editor.querySelectorAll('.preview-header'));
+        headers.forEach(function (header) {
+            var template = header.closest('.a4-page') || header.closest('.endorsement-letter-template') || header.parentNode || editor;
+            var legacyLogos = Array.prototype.slice.call(template.querySelectorAll('img.crest-preview, img.crest-preview-position, img.crest, img[alt="crest"], img[alt="CCST logo"]'));
+            var logo = header.querySelector('img.crest-preview, img.crest-preview-position, img.crest');
+
+            if (!logo) {
+                logo = legacyLogos.find(function (img) {
+                    return img && img.parentNode !== header;
+                }) || document.createElement('img');
+            }
+
+            if (logo.parentNode !== header) {
+                header.insertBefore(logo, header.firstChild);
+            }
+
+            legacyLogos.forEach(function (img) {
+                if (img !== logo && img.parentNode) {
+                    img.parentNode.removeChild(img);
+                }
+            });
+
+            logo.classList.add('crest-preview', 'crest-preview-position');
+            logo.alt = 'CCST logo';
+            logo.onerror = null;
+            logo.removeAttribute('onerror');
+            logo.setAttribute('src', logoUrl);
+            logo.setAttribute('data-hide-onerror', '1');
+            logo.removeAttribute('hidden');
+            logo.style.position = 'static';
+            logo.style.top = '';
+            logo.style.left = '';
+            logo.style.width = '56px';
+            logo.style.height = '56px';
+            logo.style.objectFit = 'contain';
+            logo.style.display = 'block';
+            logo.style.visibility = 'visible';
+
+            var copy = header.querySelector('.preview-header-copy');
+            if (!copy) {
+                copy = document.createElement('div');
+                copy.className = 'preview-header-copy';
+                Array.prototype.slice.call(header.children).forEach(function (child) {
+                    if (child !== logo && child !== copy) {
+                        copy.appendChild(child);
+                    }
+                });
+                header.appendChild(copy);
+            }
+        });
+
+        ['pv_recipient', 'pv_position', 'pv_company', 'pv_company_address'].forEach(function (id) {
+            var node = editor.querySelector('#' + id);
+            if (!node) {
+                return;
+            }
+
+            applyFillLineState(node, (node.textContent || '').trim());
+        });
+    }
+
+    function applyFillLineState(node, value) {
+        if (!node) {
+            return;
+        }
+
+        var text = String(value || '').trim();
+        var isEmptyLine = !text || /^_+$/.test(text);
+        node.classList.add('endorsement-fill-line');
+        node.style.textDecoration = isEmptyLine ? 'none' : 'underline';
+        node.style.textDecorationLine = isEmptyLine ? 'none' : 'underline';
+        node.style.textUnderlineOffset = isEmptyLine ? '' : '3px';
+        node.style.backgroundImage = 'none';
+        node.style.boxShadow = 'none';
+        node.setAttribute('data-empty-line', isEmptyLine ? 'true' : 'false');
+        if (isEmptyLine) {
+            node.textContent = '__________________________';
+        }
+    }
+
     function setEditMode(nextMode) {
         isEditMode = !!nextMode;
         editor.setAttribute('contenteditable', isEditMode ? 'true' : 'false');
@@ -227,10 +322,13 @@
             return;
         }
         var nextValue = value || fallback || '';
-        if (!value && node.classList && node.classList.contains('endorsement-fill-line')) {
-            nextValue = '\u00A0';
+        if (node.classList && node.classList.contains('endorsement-fill-line') && (!value || /^_+$/.test(String(nextValue).trim()))) {
+            nextValue = '__________________________';
         }
         node.textContent = nextValue;
+        if (node.classList && node.classList.contains('endorsement-fill-line')) {
+            applyFillLineState(node, nextValue);
+        }
     }
 
     function sanitizeStudentLines(raw) {
@@ -1215,6 +1313,7 @@
                 try {
                     normalizeLoadedTemplateMarkup();
                     ensureA4TemplateStructure();
+                    repairEndorsementTemplateDetails();
                     if (window.AppCore.TemplateEditor.attachLogoDrag) {
                         window.AppCore.TemplateEditor.attachLogoDrag(editorNode, {
                             setStatus: api.setStatus,
@@ -1234,6 +1333,7 @@
         }
 
         return templateRuntime.init().then(function () {
+            repairEndorsementTemplateDetails();
             setStatus('Template ready.');
             updatePreview();
         });
@@ -1257,12 +1357,13 @@
                 event.preventDefault();
             }
             ensureA4TemplateStructure();
+            repairEndorsementTemplateDetails();
             updatePreview();
             if (window.BioTernDocumentPrintPreview && typeof window.BioTernDocumentPrintPreview.open === 'function') {
                 window.BioTernDocumentPrintPreview.open({
                     element: editor,
                     title: 'Endorsement Letter Preview',
-                    bodyClass: 'application-builder-page endorsement-page'
+                    bodyClass: 'application-builder-page endorsement-builder-page endorsement-page'
                 });
                 return;
             }
