@@ -712,7 +712,7 @@ html.app-skin-dark .app-students-list-table.dataTable tbody tr.even > td {
 }
 
 .app-students-student-name {
-    font-size: 0.82rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: inherit;
     line-height: 1.1;
@@ -729,7 +729,7 @@ html.app-skin-dark .app-students-list-table.dataTable tbody tr.even > td {
 .app-students-student-meta,
 .app-students-student-submeta,
 .app-students-cell-meta {
-    font-size: 0.66rem;
+    font-size: 0.74rem;
     line-height: 1.15;
 }
 

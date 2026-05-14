@@ -2,21 +2,36 @@
 
 :root {
   --biotern-datepicker-bg: #ffffff;
-  --biotern-datepicker-surface: #f8fafc;
+  --biotern-datepicker-surface: #f6f7fb;
   --biotern-datepicker-text: #111827;
-  --biotern-datepicker-muted: #6b7280;
-  --biotern-datepicker-border: #d1d5db;
-  --biotern-datepicker-accent: var(--biotern-primary, #6b7280);
-  --biotern-datepicker-accent-soft: rgba(var(--biotern-primary-rgb, 107, 114, 128), 0.18);
+  --biotern-datepicker-muted: #64748b;
+  --biotern-datepicker-border: #d6dde8;
+  --biotern-datepicker-accent: #4b5563;
+  --biotern-datepicker-accent-soft: rgba(100, 116, 139, 0.2);
+  --biotern-datepicker-accent-strong: #1f2937;
+  --biotern-datepicker-selected-text: #ffffff;
 }
 
 html.app-skin-dark {
-  --biotern-datepicker-bg: #111418;
-  --biotern-datepicker-surface: #1a1f25;
+  --biotern-datepicker-bg: #141a24;
+  --biotern-datepicker-surface: #1a2230;
   --biotern-datepicker-text: #e5e7eb;
-  --biotern-datepicker-muted: #9aa3b2;
-  --biotern-datepicker-border: #2a2f35;
-  --biotern-datepicker-accent-soft: rgba(var(--biotern-primary-rgb, 154, 160, 166), 0.2);
+  --biotern-datepicker-muted: #9aa4b2;
+  --biotern-datepicker-border: #263246;
+  --biotern-datepicker-accent: #9aa4b2;
+  --biotern-datepicker-accent-soft: rgba(148, 163, 184, 0.2);
+  --biotern-datepicker-accent-strong: #e2e8f0;
+  --biotern-datepicker-selected-text: #0b1220;
+}
+
+html.app-theme-gray {
+  --biotern-datepicker-accent: #64748b;
+  --biotern-datepicker-accent-soft: rgba(100, 116, 139, 0.2);
+}
+
+html.app-skin-dark.app-theme-gray {
+  --biotern-datepicker-accent: #9aa3b2;
+  --biotern-datepicker-accent-soft: rgba(148, 163, 184, 0.2);
 }
 
 .ui-date-input {
@@ -33,25 +48,37 @@ html.app-skin-dark .ui-date-input {
 
 .datepicker {
   z-index: 1100;
+  font-size: 0.98rem;
 }
 
 .datepicker-picker {
   border: 1px solid var(--biotern-datepicker-border);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--biotern-datepicker-bg);
   color: var(--biotern-datepicker-text);
-  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.18);
+  box-shadow: 0 18px 32px rgba(2, 6, 23, 0.24);
   overflow: hidden;
 }
 
 .datepicker-header,
 .datepicker-footer {
-  background: var(--biotern-datepicker-surface);
+  background: color-mix(in srgb, var(--biotern-datepicker-surface) 70%, var(--biotern-datepicker-bg) 30%);
   border-color: var(--biotern-datepicker-border);
 }
 
 .datepicker-title {
   color: var(--biotern-datepicker-muted);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.datepicker-switch,
+.datepicker .datepicker-switch,
+.datepicker .datepicker-switch:hover,
+.datepicker .datepicker-switch:focus {
+  text-transform: none;
+  letter-spacing: 0.01em;
   font-weight: 600;
 }
 
@@ -73,24 +100,35 @@ html.app-skin-dark .ui-date-input {
 
 .datepicker-picker .datepicker-cell {
   color: var(--biotern-datepicker-text);
-  border-radius: 10px;
+  border-radius: 12px;
+  min-width: 2.5rem;
+  height: 2.5rem;
+  line-height: 2.5rem;
+  font-weight: 600;
+}
+
+.datepicker-picker .dow {
+  text-transform: none;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .datepicker-picker .datepicker-cell.focused:not(.selected),
 .datepicker-picker .datepicker-cell:not(.disabled):hover {
-  background: var(--biotern-datepicker-accent-soft);
+  background: var(--biotern-datepicker-accent-soft) !important;
+  color: var(--biotern-datepicker-text) !important;
 }
 
 .datepicker-picker .datepicker-cell.selected,
 .datepicker-picker .datepicker-cell.selected:hover {
-  background: var(--biotern-datepicker-accent);
-  color: #ffffff;
+  background: var(--biotern-datepicker-accent-strong) !important;
+  color: var(--biotern-datepicker-selected-text) !important;
 }
 
 .datepicker-picker .datepicker-cell.range,
 .datepicker-picker .datepicker-cell.range-start:not(.selected),
 .datepicker-picker .datepicker-cell.range-end:not(.selected) {
-  background: var(--biotern-datepicker-accent-soft);
+  background: var(--biotern-datepicker-accent-soft) !important;
 }
 
 .datepicker-picker .datepicker-cell.disabled {
@@ -100,4 +138,57 @@ html.app-skin-dark .ui-date-input {
 
 .datepicker-picker .dow {
   color: var(--biotern-datepicker-muted);
+  text-transform: none;
+}
+
+/* Vendor override: kill blue accents + uppercase + tighten control buttons */
+.datepicker .datepicker-title,
+.datepicker .datepicker-switch,
+.datepicker .datepicker-switch:hover,
+.datepicker .datepicker-switch:focus,
+.datepicker .dow,
+.datepicker .datepicker-controls .button,
+.datepicker .datepicker-footer .button {
+  text-transform: none !important;
+  letter-spacing: 0.01em !important;
+  color: var(--biotern-datepicker-muted) !important;
+}
+
+.datepicker .datepicker-controls .button,
+.datepicker .datepicker-footer .button {
+  border-color: var(--biotern-datepicker-border) !important;
+  background: var(--biotern-datepicker-surface) !important;
+  color: var(--biotern-datepicker-text) !important;
+}
+
+.datepicker .datepicker-controls .button:hover,
+.datepicker .datepicker-controls .button:focus,
+.datepicker .datepicker-footer .button:hover,
+.datepicker .datepicker-footer .button:focus {
+  border-color: var(--biotern-datepicker-accent) !important;
+  background: var(--biotern-datepicker-accent-soft) !important;
+  color: var(--biotern-datepicker-text) !important;
+}
+
+.datepicker .datepicker-cell,
+.datepicker .datepicker-cell:not(.disabled):hover,
+.datepicker .datepicker-cell.focused,
+.datepicker .datepicker-cell.focused:not(.selected) {
+  background: transparent;
+  color: var(--biotern-datepicker-text) !important;
+}
+
+.datepicker .datepicker-cell.selected,
+.datepicker .datepicker-cell.selected:hover,
+.datepicker .datepicker-cell.selected.focused {
+  background: var(--biotern-datepicker-accent-strong) !important;
+  color: var(--biotern-datepicker-selected-text) !important;
+}
+
+.datepicker .datepicker-cell.range,
+.datepicker .datepicker-cell.range-start:not(.selected),
+.datepicker .datepicker-cell.range-end:not(.selected),
+.datepicker .datepicker-cell.range:not(.selected) {
+  background: var(--biotern-datepicker-accent-soft) !important;
+  color: var(--biotern-datepicker-text) !important;
 }

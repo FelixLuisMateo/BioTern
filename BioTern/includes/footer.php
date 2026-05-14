@@ -148,6 +148,7 @@ if (!function_exists('footer_asset_versioned_src')) {
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/global-ui-helpers.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/global-notifier-runtime.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/unified-date-picker.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/unified-time-picker.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/page-header-consistency.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/mobile-filter-actions-modal.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/page-header-actions-scheme.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>

@@ -28,6 +28,7 @@
 @import url("./modules/app-ui-lists-tables.css");
 @import url("./modules/app-ui-scrollbars.css");
 @import url("./modules/app-ui-datepicker.css");
+@import url("./modules/app-ui-timepicker.css");
 
 /* 4) Theme */
 @import url("./theme/tokens.css");

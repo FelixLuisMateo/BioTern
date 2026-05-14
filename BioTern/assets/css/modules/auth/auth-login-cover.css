@@ -228,10 +228,20 @@ body.auth-login-page .auth-cover-card .input-group .form-control {
 body.auth-login-page .auth-cover-card .input-group .btn {
     min-width: 52px;
     border-color: var(--auth-field-border);
+    border-left: 1px solid var(--auth-field-border);
     background: var(--auth-field-bg);
     color: #64748b;
     border-top-right-radius: 14px;
     border-bottom-right-radius: 14px;
+}
+
+body.auth-login-page .auth-cover-card .input-group .btn-outline-secondary {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    border-left-color: var(--auth-field-border);
+    box-shadow: inset 1px 0 0 var(--auth-field-border);
+    position: relative;
+    z-index: 2;
 }
 
 body.auth-login-page .auth-cover-card .input-group .btn:hover,

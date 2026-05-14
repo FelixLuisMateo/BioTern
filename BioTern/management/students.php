@@ -1336,7 +1336,6 @@ include 'includes/header.php';
                                                                 <div class="app-students-student-copy">
                                                                     <span class="app-students-student-name"><?php echo htmlspecialchars($student_name); ?><?php if ((int)($student['is_sa_student'] ?? 0) === 1): ?> <span class="badge bg-soft-primary text-primary ms-1">SA</span><?php endif; ?></span>
                                                                     <span class="app-students-student-meta"><?php echo htmlspecialchars($student_id_label); ?></span>
-                                                                    <span class="app-students-student-section"><?php echo htmlspecialchars($section_name !== '' && $section_name !== '-' ? ('Section ' . $section_name) : 'No section'); ?></span>
                                                                 </div>
                                                             </a>
                                                         </td>

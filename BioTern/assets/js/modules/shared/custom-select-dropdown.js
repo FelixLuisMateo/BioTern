@@ -168,6 +168,14 @@
     if (select.multiple || select.size > 1) {
       return false;
     }
+    if (
+      select.classList.contains("biotern-time-native") ||
+      select.classList.contains("external-manual-time-select") ||
+      select.classList.contains("student-dtr-time-select") ||
+      select.dataset.unifiedTime === "1"
+    ) {
+      return false;
+    }
     if (select.classList.contains("select2-hidden-accessible")) {
       return false;
     }
