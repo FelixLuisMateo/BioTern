@@ -103,6 +103,7 @@ $page_scripts = [
             </div>
         </div>
     </footer>
+<?php $page_render_footer = false; ?>
 <?php include __DIR__ . '/includes/footer.php'; ?>
 
 

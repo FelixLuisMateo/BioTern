@@ -403,6 +403,7 @@ if ($rawLogRes instanceof mysqli_result) {
 
         $fingerId = $extractFingerId($entry);
         $timeValue = trim((string)($entry['time'] ?? ''));
+        $rawMachineName = trim((string)($entry['name'] ?? $entry['Name'] ?? $entry['user_name'] ?? $entry['username'] ?? $entry['userName'] ?? $entry['UserName'] ?? ''));
         if ($fingerId <= 0) {
             continue;
         }
@@ -411,7 +412,7 @@ if ($rawLogRes instanceof mysqli_result) {
             $detectedFingerprints[$fingerId] = [
                 'finger_id' => $fingerId,
                 'last_seen' => $timeValue,
-                'machine_user_name' => '',
+                'machine_user_name' => $rawMachineName,
                 'machine_is_admin' => false,
                 'machine_admin_label' => '',
                 'is_mapped' => false,
@@ -421,6 +422,8 @@ if ($rawLogRes instanceof mysqli_result) {
                 'student_number' => '',
                 'mapped_created_at' => '',
             ];
+        } elseif ($rawMachineName !== '' && trim((string)($detectedFingerprints[$fingerId]['machine_user_name'] ?? '')) === '') {
+            $detectedFingerprints[$fingerId]['machine_user_name'] = $rawMachineName;
         }
     }
     $rawLogRes->close();
@@ -438,7 +441,28 @@ $extractBridgeRows = static function ($decoded): array {
     }
 
     $isList = array_keys($decoded) === range(0, count($decoded) - 1);
-    return $isList ? $decoded : [$decoded];
+    if ($isList) {
+        return $decoded;
+    }
+
+    $values = array_values($decoded);
+    if ($values !== [] && count(array_filter($values, 'is_array')) === count($values)) {
+        return $values;
+    }
+
+    return [$decoded];
+};
+
+$machineRowValue = static function (array $row, array $keys): string {
+    foreach ($keys as $key) {
+        if (array_key_exists($key, $row) && $row[$key] !== null && $row[$key] !== '') {
+            return is_array($row[$key])
+                ? (string)json_encode($row[$key], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                : (string)$row[$key];
+        }
+    }
+
+    return '';
 };
 
 $extractMachineAdminMeta = static function (array $userRow): array {
@@ -493,12 +517,12 @@ if ($bridgeCacheRes instanceof mysqli_result) {
                     continue;
                 }
 
-                $fingerId = (int)trim((string)($userRow['id'] ?? $userRow['ID'] ?? $userRow['user_id'] ?? $userRow['userId'] ?? $userRow['EnrollNumber'] ?? 0));
+                $fingerId = (int)trim($machineRowValue($userRow, ['id', 'ID', 'user_id', 'userId', 'UserID', 'uid', 'UID', 'pin', 'PIN', 'EnrollNumber', 'enrollNumber', 'enroll_number']));
                 if ($fingerId <= 0) {
                     continue;
                 }
 
-                $machineName = trim((string)($userRow['name'] ?? $userRow['Name'] ?? $userRow['user_name'] ?? ''));
+                $machineName = trim($machineRowValue($userRow, ['name', 'Name', 'user_name', 'username', 'userName', 'UserName', 'full_name', 'FullName', 'EnrollName', 'enrollName']));
                 $machineAdminMeta = $extractMachineAdminMeta($userRow);
                 $machineIsAdmin = !empty($machineAdminMeta['is_admin']);
                 $machineAdminLabel = trim((string)($machineAdminMeta['label'] ?? ''));
@@ -945,7 +969,7 @@ ob_end_flush();
                         <thead>
                             <tr>
                                 <th>Fingerprint ID</th>
-                                <th>User</th>
+                                <th>Machine User</th>
                                 <th>Student Link</th>
                                 <th>Course</th>
                                 <th>Section</th>
@@ -967,12 +991,17 @@ ob_end_flush();
                                     ? (int)($map['external_total_hours_remaining'] ?? 0)
                                     : (int)($map['internal_total_hours_remaining'] ?? 0);
                                 $ojtCompleted = $remainingHours <= 0 && (int)($map['student_row_id'] ?? 0) > 0;
+                                $machineUserName = trim((string)($detectedFingerprints[(int)($map['finger_id'] ?? 0)]['machine_user_name'] ?? ''));
                                 ?>
                                 <tr>
                                     <td><?php echo (int)$map['finger_id']; ?></td>
                                     <td>
-                                        <div class="fw-semibold"><?php echo htmlspecialchars((string)($map['user_name'] ?? 'Unknown'), ENT_QUOTES, 'UTF-8'); ?></div>
-                                        <small class="text-muted">User ID: <?php echo (int)$map['user_id']; ?></small>
+                                        <?php if ($machineUserName !== ''): ?>
+                                            <div class="fw-semibold"><?php echo htmlspecialchars($machineUserName, ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <?php else: ?>
+                                            <div class="fw-semibold text-muted">Unknown machine user</div>
+                                        <?php endif; ?>
+                                        <small class="text-muted">Mapped BioTern User ID: <?php echo (int)$map['user_id']; ?></small>
                                     </td>
                                     <td>
                                         <?php if ((int)($map['student_row_id'] ?? 0) > 0): ?>

@@ -650,6 +650,14 @@ html.app-skin-dark .feature-card .text-muted {
     flex-shrink: 0;
 }
 
+body.landing-public .landing-footer {
+    display: block !important;
+}
+
+.landing-footer .container {
+    min-height: 28px;
+}
+
 .hero-wrap .row.g-3.mt-3 {
     margin-top: 1rem !important;
 }
