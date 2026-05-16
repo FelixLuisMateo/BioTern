@@ -102,6 +102,86 @@ function attendance_validate_transition(array $record, string $clock_type, strin
     return ['ok' => true, 'message' => 'OK'];
 }
 
+function attendance_schedule_action_order(array $schedule): array
+{
+    $session = function_exists('section_schedule_normalize_session')
+        ? section_schedule_normalize_session((string)($schedule['attendance_session'] ?? 'whole_day'))
+        : strtolower(trim((string)($schedule['attendance_session'] ?? 'whole_day')));
+
+    if ($session === 'morning_only') {
+        return ['morning_in', 'morning_out'];
+    }
+    if ($session === 'afternoon_only') {
+        return ['afternoon_in', 'afternoon_out'];
+    }
+
+    return ['morning_in', 'morning_out', 'afternoon_in', 'afternoon_out'];
+}
+
+function attendance_validate_scheduled_transition(array $record, string $clock_type, string $clock_time, array $schedule): array
+{
+    $dayType = function_exists('section_schedule_normalize_day_type')
+        ? section_schedule_normalize_day_type((string)($schedule['day_type'] ?? 'class'))
+        : strtolower(trim((string)($schedule['day_type'] ?? 'class')));
+    if ($dayType === 'no_class') {
+        return ['ok' => false, 'message' => 'No attendance punch is allowed today because your section schedule is marked no class.'];
+    }
+
+    $order = attendance_schedule_action_order($schedule);
+    $targetColumn = attendance_action_to_column($clock_type);
+    if ($targetColumn === null || !in_array($clock_type, $order, true)) {
+        return ['ok' => false, 'message' => ucfirst(str_replace('_', ' ', $clock_type)) . ' is not part of your section schedule today.'];
+    }
+    if (!empty($record[$targetColumn])) {
+        return ['ok' => false, 'message' => ucfirst(str_replace('_', ' ', $clock_type)) . ' already recorded.'];
+    }
+
+    $currentIndex = array_search($clock_type, $order, true);
+    for ($i = $currentIndex + 1; $i < count($order); $i++) {
+        $laterColumn = attendance_action_to_column($order[$i]);
+        if ($laterColumn !== null && !empty($record[$laterColumn])) {
+            return ['ok' => false, 'message' => 'Cannot record ' . str_replace('_', ' ', $clock_type) . ' after ' . str_replace('_', ' ', $order[$i]) . ' already exists.'];
+        }
+    }
+
+    if ($currentIndex > 0) {
+        $previousAction = $order[$currentIndex - 1];
+        $previousColumn = attendance_action_to_column($previousAction);
+        if ($previousColumn !== null && empty($record[$previousColumn])) {
+            return ['ok' => false, 'message' => 'Please record ' . str_replace('_', ' ', $previousAction) . ' before ' . str_replace('_', ' ', $clock_type) . '.'];
+        }
+    }
+
+    $newMinutes = attendance_time_to_minutes($clock_time);
+    if ($newMinutes === null) {
+        return ['ok' => false, 'message' => 'Invalid clock time format.'];
+    }
+
+    $previousMinutes = null;
+    foreach ($order as $action) {
+        if ($action === $clock_type) {
+            break;
+        }
+        $column = attendance_action_to_column($action);
+        if ($column !== null && !empty($record[$column])) {
+            $minutes = attendance_time_to_minutes($record[$column]);
+            if ($minutes !== null) {
+                $previousMinutes = $minutes;
+            }
+        }
+    }
+    if ($previousMinutes !== null && $newMinutes < $previousMinutes) {
+        return ['ok' => false, 'message' => 'Time conflict: new entry is earlier than the last recorded event.'];
+    }
+
+    return ['ok' => true, 'message' => 'OK'];
+}
+
+function attendance_scheduled_action_locked(array $record, string $clock_type, array $schedule): bool
+{
+    return empty(attendance_validate_scheduled_transition($record, $clock_type, date('H:i:s'), $schedule)['ok']);
+}
+
 function attendance_validate_full_record(array $record): array
 {
     $pairs = [

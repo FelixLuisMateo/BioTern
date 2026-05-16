@@ -1,6 +1,8 @@
 <?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/section_schedule.php';
+require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 if (session_status() === PHP_SESSION_NONE) {
@@ -238,12 +240,39 @@ function student_dtr_time_options(int $stepMinutes = 30, int $startHour = 5, int
     return $options;
 }
 
+function student_dtr_schedule_for_student_date(array $student, string $date): array
+{
+    return section_schedule_for_date(section_schedule_from_row($student), $date);
+}
+
+function student_dtr_today_record(mysqli $conn, int $studentId, string $date): array
+{
+    $record = [
+        'morning_time_in' => null,
+        'morning_time_out' => null,
+        'afternoon_time_in' => null,
+        'afternoon_time_out' => null,
+    ];
+    $stmt = $conn->prepare("SELECT id, attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out, total_hours, source, status, remarks FROM attendances WHERE student_id = ? AND attendance_date = ? ORDER BY id DESC LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param('is', $studentId, $date);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc() ?: null;
+        $stmt->close();
+        if ($row) {
+            $record = array_merge($record, $row);
+        }
+    }
+    return $record;
+}
+
 $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentRole = strtolower(trim((string)($_SESSION['role'] ?? '')));
 if ($currentRole !== 'student' || $currentUserId <= 0) {
     header('Location: homepage.php');
     exit;
 }
+section_schedule_ensure_columns($conn);
 
 $requestedYear = isset($_GET['year']) ? (int)$_GET['year'] : 0;
 $requestedMonthNumber = isset($_GET['month_num']) ? (int)$_GET['month_num'] : 0;
@@ -313,7 +342,8 @@ if ($userStmt) {
 
 $studentLookupSql = "SELECT s.id, s.student_id, s.first_name, s.last_name, s.email AS student_email, s.phone, s.assignment_track,
         s.internal_total_hours, s.internal_total_hours_remaining, s.external_total_hours, s.external_total_hours_remaining,
-        c.name AS course_name, sec.code AS section_code, sec.name AS section_name
+        c.name AS course_name, sec.code AS section_code, sec.name AS section_name,
+        sec.attendance_session, sec.schedule_time_in, sec.schedule_time_out, sec.late_after_time, sec.weekly_schedule_json
     FROM students s
     LEFT JOIN courses c ON c.id = s.course_id
     LEFT JOIN sections sec ON sec.id = s.section_id
@@ -333,7 +363,8 @@ if (!$student && $user) {
     $fallbackStmt = $conn->prepare(
         "SELECT s.id, s.student_id, s.first_name, s.last_name, s.email AS student_email, s.phone, s.assignment_track,
                 s.internal_total_hours, s.internal_total_hours_remaining, s.external_total_hours, s.external_total_hours_remaining,
-                c.name AS course_name, sec.code AS section_code, sec.name AS section_name
+                c.name AS course_name, sec.code AS section_code, sec.name AS section_name,
+                sec.attendance_session, sec.schedule_time_in, sec.schedule_time_out, sec.late_after_time, sec.weekly_schedule_json
          FROM students s
          LEFT JOIN courses c ON c.id = s.course_id
          LEFT JOIN sections sec ON sec.id = s.section_id
@@ -462,9 +493,95 @@ if ($student) {
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && $_POST['student_action'] === 'submit_machine_down' && !empty($student)) {
-    require_once dirname(__DIR__) . '/lib/attendance_rules.php';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && $_POST['student_action'] === 'quick_internal_punch' && !empty($student)) {
+    $clockDate = trim((string)($_POST['clock_date'] ?? date('Y-m-d')));
+    $clockType = strtolower(trim((string)($_POST['clock_type'] ?? '')));
+    $clockTime = date('H:i:s');
+    $note = trim((string)($_POST['notes'] ?? ''));
+    $studentId = (int)($student['id'] ?? 0);
 
+    if ($studentId <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $clockDate)) {
+        $_SESSION['student_dtr_flash'] = ['type' => 'danger', 'message' => 'A valid student and clock date are required.'];
+        header('Location: student-manual-dtr.php');
+        exit;
+    }
+
+    $todayRecord = student_dtr_today_record($conn, $studentId, $clockDate);
+    $schedule = student_dtr_schedule_for_student_date($student, $clockDate);
+    $validation = attendance_validate_scheduled_transition($todayRecord, $clockType, $clockTime, $schedule);
+    $column = attendance_action_to_column($clockType);
+
+    if (!($validation['ok'] ?? false) || $column === null) {
+        $_SESSION['student_dtr_flash'] = [
+            'type' => 'warning',
+            'message' => (string)($validation['message'] ?? 'Invalid internal attendance punch.'),
+        ];
+        header('Location: student-manual-dtr.php');
+        exit;
+    }
+
+    $updatedRecord = $todayRecord;
+    $updatedRecord[$column] = $clockTime;
+    $totalHours = student_dtr_calculate_hours($updatedRecord);
+    $remarks = $note !== '' ? $note : 'Student punch button';
+
+    $existingId = (int)($todayRecord['id'] ?? 0);
+    if ($existingId > 0) {
+        $stmt = $conn->prepare("
+            UPDATE attendances
+            SET {$column} = ?,
+                total_hours = ?,
+                source = 'biometric',
+                status = CASE WHEN status = 'rejected' THEN 'pending' ELSE status END,
+                remarks = CASE WHEN ? <> '' THEN ? ELSE remarks END,
+                updated_at = NOW()
+            WHERE id = ? AND student_id = ?
+        ");
+        if ($stmt) {
+            $stmt->bind_param('sdssii', $clockTime, $totalHours, $remarks, $remarks, $existingId, $studentId);
+            $stmt->execute();
+            $ok = $stmt->affected_rows >= 0;
+            $stmt->close();
+        } else {
+            $ok = false;
+        }
+    } else {
+        $empty = null;
+        $morningIn = $column === 'morning_time_in' ? $clockTime : $empty;
+        $morningOut = $column === 'morning_time_out' ? $clockTime : $empty;
+        $afternoonIn = $column === 'afternoon_time_in' ? $clockTime : $empty;
+        $afternoonOut = $column === 'afternoon_time_out' ? $clockTime : $empty;
+        $stmt = $conn->prepare("
+            INSERT INTO attendances (
+                student_id, attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out,
+                total_hours, source, status, remarks, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'biometric', 'pending', ?, NOW(), NOW())
+        ");
+        if ($stmt) {
+            $stmt->bind_param('isssssds', $studentId, $clockDate, $morningIn, $morningOut, $afternoonIn, $afternoonOut, $totalHours, $remarks);
+            $stmt->execute();
+            $ok = $stmt->affected_rows > 0;
+            $stmt->close();
+        } else {
+            $ok = false;
+        }
+    }
+
+    if (!empty($ok) && function_exists('attendance_workflow_sync_student_progress')) {
+        attendance_workflow_sync_student_progress($conn, $studentId);
+    }
+
+    $_SESSION['student_dtr_flash'] = [
+        'type' => !empty($ok) ? 'success' : 'danger',
+        'message' => !empty($ok)
+            ? ucfirst(str_replace('_', ' ', $clockType)) . ' recorded at ' . date('h:i A', strtotime($clockTime)) . '.'
+            : 'Could not save the internal attendance punch.',
+    ];
+    header('Location: student-manual-dtr.php');
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && $_POST['student_action'] === 'submit_machine_down' && !empty($student)) {
     $fallbackMode = strtolower(trim((string)($_POST['fallback_mode'] ?? 'daily')));
     if (!in_array($fallbackMode, ['daily', 'weekly'], true)) {
         $fallbackMode = 'daily';
@@ -808,6 +925,20 @@ $track = strtolower(trim((string)($student['assignment_track'] ?? 'internal')));
 $remainingHours = $track === 'external'
     ? (int)($student['external_total_hours_remaining'] ?? 0)
     : (int)($student['internal_total_hours_remaining'] ?? 0);
+$studentDtrToday = date('Y-m-d');
+$studentDtrTodayRecord = !empty($student)
+    ? student_dtr_today_record($conn, (int)($student['id'] ?? 0), $studentDtrToday)
+    : [];
+$studentDtrTodaySchedule = !empty($student)
+    ? student_dtr_schedule_for_student_date($student, $studentDtrToday)
+    : ['attendance_session' => 'whole_day', 'day_type' => 'class'];
+$studentDtrClockTypes = [
+    'morning_in' => ['Morning In', 'feather-log-in'],
+    'morning_out' => ['Morning Out', 'feather-log-out'],
+    'afternoon_in' => ['Afternoon In', 'feather-sun'],
+    'afternoon_out' => ['Afternoon Out', 'feather-log-out'],
+];
+$studentDtrAllowedPunchOrder = attendance_schedule_action_order($studentDtrTodaySchedule);
 $lastRecordedDateText = $attendanceInsights['last_recorded_date'] !== ''
     ? date('M d, Y', strtotime($attendanceInsights['last_recorded_date']))
     : 'No entries yet';
@@ -894,22 +1025,30 @@ include 'includes/header.php';
         <section class="external-quick-card mb-4">
             <div class="external-quick-heading">
                 <div>
-                    <h3>Quick Time Picker</h3>
-                    <p>Tap one slot to copy the nearest 30-minute time into the matching field below.</p>
+                    <h3>Punch Internal Time</h3>
+                    <p>Tap the next available punch for today. The button saves the exact current time.</p>
                 </div>
                 <span><?php echo htmlspecialchars(date('F d, Y'), ENT_QUOTES, 'UTF-8'); ?></span>
             </div>
-            <div class="external-clock-grid">
-                <button type="button" class="external-clock-btn student-dtr-manual-punch" data-target-select="fallbackMorningIn"><i class="feather-log-in"></i><span>Morning In</span></button>
-                <button type="button" class="external-clock-btn student-dtr-manual-punch" data-target-select="fallbackMorningOut"><i class="feather-log-out"></i><span>Morning Out</span></button>
-                <button type="button" class="external-clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonIn"><i class="feather-sun"></i><span>Afternoon In</span></button>
-                <button type="button" class="external-clock-btn student-dtr-manual-punch" data-target-select="fallbackAfternoonOut"><i class="feather-log-out"></i><span>Afternoon Out</span></button>
-            </div>
-            <div class="external-note-field">
-                <label for="quickInternalPunchNote">Notes</label>
-                <input type="text" id="quickInternalPunchNote" maxlength="255" placeholder="Optional note copied to the reason field">
-            </div>
-            <div class="student-dtr-quick-status" id="quickTimePickerStatus" aria-live="polite"></div>
+            <form method="post">
+                <input type="hidden" name="student_action" value="quick_internal_punch">
+                <input type="hidden" name="clock_date" value="<?php echo htmlspecialchars($studentDtrToday, ENT_QUOTES, 'UTF-8'); ?>">
+                <div class="external-clock-grid">
+                    <?php foreach ($studentDtrClockTypes as $clockType => [$clockLabel, $clockIcon]): ?>
+                        <?php if (!in_array($clockType, $studentDtrAllowedPunchOrder, true)) { continue; } ?>
+                        <?php $isLocked = attendance_scheduled_action_locked($studentDtrTodayRecord, $clockType, $studentDtrTodaySchedule); ?>
+                        <button type="submit" name="clock_type" value="<?php echo htmlspecialchars($clockType, ENT_QUOTES, 'UTF-8'); ?>" class="external-clock-btn<?php echo $isLocked ? ' is-complete' : ''; ?>" <?php echo $isLocked ? 'disabled aria-disabled="true"' : ''; ?>>
+                            <i class="<?php echo htmlspecialchars($clockIcon, ENT_QUOTES, 'UTF-8'); ?>"></i>
+                            <span><?php echo htmlspecialchars($clockLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                        </button>
+                    <?php endforeach; ?>
+                </div>
+                <div class="external-note-field">
+                    <label for="quickInternalPunchNote">Notes</label>
+                    <input type="text" id="quickInternalPunchNote" name="notes" maxlength="255" placeholder="Optional note for this punch">
+                </div>
+            </form>
+            <div class="student-dtr-quick-status" aria-live="polite">Manual typed entries below are for forgotten or missed times and stay pending for review.</div>
         </section>
         <?php else: ?>
         <section class="student-dtr-station-hero">
@@ -1049,7 +1188,8 @@ include 'includes/header.php';
                                 <div class="external-manual-guide">
                                     <strong>How to submit internal manual DTR:</strong>
                                     <span>1. Choose one missed date or a date range, then click Create Time Rows.</span>
-                                    <span>2. Pick the closest time from each dropdown, like 8:00 AM, 12:00 PM, 1:00 PM, and 5:00 PM.</span>
+                                    <span>2. Type the exact missed time for the clock-in/out you need, like 5:25 PM.</span>
+                                    <span>Rows are accepted only for dates that do not already have attendance logs.</span>
                                     <span>3. Upload proof and explain what happened. The entry stays pending until school review.</span>
                                 </div>
                             </div>
@@ -1340,7 +1480,7 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
 
     var buildTimeSelect = function (name, selected, startHour, endHour, slotName) {
         var slotAttr = slotName ? ' data-time-slot="' + escapeHtml(slotName) + '"' : '';
-        return '<select class="form-select student-dtr-time-select external-manual-time-select" name="' + name + '"' + slotAttr + '>' + buildTimeOptions(selected || '', startHour, endHour) + '</select>';
+        return '<input type="time" step="60" class="form-control student-dtr-time-field external-manual-time-field" name="' + name + '" value="' + escapeHtml(selected || '') + '"' + slotAttr + '>';
     };
 
     var formatLabel = function (dateValue) {
@@ -1446,10 +1586,12 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
                     '<tbody>' + rows.join('') + '</tbody>' +
                 '</table>' +
             '</div>';
+        enhanceTimeFields(rowsWrap);
         if (rangeHint) {
             rangeHint.classList.remove('is-warning');
             rangeHint.classList.add('is-success');
             rangeHint.textContent = 'Created ' + rows.length + ' time row' + (rows.length === 1 ? '' : 's') + '. Fill the missing times below, then submit for review.';
+            rangeHint.textContent += ' Dates with existing attendance logs will be rejected so you can request a correction instead.';
         }
         if (submitWrap) {
             submitWrap.hidden = false;
@@ -1479,6 +1621,9 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
 
     function enhanceTimeFields(scope) {
         Array.prototype.slice.call((scope || document).querySelectorAll('.student-dtr-time-field')).forEach(function (input) {
+            if (input.type === 'time') {
+                return;
+            }
             if (input.dataset.timeEnhanced === '1') {
                 return;
             }

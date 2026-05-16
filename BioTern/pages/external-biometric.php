@@ -29,6 +29,13 @@ if ($studentMode) {
 }
 
 function external_biometric_action_locked(array $record, string $clockType): bool {
+	$schedule = isset($GLOBALS['externalBiometricCurrentSchedule']) && is_array($GLOBALS['externalBiometricCurrentSchedule'])
+		? $GLOBALS['externalBiometricCurrentSchedule']
+		: ['attendance_session' => 'whole_day', 'day_type' => 'class'];
+	if (function_exists('attendance_scheduled_action_locked')) {
+		return attendance_scheduled_action_locked($record, $clockType, $schedule);
+	}
+
 	$column = attendance_action_to_column($clockType);
 	if ($column === null || !empty($record[$column])) {
 		return true;
@@ -144,6 +151,11 @@ if ($studentContext) {
 		if ($row) $todayRecord = $row;
 	}
 }
+$externalBiometricTodaySchedule = $studentContext
+	? section_schedule_for_date(section_schedule_from_row($studentContext), $today)
+	: ['attendance_session' => 'whole_day', 'day_type' => 'class'];
+$GLOBALS['externalBiometricCurrentSchedule'] = $externalBiometricTodaySchedule;
+$externalBiometricAllowedOrder = function_exists('attendance_schedule_action_order') ? attendance_schedule_action_order($externalBiometricTodaySchedule) : array_keys($clockTypes);
 ?>
 <main class="nxl-container">
 	<div class="nxl-content">
@@ -234,6 +246,7 @@ if ($studentContext) {
 						<input type="hidden" name="return_student_id" value="<?php echo (int)($studentContext['id'] ?? 0); ?>">
 						<div class="external-clock-grid">
 								<?php foreach ($clockTypes as $type => [$label, $iconClass]): ?>
+								<?php if (!in_array($type, $externalBiometricAllowedOrder, true)) { continue; } ?>
 								<?php $isLocked = external_biometric_action_locked($todayRecord, $type); ?>
 								<button
 									type="button"
@@ -264,8 +277,8 @@ if ($studentContext) {
 			<div class="external-manual-guide mb-3">
 				<strong>How to submit external manual DTR:</strong>
 				<span>1. Choose one missed date or a date range, then click Create Time Rows.</span>
-				<span>2. Pick the closest time from each dropdown, like 8:00 AM, 12:00 PM, 1:00 PM, and 5:00 PM.</span>
-				<span>3. Add a short note if needed, then submit. Entries stay pending until review.</span>
+				<span>2. Type the exact missed time for the clock-in/out you need, like 5:25 PM.</span>
+				<span>3. Rows are accepted only for dates that do not already have external logs.</span>
 			</div>
 			<form id="manualDtrRangeForm" class="mb-3">
 				<div class="row g-3 align-items-end">
@@ -347,21 +360,8 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
 });
 
 // Manual DTR range table generation
-function buildExternalTimeOptions(selected) {
-	var options = ['<option value="">Select time</option>'];
-	for (var hour = 0; hour < 24; hour++) {
-		for (var minute = 0; minute < 60; minute += 30) {
-			var value = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
-			var hour12 = hour % 12 || 12;
-			var label = hour12 + ':' + String(minute).padStart(2, '0') + ' ' + (hour < 12 ? 'AM' : 'PM');
-			options.push('<option value="' + value + '"' + (value === selected ? ' selected' : '') + '>' + label + '</option>');
-		}
-	}
-	return options.join('');
-}
-
 function buildExternalTimeSelect(name, selected) {
-	return '<select class="form-select external-manual-time-select" name="' + name + '">' + buildExternalTimeOptions(selected || '') + '</select>';
+	return '<input type="time" step="60" class="form-control external-manual-time-field" name="' + name + '" value="' + String(selected || '').replace(/"/g, '&quot;') + '">';
 }
 
 function parseExternalLocalDate(value) {
@@ -449,16 +449,18 @@ if (generateManualDtrRowsButton) generateManualDtrRowsButton.onclick = function(
 	var rowsWrap = document.getElementById('manualDtrRows');
 	rowsWrap.className = 'external-manual-rows-generated';
 	rowsWrap.innerHTML = table;
+	enhanceExternalManualTimeFields(rowsWrap);
 	var rangeHint = document.getElementById('manualDateRangeHint');
 	rangeHint.classList.remove('is-warning');
 	rangeHint.classList.add('is-success');
-	rangeHint.textContent = 'Created ' + rows.length + ' time row' + (rows.length === 1 ? '' : 's') + '. Fill the missing times below, then submit for review.';
+	rangeHint.textContent = 'Created ' + rows.length + ' time row' + (rows.length === 1 ? '' : 's') + '. Fill the exact missed times below, then submit for review. Dates with existing logs will be skipped or rejected.';
 	var submitWrap = document.getElementById('manualDtrSubmitWrap');
 	if (submitWrap) submitWrap.style.display = '';
 };
 
 function enhanceExternalManualTimeFields(scope) {
 	Array.prototype.slice.call((scope || document).querySelectorAll('.external-manual-time-field')).forEach(function(input) {
+		if (input.type === 'time') return;
 		if (input.dataset.timeEnhanced === '1') return;
 		input.dataset.timeEnhanced = '1';
 		input.addEventListener('input', function() {

@@ -46,6 +46,12 @@ if ($action === 'clock') {
     }
 
     $existing = external_attendance_student_record($conn, (int)$student['id'], $clockDate);
+    $schedule = section_schedule_for_date(section_schedule_from_row($student), $clockDate);
+    $validation = attendance_validate_scheduled_transition($existing ?: [], $clockType, $clockTime, $schedule);
+    if (empty($validation['ok'])) {
+        echo json_encode(['ok' => false, 'message' => (string)($validation['message'] ?? 'Invalid external DTR punch.')]);
+        exit;
+    }
     $photoPath = '';
     $photoUpload = null;
     if (isset($_FILES['photo']) && (int)($_FILES['photo']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
@@ -189,6 +195,12 @@ if ($action === 'manual_table') {
                     }
                 }
             }
+            continue;
+        }
+
+        $existingForDate = external_attendance_student_record($conn, (int)$student['id'], $dateValue);
+        if ($existingForDate && external_attendance_collect_punches($existingForDate) !== []) {
+            $lastError = 'External attendance already exists for ' . $dateValue . '. Please request a correction instead.';
             continue;
         }
 

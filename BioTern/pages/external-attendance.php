@@ -96,6 +96,13 @@ function external_attendance_month_rows(mysqli $conn, int $studentId, string $mo
 
 function external_attendance_action_locked(array $record, string $clockType): bool
 {
+    $schedule = isset($GLOBALS['externalCurrentSchedule']) && is_array($GLOBALS['externalCurrentSchedule'])
+        ? $GLOBALS['externalCurrentSchedule']
+        : ['attendance_session' => 'whole_day', 'day_type' => 'class'];
+    if (function_exists('attendance_scheduled_action_locked')) {
+        return attendance_scheduled_action_locked($record, $clockType, $schedule);
+    }
+
     $column = attendance_action_to_column($clockType);
     if ($column === null) {
         return true;
@@ -244,7 +251,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'afternoon_time_out' => null,
             ];
 
-            $validation = external_attendance_validate_transition($existing, $clockType, $clockTime);
+            $schedule = section_schedule_for_date(section_schedule_from_row($targetStudent), $clockDate);
+            $validation = attendance_validate_scheduled_transition($existing, $clockType, $clockTime, $schedule);
             if (!($validation['ok'] ?? false)) {
                 external_attendance_flash_redirect((string)($validation['message'] ?? 'Invalid external DTR punch.'), 'warning', $redirectTarget);
             }
@@ -389,6 +397,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     continue;
                 }
 
+                $existingForDate = external_attendance_student_record($conn, $targetStudentId, $dateValue);
+                if ($existingForDate && external_attendance_collect_punches($existingForDate) !== []) {
+                    $lastError = 'External attendance already exists for ' . $dateValue . '. Please request a correction instead.';
+                    continue;
+                }
+
                 $save = external_attendance_upsert_day(
                     $conn,
                     $targetStudent,
@@ -476,6 +490,9 @@ if ($currentRole === 'student') {
         'afternoon_in' => ['Afternoon In', 'feather-sun'],
         'afternoon_out' => ['Afternoon Out', 'feather-sunset'],
     ];
+    $externalCurrentSchedule = section_schedule_for_date(section_schedule_from_row($student), $today);
+    $GLOBALS['externalCurrentSchedule'] = $externalCurrentSchedule;
+    $externalAllowedOrder = function_exists('attendance_schedule_action_order') ? attendance_schedule_action_order($externalCurrentSchedule) : array_keys($clockTypes);
     $page_title = 'BioTern || External Attendance';
     $page_styles = [
         'assets/css/homepage-student.css',
@@ -554,6 +571,7 @@ if ($currentRole === 'student') {
                                     <label>Clock Type</label>
                                     <div class="clock-type-grid">
                                         <?php foreach ($clockTypes as $type => [$label, $iconClass]): ?>
+                                            <?php if (!in_array($type, $externalAllowedOrder, true)) { continue; } ?>
                                             <?php $isLocked = external_attendance_action_locked($todayRecord, $type); ?>
                                             <button
                                                 type="button"
@@ -583,6 +601,7 @@ if ($currentRole === 'student') {
                         <div class="card-body pt-3">
                             <div class="row g-3">
                                 <?php foreach ($clockTypes as $type => [$label]): ?>
+                                    <?php if (!in_array($type, $externalAllowedOrder, true)) { continue; } ?>
                                     <?php $column = attendance_action_to_column($type); ?>
                                     <div class="col-md-4 col-sm-6">
                                         <div class="dtr-summary-card">
