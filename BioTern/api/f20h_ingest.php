@@ -161,19 +161,19 @@ function f20h_token_candidates(array $machineConfig): array
             UNIQUE KEY uniq_profile_name (profile_name)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-        $profileRes = $db->query("SELECT bridge_token, ingest_api_token FROM biometric_bridge_profile WHERE profile_name = 'default' LIMIT 1");
+        $profileRes = $db->query("SELECT bridge_token, ingest_api_token FROM biometric_bridge_profile ORDER BY profile_name = 'default' DESC, id ASC");
         if ($profileRes instanceof mysqli_result) {
-            $profileRow = $profileRes->fetch_assoc() ?: [];
+            while ($profileRow = $profileRes->fetch_assoc()) {
+                $dbBridge = trim((string)($profileRow['bridge_token'] ?? ''));
+                $dbIngest = trim((string)($profileRow['ingest_api_token'] ?? ''));
+                if ($dbBridge !== '') {
+                    $candidates[] = $dbBridge;
+                }
+                if ($dbIngest !== '') {
+                    $candidates[] = $dbIngest;
+                }
+            }
             $profileRes->close();
-
-            $dbBridge = trim((string)($profileRow['bridge_token'] ?? ''));
-            $dbIngest = trim((string)($profileRow['ingest_api_token'] ?? ''));
-            if ($dbBridge !== '') {
-                $candidates[] = $dbBridge;
-            }
-            if ($dbIngest !== '') {
-                $candidates[] = $dbIngest;
-            }
         }
 
         $db->close();

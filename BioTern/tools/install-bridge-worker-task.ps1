@@ -3,6 +3,7 @@ param(
     [string]$SiteBaseUrl,
     [Parameter(Mandatory = $true)]
     [string]$BridgeToken,
+    [string]$BridgeProfileName = "",
     [string]$TaskName = 'BioTernBridgeWorker',
     $PreferLocalConnectorNetwork = $false,
     [switch]$ForceUserTask
@@ -43,7 +44,11 @@ if (-not (Test-Path $scriptPath)) {
 
 $pwsh = (Get-Command powershell.exe).Source
 $preferLocalNumeric = if ($PreferLocalConnectorNetwork) { 1 } else { 0 }
-$taskArguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$scriptPath`" -SiteBaseUrl `"$SiteBaseUrl`" -BridgeToken `"$BridgeToken`" -WorkspaceRoot `"$workspaceRoot`" -PreferLocalConnectorNetwork $preferLocalNumeric"
+$profileArgument = ''
+if (-not [string]::IsNullOrWhiteSpace($BridgeProfileName)) {
+    $profileArgument = " -BridgeProfileName `"$BridgeProfileName`""
+}
+$taskArguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$scriptPath`" -SiteBaseUrl `"$SiteBaseUrl`" -BridgeToken `"$BridgeToken`"$profileArgument -WorkspaceRoot `"$workspaceRoot`" -PreferLocalConnectorNetwork $preferLocalNumeric"
 
 $action = New-ScheduledTaskAction -Execute $pwsh -Argument $taskArguments
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1)

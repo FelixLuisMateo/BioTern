@@ -41,6 +41,7 @@ function bridge_commands_complete_ensure_queue_table(mysqli $conn): void
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         command_name VARCHAR(80) NOT NULL,
         command_payload LONGTEXT NULL,
+        target_profile VARCHAR(100) NOT NULL DEFAULT 'default',
         status VARCHAR(32) NOT NULL DEFAULT 'queued',
         requested_by INT NOT NULL DEFAULT 0,
         source VARCHAR(80) NOT NULL DEFAULT 'machine_manager',
@@ -52,8 +53,24 @@ function bridge_commands_complete_ensure_queue_table(mysqli $conn): void
         attempts INT NOT NULL DEFAULT 0,
         PRIMARY KEY (id),
         KEY idx_status_created (status, created_at),
+        KEY idx_target_profile_status (target_profile, status, created_at),
         KEY idx_claimed_by (claimed_by)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $targetProfileCol = $conn->query("SHOW COLUMNS FROM biometric_bridge_command_queue LIKE 'target_profile'");
+    if (!($targetProfileCol instanceof mysqli_result) || $targetProfileCol->num_rows === 0) {
+        $conn->query("ALTER TABLE biometric_bridge_command_queue ADD COLUMN target_profile VARCHAR(100) NOT NULL DEFAULT 'default' AFTER command_payload");
+    }
+    if ($targetProfileCol instanceof mysqli_result) {
+        $targetProfileCol->close();
+    }
+    $targetProfileIndex = $conn->query("SHOW INDEX FROM biometric_bridge_command_queue WHERE Key_name = 'idx_target_profile_status'");
+    if (!($targetProfileIndex instanceof mysqli_result) || $targetProfileIndex->num_rows === 0) {
+        $conn->query("CREATE INDEX idx_target_profile_status ON biometric_bridge_command_queue (target_profile, status, created_at)");
+    }
+    if ($targetProfileIndex instanceof mysqli_result) {
+        $targetProfileIndex->close();
+    }
 }
 
 function bridge_commands_complete_request_token(): string
@@ -112,10 +129,26 @@ $conn->set_charset('utf8mb4');
 bridge_commands_complete_ensure_profile_table($conn);
 bridge_commands_complete_ensure_queue_table($conn);
 
-$profileRes = $conn->query("SELECT * FROM biometric_bridge_profile WHERE profile_name = 'default' LIMIT 1");
+$requestedProfileName = trim((string)($_SERVER['HTTP_X_BRIDGE_PROFILE'] ?? $_GET['profile_name'] ?? ''));
+$safeRequestedProfile = preg_match('/^[A-Za-z0-9_-]{1,100}$/', $requestedProfileName) ? $conn->real_escape_string($requestedProfileName) : '';
+$profileSql = $safeRequestedProfile !== ''
+    ? "SELECT * FROM biometric_bridge_profile WHERE profile_name = '{$safeRequestedProfile}' LIMIT 1"
+    : "SELECT * FROM biometric_bridge_profile ORDER BY profile_name = 'default' DESC, id ASC";
+$profileRes = $conn->query($profileSql);
 $profile = [];
 if ($profileRes instanceof mysqli_result) {
-    $profile = $profileRes->fetch_assoc() ?: [];
+    while ($row = $profileRes->fetch_assoc()) {
+        if ($safeRequestedProfile !== '') {
+            $profile = $row;
+            break;
+        }
+        foreach (bridge_commands_complete_token_candidates($row) as $candidate) {
+            if (hash_equals((string)$candidate, bridge_commands_complete_request_token())) {
+                $profile = $row;
+                break 2;
+            }
+        }
+    }
     $profileRes->close();
 }
 if ($profile === []) {

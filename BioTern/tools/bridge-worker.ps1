@@ -4,6 +4,7 @@ param(
     [string]$SiteBaseUrl,
     [Parameter(Mandatory = $true)]
     [string]$BridgeToken,
+    [string]$BridgeProfileName = "",
     [string]$WorkspaceRoot = "",
     [int]$DefaultPollSeconds = 30,
     $PreferLocalConnectorNetwork = $false
@@ -40,19 +41,29 @@ if ([string]::IsNullOrWhiteSpace($WorkspaceRoot)) {
     $WorkspaceRoot = Split-Path -Parent $PSScriptRoot
 }
 
-$connectorConfigPath = Join-Path $WorkspaceRoot 'tools\biometric_machine_config.json'
+$bridgeLocalSuffix = ''
+if (-not [string]::IsNullOrWhiteSpace($BridgeProfileName) -and $BridgeProfileName.Trim().ToLowerInvariant() -ne 'default') {
+    $safeProfileName = ($BridgeProfileName.Trim() -replace '[^A-Za-z0-9_-]', '_')
+    $bridgeLocalSuffix = '-' + $safeProfileName
+}
+
+$connectorConfigFileName = if ($bridgeLocalSuffix -eq '') { 'biometric_machine_config.json' } else { 'biometric_machine_{0}_config.json' -f ($bridgeLocalSuffix.TrimStart('-')) }
+$connectorConfigPath = Join-Path $WorkspaceRoot ('tools\{0}' -f $connectorConfigFileName)
 $connectorExePath = Join-Path $WorkspaceRoot 'tools\device_connector\bin\Release\net9.0-windows\BioTernMachineConnector.exe'
 $connectorDllPath = Join-Path $WorkspaceRoot 'tools\device_connector\bin\Release\net9.0-windows\BioTernMachineConnector.dll'
-$bridgeLogPath = Join-Path $WorkspaceRoot 'tools\bridge-worker.log'
-$bridgePendingIngestPath = Join-Path $WorkspaceRoot 'tools\bridge-pending-ingest.json'
-$bridgeBackfillStatePath = Join-Path $WorkspaceRoot 'tools\bridge-backfill-state.json'
-$bridgeProfileCachePath = Join-Path $WorkspaceRoot 'tools\bridge-profile-cache.json'
-$bridgeHoldingRootPath = Join-Path $WorkspaceRoot 'tools\bridge-holding'
+$bridgeLogPath = Join-Path $WorkspaceRoot ('tools\bridge-worker{0}.log' -f $bridgeLocalSuffix)
+$bridgePendingIngestPath = Join-Path $WorkspaceRoot ('tools\bridge-pending-ingest{0}.json' -f $bridgeLocalSuffix)
+$bridgeBackfillStatePath = Join-Path $WorkspaceRoot ('tools\bridge-backfill-state{0}.json' -f $bridgeLocalSuffix)
+$bridgeProfileCachePath = Join-Path $WorkspaceRoot ('tools\bridge-profile-cache{0}.json' -f $bridgeLocalSuffix)
+$bridgeHoldingRootPath = Join-Path $WorkspaceRoot ('tools\bridge-holding{0}' -f $bridgeLocalSuffix)
 $bridgeHoldingPendingPath = Join-Path $bridgeHoldingRootPath 'pending'
 $bridgeHoldingUploadedPath = Join-Path $bridgeHoldingRootPath 'uploaded'
 $bridgeNodeName = $env:COMPUTERNAME
 if ([string]::IsNullOrWhiteSpace($bridgeNodeName)) {
     $bridgeNodeName = [System.Net.Dns]::GetHostName()
+}
+if ($bridgeLocalSuffix -ne '') {
+    $bridgeNodeName = ('{0}{1}' -f $bridgeNodeName, $bridgeLocalSuffix)
 }
 
 $script:BridgeWorkerMutex = $null
@@ -94,8 +105,8 @@ function Get-PreferredNetworkOverride {
 
 function Enter-BridgeWorkerSingleInstance {
     $mutexNameCandidates = @(
-        'Global\BioTernBridgeWorkerMainLoop',
-        'Local\BioTernBridgeWorkerMainLoop'
+        ('Global\BioTernBridgeWorkerMainLoop{0}' -f $bridgeLocalSuffix),
+        ('Local\BioTernBridgeWorkerMainLoop{0}' -f $bridgeLocalSuffix)
     )
 
     foreach ($mutexName in $mutexNameCandidates) {
@@ -168,9 +179,13 @@ function Write-BridgeLog {
 function Get-BridgeConfigRemote {
     $base = $SiteBaseUrl.TrimEnd('/')
     $tokenQuery = [uri]::EscapeDataString($BridgeToken)
+    $profileQuery = ''
+    if (-not [string]::IsNullOrWhiteSpace($BridgeProfileName)) {
+        $profileQuery = '&profile_name=' + [uri]::EscapeDataString($BridgeProfileName)
+    }
     $candidates = @(
-        ('{0}/bridge_profile.php?bridge_token={1}' -f $base, $tokenQuery),
-        ('{0}/api/bridge_profile.php?bridge_token={1}' -f $base, $tokenQuery)
+        ('{0}/bridge_profile.php?bridge_token={1}{2}' -f $base, $tokenQuery, $profileQuery),
+        ('{0}/api/bridge_profile.php?bridge_token={1}{2}' -f $base, $tokenQuery, $profileQuery)
     )
 
     $headers = Get-BridgeRequestHeaders
@@ -247,6 +262,9 @@ function Get-BridgeRequestHeaders {
 
     if (-not [string]::IsNullOrWhiteSpace($BridgeToken)) {
         $headers['X-BRIDGE-TOKEN'] = $BridgeToken
+    }
+    if (-not [string]::IsNullOrWhiteSpace($BridgeProfileName)) {
+        $headers['X-BRIDGE-PROFILE'] = $BridgeProfileName
     }
     if (-not [string]::IsNullOrWhiteSpace($bridgeNodeName)) {
         $headers['X-BRIDGE-NODE'] = $bridgeNodeName

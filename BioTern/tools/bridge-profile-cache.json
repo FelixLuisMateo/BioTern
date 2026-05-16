@@ -1,4 +1,5 @@
 ﻿{
+    "profile_name":  "default",
     "bridge_enabled":  true,
     "selected_bridge_preset":  "laptop_router_1",
     "cloud_base_url":  "https://biotern-ccst.vercel.app",

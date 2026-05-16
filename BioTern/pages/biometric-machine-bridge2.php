@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/tools/biometric_machine_runtime.php';
 require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
@@ -36,7 +36,7 @@ $configRaw = '';
 $ringSetRaw = '';
 $networkRaw = '';
 $timeRaw = '';
-$machineConfigPath = dirname(__DIR__) . '/tools/biometric_machine_bridge2_config.json';
+$machineConfigPath = dirname(__DIR__) . '/tools/biometric_machine_bridge_2_config.json';
 $machineConfigJson = file_exists($machineConfigPath) ? trim((string)file_get_contents($machineConfigPath)) : '';
 $legacyAttendanceOutputPath = 'C:\\BioTern\\attendance.txt';
 $defaultAttendanceOutputPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'attendance-bridge2.txt';
@@ -85,7 +85,7 @@ function machine_open_bridge_log_tail_shell(string $workspaceRoot): void
         throw new RuntimeException('Bridge log tail launcher is only available on Windows hosts.');
     }
 
-    $logPath = $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'bridge-worker.log';
+    $logPath = $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'bridge-worker-bridge_2.log';
     $logArg = str_replace('"', '""', $logPath);
     $launchCmd = 'start "BioTern Bridge Logs" powershell.exe -NoExit -ExecutionPolicy Bypass -Command "Get-Content -Path \""' . $logArg . '"\" -Tail 80 -Wait"';
     pclose(popen($launchCmd, 'r'));
@@ -243,7 +243,7 @@ function machine_probe_bridge_profile_endpoint(string $baseUrl, string $bridgeTo
         return ['ok' => false, 'status' => 0, 'url' => '', 'message' => 'Cloud base URL and bridge token are required.'];
     }
 
-    $url = $base . '/bridge_profile.php?bridge_token=' . rawurlencode($bridgeToken);
+    $url = $base . '/bridge_profile.php?bridge_token=' . rawurlencode($bridgeToken) . '&profile_name=bridge_2';
     $context = stream_context_create([
         'http' => [
             'method' => 'GET',
@@ -765,6 +765,7 @@ function machine_ensure_bridge_command_queue_table(mysqli $conn): void
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         command_name VARCHAR(80) NOT NULL,
         command_payload LONGTEXT NULL,
+        target_profile VARCHAR(100) NOT NULL DEFAULT 'bridge_2',
         status VARCHAR(32) NOT NULL DEFAULT 'queued',
         requested_by INT NOT NULL DEFAULT 0,
         source VARCHAR(80) NOT NULL DEFAULT 'machine_manager',
@@ -776,8 +777,24 @@ function machine_ensure_bridge_command_queue_table(mysqli $conn): void
         attempts INT NOT NULL DEFAULT 0,
         PRIMARY KEY (id),
         KEY idx_status_created (status, created_at),
+        KEY idx_target_profile_status (target_profile, status, created_at),
         KEY idx_claimed_by (claimed_by)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $targetProfileCol = $conn->query("SHOW COLUMNS FROM biometric_bridge_command_queue LIKE 'target_profile'");
+    if (!($targetProfileCol instanceof mysqli_result) || $targetProfileCol->num_rows === 0) {
+        $conn->query("ALTER TABLE biometric_bridge_command_queue ADD COLUMN target_profile VARCHAR(100) NOT NULL DEFAULT 'default' AFTER command_payload");
+    }
+    if ($targetProfileCol instanceof mysqli_result) {
+        $targetProfileCol->close();
+    }
+    $targetProfileIndex = $conn->query("SHOW INDEX FROM biometric_bridge_command_queue WHERE Key_name = 'idx_target_profile_status'");
+    if (!($targetProfileIndex instanceof mysqli_result) || $targetProfileIndex->num_rows === 0) {
+        $conn->query("CREATE INDEX idx_target_profile_status ON biometric_bridge_command_queue (target_profile, status, created_at)");
+    }
+    if ($targetProfileIndex instanceof mysqli_result) {
+        $targetProfileIndex->close();
+    }
 }
 
 function machine_enqueue_bridge_command(mysqli $conn, string $commandName, array $payload, int $requestedBy): int
@@ -794,12 +811,13 @@ function machine_enqueue_bridge_command(mysqli $conn, string $commandName, array
         throw new RuntimeException('Failed to encode bridge command payload.');
     }
 
-    $stmt = $conn->prepare('INSERT INTO biometric_bridge_command_queue (command_name, command_payload, status, requested_by, source) VALUES (?, ?, \'queued\', ?, \'machine_manager\')');
+    $targetProfile = 'bridge_2';
+    $stmt = $conn->prepare('INSERT INTO biometric_bridge_command_queue (command_name, command_payload, target_profile, status, requested_by, source) VALUES (?, ?, ?, \'queued\', ?, \'machine_manager\')');
     if (!$stmt) {
         throw new RuntimeException('Failed to prepare bridge command queue insert. DB error: ' . (string)$conn->error);
     }
 
-    $stmt->bind_param('ssi', $commandName, $payloadJson, $requestedBy);
+    $stmt->bind_param('sssi', $commandName, $payloadJson, $targetProfile, $requestedBy);
     if (!$stmt->execute()) {
         $error = (string)$stmt->error;
         $stmt->close();
@@ -1465,8 +1483,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $baseUrl,
                     '-BridgeToken',
                     $bridgeToken,
+                    '-BridgeProfileName',
+                    'bridge_2',
                     '-TaskName',
-                    'BioTernBridgeWorker',
+                    'BioTernBridgeWorkerBridge2',
                     '-PreferLocalConnectorNetwork',
                     '0',
                 ]);
@@ -1483,7 +1503,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     '-Action',
                     'restart',
                     '-TaskName',
-                    'BioTernBridgeWorker',
+                    'BioTernBridgeWorkerBridge2',
                 ]);
                 if ((int)$restartResult['exit_code'] !== 0) {
                     throw new RuntimeException($restartResult['output'] !== '' ? $restartResult['output'] : 'Bridge revive restart command failed.');
@@ -1491,7 +1511,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $_SESSION['machine_manager_flash'] = [
                     'type' => 'success',
-                    'message' => trim("Bridge connection revived. Profile enabled, auto-start task repaired, and BioTernBridgeWorker restarted.\n"
+                    'message' => trim("Bridge connection revived. Profile enabled, auto-start task repaired, and BioTernBridgeWorkerBridge2 restarted.\n"
                         . trim((string)$repairResult['output']) . "\n"
                         . trim((string)$restartResult['output'])),
                 ];
@@ -1529,8 +1549,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $baseUrl,
                     '-BridgeToken',
                     $bridgeToken,
+                    '-BridgeProfileName',
+                    'bridge_2',
                     '-TaskName',
-                    'BioTernBridgeWorker',
+                    'BioTernBridgeWorkerBridge2',
                     '-PreferLocalConnectorNetwork',
                     '0',
                 ]);
@@ -1556,7 +1578,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     '-Action',
                     'restart',
                     '-TaskName',
-                    'BioTernBridgeWorker',
+                    'BioTernBridgeWorkerBridge2',
                 ]);
 
                 if ((int)$result['exit_code'] !== 0) {
@@ -2068,7 +2090,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'output_path' => $bridgeOutputPath,
                 ], (int)($_SESSION['user_id'] ?? 0));
 
-                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Laptop bridge profile saved. Token: ' . $bridgeToken];
+                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Bridge 2 profile saved. Token: ' . $bridgeToken];
                 machine_redirect_after_post([]);
 
             case 'pause_bridge_for_enrollment':
@@ -2130,7 +2152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $_SESSION['machine_manager_flash'] = [
                     'type' => 'success',
-                    'message' => 'Laptop Bridge (Router 1) defaults were applied and saved to shared bridge profile. Bridge token: ' . $bridgeToken,
+                    'message' => 'Laptop Bridge (Router 1) defaults were applied and saved to Bridge 2 profile. Bridge token: ' . $bridgeToken,
                 ];
                 machine_redirect_after_post([]);
 
@@ -2177,7 +2199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $_SESSION['machine_manager_flash'] = [
                     'type' => 'success',
-                    'message' => 'Computer Bridge (Router 2) defaults were applied and saved to shared bridge profile. Bridge token: ' . $bridgeToken,
+                    'message' => 'Computer Bridge (Router 2) defaults were applied and saved to Bridge 2 profile. Bridge token: ' . $bridgeToken,
                 ];
                 machine_redirect_after_post([]);
 
@@ -2317,7 +2339,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $message = ($probe['ok'] ? 'Bridge test passed. ' : 'Bridge test failed. ') . ($probe['message'] ?? '');
                 if (empty($probe['ok']) && (int)($probe['status'] ?? 0) === 401) {
-                    $message .= ' HTTP 401 means token mismatch between saved bridge token and live API expectation. Click Fill Shared Bridge (Router 2), then Save Bridge Profile, then test again.';
+                    $message .= ' HTTP 401 means token mismatch between saved Bridge 2 token and live API expectation. Click Fill Bridge 2 (Router 2), then Save Bridge 2 Profile, then test again.';
                 }
                 $_SESSION['machine_manager_flash'] = [
                     'type' => $probe['ok'] ? 'success' : 'warning',
@@ -2620,16 +2642,18 @@ if ($bridgeProfileBaseUrl === '') {
 $bridgeWorkerCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\bridge-worker.ps1"'
     . ' -SiteBaseUrl "' . str_replace('"', '\\"', $bridgeProfileBaseUrl) . '"'
     . ' -BridgeToken "' . str_replace('"', '\\"', $bridgeToken !== '' ? $bridgeToken : 'YOUR_BRIDGE_TOKEN') . '"'
+    . ' -BridgeProfileName "bridge_2"'
     . ' -WorkspaceRoot "."'
     . ' -PreferLocalConnectorNetwork 0';
 
 $bridgeTaskInstallCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\install-bridge-worker-task.ps1"'
     . ' -SiteBaseUrl "' . str_replace('"', '\\"', $bridgeProfileBaseUrl) . '"'
     . ' -BridgeToken "' . str_replace('"', '\\"', $bridgeToken !== '' ? $bridgeToken : 'YOUR_BRIDGE_TOKEN') . '"'
-    . ' -TaskName "BioTernBridgeWorker"'
+    . ' -BridgeProfileName "bridge_2"'
+    . ' -TaskName "BioTernBridgeWorkerBridge2"'
     . ' -PreferLocalConnectorNetwork 0';
 
-$bridgeTaskStatusCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\manage-bridge-worker-task.ps1" -Action status -TaskName "BioTernBridgeWorker"';
+$bridgeTaskStatusCommand = 'powershell -NoProfile -ExecutionPolicy Bypass -File ".\\tools\\manage-bridge-worker-task.ps1" -Action status -TaskName "BioTernBridgeWorkerBridge2"';
 
 $selectedBridgePreset = 'laptop_custom';
 $savedBridgePreset = trim((string)($bridgeProfile['selected_bridge_preset'] ?? ''));
@@ -2797,7 +2821,7 @@ include __DIR__ . '/../includes/header.php';
                         <p><?php echo machine_h((string)($bridgeRuntimeStatus['detail'] ?? '')); ?></p>
                         <?php if ($isAdmin): ?>
                             <div class="d-flex flex-wrap gap-2 mb-2">
-                                <form method="post" class="d-inline" data-confirm="Revive the bridge connection? On the bridge PC this repairs and restarts BioTernBridgeWorker.">
+                                <form method="post" class="d-inline" data-confirm="Revive the bridge connection? On the bridge PC this repairs and restarts BioTernBridgeWorkerBridge2.">
                                     <input type="hidden" name="machine_action" value="revive_bridge_connection">
                                     <button type="submit" class="btn btn-success btn-sm">Revive Bridge Connection</button>
                                 </form>
@@ -2933,7 +2957,7 @@ include __DIR__ . '/../includes/header.php';
                                 <input type="hidden" name="machine_action" value="process_old_logs">
                                 <button type="submit" class="btn btn-outline-primary w-100">Process Old Logs</button>
                             </form>
-                            <form method="post" class="mt-2" data-confirm="Revive the bridge connection now? This enables the bridge profile, repairs auto-start, and restarts BioTernBridgeWorker.">
+                            <form method="post" class="mt-2" data-confirm="Revive the bridge connection now? This enables the bridge profile, repairs auto-start, and restarts BioTernBridgeWorkerBridge2.">
                                 <input type="hidden" name="machine_action" value="revive_bridge_connection">
                                 <button type="submit" class="btn btn-success w-100">Revive Bridge Connection</button>
                             </form>
@@ -2958,11 +2982,11 @@ include __DIR__ . '/../includes/header.php';
                                 <button type="submit" class="btn btn-outline-secondary w-100">Open PowerShell: Bridge Log Tail</button>
                             </form>
                         <?php elseif ($isAdmin && $cloudRuntime): ?>
-                            <form method="post" class="mt-2" data-confirm="Revive the shared bridge profile? To restart the Windows task itself, use this same button from the bridge PC.">
+                            <form method="post" class="mt-2" data-confirm="Revive the Bridge 2 profile? To restart the Windows task itself, use this same button from the bridge PC.">
                                 <input type="hidden" name="machine_action" value="revive_bridge_connection">
                                 <button type="submit" class="btn btn-success w-100">Revive Bridge Profile</button>
                             </form>
-                            <div class="alert alert-info mt-2 mb-0 fs-12">Cloud can keep the bridge profile enabled, but only the local Windows bridge PC can restart BioTernBridgeWorker.</div>
+                            <div class="alert alert-info mt-2 mb-0 fs-12">Cloud can keep the bridge profile enabled, but only the local Windows bridge PC can restart BioTernBridgeWorkerBridge2.</div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -3167,7 +3191,7 @@ include __DIR__ . '/../includes/header.php';
 
             <div class="col-xl-6">
                 <div class="card stretch stretch-full">
-                    <div class="card-header"><h6 class="card-title mb-0">Laptop Bridge Profile</h6></div>
+                    <div class="card-header"><h6 class="card-title mb-0">Bridge 2 Profile</h6></div>
                     <div class="card-body">
                         <div class="machine-config-pane h-100">
                             <div class="text-muted fs-12 mb-3">Use this profile for your laptop bridge worker now. It is saved in Railway and used by Vercel endpoints.</div>
@@ -3215,7 +3239,7 @@ include __DIR__ . '/../includes/header.php';
                                     </div>
                                     <div class="col-sm-4">
                                         <label class="form-label">Bridge Token</label>
-                                        <input type="text" name="bridge_token" id="bridgeTokenField" class="form-control" value="<?php echo machine_h($bridgeToken); ?>" placeholder="shared token for bridge_profile.php">
+                                        <input type="text" name="bridge_token" id="bridgeTokenField" class="form-control" value="<?php echo machine_h($bridgeToken); ?>" placeholder="Bridge 2 token for bridge_profile.php">
                                     </div>
                                     <div class="col-sm-6">
                                         <label class="form-label">Cloud Base URL</label>
@@ -3284,11 +3308,11 @@ include __DIR__ . '/../includes/header.php';
                                         <small class="text-muted">Use manual start only if task install is unavailable.</small>
                                     </div>
                                     <div class="col-12 d-flex flex-wrap gap-2">
-                                        <button type="submit" class="btn btn-secondary btn-sm">Save Laptop Bridge Profile</button>
-                                        <button type="submit" class="btn btn-outline-primary btn-sm" formaction="" formmethod="post" name="machine_action" value="quick_fill_bridge_router_1">Fill Shared Bridge (Router 1)</button>
-                                        <button type="submit" class="btn btn-outline-primary btn-sm" formaction="" formmethod="post" name="machine_action" value="quick_fill_bridge_router_2">Fill Shared Bridge (Router 2)</button>
-                                        <button type="submit" class="btn btn-outline-info btn-sm" formaction="" formmethod="post" name="machine_action" value="test_bridge_profile">Test Shared Bridge</button>
-                                        <small class="text-muted align-self-center">Laptop worker fetches this profile from /bridge_profile.php using the bridge token.</small>
+                                        <button type="submit" class="btn btn-secondary btn-sm">Save Bridge 2 Profile</button>
+                                        <button type="submit" class="btn btn-outline-primary btn-sm" formaction="" formmethod="post" name="machine_action" value="quick_fill_bridge_router_1">Fill Bridge 2 (Router 1)</button>
+                                        <button type="submit" class="btn btn-outline-primary btn-sm" formaction="" formmethod="post" name="machine_action" value="quick_fill_bridge_router_2">Fill Bridge 2 (Router 2)</button>
+                                        <button type="submit" class="btn btn-outline-info btn-sm" formaction="" formmethod="post" name="machine_action" value="test_bridge_profile">Test Bridge 2</button>
+                                        <small class="text-muted align-self-center">Bridge 2 worker fetches profile_name=bridge_2 from /bridge_profile.php using this token.</small>
                                             <?php if ($isAdmin && strtolower((string)($bridgeProfile['profile_name'] ?? 'default')) !== 'default'): ?>
                                                 <form method="post" class="d-inline ms-2" onsubmit="return confirm('Delete this bridge profile? This cannot be undone.');">
                                                     <input type="hidden" name="machine_action" value="delete_bridge_profile">
@@ -4017,4 +4041,3 @@ include __DIR__ . '/../includes/header.php';
     data-machine-queue-watch-url="biometric-machine-bridge2.php?queue_watch_status=1"></div>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
-

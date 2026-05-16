@@ -1,0 +1,17 @@
+{
+    "outputPath": "C:\\xampp\\htdocs\\BioTern\\BioTern\\attendance-bridge2.txt",
+    "attendanceEndTime": "20:00:00",
+    "ipAddress": "192.168.110.201",
+    "attendanceWindowEnabled": false,
+    "duplicateGuardMinutes": 10,
+    "deviceNumber": 1,
+    "gateway": "192.168.110.1",
+    "autoImportOnIngest": false,
+    "mask": "255.255.255.0",
+    "communicationPassword": "0",
+    "selectedRouterPreset": "router_2",
+    "syncMode": "connector_fallback",
+    "slotAdvanceMinimumMinutes": 10,
+    "port": 5001,
+    "attendanceStartTime": "08:00:00"
+}
