@@ -363,6 +363,20 @@ $orphanMappings = array_values(array_filter($studentMappings, static function (a
 }));
 
 $detectedFingerprints = [];
+$formatMappingDate = static function (?string $value, bool $withTime = true): string {
+    $raw = trim((string)$value);
+    if ($raw === '') {
+        return 'N/A';
+    }
+
+    $timestamp = strtotime($raw);
+    if ($timestamp === false) {
+        return $raw;
+    }
+
+    return date($withTime ? 'M d, Y h:i A' : 'M d, Y', $timestamp);
+};
+
 $extractFingerId = static function (array $entry): int {
     $candidates = [
         $entry['finger_id'] ?? null,
@@ -389,6 +403,45 @@ $extractFingerId = static function (array $entry): int {
     return 0;
 };
 
+$extractMachineEnrollmentDate = static function (array $entry): string {
+    $keys = [
+        'enrolled_at', 'registered_at', 'created_at',
+        'enroll_date', 'enrollDate', 'EnrollDate',
+        'enroll_time', 'enrollTime', 'EnrollTime',
+        'registration_date', 'registrationDate', 'RegistrationDate',
+        'reg_time', 'regTime', 'RegTime',
+    ];
+
+    foreach ($keys as $key) {
+        if (array_key_exists($key, $entry)) {
+            $value = trim((string)$entry[$key]);
+            if ($value !== '') {
+                return $value;
+            }
+        }
+    }
+
+    return '';
+};
+
+$olderDateValue = static function (string $current, string $candidate): string {
+    $candidate = trim($candidate);
+    if ($candidate === '') {
+        return $current;
+    }
+    if ($current === '') {
+        return $candidate;
+    }
+
+    $currentTs = strtotime($current);
+    $candidateTs = strtotime($candidate);
+    if ($currentTs === false || $candidateTs === false) {
+        return $current;
+    }
+
+    return $candidateTs < $currentTs ? $candidate : $current;
+};
+
 $rawLogRes = $conn->query('SELECT raw_data FROM biometric_raw_logs ORDER BY id DESC');
 if ($rawLogRes instanceof mysqli_result) {
     while ($row = $rawLogRes->fetch_assoc()) {
@@ -404,6 +457,7 @@ if ($rawLogRes instanceof mysqli_result) {
         $fingerId = $extractFingerId($entry);
         $timeValue = trim((string)($entry['time'] ?? ''));
         $rawMachineName = trim((string)($entry['name'] ?? $entry['Name'] ?? $entry['user_name'] ?? $entry['username'] ?? $entry['userName'] ?? $entry['UserName'] ?? ''));
+        $machineEnrolledAt = $extractMachineEnrollmentDate($entry);
         if ($fingerId <= 0) {
             continue;
         }
@@ -412,6 +466,8 @@ if ($rawLogRes instanceof mysqli_result) {
             $detectedFingerprints[$fingerId] = [
                 'finger_id' => $fingerId,
                 'last_seen' => $timeValue,
+                'first_seen' => $timeValue,
+                'machine_enrolled_at' => $machineEnrolledAt,
                 'machine_user_name' => $rawMachineName,
                 'machine_is_admin' => false,
                 'machine_admin_label' => '',
@@ -421,9 +477,17 @@ if ($rawLogRes instanceof mysqli_result) {
                 'student_name' => '',
                 'student_number' => '',
                 'mapped_created_at' => '',
+                'mapped_updated_at' => '',
             ];
         } elseif ($rawMachineName !== '' && trim((string)($detectedFingerprints[$fingerId]['machine_user_name'] ?? '')) === '') {
             $detectedFingerprints[$fingerId]['machine_user_name'] = $rawMachineName;
+            $detectedFingerprints[$fingerId]['first_seen'] = $olderDateValue((string)($detectedFingerprints[$fingerId]['first_seen'] ?? ''), $timeValue);
+        } else {
+            $detectedFingerprints[$fingerId]['first_seen'] = $olderDateValue((string)($detectedFingerprints[$fingerId]['first_seen'] ?? ''), $timeValue);
+        }
+
+        if ($machineEnrolledAt !== '' && trim((string)($detectedFingerprints[$fingerId]['machine_enrolled_at'] ?? '')) === '') {
+            $detectedFingerprints[$fingerId]['machine_enrolled_at'] = $machineEnrolledAt;
         }
     }
     $rawLogRes->close();
@@ -523,6 +587,7 @@ if ($bridgeCacheRes instanceof mysqli_result) {
                 }
 
                 $machineName = trim($machineRowValue($userRow, ['name', 'Name', 'user_name', 'username', 'userName', 'UserName', 'full_name', 'FullName', 'EnrollName', 'enrollName']));
+                $machineEnrolledAt = $extractMachineEnrollmentDate($userRow);
                 $machineAdminMeta = $extractMachineAdminMeta($userRow);
                 $machineIsAdmin = !empty($machineAdminMeta['is_admin']);
                 $machineAdminLabel = trim((string)($machineAdminMeta['label'] ?? ''));
@@ -531,6 +596,8 @@ if ($bridgeCacheRes instanceof mysqli_result) {
                     $detectedFingerprints[$fingerId] = [
                         'finger_id' => $fingerId,
                         'last_seen' => '',
+                        'first_seen' => '',
+                        'machine_enrolled_at' => $machineEnrolledAt,
                         'machine_user_name' => $machineName,
                         'machine_is_admin' => $machineIsAdmin,
                         'machine_admin_label' => $machineAdminLabel,
@@ -540,9 +607,13 @@ if ($bridgeCacheRes instanceof mysqli_result) {
                         'student_name' => '',
                         'student_number' => '',
                         'mapped_created_at' => '',
+                        'mapped_updated_at' => '',
                     ];
                 } elseif ($machineName !== '' && trim((string)($detectedFingerprints[$fingerId]['machine_user_name'] ?? '')) === '') {
                     $detectedFingerprints[$fingerId]['machine_user_name'] = $machineName;
+                }
+                if ($machineEnrolledAt !== '' && trim((string)($detectedFingerprints[$fingerId]['machine_enrolled_at'] ?? '')) === '') {
+                    $detectedFingerprints[$fingerId]['machine_enrolled_at'] = $machineEnrolledAt;
                 }
 
                 if ($machineIsAdmin) {
@@ -566,6 +637,8 @@ foreach ($mappings as $mapping) {
         $detectedFingerprints[$fingerId] = [
             'finger_id' => $fingerId,
             'last_seen' => '',
+            'first_seen' => '',
+            'machine_enrolled_at' => '',
             'machine_user_name' => '',
             'machine_is_admin' => false,
             'machine_admin_label' => '',
@@ -575,6 +648,7 @@ foreach ($mappings as $mapping) {
             'student_name' => '',
             'student_number' => '',
             'mapped_created_at' => '',
+            'mapped_updated_at' => '',
         ];
     }
 
@@ -584,6 +658,7 @@ foreach ($mappings as $mapping) {
     $detectedFingerprints[$fingerId]['student_name'] = trim((string)($mapping['student_name'] ?? ''));
     $detectedFingerprints[$fingerId]['student_number'] = (string)($mapping['student_number'] ?? '');
     $detectedFingerprints[$fingerId]['mapped_created_at'] = (string)($mapping['created_at'] ?? '');
+    $detectedFingerprints[$fingerId]['mapped_updated_at'] = (string)($mapping['updated_at'] ?? '');
 }
 
 ksort($detectedFingerprints);
@@ -1029,8 +1104,14 @@ ob_end_flush();
                                     <td>
                                         <?php $createdAt = (string)($map['created_at'] ?? ''); ?>
                                         <?php $updatedAt = (string)($map['updated_at'] ?? ''); ?>
-                                        <div class="text-muted small">Created: <?php echo $createdAt !== '' ? htmlspecialchars(date('M d, Y h:i A', strtotime($createdAt)), ENT_QUOTES, 'UTF-8') : 'N/A'; ?></div>
-                                        <div class="text-muted small">Updated: <?php echo $updatedAt !== '' ? htmlspecialchars(date('M d, Y h:i A', strtotime($updatedAt)), ENT_QUOTES, 'UTF-8') : 'N/A'; ?></div>
+                                        <?php $fingerInfo = $detectedFingerprints[(int)($map['finger_id'] ?? 0)] ?? []; ?>
+                                        <?php $fingerEnrolledAt = trim((string)($fingerInfo['machine_enrolled_at'] ?? '')); ?>
+                                        <?php $fingerFirstSeen = trim((string)($fingerInfo['first_seen'] ?? '')); ?>
+                                        <?php $fingerDateLabel = $fingerEnrolledAt !== '' ? 'Finger enrolled' : 'Finger first seen'; ?>
+                                        <?php $fingerDateValue = $fingerEnrolledAt !== '' ? $fingerEnrolledAt : $fingerFirstSeen; ?>
+                                        <div class="text-muted small"><?php echo htmlspecialchars($fingerDateLabel, ENT_QUOTES, 'UTF-8'); ?>: <?php echo htmlspecialchars($formatMappingDate($fingerDateValue), ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <div class="text-muted small">Student enrolled: <?php echo htmlspecialchars($formatMappingDate((string)($map['enrolled_at'] ?? ''), false), ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <div class="text-muted small">Mapped to student: <?php echo htmlspecialchars($formatMappingDate($updatedAt !== '' ? $updatedAt : $createdAt), ENT_QUOTES, 'UTF-8'); ?></div>
                                     </td>
                                     <td class="text-end">
                                         <div class="fingerprint-actions ms-auto">
@@ -1174,7 +1255,8 @@ ob_end_flush();
                                                     (<?php echo htmlspecialchars((string)$fingerprint['student_number'], ENT_QUOTES, 'UTF-8'); ?>)
                                                 <?php endif; ?>
                                             </small>
-                                            <div class="text-muted small">Mapped: <?php echo $fingerprint['mapped_created_at'] !== '' ? htmlspecialchars(date('M d, Y h:i A', strtotime((string)$fingerprint['mapped_created_at'])), ENT_QUOTES, 'UTF-8') : 'N/A'; ?></div>
+                                            <?php $detectedMappedAt = (string)($fingerprint['mapped_updated_at'] ?? ($fingerprint['mapped_created_at'] ?? '')); ?>
+                                            <div class="text-muted small">Mapped to student: <?php echo htmlspecialchars($formatMappingDate($detectedMappedAt), ENT_QUOTES, 'UTF-8'); ?></div>
                                         <?php else: ?>
                                             <span class="text-muted">Not mapped yet</span>
                                             <?php if (!empty($fingerprint['machine_user_name'])): ?>

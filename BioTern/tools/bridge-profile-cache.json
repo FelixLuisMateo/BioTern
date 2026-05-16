@@ -1,5 +1,6 @@
 ﻿{
     "bridge_enabled":  true,
+    "selected_bridge_preset":  "laptop_router_1",
     "cloud_base_url":  "https://biotern-ccst.vercel.app",
     "ingest_path":  "/api/f20h_ingest.php",
     "ingest_api_token":  "eDeYGNLhVBHePxAxObSRZuwyDzHaQIZK",
@@ -11,5 +12,11 @@
     "device_number":  1,
     "communication_password":  "0",
     "output_path":  "C:\\xampp\\htdocs\\BioTern\\BioTern\\attendance.txt",
+    "auto_import_on_ingest":  true,
+    "attendance_window_enabled":  false,
+    "attendance_start_time":  "08:00:00",
+    "attendance_end_time":  "20:00:00",
+    "duplicate_guard_minutes":  10,
+    "slot_advance_minimum_minutes":  10,
     "updated_at":  "2026-05-13 07:22:55"
 }
