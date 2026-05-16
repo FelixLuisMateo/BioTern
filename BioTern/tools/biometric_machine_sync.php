@@ -44,6 +44,18 @@ if (!in_array($syncMode, ['direct_ingest', 'connector_fallback'], true)) {
     $syncMode = 'direct_ingest';
 }
 
+function biometric_sync_is_cloud_runtime(): bool
+{
+    return getenv('VERCEL') !== false
+        || getenv('RAILWAY_ENVIRONMENT') !== false
+        || getenv('RAILWAY_STATIC_URL') !== false
+        || getenv('K_SERVICE') !== false;
+}
+
+if ($syncMode === 'connector_fallback' && (biometric_sync_is_cloud_runtime() || !biometric_machine_is_windows())) {
+    $syncMode = 'direct_ingest';
+}
+
 function biometric_sync_request_bridge_pull(mysqli $conn, int $requestedByUserId): bool
 {
     $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_command_queue (

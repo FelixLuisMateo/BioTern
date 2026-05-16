@@ -1,4 +1,5 @@
 <?php
+require_once dirname(__DIR__) . '/lib/notifications.php';
 
 if (!function_exists('biometric_ops_ensure_tables')) {
     function biometric_ops_ensure_tables(mysqli $conn): void
@@ -158,7 +159,21 @@ if (!function_exists('biometric_ops_record_anomaly')) {
         }
         $stmt->bind_param('iiiisssss', $rawLogId, $fingerprintId, $userId, $studentId, $anomalyType, $severity, $eventTime, $message, $detailsJson);
         $stmt->execute();
+        $changed = (int)$stmt->affected_rows;
         $stmt->close();
+
+        if ($changed === 1 && function_exists('biotern_notify')) {
+            $label = $fingerprintId !== null && $fingerprintId > 0 ? ('Finger ID ' . $fingerprintId) : 'Unknown finger ID';
+            $title = 'Biometric attendance anomaly';
+            $notice = $label . ': ' . $message;
+            $res = $conn->query("SELECT id FROM users WHERE role = 'admin' AND is_active = 1");
+            if ($res instanceof mysqli_result) {
+                while ($row = $res->fetch_assoc()) {
+                    biotern_notify($conn, (int)($row['id'] ?? 0), $title, $notice, 'attendance', 'reports-attendance-anomalies.php');
+                }
+                $res->close();
+            }
+        }
     }
 }
 

@@ -45,7 +45,7 @@
         var biometricAutoSyncIntervalMs = 10000;
         var biometricAutoSyncRequest = null;
         var biometricAutoSyncStartedAt = 0;
-        var biometricAutoSyncRequestTimeoutMs = 20000;
+        var biometricAutoSyncRequestTimeoutMs = 60000;
 
         function escapeHtml(value) {
             return String(value || '')

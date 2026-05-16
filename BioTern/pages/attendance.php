@@ -2018,7 +2018,7 @@ $page_body_class = 'attendance-page';
 $page_styles = ['assets/css/modules/pages/page-attendance.css?v=20260509c'];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',
-    'assets/js/modules/pages/pages-attendance-runtime.js?v=20260509c',
+    'assets/js/modules/pages/pages-attendance-runtime.js?v=20260516a',
 ];
 include 'includes/header.php';
 ?>

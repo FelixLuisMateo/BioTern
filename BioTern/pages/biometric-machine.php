@@ -2876,7 +2876,7 @@ include __DIR__ . '/../includes/header.php';
                         <div class="bio-console-pill-list">
                             <span class="bio-console-pill">Connector: <?php echo machine_h($connectorIp !== '' ? $connectorIp : 'Not set'); ?><?php echo $connectorPort !== '' ? (':' . machine_h($connectorPort)) : ''; ?></span>
                             <span class="bio-console-pill">Sync mode: <?php echo machine_h($syncModeLabel); ?></span>
-                            <span class="bio-console-pill">Open anomalies: <?php echo (int)$openAnomalyCount; ?></span>
+                            <a class="bio-console-pill" href="reports-attendance-anomalies.php">Open anomalies: <?php echo (int)$openAnomalyCount; ?></a>
                         </div>
                     </div>
                     <div class="bio-console-hero-side machine-hero-status">
@@ -2915,7 +2915,14 @@ include __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-        <div class="row g-3 mb-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <a class="btn btn-sm btn-light-brand" href="reports-attendance-anomalies.php">Open anomalies: <?php echo (int)$openAnomalyCount; ?></a>
+            <button class="btn btn-sm btn-outline-secondary machine-section-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#machineDiagnosticsCards" aria-expanded="false" aria-controls="machineDiagnosticsCards">
+                Toggle diagnostics
+            </button>
+        </div>
+
+        <div class="row g-3 mb-3 collapse" id="machineDiagnosticsCards">
             <div class="col-md-4">
                 <div class="card stretch stretch-full machine-kpi-card">
                     <div class="card-body">
@@ -2957,7 +2964,7 @@ include __DIR__ . '/../includes/header.php';
             <div class="col-md-4">
                 <div class="card stretch stretch-full machine-kpi-card">
                     <div class="card-body">
-                        <div class="text-muted fs-12 mb-1">Open Anomalies</div>
+                        <a href="reports-attendance-anomalies.php" class="text-muted fs-12 mb-1 d-inline-block">Open Anomalies</a>
                         <div class="fs-3 fw-bold"><?php echo $openAnomalyCount; ?></div>
                         <div class="text-muted">Duplicate punches, unmapped scans, and suspicious attendance cases.</div>
                     </div>

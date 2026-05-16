@@ -198,7 +198,7 @@ $nav_active_student = biotern_nav_any_active($nav_current_file, [
 $nav_active_reports = biotern_nav_any_active($nav_current_file, [
     'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-hours-completion.php',
     'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
-    'reports-unassigned-students.php', 'reports-document.php',
+    'reports-unassigned-students.php', 'reports-document.php', 'reports-attendance-anomalies.php',
 ]);
 $nav_active_academic = biotern_nav_any_active($nav_current_file, [
     'courses.php', 'courses-create.php', 'courses-edit.php',
@@ -334,6 +334,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <?php if ($nav_is_admin): ?>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-student-status.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-student-status.php">Student Status Report</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-attendance-dtr.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-attendance-dtr.php">Attendance Report (DTR)</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-attendance-anomalies.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-attendance-anomalies.php">Attendance Anomalies</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-hours-completion.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-hours-completion.php">Hours Completion Report</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-section.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-section.php">Section Report</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-department.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-department.php">Department Report</a></li>

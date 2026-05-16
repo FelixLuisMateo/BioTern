@@ -160,6 +160,7 @@ $map = [
   // Removed mappings for obsolete report pages
   'reports-student-status.php' => 'reports/reports-student-status.php',
   'reports-attendance-dtr.php' => 'reports/reports-attendance-dtr.php',
+  'reports-attendance-anomalies.php' => 'reports/reports-attendance-anomalies.php',
   'reports-hours-completion.php' => 'reports/reports-hours-completion.php',
   'reports-section.php' => 'reports/reports-section.php',
   'reports-department.php' => 'reports/reports-department.php',

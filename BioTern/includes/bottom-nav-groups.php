@@ -111,7 +111,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'fingerprint_mapping.php', 'biometric-fleet.php', 'biometric-machine.php', 'biometric_machine_sync.php',
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
                     'companies.php', 'ojt-internal-list.php', 'ojt-internal-masterlist.php', 'ojt-external-list.php',
-                    'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-hours-completion.php',
+                    'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-attendance-anomalies.php', 'reports-hours-completion.php',
                     'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
                     'reports-unassigned-students.php', 'reports-document.php',
                     'document_application.php', 'document_endorsement.php', 'document_moa.php', 'document_dau_moa.php', 'document_parent_consent.php', 'document_certificate.php',
@@ -165,6 +165,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ...($canSystem ? [
                                 ['label' => 'Student Status Report', 'href' => 'reports-student-status.php', 'icon' => 'feather-users'],
                                 ['label' => 'Attendance Report (DTR)', 'href' => 'reports-attendance-dtr.php', 'icon' => 'feather-clock'],
+                                ['label' => 'Attendance Anomalies', 'href' => 'reports-attendance-anomalies.php', 'icon' => 'feather-alert-triangle'],
                                 ['label' => 'Hours Completion Report', 'href' => 'reports-hours-completion.php', 'icon' => 'feather-bar-chart-2'],
                                 ['label' => 'Section Report', 'href' => 'reports-section.php', 'icon' => 'feather-layers'],
                                 ['label' => 'Department Report', 'href' => 'reports-department.php', 'icon' => 'feather-briefcase'],

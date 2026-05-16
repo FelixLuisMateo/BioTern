@@ -7,7 +7,7 @@
     "deviceNumber":  1,
     "gateway":  "192.168.100.1",
     "attendanceStartTime":  "08:00:00",
-    "autoImportOnIngest":  false,
+    "autoImportOnIngest":  true,
     "mask":  "255.255.255.0",
     "selectedRouterPreset":  "router_1",
     "syncMode":  "connector_fallback",
