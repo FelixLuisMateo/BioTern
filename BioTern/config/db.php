@@ -1,13 +1,65 @@
 <?php
 mysqli_report(MYSQLI_REPORT_OFF);
 
+if (!function_exists('biotern_load_dotenv_file')) {
+    function biotern_load_dotenv_file(string $path): void
+    {
+        if (!is_file($path) || !is_readable($path)) {
+            return;
+        }
+
+        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if (!is_array($lines)) {
+            return;
+        }
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#')) {
+                continue;
+            }
+            if (str_starts_with($line, 'export ')) {
+                $line = trim(substr($line, 7));
+            }
+            if (!str_contains($line, '=')) {
+                continue;
+            }
+
+            [$key, $value] = array_map('trim', explode('=', $line, 2));
+            if ($key === '' || getenv($key) !== false) {
+                continue;
+            }
+
+            if (
+                (str_starts_with($value, '"') && str_ends_with($value, '"'))
+                || (str_starts_with($value, "'") && str_ends_with($value, "'"))
+            ) {
+                $value = substr($value, 1, -1);
+            }
+
+            putenv($key . '=' . $value);
+            $_ENV[$key] = $value;
+            $_SERVER[$key] = $value;
+        }
+    }
+}
+
+$biotern_project_root = dirname(__DIR__);
+foreach ([
+    $biotern_project_root . DIRECTORY_SEPARATOR . '.env.local',
+    $biotern_project_root . DIRECTORY_SEPARATOR . '.env',
+    dirname($biotern_project_root) . DIRECTORY_SEPARATOR . '.env.local',
+    dirname($biotern_project_root) . DIRECTORY_SEPARATOR . '.env',
+] as $biotern_env_file) {
+    biotern_load_dotenv_file($biotern_env_file);
+}
+
 $biotern_app_timezone = getenv('BIOTERN_APP_TIMEZONE');
 if (!is_string($biotern_app_timezone) || trim($biotern_app_timezone) === '') {
     $biotern_app_timezone = 'Asia/Manila';
 }
 @date_default_timezone_set($biotern_app_timezone);
 
-$biotern_project_root = dirname(__DIR__);
 $biotern_include_candidates = [
     $biotern_project_root,
     $biotern_project_root . DIRECTORY_SEPARATOR . 'includes',
@@ -393,10 +445,11 @@ $forceRemoteTarget = in_array($dbTarget, ['vercel', 'remote', 'railway', 'cloud'
     || biotern_env_truthy(['VERCEL']);
 
 $forceLocalTarget = in_array($dbTarget, ['local', 'xampp'], true);
+$strictRemoteTarget = $forceRemoteTarget || biotern_env_truthy(['BIOTERN_REQUIRE_REMOTE_DB', 'BIOTERN_DISABLE_LOCAL_FALLBACK']);
 
 // If remote DB config is present (or explicitly requested), do not silently fall back to local.
 $disableLocalFallback = (!$forceLocalTarget) && ($forceRemoteTarget || $hasRemoteEnvConfig);
-if ($isLocalRuntime && $primaryIsInternalHost && !$forceLocalTarget) {
+if ($isLocalRuntime && $primaryIsInternalHost && !$forceLocalTarget && !$strictRemoteTarget) {
     // Railway internal DNS is not reachable from localhost; keep local fallback available.
     $disableLocalFallback = false;
 }
