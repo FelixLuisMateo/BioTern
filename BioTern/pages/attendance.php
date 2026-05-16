@@ -360,7 +360,11 @@ if (!empty($attendance_stats_where)) {
         WHERE " . implode(' AND ', $attendance_stats_where);
 }
 $stats_result = $conn->query($stats_query);
-$stats = $stats_result->fetch_assoc();
+$stats = [];
+if ($stats_result instanceof mysqli_result) {
+    $stats = $stats_result->fetch_assoc() ?: [];
+    $stats_result->close();
+}
 // Prepare filter inputs (defaults: today's date)
 $filter_date = isset($_GET['date']) && $_GET['date'] !== '' ? $_GET['date'] : '';
 $start_date = isset($_GET['start_date']) && $_GET['start_date'] !== '' ? $_GET['start_date'] : '';

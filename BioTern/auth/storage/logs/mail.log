@@ -15,3 +15,5 @@
 [2026-04-22 17:36:09] [MAIL-20260422-173609-05C36D] SMTP configuration incomplete for outgoing mail.
 [2026-04-22 17:36:11] [MAIL-20260422-173611-6BAA17] SMTP configuration incomplete for outgoing mail.
 [2026-04-22 17:50:35] [MAIL-20260422-175035-D5097F] SMTP configuration incomplete for outgoing mail.
+[2026-05-16 18:52:55] [MAIL-20260516-185255-4CA549] PHPMailer error: SMTP Error: Could not authenticate.
+[2026-05-16 18:53:03] [MAIL-20260516-185303-97F42F] PHPMailer error: SMTP Error: Could not authenticate.

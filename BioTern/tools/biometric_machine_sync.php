@@ -19,7 +19,27 @@ $allowRedirect = $redirect !== '' && preg_match('/^[A-Za-z0-9._-]+\.php$/', $red
 $jsonMode = strtolower(trim((string)($_GET['format'] ?? ''))) === 'json';
 $triggerSource = $jsonMode ? 'auto' : 'manual';
 $machineConfig = loadBiometricMachineConfig();
-$syncMode = strtolower(trim((string)($machineConfig['syncMode'] ?? 'direct_ingest')));
+$configSyncMode = strtolower(trim((string)($machineConfig['syncMode'] ?? '')));
+$configPath = __DIR__ . '/biometric_machine_config.json';
+$configExists = file_exists($configPath);
+$configReadable = $configExists && is_readable($configPath);
+$configSize = $configExists ? (int)@filesize($configPath) : 0;
+$configRaw = $configReadable ? file_get_contents($configPath) : '';
+$configRawTrim = is_string($configRaw) ? trim($configRaw) : '';
+$configJsonError = null;
+$configJsonErrorMsg = '';
+$configRawPrefixHex = '';
+$configRawLength = is_string($configRaw) ? strlen($configRaw) : 0;
+if (is_string($configRaw) && $configRaw !== '') {
+    $prefix = substr($configRaw, 0, 16);
+    $configRawPrefixHex = bin2hex($prefix);
+}
+if ($configRawTrim !== '') {
+    json_decode($configRawTrim, true);
+    $configJsonError = json_last_error();
+    $configJsonErrorMsg = json_last_error_msg();
+}
+$syncMode = $configSyncMode !== '' ? $configSyncMode : 'direct_ingest';
 if (!in_array($syncMode, ['direct_ingest', 'connector_fallback'], true)) {
     $syncMode = 'direct_ingest';
 }
@@ -175,6 +195,16 @@ if ($jsonMode) {
         'success' => true,
         'message' => $notice !== '' ? ('Machine sync complete. ' . $notice) : 'Machine sync complete.',
         'mode' => $syncMode,
+        'config_sync_mode' => $configSyncMode,
+        'config_loaded' => $machineConfig !== [],
+        'config_path' => $configPath,
+        'config_exists' => $configExists,
+        'config_readable' => $configReadable,
+        'config_size' => $configSize,
+        'config_json_error' => $configJsonError,
+        'config_json_error_msg' => $configJsonErrorMsg,
+        'config_raw_length' => $configRawLength,
+        'config_raw_prefix_hex' => $configRawPrefixHex,
         'connector_output' => $connector['output'] ?? [],
         'import_output' => [$importMessage],
         'stats' => $importStats,
