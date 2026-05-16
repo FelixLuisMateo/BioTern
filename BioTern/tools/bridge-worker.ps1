@@ -370,8 +370,37 @@ function Update-ConnectorConfig {
     $cfg.deviceNumber = $deviceNumber
     $cfg.communicationPassword = $communicationPassword
     $cfg.outputPath = $outputPath
+    if ($BridgeConfig.PSObject -and $BridgeConfig.PSObject.Properties['selected_bridge_preset']) {
+        $preset = [string]$BridgeConfig.selected_bridge_preset
+        if ($preset -eq 'laptop_router_1') {
+            $cfg.selectedRouterPreset = 'router_1'
+        } elseif ($preset -eq 'laptop_router_2' -or $preset -eq 'computer_router_2') {
+            $cfg.selectedRouterPreset = 'router_2'
+        } elseif ($preset -eq 'laptop_custom') {
+            $cfg.selectedRouterPreset = 'custom'
+        }
+    }
     $cfg.syncMode = 'connector_fallback'
-    $cfg.autoImportOnIngest = $false
+    if ($BridgeConfig.PSObject -and $BridgeConfig.PSObject.Properties['auto_import_on_ingest']) {
+        $cfg.autoImportOnIngest = [bool]$BridgeConfig.auto_import_on_ingest
+    } else {
+        $cfg.autoImportOnIngest = $false
+    }
+    if ($BridgeConfig.PSObject -and $BridgeConfig.PSObject.Properties['attendance_window_enabled']) {
+        $cfg.attendanceWindowEnabled = [bool]$BridgeConfig.attendance_window_enabled
+    }
+    if ($BridgeConfig.PSObject -and $BridgeConfig.PSObject.Properties['attendance_start_time']) {
+        $cfg.attendanceStartTime = [string]$BridgeConfig.attendance_start_time
+    }
+    if ($BridgeConfig.PSObject -and $BridgeConfig.PSObject.Properties['attendance_end_time']) {
+        $cfg.attendanceEndTime = [string]$BridgeConfig.attendance_end_time
+    }
+    if ($BridgeConfig.PSObject -and $BridgeConfig.PSObject.Properties['duplicate_guard_minutes']) {
+        $cfg.duplicateGuardMinutes = [int]$BridgeConfig.duplicate_guard_minutes
+    }
+    if ($BridgeConfig.PSObject -and $BridgeConfig.PSObject.Properties['slot_advance_minimum_minutes']) {
+        $cfg.slotAdvanceMinimumMinutes = [int]$BridgeConfig.slot_advance_minimum_minutes
+    }
 
     $json = $cfg | ConvertTo-Json -Depth 5
     Write-TextFileWithRetry -Path $connectorConfigPath -Content $json

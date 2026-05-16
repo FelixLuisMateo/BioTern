@@ -238,6 +238,82 @@ function f20h_auto_import_enabled(array $machineConfig): bool
     return !isset($machineConfig['autoImportOnIngest']) || !empty($machineConfig['autoImportOnIngest']);
 }
 
+function f20h_bridge_profile_machine_config(): array
+{
+    try {
+        $db = biometric_shared_db();
+        $db->query("CREATE TABLE IF NOT EXISTS biometric_bridge_profile (
+            id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            profile_name VARCHAR(100) NOT NULL DEFAULT 'default',
+            bridge_enabled TINYINT(1) NOT NULL DEFAULT 1,
+            bridge_token VARCHAR(255) NOT NULL DEFAULT '',
+            cloud_base_url VARCHAR(255) NOT NULL DEFAULT '',
+            ingest_path VARCHAR(255) NOT NULL DEFAULT '/api/f20h_ingest.php',
+            ingest_api_token VARCHAR(255) NOT NULL DEFAULT '',
+            poll_seconds INT NOT NULL DEFAULT 30,
+            ip_address VARCHAR(100) NOT NULL DEFAULT '',
+            gateway VARCHAR(100) NOT NULL DEFAULT '',
+            mask VARCHAR(100) NOT NULL DEFAULT '255.255.255.0',
+            port INT NOT NULL DEFAULT 5001,
+            device_number INT NOT NULL DEFAULT 1,
+            communication_password VARCHAR(255) NOT NULL DEFAULT '0',
+            output_path VARCHAR(255) NOT NULL DEFAULT '',
+            auto_import_on_ingest TINYINT(1) NOT NULL DEFAULT 1,
+            attendance_window_enabled TINYINT(1) NOT NULL DEFAULT 0,
+            attendance_start_time VARCHAR(20) NOT NULL DEFAULT '08:00:00',
+            attendance_end_time VARCHAR(20) NOT NULL DEFAULT '20:00:00',
+            duplicate_guard_minutes INT NOT NULL DEFAULT 10,
+            slot_advance_minimum_minutes INT NOT NULL DEFAULT 10,
+            updated_by INT NOT NULL DEFAULT 0,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uniq_profile_name (profile_name)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        $columns = [
+            'auto_import_on_ingest' => "ALTER TABLE biometric_bridge_profile ADD COLUMN auto_import_on_ingest TINYINT(1) NOT NULL DEFAULT 1 AFTER output_path",
+            'attendance_window_enabled' => "ALTER TABLE biometric_bridge_profile ADD COLUMN attendance_window_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER auto_import_on_ingest",
+            'attendance_start_time' => "ALTER TABLE biometric_bridge_profile ADD COLUMN attendance_start_time VARCHAR(20) NOT NULL DEFAULT '08:00:00' AFTER attendance_window_enabled",
+            'attendance_end_time' => "ALTER TABLE biometric_bridge_profile ADD COLUMN attendance_end_time VARCHAR(20) NOT NULL DEFAULT '20:00:00' AFTER attendance_start_time",
+            'duplicate_guard_minutes' => "ALTER TABLE biometric_bridge_profile ADD COLUMN duplicate_guard_minutes INT NOT NULL DEFAULT 10 AFTER attendance_end_time",
+            'slot_advance_minimum_minutes' => "ALTER TABLE biometric_bridge_profile ADD COLUMN slot_advance_minimum_minutes INT NOT NULL DEFAULT 10 AFTER duplicate_guard_minutes",
+        ];
+        foreach ($columns as $column => $alterSql) {
+            $res = $db->query("SHOW COLUMNS FROM biometric_bridge_profile LIKE '" . $db->real_escape_string($column) . "'");
+            $exists = ($res instanceof mysqli_result) && $res->num_rows > 0;
+            if ($res instanceof mysqli_result) {
+                $res->close();
+            }
+            if (!$exists) {
+                $db->query($alterSql);
+            }
+        }
+
+        $res = $db->query("SELECT * FROM biometric_bridge_profile WHERE profile_name = 'default' LIMIT 1");
+        $profile = ($res instanceof mysqli_result) ? ($res->fetch_assoc() ?: []) : [];
+        if ($res instanceof mysqli_result) {
+            $res->close();
+        }
+        $db->close();
+
+        if ($profile === []) {
+            return [];
+        }
+
+        return [
+            'autoImportOnIngest' => !array_key_exists('auto_import_on_ingest', $profile) || !empty($profile['auto_import_on_ingest']),
+            'attendanceWindowEnabled' => !empty($profile['attendance_window_enabled']),
+            'attendanceStartTime' => (string)($profile['attendance_start_time'] ?? '08:00:00'),
+            'attendanceEndTime' => (string)($profile['attendance_end_time'] ?? '20:00:00'),
+            'duplicateGuardMinutes' => max(1, (int)($profile['duplicate_guard_minutes'] ?? 10)),
+            'slotAdvanceMinimumMinutes' => max(1, (int)($profile['slot_advance_minimum_minutes'] ?? 10)),
+        ];
+    } catch (Throwable $ignored) {
+        return [];
+    }
+}
+
 function f20h_normalize_event(array $event): ?array
 {
     $fingerId = isset($event['finger_id']) ? (int) $event['finger_id'] : (isset($event['id']) ? (int) $event['id'] : 0);
@@ -257,7 +333,7 @@ function f20h_normalize_event(array $event): ?array
     ];
 }
 
-$machineConfig = loadBiometricMachineConfig();
+$machineConfig = array_merge(loadBiometricMachineConfig(), f20h_bridge_profile_machine_config());
 $providedToken = f20h_ingest_token();
 $tokenCandidates = f20h_token_candidates($machineConfig);
 $tokenRequired = !empty($tokenCandidates);

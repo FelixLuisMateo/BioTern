@@ -27,12 +27,37 @@ function bridge_profile_ensure_table(mysqli $conn): void
         device_number INT NOT NULL DEFAULT 1,
         communication_password VARCHAR(255) NOT NULL DEFAULT '0',
         output_path VARCHAR(255) NOT NULL DEFAULT '',
+        auto_import_on_ingest TINYINT(1) NOT NULL DEFAULT 1,
+        attendance_window_enabled TINYINT(1) NOT NULL DEFAULT 0,
+        attendance_start_time VARCHAR(20) NOT NULL DEFAULT '08:00:00',
+        attendance_end_time VARCHAR(20) NOT NULL DEFAULT '20:00:00',
+        duplicate_guard_minutes INT NOT NULL DEFAULT 10,
+        slot_advance_minimum_minutes INT NOT NULL DEFAULT 10,
         updated_by INT NOT NULL DEFAULT 0,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (id),
         UNIQUE KEY uniq_profile_name (profile_name)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    $columns = [
+        'auto_import_on_ingest' => "ALTER TABLE biometric_bridge_profile ADD COLUMN auto_import_on_ingest TINYINT(1) NOT NULL DEFAULT 1 AFTER output_path",
+        'attendance_window_enabled' => "ALTER TABLE biometric_bridge_profile ADD COLUMN attendance_window_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER auto_import_on_ingest",
+        'attendance_start_time' => "ALTER TABLE biometric_bridge_profile ADD COLUMN attendance_start_time VARCHAR(20) NOT NULL DEFAULT '08:00:00' AFTER attendance_window_enabled",
+        'attendance_end_time' => "ALTER TABLE biometric_bridge_profile ADD COLUMN attendance_end_time VARCHAR(20) NOT NULL DEFAULT '20:00:00' AFTER attendance_start_time",
+        'duplicate_guard_minutes' => "ALTER TABLE biometric_bridge_profile ADD COLUMN duplicate_guard_minutes INT NOT NULL DEFAULT 10 AFTER attendance_end_time",
+        'slot_advance_minimum_minutes' => "ALTER TABLE biometric_bridge_profile ADD COLUMN slot_advance_minimum_minutes INT NOT NULL DEFAULT 10 AFTER duplicate_guard_minutes",
+    ];
+    foreach ($columns as $column => $alterSql) {
+        $res = $conn->query("SHOW COLUMNS FROM biometric_bridge_profile LIKE '" . $conn->real_escape_string($column) . "'");
+        $exists = ($res instanceof mysqli_result) && $res->num_rows > 0;
+        if ($res instanceof mysqli_result) {
+            $res->close();
+        }
+        if (!$exists) {
+            $conn->query($alterSql);
+        }
+    }
 }
 
 function bridge_profile_request_token(): string
@@ -126,6 +151,7 @@ echo json_encode([
     'success' => true,
     'profile' => [
         'bridge_enabled' => !empty($profile['bridge_enabled']),
+        'selected_bridge_preset' => (string)($profile['selected_bridge_preset'] ?? ''),
         'cloud_base_url' => (string)($profile['cloud_base_url'] ?? ''),
         'ingest_path' => (string)($profile['ingest_path'] ?? '/api/f20h_ingest.php'),
         'ingest_api_token' => (string)($profile['ingest_api_token'] ?? ''),
@@ -137,6 +163,12 @@ echo json_encode([
         'device_number' => (int)($profile['device_number'] ?? 1),
         'communication_password' => (string)($profile['communication_password'] ?? '0'),
         'output_path' => (string)($profile['output_path'] ?? ''),
+        'auto_import_on_ingest' => !array_key_exists('auto_import_on_ingest', $profile) || !empty($profile['auto_import_on_ingest']),
+        'attendance_window_enabled' => !empty($profile['attendance_window_enabled']),
+        'attendance_start_time' => (string)($profile['attendance_start_time'] ?? '08:00:00'),
+        'attendance_end_time' => (string)($profile['attendance_end_time'] ?? '20:00:00'),
+        'duplicate_guard_minutes' => (int)($profile['duplicate_guard_minutes'] ?? 10),
+        'slot_advance_minimum_minutes' => (int)($profile['slot_advance_minimum_minutes'] ?? 10),
         'updated_at' => (string)($profile['updated_at'] ?? ''),
     ],
 ]);

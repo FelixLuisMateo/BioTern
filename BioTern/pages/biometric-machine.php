@@ -481,6 +481,12 @@ function machine_ensure_bridge_profile_table(mysqli $conn): void
         device_number INT NOT NULL DEFAULT 1,
         communication_password VARCHAR(255) NOT NULL DEFAULT '0',
         output_path VARCHAR(255) NOT NULL DEFAULT '',
+        auto_import_on_ingest TINYINT(1) NOT NULL DEFAULT 1,
+        attendance_window_enabled TINYINT(1) NOT NULL DEFAULT 0,
+        attendance_start_time VARCHAR(20) NOT NULL DEFAULT '08:00:00',
+        attendance_end_time VARCHAR(20) NOT NULL DEFAULT '20:00:00',
+        duplicate_guard_minutes INT NOT NULL DEFAULT 10,
+        slot_advance_minimum_minutes INT NOT NULL DEFAULT 10,
         updated_by INT NOT NULL DEFAULT 0,
         created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -518,6 +524,25 @@ function machine_ensure_bridge_profile_table(mysqli $conn): void
     if (!$hasBridgeNameColumn) {
         $conn->query("ALTER TABLE biometric_bridge_profile ADD COLUMN bridge_name VARCHAR(150) NOT NULL DEFAULT '' AFTER router_name");
     }
+
+    $profileColumns = [
+        'auto_import_on_ingest' => "ALTER TABLE biometric_bridge_profile ADD COLUMN auto_import_on_ingest TINYINT(1) NOT NULL DEFAULT 1 AFTER output_path",
+        'attendance_window_enabled' => "ALTER TABLE biometric_bridge_profile ADD COLUMN attendance_window_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER auto_import_on_ingest",
+        'attendance_start_time' => "ALTER TABLE biometric_bridge_profile ADD COLUMN attendance_start_time VARCHAR(20) NOT NULL DEFAULT '08:00:00' AFTER attendance_window_enabled",
+        'attendance_end_time' => "ALTER TABLE biometric_bridge_profile ADD COLUMN attendance_end_time VARCHAR(20) NOT NULL DEFAULT '20:00:00' AFTER attendance_start_time",
+        'duplicate_guard_minutes' => "ALTER TABLE biometric_bridge_profile ADD COLUMN duplicate_guard_minutes INT NOT NULL DEFAULT 10 AFTER attendance_end_time",
+        'slot_advance_minimum_minutes' => "ALTER TABLE biometric_bridge_profile ADD COLUMN slot_advance_minimum_minutes INT NOT NULL DEFAULT 10 AFTER duplicate_guard_minutes",
+    ];
+    foreach ($profileColumns as $columnName => $alterSql) {
+        $columnRes = $conn->query("SHOW COLUMNS FROM biometric_bridge_profile LIKE '" . $conn->real_escape_string($columnName) . "'");
+        $hasColumn = ($columnRes instanceof mysqli_result) && $columnRes->num_rows > 0;
+        if ($columnRes instanceof mysqli_result) {
+            $columnRes->close();
+        }
+        if (!$hasColumn) {
+            $conn->query($alterSql);
+        }
+    }
 }
 
 function machine_fetch_bridge_profile(mysqli $conn): array
@@ -542,6 +567,12 @@ function machine_fetch_bridge_profile(mysqli $conn): array
         'device_number' => 1,
         'communication_password' => '0',
         'output_path' => '',
+        'auto_import_on_ingest' => 1,
+        'attendance_window_enabled' => 0,
+        'attendance_start_time' => '08:00:00',
+        'attendance_end_time' => '20:00:00',
+        'duplicate_guard_minutes' => 10,
+        'slot_advance_minimum_minutes' => 10,
         'updated_at' => '',
     ];
 
@@ -584,14 +615,20 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
     $deviceNumber = max(1, (int)($profile['device_number'] ?? 1));
     $communicationPassword = (string)($profile['communication_password'] ?? '0');
     $outputPath = (string)($profile['output_path'] ?? '');
+    $autoImportOnIngest = !array_key_exists('auto_import_on_ingest', $profile) || !empty($profile['auto_import_on_ingest']) ? 1 : 0;
+    $attendanceWindowEnabled = !empty($profile['attendance_window_enabled']) ? 1 : 0;
+    $attendanceStartTime = trim((string)($profile['attendance_start_time'] ?? '08:00:00'));
+    $attendanceEndTime = trim((string)($profile['attendance_end_time'] ?? '20:00:00'));
+    $duplicateGuardMinutes = max(1, (int)($profile['duplicate_guard_minutes'] ?? 10));
+    $slotAdvanceMinimumMinutes = max(1, (int)($profile['slot_advance_minimum_minutes'] ?? 10));
 
     $stmt = null;
     $lastPrepareError = '';
 
     if ($hasPresetColumn) {
         $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
-            (profile_name, selected_bridge_preset, router_name, bridge_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
-            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (profile_name, selected_bridge_preset, router_name, bridge_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, auto_import_on_ingest, attendance_window_enabled, attendance_start_time, attendance_end_time, duplicate_guard_minutes, slot_advance_minimum_minutes, updated_by)
+            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 selected_bridge_preset = VALUES(selected_bridge_preset),
                 router_name = VALUES(router_name),
@@ -609,11 +646,17 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
                 device_number = VALUES(device_number),
                 communication_password = VALUES(communication_password),
                 output_path = VALUES(output_path),
+                auto_import_on_ingest = VALUES(auto_import_on_ingest),
+                attendance_window_enabled = VALUES(attendance_window_enabled),
+                attendance_start_time = VALUES(attendance_start_time),
+                attendance_end_time = VALUES(attendance_end_time),
+                duplicate_guard_minutes = VALUES(duplicate_guard_minutes),
+                slot_advance_minimum_minutes = VALUES(slot_advance_minimum_minutes),
                 updated_by = VALUES(updated_by)");
 
         if ($stmt) {
             $stmt->bind_param(
-                'sssissssisssiissi',
+                'sssissssisssiissiissiii',
                 $selectedBridgePreset,
                 $routerName,
                 $bridgeName,
@@ -630,6 +673,12 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
                 $deviceNumber,
                 $communicationPassword,
                 $outputPath,
+                $autoImportOnIngest,
+                $attendanceWindowEnabled,
+                $attendanceStartTime,
+                $attendanceEndTime,
+                $duplicateGuardMinutes,
+                $slotAdvanceMinimumMinutes,
                 $updatedBy
             );
         } else {
@@ -639,8 +688,8 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
 
     if (!$stmt) {
         $stmt = $conn->prepare("INSERT INTO biometric_bridge_profile
-            (profile_name, router_name, bridge_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, updated_by)
-            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (profile_name, router_name, bridge_name, bridge_enabled, bridge_token, cloud_base_url, ingest_path, ingest_api_token, poll_seconds, ip_address, gateway, mask, port, device_number, communication_password, output_path, auto_import_on_ingest, attendance_window_enabled, attendance_start_time, attendance_end_time, duplicate_guard_minutes, slot_advance_minimum_minutes, updated_by)
+            VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
                 router_name = VALUES(router_name),
                 bridge_name = VALUES(bridge_name),
@@ -657,11 +706,17 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
                 device_number = VALUES(device_number),
                 communication_password = VALUES(communication_password),
                 output_path = VALUES(output_path),
+                auto_import_on_ingest = VALUES(auto_import_on_ingest),
+                attendance_window_enabled = VALUES(attendance_window_enabled),
+                attendance_start_time = VALUES(attendance_start_time),
+                attendance_end_time = VALUES(attendance_end_time),
+                duplicate_guard_minutes = VALUES(duplicate_guard_minutes),
+                slot_advance_minimum_minutes = VALUES(slot_advance_minimum_minutes),
                 updated_by = VALUES(updated_by)");
 
         if ($stmt) {
             $stmt->bind_param(
-                'ssissssisssiissi',
+                'ssissssisssiissiissiii',
                 $routerName,
                 $bridgeName,
                 $bridgeEnabled,
@@ -677,6 +732,12 @@ function machine_save_bridge_profile(mysqli $conn, array $profile, int $updatedB
                 $deviceNumber,
                 $communicationPassword,
                 $outputPath,
+                $autoImportOnIngest,
+                $attendanceWindowEnabled,
+                $attendanceStartTime,
+                $attendanceEndTime,
+                $duplicateGuardMinutes,
+                $slotAdvanceMinimumMinutes,
                 $updatedBy
             );
         } else {
@@ -1921,6 +1982,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $bridgeDeviceNo = max(1, (int)($_POST['bridge_device_number'] ?? 1));
                 $bridgePassword = trim((string)($_POST['bridge_password'] ?? '0'));
                 $bridgeOutputPath = trim((string)($_POST['bridge_output_path'] ?? $defaultAttendanceOutputPath));
+                $bridgeAutoImportOnIngest = !isset($_POST['bridge_disable_auto_import_on_ingest']);
+                $bridgeAttendanceWindowEnabled = isset($_POST['bridge_attendance_window_enabled']);
+                $bridgeAttendanceStartTime = trim((string)($_POST['bridge_attendance_start_time'] ?? '08:00:00'));
+                $bridgeAttendanceEndTime = trim((string)($_POST['bridge_attendance_end_time'] ?? '20:00:00'));
+                $bridgeDuplicateGuardMinutes = max(1, (int)($_POST['bridge_duplicate_guard_minutes'] ?? 10));
+                $bridgeSlotAdvanceMinimumMinutes = max(1, (int)($_POST['bridge_slot_advance_minimum_minutes'] ?? 10));
 
                 if ($bridgeToken === '') {
                     $bridgeToken = machine_make_bridge_token();
@@ -1937,7 +2004,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                 }
-                if (stripos($cloudBaseUrl, 'http://') === 0) {
+                $cloudHost = strtolower((string)(parse_url($cloudBaseUrl, PHP_URL_HOST) ?: ''));
+                $isLocalCloudHost = in_array($cloudHost, ['localhost', '127.0.0.1', '::1'], true);
+                if (!$isLocalCloudHost && stripos($cloudBaseUrl, 'http://') === 0) {
                     $cloudBaseUrl = 'https://' . substr($cloudBaseUrl, 7);
                 }
                 if ($ingestApiToken === '') {
@@ -1991,6 +2060,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'device_number' => $bridgeDeviceNo,
                     'communication_password' => $bridgePassword,
                     'output_path' => $bridgeOutputPath,
+                    'auto_import_on_ingest' => $bridgeAutoImportOnIngest ? 1 : 0,
+                    'attendance_window_enabled' => $bridgeAttendanceWindowEnabled ? 1 : 0,
+                    'attendance_start_time' => $bridgeAttendanceStartTime,
+                    'attendance_end_time' => $bridgeAttendanceEndTime,
+                    'duplicate_guard_minutes' => $bridgeDuplicateGuardMinutes,
+                    'slot_advance_minimum_minutes' => $bridgeSlotAdvanceMinimumMinutes,
                 ], (int)($_SESSION['user_id'] ?? 0));
 
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Laptop bridge profile saved. Token: ' . $bridgeToken];
@@ -2051,6 +2126,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'device_number' => 1,
                     'communication_password' => '0',
                     'output_path' => $defaultAttendanceOutputPath,
+                    'auto_import_on_ingest' => 1,
+                    'attendance_window_enabled' => 0,
+                    'attendance_start_time' => '08:00:00',
+                    'attendance_end_time' => '20:00:00',
+                    'duplicate_guard_minutes' => 10,
+                    'slot_advance_minimum_minutes' => 10,
                 ], (int)($_SESSION['user_id'] ?? 0));
 
                 $_SESSION['machine_manager_flash'] = [
@@ -2098,6 +2179,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'device_number' => 1,
                     'communication_password' => '0',
                     'output_path' => $defaultAttendanceOutputPath,
+                    'auto_import_on_ingest' => 1,
+                    'attendance_window_enabled' => 0,
+                    'attendance_start_time' => '08:00:00',
+                    'attendance_end_time' => '20:00:00',
+                    'duplicate_guard_minutes' => 10,
+                    'slot_advance_minimum_minutes' => 10,
                 ], (int)($_SESSION['user_id'] ?? 0));
 
                 $_SESSION['machine_manager_flash'] = [
@@ -2447,11 +2534,11 @@ $fingerprintCleanupSummary = $fingerprintCleanupData['summary'] ?? ['queued' => 
 $fingerprintCleanupRows = $fingerprintCleanupData['rows'] ?? [];
 $bridgeProfile = machine_fetch_bridge_profile($conn);
 $connectorConfig = json_decode($machineConfigJson, true);
-$connectorIp = is_array($connectorConfig) ? (string)($connectorConfig['ipAddress'] ?? '') : '';
+$connectorIp = is_array($connectorConfig) ? trim((string)($connectorConfig['ipAddress'] ?? '')) : '';
 $connectorPort = is_array($connectorConfig) ? (string)($connectorConfig['port'] ?? '') : '';
 $connectorDeviceNo = is_array($connectorConfig) ? (string)($connectorConfig['deviceNumber'] ?? '') : '';
-$connectorGateway = is_array($connectorConfig) ? (string)($connectorConfig['gateway'] ?? '') : '';
-$connectorMask = is_array($connectorConfig) ? (string)($connectorConfig['mask'] ?? '255.255.255.0') : '255.255.255.0';
+$connectorGateway = is_array($connectorConfig) ? trim((string)($connectorConfig['gateway'] ?? '')) : '';
+$connectorMask = is_array($connectorConfig) ? trim((string)($connectorConfig['mask'] ?? '255.255.255.0')) : '255.255.255.0';
 $connectorPassword = is_array($connectorConfig) ? (string)($connectorConfig['communicationPassword'] ?? '0') : '0';
 $syncMode = is_array($connectorConfig) ? strtolower(trim((string)($connectorConfig['syncMode'] ?? 'direct_ingest'))) : 'direct_ingest';
 if (!in_array($syncMode, ['direct_ingest', 'connector_fallback'], true)) {
@@ -2470,7 +2557,7 @@ $connectorStartTime = is_array($connectorConfig) ? (string)($connectorConfig['at
 $connectorEndTime = is_array($connectorConfig) ? (string)($connectorConfig['attendanceEndTime'] ?? '20:00:00') : '20:00:00';
 $duplicateGuardMinutes = is_array($connectorConfig) ? (int)($connectorConfig['duplicateGuardMinutes'] ?? 10) : 10;
 $slotAdvanceMinimumMinutes = is_array($connectorConfig) ? (int)($connectorConfig['slotAdvanceMinimumMinutes'] ?? 10) : 10;
-$selectedRouterPreset = is_array($connectorConfig) ? (string)($connectorConfig['selectedRouterPreset'] ?? 'custom') : 'custom';
+$selectedRouterPreset = is_array($connectorConfig) ? strtolower(trim((string)($connectorConfig['selectedRouterPreset'] ?? 'custom'))) : 'custom';
 if (!in_array($selectedRouterPreset, ['router_1', 'router_2', 'custom'], true)) {
     $selectedRouterPreset = 'custom';
 }
@@ -2497,6 +2584,12 @@ $bridgePort = (int)($bridgeProfile['port'] ?? ($connectorPort !== '' ? (int)$con
 $bridgeDeviceNumber = (int)($bridgeProfile['device_number'] ?? ($connectorDeviceNo !== '' ? (int)$connectorDeviceNo : 1));
 $bridgePassword = (string)($bridgeProfile['communication_password'] ?? $connectorPassword);
 $bridgeOutputPath = (string)($bridgeProfile['output_path'] ?? ($connectorOutputPath !== '' ? $connectorOutputPath : $defaultAttendanceOutputPath));
+$bridgeAutoImportOnIngest = !array_key_exists('auto_import_on_ingest', $bridgeProfile) || !empty($bridgeProfile['auto_import_on_ingest']);
+$bridgeWindowEnabled = !empty($bridgeProfile['attendance_window_enabled']);
+$bridgeStartTime = (string)($bridgeProfile['attendance_start_time'] ?? $connectorStartTime);
+$bridgeEndTime = (string)($bridgeProfile['attendance_end_time'] ?? $connectorEndTime);
+$bridgeDuplicateGuardMinutes = max(1, (int)($bridgeProfile['duplicate_guard_minutes'] ?? $duplicateGuardMinutes));
+$bridgeSlotAdvanceMinimumMinutes = max(1, (int)($bridgeProfile['slot_advance_minimum_minutes'] ?? $slotAdvanceMinimumMinutes));
 if ($connectorOutputPath === '' || strcasecmp($connectorOutputPath, $legacyAttendanceOutputPath) === 0) {
     $connectorOutputPath = $defaultAttendanceOutputPath;
 }
@@ -2519,11 +2612,14 @@ if ($bridgeCloudBaseUrl === '') {
     } else {
         $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
         if ($host !== '') {
-            $bridgeCloudBaseUrl = 'https://' . $host;
+            $hostOnly = strtolower((string)(parse_url('http://' . $host, PHP_URL_HOST) ?: $host));
+            $scheme = in_array($hostOnly, ['localhost', '127.0.0.1', '::1'], true) ? 'http' : 'https';
+            $bridgeCloudBaseUrl = $scheme . '://' . $host;
         }
     }
 }
-if (stripos($bridgeCloudBaseUrl, 'http://') === 0) {
+$bridgeCloudHost = strtolower((string)(parse_url($bridgeCloudBaseUrl, PHP_URL_HOST) ?: ''));
+if (!in_array($bridgeCloudHost, ['localhost', '127.0.0.1', '::1'], true) && stripos($bridgeCloudBaseUrl, 'http://') === 0) {
     $bridgeCloudBaseUrl = 'https://' . substr($bridgeCloudBaseUrl, 7);
 }
 
@@ -3181,6 +3277,34 @@ include __DIR__ . '/../includes/header.php';
                                     <div class="col-sm-6">
                                         <label class="form-label">Local Output Path (bridge PC)</label>
                                         <input type="text" name="bridge_output_path" id="bridgeOutputPathField" class="form-control" value="<?php echo machine_h($bridgeOutputPath); ?>" placeholder="<?php echo machine_h($defaultAttendanceOutputPath); ?>">
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label class="form-label">Duplicate Guard (minutes)</label>
+                                        <input type="number" name="bridge_duplicate_guard_minutes" class="form-control" value="<?php echo machine_h((string)$bridgeDuplicateGuardMinutes); ?>" min="1" max="60">
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label class="form-label">Slot Advance Minimum</label>
+                                        <input type="number" name="bridge_slot_advance_minimum_minutes" class="form-control" value="<?php echo machine_h((string)$bridgeSlotAdvanceMinimumMinutes); ?>" min="1" max="240">
+                                    </div>
+                                    <div class="col-sm-4 d-flex align-items-end">
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="bridge_attendance_window_enabled" id="bridgeAttendanceWindowEnabled" <?php echo $bridgeWindowEnabled ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="bridgeAttendanceWindowEnabled">Use Attendance Window</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="bridge_disable_auto_import_on_ingest" id="bridgeDisableAutoImportOnIngest" <?php echo !$bridgeAutoImportOnIngest ? 'checked' : ''; ?>>
+                                            <label class="form-check-label" for="bridgeDisableAutoImportOnIngest">Disable automatic attendance import after online bridge ingest</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Window Start</label>
+                                        <input type="text" name="bridge_attendance_start_time" class="form-control" value="<?php echo machine_h($bridgeStartTime); ?>" placeholder="08:00:00">
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Window End</label>
+                                        <input type="text" name="bridge_attendance_end_time" class="form-control" value="<?php echo machine_h($bridgeEndTime); ?>" placeholder="20:00:00">
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label">Install Auto-Start Bridge Task (recommended)</label>
