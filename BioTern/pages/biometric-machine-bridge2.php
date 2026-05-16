@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/tools/biometric_machine_runtime.php';
 require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
@@ -36,10 +36,10 @@ $configRaw = '';
 $ringSetRaw = '';
 $networkRaw = '';
 $timeRaw = '';
-$machineConfigPath = dirname(__DIR__) . '/tools/biometric_machine_config.json';
+$machineConfigPath = dirname(__DIR__) . '/tools/biometric_machine_bridge2_config.json';
 $machineConfigJson = file_exists($machineConfigPath) ? trim((string)file_get_contents($machineConfigPath)) : '';
 $legacyAttendanceOutputPath = 'C:\\BioTern\\attendance.txt';
-$defaultAttendanceOutputPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'attendance.txt';
+$defaultAttendanceOutputPath = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'attendance-bridge2.txt';
 
 function machine_h($value): string
 {
@@ -54,6 +54,11 @@ function machine_connector_write_config(string $machineConfigPath, array $config
     }
 
     machine_write_local_config_file($machineConfigPath, $json . PHP_EOL);
+}
+
+function machine_biometric_run_command(string $command = 'sync', array $args = []): array
+{
+    return biometric_machine_run_command($command, $args, $GLOBALS['machineConfigPath'] ?? null);
 }
 
 function machine_open_restart_bridge_shell(string $workspaceRoot): void
@@ -170,6 +175,46 @@ function machine_make_bridge_token(): string
     } catch (Throwable $e) {
         return bin2hex(pack('N2', time(), mt_rand(100000, 999999)));
     }
+}
+
+function machine_process_old_logs_from_f20h(string $beginTime = '2000-01-01 00:00:00'): array
+{
+    $endTime = date('Y-m-d H:i:s');
+    $connector = machine_biometric_run_command('get-log-range', [$beginTime, $endTime]);
+    if (!$connector['success']) {
+        throw new RuntimeException(trim(implode("\n", $connector['output'] ?? [])));
+    }
+
+    $payload = biometric_machine_clean_output((string)($connector['text'] ?? ''));
+    if ($payload === '') {
+        $payload = '[]';
+    }
+
+    $decoded = json_decode($payload, true);
+    if (!is_array($decoded)) {
+        throw new RuntimeException('F20H returned historical logs, but the payload was not valid JSON.');
+    }
+
+    $isList = array_keys($decoded) === range(0, count($decoded) - 1);
+    $sourceEvents = $isList ? count($decoded) : 1;
+    $tmpFile = tempnam(sys_get_temp_dir(), 'biotern-old-f20h-');
+    if ($tmpFile === false) {
+        throw new RuntimeException('Unable to create temporary file for old F20H logs.');
+    }
+
+    try {
+        file_put_contents($tmpFile, $payload);
+        $importStats = run_biometric_auto_import_stats($tmpFile);
+    } finally {
+        @unlink($tmpFile);
+    }
+
+    return [
+        'begin_time' => $beginTime,
+        'end_time' => $endTime,
+        'source_events' => $sourceEvents,
+        'import_stats' => $importStats,
+    ];
 }
 
 function machine_bridge_default_cloud_base_url(): string
@@ -1187,7 +1232,7 @@ function machine_identity_label(array $identity): string
 
 function machine_load_user_list_into_state(&$userListRaw, &$userListDecoded): void
 {
-    $result = biometric_machine_run_command('get-user-list');
+    $result = machine_biometric_run_command('get-user-list');
     if (!$result['success']) {
         throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
     }
@@ -1198,7 +1243,7 @@ function machine_load_user_list_into_state(&$userListRaw, &$userListDecoded): vo
 
 function machine_load_user_details_into_state(int $selectedUserId, &$userDetailsRaw, &$userDetailsDecoded): void
 {
-    $result = biometric_machine_run_command('get-user', [(string)$selectedUserId]);
+    $result = machine_biometric_run_command('get-user', [(string)$selectedUserId]);
     if (!$result['success']) {
         throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
     }
@@ -1325,6 +1370,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'restart',
             'restart_windows',
             'save_device_identity',
+            'process_old_logs',
         ];
         if (in_array($action, $adminOnlyActions, true) && !$isAdmin) {
             throw new RuntimeException('Only admins can perform that machine action.');
@@ -1348,6 +1394,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'clear_admin',
             'restart',
             'save_device_identity',
+            'process_old_logs',
         ];
         $cloudRelayActions = [
             'save_user_name',
@@ -1360,6 +1407,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'clear_admin',
             'restart',
             'save_device_identity',
+            'process_old_logs',
         ];
         if (machine_is_cloud_runtime() && in_array($action, $connectorBoundActions, true) && !in_array($action, $cloudRelayActions, true)) {
             throw new RuntimeException('Direct machine commands are disabled in cloud runtime. Use F20H direct ingest by posting events to /api/f20h_ingest.php, then run Sync Now to reconcile logs into attendance.');
@@ -1552,7 +1600,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $connectorText = '';
 
                 if ($syncMode === 'connector_fallback' && !$cloudRuntime) {
-                    $connector = biometric_machine_run_command('sync');
+                    $connector = machine_biometric_run_command('sync');
                     if (!$connector['success']) {
                         throw new RuntimeException(trim(implode("\n", $connector['output'] ?? [])));
                     }
@@ -1561,7 +1609,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $connectorText = 'Connector step skipped. Processing direct-ingest queue from database.';
                 }
 
-                $importStats = run_biometric_auto_import_stats();
+                $attendanceImportFile = trim((string)($existingConfig['outputPath'] ?? $defaultAttendanceOutputPath));
+                $importStats = run_biometric_auto_import_stats($attendanceImportFile !== '' ? $attendanceImportFile : $defaultAttendanceOutputPath);
                 $importMessage = (string)($importStats['message'] ?? 'Biometric sync complete.');
                 $flashLevel = 'success';
                 if ($cloudRuntime && (int)($importStats['raw_inserted'] ?? 0) === 0 && (int)($importStats['processed_logs'] ?? 0) === 0) {
@@ -1578,6 +1627,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['machine_manager_flash'] = [
                     'type' => $flashLevel,
                     'message' => trim($connectorText . "\n" . $importMessage),
+                ];
+                machine_redirect_after_post(['load_users' => 1]);
+
+            case 'process_old_logs':
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'process_old_logs',
+                        ['begin_time' => '2000-01-01 00:00:00'],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = [
+                        'type' => 'success',
+                        'message' => 'Old-log pull queued for bridge worker. Queue ID #' . $queuedId . '. After it runs, click Process Ingest Queue to reconcile the uploaded logs.',
+                    ];
+                    machine_redirect_after_post(['load_users' => 1]);
+                }
+
+                $oldLogResult = machine_process_old_logs_from_f20h('2000-01-01 00:00:00');
+                $importStats = $oldLogResult['import_stats'] ?? [];
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => 'Old F20H log pull complete. Source events read: '
+                        . (int)($oldLogResult['source_events'] ?? 0)
+                        . '. Duplicates were skipped by the importer.'
+                        . "\n" . (string)($importStats['message'] ?? 'Biometric sync complete.'),
                 ];
                 machine_redirect_after_post(['load_users' => 1]);
 
@@ -1651,7 +1726,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $tmp = tempnam(sys_get_temp_dir(), 'biotern_user_');
                 file_put_contents($tmp, $userDetailsRaw);
-                $result = biometric_machine_run_command('set-user', [$tmp]);
+                $result = machine_biometric_run_command('set-user', [$tmp]);
                 @unlink($tmp);
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1681,7 +1756,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $patchedJson = biometric_machine_patch_user_name($userDetailsRaw, $newName);
                 $tmp = tempnam(sys_get_temp_dir(), 'biotern_user_');
                 file_put_contents($tmp, $patchedJson);
-                $result = biometric_machine_run_command('set-user', [$tmp]);
+                $result = machine_biometric_run_command('set-user', [$tmp]);
                 @unlink($tmp);
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1713,7 +1788,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $patchedJson = biometric_machine_patch_user_name($userDetailsRaw, $newName);
                 $tmp = tempnam(sys_get_temp_dir(), 'biotern_user_');
                 file_put_contents($tmp, $patchedJson);
-                $result = biometric_machine_run_command('set-user', [$tmp]);
+                $result = machine_biometric_run_command('set-user', [$tmp]);
                 @unlink($tmp);
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1736,7 +1811,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Delete user command queued for bridge worker. Queue ID #' . $queuedId . '.'];
                     machine_redirect_after_post(['load_users' => 1]);
                 }
-                $result = biometric_machine_run_command('delete-user', [(string)$selectedUserId]);
+                $result = machine_biometric_run_command('delete-user', [(string)$selectedUserId]);
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
@@ -1758,7 +1833,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Delete fingerprint command queued for bridge worker. Queue ID #' . $queuedId . '.'];
                     machine_redirect_after_post(['load_users' => 1]);
                 }
-                $result = biometric_machine_run_command('delete-user', [(string)$selectedUserId]);
+                $result = machine_biometric_run_command('delete-user', [(string)$selectedUserId]);
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
@@ -1767,7 +1842,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post(['load_users' => 1]);
 
             case 'get_device_info':
-                $result = biometric_machine_run_command('get-device-info');
+                $result = machine_biometric_run_command('get-device-info');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
@@ -1775,7 +1850,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post([]);
 
             case 'get_config':
-                $result = biometric_machine_run_command('get-config');
+                $result = machine_biometric_run_command('get-config');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
@@ -1789,7 +1864,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $tmp = tempnam(sys_get_temp_dir(), 'biotern_cfg_');
                 file_put_contents($tmp, $configRaw);
-                $result = biometric_machine_run_command('set-config', [$tmp]);
+                $result = machine_biometric_run_command('set-config', [$tmp]);
                 @unlink($tmp);
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
@@ -1798,7 +1873,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post([]);
 
             case 'get_network':
-                $result = biometric_machine_run_command('get-network');
+                $result = machine_biometric_run_command('get-network');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
@@ -1810,7 +1885,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $gateway = trim((string)($_POST['gateway'] ?? ''));
                 $mask = trim((string)($_POST['mask'] ?? ''));
                 $port = trim((string)($_POST['port'] ?? ''));
-                $result = biometric_machine_run_command('set-network', [$ip, $gateway, $mask, $port]);
+                $result = machine_biometric_run_command('set-network', [$ip, $gateway, $mask, $port]);
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
@@ -1818,7 +1893,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post([]);
 
             case 'get_time':
-                $result = biometric_machine_run_command('get-time');
+                $result = machine_biometric_run_command('get-time');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
@@ -1840,7 +1915,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Set time command queued for bridge worker. Queue ID #' . $queuedId . '.'];
                     machine_redirect_after_post([]);
                 }
-                $result = biometric_machine_run_command('set-time', [$timeValue]);
+                $result = machine_biometric_run_command('set-time', [$timeValue]);
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
@@ -2262,7 +2337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Clear records command queued for bridge worker. Queue ID #' . $queuedId . '.'];
                     machine_redirect_after_post(['load_users' => 1]);
                 }
-                $result = biometric_machine_run_command('clear-records');
+                $result = machine_biometric_run_command('clear-records');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
@@ -2280,7 +2355,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Clear users command queued for bridge worker. Queue ID #' . $queuedId . '.'];
                     machine_redirect_after_post([]);
                 }
-                $result = biometric_machine_run_command('clear-users');
+                $result = machine_biometric_run_command('clear-users');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
@@ -2298,7 +2373,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['machine_manager_flash'] = ['type' => 'warning', 'message' => 'Clear admin command queued for bridge worker. Queue ID #' . $queuedId . '.'];
                     machine_redirect_after_post([]);
                 }
-                $result = biometric_machine_run_command('clear-admin');
+                $result = machine_biometric_run_command('clear-admin');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
@@ -2316,7 +2391,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Restart command queued for bridge worker. Queue ID #' . $queuedId . '.'];
                     machine_redirect_after_post([]);
                 }
-                $result = biometric_machine_run_command('restart');
+                $result = machine_biometric_run_command('restart');
                 if (!$result['success']) {
                     throw new RuntimeException(trim(implode("\n", $result['output'] ?? [])));
                 }
@@ -2352,13 +2427,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     machine_redirect_after_post([]);
                 }
                 if ($deviceNo !== '') {
-                    $deviceNoResult = biometric_machine_run_command('set-device-no', [$deviceNo]);
+                    $deviceNoResult = machine_biometric_run_command('set-device-no', [$deviceNo]);
                     if (!$deviceNoResult['success']) {
                         throw new RuntimeException(trim(implode("\n", $deviceNoResult['output'] ?? [])));
                     }
                 }
                 if ($password !== '') {
-                    $passwordResult = biometric_machine_run_command('set-password', [$password]);
+                    $passwordResult = machine_biometric_run_command('set-password', [$password]);
                     if (!$passwordResult['success']) {
                         throw new RuntimeException(trim(implode("\n", $passwordResult['output'] ?? [])));
                     }
@@ -2854,6 +2929,10 @@ include __DIR__ . '/../includes/header.php';
                             <button type="submit" class="btn btn-primary w-100"><?php echo $cloudRuntime || $syncMode === 'direct_ingest' ? 'Process Ingest Queue' : 'Sync Now'; ?></button>
                         </form>
                         <?php if ($isAdmin && !$cloudRuntime): ?>
+                            <form method="post" class="mt-2" data-confirm="Pull all old F20H logs from the machine and import only non-duplicate records?">
+                                <input type="hidden" name="machine_action" value="process_old_logs">
+                                <button type="submit" class="btn btn-outline-primary w-100">Process Old Logs</button>
+                            </form>
                             <form method="post" class="mt-2" data-confirm="Revive the bridge connection now? This enables the bridge profile, repairs auto-start, and restarts BioTernBridgeWorker.">
                                 <input type="hidden" name="machine_action" value="revive_bridge_connection">
                                 <button type="submit" class="btn btn-success w-100">Revive Bridge Connection</button>
@@ -3938,3 +4017,4 @@ include __DIR__ . '/../includes/header.php';
     data-machine-queue-watch-url="biometric-machine-bridge2.php?queue_watch_status=1"></div>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+

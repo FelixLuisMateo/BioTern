@@ -923,6 +923,34 @@ function Invoke-BridgeQueuedCommand {
             Publish-Ingest -BridgeConfig $BridgeConfig
             return (($connectorOutput -join ' ') -replace '\s+', ' ')
         }
+        'process_old_logs' {
+            $beginTime = [string]($payload.begin_time)
+            if ([string]::IsNullOrWhiteSpace($beginTime)) {
+                $beginTime = '2000-01-01 00:00:00'
+            }
+            $endTime = [string]($payload.end_time)
+            if ([string]::IsNullOrWhiteSpace($endTime)) {
+                $endTime = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+            }
+
+            $rawHistory = Get-ConnectorHistoricalLogRaw -BeginTime $beginTime -EndTime $endTime
+            $historyJson = ConvertFrom-BridgeRawJsonPayload -RawText $rawHistory
+            $decodedHistory = $historyJson | ConvertFrom-Json -ErrorAction Stop
+            $historyEvents = Convert-BridgeDecodedPayloadToEvents -Decoded $decodedHistory
+
+            $pendingEvents = @(Read-BridgeEventsFromFile -Path $bridgePendingIngestPath)
+            if ($null -eq $pendingEvents) {
+                $pendingEvents = @()
+            }
+
+            $beforeCount = $pendingEvents.Count
+            $mergedEvents = Merge-BridgeEventsUnique -First $pendingEvents -Second @($historyEvents)
+            Save-BridgePendingEvents -Events $mergedEvents
+            Publish-Ingest -BridgeConfig $BridgeConfig
+
+            $added = [Math]::Max(0, ($mergedEvents.Count - $beforeCount))
+            return ("Old log pull complete. SourceEvents={0} AddedToPending={1}" -f $historyEvents.Count, $added)
+        }
         'save_device_identity' {
             $messages = @()
             $deviceNo = [string]($payload.device_number)

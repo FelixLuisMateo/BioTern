@@ -41,6 +41,9 @@ function bridge_profile_ensure_table(mysqli $conn): void
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
     $columns = [
+        'selected_bridge_preset' => "ALTER TABLE biometric_bridge_profile ADD COLUMN selected_bridge_preset VARCHAR(100) NOT NULL DEFAULT 'laptop_custom' AFTER profile_name",
+        'router_name' => "ALTER TABLE biometric_bridge_profile ADD COLUMN router_name VARCHAR(150) NOT NULL DEFAULT '' AFTER selected_bridge_preset",
+        'bridge_name' => "ALTER TABLE biometric_bridge_profile ADD COLUMN bridge_name VARCHAR(150) NOT NULL DEFAULT '' AFTER router_name",
         'auto_import_on_ingest' => "ALTER TABLE biometric_bridge_profile ADD COLUMN auto_import_on_ingest TINYINT(1) NOT NULL DEFAULT 1 AFTER output_path",
         'attendance_window_enabled' => "ALTER TABLE biometric_bridge_profile ADD COLUMN attendance_window_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER auto_import_on_ingest",
         'attendance_start_time' => "ALTER TABLE biometric_bridge_profile ADD COLUMN attendance_start_time VARCHAR(20) NOT NULL DEFAULT '08:00:00' AFTER attendance_window_enabled",
@@ -116,11 +119,46 @@ $conn->set_charset('utf8mb4');
 
 bridge_profile_ensure_table($conn);
 
-$res = $conn->query("SELECT * FROM biometric_bridge_profile WHERE profile_name = 'default' LIMIT 1");
+$requestedProfileName = trim((string)($_GET['profile_name'] ?? $_SERVER['HTTP_X_BRIDGE_PROFILE'] ?? ''));
+$providedToken = bridge_profile_request_token();
 $profile = [];
-if ($res instanceof mysqli_result) {
-    $profile = $res->fetch_assoc() ?: [];
-    $res->close();
+$isAuthorized = false;
+
+if ($requestedProfileName !== '') {
+    if (!preg_match('/^[A-Za-z0-9_-]{1,100}$/', $requestedProfileName)) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Invalid bridge profile name']);
+        $conn->close();
+        exit;
+    }
+
+    $safeProfile = $conn->real_escape_string($requestedProfileName);
+    $res = $conn->query("SELECT * FROM biometric_bridge_profile WHERE profile_name = '{$safeProfile}' LIMIT 1");
+    if ($res instanceof mysqli_result) {
+        $profile = $res->fetch_assoc() ?: [];
+        $res->close();
+    }
+
+    foreach (bridge_profile_token_candidates($profile) as $candidate) {
+        if (hash_equals((string)$candidate, $providedToken)) {
+            $isAuthorized = true;
+            break;
+        }
+    }
+} else {
+    $res = $conn->query("SELECT * FROM biometric_bridge_profile ORDER BY profile_name = 'default' DESC, id ASC");
+    if ($res instanceof mysqli_result) {
+        while ($row = $res->fetch_assoc()) {
+            foreach (bridge_profile_token_candidates($row) as $candidate) {
+                if (hash_equals((string)$candidate, $providedToken)) {
+                    $profile = $row;
+                    $isAuthorized = true;
+                    break 2;
+                }
+            }
+        }
+        $res->close();
+    }
 }
 
 if ($profile === []) {
@@ -128,16 +166,6 @@ if ($profile === []) {
     echo json_encode(['success' => false, 'message' => 'Bridge profile not configured yet.']);
     $conn->close();
     exit;
-}
-
-$providedToken = bridge_profile_request_token();
-$tokenCandidates = bridge_profile_token_candidates($profile);
-$isAuthorized = false;
-foreach ($tokenCandidates as $candidate) {
-    if (hash_equals((string)$candidate, $providedToken)) {
-        $isAuthorized = true;
-        break;
-    }
 }
 
 if ($providedToken === '' || !$isAuthorized) {
@@ -150,6 +178,7 @@ if ($providedToken === '' || !$isAuthorized) {
 echo json_encode([
     'success' => true,
     'profile' => [
+        'profile_name' => (string)($profile['profile_name'] ?? ''),
         'bridge_enabled' => !empty($profile['bridge_enabled']),
         'selected_bridge_preset' => (string)($profile['selected_bridge_preset'] ?? ''),
         'cloud_base_url' => (string)($profile['cloud_base_url'] ?? ''),

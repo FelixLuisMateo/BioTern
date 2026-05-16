@@ -62,9 +62,12 @@ if (!function_exists('biometric_machine_ensure_connector_built')) {
 }
 
 if (!function_exists('biometric_machine_run_command')) {
-    function biometric_machine_run_command(string $command = 'sync', array $args = []): array
+    function biometric_machine_run_command(string $command = 'sync', array $args = [], ?string $configPath = null): array
     {
         $paths = biometric_machine_paths();
+        $connectorConfigPath = $configPath !== null && trim($configPath) !== ''
+            ? $configPath
+            : $paths['config'];
 
         if (!biometric_machine_is_windows() && !file_exists($paths['dll'])) {
             return [
@@ -98,7 +101,7 @@ if (!function_exists('biometric_machine_run_command')) {
             $parts[] = escapeshellarg($paths['dll']);
         }
 
-        $parts[] = escapeshellarg($paths['config']);
+        $parts[] = escapeshellarg($connectorConfigPath);
         $parts[] = escapeshellarg($command);
         foreach ($args as $arg) {
             $parts[] = escapeshellarg((string)$arg);

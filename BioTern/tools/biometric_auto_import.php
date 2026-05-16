@@ -19,6 +19,7 @@ if (!function_exists('run_biometric_auto_import_stats')) {
         $attendanceFile = $attendanceFile ?: (dirname(__DIR__) . '/attendance.txt');
         $machineConfig = loadBiometricMachineConfig();
         $conn = biometric_shared_db();
+        biometricEnsureAttendancesTable($conn);
         section_schedule_ensure_columns($conn);
 
         $conn->query("
@@ -43,9 +44,9 @@ if (!function_exists('run_biometric_auto_import_stats')) {
                 throw new RuntimeException('Failed to read attendance.txt.');
             }
 
-            $trimmedJson = trim($json);
+            $trimmedJson = trim(biometricNormalizeJsonText($json));
             if ($trimmedJson !== '' && $trimmedJson !== '[]') {
-                $data = json_decode($json, true);
+                $data = json_decode($trimmedJson, true);
                 if (!is_array($data)) {
                     throw new RuntimeException('Invalid attendance.txt format.');
                 }
@@ -54,6 +55,7 @@ if (!function_exists('run_biometric_auto_import_stats')) {
             }
         }
 
+        $rawInserted += biometricImportBridgeArchiveLogs($conn, $machineConfig);
         $autoCleanupApplied = applyCompletedFingerprintCleanupResults($conn);
 
         $fingerprintMap = buildFingerprintStudentMap($conn);
@@ -225,6 +227,97 @@ if (!function_exists('run_biometric_auto_import_stats')) {
             'cleanup_queued' => $autoCleanupQueued,
             'cleanup_applied' => $autoCleanupApplied,
         ];
+    }
+}
+
+if (!function_exists('biometricEnsureAttendancesTable')) {
+    function biometricEnsureAttendancesTable(mysqli $conn): void
+    {
+        $conn->query("
+            CREATE TABLE IF NOT EXISTS attendances (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                student_id BIGINT UNSIGNED NOT NULL,
+                internship_id BIGINT UNSIGNED DEFAULT NULL,
+                attendance_date DATE NOT NULL,
+                morning_time_in TIME DEFAULT NULL,
+                morning_time_out TIME DEFAULT NULL,
+                break_time_in TIME DEFAULT NULL,
+                break_time_out TIME DEFAULT NULL,
+                afternoon_time_in TIME DEFAULT NULL,
+                afternoon_time_out TIME DEFAULT NULL,
+                total_hours DECIMAL(5,2) DEFAULT NULL,
+                source ENUM('biometric','manual','uploaded') DEFAULT 'manual',
+                status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+                approved_by BIGINT UNSIGNED DEFAULT NULL,
+                approved_at TIMESTAMP NULL DEFAULT NULL,
+                remarks TEXT NULL,
+                rejection_remarks TEXT NULL,
+                rejected_by BIGINT UNSIGNED DEFAULT NULL,
+                rejected_at TIMESTAMP NULL DEFAULT NULL,
+                created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                KEY idx_student_id (student_id),
+                KEY idx_attendance_date_status (attendance_date,status),
+                KEY idx_approved_by (approved_by),
+                KEY idx_internship_attendance (internship_id,attendance_date),
+                KEY idx_student_attendance (student_id,attendance_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    }
+}
+
+if (!function_exists('biometricNormalizeJsonText')) {
+    function biometricNormalizeJsonText(string $json): string
+    {
+        return preg_replace('/^\xEF\xBB\xBF/', '', $json) ?? $json;
+    }
+}
+
+if (!function_exists('biometricImportBridgeArchiveLogs')) {
+    function biometricImportBridgeArchiveLogs(mysqli $conn, array $machineConfig = []): int
+    {
+        $workspaceRoot = dirname(__DIR__);
+        $roots = [
+            $workspaceRoot . '/tools/bridge-holding/pending',
+            $workspaceRoot . '/tools/bridge-holding/uploaded',
+            $workspaceRoot . '/tools/bridge-recovery',
+        ];
+
+        $files = [];
+        foreach ($roots as $root) {
+            if (!is_dir($root)) {
+                continue;
+            }
+            foreach (glob($root . '/*.json') ?: [] as $file) {
+                if (is_file($file)) {
+                    $files[] = $file;
+                }
+            }
+        }
+
+        usort($files, static function (string $a, string $b): int {
+            return (filemtime($a) ?: 0) <=> (filemtime($b) ?: 0);
+        });
+
+        $inserted = 0;
+        foreach ($files as $file) {
+            $json = file_get_contents($file);
+            if (!is_string($json) || trim($json) === '' || trim($json) === '[]') {
+                continue;
+            }
+
+            $decoded = json_decode(trim(biometricNormalizeJsonText($json)), true);
+            if (!is_array($decoded)) {
+                continue;
+            }
+
+            $isList = array_keys($decoded) === range(0, count($decoded) - 1);
+            $entries = $isList ? $decoded : [$decoded];
+            $inserted += biometricInsertRawLogEntries($conn, $entries, $machineConfig);
+        }
+
+        return $inserted;
     }
 }
 
