@@ -57,14 +57,33 @@ function student_dtr_time_select_options_html(string $selected = '', int $startH
 
 function student_dtr_quick_punch_allowed(array $record, string $clockType, array $schedule): bool
 {
-    $column = attendance_action_to_column($clockType);
-    if ($column === null) {
-        return false;
+    $record = student_dtr_normalize_empty_punch_values($record);
+    $validation = attendance_validate_scheduled_transition($record, $clockType, date('H:i:s'), $schedule);
+    return !empty($validation['ok']);
+}
+
+function student_dtr_next_quick_punch(array $record, array $schedule): ?string
+{
+    $record = student_dtr_normalize_empty_punch_values($record);
+    foreach (attendance_schedule_action_order($schedule) as $clockType) {
+        if (student_dtr_quick_punch_allowed($record, $clockType, $schedule)) {
+            return $clockType;
+        }
     }
 
-    $value = trim((string)($record[$column] ?? ''));
+    return null;
+}
 
-    return $value === '' || $value === '00:00:00' || $value === '00:00';
+function student_dtr_normalize_empty_punch_values(array $record): array
+{
+    foreach (['morning_time_in', 'morning_time_out', 'break_time_in', 'break_time_out', 'afternoon_time_in', 'afternoon_time_out'] as $column) {
+        $value = trim((string)($record[$column] ?? ''));
+        if ($value === '00:00:00' || $value === '00:00') {
+            $record[$column] = '';
+        }
+    }
+
+    return $record;
 }
 
 function student_dtr_ensure_manual_attachment_table(mysqli $conn): void
@@ -139,6 +158,25 @@ function student_dtr_calculate_hours(array $attendance): float
     }
 
     return round($totalSeconds / 3600, 2);
+}
+
+function student_dtr_source_label(array $attendance): string
+{
+    $source = strtolower(trim((string)($attendance['source'] ?? 'manual')));
+    $remarks = strtolower(trim((string)($attendance['remarks'] ?? '')));
+    if ($source === 'biometric' && (
+        str_contains($remarks, 'student punch button')
+        || str_contains($remarks, 'manual entry added')
+        || !empty($attendance['proof_attachment'])
+    )) {
+        return 'Manual + Biometric';
+    }
+
+    return match ($source) {
+        'biometric' => 'Biometric',
+        'uploaded' => 'Uploaded',
+        default => 'Manual',
+    };
 }
 
 function student_dtr_manual_metrics(array $attendance): array
@@ -518,14 +556,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
         exit;
     }
 
-    $todayRecord = student_dtr_today_record($conn, $studentId, $clockDate);
+    $todayRecord = student_dtr_normalize_empty_punch_values(student_dtr_today_record($conn, $studentId, $clockDate));
     $schedule = student_dtr_schedule_for_student_date($student, $clockDate);
     $column = attendance_action_to_column($clockType);
 
-    if ($column === null || !student_dtr_quick_punch_allowed($todayRecord, $clockType, $schedule)) {
+    $validation = $column !== null
+        ? attendance_validate_scheduled_transition($todayRecord, $clockType, $clockTime, $schedule)
+        : ['ok' => false, 'message' => 'Invalid clock type.'];
+
+    if (empty($validation['ok'])) {
         $_SESSION['student_dtr_flash'] = [
             'type' => 'warning',
-            'message' => 'That internal attendance slot is not available or is already recorded.',
+            'message' => (string)($validation['message'] ?? 'That internal attendance slot is not available or is already recorded.'),
         ];
         header('Location: student-manual-dtr.php');
         exit;
@@ -542,8 +584,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
             UPDATE attendances
             SET {$column} = ?,
                 total_hours = ?,
-                source = 'biometric',
-                status = CASE WHEN status = 'rejected' THEN 'pending' ELSE status END,
+                source = CASE WHEN source = 'biometric' THEN source ELSE 'manual' END,
+                status = 'pending',
                 remarks = CASE WHEN ? <> '' THEN ? ELSE remarks END,
                 updated_at = NOW()
             WHERE id = ? AND student_id = ?
@@ -566,7 +608,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
             INSERT INTO attendances (
                 student_id, attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out,
                 total_hours, source, status, remarks, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'biometric', 'pending', ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'manual', 'pending', ?, NOW(), NOW())
         ");
         if ($stmt) {
             $stmt->bind_param('isssssds', $studentId, $clockDate, $morningIn, $morningOut, $afternoonIn, $afternoonOut, $totalHours, $remarks);
@@ -938,7 +980,7 @@ $remainingHours = $track === 'external'
     : (int)($student['internal_total_hours_remaining'] ?? 0);
 $studentDtrToday = date('Y-m-d');
 $studentDtrTodayRecord = !empty($student)
-    ? student_dtr_today_record($conn, (int)($student['id'] ?? 0), $studentDtrToday)
+    ? student_dtr_normalize_empty_punch_values(student_dtr_today_record($conn, (int)($student['id'] ?? 0), $studentDtrToday))
     : [];
 $studentDtrTodaySchedule = !empty($student)
     ? student_dtr_schedule_for_student_date($student, $studentDtrToday)
@@ -950,6 +992,7 @@ $studentDtrClockTypes = [
     'afternoon_out' => ['Afternoon Out', 'feather-log-out'],
 ];
 $studentDtrAllowedPunchOrder = attendance_schedule_action_order($studentDtrTodaySchedule);
+$studentDtrNextPunch = student_dtr_next_quick_punch($studentDtrTodayRecord, $studentDtrTodaySchedule);
 $lastRecordedDateText = $attendanceInsights['last_recorded_date'] !== ''
     ? date('M d, Y', strtotime($attendanceInsights['last_recorded_date']))
     : 'No entries yet';
@@ -1046,12 +1089,20 @@ include 'includes/header.php';
                 <input type="hidden" name="clock_date" value="<?php echo htmlspecialchars($studentDtrToday, ENT_QUOTES, 'UTF-8'); ?>">
                 <div class="external-clock-grid">
                     <?php foreach ($studentDtrClockTypes as $clockType => [$clockLabel, $clockIcon]): ?>
-                        <?php $isLocked = !student_dtr_quick_punch_allowed($studentDtrTodayRecord, $clockType, $studentDtrTodaySchedule); ?>
+                        <?php
+                            if ($clockType !== $studentDtrNextPunch) {
+                                continue;
+                            }
+                            $isLocked = false;
+                        ?>
                         <button type="submit" name="clock_type" value="<?php echo htmlspecialchars($clockType, ENT_QUOTES, 'UTF-8'); ?>" class="external-clock-btn<?php echo $isLocked ? ' is-complete' : ''; ?>" <?php echo $isLocked ? 'disabled aria-disabled="true"' : ''; ?>>
                             <i class="<?php echo htmlspecialchars($clockIcon, ENT_QUOTES, 'UTF-8'); ?>"></i>
                             <span><?php echo htmlspecialchars($clockLabel, ENT_QUOTES, 'UTF-8'); ?></span>
                         </button>
                     <?php endforeach; ?>
+                    <?php if ($studentDtrNextPunch === null): ?>
+                        <div class="student-dtr-quick-status w-100">No available punch for your section schedule today.</div>
+                    <?php endif; ?>
                 </div>
                 <div class="external-note-field">
                     <label for="quickInternalPunchNote">Notes</label>
@@ -1356,7 +1407,7 @@ include 'includes/header.php';
                                                 </span>
                                             <?php endif; ?>
                                         </td>
-                                        <td data-label="Source"><?php echo htmlspecialchars(ucfirst((string)($row['source'] ?? 'manual')), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        <td data-label="Source"><?php echo htmlspecialchars(student_dtr_source_label($row), ENT_QUOTES, 'UTF-8'); ?></td>
                                     </tr>
                                     <?php endforeach; ?>
                                 </tbody>

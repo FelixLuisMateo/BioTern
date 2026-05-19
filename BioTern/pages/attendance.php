@@ -376,7 +376,7 @@ $filter_school_year = '';
 $filter_supervisor = '';
 $filter_coordinator = '';
 $filter_source = isset($_GET['source']) ? trim((string)$_GET['source']) : 'all';
-$valid_source_filters = ['all', 'manual', 'biometric', 'external-biometric'];
+$valid_source_filters = ['all', 'manual', 'biometric', 'mixed', 'external-biometric'];
 if (!in_array($filter_source, $valid_source_filters, true)) {
     $filter_source = 'all';
 }
@@ -514,6 +514,7 @@ if ($coor_res && $coor_res->num_rows) {
 // Build attendance query filtered by provided inputs. Default shows today's records.
 // Build WHERE clauses depending on provided filters
 $where = [];
+$hasManualDtrAttachments = function_exists('table_exists') && table_exists($conn, 'manual_dtr_attachments');
 if ($attendance_is_supervisor && $attendance_user_id > 0) {
     $attendanceScopeParts = ["(i.supervisor_id = " . (int)$attendance_user_id . " OR s.supervisor_id = " . (int)$attendance_user_id . ")"];
     if ($attendance_supervisor_profile_id > 0 && $attendance_supervisor_profile_id !== $attendance_user_id) {
@@ -529,6 +530,23 @@ if (!empty($start_date) && !empty($end_date)) {
 if ($filter_source !== 'all') {
     if ($filter_source === 'biometric') {
         $where[] = "(a.source = 'biometric' OR a.source = 'external-biometric')";
+    } elseif ($filter_source === 'mixed') {
+        $proofExistsSql = $hasManualDtrAttachments
+            ? "OR EXISTS (
+                    SELECT 1
+                    FROM manual_dtr_attachments mda_source
+                    WHERE mda_source.attendance_id = a.id
+                      AND mda_source.deleted_at IS NULL
+                )"
+            : "";
+        $where[] = "(
+            a.source = 'biometric'
+            AND (
+                COALESCE(a.remarks, '') LIKE '%Student punch button%'
+                OR COALESCE(a.remarks, '') LIKE '%Manual entry added%'
+                {$proofExistsSql}
+            )
+        )";
     } else {
         $where[] = "a.source = '" . $conn->real_escape_string($filter_source) . "'";
     }
@@ -562,7 +580,6 @@ if (!empty($filter_coordinator)) {
     )";
 }
 
-$hasManualDtrAttachments = function_exists('table_exists') && table_exists($conn, 'manual_dtr_attachments');
 if ($filter_reports === 'proof') {
     $where[] = $hasManualDtrAttachments
         ? "EXISTS (SELECT 1 FROM manual_dtr_attachments mda_filter WHERE mda_filter.attendance_id = a.id AND mda_filter.deleted_at IS NULL)"
@@ -1156,9 +1173,31 @@ function getSourceBadge($source, array $attendance = []) {
     $placementLabel = attendancePlacementContextLabel($attendance);
     $placementShortLabel = attendancePlacementContextShortLabel($attendance);
     $titleAttr = $placementLabel !== '' ? (' title="' . htmlspecialchars($placementLabel, ENT_QUOTES, 'UTF-8') . '" data-bs-toggle="tooltip"') : '';
+    $hasManualComponent = false;
+    foreach (['remarks', 'proof_reason'] as $manualKey) {
+        $manualText = strtolower(trim((string)($attendance[$manualKey] ?? '')));
+        if ($manualText !== '' && (
+            str_contains($manualText, 'student punch button')
+            || str_contains($manualText, 'manual entry added')
+            || str_contains($manualText, 'machine-down fallback')
+        )) {
+            $hasManualComponent = true;
+            break;
+        }
+    }
+    if (trim((string)($attendance['proof_photo_path'] ?? '')) !== '') {
+        $hasManualComponent = true;
+    }
 
     switch (strtolower(trim((string)$source))) {
         case 'biometric':
+            if ($hasManualComponent) {
+                $html = '<span class="badge bg-soft-warning text-warning"' . $titleAttr . '>Manual + Biometric</span>';
+                if ($placementShortLabel !== '') {
+                    $html .= '<div class="fs-11 text-muted mt-1">' . htmlspecialchars($placementShortLabel, ENT_QUOTES, 'UTF-8') . '</div>';
+                }
+                return $html;
+            }
             $html = '<span class="badge bg-soft-primary text-primary"' . $titleAttr . '>Biometric</span>';
             if ($placementShortLabel !== '') {
                 $html .= '<div class="fs-11 text-muted mt-1">' . htmlspecialchars($placementShortLabel, ENT_QUOTES, 'UTF-8') . '</div>';
@@ -2249,6 +2288,7 @@ echo htmlspecialchars((string)$filter_date, ENT_QUOTES, 'UTF-8'); ?>">
                                 <option value="all" <?php echo $filter_source === 'all' ? 'selected' : ''; ?>>All Sources</option>
                                 <option value="manual" <?php echo $filter_source === 'manual' ? 'selected' : ''; ?>>Manual</option>
                                 <option value="biometric" <?php echo $filter_source === 'biometric' ? 'selected' : ''; ?>>Biometric</option>
+                                <option value="mixed" <?php echo $filter_source === 'mixed' ? 'selected' : ''; ?>>Manual + Biometric</option>
                                 <option value="external-biometric" <?php echo $filter_source === 'external-biometric' ? 'selected' : ''; ?>>External Biometric</option>
                             </select>
                         </div>
