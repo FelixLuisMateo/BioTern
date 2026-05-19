@@ -1480,7 +1480,9 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
 
     var buildTimeSelect = function (name, selected, startHour, endHour, slotName) {
         var slotAttr = slotName ? ' data-time-slot="' + escapeHtml(slotName) + '"' : '';
-        return '<input type="time" step="60" class="form-control student-dtr-time-field external-manual-time-field" name="' + name + '" value="' + escapeHtml(selected || '') + '"' + slotAttr + '>';
+        return '<select class="form-select student-dtr-time-select external-manual-time-select" name="' + name + '"' + slotAttr + '>' +
+            buildTimeOptions(selected || '', startHour, endHour) +
+            '</select>';
     };
 
     var formatLabel = function (dateValue) {
