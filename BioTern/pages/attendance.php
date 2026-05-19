@@ -1769,13 +1769,13 @@ function attendance_reports_cell_html(array $attendance): string
 function attendance_photo_cell_html(array $attendance): string
 {
     $proofPath = trim((string)($attendance['proof_photo_path'] ?? ''));
-    if ($proofPath === '') {
-        return '<span class="text-muted">-</span>';
+    if ($proofPath !== '') {
+        return '<a class="attendance-proof-thumb" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener" title="Open proof image">'
+            . '<img src="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" alt="Proof image">'
+            . '</a>';
     }
 
-    return '<a class="attendance-proof-thumb" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener" title="Open proof image">'
-        . '<img src="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" alt="Proof image">'
-        . '</a>';
+    return '<span class="badge bg-soft-secondary text-secondary">No proof</span>';
 }
 
 function attendance_notes_cell_html(array $attendance): string
@@ -1801,7 +1801,7 @@ function attendanceCanReview(array $attendance): bool
         return false;
     }
 
-    return !attendanceIsBiometricRecord($attendance);
+    return (int)($attendance['id'] ?? 0) > 0;
 }
 
 function attendance_review_cell_html(array $attendance): string
@@ -1854,7 +1854,8 @@ function attendanceActionMenuItems(array $attendance): string
         $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(' . $attendanceId . ')"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li>';
         $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="rejectAttendanceIndividual(' . $attendanceId . ')"><i class="feather feather-x-circle me-3"></i><span>Reject</span></a></li>';
     } else {
-        $items[] = '<li><span class="dropdown-item-text text-muted"><i class="feather feather-shield me-3"></i><span>Auto-verified by machine</span></span></li>';
+        $verifiedLabel = attendanceIsBiometricRecord($attendance) ? 'Approved biometric record' : 'No review needed';
+        $items[] = '<li><span class="dropdown-item-text text-muted"><i class="feather feather-shield me-3"></i><span>' . htmlspecialchars($verifiedLabel, ENT_QUOTES, 'UTF-8') . '</span></span></li>';
     }
 
     if ($proofPath !== '') {
@@ -1863,9 +1864,6 @@ function attendanceActionMenuItems(array $attendance): string
     $editAttrs = attendance_edit_action_attrs($attendance);
     $items[] = '<li><button type="button" class="dropdown-item" data-attendance-edit-open ' . $editAttrs . '><i class="feather feather-edit-3 me-3"></i><span>Edit</span></button></li>';
     $items[] = '<li><a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(' . $attendanceId . ')"><i class="feather feather-printer me-3"></i><span>Print</span></a></li>';
-    $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(' . $attendanceId . ')"><i class="feather feather-mail me-3"></i><span>Send Notification</span></a></li>';
-    $items[] = '<li class="dropdown-divider"></li>';
-    $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(' . $attendanceId . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li>';
 
     return attendance_row_actions_modal_trigger($attendanceId, $studentId, $studentName, $items);
 }
@@ -2424,6 +2422,10 @@ echo $stats['total_count'] ?? 0; ?></span>
                                                 <th>Afternoon Out</th>
                                                 <th>Total Hours</th>
                                                 <th>Source</th>
+                                                <th>Photo</th>
+                                                <th>Reports</th>
+                                                <th>Notes</th>
+                                                <th>Review</th>
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
@@ -2478,6 +2480,10 @@ echo attendance_hours_cell_html($attendance); ?>
                                                         </td>
                                                         <td data-label="Source"><?php
 echo getSourceBadge($attendance['source'] ?? 'manual', $attendance); ?></td>
+                                                        <td data-label="Photo"><?php echo attendance_photo_cell_html($attendance); ?></td>
+                                                        <td data-label="Reports"><?php echo attendance_reports_cell_html($attendance); ?></td>
+                                                        <td data-label="Notes"><?php echo attendance_notes_cell_html($attendance); ?></td>
+                                                        <td data-label="Review"><?php echo attendance_review_cell_html($attendance); ?></td>
                                                         <td data-label="Actions">
                                                             <?php echo attendanceActionMenuItems($attendance); ?>
                                                         </td>

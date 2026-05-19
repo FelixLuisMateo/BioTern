@@ -30,7 +30,7 @@
                 "order": [[2, "desc"]],
                 "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
                 "columnDefs": [
-                    { "orderable": false, "targets": [0, 9] }
+                    { "orderable": false, "targets": [0, 9, 10, 11, 12, 13] }
                 ],
                 "language": {
                     "emptyTable": "No attendance records found",

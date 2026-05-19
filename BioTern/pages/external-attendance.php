@@ -954,6 +954,93 @@ function external_attendance_notes_cell(array $row): string
     return '<div class="external-review-notes-text">' . htmlspecialchars(implode(' | ', $parts), ENT_QUOTES, 'UTF-8') . '</div>';
 }
 
+function external_attendance_filter_hidden_inputs(): string
+{
+    $fields = [
+        'filter_status' => $GLOBALS['statusFilter'] ?? 'all',
+        'filter_date' => $GLOBALS['dateFilter'] ?? '',
+        'filter_source' => $GLOBALS['sourceFilter'] ?? 'all',
+        'filter_photo' => $GLOBALS['photoFilter'] ?? 'all',
+        'filter_student' => $GLOBALS['studentFilter'] ?? '',
+    ];
+
+    $html = '';
+    foreach ($fields as $name => $value) {
+        $html .= '<input type="hidden" name="' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . '" value="' . htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8') . '">';
+    }
+
+    return $html;
+}
+
+function external_attendance_quick_review_form(array $row, string $status, string $label, string $icon, string $className = ''): string
+{
+    return '<form method="post" class="external-action-form">'
+        . '<input type="hidden" name="external_admin_action" value="review">'
+        . '<input type="hidden" name="record_id" value="' . (int)($row['id'] ?? 0) . '">'
+        . '<input type="hidden" name="status" value="' . htmlspecialchars($status, ENT_QUOTES, 'UTF-8') . '">'
+        . '<input type="hidden" name="admin_note" value="">'
+        . external_attendance_filter_hidden_inputs()
+        . '<button type="submit" class="dropdown-item ' . htmlspecialchars($className, ENT_QUOTES, 'UTF-8') . '"><i class="feather ' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . ' me-3"></i><span>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span></button>'
+        . '</form>';
+}
+
+function external_attendance_review_form(array $row): string
+{
+    $rowStatus = strtolower(trim((string)($row['status'] ?? 'pending')));
+    if (!in_array($rowStatus, ['pending', 'approved', 'rejected'], true)) {
+        $rowStatus = 'pending';
+    }
+
+    return '<form method="post" class="d-grid gap-2 external-review-form">'
+        . '<input type="hidden" name="external_admin_action" value="review">'
+        . '<input type="hidden" name="record_id" value="' . (int)($row['id'] ?? 0) . '">'
+        . external_attendance_filter_hidden_inputs()
+        . '<select name="status" class="form-select form-select-sm">'
+        . '<option value="approved"' . ($rowStatus === 'approved' ? ' selected' : '') . '>Approve</option>'
+        . '<option value="pending"' . ($rowStatus === 'pending' ? ' selected' : '') . '>Pending</option>'
+        . '<option value="rejected"' . ($rowStatus === 'rejected' ? ' selected' : '') . '>Reject</option>'
+        . '</select>'
+        . '<input type="text" name="admin_note" class="form-control form-control-sm" placeholder="Review note (optional)">'
+        . '<button type="submit" class="btn btn-sm btn-primary">Save</button>'
+        . '</form>';
+}
+
+function external_attendance_action_menu_items(array $row): string
+{
+    $items = [];
+    $studentId = (int)($row['student_id'] ?? 0);
+    $proofPath = trim((string)($row['proof_photo_path'] ?? ''));
+
+    $items[] = '<li>' . external_attendance_quick_review_form($row, 'approved', 'Approve', 'feather-check-circle', 'text-success') . '</li>';
+    $items[] = '<li>' . external_attendance_quick_review_form($row, 'rejected', 'Reject', 'feather-x-circle', 'text-danger') . '</li>';
+
+    if ($studentId > 0) {
+        $items[] = '<li><a class="dropdown-item" href="external-biometric.php?student_id=' . $studentId . '"><i class="feather feather-briefcase me-3"></i><span>External DTR</span></a></li>';
+    }
+
+    if ($proofPath !== '') {
+        $items[] = '<li><a class="dropdown-item" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener"><i class="feather feather-image me-3"></i><span>Open Proof</span></a></li>';
+    }
+
+    return '<ul class="external-row-actions-menu list-unstyled mb-0">' . implode('', $items) . '</ul>';
+}
+
+function external_attendance_row_actions_modal_trigger(array $row): string
+{
+    $recordId = max(0, (int)($row['id'] ?? 0));
+    $studentName = trim((string)(($row['first_name'] ?? '') . ' ' . ($row['last_name'] ?? '')));
+    if ($studentName === '') {
+        $studentName = 'External attendance';
+    }
+
+    $templateId = 'externalAttendanceActionsTemplate' . $recordId;
+
+    return '<div class="hstack gap-2 justify-content-end external-row-actions">'
+        . '<button type="button" class="avatar-text avatar-md external-row-actions-open" data-external-attendance-actions-open data-template-id="' . htmlspecialchars($templateId, ENT_QUOTES, 'UTF-8') . '" data-external-attendance-title="' . htmlspecialchars($studentName, ENT_QUOTES, 'UTF-8') . '" title="More actions"><i class="feather feather-more-horizontal"></i></button>'
+        . '<template id="' . htmlspecialchars($templateId, ENT_QUOTES, 'UTF-8') . '">' . external_attendance_action_menu_items($row) . '</template>'
+        . '</div>';
+}
+
 $page_title = 'BioTern || External Attendance';
 $page_body_class = 'external-attendance-page';
 $page_styles = [
@@ -1101,11 +1188,12 @@ include 'includes/header.php';
                                     <th>Reports</th>
                                     <th>Notes</th>
                                     <th>Review</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if ($rows === []): ?>
-                                    <tr><td colspan="13" class="text-center text-muted py-4">No external attendance records found.</td></tr>
+                                    <tr><td colspan="14" class="text-center text-muted py-4">No external attendance records found.</td></tr>
                                 <?php else: ?>
                                     <?php foreach ($rows as $row): ?>
                                         <?php
@@ -1144,24 +1232,8 @@ include 'includes/header.php';
                                             <td data-label="Photo"><?php echo external_attendance_photo_cell($row); ?></td>
                                             <td data-label="Reports"><?php echo external_attendance_reports_cell($row); ?></td>
                                             <td class="small external-review-notes" data-label="Notes"><?php echo external_attendance_notes_cell($row); ?></td>
-                                            <td data-label="Review">
-                                                <form method="post" class="d-grid gap-2 external-review-form">
-                                                    <input type="hidden" name="external_admin_action" value="review">
-                                                    <input type="hidden" name="record_id" value="<?php echo (int)$row['id']; ?>">
-                                                    <input type="hidden" name="filter_status" value="<?php echo htmlspecialchars((string)$statusFilter, ENT_QUOTES, 'UTF-8'); ?>">
-                                                    <input type="hidden" name="filter_date" value="<?php echo htmlspecialchars((string)$dateFilter, ENT_QUOTES, 'UTF-8'); ?>">
-                                                    <input type="hidden" name="filter_source" value="<?php echo htmlspecialchars((string)$sourceFilter, ENT_QUOTES, 'UTF-8'); ?>">
-                                                    <input type="hidden" name="filter_photo" value="<?php echo htmlspecialchars((string)$photoFilter, ENT_QUOTES, 'UTF-8'); ?>">
-                                                    <input type="hidden" name="filter_student" value="<?php echo htmlspecialchars((string)$studentFilter, ENT_QUOTES, 'UTF-8'); ?>">
-                                                    <select name="status" class="form-select form-select-sm">
-                                                        <option value="approved" <?php echo $rowStatus === 'approved' ? 'selected' : ''; ?>>Approve</option>
-                                                        <option value="pending" <?php echo $rowStatus === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                                                        <option value="rejected" <?php echo $rowStatus === 'rejected' ? 'selected' : ''; ?>>Reject</option>
-                                                    </select>
-                                                    <input type="text" name="admin_note" class="form-control form-control-sm" placeholder="Review note (optional)">
-                                                    <button type="submit" class="btn btn-sm btn-primary">Save</button>
-                                                </form>
-                                            </td>
+                                            <td data-label="Review"><?php echo external_attendance_review_form($row); ?></td>
+                                            <td data-label="Actions"><?php echo external_attendance_row_actions_modal_trigger($row); ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
@@ -1173,6 +1245,22 @@ include 'includes/header.php';
         </div>
     </div>
 </main>
+<div class="modal fade" id="externalAttendanceRowActionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered external-actions-modal-dialog">
+        <div class="modal-content external-actions-modal-content">
+            <div class="modal-header">
+                <div>
+                    <div class="external-actions-modal-eyebrow">External Attendance Actions</div>
+                    <h5 class="modal-title" id="externalAttendanceRowActionsTitle">Manage External Attendance</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="externalAttendanceRowActionsBody" class="external-actions-modal-body"></div>
+            </div>
+        </div>
+    </div>
+</div>
 <?php include 'includes/footer.php'; ?>
 <script>
 (function () {
@@ -1198,7 +1286,7 @@ include 'includes/header.php';
             autoWidth: false,
             order: [[1, 'desc']],
             columnDefs: [
-                { orderable: false, targets: [9, 10, 11, 12] }
+                { orderable: false, targets: [9, 10, 11, 12, 13] }
             ],
             language: {
                 emptyTable: 'No external attendance records found',
@@ -1207,6 +1295,29 @@ include 'includes/header.php';
         });
         }
     }
+
+    document.addEventListener('click', function (event) {
+        var trigger = event.target.closest('[data-external-attendance-actions-open]');
+        if (!trigger) {
+            return;
+        }
+
+        var template = document.getElementById(trigger.getAttribute('data-template-id') || '');
+        var body = document.getElementById('externalAttendanceRowActionsBody');
+        var title = document.getElementById('externalAttendanceRowActionsTitle');
+        var modalEl = document.getElementById('externalAttendanceRowActionsModal');
+        if (!template || !body || !modalEl) {
+            return;
+        }
+
+        body.innerHTML = template.innerHTML;
+        if (title) {
+            title.textContent = trigger.getAttribute('data-external-attendance-title') || 'Manage External Attendance';
+        }
+
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    });
 
     var form = document.getElementById('externalAttendanceFilterForm');
     if (!form) {

@@ -160,6 +160,21 @@ $page_title = 'BioTern || Attendance Anomalies';
 $page_body_class = 'reports-page attendance-anomalies-page';
 include 'includes/header.php';
 ?>
+<style>
+    .attendance-anomalies-page .anomaly-message-cell {
+        max-width: 520px;
+        min-width: 340px;
+        white-space: normal;
+    }
+
+    .attendance-anomalies-page .anomaly-message-text {
+        display: block;
+        line-height: 1.45;
+        white-space: normal;
+        word-break: normal;
+        overflow-wrap: break-word;
+    }
+</style>
 <main class="nxl-container">
     <div class="nxl-content">
         <div class="page-header">
@@ -227,7 +242,7 @@ include 'includes/header.php';
                                             </td>
                                             <td><?php echo anomalies_h(str_replace('_', ' ', (string)$row['anomaly_type'])); ?></td>
                                             <td><span class="badge bg-soft-<?php echo (string)$row['severity'] === 'critical' ? 'danger' : ((string)$row['severity'] === 'info' ? 'info' : 'warning'); ?> text-<?php echo (string)$row['severity'] === 'critical' ? 'danger' : ((string)$row['severity'] === 'info' ? 'info' : 'warning'); ?>"><?php echo anomalies_h((string)$row['severity']); ?></span></td>
-                                            <td><?php echo anomalies_h((string)$row['message']); ?></td>
+                                            <td class="anomaly-message-cell"><div class="anomaly-message-text" title="<?php echo anomalies_h((string)$row['message']); ?>"><?php echo anomalies_h((string)$row['message']); ?></div></td>
                                             <td><?php echo anomalies_h(ucwords(str_replace('_', ' ', (string)$row['status']))); ?></td>
                                             <?php if ($isAdmin): ?>
                                                 <td>

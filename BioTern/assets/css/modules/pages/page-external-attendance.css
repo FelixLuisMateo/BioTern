@@ -123,6 +123,51 @@ body.external-attendance-page .external-review-notes-text {
     white-space: normal;
 }
 
+body.external-attendance-page .external-row-actions-menu .dropdown-item,
+body.external-attendance-page .external-row-actions-menu .dropdown-item-text {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 0.65rem;
+    min-height: 38px;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid rgba(129, 153, 199, 0.24);
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    font-weight: 700;
+}
+
+body.external-attendance-page .external-row-actions-menu li + li {
+    margin-top: 0.45rem;
+}
+
+body.external-attendance-page .external-action-form {
+    margin: 0;
+}
+
+body.external-attendance-page .external-actions-modal-dialog {
+    max-width: 360px;
+}
+
+body.external-attendance-page .external-actions-modal-content {
+    border: 1px solid rgba(129, 153, 199, 0.24);
+    border-radius: 8px;
+    background: #fff;
+}
+
+body.external-attendance-page .external-actions-modal-eyebrow {
+    color: #5b7cfa;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+body.external-attendance-page .external-actions-modal-body {
+    max-width: 280px;
+}
+
 html.app-skin-dark body.external-attendance-page .external-attendance-proof-thumb {
     border-color: rgba(129, 153, 199, 0.28);
     background: rgba(13, 23, 42, 0.72);
@@ -136,6 +181,17 @@ html.app-skin-dark body.external-attendance-page .external-attendance-no-proof {
 
 html.app-skin-dark body.external-attendance-page .external-review-notes-text {
     color: #dbeafe;
+}
+
+html.app-skin-dark body.external-attendance-page .external-actions-modal-content {
+    background: #0f172a;
+    border-color: rgba(129, 153, 199, 0.22);
+}
+
+html.app-skin-dark body.external-attendance-page .external-row-actions-menu .dropdown-item,
+html.app-skin-dark body.external-attendance-page .external-row-actions-menu .dropdown-item-text {
+    border-color: rgba(129, 153, 199, 0.24);
+    color: #eef5ff;
 }
 
 @media (max-width: 767.98px) {
