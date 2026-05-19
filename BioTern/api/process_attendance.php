@@ -104,6 +104,7 @@ function approveAttendance($conn, $ids, $current_user_id, $remarks = '') {
     }
 
     $id_list = implode(',', array_map('intval', $ids));
+    $studentIds = attendanceStudentIdsForIds($conn, $ids);
     $now = date('Y-m-d H:i:s');
     $reviewerId = attendanceReviewerIdOrNull($conn, $current_user_id);
     $remarks = trim((string)$remarks);
@@ -129,6 +130,9 @@ function approveAttendance($conn, $ids, $current_user_id, $remarks = '') {
     
     $affected_rows = $stmt->affected_rows;
     $stmt->close();
+    if ($affected_rows > 0) {
+        attendanceSyncStudentIds($conn, $studentIds);
+    }
     notifyAttendanceOwners($conn, $ids, 'Attendance Approved', 'Your attendance entry was approved.');
     insert_audit_log(
         $conn,
@@ -171,6 +175,7 @@ function rejectAttendance($conn, $ids, $remarks, $current_user_id) {
     }
 
     $id_list = implode(',', array_map('intval', $ids));
+    $studentIds = attendanceStudentIdsForIds($conn, $ids);
     $now = date('Y-m-d H:i:s');
     $reviewerId = attendanceReviewerIdOrNull($conn, $current_user_id);
     
@@ -195,6 +200,9 @@ function rejectAttendance($conn, $ids, $remarks, $current_user_id) {
     
     $affected_rows = $stmt->affected_rows;
     $stmt->close();
+    if ($affected_rows > 0) {
+        attendanceSyncStudentIds($conn, $studentIds);
+    }
     notifyAttendanceOwners($conn, $ids, 'Attendance Rejected', 'Your attendance entry was rejected. Reason: ' . $remarks);
     insert_audit_log(
         $conn,
@@ -229,6 +237,7 @@ function deleteAttendance($conn, $ids) {
     }
 
     $id_list = implode(',', array_map('intval', $ids));
+    $studentIds = attendanceStudentIdsForIds($conn, $ids);
 
     $biometricRows = [];
     $lookup = $conn->query("SELECT id, student_id, attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out, source FROM attendances WHERE id IN ($id_list)");
@@ -251,6 +260,9 @@ function deleteAttendance($conn, $ids) {
 
     if ($affected_rows > 0 && $biometricRows !== []) {
         requeueRawLogsForDeletedBiometricAttendance($conn, $biometricRows);
+    }
+    if ($affected_rows > 0) {
+        attendanceSyncStudentIds($conn, $studentIds);
     }
 
     insert_audit_log(
@@ -296,6 +308,7 @@ function editStatus($conn, $ids, $new_status, $current_user_id) {
     }
 
     $id_list = implode(',', array_map('intval', $ids));
+    $studentIds = attendanceStudentIdsForIds($conn, $ids);
     $now = date('Y-m-d H:i:s');
     $reviewerId = attendanceReviewerIdOrNull($conn, $current_user_id);
     
@@ -342,6 +355,9 @@ function editStatus($conn, $ids, $new_status, $current_user_id) {
     
     $affected_rows = $stmt->affected_rows;
     $stmt->close();
+    if ($affected_rows > 0) {
+        attendanceSyncStudentIds($conn, $studentIds);
+    }
     insert_audit_log(
         $conn,
         $current_user_id,
@@ -371,6 +387,42 @@ function attendanceRequestValidIds($ids): array
         }
     }
     return array_values($valid);
+}
+
+function attendanceStudentIdsForIds(mysqli $conn, array $ids): array
+{
+    $ids = attendanceRequestValidIds($ids);
+    if ($ids === []) {
+        return [];
+    }
+
+    $idList = implode(',', array_map('intval', $ids));
+    $studentIds = [];
+    $result = $conn->query("SELECT DISTINCT student_id FROM attendances WHERE id IN ($idList) AND student_id IS NOT NULL");
+    if ($result instanceof mysqli_result) {
+        while ($row = $result->fetch_assoc()) {
+            $studentId = (int)($row['student_id'] ?? 0);
+            if ($studentId > 0) {
+                $studentIds[$studentId] = $studentId;
+            }
+        }
+        $result->close();
+    }
+
+    return array_values($studentIds);
+}
+
+function attendanceSyncStudentIds(mysqli $conn, array $studentIds): void
+{
+    if (!function_exists('attendance_workflow_sync_student_progress')) {
+        return;
+    }
+
+    foreach (array_unique(array_map('intval', $studentIds)) as $studentId) {
+        if ($studentId > 0) {
+            attendance_workflow_sync_student_progress($conn, $studentId);
+        }
+    }
 }
 
 function attendanceReviewerIdOrNull(mysqli $conn, int $current_user_id): ?int
