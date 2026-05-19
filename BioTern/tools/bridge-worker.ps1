@@ -49,8 +49,14 @@ if (-not [string]::IsNullOrWhiteSpace($BridgeProfileName) -and $BridgeProfileNam
 
 $connectorConfigFileName = if ($bridgeLocalSuffix -eq '') { 'biometric_machine_config.json' } else { 'biometric_machine_{0}_config.json' -f ($bridgeLocalSuffix.TrimStart('-')) }
 $connectorConfigPath = Join-Path $WorkspaceRoot ('tools\{0}' -f $connectorConfigFileName)
+$connectorX64ExePath = Join-Path $WorkspaceRoot 'tools\device_connector\bin\Release\net9.0-windows\win-x64\BioTernMachineConnector.exe'
+$connectorX64DllPath = Join-Path $WorkspaceRoot 'tools\device_connector\bin\Release\net9.0-windows\win-x64\BioTernMachineConnector.dll'
 $connectorExePath = Join-Path $WorkspaceRoot 'tools\device_connector\bin\Release\net9.0-windows\BioTernMachineConnector.exe'
 $connectorDllPath = Join-Path $WorkspaceRoot 'tools\device_connector\bin\Release\net9.0-windows\BioTernMachineConnector.dll'
+if ([Environment]::Is64BitOperatingSystem -and (Test-Path -LiteralPath $connectorX64ExePath -PathType Leaf)) {
+    $connectorExePath = $connectorX64ExePath
+    $connectorDllPath = $connectorX64DllPath
+}
 $bridgeLogPath = Join-Path $WorkspaceRoot ('tools\bridge-worker{0}.log' -f $bridgeLocalSuffix)
 $bridgePendingIngestPath = Join-Path $WorkspaceRoot ('tools\bridge-pending-ingest{0}.json' -f $bridgeLocalSuffix)
 $bridgeBackfillStatePath = Join-Path $WorkspaceRoot ('tools\bridge-backfill-state{0}.json' -f $bridgeLocalSuffix)
