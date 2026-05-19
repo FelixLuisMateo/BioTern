@@ -4,15 +4,37 @@
     <TargetFramework>net9.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PlatformTarget>x86</PlatformTarget>
-    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+    <Platforms>x86;x64</Platforms>
+    <ConnectorArch Condition="'$(ConnectorArch)' == ''">x86</ConnectorArch>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <SelfContained>false</SelfContained>
   </PropertyGroup>
 
-  <ItemGroup>
+  <PropertyGroup Condition="'$(ConnectorArch)' == 'x64' Or '$(Platform)' == 'x64'">
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <OutputPath>bin\$(Configuration)\$(TargetFramework)\win-x64\</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(ConnectorArch)' != 'x64' And '$(Platform)' != 'x64'">
+    <PlatformTarget>x86</PlatformTarget>
+    <RuntimeIdentifier>win-x86</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <Target Name="ValidateX64DevCtrl" BeforeTargets="Build" Condition="'$(ConnectorArch)' == 'x64' Or '$(Platform)' == 'x64'">
+    <Error Condition="!Exists('DevCtrl.x64.dll')" Text="x64 connector build requires DevCtrl.x64.dll from the biometric device SDK. Put it beside this project file; it will be copied as DevCtrl.dll in the x64 output." />
+  </Target>
+
+  <ItemGroup Condition="'$(ConnectorArch)' != 'x64' And '$(Platform)' != 'x64'">
     <None Include="DevCtrl.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(ConnectorArch)' == 'x64' Or '$(Platform)' == 'x64'">
+    <None Include="DevCtrl.x64.dll" Link="DevCtrl.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>DevCtrl.dll</TargetPath>
     </None>
   </ItemGroup>
 </Project>

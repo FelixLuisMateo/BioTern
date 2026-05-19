@@ -4,10 +4,18 @@ if (!function_exists('biometric_machine_paths')) {
     function biometric_machine_paths(): array
     {
         $base = __DIR__;
+        $x64Base = $base . '/device_connector/bin/Release/net9.0-windows/win-x64';
+        $x86Base = $base . '/device_connector/bin/Release/net9.0-windows';
+        $useX64 = biometric_machine_is_windows()
+            && PHP_INT_SIZE >= 8
+            && file_exists($x64Base . '/BioTernMachineConnector.exe');
+
+        $runtimeBase = $useX64 ? $x64Base : $x86Base;
+
         return [
             'project' => $base . '/device_connector/BioTernMachineConnector.csproj',
-            'dll' => $base . '/device_connector/bin/Release/net9.0-windows/BioTernMachineConnector.dll',
-            'exe' => $base . '/device_connector/bin/Release/net9.0-windows/BioTernMachineConnector.exe',
+            'dll' => $runtimeBase . '/BioTernMachineConnector.dll',
+            'exe' => $runtimeBase . '/BioTernMachineConnector.exe',
             'config' => $base . '/biometric_machine_config.json',
             'dotnet_home' => dirname(__DIR__) . '/.dotnet_cli',
         ];

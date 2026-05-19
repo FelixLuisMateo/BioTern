@@ -1832,7 +1832,6 @@ function attendanceActionMenuItems(array $attendance): string
 {
     $attendanceId = (int)($attendance['id'] ?? 0);
     $studentId = (int)($attendance['student_id'] ?? 0);
-    $details = attendance_details_dropdown_html($attendance);
     $studentName = trim((string)(($attendance['first_name'] ?? '') . ' ' . ($attendance['last_name'] ?? '')));
     if ($studentName === '') {
         $studentName = 'Attendance';
@@ -1841,10 +1840,6 @@ function attendanceActionMenuItems(array $attendance): string
     if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
         $items = [];
         $proofPath = trim((string)($attendance['proof_photo_path'] ?? ''));
-        if ($details !== '') {
-            $items[] = $details;
-            $items[] = '<li class="dropdown-divider"></li>';
-        }
         $items[] = '<li><a class="dropdown-item" href="external-attendance.php?status=approved"><i class="feather feather-briefcase me-3"></i><span>Open External Queue</span></a></li>';
         if ($proofPath !== '') {
             $items[] = '<li><a class="dropdown-item" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener"><i class="feather feather-image me-3"></i><span>Open Proof</span></a></li>';
@@ -1854,10 +1849,6 @@ function attendanceActionMenuItems(array $attendance): string
 
     $items = [];
     $proofPath = trim((string)($attendance['proof_photo_path'] ?? ''));
-    if ($details !== '') {
-        $items[] = $details;
-        $items[] = '<li class="dropdown-divider"></li>';
-    }
 
     if (attendanceCanReview($attendance)) {
         $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="approveAttendanceIndividual(' . $attendanceId . ')"><i class="feather feather-check-circle me-3"></i><span>Approve</span></a></li>';
@@ -1869,13 +1860,45 @@ function attendanceActionMenuItems(array $attendance): string
     if ($proofPath !== '') {
         $items[] = '<li><a class="dropdown-item" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener"><i class="feather feather-image me-3"></i><span>Open Proof</span></a></li>';
     }
-    $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="editAttendance(' . $attendanceId . ')"><i class="feather feather-edit-3 me-3"></i><span>Edit</span></a></li>';
+    $editAttrs = attendance_edit_action_attrs($attendance);
+    $items[] = '<li><button type="button" class="dropdown-item" data-attendance-edit-open ' . $editAttrs . '><i class="feather feather-edit-3 me-3"></i><span>Edit</span></button></li>';
     $items[] = '<li><a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(' . $attendanceId . ')"><i class="feather feather-printer me-3"></i><span>Print</span></a></li>';
     $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="sendNotification(' . $attendanceId . ')"><i class="feather feather-mail me-3"></i><span>Send Notification</span></a></li>';
     $items[] = '<li class="dropdown-divider"></li>';
     $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(' . $attendanceId . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li>';
 
     return attendance_row_actions_modal_trigger($attendanceId, $studentId, $studentName, $items);
+}
+
+function attendance_edit_action_attrs(array $attendance): string
+{
+    $attrs = [
+        'data-attendance-id' => (string)(int)($attendance['id'] ?? 0),
+        'data-student-name' => trim((string)(($attendance['first_name'] ?? '') . ' ' . ($attendance['last_name'] ?? ''))),
+        'data-attendance-date' => substr((string)($attendance['attendance_date'] ?? ''), 0, 10),
+        'data-morning-in' => attendance_time_input_value($attendance['morning_time_in'] ?? null),
+        'data-morning-out' => attendance_time_input_value($attendance['morning_time_out'] ?? null),
+        'data-afternoon-in' => attendance_time_input_value($attendance['afternoon_time_in'] ?? null),
+        'data-afternoon-out' => attendance_time_input_value($attendance['afternoon_time_out'] ?? null),
+        'data-status' => strtolower(trim((string)($attendance['status'] ?? 'pending'))),
+        'data-remarks' => (string)($attendance['remarks'] ?? ''),
+    ];
+
+    $html = [];
+    foreach ($attrs as $name => $value) {
+        $html[] = $name . '="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '"';
+    }
+    return implode(' ', $html);
+}
+
+function attendance_time_input_value($value): string
+{
+    $raw = trim((string)$value);
+    if ($raw === '' || $raw === '00:00:00' || $raw === '00:00') {
+        return '';
+    }
+    $ts = strtotime($raw);
+    return $ts === false ? '' : date('H:i', $ts);
 }
 
 function attendance_row_actions_modal_trigger(int $attendanceId, int $studentId, string $studentName, array $items): string
@@ -2534,7 +2557,7 @@ endif; ?>
         </div>
     </div>
     <div class="modal fade" id="attendanceRowActionsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-sm modal-dialog-centered attendance-actions-modal-dialog">
             <div class="modal-content attendance-actions-modal-content">
                 <div class="modal-header">
                     <div>
@@ -2546,6 +2569,63 @@ endif; ?>
                 <div class="modal-body">
                     <div id="attendanceRowActionsBody" class="attendance-actions-modal-body"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="editAttendanceModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content attendance-actions-modal-content">
+                <div class="modal-header">
+                    <div>
+                        <div class="attendance-actions-modal-eyebrow">Edit Attendance</div>
+                        <h5 class="modal-title" id="editAttendanceModalTitle">Attendance Record</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="editAttendanceModalForm">
+                    <div class="modal-body">
+                        <input type="hidden" name="attendance_id" id="editAttendanceId">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="editMorningIn">Morning In</label>
+                                <input type="time" class="form-control" id="editMorningIn" name="morning_time_in">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="editMorningOut">Morning Out</label>
+                                <input type="time" class="form-control" id="editMorningOut" name="morning_time_out">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="editAfternoonIn">Afternoon In</label>
+                                <input type="time" class="form-control" id="editAfternoonIn" name="afternoon_time_in">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="editAfternoonOut">Afternoon Out</label>
+                                <input type="time" class="form-control" id="editAfternoonOut" name="afternoon_time_out">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="editAttendanceStatus">Status</label>
+                                <select class="form-select" id="editAttendanceStatus" name="status">
+                                    <option value="pending">Pending</option>
+                                    <option value="pending_correction">Needs Correction</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="editAttendanceDate">Date</label>
+                                <input type="text" class="form-control" id="editAttendanceDate" readonly>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="editAttendanceRemarks">Remarks</label>
+                                <textarea class="form-control" id="editAttendanceRemarks" name="remarks" rows="3" placeholder="Optional remarks"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
