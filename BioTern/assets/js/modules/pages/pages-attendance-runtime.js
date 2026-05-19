@@ -354,7 +354,7 @@
             });
 
             $(document).on('click', '#attendanceRowActionsModal a, #attendanceRowActionsModal button', function(event) {
-                if ($(this).is('[data-bs-dismiss], .btn-close, [data-attendance-review-save]')) {
+                if ($(this).is('[data-bs-dismiss], .btn-close, [data-attendance-review-save], [data-attendance-edit-open]')) {
                     return;
                 }
                 var modalEl = document.getElementById('attendanceRowActionsModal');
@@ -362,6 +362,15 @@
                 if (modal) {
                     modal.hide();
                 }
+            });
+
+            $(document).on('click', '[data-attendance-edit-open]', function() {
+                openEditAttendanceModal(this);
+            });
+
+            $('#editAttendanceModalForm').on('submit', function(event) {
+                event.preventDefault();
+                submitEditAttendanceModal(this);
             });
         });
 
@@ -388,6 +397,98 @@
 
             var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
+        }
+
+        function setFieldValue(id, value) {
+            var field = document.getElementById(id);
+            if (field) {
+                field.value = value || '';
+            }
+        }
+
+        function openEditAttendanceModal(trigger) {
+            var modalEl = document.getElementById('editAttendanceModal');
+            if (!modalEl || !trigger) {
+                return;
+            }
+
+            var parentModal = document.getElementById('attendanceRowActionsModal');
+            var parentInstance = parentModal ? bootstrap.Modal.getInstance(parentModal) : null;
+            if (parentInstance) {
+                parentInstance.hide();
+            }
+
+            setFieldValue('editAttendanceId', trigger.getAttribute('data-attendance-id'));
+            setFieldValue('editMorningIn', trigger.getAttribute('data-morning-in'));
+            setFieldValue('editMorningOut', trigger.getAttribute('data-morning-out'));
+            setFieldValue('editAfternoonIn', trigger.getAttribute('data-afternoon-in'));
+            setFieldValue('editAfternoonOut', trigger.getAttribute('data-afternoon-out'));
+            setFieldValue('editAttendanceStatus', trigger.getAttribute('data-status') || 'pending');
+            setFieldValue('editAttendanceDate', trigger.getAttribute('data-attendance-date'));
+            setFieldValue('editAttendanceRemarks', trigger.getAttribute('data-remarks'));
+
+            var title = document.getElementById('editAttendanceModalTitle');
+            if (title) {
+                title.textContent = trigger.getAttribute('data-student-name') || 'Attendance Record';
+            }
+
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+
+        function submitEditAttendanceModal(form) {
+            var payload = $(form).serializeArray().reduce(function(acc, item) {
+                acc[item.name] = item.value;
+                return acc;
+            }, {});
+            payload.action = 'edit_record';
+
+            $.ajax({
+                type: 'POST',
+                url: 'process_attendance.php',
+                data: payload,
+                dataType: 'text',
+                success: function(response) {
+                    if (typeof response === 'string') {
+                        try {
+                            response = JSON.parse(response);
+                        } catch (e) {
+                            var jsonStart = response.indexOf('{');
+                            var jsonEnd = response.lastIndexOf('}');
+                            if (jsonStart !== -1 && jsonEnd > jsonStart) {
+                                try {
+                                    response = JSON.parse(response.slice(jsonStart, jsonEnd + 1));
+                                } catch (ignored) {}
+                            }
+                        }
+                    }
+
+                    if (response && response.success) {
+                        var modalEl = document.getElementById('editAttendanceModal');
+                        var modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+                        if (modal) {
+                            modal.hide();
+                        }
+                        showToast(response.message || 'Attendance updated.', 'success');
+                        refreshAttendanceTable();
+                    } else {
+                        showToast((response && response.message) ? response.message : 'Unable to update attendance.', 'danger');
+                    }
+                },
+                error: function(xhr) {
+                    var message = 'Error updating attendance';
+                    if (xhr && xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    } else if (xhr && xhr.responseText) {
+                        try {
+                            var parsed = JSON.parse(xhr.responseText);
+                            if (parsed && parsed.message) {
+                                message = parsed.message;
+                            }
+                        } catch (e) {}
+                    }
+                    showToast(message, 'danger');
+                }
+            });
         }
 
         // View Details function

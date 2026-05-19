@@ -62,6 +62,11 @@ try {
             require_roles_json(['admin', 'coordinator', 'supervisor']);
             $response = editStatus($conn, $ids, $new_status, $current_user_id);
             break;
+
+        case 'edit_record':
+            require_roles_json(['admin', 'coordinator', 'supervisor']);
+            $response = editAttendanceRecord($conn, (int)($_POST['attendance_id'] ?? 0), $_POST, $current_user_id);
+            break;
         
         case 'request_correction':
             require_roles_json(['admin', 'coordinator', 'supervisor', 'student']);
@@ -374,6 +379,127 @@ function editStatus($conn, $ids, $new_status, $current_user_id) {
         'success' => $affected_rows > 0,
         'message' => $affected_rows > 0 ? "Successfully updated status to '$new_status' for $affected_rows record(s)" : "No records were updated",
         'updated_count' => $affected_rows
+    ];
+}
+
+function editAttendanceRecord(mysqli $conn, int $attendanceId, array $payload, int $current_user_id): array
+{
+    if ($attendanceId <= 0) {
+        return ['success' => false, 'message' => 'Invalid attendance record.', 'updated_count' => 0];
+    }
+
+    $stmt = $conn->prepare('SELECT * FROM attendances WHERE id = ? LIMIT 1');
+    if (!$stmt) {
+        throw new Exception('Prepare failed: ' . $conn->error);
+    }
+    $stmt->bind_param('i', $attendanceId);
+    $stmt->execute();
+    $attendance = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$attendance) {
+        return ['success' => false, 'message' => 'Attendance record not found.', 'updated_count' => 0];
+    }
+
+    $timeValue = static function (string $key) use ($payload): ?string {
+        $value = trim((string)($payload[$key] ?? ''));
+        if ($value === '') {
+            return null;
+        }
+        if (preg_match('/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/', $value, $m)) {
+            $hour = max(0, min(23, (int)$m[1]));
+            $minute = max(0, min(59, (int)$m[2]));
+            $second = isset($m[3]) ? max(0, min(59, (int)$m[3])) : 0;
+            return sprintf('%02d:%02d:%02d', $hour, $minute, $second);
+        }
+        return null;
+    };
+
+    $candidate = [
+        'morning_time_in' => $timeValue('morning_time_in'),
+        'morning_time_out' => $timeValue('morning_time_out'),
+        'break_time_in' => null,
+        'break_time_out' => null,
+        'afternoon_time_in' => $timeValue('afternoon_time_in'),
+        'afternoon_time_out' => $timeValue('afternoon_time_out'),
+    ];
+    $validation = attendance_validate_full_record($candidate);
+    if (empty($validation['ok'])) {
+        return ['success' => false, 'message' => (string)($validation['message'] ?? 'Invalid attendance times.'), 'updated_count' => 0];
+    }
+
+    $status = strtolower(trim((string)($payload['status'] ?? ($attendance['status'] ?? 'pending'))));
+    if (!in_array($status, ['pending', 'pending_correction', 'approved', 'rejected'], true)) {
+        return ['success' => false, 'message' => 'Invalid attendance status.', 'updated_count' => 0];
+    }
+    $remarks = trim((string)($payload['remarks'] ?? ''));
+    $totalHours = attendance_workflow_calculate_internal_hours($conn, array_merge($attendance, $candidate));
+    $reviewerId = attendanceReviewerIdOrNull($conn, $current_user_id);
+    $now = date('Y-m-d H:i:s');
+
+    $sql = "
+        UPDATE attendances
+        SET morning_time_in = ?,
+            morning_time_out = ?,
+            break_time_in = NULL,
+            break_time_out = NULL,
+            afternoon_time_in = ?,
+            afternoon_time_out = ?,
+            total_hours = ?,
+            status = ?,
+            remarks = ?,
+            approved_by = CASE WHEN ? = 'approved' THEN ? ELSE approved_by END,
+            approved_at = CASE WHEN ? = 'approved' THEN ? ELSE approved_at END,
+            rejected_by = CASE WHEN ? = 'rejected' THEN ? ELSE rejected_by END,
+            rejected_at = CASE WHEN ? = 'rejected' THEN ? ELSE rejected_at END,
+            updated_at = NOW()
+        WHERE id = ?
+    ";
+    $update = $conn->prepare($sql);
+    if (!$update) {
+        throw new Exception('Prepare failed: ' . $conn->error);
+    }
+    $update->bind_param(
+        'ssssdsssisssissi',
+        $candidate['morning_time_in'],
+        $candidate['morning_time_out'],
+        $candidate['afternoon_time_in'],
+        $candidate['afternoon_time_out'],
+        $totalHours,
+        $status,
+        $remarks,
+        $status,
+        $reviewerId,
+        $status,
+        $now,
+        $status,
+        $reviewerId,
+        $status,
+        $now,
+        $attendanceId
+    );
+    if (!$update->execute()) {
+        throw new Exception('Execute failed: ' . $update->error);
+    }
+    $affectedRows = $update->affected_rows;
+    $update->close();
+
+    attendance_workflow_sync_student_progress($conn, (int)($attendance['student_id'] ?? 0));
+    insert_audit_log(
+        $conn,
+        $current_user_id,
+        'attendance_manual_edit',
+        'attendance',
+        $attendanceId,
+        $attendance,
+        ['changes' => $candidate, 'status' => $status, 'remarks' => $remarks, 'total_hours' => $totalHours],
+        $_SERVER['REMOTE_ADDR'] ?? '',
+        $_SERVER['HTTP_USER_AGENT'] ?? ''
+    );
+
+    return [
+        'success' => true,
+        'message' => $affectedRows > 0 ? 'Attendance record updated successfully.' : 'No changes were needed.',
+        'updated_count' => max(0, $affectedRows),
     ];
 }
 
