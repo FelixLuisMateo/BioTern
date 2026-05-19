@@ -55,6 +55,28 @@ function student_dtr_time_select_options_html(string $selected = '', int $startH
     return $html;
 }
 
+function student_dtr_quick_punch_allowed(array $record, string $clockType, array $schedule): bool
+{
+    $dayType = function_exists('section_schedule_normalize_day_type')
+        ? section_schedule_normalize_day_type((string)($schedule['day_type'] ?? 'class'))
+        : strtolower(trim((string)($schedule['day_type'] ?? 'class')));
+
+    if ($dayType === 'no_class') {
+        return false;
+    }
+
+    $column = attendance_action_to_column($clockType);
+    if ($column === null) {
+        return false;
+    }
+
+    if (!in_array($clockType, attendance_schedule_action_order($schedule), true)) {
+        return false;
+    }
+
+    return trim((string)($record[$column] ?? '')) === '';
+}
+
 function student_dtr_ensure_manual_attachment_table(mysqli $conn): void
 {
     $conn->query("CREATE TABLE IF NOT EXISTS manual_dtr_attachments (
@@ -508,13 +530,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
 
     $todayRecord = student_dtr_today_record($conn, $studentId, $clockDate);
     $schedule = student_dtr_schedule_for_student_date($student, $clockDate);
-    $validation = attendance_validate_scheduled_transition($todayRecord, $clockType, $clockTime, $schedule);
     $column = attendance_action_to_column($clockType);
 
-    if (!($validation['ok'] ?? false) || $column === null) {
+    if ($column === null || !student_dtr_quick_punch_allowed($todayRecord, $clockType, $schedule)) {
         $_SESSION['student_dtr_flash'] = [
             'type' => 'warning',
-            'message' => (string)($validation['message'] ?? 'Invalid internal attendance punch.'),
+            'message' => 'That internal attendance slot is not available or is already recorded.',
         ];
         header('Location: student-manual-dtr.php');
         exit;
@@ -1036,7 +1057,7 @@ include 'includes/header.php';
                 <div class="external-clock-grid">
                     <?php foreach ($studentDtrClockTypes as $clockType => [$clockLabel, $clockIcon]): ?>
                         <?php if (!in_array($clockType, $studentDtrAllowedPunchOrder, true)) { continue; } ?>
-                        <?php $isLocked = attendance_scheduled_action_locked($studentDtrTodayRecord, $clockType, $studentDtrTodaySchedule); ?>
+                        <?php $isLocked = !student_dtr_quick_punch_allowed($studentDtrTodayRecord, $clockType, $studentDtrTodaySchedule); ?>
                         <button type="submit" name="clock_type" value="<?php echo htmlspecialchars($clockType, ENT_QUOTES, 'UTF-8'); ?>" class="external-clock-btn<?php echo $isLocked ? ' is-complete' : ''; ?>" <?php echo $isLocked ? 'disabled aria-disabled="true"' : ''; ?>>
                             <i class="<?php echo htmlspecialchars($clockIcon, ENT_QUOTES, 'UTF-8'); ?>"></i>
                             <span><?php echo htmlspecialchars($clockLabel, ENT_QUOTES, 'UTF-8'); ?></span>
