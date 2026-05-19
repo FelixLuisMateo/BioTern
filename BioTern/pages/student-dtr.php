@@ -57,24 +57,14 @@ function student_dtr_time_select_options_html(string $selected = '', int $startH
 
 function student_dtr_quick_punch_allowed(array $record, string $clockType, array $schedule): bool
 {
-    $dayType = function_exists('section_schedule_normalize_day_type')
-        ? section_schedule_normalize_day_type((string)($schedule['day_type'] ?? 'class'))
-        : strtolower(trim((string)($schedule['day_type'] ?? 'class')));
-
-    if ($dayType === 'no_class') {
-        return false;
-    }
-
     $column = attendance_action_to_column($clockType);
     if ($column === null) {
         return false;
     }
 
-    if (!in_array($clockType, attendance_schedule_action_order($schedule), true)) {
-        return false;
-    }
+    $value = trim((string)($record[$column] ?? ''));
 
-    return trim((string)($record[$column] ?? '')) === '';
+    return $value === '' || $value === '00:00:00' || $value === '00:00';
 }
 
 function student_dtr_ensure_manual_attachment_table(mysqli $conn): void
@@ -1056,7 +1046,6 @@ include 'includes/header.php';
                 <input type="hidden" name="clock_date" value="<?php echo htmlspecialchars($studentDtrToday, ENT_QUOTES, 'UTF-8'); ?>">
                 <div class="external-clock-grid">
                     <?php foreach ($studentDtrClockTypes as $clockType => [$clockLabel, $clockIcon]): ?>
-                        <?php if (!in_array($clockType, $studentDtrAllowedPunchOrder, true)) { continue; } ?>
                         <?php $isLocked = !student_dtr_quick_punch_allowed($studentDtrTodayRecord, $clockType, $studentDtrTodaySchedule); ?>
                         <button type="submit" name="clock_type" value="<?php echo htmlspecialchars($clockType, ENT_QUOTES, 'UTF-8'); ?>" class="external-clock-btn<?php echo $isLocked ? ' is-complete' : ''; ?>" <?php echo $isLocked ? 'disabled aria-disabled="true"' : ''; ?>>
                             <i class="<?php echo htmlspecialchars($clockIcon, ENT_QUOTES, 'UTF-8'); ?>"></i>
@@ -1069,7 +1058,7 @@ include 'includes/header.php';
                     <input type="text" id="quickInternalPunchNote" name="notes" maxlength="255" placeholder="Optional note for this punch">
                 </div>
             </form>
-            <div class="student-dtr-quick-status" aria-live="polite">Manual typed entries below are for forgotten or missed times and stay pending for review.</div>
+            <div class="student-dtr-quick-status" aria-live="polite">Quick punch entries save the exact current time and stay pending until school review.</div>
         </section>
         <?php else: ?>
         <section class="student-dtr-station-hero">
