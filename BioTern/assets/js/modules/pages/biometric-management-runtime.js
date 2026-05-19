@@ -74,6 +74,10 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
+        if (presetSelect.value === 'custom') {
+            return;
+        }
+
         var option = presetSelect.options[presetSelect.selectedIndex];
         if (!option) {
             return;

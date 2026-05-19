@@ -56,6 +56,93 @@ function machine_connector_write_config(string $machineConfigPath, array $config
     machine_write_local_config_file($machineConfigPath, $json . PHP_EOL);
 }
 
+function machine_update_bridge_cache_from_connector(string $workspaceRoot, array $config): void
+{
+    $cachePath = $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'bridge-profile-cache.json';
+    if (!file_exists($cachePath)) {
+        return;
+    }
+
+    $cacheRaw = file_get_contents($cachePath);
+    $cache = is_string($cacheRaw) ? json_decode($cacheRaw, true) : null;
+    if (!is_array($cache)) {
+        return;
+    }
+
+    $cache['selected_bridge_preset'] = 'laptop_custom';
+    $cache['ip_address'] = (string)($config['ipAddress'] ?? '');
+    $cache['gateway'] = (string)($config['gateway'] ?? '');
+    $cache['mask'] = (string)($config['mask'] ?? '255.255.255.0');
+    $cache['port'] = (int)($config['port'] ?? 5001);
+    $cache['device_number'] = (int)($config['deviceNumber'] ?? 1);
+    $cache['communication_password'] = (string)($config['communicationPassword'] ?? '0');
+    $cache['output_path'] = (string)($config['outputPath'] ?? '');
+    $cache['auto_import_on_ingest'] = !empty($config['autoImportOnIngest']);
+    $cache['attendance_window_enabled'] = !empty($config['attendanceWindowEnabled']);
+    $cache['attendance_start_time'] = (string)($config['attendanceStartTime'] ?? '08:00:00');
+    $cache['attendance_end_time'] = (string)($config['attendanceEndTime'] ?? '20:00:00');
+    $cache['duplicate_guard_minutes'] = (int)($config['duplicateGuardMinutes'] ?? 10);
+    $cache['slot_advance_minimum_minutes'] = (int)($config['slotAdvanceMinimumMinutes'] ?? 10);
+    $cache['updated_at'] = date('Y-m-d H:i:s');
+
+    $json = json_encode($cache, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if (is_string($json)) {
+        machine_write_local_config_file($cachePath, $json . PHP_EOL);
+    }
+}
+
+function machine_ensure_connector_profile_table(mysqli $conn): void
+{
+    $conn->query("CREATE TABLE IF NOT EXISTS biometric_connector_profile (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        profile_name VARCHAR(100) NOT NULL DEFAULT 'default',
+        config_json LONGTEXT NOT NULL,
+        updated_by INT NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_profile_name (profile_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+function machine_fetch_connector_profile(mysqli $conn, array $fallbackConfig): array
+{
+    machine_ensure_connector_profile_table($conn);
+
+    $res = $conn->query("SELECT config_json FROM biometric_connector_profile WHERE profile_name = 'default' LIMIT 1");
+    if ($res instanceof mysqli_result) {
+        $row = $res->fetch_assoc() ?: [];
+        $res->close();
+        $decoded = json_decode((string)($row['config_json'] ?? ''), true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+    }
+
+    return $fallbackConfig;
+}
+
+function machine_save_connector_profile(mysqli $conn, array $config, int $updatedBy): void
+{
+    machine_ensure_connector_profile_table($conn);
+
+    $json = json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if (!is_string($json)) {
+        throw new RuntimeException('Failed to encode connector profile.');
+    }
+
+    $stmt = $conn->prepare("INSERT INTO biometric_connector_profile (profile_name, config_json, updated_by)
+        VALUES ('default', ?, ?)
+        ON DUPLICATE KEY UPDATE config_json = VALUES(config_json), updated_by = VALUES(updated_by)");
+    if (!$stmt) {
+        throw new RuntimeException('Failed to prepare connector profile save.');
+    }
+
+    $stmt->bind_param('si', $json, $updatedBy);
+    $stmt->execute();
+    $stmt->close();
+}
+
 function machine_open_restart_bridge_shell(string $workspaceRoot): void
 {
     if (stripos(PHP_OS_FAMILY, 'Windows') !== 0) {
@@ -1410,6 +1497,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'save_config',
             'save_network',
             'save_connector_config',
+            'save_connector_profile',
             'save_bridge_profile',
             'quick_fill_bridge_router_1',
             'pause_bridge_for_enrollment',
@@ -1982,10 +2070,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($machineConfigJson === '') {
                     throw new RuntimeException('Connector config cannot be empty.');
                 }
-                if (json_decode($machineConfigJson, true) === null && json_last_error() !== JSON_ERROR_NONE) {
+                $decodedConnectorConfig = json_decode($machineConfigJson, true);
+                if ($decodedConnectorConfig === null && json_last_error() !== JSON_ERROR_NONE) {
                     throw new RuntimeException('Connector config must be valid JSON.');
                 }
                 machine_write_local_config_file($machineConfigPath, $machineConfigJson . PHP_EOL);
+                if (is_array($decodedConnectorConfig)) {
+                    machine_save_connector_profile($conn, $decodedConnectorConfig, (int)($_SESSION['user_id'] ?? 0));
+                    machine_update_bridge_cache_from_connector(dirname(__DIR__), $decodedConnectorConfig);
+                }
                 $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Connector config updated.'];
                 machine_redirect_after_post([]);
 
@@ -2026,8 +2119,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($existingConfig['ipAddress'] === '') {
                     throw new RuntimeException('Connector IP address is required.');
                 }
+                if ($existingConfig['gateway'] === '') {
+                    throw new RuntimeException('Connector gateway is required.');
+                }
                 machine_connector_write_config($machineConfigPath, $existingConfig);
-                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Quick connector settings updated.'];
+                machine_save_connector_profile($conn, $existingConfig, (int)($_SESSION['user_id'] ?? 0));
+                machine_update_bridge_cache_from_connector(dirname(__DIR__), $existingConfig);
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => 'Quick connector settings saved: ' . $existingConfig['ipAddress'] . ':' . $existingConfig['port'] . ' via gateway ' . $existingConfig['gateway'] . '.',
+                ];
                 machine_redirect_after_post([]);
 
             case 'save_bridge_profile':
@@ -2602,7 +2703,15 @@ $fingerprintCleanupData = machine_fetch_fingerprint_cleanup_log($conn, 20);
 $fingerprintCleanupSummary = $fingerprintCleanupData['summary'] ?? ['queued' => 0, 'claimed' => 0, 'succeeded' => 0, 'failed' => 0];
 $fingerprintCleanupRows = $fingerprintCleanupData['rows'] ?? [];
 $bridgeProfile = machine_fetch_bridge_profile($conn);
-$connectorConfig = json_decode($machineConfigJson, true);
+$connectorConfigFromFile = json_decode($machineConfigJson, true);
+if (!is_array($connectorConfigFromFile)) {
+    $connectorConfigFromFile = [];
+}
+$connectorConfig = machine_fetch_connector_profile($conn, $connectorConfigFromFile);
+$machineConfigJson = json_encode($connectorConfig, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+if (!is_string($machineConfigJson)) {
+    $machineConfigJson = '';
+}
 $connectorIp = is_array($connectorConfig) ? trim((string)($connectorConfig['ipAddress'] ?? '')) : '';
 $connectorPort = is_array($connectorConfig) ? (string)($connectorConfig['port'] ?? '') : '';
 $connectorDeviceNo = is_array($connectorConfig) ? (string)($connectorConfig['deviceNumber'] ?? '') : '';
