@@ -1833,6 +1833,10 @@ function attendanceActionMenuItems(array $attendance): string
     $attendanceId = (int)($attendance['id'] ?? 0);
     $studentId = (int)($attendance['student_id'] ?? 0);
     $details = attendance_details_dropdown_html($attendance);
+    $studentName = trim((string)(($attendance['first_name'] ?? '') . ' ' . ($attendance['last_name'] ?? '')));
+    if ($studentName === '') {
+        $studentName = 'Attendance';
+    }
 
     if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
         $items = [];
@@ -1845,7 +1849,7 @@ function attendanceActionMenuItems(array $attendance): string
         if ($proofPath !== '') {
             $items[] = '<li><a class="dropdown-item" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener"><i class="feather feather-image me-3"></i><span>Open Proof</span></a></li>';
         }
-        return '<div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $studentId . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-bs-offset="0,21" title="More actions"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end attendance-row-actions-menu">' . implode('', $items) . '</ul></div></div>';
+        return attendance_row_actions_modal_trigger($attendanceId, $studentId, $studentName, $items);
     }
 
     $items = [];
@@ -1871,7 +1875,20 @@ function attendanceActionMenuItems(array $attendance): string
     $items[] = '<li class="dropdown-divider"></li>';
     $items[] = '<li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteAttendanceIndividual(' . $attendanceId . ')"><i class="feather feather-trash-2 me-3"></i><span>Delete</span></a></li>';
 
-    return '<div class="hstack gap-2 justify-content-end"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $studentId . ')"><i class="feather feather-eye"></i></a><div class="dropdown"><a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="dropdown" data-bs-auto-close="outside" data-bs-offset="0,21" title="More actions"><i class="feather feather-more-horizontal"></i></a><ul class="dropdown-menu dropdown-menu-end attendance-row-actions-menu">' . implode('', $items) . '</ul></div></div>';
+    return attendance_row_actions_modal_trigger($attendanceId, $studentId, $studentName, $items);
+}
+
+function attendance_row_actions_modal_trigger(int $attendanceId, int $studentId, string $studentName, array $items): string
+{
+    $templateId = 'attendanceActionsTemplate' . max(0, $attendanceId);
+    $safeTitle = htmlspecialchars($studentName, ENT_QUOTES, 'UTF-8');
+    $safeTemplateId = htmlspecialchars($templateId, ENT_QUOTES, 'UTF-8');
+
+    return '<div class="hstack gap-2 justify-content-end attendance-row-actions">'
+        . '<a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $studentId . ')"><i class="feather feather-eye"></i></a>'
+        . '<button type="button" class="avatar-text avatar-md attendance-row-actions-open" data-attendance-actions-open data-template-id="' . $safeTemplateId . '" data-attendance-title="' . $safeTitle . '" title="More actions"><i class="feather feather-more-horizontal"></i></button>'
+        . '<template id="' . $safeTemplateId . '"><ul class="attendance-row-actions-menu list-unstyled mb-0">' . implode('', $items) . '</ul></template>'
+        . '</div>';
 }
 
 function attendance_details_dropdown_html(array $attendance): string
@@ -2015,10 +2032,10 @@ if (trim((string)($_GET['print'] ?? '')) === 'list') {
 <?php
 $page_title = !empty($biotern_attendance_sandbox) ? 'BioTern || Test Attendance' : 'BioTern || Internal Attendance';
 $page_body_class = 'attendance-page';
-$page_styles = ['assets/css/modules/pages/page-attendance.css?v=20260509c'];
+$page_styles = ['assets/css/modules/pages/page-attendance.css?v=20260519a'];
 $page_scripts = [
     'assets/js/theme-customizer-init.min.js',
-    'assets/js/modules/pages/pages-attendance-runtime.js?v=20260516a',
+    'assets/js/modules/pages/pages-attendance-runtime.js?v=20260519a',
 ];
 include 'includes/header.php';
 ?>
@@ -2512,6 +2529,22 @@ endif; ?>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="attendanceRowActionsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content attendance-actions-modal-content">
+                <div class="modal-header">
+                    <div>
+                        <div class="attendance-actions-modal-eyebrow">Attendance Actions</div>
+                        <h5 class="modal-title" id="attendanceRowActionsTitle">Manage Attendance</h5>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="attendanceRowActionsBody" class="attendance-actions-modal-body"></div>
                 </div>
             </div>
         </div>

@@ -348,7 +348,47 @@
                     reloadPage: false
                 });
             });
+
+            $(document).on('click', '[data-attendance-actions-open]', function() {
+                openAttendanceActionsModal(this);
+            });
+
+            $(document).on('click', '#attendanceRowActionsModal a, #attendanceRowActionsModal button', function(event) {
+                if ($(this).is('[data-bs-dismiss], .btn-close, [data-attendance-review-save]')) {
+                    return;
+                }
+                var modalEl = document.getElementById('attendanceRowActionsModal');
+                var modal = modalEl ? bootstrap.Modal.getInstance(modalEl) : null;
+                if (modal) {
+                    modal.hide();
+                }
+            });
         });
+
+        function openAttendanceActionsModal(trigger) {
+            var modalEl = document.getElementById('attendanceRowActionsModal');
+            var bodyEl = document.getElementById('attendanceRowActionsBody');
+            var titleEl = document.getElementById('attendanceRowActionsTitle');
+            if (!modalEl || !bodyEl || !trigger) {
+                return;
+            }
+
+            var templateId = trigger.getAttribute('data-template-id') || '';
+            var template = templateId ? document.getElementById(templateId) : null;
+            if (!template) {
+                showToast('No actions found for this attendance row.', 'warning');
+                return;
+            }
+
+            bodyEl.innerHTML = '';
+            bodyEl.appendChild(template.content.cloneNode(true));
+            if (titleEl) {
+                titleEl.textContent = trigger.getAttribute('data-attendance-title') || 'Manage Attendance';
+            }
+
+            var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
 
         // View Details function
         function viewDetails(studentId) {
