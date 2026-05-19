@@ -56,6 +56,41 @@ function machine_connector_write_config(string $machineConfigPath, array $config
     machine_write_local_config_file($machineConfigPath, $json . PHP_EOL);
 }
 
+function machine_update_bridge_cache_from_connector(string $workspaceRoot, array $config): void
+{
+    $cachePath = $workspaceRoot . DIRECTORY_SEPARATOR . 'tools' . DIRECTORY_SEPARATOR . 'bridge-profile-cache.json';
+    if (!file_exists($cachePath)) {
+        return;
+    }
+
+    $cacheRaw = file_get_contents($cachePath);
+    $cache = is_string($cacheRaw) ? json_decode($cacheRaw, true) : null;
+    if (!is_array($cache)) {
+        return;
+    }
+
+    $cache['selected_bridge_preset'] = 'laptop_custom';
+    $cache['ip_address'] = (string)($config['ipAddress'] ?? '');
+    $cache['gateway'] = (string)($config['gateway'] ?? '');
+    $cache['mask'] = (string)($config['mask'] ?? '255.255.255.0');
+    $cache['port'] = (int)($config['port'] ?? 5001);
+    $cache['device_number'] = (int)($config['deviceNumber'] ?? 1);
+    $cache['communication_password'] = (string)($config['communicationPassword'] ?? '0');
+    $cache['output_path'] = (string)($config['outputPath'] ?? '');
+    $cache['auto_import_on_ingest'] = !empty($config['autoImportOnIngest']);
+    $cache['attendance_window_enabled'] = !empty($config['attendanceWindowEnabled']);
+    $cache['attendance_start_time'] = (string)($config['attendanceStartTime'] ?? '08:00:00');
+    $cache['attendance_end_time'] = (string)($config['attendanceEndTime'] ?? '20:00:00');
+    $cache['duplicate_guard_minutes'] = (int)($config['duplicateGuardMinutes'] ?? 10);
+    $cache['slot_advance_minimum_minutes'] = (int)($config['slotAdvanceMinimumMinutes'] ?? 10);
+    $cache['updated_at'] = date('Y-m-d H:i:s');
+
+    $json = json_encode($cache, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if (is_string($json)) {
+        machine_write_local_config_file($cachePath, $json . PHP_EOL);
+    }
+}
+
 function machine_open_restart_bridge_shell(string $workspaceRoot): void
 {
     if (stripos(PHP_OS_FAMILY, 'Windows') !== 0) {
@@ -1410,6 +1445,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'save_config',
             'save_network',
             'save_connector_config',
+            'save_connector_profile',
             'save_bridge_profile',
             'quick_fill_bridge_router_1',
             'pause_bridge_for_enrollment',
@@ -2026,8 +2062,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($existingConfig['ipAddress'] === '') {
                     throw new RuntimeException('Connector IP address is required.');
                 }
+                if ($existingConfig['gateway'] === '') {
+                    throw new RuntimeException('Connector gateway is required.');
+                }
                 machine_connector_write_config($machineConfigPath, $existingConfig);
-                $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Quick connector settings updated.'];
+                machine_update_bridge_cache_from_connector(dirname(__DIR__), $existingConfig);
+                $_SESSION['machine_manager_flash'] = [
+                    'type' => 'success',
+                    'message' => 'Quick connector settings saved: ' . $existingConfig['ipAddress'] . ':' . $existingConfig['port'] . ' via gateway ' . $existingConfig['gateway'] . '.',
+                ];
                 machine_redirect_after_post([]);
 
             case 'save_bridge_profile':
