@@ -80,6 +80,49 @@ function bridge_manual_send_file(string $absolutePath, string $downloadName): vo
     exit;
 }
 
+function bridge_manual_dotnet_x86_installer_url(): string
+{
+    return 'https://aka.ms/dotnet/9.0/windowsdesktop-runtime-win-x86.exe';
+}
+
+function bridge_manual_dotnet_x86_installer_script(): string
+{
+    $url = bridge_manual_dotnet_x86_installer_url();
+
+    return <<<PS1
+param(
+    [switch]\$Quiet
+)
+
+\$ErrorActionPreference = 'Stop'
+\$installerUrl = '$url'
+\$installerPath = Join-Path \$env:TEMP 'windowsdesktop-runtime-9-win-x86.exe'
+
+Write-Host 'Downloading Microsoft .NET 9 Desktop Runtime x86...'
+Write-Host \$installerUrl
+Invoke-WebRequest -Uri \$installerUrl -OutFile \$installerPath
+
+Write-Host 'Starting installer...'
+\$args = if (\$Quiet) { @('/install', '/quiet', '/norestart') } else { @('/install') }
+\$process = Start-Process -FilePath \$installerPath -ArgumentList \$args -Wait -PassThru
+
+if (\$process.ExitCode -ne 0) {
+    throw "Installer failed with exit code \$($process.ExitCode)."
+}
+
+Write-Host 'Done. Microsoft .NET 9 Desktop Runtime x86 is installed.'
+PS1;
+}
+
+function bridge_manual_dotnet_x86_cmd_script(): string
+{
+    return <<<BAT
+@echo off
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Install-DotNet-9-x86-Runtime.ps1"
+pause
+BAT;
+}
+
 function bridge_manual_send_kit_zip(string $workspaceRoot): void
 {
     if (!class_exists('ZipArchive')) {
@@ -123,32 +166,42 @@ function bridge_manual_send_kit_zip(string $workspaceRoot): void
         }
     }
 
+    $dotnetUrl = bridge_manual_dotnet_x86_installer_url();
     $readme = "BioTern Bridge Kit\r\n"
         . "=================\r\n\r\n"
         . "DETAILED SETUP\r\n"
         . "--------------\r\n"
         . "1) Extract this ZIP on a Windows PC connected to the same LAN as your F20H.\r\n"
-        . "2) Open the extracted BioTernBridgeKit folder. Confirm these exist:\r\n"
+        . "2) If the connector says .NET is missing, run Install-DotNet-9-x86-Runtime.cmd first.\r\n"
+        . "   Official Microsoft installer URL: {$dotnetUrl}\r\n"
+        . "3) Open the extracted BioTernBridgeKit folder. Confirm these exist:\r\n"
         . "   - tools\\install-bridge-worker-task.ps1\r\n"
         . "   - tools\\manage-bridge-worker-task.ps1\r\n"
         . "   - tools\\bridge-worker.ps1\r\n"
         . "   - tools\\bridge-worker-autostart.ps1\r\n"
         . "   - tools\\device_connector\\bin\\Release\\net9.0-windows\\BioTernMachineConnector.exe\r\n"
-        . "3) In website Machine Manager, save Bridge Profile first (token, URL, F20H IP, gateway).\r\n"
-        . "4) In the extracted folder, open PowerShell and run the install command from Bridge Setup Manual page.\r\n"
-        . "5) Check status: powershell -NoProfile -ExecutionPolicy Bypass -File .\\tools\\manage-bridge-worker-task.ps1 -Action status -TaskName BioTernBridgeWorker\r\n"
-        . "6) Confirm State = Running.\r\n"
-        . "7) Confirm BridgeHealth = ONLINE or LIKELY ONLINE and BridgeLogAgeSeconds is small (recent).\r\n"
-        . "8) Optional: reboot or sign out/in, then run the status command again to confirm auto-start.\r\n"
-        . "9) If status is Running, open website and click Read All Users / Process Ingest Queue.\r\n"
-        . "10) Keep bridge account signed in for user-logon mode task execution.\r\n\r\n"
+        . "4) In website Machine Manager, save Bridge Profile first (token, URL, F20H IP, gateway).\r\n"
+        . "5) In the extracted folder, open PowerShell and run the install command from Bridge Setup Manual page.\r\n"
+        . "6) Check status: powershell -NoProfile -ExecutionPolicy Bypass -File .\\tools\\manage-bridge-worker-task.ps1 -Action status -TaskName BioTernBridgeWorker\r\n"
+        . "7) Confirm State = Running.\r\n"
+        . "8) Confirm BridgeHealth = ONLINE or LIKELY ONLINE and BridgeLogAgeSeconds is small (recent).\r\n"
+        . "9) Optional: reboot or sign out/in, then run the status command again to confirm auto-start.\r\n"
+        . "10) If status is Running, open website and click Read All Users / Process Ingest Queue.\r\n"
+        . "11) Keep bridge account signed in for user-logon mode task execution.\r\n\r\n"
         . "TROUBLESHOOTING\r\n"
         . "---------------\r\n"
+        . "- If .NET is missing: run Install-DotNet-9-x86-Runtime.cmd, then retry the bridge.\r\n"
         . "- If scripts are blocked: run PowerShell as current user and set process policy only:\r\n"
         . "  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force\r\n"
         . "- If machine not reachable: verify F20H IP/gateway and laptop network are on same router/subnet.\r\n"
         . "- If domain changes (e.g. ClarkCollege.edu.ph): re-run install with new SiteBaseUrl.\r\n";
     $zip->addFromString('BioTernBridgeKit/README-SETUP.txt', $readme);
+    $zip->addFromString('BioTernBridgeKit/Install-DotNet-9-x86-Runtime.ps1', bridge_manual_dotnet_x86_installer_script());
+    $zip->addFromString('BioTernBridgeKit/Install-DotNet-9-x86-Runtime.cmd', bridge_manual_dotnet_x86_cmd_script());
+    $zip->addFromString(
+        'BioTernBridgeKit/DotNet-9-x86-Installer.url',
+        "[InternetShortcut]\r\nURL=" . bridge_manual_dotnet_x86_installer_url() . "\r\n"
+    );
     $zip->close();
 
     @unlink($zipPath);
@@ -241,6 +294,9 @@ if ($download !== '') {
         case 'autostart-script':
             bridge_manual_send_file($workspaceRoot . '/tools/bridge-worker-autostart.ps1', 'bridge-worker-autostart.ps1');
             break;
+        case 'dotnet-x86-installer':
+            header('Location: ' . bridge_manual_dotnet_x86_installer_url());
+            exit;
         default:
             http_response_code(400);
             echo 'Unknown download option.';
@@ -439,11 +495,13 @@ include __DIR__ . '/../includes/header.php';
                         <p class="text-muted">Download everything for a new bridge PC. Full kit is recommended.</p>
                         <div class="d-flex flex-wrap gap-2">
                             <a href="bridge-setup-manual.php?download=bridge-kit" class="btn btn-primary">Download Full Bridge Kit (ZIP)</a>
+                            <a href="bridge-setup-manual.php?download=dotnet-x86-installer" class="btn btn-outline-secondary">.NET 9 x86 Installer</a>
                             <a href="bridge-setup-manual.php?download=install-script" class="btn btn-outline-secondary">Install Script</a>
                             <a href="bridge-setup-manual.php?download=manage-script" class="btn btn-outline-secondary">Manage Script</a>
                             <a href="bridge-setup-manual.php?download=worker-script" class="btn btn-outline-secondary">Worker Script</a>
                             <a href="bridge-setup-manual.php?download=autostart-script" class="btn btn-outline-secondary">Auto-Start Script</a>
                         </div>
+                        <small class="text-muted d-block mt-3">The full ZIP also includes Install-DotNet-9-x86-Runtime.cmd for bridge PCs that do not have the x86 runtime yet.</small>
                     </div>
                 </div>
             </div>
@@ -463,6 +521,7 @@ include __DIR__ . '/../includes/header.php';
                             <div>tools\bridge-worker.ps1</div>
                             <div>tools\bridge-worker-autostart.ps1</div>
                             <div>tools\device_connector\bin\Release\net9.0-windows\BioTernMachineConnector.exe</div>
+                            <div>Install-DotNet-9-x86-Runtime.cmd</div>
                         </div>
                         <p class="text-muted mb-0"><?php echo bridge_manual_h($openFolderHint); ?></p>
                     </div>
