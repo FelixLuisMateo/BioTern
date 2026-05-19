@@ -2557,7 +2557,7 @@ endif; ?>
         </div>
     </div>
     <div class="modal fade" id="attendanceRowActionsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-sm modal-dialog-centered attendance-actions-modal-dialog">
             <div class="modal-content attendance-actions-modal-content">
                 <div class="modal-header">
                     <div>
