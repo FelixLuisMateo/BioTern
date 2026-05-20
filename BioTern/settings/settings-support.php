@@ -24,6 +24,11 @@ function sup_h(string $value): string
 
 function sup_ensure_system_settings_table(mysqli $conn): void
 {
+    if (function_exists('biotern_ensure_system_settings_table')) {
+        biotern_ensure_system_settings_table($conn);
+        return;
+    }
+
     $sql = <<<'SQL'
 CREATE TABLE IF NOT EXISTS system_settings (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -56,6 +61,10 @@ SQL;
 
 function sup_fetch_settings(mysqli $conn, string $category, array $defaults): array
 {
+    if (function_exists('biotern_settings_by_category')) {
+        return biotern_settings_by_category($conn, $category, $defaults);
+    }
+
     $settings = $defaults;
     $stmt = $conn->prepare('SELECT `key`, `value` FROM system_settings WHERE category = ?');
     if ($stmt) {
@@ -73,6 +82,10 @@ function sup_fetch_settings(mysqli $conn, string $category, array $defaults): ar
 
 function sup_store_setting(mysqli $conn, string $key, string $value, string $description, string $category): bool
 {
+    if (function_exists('biotern_save_setting')) {
+        return biotern_save_setting($conn, $key, $value, $description, $category);
+    }
+
     $stmt = $conn->prepare(
         'INSERT INTO system_settings (`key`, `value`, `description`, `category`, created_at, updated_at)
          VALUES (?, ?, ?, ?, NOW(), NOW())
