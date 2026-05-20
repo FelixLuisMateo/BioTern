@@ -96,8 +96,11 @@ function chat_contact_group_meta(string $role, bool $isStudentView): array
     if ($normalizedRole === 'student') {
         return ['key' => 'students', 'label' => 'Students', 'order' => 30];
     }
+    if ($normalizedRole === 'admin') {
+        return ['key' => 'admins', 'label' => 'Admins', 'order' => 40];
+    }
 
-    return ['key' => 'others', 'label' => 'Other Users', 'order' => 40];
+    return ['key' => 'staff', 'label' => 'Staff', 'order' => 50];
 }
 
 function chat_time_label(?string $value): string
@@ -434,7 +437,7 @@ function chat_normalize_contact(array $contact, array $recentLoginUserIds, bool 
         'initials' => chat_initials($name),
         'last_message' => $lastMessage,
         'last_message_at' => $lastMessageAt,
-        'last_message_label' => chat_time_label($lastMessageAt),
+        'last_message_label' => $lastMessageAt !== '' ? chat_time_label($lastMessageAt) : '',
         'unread_count' => (int)($contact['unread_count'] ?? 0),
         'message_count' => (int)($contact['message_count'] ?? 0),
         'is_online' => chat_is_online($recentLoginUserIds, $userId, $lastMessageAt),
@@ -2043,7 +2046,9 @@ include 'includes/header.php';
                             <div class="btchat-meta">
                                 <div class="btchat-name-row">
                                     <span class="btchat-name"><?php echo chat_esc($contactName); ?></span>
-                                    <span class="btchat-time"><?php echo chat_esc((string)$contact['last_message_label']); ?></span>
+                                    <?php if (trim((string)$contact['last_message_label']) !== ''): ?>
+                                        <span class="btchat-time"><?php echo chat_esc((string)$contact['last_message_label']); ?></span>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="btchat-snippet-row">
                                     <span class="btchat-snippet"><?php echo chat_esc((string)($contact['last_message'] !== '' ? $contact['last_message'] : 'No messages yet')); ?></span>
