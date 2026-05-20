@@ -97,9 +97,9 @@ $page_scripts = [
             </p>
             <p class="mb-0"><span>By: <a href="#">ACT 2A</a></span> <span class="ms-2">Distributed by: <a href="#">Group 5</a></span></p>
             <div class="d-flex align-items-center gap-4">
-                <a href="#" class="fs-11 fw-semibold text-uppercase">Help</a>
-                <a href="#" class="fs-11 fw-semibold text-uppercase">Terms</a>
-                <a href="#" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+                <a href="help.php" class="fs-11 fw-semibold text-uppercase">Help</a>
+                <a href="terms.php" class="fs-11 fw-semibold text-uppercase">Terms</a>
+                <a href="privacy.php" class="fs-11 fw-semibold text-uppercase">Privacy</a>
             </div>
         </div>
     </footer>

@@ -349,7 +349,7 @@ if (!function_exists('reconcileBiometricAttendanceOwnership')) {
             ORDER BY id ASC
         ");
         $targetLookup = $conn->prepare("
-            SELECT id, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out
+            SELECT id, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out, source, remarks
             FROM attendances
             WHERE student_id = ? AND attendance_date = ?
             ORDER BY id DESC
@@ -1167,7 +1167,20 @@ if (!function_exists('syncAttendanceFromBiometricLog')) {
                 return ['changed' => false, 'anomalies_found' => 1];
             }
 
-            $update = $conn->prepare("UPDATE attendances SET $column = ?, source = 'biometric', status = 'approved', approved_at = COALESCE(approved_at, NOW()), updated_at = NOW() WHERE id = ?");
+            $update = $conn->prepare("
+                UPDATE attendances
+                SET $column = ?,
+                    remarks = CASE
+                        WHEN source <> 'biometric' AND COALESCE(remarks, '') NOT LIKE '%Manual entry added%'
+                            THEN TRIM(CONCAT(COALESCE(remarks, ''), CASE WHEN COALESCE(remarks, '') = '' THEN '' ELSE ' | ' END, 'Manual entry added; biometric punch also recorded'))
+                        ELSE remarks
+                    END,
+                    source = 'biometric',
+                    status = 'approved',
+                    approved_at = COALESCE(approved_at, NOW()),
+                    updated_at = NOW()
+                WHERE id = ?
+            ");
             if ($update === false) {
                 throw new RuntimeException('Database error: failed to prepare attendance update. Error: ' . $conn->error);
             }
