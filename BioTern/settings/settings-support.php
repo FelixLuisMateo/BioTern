@@ -93,7 +93,7 @@ sup_ensure_system_settings_table($conn);
 
 $category = 'support';
 $defaults = [
-    'support_email' => 'support@biotern.local',
+    'support_email' => 'bioternccst@gmail.com',
     'support_phone' => '+63 000 000 0000',
     'support_hours' => 'Mon-Fri 8:00 AM to 5:00 PM',
     'support_location' => 'BioTern Administration Office',
