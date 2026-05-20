@@ -45,9 +45,9 @@ if (!function_exists('footer_asset_versioned_src')) {
         </p>
         <p><span>By: <a href="#">ACT 2A</a> </span><span>Distributed by: <a href="#">Group 5</a></span></p>
         <div class="d-flex align-items-center gap-4">
-            <a href="#" class="fs-11 fw-semibold text-uppercase">Help</a>
-            <a href="#" class="fs-11 fw-semibold text-uppercase">Terms</a>
-            <a href="#" class="fs-11 fw-semibold text-uppercase">Privacy</a>
+            <a href="help.php" class="fs-11 fw-semibold text-uppercase">Help</a>
+            <a href="terms.php" class="fs-11 fw-semibold text-uppercase">Terms</a>
+            <a href="privacy.php" class="fs-11 fw-semibold text-uppercase">Privacy</a>
         </div>
     </footer>
     <!-- [ Footer ] end -->
