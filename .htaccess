@@ -1,1 +1,13 @@
 DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Keep real root files/directories working directly.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Preserve old flat PHP URLs while keeping the root folder clean.
+RewriteRule ^([A-Za-z0-9_-]+\.php)$ BioTern/legacy_router.php?file=$1 [L,QSA,NC]
+</IfModule>
