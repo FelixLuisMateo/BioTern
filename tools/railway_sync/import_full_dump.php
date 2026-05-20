@@ -33,13 +33,13 @@ if ($url !== '') {
 }
 
 if ($host === '' || $user === '' || $database === '' || $port <= 0) {
-    fwrite(STDERR, "Usage: php tools/railway_sync/import_full_dump.php --url=mysql://user:pass@host:port/database [--dump=biotern_db.sql]\n");
-    fwrite(STDERR, "   or: php tools/railway_sync/import_full_dump.php --host=... --port=... --user=... --password=... --database=... [--dump=biotern_db.sql]\n");
+    fwrite(STDERR, "Usage: php tools/railway_sync/import_full_dump.php --url=mysql://user:pass@host:port/database [--dump=backups/dumps/biotern_db.sql]\n");
+    fwrite(STDERR, "   or: php tools/railway_sync/import_full_dump.php --host=... --port=... --user=... --password=... --database=... [--dump=backups/dumps/biotern_db.sql]\n");
     exit(1);
 }
 
 if ($dumpPath === '') {
-    $dumpPath = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'biotern_db.sql';
+    $dumpPath = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'backups' . DIRECTORY_SEPARATOR . 'dumps' . DIRECTORY_SEPARATOR . 'biotern_db.sql';
 }
 
 if (!is_file($dumpPath)) {
