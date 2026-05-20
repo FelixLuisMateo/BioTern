@@ -18,10 +18,11 @@ body.public-info-page {
 }
 
 body.public-info-page .nxl-header {
-    left: 0;
-    right: 0;
+    left: 0 !important;
+    right: 0 !important;
     min-height: 64px;
     position: relative;
+    width: 100% !important;
     background: transparent !important;
     border-bottom: 0 !important;
     box-shadow: none !important;
@@ -38,6 +39,16 @@ body.public-info-page .nxl-header {
     box-shadow: none !important;
 }
 
+html.app-skin-dark body.public-info-page .nxl-header,
+html.app-skin-dark body.public-info-page .nxl-header .header-wrapper,
+html.app-header-dark body.public-info-page .nxl-header,
+html.app-header-dark body.public-info-page .nxl-header .header-wrapper {
+    background: transparent !important;
+    background-color: transparent !important;
+    border-bottom: 0 !important;
+    box-shadow: none !important;
+}
+
 .public-info-logo {
     width: auto;
     height: 38px;
@@ -46,11 +57,23 @@ body.public-info-page .nxl-header {
 
 .public-info-page .nxl-container {
     top: 0;
-    margin-left: 0;
+    margin-left: 0 !important;
     margin-top: 0;
     flex: 1 0 auto;
     display: flex;
     flex-direction: column;
+    min-height: calc(100vh - 64px);
+}
+
+html:not(.minimenu) body.public-info-page .nxl-container,
+html.minimenu body.public-info-page .nxl-container {
+    margin-left: 0 !important;
+}
+
+html:not(.minimenu) body.public-info-page .nxl-header,
+html.minimenu body.public-info-page .nxl-header {
+    left: 0 !important;
+    right: 0 !important;
 }
 
 .public-info-page .nxl-content {
@@ -106,6 +129,27 @@ body.public-info-page .nxl-header {
     padding: 30px 32px 34px;
 }
 
+.public-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.public-info-box {
+    border: 1px solid var(--public-info-border);
+    border-radius: 8px;
+    padding: 18px;
+    background: #fbfcff;
+}
+
+.public-info-box h2,
+.public-info-box h3 {
+    color: #17203a;
+    font-size: 1rem;
+    line-height: 1.3;
+    margin-bottom: 8px;
+}
+
 .public-info-section + .public-info-section {
     margin-top: 28px;
 }
@@ -118,19 +162,24 @@ body.public-info-page .nxl-header {
 }
 
 .public-info-section p,
-.public-info-section li {
+.public-info-section li,
+.public-info-box p,
+.public-info-box li {
     color: #475569;
     font-size: 0.95rem;
     line-height: 1.65;
 }
 
-.public-info-section ul {
+.public-info-section ul,
+.public-info-box ul {
     margin: 0;
     padding-left: 1.2rem;
 }
 
 .public-info-section p:last-child,
-.public-info-section ul:last-child {
+.public-info-section ul:last-child,
+.public-info-box p:last-child,
+.public-info-box ul:last-child {
     margin-bottom: 0;
 }
 
@@ -155,11 +204,17 @@ body.public-info-page .nxl-header {
     padding: 12px 0;
     margin-top: 0;
     flex-shrink: 0;
+    display: block !important;
 }
 
 .public-info-footer .container {
     min-height: 28px;
     max-width: 1120px;
+}
+
+.public-info-credit,
+.public-info-footer p {
+    color: #64748b;
 }
 
 html.app-skin-dark body.public-info-page {
@@ -180,25 +235,45 @@ html.app-skin-dark .public-info-panel {
     box-shadow: 0 24px 52px rgba(0, 0, 0, 0.45);
 }
 
+html.app-skin-dark .public-info-box {
+    border-color: rgba(148, 163, 184, 0.16);
+    background: rgba(10, 20, 42, 0.42);
+}
+
 html.app-skin-dark .public-info-hero {
     border-bottom-color: rgba(148, 163, 184, 0.16);
     background: linear-gradient(135deg, rgba(18, 26, 50, 0.98) 0%, rgba(16, 27, 56, 0.98) 100%);
 }
 
 html.app-skin-dark .public-info-title,
-html.app-skin-dark .public-info-section h2 {
+html.app-skin-dark .public-info-section h2,
+html.app-skin-dark .public-info-box h2,
+html.app-skin-dark .public-info-box h3 {
     color: #f1f5ff;
 }
 
 html.app-skin-dark .public-info-lede,
 html.app-skin-dark .public-info-section p,
-html.app-skin-dark .public-info-section li {
+html.app-skin-dark .public-info-section li,
+html.app-skin-dark .public-info-box p,
+html.app-skin-dark .public-info-box li {
     color: #c5d0ee;
 }
 
 html.app-skin-dark .public-info-footer {
     background: #080f24;
     border-top-color: rgba(148, 163, 184, 0.16);
+}
+
+html.app-skin-dark .public-info-credit,
+html.app-skin-dark .public-info-footer p {
+    color: #c5d0ee;
+}
+
+@media (max-width: 767.98px) {
+    .public-info-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 575.98px) {
