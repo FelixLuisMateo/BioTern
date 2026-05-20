@@ -45,28 +45,54 @@ $page_scripts = [
                     <div class="public-info-hero">
                         <div class="public-info-kicker">Support</div>
                         <h1 class="public-info-title">Help Center</h1>
-                        <p class="public-info-lede">Find quick guidance for signing in, submitting student applications, uploading documents, and keeping OJT attendance records organized in BioTern.</p>
+                        <p class="public-info-lede">Use this page as the quick guide for the main BioTern tasks: account access, student applications, internship documents, attendance records, and where to go when something needs correction.</p>
                     </div>
                     <div class="public-info-body">
+                        <div class="public-info-grid">
+                            <section class="public-info-box">
+                                <h2>Account Access</h2>
+                                <ul>
+                                    <li>Use the Sign In button to access your dashboard.</li>
+                                    <li>Students should apply first before expecting an active account.</li>
+                                    <li>If your account is inactive, ask the coordinator or administrator to verify your status.</li>
+                                </ul>
+                            </section>
+                            <section class="public-info-box">
+                                <h2>Student Application</h2>
+                                <ul>
+                                    <li>Start from Student Application on the landing page.</li>
+                                    <li>Submit accurate contact, school, and internship details.</li>
+                                    <li>Watch for coordinator feedback if your application needs correction.</li>
+                                </ul>
+                            </section>
+                            <section class="public-info-box">
+                                <h2>Documents</h2>
+                                <ul>
+                                    <li>Upload only the required files for your internship process.</li>
+                                    <li>Check document status before resubmitting the same file.</li>
+                                    <li>Use clear file names so reviewers can identify each document.</li>
+                                </ul>
+                            </section>
+                            <section class="public-info-box">
+                                <h2>Attendance and OJT</h2>
+                                <ul>
+                                    <li>Review attendance entries and rendered hours regularly.</li>
+                                    <li>Report missing or incorrect logs as soon as possible.</li>
+                                    <li>Use OJT monitoring records as the source for progress review.</li>
+                                </ul>
+                            </section>
+                        </div>
                         <section class="public-info-section">
-                            <h2>Getting Started</h2>
+                            <h2>Before Asking for Support</h2>
                             <ul>
-                                <li>Students can start an application from the Student Application button on the landing page.</li>
-                                <li>Registered users can sign in with the email, username, or ID assigned to their BioTern account.</li>
-                                <li>Use the dashboard after signing in to review pending tasks, internship progress, documents, and attendance summaries.</li>
-                            </ul>
-                        </section>
-                        <section class="public-info-section">
-                            <h2>Common Tasks</h2>
-                            <ul>
-                                <li>Upload required internship documents from the document area assigned to your role.</li>
-                                <li>Review attendance and rendered hours from the attendance or OJT monitoring pages.</li>
-                                <li>Keep profile details current so coordinators and supervisors can verify records accurately.</li>
+                                <li>Refresh the page and sign in again if the dashboard does not load correctly.</li>
+                                <li>Confirm that your profile details and internship information are complete.</li>
+                                <li>Prepare a screenshot, your account name, and the page where the issue happened.</li>
                             </ul>
                         </section>
                         <section class="public-info-section">
                             <h2>Need More Help?</h2>
-                            <p>If something looks incorrect, contact your OJT coordinator or system administrator and include your name, role, and a short description of the issue.</p>
+                            <p>Contact your OJT coordinator or system administrator for account activation, document review, attendance corrections, role access, and system errors. Include your name, role, section, and a short description of what you were trying to do.</p>
                             <div class="public-info-contact">
                                 <a href="auth/auth-login.php"><i class="feather-log-in"></i><span>Go to sign in</span></a>
                                 <a href="auth/auth-register.php?role=student"><i class="feather-edit-3"></i><span>Start student application</span></a>
@@ -81,7 +107,7 @@ $page_scripts = [
     <footer class="footer public-info-footer">
         <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright"><span>Copyright &copy; <?php echo $year; ?></span></p>
-            <p class="mb-0"><span>By: <a href="#">ACT 2A</a></span> <span class="ms-2">Distributed by: <a href="#">Group 5</a></span></p>
+            <p class="mb-0 public-info-credit"><span>Developed by <strong>ACT 2A - Group 5</strong></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="help.php" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="terms.php" class="fs-11 fw-semibold text-uppercase">Terms</a>

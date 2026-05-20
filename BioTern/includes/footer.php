@@ -43,7 +43,7 @@ if (!function_exists('footer_asset_versioned_src')) {
             <span>Copyright &copy;</span>
             <span class="app-current-year"></span>
         </p>
-        <p><span>By: <a href="#">ACT 2A</a> </span><span>Distributed by: <a href="#">Group 5</a></span></p>
+        <p><span>Developed by <strong>ACT 2A - Group 5</strong></span></p>
         <div class="d-flex align-items-center gap-4">
             <a href="help.php" class="fs-11 fw-semibold text-uppercase">Help</a>
             <a href="terms.php" class="fs-11 fw-semibold text-uppercase">Terms</a>

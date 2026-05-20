@@ -41,24 +41,42 @@ $page_scripts = [
                     <div class="public-info-hero">
                         <div class="public-info-kicker">Last updated May 20, 2026</div>
                         <h1 class="public-info-title">Terms of Use</h1>
-                        <p class="public-info-lede">These terms describe the expected use of BioTern for internship application, attendance, document, and monitoring workflows.</p>
+                        <p class="public-info-lede">These terms explain how students, coordinators, supervisors, and administrators should use BioTern for internship applications, attendance, documents, approvals, and reports.</p>
                     </div>
                     <div class="public-info-body">
+                        <div class="public-info-grid">
+                            <section class="public-info-box">
+                                <h2>Purpose of the System</h2>
+                                <p>BioTern is provided for school-related internship monitoring. It supports student applications, OJT records, document submission, approvals, reports, and coordinator review.</p>
+                            </section>
+                            <section class="public-info-box">
+                                <h2>Account Responsibility</h2>
+                                <p>Keep your sign-in details private. Activity submitted through your account may be treated as your official action unless you report account misuse promptly.</p>
+                            </section>
+                            <section class="public-info-box">
+                                <h2>Accurate Records</h2>
+                                <p>Applications, attendance logs, uploaded documents, company details, and reports must be accurate. Do not knowingly submit false, incomplete, or misleading information.</p>
+                            </section>
+                            <section class="public-info-box">
+                                <h2>Role-Based Access</h2>
+                                <p>Only use pages, records, and actions assigned to your role. Do not attempt to view, change, export, or approve records unless you are authorized to do so.</p>
+                            </section>
+                        </div>
                         <section class="public-info-section">
-                            <h2>Acceptable Use</h2>
-                            <p>Use BioTern only for legitimate internship, academic, and administrative activities. Do not submit false records, attempt to access accounts that are not yours, or interfere with system operations.</p>
+                            <h2>Prohibited Actions</h2>
+                            <ul>
+                                <li>Sharing another user&apos;s private information outside approved school workflows.</li>
+                                <li>Uploading harmful files, unrelated documents, or content that does not belong in an internship record.</li>
+                                <li>Bypassing security controls, manipulating attendance, or interfering with system operation.</li>
+                            </ul>
                         </section>
                         <section class="public-info-section">
-                            <h2>Account Responsibility</h2>
-                            <p>You are responsible for keeping your sign-in details confidential and for the activity submitted through your account. Report suspected account misuse to a coordinator or administrator promptly.</p>
+                            <h2>Review, Suspension, and Corrections</h2>
+                            <p>Authorized personnel may review records for verification, compliance, and reporting. Accounts or submissions may be corrected, returned, limited, or suspended when information is inaccurate, incomplete, unauthorized, or harmful to the system.</p>
                         </section>
                         <section class="public-info-section">
-                            <h2>Submitted Records</h2>
-                            <p>Applications, attendance logs, documents, approvals, and reports should be accurate and submitted only when you are authorized to provide them. BioTern records may be reviewed by authorized school personnel for verification and monitoring.</p>
-                        </section>
-                        <section class="public-info-section">
-                            <h2>Changes and Availability</h2>
-                            <p>BioTern may be updated to improve security, accuracy, or school workflows. Access can be limited when maintenance, verification, policy enforcement, or account review is required.</p>
+                            <h2>System Changes</h2>
+                            <p>BioTern may be updated to improve security, accuracy, performance, or school workflows. Features and page names may change as the internship process is refined.</p>
                         </section>
                     </div>
                 </article>
@@ -69,7 +87,7 @@ $page_scripts = [
     <footer class="footer public-info-footer">
         <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright"><span>Copyright &copy; <?php echo $year; ?></span></p>
-            <p class="mb-0"><span>By: <a href="#">ACT 2A</a></span> <span class="ms-2">Distributed by: <a href="#">Group 5</a></span></p>
+            <p class="mb-0 public-info-credit"><span>Developed by <strong>ACT 2A - Group 5</strong></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="help.php" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="terms.php" class="fs-11 fw-semibold text-uppercase">Terms</a>

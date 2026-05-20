@@ -95,7 +95,7 @@ $page_scripts = [
             <p class="fs-11 text-muted fw-medium text-uppercase mb-0 copyright">
                 <span>Copyright &copy; <?php echo $year; ?></span>
             </p>
-            <p class="mb-0"><span>By: <a href="#">ACT 2A</a></span> <span class="ms-2">Distributed by: <a href="#">Group 5</a></span></p>
+            <p class="mb-0"><span>Developed by <strong>ACT 2A - Group 5</strong></span></p>
             <div class="d-flex align-items-center gap-4">
                 <a href="help.php" class="fs-11 fw-semibold text-uppercase">Help</a>
                 <a href="terms.php" class="fs-11 fw-semibold text-uppercase">Terms</a>
