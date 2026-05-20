@@ -74,7 +74,17 @@ if ($action === 'clock') {
     ];
     $payload[$column] = $clockTime;
 
-    $saved = external_attendance_upsert_day($conn, $student, $clockDate, $payload, $photoPath, $notes, $userId);
+    $saved = external_attendance_upsert_day(
+        $conn,
+        $student,
+        $clockDate,
+        $payload,
+        $photoPath,
+        $notes,
+        $userId,
+        true,
+        'external-biometric'
+    );
     if (!empty($saved['ok']) && is_array($photoUpload) && (int)($saved['attendance_id'] ?? 0) > 0) {
         external_attendance_insert_attachment(
             $conn,

@@ -219,19 +219,19 @@ function student_dtr_build_date_range(string $startDate, string $endDate, bool $
 
 function student_dtr_review_meta(array $attendance): array
 {
-    if (strtolower(trim((string)($attendance['source'] ?? ''))) === 'biometric') {
-        return ['label' => 'Auto-Verified', 'class' => 'approved'];
-    }
-
     $status = strtolower(trim((string)($attendance['status'] ?? 'pending')));
     if ($status === 'approved') {
-        return ['label' => 'Reviewed', 'class' => 'approved'];
+        $source = strtolower(trim((string)($attendance['source'] ?? '')));
+        return [
+            'label' => $source === 'biometric' ? 'Approved' : 'Reviewed',
+            'class' => 'approved',
+        ];
     }
     if ($status === 'rejected') {
         return ['label' => 'Rejected', 'class' => 'rejected'];
     }
 
-    return ['label' => 'Needs Review', 'class' => 'pending'];
+    return ['label' => 'Pending Review', 'class' => 'pending'];
 }
 
 function student_dtr_time_options(int $stepMinutes = 30, int $startHour = 5, int $endHour = 20): array

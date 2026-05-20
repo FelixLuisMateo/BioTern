@@ -436,7 +436,7 @@ if (!function_exists('attendance_workflow_sync_student_progress')) {
         }
 
         $studentLookupStmt = $conn->prepare("
-            SELECT assignment_track, internal_total_hours, external_total_hours
+            SELECT internal_total_hours
             FROM students
             WHERE id = ?
             LIMIT 1
@@ -453,17 +453,10 @@ if (!function_exists('attendance_workflow_sync_student_progress')) {
             return;
         }
 
-        $track = strtolower(trim((string)($student['assignment_track'] ?? 'internal')));
         $roundedRendered = (int)floor($rendered);
-        if ($track === 'external') {
-            $total = max(0, (int)($student['external_total_hours'] ?? 0));
-            $remaining = max(0, $total - $roundedRendered);
-            $stmt = $conn->prepare("UPDATE students SET external_total_hours_remaining = ?, updated_at = NOW() WHERE id = ?");
-        } else {
-            $total = max(0, (int)($student['internal_total_hours'] ?? 0));
-            $remaining = max(0, $total - $roundedRendered);
-            $stmt = $conn->prepare("UPDATE students SET internal_total_hours_remaining = ?, updated_at = NOW() WHERE id = ?");
-        }
+        $total = max(0, (int)($student['internal_total_hours'] ?? 0));
+        $remaining = max(0, $total - $roundedRendered);
+        $stmt = $conn->prepare("UPDATE students SET internal_total_hours_remaining = ?, updated_at = NOW() WHERE id = ?");
 
         if ($stmt) {
             $stmt->bind_param('ii', $remaining, $studentId);

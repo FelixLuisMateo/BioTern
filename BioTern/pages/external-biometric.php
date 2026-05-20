@@ -360,8 +360,35 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
 });
 
 // Manual DTR range table generation
-function buildExternalTimeSelect(name, selected) {
-	return '<input type="time" step="60" class="form-control external-manual-time-field" name="' + name + '" value="' + String(selected || '').replace(/"/g, '&quot;') + '">';
+function escapeExternalHtml(value) {
+	return String(value || '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;');
+}
+
+function buildExternalTimeOptions(selected, startHour, endHour) {
+	var options = ['<option value="">Select time</option>'];
+	selected = String(selected || '').slice(0, 5);
+	startHour = Math.max(0, Math.min(23, startHour || 0));
+	endHour = Math.max(startHour, Math.min(23, endHour || 23));
+	for (var hour = startHour; hour <= endHour; hour++) {
+		for (var minute = 0; minute < 60; minute += 30) {
+			var value = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+			var hour12 = hour % 12 || 12;
+			var label = hour12 + ':' + String(minute).padStart(2, '0') + ' ' + (hour < 12 ? 'AM' : 'PM');
+			options.push('<option value="' + value + '"' + (value === selected ? ' selected' : '') + '>' + label + '</option>');
+		}
+	}
+	return options.join('');
+}
+
+function buildExternalTimeSelect(name, selected, startHour, endHour) {
+	return '<select class="form-select external-manual-time-select" name="' + escapeExternalHtml(name) + '">' +
+		buildExternalTimeOptions(selected || '', startHour, endHour) +
+		'</select>';
 }
 
 function parseExternalLocalDate(value) {
@@ -438,11 +465,11 @@ if (generateManualDtrRowsButton) generateManualDtrRowsButton.onclick = function(
 	for (var d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
 		var dateStr = formatExternalLocalDate(d);
 		rows.push('<tr>' +
-			'<td data-label="Date"><strong>' + dateStr + '</strong><input type="hidden" name="dates[]" value="' + dateStr + '"></td>' +
-			'<td data-label="Morning In">' + buildExternalTimeSelect('morning_time_in[]', '') + '</td>' +
-			'<td data-label="Morning Out">' + buildExternalTimeSelect('morning_time_out[]', '') + '</td>' +
-			'<td data-label="Afternoon In">' + buildExternalTimeSelect('afternoon_time_in[]', '') + '</td>' +
-			'<td data-label="Afternoon Out">' + buildExternalTimeSelect('afternoon_time_out[]', '') + '</td>' +
+			'<td data-label="Date"><strong>' + escapeExternalHtml(dateStr) + '</strong><input type="hidden" name="dates[]" value="' + escapeExternalHtml(dateStr) + '"></td>' +
+			'<td data-label="Morning In">' + buildExternalTimeSelect('morning_time_in[]', '', 5, 11) + '</td>' +
+			'<td data-label="Morning Out">' + buildExternalTimeSelect('morning_time_out[]', '', 5, 11) + '</td>' +
+			'<td data-label="Afternoon In">' + buildExternalTimeSelect('afternoon_time_in[]', '', 12, 23) + '</td>' +
+			'<td data-label="Afternoon Out">' + buildExternalTimeSelect('afternoon_time_out[]', '', 12, 23) + '</td>' +
 		'</tr>');
 	}
 	var table = '<div class="table-responsive"><table class="table table-hover align-middle mb-0 external-manual-table"><thead><tr><th>Date</th><th>Morning In</th><th>Morning Out</th><th>Afternoon In</th><th>Afternoon Out</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
@@ -450,6 +477,9 @@ if (generateManualDtrRowsButton) generateManualDtrRowsButton.onclick = function(
 	rowsWrap.className = 'external-manual-rows-generated';
 	rowsWrap.innerHTML = table;
 	enhanceExternalManualTimeFields(rowsWrap);
+	if (window.BioTernUnifiedTimePicker && typeof window.BioTernUnifiedTimePicker.refresh === 'function') {
+		window.BioTernUnifiedTimePicker.refresh(rowsWrap);
+	}
 	var rangeHint = document.getElementById('manualDateRangeHint');
 	rangeHint.classList.remove('is-warning');
 	rangeHint.classList.add('is-success');
@@ -572,6 +602,7 @@ if (manualDtrTableForm) {
 			if (json && (json.success || json.ok)) {
 				showExternalPageToast('success', 'External DTR', json.message || 'Manual external DTR saved.');
 				if (submitButton) submitButton.disabled = false;
+				setTimeout(function() { window.location.reload(); }, 800);
 				return;
 			}
 			var message = (json && (json.message || json.error || json.msg)) || 'Failed to save manual external DTR.';
