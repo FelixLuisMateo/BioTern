@@ -298,7 +298,7 @@ $externalBiometricAllowedOrder = function_exists('attendance_schedule_action_ord
 					Start and end are both today, so this will create 1 row. Choose a later end date to create more rows.
 				</div>
 			</form>
-			<form method="post" action="api/external-attendance.php" id="manualDtrTableForm" enctype="multipart/form-data">
+			<form method="post" action="<?php echo $studentMode ? 'api/external-attendance.php' : 'external-attendance.php'; ?>" id="manualDtrTableForm" enctype="multipart/form-data">
 				<input type="hidden" name="action" value="manual_table">
 				<input type="hidden" name="external_action" value="manual_range">
 				<input type="hidden" name="return_to" value="external-biometric.php">
@@ -586,6 +586,9 @@ if (externalBiometricForm && externalBiometricClockType) {
 var manualDtrTableForm = document.getElementById('manualDtrTableForm');
 if (manualDtrTableForm) {
 	manualDtrTableForm.addEventListener('submit', function(event) {
+		<?php if (!$studentMode): ?>
+		return;
+		<?php endif; ?>
 		event.preventDefault();
 		var submitButton = manualDtrTableForm.querySelector('button[type="submit"]');
 		if (submitButton) submitButton.disabled = true;

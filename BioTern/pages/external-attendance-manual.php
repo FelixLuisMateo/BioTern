@@ -22,11 +22,6 @@ if (!$student) {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: external-biometric.php#manual-dtr');
-    exit;
-}
-
 $externalFlash = $_SESSION['external_attendance_flash'] ?? null;
 unset($_SESSION['external_attendance_flash']);
 

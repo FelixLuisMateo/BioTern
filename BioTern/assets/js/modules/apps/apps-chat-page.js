@@ -3,6 +3,10 @@
         if (!app || !window.fetch) {
             return;
         }
+        if (app.dataset.chatRuntimeReady === '1') {
+            return;
+        }
+        app.dataset.chatRuntimeReady = '1';
 
         var chatBaseUrl = app.dataset.chatBaseUrl || 'apps-chat.php';
         var listEl = document.getElementById('btchat-list');
@@ -452,7 +456,7 @@
                         '<div class="btchat-meta">' +
                             '<div class="btchat-name-row">' +
                                 '<span class="btchat-name">' + escapeHtml(contact.name) + '</span>' +
-                                '<span class="btchat-time">' + escapeHtml(contact.last_message_label || 'No messages yet') + '</span>' +
+                                (contact.last_message_label ? '<span class="btchat-time">' + escapeHtml(contact.last_message_label) + '</span>' : '') +
                             '</div>' +
                             '<div class="btchat-snippet-row">' +
                                 '<span class="btchat-snippet">' + escapeHtml(snippet) + '</span>' +
@@ -1692,9 +1696,14 @@
                     history.replaceState(null, '', chatBaseUrl + '?user_id=' + selectedUserId);
                 }
                 fetchState(true, { forceScroll: true }).then(function (payload) {
-                    if (!payload || !payload.ok) {
+                    if (!payload) {
                         setThreadLoading(false);
                         showAlert('error', 'Unable to load that conversation right now.');
+                    } else if (!payload.ok) {
+                        setThreadLoading(false);
+                        if (!payload.error) {
+                            showAlert('error', 'Unable to load that conversation right now.');
+                        }
                     }
                 });
             });
