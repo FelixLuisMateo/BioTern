@@ -17,12 +17,13 @@ if ($studentId > 0 && isset($conn) && $conn instanceof mysqli) {
 
 $studentQuery = $studentId > 0 ? ('?id=' . $studentId) : '';
 $documents = [
-    ['title' => 'Evaluation Form', 'href' => '../students-view.php' . ($studentId > 0 ? '?id=' . $studentId . '&tab=evaluation' : ''), 'icon' => 'feather-star'],
+    ['title' => 'Parent Consent', 'href' => 'document_parent_consent.php' . $studentQuery, 'icon' => 'feather-user-check'],
     ['title' => 'Application Letter', 'href' => 'document_application.php' . $studentQuery, 'icon' => 'feather-file-text'],
     ['title' => 'Endorsement Letter', 'href' => 'document_endorsement.php' . $studentQuery, 'icon' => 'feather-send'],
     ['title' => 'MOA', 'href' => 'document_moa.php' . $studentQuery, 'icon' => 'feather-briefcase'],
+    ['title' => 'Dau MOA', 'href' => 'document_dau_moa.php' . $studentQuery, 'icon' => 'feather-map-pin'],
+    ['title' => 'Evaluation Form', 'href' => $studentId > 0 ? ('../students-view.php?id=' . $studentId . '&tab=evaluation') : 'document_evaluation.php', 'icon' => 'feather-star'],
     ['title' => 'Certificate of Completion', 'href' => 'document_certificate.php' . $studentQuery, 'icon' => 'feather-award'],
-    ['title' => 'Waiver', 'href' => 'document_parent_consent.php' . $studentQuery, 'icon' => 'feather-user-check'],
 ];
 
 $page_title = 'Documents';
@@ -42,7 +43,7 @@ if (is_array($student)) {
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header dashboard-page-header">
+        <div class="page-header dashboard-page-header document-page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Documents</h5>
@@ -52,12 +53,11 @@ if (is_array($student)) {
                     <li class="breadcrumb-item">Documents</li>
                 </ul>
             </div>
-            <?php ob_start(); ?>
-                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
             <?php
             biotern_render_page_header_actions([
                 'menu_id' => 'documentsHubActionsMenu',
-                'items_html' => ob_get_clean(),
+                'items_html' => biotern_document_header_actions_html((int)$studentId),
+                'inline' => true,
             ]);
             ?>
         </div>

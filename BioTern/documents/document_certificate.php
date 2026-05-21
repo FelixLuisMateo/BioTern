@@ -253,6 +253,7 @@ if ($eligibleStudents === []) {
 }
 
 $page_title = 'Certificate of Completion';
+$base_href = '../';
 $page_styles = [
     'assets/css/layout/page_shell.css',
 ];
@@ -841,7 +842,7 @@ include __DIR__ . '/../includes/header.php';
 </style>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header certificate-no-print">
+        <div class="page-header certificate-no-print document-page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Certificate of Completion</h5>
@@ -852,6 +853,13 @@ include __DIR__ . '/../includes/header.php';
                     <li class="breadcrumb-item">Certificate of Completion</li>
                 </ul>
             </div>
+            <?php
+            biotern_render_page_header_actions([
+                'menu_id' => 'documentCertificateActionsMenu',
+                'items_html' => biotern_document_header_actions_html((int)$selectedStudentId),
+                'inline' => true,
+            ]);
+            ?>
         </div>
 
         <div class="main-content">
