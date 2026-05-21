@@ -343,11 +343,17 @@ include __DIR__ . '/../includes/header.php';
 
                 <div class="col-lg-6 doc-template-pane">
                     <div class="moa-builder-controls">
-                        <div class="builder-editor-actions">
-                            <button id="btn_toggle_edit" class="btn btn-light" type="button" aria-pressed="false" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>Edit Template</button>
-                            <button id="btn_save" class="btn btn-primary" type="button" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>Save Template</button>
-                            <button id="btn_reset" class="btn btn-light" type="button" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>Reset</button>
-                            <button id="btn_print" class="btn btn-success" type="button">Print</button>
+                        <div class="builder-editor-head">
+                            <div>
+                                <h6>Template Builder</h6>
+                                <p>DAU MOA preview, editor, and print layout in one place.</p>
+                            </div>
+                            <div class="builder-editor-actions">
+                                <button id="btn_toggle_edit" class="btn btn-light" type="button" aria-pressed="false" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>Edit Template</button>
+                                <button id="btn_save" class="btn btn-primary" type="button" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>Save Template</button>
+                                <button id="btn_reset" class="btn btn-light" type="button" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>Reset</button>
+                                <button id="btn_print" class="btn btn-success" type="button">Print DAU MOA</button>
+                            </div>
                         </div>
                         <div class="builder-toolbar is-disabled" id="builder_toolbar" aria-label="Template formatting tools" aria-hidden="true" <?php echo $documentsIsStudentViewOnly ? 'style="display:none;"' : ''; ?>>
                             <button id="btn_bold" class="btn btn-light" type="button"><strong>B</strong></button>

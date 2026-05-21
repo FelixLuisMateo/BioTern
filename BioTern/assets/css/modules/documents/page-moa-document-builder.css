@@ -2,15 +2,49 @@
     padding-top: 20px;
 }
 
-.moa-page .application-builder-grid {
+.moa-page .application-builder-grid,
+.moa-page .doc-workspace-row {
     display: grid;
     grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
     gap: 20px;
     align-items: start;
+    margin: 0;
 }
 
-.moa-page .application-builder-sidebar .builder-field {
+.moa-page .application-builder-sidebar .builder-field,
+.moa-page .doc-form-pane .mt-2,
+.moa-page .doc-form-pane .mt-3 {
     margin-top: 14px;
+}
+
+.moa-page .doc-form-pane,
+.moa-page .doc-template-pane {
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0;
+    padding: 0 !important;
+}
+
+.moa-page .doc-form-pane > .card,
+.moa-page .doc-template-pane {
+    background: var(--doc-builder-card-bg);
+    border: 1px solid var(--doc-builder-border);
+    border-radius: 14px;
+    box-shadow: var(--doc-builder-shadow);
+    padding: 18px !important;
+}
+
+.moa-page .doc-form-pane > .card {
+    margin: 0;
+}
+
+.moa-page .doc-template-pane .moa-builder-controls {
+    margin-bottom: 10px;
+}
+
+.moa-page .doc-template-pane .moa-builder-controls > .builder-editor-actions:first-child {
+    justify-content: flex-end;
+    margin-bottom: 14px;
 }
 
 .moa-page .application-source-hint {
@@ -62,7 +96,7 @@
 .moa-page .doc-preview {
     margin: 0;
     border: 0;
-    border-radius: 6px;
+    border-radius: 14px;
     box-shadow: none;
     padding: 16px;
     overflow-x: auto;
@@ -73,6 +107,7 @@
     flex-direction: column;
     gap: 18px;
     align-items: center;
+    text-align: left;
 }
 
 .moa-page #moa_content .a4-page {
@@ -82,6 +117,7 @@
     background: #fff;
     color: #000;
     overflow: hidden;
+    text-align: left !important;
 }
 
 .moa-page #moa_content,
@@ -94,6 +130,7 @@
     font-size: 12pt;
     font-weight: 700;
     margin: 4px 0 8px;
+    text-align: center !important;
 }
 
 .moa-page #moa_content p,
@@ -103,6 +140,12 @@
     line-height: 1.26;
     margin-top: 3px;
     margin-bottom: 6px;
+    text-align: left !important;
+}
+
+.moa-page #moa_content .text-right,
+.moa-page #moa_content .text-right p {
+    text-align: right !important;
 }
 
 .moa-page #moa_content ol {
@@ -132,6 +175,10 @@
 
 @media (max-width: 1199.98px) {
     .moa-page .application-builder-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .moa-page .doc-workspace-row {
         grid-template-columns: 1fr;
     }
 }
@@ -224,16 +271,6 @@
         padding-right: 0;
     }
 
-    .moa-page.doc-page-root .doc-workspace-row {
-        display: grid;
-        grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
-        gap: 16px;
-        height: auto;
-        min-height: 0;
-        margin-left: 0;
-        margin-right: 0;
-    }
-
     .moa-page.doc-page-root .doc-workspace-row > .doc-form-pane,
     .moa-page.doc-page-root .doc-workspace-row > .doc-template-pane {
         height: auto;
@@ -248,11 +285,6 @@
 
     .moa-page.doc-page-root .doc-workspace-row > .doc-form-pane {
         align-self: start;
-    }
-
-    .moa-page.doc-page-root .doc-workspace-row > .doc-template-pane {
-        min-width: 0;
-        overflow-x: auto;
     }
 
     .moa-page.doc-page-root .doc-workspace-row > .doc-template-pane .doc-preview {

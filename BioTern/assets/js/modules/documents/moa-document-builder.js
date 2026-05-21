@@ -180,7 +180,7 @@
             if (el) {
                 var nextValue = value;
                 if ((!value || !String(value).trim()) && el.classList && el.classList.contains('moa-fill-line')) {
-                    nextValue = '__________________';
+                    nextValue = '';
                 }
                 el.textContent = nextValue;
             }

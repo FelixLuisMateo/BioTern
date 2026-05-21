@@ -182,6 +182,15 @@ include __DIR__ . '/../includes/header.php';
                     padding: 0;
                 }
 
+                .parent-consent-builder-page .builder-editor-actions {
+                    flex-wrap: nowrap !important;
+                    align-items: center;
+                }
+
+                .parent-consent-builder-page .builder-editor-actions .btn {
+                    white-space: nowrap;
+                }
+
                 .parent-consent-builder-page #editor .a4-page {
                     padding: 0.34in 0.46in 0.50in;
                     font-family: Arial, Helvetica, sans-serif !important;
