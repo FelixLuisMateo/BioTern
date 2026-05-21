@@ -15,8 +15,8 @@
     var prefillStudentId = parseInt(root.getAttribute('data-prefill-student-id') || '0', 10) || 0;
     var prefillCompanyKey = (root.getAttribute('data-prefill-company') || '').trim();
     var pageUrl = isDau ? 'documents/document_dau_moa.php' : 'documents/document_moa.php';
-    var templateStorageKey = isDau ? 'biotern_dau_moa_template_html_v3' : 'biotern_moa_template_html_v3';
-    var legacyStorageKey = isDau ? 'biotern_dau_moa_template_html_v1' : 'biotern_moa_template_html_v1';
+    var templateStorageKey = isDau ? 'biotern_dau_moa_template_html_v5' : 'biotern_moa_template_html_v5';
+    var legacyStorageKey = '';
 
     var editor = document.getElementById('moa_content');
     var select = window.jQuery ? window.jQuery('#student_select') : null;
@@ -28,6 +28,8 @@
     var partnerAddress = document.getElementById('moa_partner_address');
     var companyReceipt = document.getElementById('moa_company_receipt');
     var totalHours = document.getElementById('moa_total_hours');
+    var schoolName = document.getElementById('moa_school_name');
+    var schoolAddress = document.getElementById('moa_school_address');
     var schoolRep = document.getElementById('moa_school_rep');
     var schoolPosition = document.getElementById('moa_school_position');
     var signedAt = document.getElementById('moa_signed_at');
@@ -105,6 +107,8 @@
             partnerAddress: partnerAddress && partnerAddress.value ? partnerAddress.value : '',
             companyReceipt: companyReceipt && companyReceipt.value ? companyReceipt.value : '',
             totalHours: totalHours && totalHours.value ? totalHours.value : '',
+            schoolName: schoolName && schoolName.value ? schoolName.value : '',
+            schoolAddress: schoolAddress && schoolAddress.value ? schoolAddress.value : '',
             schoolRep: schoolRep && schoolRep.value ? schoolRep.value : '',
             schoolPosition: schoolPosition && schoolPosition.value ? schoolPosition.value : '',
             signedAt: signedAt && signedAt.value ? signedAt.value : '',
@@ -139,7 +143,7 @@
 
     function clearFormFields() {
         [
-            partnerName, partnerRep, partnerPosition, partnerAddress, companyReceipt, totalHours, schoolRep, schoolPosition,
+            partnerName, partnerRep, partnerPosition, partnerAddress, companyReceipt, totalHours, schoolName, schoolAddress, schoolRep, schoolPosition,
             signedAt, signedDay, signedMonth, signedYear,
             presencePartnerRep, presenceSchoolAdmin, presenceSchoolAdminPosition,
             notaryCity, notaryAppeared1, notaryAppeared2,
@@ -331,13 +335,16 @@
         setTextSafe('pv_total_hours', totalHours && totalHours.value ? totalHours.value : '250');
         setTextSafe('pv_partner_rep', partnerRep && partnerRep.value ? partnerRep.value : '');
         setTextSafe('pv_partner_position', partnerPosition && partnerPosition.value ? partnerPosition.value : (isDau ? 'Barangay Dau PYAP President' : '______________, '));
+        setTextSafe('pv_school_name', schoolName && schoolName.value ? schoolName.value : '');
+        setTextSafe('pv_school_address', schoolAddress && schoolAddress.value ? schoolAddress.value : '');
+        setTextSafe('pv_school_header_rep', schoolRep && schoolRep.value ? schoolRep.value : '');
         setTextSafe('pv_school_rep', schoolRep && schoolRep.value ? schoolRep.value : '');
         setTextSafe('pv_signed_at', signedAt && signedAt.value ? signedAt.value : '');
         setTextSafe('pv_signed_day', signedDay && signedDay.value ? withOrdinalSuffix(signedDay.value) : '');
         setTextSafe('pv_signed_month', signedMonth && signedMonth.value ? signedMonth.value : '');
         setTextSafe('pv_signed_year', signedYear && signedYear.value ? signedYear.value : '');
-        setTextSafe(['pv_presence_partner_rep', 'company_receipt'], presencePartnerRep && presencePartnerRep.value ? presencePartnerRep.value : '______________________________');
-        setTextSafe(['pv_presence_school_admin', 'presence_school_admin'], presenceSchoolAdmin && presenceSchoolAdmin.value ? presenceSchoolAdmin.value : '______________________');
+        setTextSafe(['pv_presence_partner_rep', 'company_receipt'], presencePartnerRep && presencePartnerRep.value ? presencePartnerRep.value : '');
+        setTextSafe(['pv_presence_school_admin', 'presence_school_admin'], presenceSchoolAdmin && presenceSchoolAdmin.value ? presenceSchoolAdmin.value : '');
         setTextSafe(['pv_presence_school_admin_position', 'presence_school_admin_position'], presenceSchoolAdminPosition && presenceSchoolAdminPosition.value ? presenceSchoolAdminPosition.value : '______________________');
         setTextSafe('pv_school_position', schoolPosition && schoolPosition.value ? schoolPosition.value : '__________________');
         setTextSafe('pv_notary_city', notaryCity && notaryCity.value ? notaryCity.value : '__________________');
@@ -524,7 +531,7 @@
     }
 
     function initTemplateEditor() {
-        var legacyTemplate = getStorage(legacyStorageKey);
+        var legacyTemplate = legacyStorageKey ? getStorage(legacyStorageKey) : '';
         if (!getStorage(templateStorageKey) && legacyTemplate) {
             setStorage(templateStorageKey, legacyTemplate);
         }
@@ -735,7 +742,7 @@
 
     function bindFieldInputs() {
         [
-            partnerName, partnerRep, partnerPosition, partnerAddress, companyReceipt, totalHours, schoolRep, schoolPosition,
+            partnerName, partnerRep, partnerPosition, partnerAddress, companyReceipt, totalHours, schoolName, schoolAddress, schoolRep, schoolPosition,
             signedAt, signedDay, signedMonth, signedYear,
             presencePartnerRep, presenceSchoolAdmin, presenceSchoolAdminPosition,
             notaryCity, notaryAppeared1, notaryAppeared2,

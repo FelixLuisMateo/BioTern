@@ -1465,3 +1465,362 @@
 [2026-05-21 19:01:41] Holding station replay queued events: 6
 [2026-05-21 19:01:44] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
 [2026-05-21 19:01:54] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:02:15] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:02:17] Holding station replay queued events: 6
+[2026-05-21 19:02:23] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:02:34] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:02:44] Bridge profile fetch failed; using cached profile. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:02:45] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:03:08] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:03:14] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:03:15] Holding station replay queued events: 6
+[2026-05-21 19:03:17] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:03:29] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:03:35] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:03:35] Holding station replay queued events: 6
+[2026-05-21 19:03:38] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:03:48] Bridge profile fetch failed; using cached profile. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:03:48] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:03:55] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:04:02] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:04:02] Holding station replay queued events: 6
+[2026-05-21 19:04:04] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:04:16] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:04:29] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:04:29] Holding station replay queued events: 6
+[2026-05-21 19:04:32] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:04:39] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:04:50] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:04:51] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:04:57] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:05:06] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:05:06] Holding station replay queued events: 6
+[2026-05-21 19:05:09] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:05:19] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:05:25] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:05:25] Holding station replay queued events: 6
+[2026-05-21 19:05:27] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:05:38] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:05:45] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:05:45] Holding station replay queued events: 6
+[2026-05-21 19:05:47] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:05:58] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:05:58] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:06:04] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:06:10] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:06:10] Holding station replay queued events: 6
+[2026-05-21 19:06:13] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:06:24] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:06:29] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:06:29] Holding station replay queued events: 6
+[2026-05-21 19:06:32] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:06:37] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:06:48] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:06:54] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:06:54] Holding station replay queued events: 6
+[2026-05-21 19:06:57] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:07:07] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:07:08] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:07:28] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:07:33] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:07:33] Holding station replay queued events: 6
+[2026-05-21 19:07:36] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:07:57] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:08:07] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:08:08] Holding station replay queued events: 6
+[2026-05-21 19:08:10] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:08:21] Bridge profile fetch failed; using cached profile. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:08:21] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:08:29] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:08:35] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:08:35] Holding station replay queued events: 6
+[2026-05-21 19:08:38] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:08:48] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:08:54] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:08:54] Holding station replay queued events: 6
+[2026-05-21 19:08:56] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:09:02] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:09:12] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:09:20] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:09:20] Holding station replay queued events: 6
+[2026-05-21 19:09:24] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:09:48] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:09:49] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:10:03] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:10:09] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:10:12] Holding station replay queued events: 6
+[2026-05-21 19:10:15] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:10:26] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:10:32] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:10:32] Holding station replay queued events: 6
+[2026-05-21 19:10:34] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:10:45] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:10:45] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:11:01] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:11:07] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:11:07] Holding station replay queued events: 6
+[2026-05-21 19:11:09] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:11:22] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:12:04] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:12:09] Holding station replay queued events: 6
+[2026-05-21 19:12:13] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:12:20] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:12:30] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:12:31] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:12:37] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:12:43] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:12:43] Holding station replay queued events: 6
+[2026-05-21 19:12:46] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:12:57] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:13:03] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:13:03] Holding station replay queued events: 6
+[2026-05-21 19:13:06] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:13:23] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:13:45] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:13:45] Holding station replay queued events: 6
+[2026-05-21 19:13:48] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:13:58] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:13:59] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:14:04] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:14:10] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:14:10] Holding station replay queued events: 6
+[2026-05-21 19:14:13] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:14:18] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:14:29] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:14:36] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:14:36] Holding station replay queued events: 6
+[2026-05-21 19:14:38] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:14:48] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:14:54] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:14:54] Holding station replay queued events: 6
+[2026-05-21 19:14:56] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:15:06] Bridge profile fetch failed; using cached profile. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:15:07] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:15:13] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:15:19] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:15:19] Holding station replay queued events: 6
+[2026-05-21 19:15:21] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:15:32] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:15:38] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:15:38] Holding station replay queued events: 6
+[2026-05-21 19:15:40] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:15:51] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:15:57] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:15:57] Holding station replay queued events: 6
+[2026-05-21 19:16:00] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:16:10] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:16:10] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:16:17] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:16:24] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:16:24] Holding station replay queued events: 6
+[2026-05-21 19:16:27] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:16:33] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:16:44] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:16:49] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:16:49] Holding station replay queued events: 6
+[2026-05-21 19:16:52] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:17:02] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:17:08] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:17:08] Holding station replay queued events: 6
+[2026-05-21 19:17:10] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:17:21] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:17:21] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:17:27] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:17:33] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:17:33] Holding station replay queued events: 6
+[2026-05-21 19:17:35] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:17:46] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:17:52] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:17:52] Holding station replay queued events: 6
+[2026-05-21 19:17:54] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:18:05] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:18:11] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:18:11] Holding station replay queued events: 6
+[2026-05-21 19:18:13] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:18:23] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:18:24] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:18:29] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:18:35] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:18:35] Holding station replay queued events: 6
+[2026-05-21 19:18:38] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:18:43] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:18:54] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:19:00] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:19:00] Holding station replay queued events: 6
+[2026-05-21 19:19:02] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:19:13] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:19:18] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:19:18] Holding station replay queued events: 6
+[2026-05-21 19:19:21] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:19:31] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:19:32] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:19:38] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:19:44] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:19:44] Holding station replay queued events: 6
+[2026-05-21 19:19:46] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:19:56] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:20:02] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:20:02] Holding station replay queued events: 6
+[2026-05-21 19:20:05] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:20:17] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:20:23] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:20:23] Holding station replay queued events: 6
+[2026-05-21 19:20:25] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:20:36] Bridge profile fetch failed; using cached profile. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:20:36] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:20:42] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:20:48] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:20:48] Holding station replay queued events: 6
+[2026-05-21 19:20:50] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:20:56] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:21:06] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:21:12] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:21:12] Holding station replay queued events: 6
+[2026-05-21 19:21:14] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:21:24] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:21:38] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:21:38] Holding station replay queued events: 6
+[2026-05-21 19:21:47] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:21:59] Bridge profile fetch failed; using cached profile. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:21:59] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:22:14] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:22:22] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:22:22] Holding station replay queued events: 6
+[2026-05-21 19:22:35] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:22:46] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:22:52] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:22:52] Holding station replay queued events: 6
+[2026-05-21 19:22:54] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:23:00] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:23:10] Bridge profile fetch failed; using cached profile. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:23:10] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:23:17] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:23:23] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:23:23] Holding station replay queued events: 6
+[2026-05-21 19:23:25] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:23:35] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:23:42] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:23:42] Holding station replay queued events: 6
+[2026-05-21 19:23:44] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:23:55] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:24:01] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:24:01] Holding station replay queued events: 6
+[2026-05-21 19:24:04] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:24:14] Bridge profile fetch failed; using cached profile. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:24:15] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:24:35] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:24:41] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:24:41] Holding station replay queued events: 6
+[2026-05-21 19:24:48] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:25:00] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:25:08] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:25:08] Holding station replay queued events: 6
+[2026-05-21 19:25:11] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:25:18] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:25:28] Bridge profile fetch failed; using cached profile. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:25:29] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:25:36] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:25:43] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:25:43] Holding station replay queued events: 6
+[2026-05-21 19:25:46] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:25:57] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:26:18] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:26:18] Holding station replay queued events: 6
+[2026-05-21 19:26:21] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:26:31] Bridge profile fetch failed; using cached profile. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:26:32] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:26:38] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:26:53] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:26:53] Holding station replay queued events: 6
+[2026-05-21 19:26:56] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:27:07] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:27:13] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:27:13] Holding station replay queued events: 6
+[2026-05-21 19:27:15] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:27:23] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:27:34] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:27:34] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:27:40] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:27:45] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:27:45] Holding station replay queued events: 6
+[2026-05-21 19:27:48] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:27:58] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:28:04] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:28:04] Holding station replay queued events: 6
+[2026-05-21 19:28:07] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:28:17] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:28:23] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:28:23] Holding station replay queued events: 6
+[2026-05-21 19:28:25] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:28:36] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:28:36] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:28:42] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:28:47] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:28:47] Holding station replay queued events: 6
+[2026-05-21 19:28:50] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:29:00] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:29:06] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:29:06] Holding station replay queued events: 6
+[2026-05-21 19:29:08] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:29:19] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:29:25] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:29:26] Holding station replay queued events: 6
+[2026-05-21 19:29:28] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:29:34] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:29:44] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:29:45] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:29:50] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:29:56] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:29:56] Holding station replay queued events: 6
+[2026-05-21 19:29:58] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:30:10] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:30:15] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:30:16] Holding station replay queued events: 6
+[2026-05-21 19:30:18] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:30:28] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:30:34] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:30:34] Holding station replay queued events: 6
+[2026-05-21 19:30:36] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:30:46] Bridge profile fetch failed; using cached profile. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:30:47] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:30:52] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:30:58] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:30:58] Holding station replay queued events: 6
+[2026-05-21 19:31:00] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:31:10] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:31:16] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:31:16] Holding station replay queued events: 6
+[2026-05-21 19:31:18] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:31:29] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:31:34] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:31:35] Holding station replay queued events: 6
+[2026-05-21 19:31:37] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:31:42] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:31:53] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:31:53] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:31:59] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:32:04] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:32:04] Holding station replay queued events: 6
+[2026-05-21 19:32:07] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:32:17] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:32:23] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:32:23] Holding station replay queued events: 6
+[2026-05-21 19:32:26] Ingest upload skipped; pending logs retained. The remote server returned an error: (404) Not Found.
+[2026-05-21 19:32:36] Bridge command queue skipped: The remote server returned an error: (404) Not Found.
+[2026-05-21 19:32:49] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:32:50] Holding station replay queued events: 6
+[2026-05-21 19:32:52] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:33:06] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:33:10] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:33:24] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:33:30] Historical backfill skipped: Connector command 'get-log-range' failed: Device connection failed.
+[2026-05-21 19:33:31] Holding station replay queued events: 6
+[2026-05-21 19:33:40] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:33:51] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:33:57] F20H sync skipped: Connector command 'sync' failed: Device connection failed.
+[2026-05-21 19:33:57] Holding station replay queued events: 6
+[2026-05-21 19:33:59] Ingest upload skipped; pending logs retained. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:34:06] User cache sync skipped: Connector command 'get-user-list' failed: Device connection failed.
+[2026-05-21 19:34:19] Bridge profile fetch failed; using cached profile. The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:34:19] Bridge command queue skipped: The remote server returned an error: (403) Forbidden.
+[2026-05-21 19:34:25] F20H sync skipped: Connector command 'sync' failed: Device connection failed.

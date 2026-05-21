@@ -167,6 +167,62 @@
     vertical-align: baseline;
 }
 
+.moa-page #moa_content .moa-opening-copy {
+    margin-top: 22px;
+    font-size: 14pt;
+    line-height: 1.16;
+}
+
+.moa-page #moa_content .moa-opening-copy p {
+    font-size: 14pt;
+    line-height: 1.16;
+    margin: 0 0 12px;
+}
+
+.moa-page #moa_content .moa-center-line {
+    text-align: center !important;
+    margin: 2px 0 26px !important;
+}
+
+.moa-page #moa_content .moa-witness-line {
+    margin-top: 22px !important;
+    margin-bottom: 22px !important;
+}
+
+.moa-page #moa_content .moa-line-sm {
+    min-width: 1.6in;
+}
+
+.moa-page #moa_content .moa-line-md {
+    min-width: 2.35in;
+}
+
+.moa-page #moa_content .moa-line-lg {
+    min-width: 3.25in;
+}
+
+.moa-page #moa_content .moa-line-xl {
+    min-width: 3.85in;
+}
+
+.moa-page #moa_content .moa-line-company {
+    min-width: 3.35in;
+}
+
+.moa-page #moa_content .moa-underlined-term {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+}
+
+.moa-page #moa_content .moa-signature-line {
+    display: inline-block;
+    min-width: 1.9in;
+    padding-bottom: 1px;
+    border-bottom: 1px solid currentColor;
+    line-height: 1.16;
+}
+
 .moa-page #moa_content #moa_date.moa-fill-line,
 .moa-page #moa_content #pv_signed_day.moa-fill-line,
 .moa-page #moa_content #pv_signed_year.moa-fill-line {
