@@ -347,25 +347,25 @@ include __DIR__ . '/../includes/header.php';
                             </div>
                             <div class="content app-application-content">
                                 <h3 class="app-application-heading">Application Letter</h3>
-                                <p>Date: <span id="ap_date" class="app-fill-line">__________________________</span></p>
+                                <p>Date: <span id="ap_date" class="app-fill-line"></span></p>
 
                                 <div class="app-letter-recipient-block">
-                                    <p><span id="ap_name" class="app-fill-line">__________________________</span><br>
-                                    <span id="ap_position" class="app-fill-line">__________________________</span><br>
-                                    <span id="ap_company" class="app-fill-line">__________________________</span><br>
-                                    <span id="ap_address" class="app-fill-line">__________________________</span></p>
+                                    <p><span id="ap_name" class="app-fill-line"></span><br>
+                                    <span id="ap_position" class="app-fill-line"></span><br>
+                                    <span id="ap_company" class="app-fill-line"></span><br>
+                                    <span id="ap_address" class="app-fill-line"></span></p>
                                 </div>
 
                                 <p>Dear Sir/Ma'am,</p>
-                                <p>I am <span id="ap_student" class="app-fill-line">__________________________</span>, a student of Clark College of Science and Technology. In partial fulfillment of the requirements of my course, I am required to complete an On-the-Job Training (OJT) program for a minimum of <strong><span id="ap_hours" class="app-fill-line">250</span> hours</strong>.</p>
+                                <p>I am <span id="ap_student" class="app-fill-line"></span>, a student of Clark College of Science and Technology. In partial fulfillment of the requirements of my course, I am required to complete an On-the-Job Training (OJT) program for a minimum of <strong><span id="ap_hours" class="app-fill-line">250</span> hours</strong>.</p>
                                 <p>I would like to apply as a trainee in your company. I believe that the training and experience I will gain from your organization will help broaden my knowledge, strengthen my skills, and prepare me for future professional work.</p>
                                 <p>Thank you for any consideration that you may give to this application.</p>
                                 <p class="mt-30 app-application-mt-30">Very truly yours,</p>
 
                                 <div class="app-letter-student-details">
-                                    <p class="mt-40 app-application-mt-40">Student Name: <span id="ap_student_name" class="app-fill-line">__________________________</span></p>
-                                    <p>Student Home Address: <span id="ap_student_address" class="app-fill-line">__________________________</span></p>
-                                    <p>Contact No.: <span id="ap_student_contact" class="app-fill-line">__________________________</span></p>
+                                    <p class="mt-40 app-application-mt-40">Student Name: <span id="ap_student_name" class="app-fill-line"></span></p>
+                                    <p>Student Home Address: <span id="ap_student_address" class="app-fill-line"></span></p>
+                                    <p>Contact No.: <span id="ap_student_contact" class="app-fill-line"></span></p>
                                 </div>
                             </div>
                         </div>

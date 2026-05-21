@@ -180,7 +180,7 @@
         }
         var nextValue = value || fallback || '';
         if (!value && node.classList && node.classList.contains('app-fill-line')) {
-            nextValue = '__________________________';
+            nextValue = '';
         }
         node.textContent = nextValue;
     }

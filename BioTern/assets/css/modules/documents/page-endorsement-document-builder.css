@@ -9,16 +9,12 @@
     align-items: start;
 }
 
-/* Remove dark canvas framing around the paper for endorsement builder. */
-.endorsement-builder-page .builder-paper-shell {
-    padding: 0;
-}
-
 .endorsement-builder-page .builder-paper {
-    background: transparent;
-    padding: 0;
-    width: var(--doc-builder-paper-width);
-    min-width: var(--doc-builder-paper-width);
+    background: #111317;
+    padding: 16px;
+    border-radius: 6px;
+    width: auto;
+    min-width: max-content;
 }
 
 .endorsement-builder-page .builder-editor-surface {

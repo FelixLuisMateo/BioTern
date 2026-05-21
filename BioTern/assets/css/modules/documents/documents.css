@@ -1,5 +1,14 @@
 div.nxl-content { padding-bottom: 24px; }
 
+body.documents-hub-page {
+    overflow: auto !important;
+}
+
+body.documents-hub-page .nxl-content,
+body.documents-hub-page .main-content {
+    overflow: visible !important;
+}
+
 /* Shared preview and layout styling */
 .doc-preview {
     background: #fff;
