@@ -191,7 +191,7 @@ include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header dashboard-page-header">
+        <div class="page-header dashboard-page-header document-page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Endorsement</h5>
@@ -202,17 +202,11 @@ include __DIR__ . '/../includes/header.php';
                     <li class="breadcrumb-item">Endorsement</li>
                 </ul>
             </div>
-            <?php ob_start(); ?>
-                <a href="documents/index.php<?php echo $prefill_student_id > 0 ? '?id=' . (int)$prefill_student_id : ''; ?>" class="btn btn-outline-secondary"><i class="feather-folder me-1"></i>All Documents</a>
-                <a href="document_application.php<?php echo $prefill_student_id > 0 ? '?id=' . (int)$prefill_student_id : ''; ?>" class="btn btn-outline-primary"><i class="feather-file-text me-1"></i>Application</a>
-                <a href="document_moa.php<?php echo $prefill_student_id > 0 ? '?id=' . (int)$prefill_student_id : ''; ?>" class="btn btn-outline-primary"><i class="feather-briefcase me-1"></i>MOA</a>
-                <a href="document_dau_moa.php<?php echo $prefill_student_id > 0 ? '?id=' . (int)$prefill_student_id : ''; ?>" class="btn btn-outline-primary"><i class="feather-map-pin me-1"></i>DAU MOA</a>
-                <a href="document_parent_consent.php<?php echo $prefill_student_id > 0 ? '?id=' . (int)$prefill_student_id : ''; ?>" class="btn btn-outline-primary"><i class="feather-user-check me-1"></i>Waiver</a>
-                <a href="homepage.php" class="btn btn-outline-secondary"><i class="feather-home me-1"></i>Dashboard</a>
             <?php
             biotern_render_page_header_actions([
                 'menu_id' => 'documentEndorsementActionsMenu',
-                'items_html' => ob_get_clean(),
+                'items_html' => biotern_document_header_actions_html((int)$prefill_student_id),
+                'inline' => true,
             ]);
             ?>
         </div>

@@ -16,6 +16,11 @@ if (!function_exists('biotern_attendance_settings_defaults')) {
 if (!function_exists('biotern_attendance_ensure_settings_table')) {
     function biotern_attendance_ensure_settings_table(mysqli $conn): void
     {
+        if (function_exists('biotern_ensure_system_settings_table')) {
+            biotern_ensure_system_settings_table($conn);
+            return;
+        }
+
         $conn->query("
             CREATE TABLE IF NOT EXISTS system_settings (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -57,19 +62,23 @@ if (!function_exists('biotern_attendance_settings')) {
 
         biotern_attendance_ensure_settings_table($conn);
         $settings = biotern_attendance_settings_defaults();
-        $category = 'attendance';
-        $stmt = $conn->prepare('SELECT `key`, `value` FROM system_settings WHERE category = ?');
-        if ($stmt) {
-            $stmt->bind_param('s', $category);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            while ($row = $result->fetch_assoc()) {
-                $key = (string)($row['key'] ?? '');
-                if (array_key_exists($key, $settings)) {
-                    $settings[$key] = (string)($row['value'] ?? '');
+        if (function_exists('biotern_settings_by_category')) {
+            $settings = biotern_settings_by_category($conn, 'attendance', $settings);
+        } else {
+            $category = 'attendance';
+            $stmt = $conn->prepare('SELECT `key`, `value` FROM system_settings WHERE category = ?');
+            if ($stmt) {
+                $stmt->bind_param('s', $category);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                while ($row = $result->fetch_assoc()) {
+                    $key = (string)($row['key'] ?? '');
+                    if (array_key_exists($key, $settings)) {
+                        $settings[$key] = (string)($row['value'] ?? '');
+                    }
                 }
+                $stmt->close();
             }
-            $stmt->close();
         }
 
         $settings['credit_mode'] = $settings['credit_mode'] === 'schedule' ? 'schedule' : 'actual';
@@ -85,6 +94,10 @@ if (!function_exists('biotern_attendance_settings')) {
 if (!function_exists('biotern_attendance_save_setting')) {
     function biotern_attendance_save_setting(mysqli $conn, string $key, string $value, string $description = ''): bool
     {
+        if (function_exists('biotern_save_setting')) {
+            return biotern_save_setting($conn, $key, $value, $description, 'attendance');
+        }
+
         biotern_attendance_ensure_settings_table($conn);
         $category = 'attendance';
         $stmt = $conn->prepare(

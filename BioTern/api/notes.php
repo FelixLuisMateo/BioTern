@@ -168,12 +168,14 @@ function notes_template_payload(string $templateKey): array
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
 if ($method === 'GET') {
-    $stmt = $conn->prepare('SELECT id, title, content, category, note_type, accent_color, is_pinned, is_archived, created_at, updated_at, deleted_at FROM user_notes WHERE user_id = ? ORDER BY deleted_at IS NULL DESC, is_pinned DESC, updated_at DESC, id DESC');
+    $limit = function_exists('biotern_clamp_limit') ? biotern_clamp_limit($_GET['limit'] ?? 200, 200, 500) : max(1, min(500, (int)($_GET['limit'] ?? 200)));
+    $offset = function_exists('biotern_clamp_offset') ? biotern_clamp_offset($_GET['offset'] ?? 0) : max(0, (int)($_GET['offset'] ?? 0));
+    $stmt = $conn->prepare('SELECT id, title, content, category, note_type, accent_color, is_pinned, is_archived, created_at, updated_at, deleted_at FROM user_notes WHERE user_id = ? ORDER BY deleted_at IS NULL DESC, is_pinned DESC, updated_at DESC, id DESC LIMIT ? OFFSET ?');
     if (!$stmt) {
         respond_json(500, ['success' => false, 'message' => 'Unable to load notes']);
     }
 
-    $stmt->bind_param('i', $userId);
+    $stmt->bind_param('iii', $userId, $limit, $offset);
     $stmt->execute();
     $result = $stmt->get_result();
     $notes = [];
@@ -185,6 +187,9 @@ if ($method === 'GET') {
     respond_json(200, [
         'success' => true,
         'notes' => $notes,
+        'limit' => $limit,
+        'offset' => $offset,
+        'has_more' => count($notes) === $limit,
     ]);
 }
 

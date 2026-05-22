@@ -110,48 +110,55 @@ if (!function_exists('biotern_mail_settings')) {
             'send_application_updates' => '1',
         ];
 
-        $conn->query("CREATE TABLE IF NOT EXISTS system_settings (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            `key` VARCHAR(191) NOT NULL UNIQUE,
-            `value` TEXT NOT NULL,
-            `description` VARCHAR(255) NULL,
-            `category` VARCHAR(100) NOT NULL DEFAULT 'general',
-            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        if (function_exists('biotern_settings_by_category')) {
+            $dbSettings = biotern_settings_by_category($conn, 'email', []);
+        } else {
+            $dbSettings = [];
+            $conn->query("CREATE TABLE IF NOT EXISTS system_settings (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                `key` VARCHAR(191) NOT NULL UNIQUE,
+                `value` TEXT NOT NULL,
+                `description` VARCHAR(255) NULL,
+                `category` VARCHAR(100) NOT NULL DEFAULT 'general',
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-        $stmt = $conn->prepare("SELECT `key`, `value` FROM system_settings WHERE category = 'email'");
-        if ($stmt) {
-            $stmt->execute();
-            $result = $stmt->get_result();
-            while ($row = $result->fetch_assoc()) {
-                $key = (string)($row['key'] ?? '');
-                if ($key === '' || !array_key_exists($key, $settings)) {
-                    continue;
+            $stmt = $conn->prepare("SELECT `key`, `value` FROM system_settings WHERE category = 'email'");
+            if ($stmt) {
+                $stmt->execute();
+                $result = $stmt->get_result();
+                while ($row = $result->fetch_assoc()) {
+                    $dbSettings[(string)($row['key'] ?? '')] = (string)($row['value'] ?? '');
                 }
-
-                $value = (string)($row['value'] ?? '');
-                $skipEmpty = in_array(
-                    $key,
-                    [
-                        'smtp_host',
-                        'smtp_port',
-                        'smtp_encryption',
-                        'smtp_username',
-                        'smtp_password',
-                        'mail_from_name',
-                        'mail_from_email'
-                    ],
-                    true
-                );
-
-                if ($skipEmpty && $value === '') {
-                    continue;
-                }
-
-                $settings[$key] = $value;
+                $stmt->close();
             }
-            $stmt->close();
+        }
+
+        foreach ($dbSettings as $key => $value) {
+            if ($key === '' || !array_key_exists($key, $settings)) {
+                continue;
+            }
+
+            $skipEmpty = in_array(
+                $key,
+                [
+                    'smtp_host',
+                    'smtp_port',
+                    'smtp_encryption',
+                    'smtp_username',
+                    'smtp_password',
+                    'mail_from_name',
+                    'mail_from_email'
+                ],
+                true
+            );
+
+            if ($skipEmpty && $value === '') {
+                continue;
+            }
+
+            $settings[$key] = $value;
         }
 
         if ($settings['mail_from_email'] === '') {

@@ -102,6 +102,16 @@ body.application-builder-page .page-header .page-header-actions.is-open {
     margin-bottom: 14px;
 }
 
+.application-builder-page .builder-editor-head > div:first-child {
+    min-width: 0;
+}
+
+.application-builder-page .builder-editor-actions {
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+}
+
 .application-builder-page .builder-card-note {
     display: none;
 }
@@ -160,6 +170,27 @@ body.application-builder-page .page-header .page-header-actions.is-open {
     padding: 12px 0 6px;
 }
 
+.parent-consent-builder-page .builder-editor-head {
+    align-items: flex-start;
+}
+
+.parent-consent-builder-page .builder-editor-head > div:first-child {
+    flex: 1 1 220px;
+}
+
+.parent-consent-builder-page .builder-editor-actions {
+    flex: 0 0 auto;
+    flex-wrap: nowrap !important;
+    min-width: max-content;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.parent-consent-builder-page .builder-editor-actions .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
 .application-builder-page .builder-paper-shell {
     overflow: auto;
     padding: 6px 0 0;
@@ -177,6 +208,21 @@ body.application-builder-page .page-header .page-header-actions.is-open {
     display: inline-flex;
     justify-content: center;
     text-align: left;
+}
+
+.application-builder-page .doc-preview {
+    background: #111317;
+    border: 0;
+    border-radius: 14px;
+    margin: 0;
+    padding: var(--doc-builder-paper-outer-padding);
+    overflow: auto;
+}
+
+.application-builder-page .doc-preview > .a4-pages-stack,
+.application-builder-page .doc-preview > #moa_content {
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .application-builder-page .builder-editor-surface {

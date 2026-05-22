@@ -72,12 +72,13 @@ if ($result instanceof mysqli_result) {
 }
 
 $page_title = 'Evaluation Form';
+$base_href = '../';
 $page_styles = ['assets/css/layout/page_shell.css'];
 include __DIR__ . '/../includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
-        <div class="page-header">
+        <div class="page-header document-page-header">
             <div class="page-header-left d-flex align-items-center">
                 <div class="page-header-title">
                     <h5 class="m-b-10">Evaluation Form</h5>
@@ -88,6 +89,13 @@ include __DIR__ . '/../includes/header.php';
                     <li class="breadcrumb-item">Evaluation Form</li>
                 </ul>
             </div>
+            <?php
+            biotern_render_page_header_actions([
+                'menu_id' => 'documentEvaluationActionsMenu',
+                'items_html' => biotern_document_header_actions_html(0),
+                'inline' => true,
+            ]);
+            ?>
         </div>
 
         <div class="main-content">

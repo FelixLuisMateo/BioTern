@@ -461,11 +461,13 @@
         optionObserver.disconnect();
         wrapper.remove();
         select.classList.remove("biotern-time-native");
+        select.style.display = "";
         initialized.delete(select);
       },
     };
 
     select.classList.add("biotern-time-native");
+    select.style.display = "none";
     select.dataset.unifiedTime = "1";
     select.insertAdjacentElement("afterend", wrapper);
     render();

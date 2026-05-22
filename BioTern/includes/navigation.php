@@ -120,6 +120,9 @@ if (isset($_GET['file'])) {
 if ($nav_current_file === '') {
     $nav_request_path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
     $nav_current_file = strtolower(basename((string)$nav_request_path));
+    if ($nav_current_file === 'index.php' && strpos(strtolower((string)$nav_request_path), '/documents/') !== false) {
+        $nav_current_file = 'documents-index.php';
+    }
 }
 $nav_student_has_external_access = ($nav_student_track === 'external') || ($nav_is_student && $nav_current_file === 'external-biometric.php');
 
@@ -177,6 +180,7 @@ $nav_active_machine = biotern_nav_any_active($nav_current_file, [
     'external-biometric.php', 'fingerprint_mapping.php', 'biometric-machine.php', 'biometric-fleet.php', 'biometric_machine_sync.php',
 ]);
 $nav_active_documents = biotern_nav_any_active($nav_current_file, [
+    'documents-index.php',
     'document_application.php',
     'document_endorsement.php',
     'document_moa.php',
@@ -316,11 +320,11 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <span class="nxl-mtext">Documents</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
+                        <li class="nxl-item<?php echo biotern_nav_is_active('document_parent_consent.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_parent_consent.php">Parent Consent</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('document_application.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_application.php">Application</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('document_endorsement.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_endorsement.php">Endorsement</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('document_moa.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_moa.php">MOA</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('document_dau_moa.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_dau_moa.php">DAU MOA</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('document_parent_consent.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_parent_consent.php">Parent Consent</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('document_dau_moa.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_dau_moa.php">Dau MOA</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('document_evaluation.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_evaluation.php">Evaluation Form</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('document_certificate.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="document_certificate.php">Certificate of Completion</a></li>
                     </ul>

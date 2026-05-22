@@ -64,6 +64,22 @@
   color: var(--biotern-primary-soft-text);
 }
 
+.nxl-navigation .navbar-content .nxl-item.nxl-hasmenu.active > .nxl-link,
+.nxl-navigation .navbar-content .nxl-item.nxl-hasmenu.nxl-trigger > .nxl-link {
+  border-left: 3px solid var(--biotern-primary, #3454d1);
+}
+
+.nxl-navigation .navbar-content .nxl-submenu .nxl-item.active > .nxl-link {
+  background-color: var(--biotern-primary, #3454d1);
+  color: #fff !important;
+  font-weight: 700;
+}
+
+.nxl-navigation .navbar-content .nxl-submenu .nxl-item.active > .nxl-link::before {
+  border-color: #fff !important;
+  background-color: #fff !important;
+}
+
 html.app-skin-dark .card,
 html.app-skin-dark .modal-content,
 html.app-skin-dark .dropdown-menu,

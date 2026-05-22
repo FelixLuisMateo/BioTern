@@ -1549,6 +1549,7 @@ if ($requestMethod === 'POST' && (string)($_POST['action'] ?? '') === 'send-mess
 $deletedMessageFilter = $messageMeta['deleted_at_col'] !== '' ? ' AND m.' . $messageMeta['deleted_at_col'] . ' IS NULL' : '';
 $deletedConversationFilter = $messageMeta['deleted_at_col'] !== '' ? ' AND ' . $messageMeta['deleted_at_col'] . ' IS NULL' : '';
 
+$directoryContacts = [];
 $contacts = [];
 if ($currentUserId > 0 && $messageMeta['ready']) {
     $orderExpr = $messageMeta['created_at_col'] !== '' ? 'm.' . $messageMeta['created_at_col'] : 'm.' . $messageMeta['id_col'];
@@ -1645,7 +1646,7 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
         $contactsStmt->execute();
         $contactsRes = $contactsStmt->get_result();
         while ($row = $contactsRes->fetch_assoc()) {
-            $contacts[] = [
+            $directoryContacts[] = [
                 'id' => (int)($row['id'] ?? 0),
                 'name' => (string)($row['name'] ?? $row['username'] ?? 'Unknown User'),
                 'username' => (string)($row['username'] ?? ''),
@@ -1662,8 +1663,8 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
         $contactsStmt->close();
     }
 
-    if (!empty($contacts)) {
-        usort($contacts, static function (array $left, array $right) use ($isStudentChatUser): int {
+    if (!empty($directoryContacts)) {
+        usort($directoryContacts, static function (array $left, array $right) use ($isStudentChatUser): int {
             $leftGroup = chat_contact_group_meta((string)($left['role'] ?? ''), $isStudentChatUser);
             $rightGroup = chat_contact_group_meta((string)($right['role'] ?? ''), $isStudentChatUser);
 
@@ -1681,6 +1682,14 @@ if ($currentUserId > 0 && $messageMeta['ready']) {
 
             return strcasecmp((string)($left['name'] ?? ''), (string)($right['name'] ?? ''));
         });
+
+        $contacts = array_values(array_filter($directoryContacts, static function (array $contact): bool {
+            return (int)($contact['message_count'] ?? 0) > 0
+                || (int)($contact['unread_count'] ?? 0) > 0
+                || trim((string)($contact['last_message_at'] ?? '')) !== ''
+                || trim((string)($contact['last_message'] ?? '')) !== ''
+                || trim((string)($contact['last_media_path'] ?? '')) !== '';
+        }));
     }
 }
 
@@ -1692,7 +1701,7 @@ if ($selectedUserId <= 0 && !empty($contacts)) {
 
 $selectedContact = null;
 if ($selectedUserId > 0) {
-    foreach ($contacts as $contact) {
+    foreach ($directoryContacts as $contact) {
         if ((int)$contact['id'] === $selectedUserId) {
             $selectedContact = $contact;
             break;
@@ -1720,7 +1729,6 @@ if ($selectedUserId > 0) {
                     'message_count' => 0,
                     'unread_count' => 0,
                 ];
-                array_unshift($contacts, $selectedContact);
             }
         }
     }
@@ -1956,14 +1964,19 @@ foreach ($contacts as $contact) {
     $normalizedContacts[] = $normalizedContact;
 }
 
+$normalizedDirectoryContacts = [];
+foreach ($directoryContacts as $contact) {
+    $normalizedDirectoryContacts[] = chat_normalize_contact($contact, $recentLoginUserIds, $isStudentChatUser);
+}
+
 $normalizedSelectedContact = null;
 if ($selectedContact) {
     $normalizedSelectedContact = chat_normalize_contact($selectedContact, $recentLoginUserIds, $isStudentChatUser);
 }
 
 $normalizedMessages = chat_normalize_messages($conversationMessages, $currentUserId);
-$contactSearchPlaceholder = 'Search contacts';
-$emptyContactsMessage = 'No users available.';
+$contactSearchPlaceholder = 'Search all users';
+$emptyContactsMessage = 'No conversations yet. Search users to start one.';
 
 if ($isAjaxRequest) {
     if ($errorMessage !== '') {
@@ -1971,6 +1984,7 @@ if ($isAjaxRequest) {
             'ok' => false,
             'error' => $errorMessage,
             'contacts' => $normalizedContacts,
+            'directoryContacts' => $normalizedDirectoryContacts,
             'selectedUserId' => $selectedUserId,
             'selectedContact' => $normalizedSelectedContact,
             'messages' => $normalizedMessages,
@@ -1981,6 +1995,7 @@ if ($isAjaxRequest) {
         'ok' => true,
         'success' => $successMessage,
         'contacts' => $normalizedContacts,
+        'directoryContacts' => $normalizedDirectoryContacts,
         'selectedUserId' => $selectedUserId,
         'selectedContact' => $normalizedSelectedContact,
         'messages' => $normalizedMessages,
@@ -2025,6 +2040,7 @@ include 'includes/header.php';
                 <?php if (empty($contacts)): ?>
                     <div class="btchat-empty-note px-3 py-4"><?php echo chat_esc($emptyContactsMessage); ?></div>
                 <?php else: ?>
+                    <div class="btchat-list-mode">Conversations</div>
                     <?php $currentContactGroupKey = ''; ?>
                     <?php foreach ($normalizedContacts as $contact): ?>
                         <?php
@@ -2037,7 +2053,7 @@ include 'includes/header.php';
                             <div class="btchat-group-label"><?php echo chat_esc($contactGroupLabel); ?></div>
                             <?php $currentContactGroupKey = $contactGroupKey; ?>
                         <?php endif; ?>
-                        <a class="btchat-item<?php echo $isActiveContact ? ' active' : ''; ?>" href="<?php echo chat_esc(chat_page_url((int)$contact['id'])); ?>" data-user-id="<?php echo (int)$contact['id']; ?>">
+                        <a class="btchat-item<?php echo $isActiveContact ? ' active' : ''; ?>" href="<?php echo chat_esc(chat_page_url((int)$contact['id'])); ?>" data-user-id="<?php echo (int)$contact['id']; ?>" title="<?php echo chat_esc($contactName); ?>">
                             <span class="btchat-avatar-wrap">
                                 <img src="<?php echo chat_esc((string)$contact['avatar_path']); ?>" alt="<?php echo chat_esc($contactName); ?>" class="btchat-avatar js-avatar-fallback">
                                 <span class="btchat-avatar-text chat-avatar-fallback-hidden"><?php echo chat_esc((string)$contact['initials']); ?></span>
@@ -2045,7 +2061,7 @@ include 'includes/header.php';
                             </span>
                             <div class="btchat-meta">
                                 <div class="btchat-name-row">
-                                    <span class="btchat-name"><?php echo chat_esc($contactName); ?></span>
+                                    <span class="btchat-name" title="<?php echo chat_esc($contactName); ?>"><?php echo chat_esc($contactName); ?></span>
                                     <?php if (trim((string)$contact['last_message_label']) !== ''): ?>
                                         <span class="btchat-time"><?php echo chat_esc((string)$contact['last_message_label']); ?></span>
                                     <?php endif; ?>

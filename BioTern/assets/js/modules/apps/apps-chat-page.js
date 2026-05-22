@@ -78,6 +78,7 @@
         var stateRequestToken = 0;
         var lastContactsSignature = '';
         var lastContactsData = [];
+        var lastDirectoryContactsData = [];
         var lastHeaderSignature = '';
         var lastMessagesSignature = '';
         var chatIncomingReady = false;
@@ -281,6 +282,9 @@
             if (!message || message.is_own || !chatIncomingReady) {
                 return;
             }
+            if (message.is_unsent || String(message.unsent_at || '').trim() !== '') {
+                return;
+            }
 
             var messageId = parseInt(message.message_id || '0', 10) || 0;
             if (messageId <= 0 || messageId <= lastIncomingMessageId) {
@@ -289,6 +293,9 @@
 
             lastIncomingMessageId = messageId;
             var text = String(message.message || '').trim();
+            if (text === 'This message was unsent') {
+                return;
+            }
             showAlert('success', text !== '' ? ('New message: ' + text) : 'New message received.');
         }
 
@@ -410,16 +417,18 @@
             if (!listEl) {
                 return;
             }
-            var items = Array.isArray(contacts) ? contacts : [];
+            var isDirectoryMode = currentSearch.length > 0;
+            var sourceItems = isDirectoryMode && lastDirectoryContactsData.length ? lastDirectoryContactsData : contacts;
+            var items = Array.isArray(sourceItems) ? sourceItems : [];
             if (currentSearch) {
                 var term = currentSearch.toLowerCase();
                 items = items.filter(function (item) {
-                    var haystack = ((item.name || '') + ' ' + (item.username || '') + ' ' + (item.email || '')).toLowerCase();
+                    var haystack = ((item.name || '') + ' ' + (item.username || '') + ' ' + (item.email || '') + ' ' + (item.role || '') + ' ' + (item.group_label || '')).toLowerCase();
                     return haystack.indexOf(term) !== -1;
                 });
             }
             if (!items.length) {
-                listEl.innerHTML = '<div class="px-3 py-4 text-white-50">No matching users.</div>';
+                listEl.innerHTML = '<div class="btchat-empty-note px-3 py-4">' + (isDirectoryMode ? 'No matching users.' : 'No conversations yet. Search users to start one.') + '</div>';
                 return;
             }
             items = items.slice().sort(function (left, right) {
@@ -441,7 +450,10 @@
             });
 
             var currentGroupKey = '';
-            listEl.innerHTML = items.map(function (contact) {
+            var modeHeader = isDirectoryMode
+                ? '<div class="btchat-list-mode">All users</div>'
+                : '<div class="btchat-list-mode">Conversations</div>';
+            listEl.innerHTML = modeHeader + items.map(function (contact) {
                 var activeClass = contact.id === selectedUserId ? ' active' : '';
                 var unread = contact.unread_count > 0 ? '<span class="badge rounded-pill bg-primary">' + contact.unread_count + '</span>' : '';
                 var snippet = contact.last_message ? contact.last_message : 'No messages yet';
@@ -451,11 +463,11 @@
                     markup += '<div class="btchat-group-label">' + escapeHtml(contact.group_label || '') + '</div>';
                 }
                 markup += '' +
-                    '<a class="btchat-item' + activeClass + '" href="' + chatBaseUrl + '?user_id=' + contact.id + '" data-user-id="' + contact.id + '">' +
+                    '<a class="btchat-item' + activeClass + '" href="' + chatBaseUrl + '?user_id=' + contact.id + '" data-user-id="' + contact.id + '" title="' + escapeHtml(contact.name) + '">' +
                         avatarMarkup(contact) +
                         '<div class="btchat-meta">' +
                             '<div class="btchat-name-row">' +
-                                '<span class="btchat-name">' + escapeHtml(contact.name) + '</span>' +
+                                '<span class="btchat-name" title="' + escapeHtml(contact.name) + '">' + escapeHtml(contact.name) + '</span>' +
                                 (contact.last_message_label ? '<span class="btchat-time">' + escapeHtml(contact.last_message_label) + '</span>' : '') +
                             '</div>' +
                             '<div class="btchat-snippet-row">' +
@@ -1563,6 +1575,7 @@
             }
             var contacts = state.contacts || [];
             lastContactsData = contacts;
+            lastDirectoryContactsData = state.directoryContacts || contacts;
             var messages = state.messages || [];
             var newestIncoming = null;
             messages.forEach(function (message) {
@@ -1571,7 +1584,7 @@
                     newestIncoming = message;
                 }
             });
-            var contactsSignature = buildContactsSignature(contacts);
+            var contactsSignature = buildContactsSignature(contacts) + (currentSearch ? ('::directory:' + buildContactsSignature(lastDirectoryContactsData)) : '');
             var messagesSignature = buildMessagesSignature(messages);
             var forceScroll = !!(options && options.forceScroll);
             var contactChanged = selectedUserId !== previousSelectedUserId;
@@ -1595,7 +1608,7 @@
                     renderMessages(messages, state.selectedContact, forceScroll);
                     lastMessagesSignature = messagesSignature;
                     lastRenderedUserId = selectedUserId;
-                    if (newestIncoming) {
+                    if (newestIncoming && !forceScroll && !contactChanged) {
                         showIncomingMessagePopup(newestIncoming);
                     }
                 }
@@ -1624,15 +1637,12 @@
         }
 
         function fetchState(showErrors, options) {
-            if (!selectedUserId) {
-                return Promise.resolve(null);
-            }
             var requestToken = ++stateRequestToken;
             if (fetchAbortController && typeof fetchAbortController.abort === 'function') {
                 fetchAbortController.abort();
             }
             fetchAbortController = typeof AbortController !== 'undefined' ? new AbortController() : null;
-            var requestUrl = chatBaseUrl + '?ajax=1&user_id=' + encodeURIComponent(selectedUserId);
+            var requestUrl = chatBaseUrl + '?ajax=1' + (selectedUserId ? ('&user_id=' + encodeURIComponent(selectedUserId)) : '');
             return fetch(requestUrl, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
@@ -1698,7 +1708,7 @@
                 fetchState(true, { forceScroll: true }).then(function (payload) {
                     if (!payload) {
                         setThreadLoading(false);
-                        showAlert('error', 'Unable to load that conversation right now.');
+                        return;
                     } else if (!payload.ok) {
                         setThreadLoading(false);
                         if (!payload.error) {
@@ -2168,7 +2178,7 @@
         if (searchEl) {
             searchEl.addEventListener('input', function () {
                 currentSearch = searchEl.value.trim();
-                if (lastContactsData.length) {
+                if (lastContactsData.length || lastDirectoryContactsData.length) {
                     renderContacts(lastContactsData);
                     return;
                 }

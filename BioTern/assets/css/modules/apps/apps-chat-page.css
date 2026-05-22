@@ -136,7 +136,7 @@
         overflow: hidden;
         box-shadow: var(--chat-shell-shadow);
         display: grid;
-        grid-template-columns: 320px minmax(0, 1fr);
+        grid-template-columns: clamp(350px, 22vw, 410px) minmax(0, 1fr);
         height: 100%;
         max-height: 100%;
         min-height: 0;
@@ -218,6 +218,19 @@
         overflow-y: auto;
         min-height: 0;
         padding-bottom: 0.5rem;
+    }
+
+    .btchat-list-mode {
+        margin: 0.1rem 0.75rem 0.35rem;
+        padding: 0.48rem 0.7rem;
+        border: 1px solid var(--chat-left-border);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--chat-search-bg) 88%, transparent);
+        color: var(--chat-snippet-color);
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
     }
 
     .btchat-group-label {
@@ -312,25 +325,31 @@
     }
 
     .btchat-name-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.35rem;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+        gap: 0.15rem;
     }
 
     .btchat-name {
         font-size: 1rem;
+        line-height: 1.16;
         font-weight: 700;
         color: var(--chat-name-color);
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     .btchat-time {
-        font-size: 0.78rem;
+        font-size: 0.72rem;
         color: var(--chat-time-color);
         white-space: nowrap;
+        line-height: 1.1;
     }
 
     .btchat-snippet-row {
@@ -2171,7 +2190,7 @@
 
     @media (max-width: 1199px) {
         .btchat-shell {
-            grid-template-columns: 300px minmax(0, 1fr);
+            grid-template-columns: 320px minmax(0, 1fr);
             height: 100%;
             max-height: 100%;
             min-height: 0;

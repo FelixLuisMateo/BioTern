@@ -546,6 +546,11 @@ if (!defined('DB_PORT')) {
 
 $conn->set_charset('utf8mb4');
 
+$biotern_performance_lib = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR . 'performance.php';
+if (is_file($biotern_performance_lib)) {
+    require_once $biotern_performance_lib;
+}
+
 // Keep SQL NOW()/CURRENT_TIMESTAMP aligned with PH (UTC+08) unless overridden.
 $biotern_mysql_tz = biotern_env_pick(['BIOTERN_DB_TIMEZONE', 'DB_TIMEZONE'], '+08:00');
 if ($biotern_mysql_tz === '') {

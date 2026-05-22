@@ -884,25 +884,114 @@
   }
 
   function initDelegatedUiHandlers() {
+    var fullscreenPreferenceKey = "biotern_fullscreen_preferred";
+
+    function fullscreenIsActive() {
+      try {
+        if (document.fullscreenElement) {
+          return true;
+        }
+        if (
+          window.jQuery &&
+          window.jQuery.fullScreenHelper &&
+          typeof window.jQuery.fullScreenHelper === "function"
+        ) {
+          return !!window.jQuery.fullScreenHelper("state");
+        }
+      } catch (err) {}
+      return document.body && document.body.classList.contains("full-screen-helper");
+    }
+
+    function requestAppFullscreen() {
+      try {
+        if (
+          window.jQuery &&
+          window.jQuery.fn &&
+          typeof window.jQuery.fn.fullScreenHelper === "function"
+        ) {
+          window.jQuery("body").fullScreenHelper("request");
+          return true;
+        }
+      } catch (err) {}
+
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        try {
+          document.documentElement.requestFullscreen().catch(function () {});
+          return true;
+        } catch (err) {}
+      }
+      return false;
+    }
+
+    function exitAppFullscreen() {
+      try {
+        if (
+          window.jQuery &&
+          window.jQuery.fullScreenHelper &&
+          typeof window.jQuery.fullScreenHelper === "function" &&
+          window.jQuery.fullScreenHelper("state")
+        ) {
+          window.jQuery.fullScreenHelper("exit");
+          return true;
+        }
+      } catch (err) {}
+
+      if (document.fullscreenElement && document.exitFullscreen) {
+        try {
+          document.exitFullscreen().catch(function () {});
+          return true;
+        } catch (err) {}
+      }
+      return false;
+    }
+
+    function setFullscreenPreference(enabled) {
+      try {
+        window.localStorage.setItem(fullscreenPreferenceKey, enabled ? "1" : "0");
+      } catch (err) {}
+    }
+
+    function getFullscreenPreference() {
+      try {
+        return window.localStorage.getItem(fullscreenPreferenceKey) === "1";
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function restoreFullscreenOnGesture() {
+      if (!getFullscreenPreference() || fullscreenIsActive()) {
+        return;
+      }
+      requestAppFullscreen();
+    }
+
+    if (getFullscreenPreference()) {
+      window.setTimeout(function () {
+        requestAppFullscreen();
+      }, 250);
+      document.addEventListener("click", restoreFullscreenOnGesture, { once: true, capture: true });
+      document.addEventListener("keydown", restoreFullscreenOnGesture, { once: true, capture: true });
+    }
+
+    ["fullscreenchange", "webkitfullscreenchange", "mozfullscreenchange", "MSFullscreenChange"].forEach(function (eventName) {
+      document.addEventListener(eventName, function () {
+        if (!fullscreenIsActive()) {
+          setFullscreenPreference(false);
+        }
+      });
+    });
+
     document.addEventListener("click", function (event) {
       var toggle = event.target.closest('[data-action="toggle-fullscreen"]');
       if (toggle) {
         event.preventDefault();
-        try {
-          if (
-            window.jQuery &&
-            window.jQuery.fn &&
-            typeof window.jQuery.fn.fullScreenHelper === "function"
-          ) {
-            window.jQuery("body").fullScreenHelper("toggle");
-            return;
-          }
-        } catch (err) {}
-
-        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen();
-        } else if (document.exitFullscreen) {
-          document.exitFullscreen();
+        if (fullscreenIsActive()) {
+          setFullscreenPreference(false);
+          exitAppFullscreen();
+        } else {
+          setFullscreenPreference(true);
+          requestAppFullscreen();
         }
       }
 

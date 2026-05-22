@@ -200,6 +200,10 @@ $map = [
   'avatar-image.php' => 'includes/avatar-image.php',
   'chat-media.php' => 'includes/chat-media.php',
 
+  'help.php' => 'help.php',
+  'terms.php' => 'terms.php',
+  'privacy.php' => 'privacy.php',
+
   'api-biometric-event.php' => 'api/api-biometric-event.php',
   'f20h_ingest.php' => 'api/f20h_ingest.php',
   'bridge_profile.php' => 'api/bridge_profile.php',
