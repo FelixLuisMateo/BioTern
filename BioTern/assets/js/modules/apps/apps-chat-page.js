@@ -282,6 +282,9 @@
             if (!message || message.is_own || !chatIncomingReady) {
                 return;
             }
+            if (message.is_unsent || String(message.unsent_at || '').trim() !== '') {
+                return;
+            }
 
             var messageId = parseInt(message.message_id || '0', 10) || 0;
             if (messageId <= 0 || messageId <= lastIncomingMessageId) {
@@ -290,6 +293,9 @@
 
             lastIncomingMessageId = messageId;
             var text = String(message.message || '').trim();
+            if (text === 'This message was unsent') {
+                return;
+            }
             showAlert('success', text !== '' ? ('New message: ' + text) : 'New message received.');
         }
 
@@ -1602,7 +1608,7 @@
                     renderMessages(messages, state.selectedContact, forceScroll);
                     lastMessagesSignature = messagesSignature;
                     lastRenderedUserId = selectedUserId;
-                    if (newestIncoming) {
+                    if (newestIncoming && !forceScroll && !contactChanged) {
                         showIncomingMessagePopup(newestIncoming);
                     }
                 }
@@ -1702,7 +1708,7 @@
                 fetchState(true, { forceScroll: true }).then(function (payload) {
                     if (!payload) {
                         setThreadLoading(false);
-                        showAlert('error', 'Unable to load that conversation right now.');
+                        return;
                     } else if (!payload.ok) {
                         setThreadLoading(false);
                         if (!payload.error) {
