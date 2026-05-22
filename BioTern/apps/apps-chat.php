@@ -2053,7 +2053,7 @@ include 'includes/header.php';
                             <div class="btchat-group-label"><?php echo chat_esc($contactGroupLabel); ?></div>
                             <?php $currentContactGroupKey = $contactGroupKey; ?>
                         <?php endif; ?>
-                        <a class="btchat-item<?php echo $isActiveContact ? ' active' : ''; ?>" href="<?php echo chat_esc(chat_page_url((int)$contact['id'])); ?>" data-user-id="<?php echo (int)$contact['id']; ?>">
+                        <a class="btchat-item<?php echo $isActiveContact ? ' active' : ''; ?>" href="<?php echo chat_esc(chat_page_url((int)$contact['id'])); ?>" data-user-id="<?php echo (int)$contact['id']; ?>" title="<?php echo chat_esc($contactName); ?>">
                             <span class="btchat-avatar-wrap">
                                 <img src="<?php echo chat_esc((string)$contact['avatar_path']); ?>" alt="<?php echo chat_esc($contactName); ?>" class="btchat-avatar js-avatar-fallback">
                                 <span class="btchat-avatar-text chat-avatar-fallback-hidden"><?php echo chat_esc((string)$contact['initials']); ?></span>
@@ -2061,7 +2061,7 @@ include 'includes/header.php';
                             </span>
                             <div class="btchat-meta">
                                 <div class="btchat-name-row">
-                                    <span class="btchat-name"><?php echo chat_esc($contactName); ?></span>
+                                    <span class="btchat-name" title="<?php echo chat_esc($contactName); ?>"><?php echo chat_esc($contactName); ?></span>
                                     <?php if (trim((string)$contact['last_message_label']) !== ''): ?>
                                         <span class="btchat-time"><?php echo chat_esc((string)$contact['last_message_label']); ?></span>
                                     <?php endif; ?>

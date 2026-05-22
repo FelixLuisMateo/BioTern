@@ -463,11 +463,11 @@
                     markup += '<div class="btchat-group-label">' + escapeHtml(contact.group_label || '') + '</div>';
                 }
                 markup += '' +
-                    '<a class="btchat-item' + activeClass + '" href="' + chatBaseUrl + '?user_id=' + contact.id + '" data-user-id="' + contact.id + '">' +
+                    '<a class="btchat-item' + activeClass + '" href="' + chatBaseUrl + '?user_id=' + contact.id + '" data-user-id="' + contact.id + '" title="' + escapeHtml(contact.name) + '">' +
                         avatarMarkup(contact) +
                         '<div class="btchat-meta">' +
                             '<div class="btchat-name-row">' +
-                                '<span class="btchat-name">' + escapeHtml(contact.name) + '</span>' +
+                                '<span class="btchat-name" title="' + escapeHtml(contact.name) + '">' + escapeHtml(contact.name) + '</span>' +
                                 (contact.last_message_label ? '<span class="btchat-time">' + escapeHtml(contact.last_message_label) + '</span>' : '') +
                             '</div>' +
                             '<div class="btchat-snippet-row">' +
