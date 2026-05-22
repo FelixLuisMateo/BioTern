@@ -1090,17 +1090,16 @@ include 'includes/header.php';
                 <div class="external-clock-grid">
                     <?php foreach ($studentDtrClockTypes as $clockType => [$clockLabel, $clockIcon]): ?>
                         <?php
-                            if ($clockType !== $studentDtrNextPunch) {
-                                continue;
-                            }
-                            $isLocked = false;
+                            $clockColumn = attendance_action_to_column($clockType);
+                            $hasValue = $clockColumn !== null && trim((string)($studentDtrTodayRecord[$clockColumn] ?? '')) !== '';
+                            $isLocked = $clockType !== $studentDtrNextPunch;
                         ?>
-                        <button type="submit" name="clock_type" value="<?php echo htmlspecialchars($clockType, ENT_QUOTES, 'UTF-8'); ?>" class="external-clock-btn<?php echo $isLocked ? ' is-complete' : ''; ?>" <?php echo $isLocked ? 'disabled aria-disabled="true"' : ''; ?>>
+                        <button type="submit" name="clock_type" value="<?php echo htmlspecialchars($clockType, ENT_QUOTES, 'UTF-8'); ?>" class="external-clock-btn<?php echo $hasValue ? ' is-complete' : ''; ?>" <?php echo $isLocked ? 'disabled aria-disabled="true"' : ''; ?>>
                             <i class="<?php echo htmlspecialchars($clockIcon, ENT_QUOTES, 'UTF-8'); ?>"></i>
                             <span><?php echo htmlspecialchars($clockLabel, ENT_QUOTES, 'UTF-8'); ?></span>
                         </button>
                     <?php endforeach; ?>
-                    <?php if ($studentDtrNextPunch === null): ?>
+                    <?php if ($studentDtrAllowedPunchOrder === [] || $studentDtrNextPunch === null): ?>
                         <div class="student-dtr-quick-status w-100">No available punch for your section schedule today.</div>
                     <?php endif; ?>
                 </div>
