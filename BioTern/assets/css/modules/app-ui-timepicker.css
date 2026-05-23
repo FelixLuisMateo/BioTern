@@ -199,7 +199,8 @@ body .record-section select.biotern-time-native {
 
 .biotern-time-period.is-active,
 .biotern-time-minute.is-active,
-.biotern-time-hour.is-active {
+.biotern-time-hour.is-active,
+.biotern-time-minute-clock.is-active {
   border-color: var(--biotern-timepicker-active-bg);
   background: var(--biotern-timepicker-active-bg);
   color: var(--biotern-timepicker-active-text);
@@ -207,7 +208,8 @@ body .record-section select.biotern-time-native {
 
 .biotern-time-period:disabled,
 .biotern-time-minute:disabled,
-.biotern-time-hour:disabled {
+.biotern-time-hour:disabled,
+.biotern-time-minute-clock:disabled {
   cursor: not-allowed;
   opacity: 0.38;
 }
@@ -238,7 +240,32 @@ body .record-section select.biotern-time-native {
   font-weight: 900;
 }
 
+.biotern-time-minute-clock {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--biotern-timepicker-muted);
+  font: inherit;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.biotern-time-minute-clock.is-major {
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  color: var(--biotern-timepicker-text);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
 .biotern-time-hour:not(:disabled):hover,
+.biotern-time-minute-clock:not(:disabled):hover,
 .biotern-time-minute:not(:disabled):hover,
 .biotern-time-period:not(:disabled):hover,
 .biotern-time-action:not(:disabled):hover {

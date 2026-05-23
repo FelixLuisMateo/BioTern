@@ -375,7 +375,7 @@ function buildExternalTimeOptions(selected, startHour, endHour) {
 	startHour = Math.max(0, Math.min(23, startHour || 0));
 	endHour = Math.max(startHour, Math.min(23, endHour || 23));
 	for (var hour = startHour; hour <= endHour; hour++) {
-		for (var minute = 0; minute < 60; minute += 30) {
+		for (var minute = 0; minute < 60; minute += 1) {
 			var value = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
 			var hour12 = hour % 12 || 12;
 			var label = hour12 + ':' + String(minute).padStart(2, '0') + ' ' + (hour < 12 ? 'AM' : 'PM');

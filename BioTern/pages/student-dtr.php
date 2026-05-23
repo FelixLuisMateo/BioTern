@@ -45,7 +45,7 @@ function student_dtr_time_select_options_html(string $selected = '', int $startH
     $startHour = max(0, min(23, $startHour));
     $endHour = max($startHour, min(23, $endHour));
     for ($hour = $startHour; $hour <= $endHour; $hour++) {
-        for ($minute = 0; $minute < 60; $minute += 30) {
+        for ($minute = 0; $minute < 60; $minute += 1) {
             $value = sprintf('%02d:%02d', $hour, $minute);
             $label = date('g:i A', strtotime($value . ':00'));
             $isSelected = $value === $selected ? ' selected' : '';
@@ -272,10 +272,10 @@ function student_dtr_review_meta(array $attendance): array
     return ['label' => 'Pending Review', 'class' => 'pending'];
 }
 
-function student_dtr_time_options(int $stepMinutes = 30, int $startHour = 5, int $endHour = 20): array
+function student_dtr_time_options(int $stepMinutes = 1, int $startHour = 5, int $endHour = 20): array
 {
     $options = [];
-    $stepMinutes = max(5, $stepMinutes);
+    $stepMinutes = max(1, $stepMinutes);
     $startMinutes = max(0, min(23 * 60 + 55, $startHour * 60));
     $endMinutes = max($startMinutes, min(24 * 60 - $stepMinutes, $endHour * 60));
 
@@ -1528,7 +1528,7 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
         startHour = Math.max(0, Math.min(23, startHour || 0));
         endHour = Math.max(startHour, Math.min(23, endHour || 23));
         for (var hour = startHour; hour <= endHour; hour++) {
-            for (var minute = 0; minute < 60; minute += 30) {
+            for (var minute = 0; minute < 60; minute += 1) {
                 var value = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
                 var hour12 = hour % 12 || 12;
                 var label = hour12 + ':' + String(minute).padStart(2, '0') + ' ' + (hour < 12 ? 'AM' : 'PM');

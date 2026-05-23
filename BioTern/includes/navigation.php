@@ -203,6 +203,7 @@ $nav_active_reports = biotern_nav_any_active($nav_current_file, [
     'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-hours-completion.php',
     'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
     'reports-unassigned-students.php', 'reports-document.php', 'reports-attendance-anomalies.php',
+    'reports-dtr-manual-input.php', 'reports-dtr-manual-student.php',
 ]);
 $nav_active_academic = biotern_nav_any_active($nav_current_file, [
     'courses.php', 'courses-create.php', 'courses-edit.php',
@@ -235,7 +236,7 @@ $nav_active_student_tools = biotern_nav_any_active($nav_current_file, [
 ]);
 $nav_active_tools = biotern_nav_any_active($nav_current_file, [
     'theme-customizer.php', 'backup-database.php', 'import-sql.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php',
-    'reports-import-errors.php', 'reports-dtr-manual-input.php', 'demo-biometric.php',
+    'reports-import-errors.php', 'demo-biometric.php',
 ]);
 ?>
 <nav class="nxl-navigation">
@@ -338,6 +339,7 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <?php if ($nav_is_admin): ?>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-student-status.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-student-status.php">Student Status Report</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-attendance-dtr.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-attendance-dtr.php">Attendance Report (DTR)</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['reports-dtr-manual-input.php', 'reports-dtr-manual-student.php']) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-dtr-manual-input.php">Manual DTR Review</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-attendance-anomalies.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-attendance-anomalies.php">Attendance Anomalies</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-hours-completion.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-hours-completion.php">Hours Completion Report</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-section.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-section.php">Section Report</a></li>
@@ -548,7 +550,6 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <li class="nxl-item<?php echo biotern_nav_is_active('import-ojt-internal.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-ojt-internal.php">Import OJT Internal</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('import-ojt-external.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-ojt-external.php">Import OJT External</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('reports-import-errors.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-import-errors.php">Import Error Report</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-dtr-manual-input.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-dtr-manual-input.php">Manual DTR Input</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('demo-biometric.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="demo-biometric.php">Biometric Demo</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('backup-database.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="backup-database.php">Backup Database</a></li>
                         <li class="nxl-item<?php echo biotern_nav_is_active('import-sql.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="import-sql.php">Data Transfer</a></li>

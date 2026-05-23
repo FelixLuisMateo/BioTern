@@ -113,7 +113,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'companies.php', 'ojt-internal-list.php', 'ojt-internal-masterlist.php', 'ojt-external-list.php',
                     'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-attendance-anomalies.php', 'reports-hours-completion.php',
                     'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
-                    'reports-unassigned-students.php', 'reports-document.php',
+                    'reports-unassigned-students.php', 'reports-document.php', 'reports-dtr-manual-input.php', 'reports-dtr-manual-student.php',
                     'document_application.php', 'document_endorsement.php', 'document_moa.php', 'document_dau_moa.php', 'document_parent_consent.php', 'document_certificate.php',
                 ],
                 'sections' => [
@@ -165,6 +165,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ...($canSystem ? [
                                 ['label' => 'Student Status Report', 'href' => 'reports-student-status.php', 'icon' => 'feather-users'],
                                 ['label' => 'Attendance Report (DTR)', 'href' => 'reports-attendance-dtr.php', 'icon' => 'feather-clock'],
+                                ['label' => 'Manual DTR Review', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit'],
                                 ['label' => 'Attendance Anomalies', 'href' => 'reports-attendance-anomalies.php', 'icon' => 'feather-alert-triangle'],
                                 ['label' => 'Hours Completion Report', 'href' => 'reports-hours-completion.php', 'icon' => 'feather-bar-chart-2'],
                                 ['label' => 'Section Report', 'href' => 'reports-section.php', 'icon' => 'feather-layers'],
@@ -289,7 +290,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'settings-attendance.php', 'settings-support.php', 'notifications.php', 'account-settings.php',
                     'theme-customizer.php', 'backup-database.php', 'import-students-excel.php', 'import-ojt-internal.php', 'import-ojt-external.php', 'import-sql.php',
                     'reports-admin-logs.php', 'reports-login-logs.php', 'reports-chat-logs.php', 'reports-chat-reports.php', 'reports-chat-penalties.php',
-                    'reports-import-errors.php', 'reports-dtr-manual-input.php', 'demo-biometric.php',
+                    'reports-import-errors.php', 'demo-biometric.php',
                 ],
                 'sections' => [
                     [
@@ -331,7 +332,6 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ['label' => 'Import OJT Internal', 'href' => 'import-ojt-internal.php', 'icon' => 'feather-upload'],
                             ['label' => 'Import OJT External', 'href' => 'import-ojt-external.php', 'icon' => 'feather-upload-cloud'],
                             ['label' => 'Import Error Report', 'href' => 'reports-import-errors.php', 'icon' => 'feather-alert-triangle'],
-                            ['label' => 'Manual DTR Input', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit'],
                             ['label' => 'Biometric Demo', 'href' => 'demo-biometric.php', 'icon' => 'feather-cpu'],
                             ['label' => 'Backup Database', 'href' => 'backup-database.php', 'icon' => 'feather-download-cloud'],
                             ['label' => 'Data Transfer', 'href' => 'import-sql.php', 'icon' => 'feather-database'],

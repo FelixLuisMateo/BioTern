@@ -338,6 +338,7 @@ $stats_query = "
         SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_count,
         COUNT(*) as total_count
     FROM attendances
+    WHERE NOT (source = 'manual' AND LOWER(COALESCE(status, 'pending')) <> 'approved')
 ";
 $attendance_stats_where = [];
 if ($attendance_is_supervisor && $attendance_user_id > 0) {
@@ -347,6 +348,7 @@ if ($attendance_is_supervisor && $attendance_user_id > 0) {
     }
     $attendance_stats_where[] = '(' . implode(' OR ', $attendance_stats_scope) . ')';
 }
+$attendance_stats_where[] = "NOT (a.source = 'manual' AND LOWER(COALESCE(a.status, 'pending')) <> 'approved')";
 if (!empty($attendance_stats_where)) {
     $stats_query = "
         SELECT 
@@ -515,6 +517,7 @@ if ($coor_res && $coor_res->num_rows) {
 // Build WHERE clauses depending on provided filters
 $where = [];
 $hasManualDtrAttachments = function_exists('table_exists') && table_exists($conn, 'manual_dtr_attachments');
+$where[] = "NOT (a.source = 'manual' AND LOWER(COALESCE(a.status, 'pending')) <> 'approved')";
 if ($attendance_is_supervisor && $attendance_user_id > 0) {
     $attendanceScopeParts = ["(i.supervisor_id = " . (int)$attendance_user_id . " OR s.supervisor_id = " . (int)$attendance_user_id . ")"];
     if ($attendance_supervisor_profile_id > 0 && $attendance_supervisor_profile_id !== $attendance_user_id) {
@@ -1794,13 +1797,22 @@ function attendance_reports_cell_html(array $attendance): string
     $dtrUrl = 'students-internal-dtr.php?id=' . $studentId;
     $printUrl = 'print_attendance.php?id=' . $attendanceId;
     $proofPath = trim((string)($attendance['proof_photo_path'] ?? ''));
+    $isManual = strtolower(trim((string)($attendance['source'] ?? ''))) === 'manual';
+    $date = substr((string)($attendance['attendance_date'] ?? ''), 0, 10);
+    $manualReviewUrl = $isManual && $date !== ''
+        ? 'reports-dtr-manual-student.php?origin=internal&student_id=' . $studentId . '&from=' . urlencode($date) . '&to=' . urlencode($date)
+        : '';
     $proofLink = $proofPath !== ''
         ? '<a class="badge bg-soft-info text-info" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener">Proof</a>'
+        : '';
+    $manualReviewLink = $manualReviewUrl !== ''
+        ? '<a class="badge bg-soft-warning text-warning" href="' . htmlspecialchars($manualReviewUrl, ENT_QUOTES, 'UTF-8') . '">Manual Report</a>'
         : '';
 
     return '<div class="d-flex flex-wrap gap-1">'
         . '<a class="badge bg-soft-primary text-primary" href="' . htmlspecialchars($dtrUrl, ENT_QUOTES, 'UTF-8') . '">Internal DTR</a>'
         . '<a class="badge bg-soft-secondary text-secondary" href="' . htmlspecialchars($printUrl, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener">Print</a>'
+        . $manualReviewLink
         . $proofLink
         . '</div>';
 }
@@ -1839,6 +1851,9 @@ function attendanceCanReview(array $attendance): bool
     if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
         return false;
     }
+    if (strtolower(trim((string)($attendance['source'] ?? ''))) === 'manual') {
+        return false;
+    }
 
     return (int)($attendance['id'] ?? 0) > 0;
 }
@@ -1849,6 +1864,9 @@ function attendance_review_cell_html(array $attendance): string
     $status = strtolower(trim((string)($attendance['status'] ?? 'pending')));
 
     if (!attendanceCanReview($attendance) || $attendanceId <= 0) {
+        if (strtolower(trim((string)($attendance['source'] ?? ''))) === 'manual') {
+            return '<span class="badge bg-soft-warning text-warning">Reviewed in Manual DTR Report</span>';
+        }
         return '<span class="text-muted fs-12">No manual review needed</span>';
     }
 

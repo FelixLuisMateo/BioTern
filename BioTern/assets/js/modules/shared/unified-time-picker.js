@@ -87,6 +87,16 @@
     });
   }
 
+  function isExactMinuteSelect(select) {
+    if (!select) {
+      return false;
+    }
+    if (select.dataset.minuteStep === "1" || select.dataset.exactMinute === "1") {
+      return true;
+    }
+    return select.classList.contains("external-manual-time-select") || select.classList.contains("student-dtr-time-select");
+  }
+
   function findOption(options, hour, minute) {
     var value = pad(hour) + ":" + pad(minute);
     return options.find(function (option) {
@@ -141,6 +151,7 @@
       hour: null,
       minute: null,
       period: "AM",
+      view: "hour",
     };
 
     wrapper.className = "biotern-time-picker";
@@ -251,6 +262,10 @@
     }
 
     function renderClock(options) {
+      if (state.view === "minute") {
+        renderMinuteClock(options);
+        return;
+      }
       var enabledHours = new Set(options.filter(function (option) {
         return !option.disabled && ((state.period === "PM") === (option.hour >= 12));
       }).map(function (option) {
@@ -270,7 +285,39 @@
       }
     }
 
+    function renderMinuteClock(options) {
+      var activeHour = state.hour;
+      var enabledMinutes = new Set(options.filter(function (option) {
+        return !option.disabled && (activeHour === null || option.hour === activeHour);
+      }).map(function (option) {
+        return option.minute;
+      }));
+      if (!enabledMinutes.size && isExactMinuteSelect(select)) {
+        for (var allMinute = 0; allMinute < 60; allMinute += 1) {
+          enabledMinutes.add(allMinute);
+        }
+      }
+
+      clock.innerHTML = "";
+      for (var minute = 0; minute < 60; minute += 1) {
+        var button = createButton("biotern-time-minute-clock", pad(minute), "minute");
+        var angle = (minute * 6 - 90) * (Math.PI / 180);
+        var radius = minute % 5 === 0 ? 82 : 68;
+        button.style.left = (107 + Math.cos(angle) * radius) + "px";
+        button.style.top = (107 + Math.sin(angle) * radius) + "px";
+        button.dataset.minute = String(minute);
+        button.disabled = !enabledMinutes.has(minute);
+        button.classList.toggle("is-major", minute % 5 === 0);
+        button.classList.toggle("is-active", state.minute === minute);
+        clock.appendChild(button);
+      }
+    }
+
     function renderMinutes(options) {
+      if (isExactMinuteSelect(select) && state.view === "minute") {
+        minutes.innerHTML = "";
+        return;
+      }
       var activeHour = state.hour;
       var minuteValues = uniqueNumbers(options.filter(function (option) {
         return !option.disabled && (activeHour === null || option.hour === activeHour);
@@ -283,6 +330,12 @@
         }).map(function (option) {
           return option.minute;
         }));
+      }
+      if (isExactMinuteSelect(select) && minuteValues.length <= 2) {
+        minuteValues = [];
+        for (var allMinute = 0; allMinute < 60; allMinute += 1) {
+          minuteValues.push(allMinute);
+        }
       }
       minutes.innerHTML = "";
       minuteValues.forEach(function (minute) {
@@ -302,7 +355,7 @@
         state.period = parsed.hour >= 12 ? "PM" : "AM";
       }
       updateTrigger();
-      preview.textContent = parsed ? formatTimeLabel(parsed.value) : "Select time";
+      preview.textContent = parsed ? formatTimeLabel(parsed.value) : (state.view === "minute" ? "Choose minutes" : "Select time");
       renderPeriods(options);
       renderClock(options);
       renderMinutes(options);
@@ -350,6 +403,7 @@
       closeCurrent();
       openPicker = api;
       setStateFromValue(select.value);
+      state.view = "hour";
       render();
       popover.hidden = false;
       wrapper.classList.add("is-open");
@@ -375,20 +429,40 @@
       }
       if (option) {
         commitValue(option.value);
+        state.view = "minute";
+        render();
       }
     }
 
     function chooseMinute(minute) {
-      var option = findOption(getOptions(select), state.hour, minute);
+      var options = getOptions(select);
+      var option = findOption(options, state.hour, minute);
+      if (!option && isExactMinuteSelect(select) && state.hour !== null) {
+        var value = pad(state.hour) + ":" + pad(minute);
+        var nativeOption = document.createElement("option");
+        nativeOption.value = value;
+        nativeOption.textContent = formatTimeLabel(value);
+        select.appendChild(nativeOption);
+        option = {
+          value: value,
+          hour: state.hour,
+          minute: minute,
+          label: nativeOption.textContent,
+          disabled: false,
+        };
+      }
       if (!option) {
         option = chooseNearestForState(state.hour, minute, state.period);
       }
       if (option) {
         commitValue(option.value);
+        close();
       }
     }
 
     function choosePeriod(period) {
+      state.period = period;
+      state.view = "hour";
       var hour12 = state.hour === null ? 8 : (state.hour % 12 || 12);
       var hour = getHourForPeriod(hour12, period);
       var option = findOption(getOptions(select), hour, state.minute);
