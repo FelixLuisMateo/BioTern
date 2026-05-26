@@ -315,7 +315,14 @@
     rebuildFilterBody();
     modal.addEventListener("show.bs.modal", rebuildFilterBody);
 
-    var existingToggle = right.querySelector(".filter-toggle-btn");
+    var mobileToggles = right.querySelectorAll(".page-header-mobile-filter-toggle");
+    if (mobileToggles.length > 1) {
+      for (var t = 1; t < mobileToggles.length; t += 1) {
+        mobileToggles[t].remove();
+      }
+    }
+
+    var existingToggle = right.querySelector(".page-header-mobile-filter-toggle, .filter-toggle-btn");
     var btn = existingToggle || document.createElement("button");
     btn.type = "button";
     btn.classList.add("page-header-mobile-filter-toggle");

@@ -583,6 +583,22 @@ $page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/rep
 $page_title = 'BioTern || Manual DTR Review';
 include 'includes/header.php';
 ?>
+<style>
+    .manual-dtr-submission-row {
+        cursor: pointer;
+        transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .manual-dtr-submission-row:hover > * {
+        background-color: rgba(37, 99, 235, 0.14) !important;
+    }
+
+    .manual-dtr-submission-row:focus-within > *,
+    .manual-dtr-submission-row:focus > * {
+        background-color: rgba(37, 99, 235, 0.18) !important;
+        box-shadow: inset 3px 0 0 #2563eb;
+    }
+</style>
 <main class="nxl-container">
 <div class="nxl-content">
     <div class="page-header">
@@ -665,7 +681,7 @@ include 'includes/header.php';
                                     . '&to=' . urlencode((string)$submission['date_to']);
                                 $proofUrl = dtr_proof_url((string)$submission['origin'], $submission);
                                 ?>
-                                <tr class="cursor-pointer" onclick="window.location.href='<?php echo dtr_h($openUrl); ?>'">
+                                <tr class="manual-dtr-submission-row cursor-pointer" tabindex="0" role="link" onclick="window.location.href='<?php echo dtr_h($openUrl); ?>'" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.location.href='<?php echo dtr_h($openUrl); ?>'; }">
                                     <td>
                                         <div class="fw-semibold"><?php echo dtr_h(trim((string)($submission['first_name'] ?? '') . ' ' . (string)($submission['last_name'] ?? ''))); ?></div>
                                         <small class="text-muted"><?php echo dtr_h((string)($submission['student_number'] ?? '-')); ?></small>
