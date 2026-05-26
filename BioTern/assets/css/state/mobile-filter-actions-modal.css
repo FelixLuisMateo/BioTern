@@ -18,6 +18,11 @@
         display: inline-flex !important;
     }
 
+    body.mobile-bottom-nav .page-header .page-header-mobile-filter-toggle ~ .page-header-mobile-filter-toggle,
+    body.mobile-bottom-nav .page-header .filter-toggle-btn ~ .filter-toggle-btn {
+        display: none !important;
+    }
+
     body.mobile-bottom-nav .page-header-primary-actions {
         display: none !important;
     }

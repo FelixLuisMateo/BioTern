@@ -1293,19 +1293,19 @@ include 'includes/header.php';
                             </div>
                             <div class="d-none" aria-hidden="true">
                                 <label class="form-label" for="fallbackMorningIn">Morning In</label>
-                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackMorningIn" name="morning_time_in">
+                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackMorningIn" name="morning_time_in" data-timepicker-disabled="1" data-ui-select="native">
                                     <?php echo student_dtr_time_select_options_html('', 5, 11); ?>
                                 </select>
                                 <label class="form-label" for="fallbackMorningOut">Morning Out</label>
-                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackMorningOut" name="morning_time_out">
+                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackMorningOut" name="morning_time_out" data-timepicker-disabled="1" data-ui-select="native">
                                     <?php echo student_dtr_time_select_options_html('', 5, 11); ?>
                                 </select>
                                 <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
-                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackAfternoonIn" name="afternoon_time_in">
+                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackAfternoonIn" name="afternoon_time_in" data-timepicker-disabled="1" data-ui-select="native">
                                     <?php echo student_dtr_time_select_options_html('', 12, 23); ?>
                                 </select>
                                 <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
-                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackAfternoonOut" name="afternoon_time_out">
+                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackAfternoonOut" name="afternoon_time_out" data-timepicker-disabled="1" data-ui-select="native">
                                     <?php echo student_dtr_time_select_options_html('', 12, 23); ?>
                                 </select>
                             </div>
@@ -1540,9 +1540,9 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
 
     var buildTimeSelect = function (name, selected, startHour, endHour, slotName) {
         var slotAttr = slotName ? ' data-time-slot="' + escapeHtml(slotName) + '"' : '';
-        return '<select class="form-select student-dtr-time-select external-manual-time-select" name="' + name + '"' + slotAttr + '>' +
-            buildTimeOptions(selected || '', startHour, endHour) +
-            '</select>';
+        var minValue = String(Math.max(0, Math.min(23, startHour || 0))).padStart(2, '0') + ':00';
+        var maxValue = String(Math.max(0, Math.min(23, endHour || 23))).padStart(2, '0') + ':59';
+        return '<input type="time" class="form-control student-dtr-time-field external-manual-time-input" name="' + name + '" value="' + escapeHtml(selected || '') + '" min="' + minValue + '" max="' + maxValue + '" step="60"' + slotAttr + '>';
     };
 
     var formatLabel = function (dateValue) {
@@ -1721,18 +1721,30 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
         return String(hour).padStart(2, '0') + ':' + String(rounded).padStart(2, '0');
     }
 
-    function chooseClosestOption(select, value) {
-        if (!select) {
+    function chooseClosestOption(field, value) {
+        if (!field) {
             return '';
         }
-        var options = Array.prototype.slice.call(select.options || []);
-        var match = options.find(function (option) {
-            return option.value === value;
-        });
-        if (match) {
-            select.value = match.value;
-            select.dispatchEvent(new Event('change', { bubbles: true }));
-            return match.value;
+        if (field.tagName && field.tagName.toLowerCase() === 'select') {
+            var options = Array.prototype.slice.call(field.options || []);
+            var match = options.find(function (option) {
+                return option.value === value;
+            });
+            if (match) {
+                field.value = match.value;
+                field.dispatchEvent(new Event('change', { bubbles: true }));
+                return match.value;
+            }
+            return '';
+        }
+
+        var min = field.getAttribute('min') || '00:00';
+        var max = field.getAttribute('max') || '23:59';
+        if (value >= min && value <= max) {
+            field.value = value;
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+            return value;
         }
 
         return '';
@@ -1761,14 +1773,14 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
             button.classList.add('is-selected');
 
             var selectId = button.getAttribute('data-target-select') || '';
-            var generatedSelect = document.querySelector('#fallbackGeneratedRowsWrap select[data-time-slot="' + selectId + '"]');
-            if (!generatedSelect) {
+            var generatedField = document.querySelector('#fallbackGeneratedRowsWrap [data-time-slot="' + selectId + '"]');
+            if (!generatedField) {
                 var generateRowsButton = document.getElementById('generateFallbackRows');
                 if (generateRowsButton) {
                     generateRowsButton.click();
                 }
-                generatedSelect = document.querySelector('#fallbackGeneratedRowsWrap select[data-time-slot="' + selectId + '"]');
-                if (!generatedSelect) {
+                generatedField = document.querySelector('#fallbackGeneratedRowsWrap [data-time-slot="' + selectId + '"]');
+                if (!generatedField) {
                     var missingRowsStatus = document.getElementById('quickTimePickerStatus');
                     if (missingRowsStatus) {
                         missingRowsStatus.textContent = 'Choose a date first, then tap a quick time button.';
@@ -1776,7 +1788,7 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
                     return;
                 }
             }
-            var chosenValue = chooseClosestOption(generatedSelect, nearestThirtyMinuteValue());
+            var chosenValue = chooseClosestOption(generatedField, nearestThirtyMinuteValue());
 
             var noteInput = document.getElementById('quickInternalPunchNote');
             var reasonBox = document.getElementById('fallbackReason');
