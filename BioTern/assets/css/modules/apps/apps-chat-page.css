@@ -360,6 +360,13 @@
         margin-top: 2px;
     }
 
+    .btchat-role-sub {
+        color: var(--chat-time-color);
+        font-size: 0.76rem;
+        line-height: 1.15;
+        margin-top: 0.08rem;
+    }
+
     .btchat-snippet {
         color: var(--chat-snippet-color);
         font-size: 0.92rem;
@@ -852,6 +859,7 @@
 
     .msg-row {
         display: flex;
+        flex-wrap: wrap;
         align-items: flex-end;
         margin-bottom: 0.18rem;
         gap: 0.45rem;
@@ -1643,12 +1651,6 @@
         color: var(--chat-own-meta-color);
     }
 
-    .msg-bubble.has-media .msg-meta {
-        margin-top: 0.28rem;
-        padding: 0 0.2rem;
-        width: 100%;
-    }
-
     /* Message grouping - own (right, teal) */
     .msg-row.own .msg-bubble.msg-group-first  { border-radius: 14px 14px 6px 14px; }
     .msg-row.own .msg-bubble.msg-group-middle { border-radius: 14px 6px 6px 14px; }
@@ -1771,15 +1773,36 @@
     }
 
     .msg-meta {
+        flex: 0 0 100%;
         margin-top: 0.22rem;
         font-size: 0.72rem;
         color: var(--chat-meta-color);
-        text-align: right;
+        text-align: left;
     }
 
-    .msg-row.own .msg-meta,
-    .msg-row.own .msg-meta .msg-time-exact {
-        color: var(--chat-own-meta-color);
+    .msg-row:not(.own) .msg-meta {
+        margin-left: 34px;
+    }
+
+    .msg-row.own .msg-meta {
+        text-align: right;
+        color: var(--chat-meta-color);
+    }
+
+    .btchat-connection-form {
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+
+    .btchat-consent-notice {
+        margin-bottom: 0.6rem;
+        padding: 0.62rem 0.78rem;
+        border-radius: 12px;
+        border: 1px solid var(--chat-compose-inner-border);
+        background: color-mix(in srgb, var(--chat-search-bg) 88%, transparent);
+        color: var(--chat-snippet-color);
+        font-size: 0.86rem;
+        font-weight: 600;
     }
 
     .btchat-compose {

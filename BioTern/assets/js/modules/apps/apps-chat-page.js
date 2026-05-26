@@ -64,6 +64,8 @@
         var currentUserId = parseInt(app.dataset.currentUserId || '0', 10) || 0;
         var selectedUserId = parseInt(app.getAttribute('data-selected-user-id') || '0', 10) || 0;
         var selectedContactRef = null;
+        var selectedCanMessage = app.dataset.selectedCanMessage === '1';
+        var selectedConnectionStatus = app.dataset.selectedConnectionStatus || 'none';
         var messageCache = {};
         var replyTarget = null;
         var pendingConfirmFn = null;
@@ -323,6 +325,24 @@
             composeWarningEl.setAttribute('aria-hidden', 'false');
         }
 
+        function updateComposeConsentState() {
+            if (sendBtnEl) {
+                sendBtnEl.disabled = !selectedCanMessage;
+            }
+            if (inputEl) {
+                inputEl.placeholder = selectedCanMessage ? 'Aa' : 'Connect first';
+            }
+            var notice = document.querySelector('.btchat-consent-notice');
+            if (notice) {
+                notice.textContent = selectedConnectionStatus === 'pending_received'
+                    ? 'Accept this chat request before messaging.'
+                    : (selectedConnectionStatus === 'pending_sent'
+                        ? 'Waiting for this person to accept your chat request.'
+                        : 'Send a chat request first. You can message after they accept.');
+                notice.style.display = selectedCanMessage ? 'none' : '';
+            }
+        }
+
         function isModerationWarning(message) {
             var text = String(message || '').toLowerCase();
             return text.indexOf('message blocked') !== -1 || text.indexOf('disallowed symbol') !== -1;
@@ -451,17 +471,18 @@
 
             var currentGroupKey = '';
             var modeHeader = isDirectoryMode
-                ? '<div class="btchat-list-mode">All users</div>'
+                ? '<div class="btchat-list-mode">People</div>'
                 : '<div class="btchat-list-mode">Conversations</div>';
             listEl.innerHTML = modeHeader + items.map(function (contact) {
                 var activeClass = contact.id === selectedUserId ? ' active' : '';
                 var unread = contact.unread_count > 0 ? '<span class="badge rounded-pill bg-primary">' + contact.unread_count + '</span>' : '';
                 var snippet = contact.last_message ? contact.last_message : 'No messages yet';
-                var markup = '';
-                if (contact.group_key && contact.group_key !== currentGroupKey) {
-                    currentGroupKey = contact.group_key;
-                    markup += '<div class="btchat-group-label">' + escapeHtml(contact.group_label || '') + '</div>';
+                if (isDirectoryMode && contact.connection_status !== 'accepted') {
+                    snippet = contact.connection_status === 'pending_sent'
+                        ? 'Request pending'
+                        : (contact.connection_status === 'pending_received' ? 'Wants to connect' : 'Tap to request chat');
                 }
+                var markup = '';
                 markup += '' +
                     '<a class="btchat-item' + activeClass + '" href="' + chatBaseUrl + '?user_id=' + contact.id + '" data-user-id="' + contact.id + '" title="' + escapeHtml(contact.name) + '">' +
                         avatarMarkup(contact) +
@@ -470,6 +491,7 @@
                                 '<span class="btchat-name" title="' + escapeHtml(contact.name) + '">' + escapeHtml(contact.name) + '</span>' +
                                 (contact.last_message_label ? '<span class="btchat-time">' + escapeHtml(contact.last_message_label) + '</span>' : '') +
                             '</div>' +
+                            '<div class="btchat-role-sub">' + escapeHtml(contact.role_label || 'User') + '</div>' +
                             '<div class="btchat-snippet-row">' +
                                 '<span class="btchat-snippet">' + escapeHtml(snippet) + '</span>' +
                                 unread +
@@ -485,8 +507,22 @@
             if (!headerEl || !contact) {
                 return;
             }
-            var subtitle = contact.is_online ? 'Online' : (contact.email || contact.username || '');
+            var subtitle = contact.role_label || 'User';
+            if (contact.is_online) {
+                subtitle += ' · Online';
+            }
             var muteLabel = isConversationMuted(contact.id) ? 'Unmute conversation' : 'Mute conversation';
+            var connectionHtml = '';
+            var status = selectedConnectionStatus || contact.connection_status || 'none';
+            if (!selectedCanMessage) {
+                if (status === 'pending_received') {
+                    connectionHtml = '<form class="btchat-connection-form" data-chat-connection-form><input type="hidden" name="action" value="accept-chat"><input type="hidden" name="user_id" value="' + contact.id + '"><button type="submit" class="btn btn-primary btn-sm">Accept request</button></form>';
+                } else if (status === 'pending_sent') {
+                    connectionHtml = '<div class="btchat-connection-form"><button type="button" class="btn btn-outline-secondary btn-sm" disabled>Request pending</button></div>';
+                } else {
+                    connectionHtml = '<form class="btchat-connection-form" data-chat-connection-form><input type="hidden" name="action" value="request-chat"><input type="hidden" name="user_id" value="' + contact.id + '"><button type="submit" class="btn btn-primary btn-sm">Add to chats</button></form>';
+                }
+            }
             headerEl.innerHTML = '' +
                 '<div class="btchat-chat-title">' +
                     '<button type="button" class="btchat-back-btn" id="btchat-mobile-back" aria-label="Back to conversations" title="Back">&#8592;</button>' +
@@ -496,6 +532,7 @@
                         '<div class="btchat-chat-sub">' + escapeHtml(subtitle) + '</div>' +
                     '</div>' +
                 '</div>' +
+                connectionHtml +
                 '<div class="btchat-actions">' +
                     '<button type="button" class="btchat-menu-toggle"><i class="feather-more-horizontal"></i></button>' +
                     '<div class="btchat-menu" role="menu">' +
@@ -509,8 +546,35 @@
                     '</div>' +
                 '</div>';
             bindHeaderMenu();
+            bindConnectionForms(headerEl);
             scrubActionTooltips(headerEl);
             bindAvatarFallback(headerEl);
+        }
+
+        function bindConnectionForms(scopeEl) {
+            var scope = scopeEl || document;
+            scope.querySelectorAll('[data-chat-connection-form]').forEach(function (connectionForm) {
+                if (connectionForm.dataset.bound === '1') {
+                    return;
+                }
+                connectionForm.dataset.bound = '1';
+                connectionForm.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    var fd = new FormData(connectionForm);
+                    fd.set('ajax', '1');
+                    var userId = parseInt(fd.get('user_id') || selectedUserId || '0', 10) || 0;
+                    postChatAction(fd, userId).then(function (result) {
+                        if (!result.ok || !result.payload || result.payload.ok === false) {
+                            showAlert('error', result.payload && result.payload.error ? result.payload.error : 'Could not update chat request.');
+                            return;
+                        }
+                        showAlert('success', result.payload.success || 'Chat request updated.');
+                        applyState(result.payload, { forceScroll: false });
+                    }).catch(function () {
+                        showAlert('error', 'Could not update chat request.');
+                    });
+                });
+            });
         }
 
         function muteStorageKey(userId) {
@@ -1390,6 +1454,7 @@
                 sendBtnEl.innerHTML = '&#128077;';
                 sendBtnEl.dataset.mode = 'like';
             }
+            sendBtnEl.disabled = !selectedCanMessage;
         }
 
         function dateSepLabel(dateKey) {
@@ -1533,7 +1598,6 @@
                 }
                 html += mediaHtml;
                 if (displayMsg) { html += nl2br(displayMsg); }
-                html += metaHtml;
                 if (hasReaction) {
                     html += '<button type="button" class="msg-reaction-badge" data-reaction-mid="' + msg.message_id + '" aria-label="View reactions">' +
                         '<span class="msg-reaction-icons">' + reactionIconsHtml + '</span>' +
@@ -1544,6 +1608,7 @@
                 if (!msg.is_own && !isUnsent) {
                     html += '<button type="button" class="msg-hover-menu-btn" data-message-id="' + msg.message_id + '">&#8226;&#8226;&#8226;</button>';
                 }
+                html += metaHtml;
                 html += '</div>';
 
                 // Sent indicator under the last own message
@@ -1566,10 +1631,13 @@
         function applyState(payload, options) {
             var state = payload || {};
             var previousSelectedUserId = selectedUserId;
+            selectedCanMessage = !!state.selectedCanMessage;
+            selectedConnectionStatus = state.selectedConnectionStatus || 'none';
             if (typeof state.selectedUserId === 'number' && state.selectedUserId > 0) {
                 selectedUserId = state.selectedUserId;
                 app.setAttribute('data-selected-user-id', String(selectedUserId));
             }
+            updateComposeConsentState();
             if (selectedUserId !== previousSelectedUserId) {
                 clearReplyTarget();
             }
@@ -2119,6 +2187,10 @@
                 if (!selectedUserId || !inputEl) {
                     return;
                 }
+                if (!selectedCanMessage) {
+                    showAlert('error', selectedConnectionStatus === 'pending_received' ? 'Accept the request before messaging.' : (selectedConnectionStatus === 'pending_sent' ? 'Wait for this person to accept your request.' : 'Send a chat request first.'));
+                    return;
+                }
                 var message = inputEl.value.trim();
                 var normalizedMessage = inputEl.value.replace(/[\r\n\s]+/g, '');
                 var hasMedia = mediaInputEl && mediaInputEl.files && mediaInputEl.files.length > 0;
@@ -2169,7 +2241,7 @@
                 }).catch(function () {
                     fetchState(true, { forceScroll: true });
                 }).finally(function () {
-                    if (sendBtnEl) { sendBtnEl.disabled = false; }
+                    if (sendBtnEl) { sendBtnEl.disabled = !selectedCanMessage; }
                     if (inputEl) { inputEl.focus(); }
                 });
             });
