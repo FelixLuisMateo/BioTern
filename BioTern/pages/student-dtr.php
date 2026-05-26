@@ -366,6 +366,7 @@ $user = null;
 $student = null;
 $internship = null;
 $attendanceRows = [];
+$studentDtrExistingDateMap = [];
 $attendanceSummary = [
     'total_logs' => 0,
     'approved_logs' => 0,
@@ -501,6 +502,28 @@ if ($student) {
             }
         }
         $attendanceStmt->close();
+    }
+
+    $existingDateStmt = $conn->prepare("
+        SELECT attendance_date, source, status
+        FROM attendances
+        WHERE student_id = ?
+        ORDER BY attendance_date ASC, id ASC
+    ");
+    if ($existingDateStmt) {
+        $existingDateStmt->bind_param('i', $studentId);
+        $existingDateStmt->execute();
+        $existingDateResult = $existingDateStmt->get_result();
+        while ($existingDateResult && ($existingDateRow = $existingDateResult->fetch_assoc())) {
+            $existingDate = (string)($existingDateRow['attendance_date'] ?? '');
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $existingDate)) {
+                $studentDtrExistingDateMap[$existingDate] = [
+                    'source' => strtolower(trim((string)($existingDateRow['source'] ?? 'manual'))),
+                    'status' => strtolower(trim((string)($existingDateRow['status'] ?? 'pending'))),
+                ];
+            }
+        }
+        $existingDateStmt->close();
     }
 
     if ($attendanceRows !== []) {
@@ -860,7 +883,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
     }
 
     if ($errors === []) {
-        $existingStmt = $conn->prepare("SELECT id, source FROM attendances WHERE student_id = ? AND attendance_date = ? ORDER BY id DESC LIMIT 1");
+        $conflictingDates = [];
+        $existingStmt = $conn->prepare("SELECT id, source, status FROM attendances WHERE student_id = ? AND attendance_date = ? ORDER BY id DESC LIMIT 1");
         if ($existingStmt) {
             foreach ($targetDates as $targetDate) {
                 $existingStmt->bind_param('is', $studentId, $targetDate);
@@ -868,13 +892,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
                 $existing = $existingStmt->get_result()->fetch_assoc() ?: null;
                 if ($existing) {
                     $existingSource = strtolower(trim((string)($existing['source'] ?? 'manual')));
-                    $errors[] = $existingSource === 'biometric'
-                        ? 'Biometric attendance already exists for ' . $targetDate . '. Please request a correction instead.'
-                        : 'Manual fallback entry already exists for ' . $targetDate . '.';
-                    break;
+                    $existingStatus = strtolower(trim((string)($existing['status'] ?? 'pending')));
+                    $conflictingDates[] = $targetDate . ' (' . ($existingSource === 'biometric' ? 'biometric' : 'manual') . ', ' . $existingStatus . ')';
                 }
             }
             $existingStmt->close();
+        }
+        if ($conflictingDates !== []) {
+            $shownConflicts = array_slice($conflictingDates, 0, 8);
+            $errors[] = 'Attendance already exists for these date(s): ' . implode(', ', $shownConflicts) . (count($conflictingDates) > 8 ? ', and ' . (count($conflictingDates) - 8) . ' more' : '') . '. Remove those dates from the range or request a correction instead.';
         }
     }
 
@@ -1729,6 +1755,7 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
     if (!generateButton || !startInput || !endInput || !rowsWrap) {
         return;
     }
+    var existingAttendanceDates = <?php echo json_encode($studentDtrExistingDateMap, JSON_UNESCAPED_SLASHES); ?>;
 
     var escapeHtml = function (value) {
         return String(value)
@@ -1877,16 +1904,23 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
         }
 
         var rows = [];
+        var conflictDates = [];
         for (var cursor = new Date(startDate); cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
             var isoDate = formatLocalDate(cursor);
             var safeDate = escapeHtml(isoDate);
+            var existingMeta = existingAttendanceDates && existingAttendanceDates[isoDate] ? existingAttendanceDates[isoDate] : null;
+            if (existingMeta) {
+                conflictDates.push(isoDate);
+            }
             rows.push(
-                '<tr>' +
-                    '<td data-label="Date"><strong>' + escapeHtml(formatLabel(isoDate)) + '</strong></td>' +
-                    '<td data-label="Morning In">' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_in]', '', 5, 11, 'fallbackMorningIn') + '</td>' +
-                    '<td data-label="Morning Out">' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_out]', '', 5, 11, 'fallbackMorningOut') + '</td>' +
-                    '<td data-label="Afternoon In">' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_in]', '', 12, 23, 'fallbackAfternoonIn') + '</td>' +
-                    '<td data-label="Afternoon Out">' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_out]', '', 12, 23, 'fallbackAfternoonOut') + '</td>' +
+                '<tr' + (existingMeta ? ' class="table-warning"' : '') + '>' +
+                    '<td data-label="Date"><strong>' + escapeHtml(formatLabel(isoDate)) + '</strong>' +
+                        (existingMeta ? '<div class="small text-warning fw-semibold">Already filled: ' + escapeHtml(String(existingMeta.source || 'attendance')) + ', ' + escapeHtml(String(existingMeta.status || 'pending')) + '</div>' : '') +
+                    '</td>' +
+                    '<td data-label="Morning In">' + (existingMeta ? '<input type="hidden" name="blocked_existing_dates[]" value="' + safeDate + '"><select class="form-select" disabled><option>Already filled</option></select>' : buildTimeSelect('generated_entries[' + safeDate + '][morning_time_in]', '', 5, 11, 'fallbackMorningIn')) + '</td>' +
+                    '<td data-label="Morning Out">' + (existingMeta ? '<select class="form-select" disabled><option>Already filled</option></select>' : buildTimeSelect('generated_entries[' + safeDate + '][morning_time_out]', '', 5, 11, 'fallbackMorningOut')) + '</td>' +
+                    '<td data-label="Afternoon In">' + (existingMeta ? '<select class="form-select" disabled><option>Already filled</option></select>' : buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_in]', '', 12, 23, 'fallbackAfternoonIn')) + '</td>' +
+                    '<td data-label="Afternoon Out">' + (existingMeta ? '<select class="form-select" disabled><option>Already filled</option></select>' : buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_out]', '', 12, 23, 'fallbackAfternoonOut')) + '</td>' +
                 '</tr>'
             );
         }
@@ -1904,10 +1938,15 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
         rowsWrap.addEventListener('input', updateGeneratedHours);
         rowsWrap.addEventListener('change', updateGeneratedHours);
         if (rangeHint) {
-            rangeHint.classList.remove('is-warning');
-            rangeHint.classList.add('is-success');
-            rangeHint.textContent = 'Created ' + rows.length + ' time row' + (rows.length === 1 ? '' : 's') + '. Fill the missing times below, then submit for review.';
-            rangeHint.textContent += ' Dates with existing attendance logs will be rejected so you can request a correction instead.';
+            if (conflictDates.length) {
+                rangeHint.classList.remove('is-success');
+                rangeHint.classList.add('is-warning');
+                rangeHint.textContent = 'Warning: ' + conflictDates.length + ' date(s) already have attendance and are locked: ' + conflictDates.slice(0, 6).join(', ') + (conflictDates.length > 6 ? ', and ' + (conflictDates.length - 6) + ' more' : '') + '. Remove those dates or request a correction.';
+            } else {
+                rangeHint.classList.remove('is-warning');
+                rangeHint.classList.add('is-success');
+                rangeHint.textContent = 'Created ' + rows.length + ' time row' + (rows.length === 1 ? '' : 's') + '. Fill the missing times below, then submit for review.';
+            }
         }
         if (submitWrap) {
             submitWrap.hidden = false;

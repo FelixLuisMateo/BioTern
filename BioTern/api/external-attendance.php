@@ -182,6 +182,43 @@ if ($action === 'manual_table') {
         $proofUpload = $upload;
     }
 
+    $conflictingDates = [];
+    foreach ($dates as $index => $dateValue) {
+        $dateValue = trim((string)$dateValue);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateValue)) {
+            continue;
+        }
+        $payloadPreview = [
+            external_attendance_normalize_time((string)($morningIn[$index] ?? '')),
+            external_attendance_normalize_time((string)($morningOut[$index] ?? '')),
+            external_attendance_normalize_time((string)($afternoonIn[$index] ?? '')),
+            external_attendance_normalize_time((string)($afternoonOut[$index] ?? '')),
+        ];
+        $hasPunchPreview = false;
+        foreach ($payloadPreview as $value) {
+            if ($value !== null && $value !== '') {
+                $hasPunchPreview = true;
+                break;
+            }
+        }
+        if (!$hasPunchPreview) {
+            continue;
+        }
+        $existingForDate = external_attendance_student_record($conn, (int)$student['id'], $dateValue);
+        if ($existingForDate && external_attendance_collect_punches($existingForDate) !== []) {
+            $conflictingDates[] = $dateValue . ' (' . strtolower((string)($existingForDate['source'] ?? 'manual')) . ', ' . strtolower((string)($existingForDate['status'] ?? 'pending')) . ')';
+        }
+    }
+    if ($conflictingDates !== []) {
+        $shownConflicts = array_slice($conflictingDates, 0, 8);
+        echo json_encode([
+            'ok' => false,
+            'saved_count' => 0,
+            'message' => 'External attendance already exists for these date(s): ' . implode(', ', $shownConflicts) . (count($conflictingDates) > 8 ? ', and ' . (count($conflictingDates) - 8) . ' more' : '') . '. Remove those dates from the range or request a correction instead.',
+        ]);
+        exit;
+    }
+
     foreach ($dates as $index => $dateValue) {
         $dateValue = trim((string)$dateValue);
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateValue)) {
@@ -233,12 +270,6 @@ if ($action === 'manual_table') {
                     }
                 }
             }
-            continue;
-        }
-
-        $existingForDate = external_attendance_student_record($conn, (int)$student['id'], $dateValue);
-        if ($existingForDate && external_attendance_collect_punches($existingForDate) !== []) {
-            $lastError = 'External attendance already exists for ' . $dateValue . '. Please request a correction instead.';
             continue;
         }
 
@@ -326,6 +357,23 @@ $startTs = strtotime($startDate);
 $endTs = strtotime($endDate);
 if ($startTs === false || $endTs === false || $endTs < $startTs) {
     echo json_encode(['ok' => false, 'message' => 'End date must be the same as or later than start date.']);
+    exit;
+}
+
+$rangeConflicts = [];
+for ($cursor = $startTs; $cursor <= $endTs; $cursor += 86400) {
+    $targetDate = date('Y-m-d', $cursor);
+    $existingForDate = external_attendance_student_record($conn, (int)$student['id'], $targetDate);
+    if ($existingForDate && external_attendance_collect_punches($existingForDate) !== []) {
+        $rangeConflicts[] = $targetDate . ' (' . strtolower((string)($existingForDate['source'] ?? 'manual')) . ', ' . strtolower((string)($existingForDate['status'] ?? 'pending')) . ')';
+    }
+}
+if ($rangeConflicts !== []) {
+    $shownConflicts = array_slice($rangeConflicts, 0, 8);
+    echo json_encode([
+        'ok' => false,
+        'message' => 'External attendance already exists for these date(s): ' . implode(', ', $shownConflicts) . (count($rangeConflicts) > 8 ? ', and ' . (count($rangeConflicts) - 8) . ' more' : '') . '. Remove those dates from the range or request a correction instead.',
+    ]);
     exit;
 }
 

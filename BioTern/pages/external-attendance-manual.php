@@ -140,8 +140,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $savedCount = 0;
-    $skippedCount = 0;
+    $savePayloadsByDate = [];
+    $conflictingDates = [];
     $reasonLabels = [
         'biometric_unavailable' => 'Biometric unavailable',
         'company_log_only' => 'Company physical log only',
@@ -171,9 +171,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $existingForDate = external_attendance_student_record($conn, (int)$student['id'], $day);
         if ($existingForDate && external_attendance_collect_punches($existingForDate) !== []) {
-            $skippedCount++;
+            $conflictingDates[] = $day . ' (' . strtolower((string)($existingForDate['source'] ?? 'manual')) . ', ' . strtolower((string)($existingForDate['status'] ?? 'pending')) . ')';
             continue;
         }
+        $savePayloadsByDate[$day] = $payload;
+    }
+
+    if ($conflictingDates !== []) {
+        $shownConflicts = array_slice($conflictingDates, 0, 8);
+        $_SESSION['external_attendance_flash'] = [
+            'message' => 'External attendance already exists for these date(s): ' . implode(', ', $shownConflicts) . (count($conflictingDates) > 8 ? ', and ' . (count($conflictingDates) - 8) . ' more' : '') . '. Remove those dates from the range or request a correction instead.',
+            'type' => 'warning',
+        ];
+        header('Location: external-attendance-manual.php?range_start=' . urlencode($rangeStart) . '&range_end=' . urlencode($rangeEnd));
+        exit;
+    }
+
+    $savedCount = 0;
+    foreach ($savePayloadsByDate as $day => $payload) {
 
         $save = external_attendance_upsert_day(
             $conn,
@@ -200,17 +215,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $savedCount++;
         } else {
-            $skippedCount++;
+            $_SESSION['external_attendance_flash'] = ['message' => (string)($save['message'] ?? 'Could not save one or more external DTR rows.'), 'type' => 'warning'];
+            header('Location: external-attendance-manual.php?range_start=' . urlencode($rangeStart) . '&range_end=' . urlencode($rangeEnd));
+            exit;
         }
     }
 
     if ($savedCount <= 0) {
-        $_SESSION['external_attendance_flash'] = ['message' => $skippedCount > 0 ? 'No rows were saved because those dates already have external DTR records. Ask your coordinator/supervisor for review instead.' : 'No manual external DTR rows were saved. Fill at least one day first.', 'type' => 'warning'];
+        $_SESSION['external_attendance_flash'] = ['message' => 'No manual external DTR rows were saved. Fill at least one day first.', 'type' => 'warning'];
         header('Location: external-attendance-manual.php?range_start=' . urlencode($rangeStart) . '&range_end=' . urlencode($rangeEnd));
         exit;
     }
 
-    $_SESSION['external_attendance_flash'] = ['message' => 'Manual external DTR submitted for review for ' . $savedCount . ' day(s).' . ($skippedCount > 0 ? ' Skipped ' . $skippedCount . ' existing day(s).' : ''), 'type' => 'success'];
+    $_SESSION['external_attendance_flash'] = ['message' => 'Manual external DTR submitted for review for ' . $savedCount . ' day(s).', 'type' => 'success'];
     header('Location: external-attendance-manual.php?range_start=' . urlencode($rangeStart) . '&range_end=' . urlencode($rangeEnd));
     exit;
 }
@@ -249,8 +266,12 @@ $manualRangeEnd = trim((string)($_GET['range_end'] ?? date('Y-m-d')));
 $manualRangeDays = external_attendance_manual_range_days_page($manualRangeStart, $manualRangeEnd);
 $manualRangeError = external_attendance_manual_range_error($manualRangeStart, $manualRangeEnd);
 $manualRangeRecords = [];
+$manualRangeConflictDates = [];
 foreach ($manualRangeDays as $day) {
     $manualRangeRecords[$day] = external_attendance_student_record($conn, (int)$student['id'], $day) ?: [];
+    if ($manualRangeRecords[$day] !== [] && external_attendance_collect_punches($manualRangeRecords[$day]) !== []) {
+        $manualRangeConflictDates[] = $day;
+    }
 }
 
 $page_title = 'BioTern || Manual External DTR';
@@ -323,6 +344,13 @@ include 'includes/header.php';
                         <?php if ($manualRangeError !== ''): ?>
                             <div class="alert alert-warning mb-0"><?php echo external_attendance_manual_h($manualRangeError); ?></div>
                         <?php else: ?>
+                            <?php if ($manualRangeConflictDates !== []): ?>
+                                <div class="alert alert-warning">
+                                    External attendance already exists for <?php echo count($manualRangeConflictDates); ?> date(s) in this range:
+                                    <?php echo external_attendance_manual_h(implode(', ', array_slice($manualRangeConflictDates, 0, 8))); ?><?php echo count($manualRangeConflictDates) > 8 ? external_attendance_manual_h(', and ' . (count($manualRangeConflictDates) - 8) . ' more') : ''; ?>.
+                                    Those rows are locked. Remove them from the range or request a correction.
+                                </div>
+                            <?php endif; ?>
                             <form method="post" enctype="multipart/form-data">
                                 <input type="hidden" name="range_start" value="<?php echo htmlspecialchars($manualRangeStart, ENT_QUOTES, 'UTF-8'); ?>">
                                 <input type="hidden" name="range_end" value="<?php echo htmlspecialchars($manualRangeEnd, ENT_QUOTES, 'UTF-8'); ?>">
