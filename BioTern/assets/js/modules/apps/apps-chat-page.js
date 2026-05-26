@@ -23,6 +23,8 @@
         var composeWarningEl = document.getElementById('btchat-compose-warning');
         var composeWarningTextEl = document.getElementById('btchat-compose-warning-text');
         var searchEl = document.getElementById('btchat-search');
+        var unreadTotalEl = document.getElementById('btchat-unread-total');
+        var filterEls = document.querySelectorAll('[data-chat-filter]');
         var confirmModalEl = document.getElementById('chat-confirm-modal');
         var confirmTitleEl = document.getElementById('chat-confirm-title');
         var confirmTextEl = document.getElementById('chat-confirm-text');
@@ -74,13 +76,14 @@
         var activeMessageActionTriggerEl = null;
         var pollHandle = null;
         var currentSearch = '';
+        var contactRoleFilter = 'all';
         var reactionsModalState = null;
         var mediaModalState = null;
         var fetchAbortController = null;
         var stateRequestToken = 0;
         var lastContactsSignature = '';
-        var lastContactsData = [];
-        var lastDirectoryContactsData = [];
+        var lastContactsData = Array.isArray(window.BioTernChatInitialContacts) ? window.BioTernChatInitialContacts : [];
+        var lastDirectoryContactsData = Array.isArray(window.BioTernChatInitialDirectory) ? window.BioTernChatInitialDirectory : [];
         var lastHeaderSignature = '';
         var lastMessagesSignature = '';
         var chatIncomingReady = false;
@@ -172,6 +175,10 @@
             return items.map(function (item) {
                 return [
                     item.id || 0,
+                    item.name || '',
+                    item.avatar_path || '',
+                    item.detail_label || '',
+                    isConversationPinned(item.id || 0) ? 'pinned' : '',
                     item.last_message_at || '',
                     item.unread_count || 0,
                     item.message_count || 0,
@@ -343,6 +350,18 @@
             }
         }
 
+        function updateUnreadTotal(contacts) {
+            if (!unreadTotalEl) {
+                return;
+            }
+            var total = 0;
+            (Array.isArray(contacts) ? contacts : []).forEach(function (contact) {
+                total += Math.max(0, parseInt(contact && contact.unread_count || '0', 10) || 0);
+            });
+            unreadTotalEl.textContent = String(total);
+            unreadTotalEl.classList.toggle('chat-init-hidden', total <= 0);
+        }
+
         function isModerationWarning(message) {
             var text = String(message || '').toLowerCase();
             return text.indexOf('message blocked') !== -1 || text.indexOf('disallowed symbol') !== -1;
@@ -443,8 +462,23 @@
             if (currentSearch) {
                 var term = currentSearch.toLowerCase();
                 items = items.filter(function (item) {
-                    var haystack = ((item.name || '') + ' ' + (item.username || '') + ' ' + (item.email || '') + ' ' + (item.role || '') + ' ' + (item.group_label || '')).toLowerCase();
+                    var haystack = ((item.name || '') + ' ' + (item.username || '') + ' ' + (item.email || '') + ' ' + (item.role || '') + ' ' + (item.group_label || '') + ' ' + (item.student_number || '') + ' ' + (item.section_label || '') + ' ' + (item.course_name || '') + ' ' + (item.detail_label || '')).toLowerCase();
                     return haystack.indexOf(term) !== -1;
+                });
+            }
+            if (contactRoleFilter !== 'all') {
+                items = items.filter(function (item) {
+                    var role = String((item && item.role) || '').toLowerCase();
+                    if (contactRoleFilter === 'unread') {
+                        return (parseInt(item && item.unread_count || '0', 10) || 0) > 0;
+                    }
+                    if (contactRoleFilter === 'students') {
+                        return role === 'student';
+                    }
+                    if (contactRoleFilter === 'staff') {
+                        return role !== 'student';
+                    }
+                    return true;
                 });
             }
             if (!items.length) {
@@ -452,6 +486,24 @@
                 return;
             }
             items = items.slice().sort(function (left, right) {
+                if (!isDirectoryMode) {
+                    var leftPinned = isConversationPinned(left && left.id);
+                    var rightPinned = isConversationPinned(right && right.id);
+                    if (leftPinned !== rightPinned) {
+                        return leftPinned ? -1 : 1;
+                    }
+
+                    var leftRecent = left && left.last_message_at ? Date.parse(left.last_message_at) : 0;
+                    var rightRecent = right && right.last_message_at ? Date.parse(right.last_message_at) : 0;
+                    leftRecent = isNaN(leftRecent) ? 0 : leftRecent;
+                    rightRecent = isNaN(rightRecent) ? 0 : rightRecent;
+                    if (leftRecent !== rightRecent) {
+                        return rightRecent - leftRecent;
+                    }
+
+                    return String((left && left.name) || '').localeCompare(String((right && right.name) || ''));
+                }
+
                 var leftOrder = parseInt(left && left.group_order != null ? left.group_order : 99, 10) || 99;
                 var rightOrder = parseInt(right && right.group_order != null ? right.group_order : 99, 10) || 99;
                 if (leftOrder !== rightOrder) {
@@ -476,11 +528,16 @@
             listEl.innerHTML = modeHeader + items.map(function (contact) {
                 var activeClass = contact.id === selectedUserId ? ' active' : '';
                 var unread = contact.unread_count > 0 ? '<span class="badge rounded-pill bg-primary">' + contact.unread_count + '</span>' : '';
+                var pinned = isConversationPinned(contact.id) ? '<span class="btchat-pin-badge">Pinned</span>' : '';
                 var snippet = contact.last_message ? contact.last_message : 'No messages yet';
                 if (isDirectoryMode && contact.connection_status !== 'accepted') {
                     snippet = contact.connection_status === 'pending_sent'
                         ? 'Request pending'
                         : (contact.connection_status === 'pending_received' ? 'Wants to connect' : 'Tap to request chat');
+                }
+                var roleSub = contact.role_label || 'User';
+                if (contact.detail_label) {
+                    roleSub += ' | ' + contact.detail_label;
                 }
                 var markup = '';
                 markup += '' +
@@ -491,10 +548,10 @@
                                 '<span class="btchat-name" title="' + escapeHtml(contact.name) + '">' + escapeHtml(contact.name) + '</span>' +
                                 (contact.last_message_label ? '<span class="btchat-time">' + escapeHtml(contact.last_message_label) + '</span>' : '') +
                             '</div>' +
-                            '<div class="btchat-role-sub">' + escapeHtml(contact.role_label || 'User') + '</div>' +
+                            '<div class="btchat-role-sub">' + escapeHtml(roleSub) + '</div>' +
                             '<div class="btchat-snippet-row">' +
                                 '<span class="btchat-snippet">' + escapeHtml(snippet) + '</span>' +
-                                unread +
+                                pinned + unread +
                             '</div>' +
                         '</div>' +
                     '</a>';
@@ -508,10 +565,14 @@
                 return;
             }
             var subtitle = contact.role_label || 'User';
+            if (contact.detail_label) {
+                subtitle += ' | ' + contact.detail_label;
+            }
             if (contact.is_online) {
-                subtitle += ' · Online';
+                subtitle += ' | Online';
             }
             var muteLabel = isConversationMuted(contact.id) ? 'Unmute conversation' : 'Mute conversation';
+            var pinLabel = isConversationPinned(contact.id) ? 'Unpin conversation' : 'Pin conversation';
             var connectionHtml = '';
             var status = selectedConnectionStatus || contact.connection_status || 'none';
             if (!selectedCanMessage) {
@@ -537,6 +598,7 @@
                     '<button type="button" class="btchat-menu-toggle"><i class="feather-more-horizontal"></i></button>' +
                     '<div class="btchat-menu" role="menu">' +
                         '<button type="button" class="btchat-menu-item" data-action="view-contact">Contact details</button>' +
+                        '<button type="button" class="btchat-menu-item" data-action="pin-conversation">' + escapeHtml(pinLabel) + '</button>' +
                         '<button type="button" class="btchat-menu-item" data-action="mute-conversation">' + escapeHtml(muteLabel) + '</button>' +
                         '<div class="btchat-menu-divider" role="separator"></div>' +
                         '<button type="button" class="btchat-menu-item" data-action="refresh-chat">Refresh chat</button>' +
@@ -581,9 +643,21 @@
             return 'chatMutedUser:' + String(userId || 0);
         }
 
+        function pinStorageKey(userId) {
+            return 'chatPinnedUser:' + String(userId || 0);
+        }
+
         function isConversationMuted(userId) {
             try {
                 return window.localStorage.getItem(muteStorageKey(userId)) === '1';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function isConversationPinned(userId) {
+            try {
+                return window.localStorage.getItem(pinStorageKey(userId)) === '1';
             } catch (e) {
                 return false;
             }
@@ -595,6 +669,18 @@
                     window.localStorage.setItem(muteStorageKey(userId), '1');
                 } else {
                     window.localStorage.removeItem(muteStorageKey(userId));
+                }
+            } catch (e) {
+                // localStorage can fail in private mode; ignore silently.
+            }
+        }
+
+        function setConversationPinned(userId, pinned) {
+            try {
+                if (pinned) {
+                    window.localStorage.setItem(pinStorageKey(userId), '1');
+                } else {
+                    window.localStorage.removeItem(pinStorageKey(userId));
                 }
             } catch (e) {
                 // localStorage can fail in private mode; ignore silently.
@@ -669,7 +755,7 @@
             var displayName = String(contact.name || contact.username || 'Unknown user');
             var username = String(contact.username || '-');
             var email = String(contact.email || '-');
-            var subtitle = email !== '-' ? email : username;
+            var subtitle = contact.detail_label ? String(contact.detail_label) : (email !== '-' ? email : username);
             var onlineState = contact.is_online ? 'Online' : 'Offline';
             var lastActive = String(contact.last_message_label || 'No messages yet');
             var lastMessagePreview = String(contact.last_message || 'No messages yet');
@@ -1400,6 +1486,13 @@
                     var c = selectedContactRef;
                     if (!c) { return; }
                     openContactModal(c);
+                } else if (action === 'pin-conversation') {
+                    if (!selectedContactRef) { return; }
+                    var currentlyPinned = isConversationPinned(selectedContactRef.id);
+                    setConversationPinned(selectedContactRef.id, !currentlyPinned);
+                    renderHeader(selectedContactRef);
+                    renderContacts(lastContactsData);
+                    lastContactsSignature = '';
                 } else if (action === 'mute-conversation') {
                     if (!selectedContactRef) { return; }
                     var currentlyMuted = isConversationMuted(selectedContactRef.id);
@@ -1644,6 +1737,7 @@
             var contacts = state.contacts || [];
             lastContactsData = contacts;
             lastDirectoryContactsData = state.directoryContacts || contacts;
+            updateUnreadTotal(contacts);
             var messages = state.messages || [];
             var newestIncoming = null;
             messages.forEach(function (message) {
@@ -1976,8 +2070,8 @@
                     updateSendBtn();
                     return;
                 }
-                if (file.size > (10 * 1024 * 1024)) {
-                    showAlert('error', 'Image is too large (max 10 MB).');
+                if (file.size > (5 * 1024 * 1024)) {
+                    showAlert('error', 'Image is too large (max 5 MB).');
                     clearMediaPreview();
                     updateSendBtn();
                     return;
@@ -2204,6 +2298,11 @@
                 if (!message && !hasMedia) {
                     return;
                 }
+                if (message.length > 2000) {
+                    showComposeWarning('Message is too long. Keep chat messages under 2,000 characters.');
+                    inputEl.focus();
+                    return;
+                }
                 if (moderationError) {
                     showComposeWarning(moderationError);
                     if (inputEl) { inputEl.focus(); }
@@ -2256,6 +2355,24 @@
                 }
                 fetchState(false);
             });
+        }
+
+        if (filterEls && filterEls.length) {
+            filterEls.forEach(function (filterEl) {
+                filterEl.addEventListener('click', function () {
+                    contactRoleFilter = filterEl.getAttribute('data-chat-filter') || 'all';
+                    filterEls.forEach(function (btn) {
+                        btn.classList.toggle('active', btn === filterEl);
+                    });
+                    renderContacts(lastContactsData);
+                    lastContactsSignature = '';
+                });
+            });
+        }
+
+        if (lastContactsData.length || lastDirectoryContactsData.length) {
+            updateUnreadTotal(lastContactsData);
+            renderContacts(lastContactsData);
         }
 
         if (replyRemoveEl) {
