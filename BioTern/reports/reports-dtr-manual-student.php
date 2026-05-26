@@ -3,11 +3,14 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
+require_once dirname(__DIR__) . '/lib/manual_dtr_requests.php';
+require_once dirname(__DIR__) . '/includes/admin-activity-log.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_roles_page(['admin', 'coordinator', 'supervisor']);
 external_attendance_ensure_schema($conn);
+manual_dtr_requests_ensure_schema($conn);
 
 $currentRole = get_current_user_role();
 $currentUserId = get_current_user_id_or_zero();
@@ -124,6 +127,24 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     }
                 }
             }
+            manual_dtr_requests_sync_for_attendance_ids($conn, $ids, $newStatus, $currentUserId, $reviewNote);
+            if ($updated > 0) {
+                biotern_admin_activity_log(
+                    $conn,
+                    $newStatus === 'approved' ? 'approve' : 'reject',
+                    'manual_dtr_request',
+                    null,
+                    [
+                        'origin' => $origin,
+                        'student_id' => $studentId,
+                        'attendance_ids' => $ids,
+                        'status' => $newStatus,
+                        'review_note' => $reviewNote,
+                    ],
+                    null,
+                    ucfirst($newStatus) . ' ' . $updated . ' manual DTR date(s) for student #' . $studentId . '.'
+                );
+            }
 
             $_SESSION['manual_dtr_flash'] = [
                 'type' => $updated > 0 ? 'success' : 'warning',
@@ -178,6 +199,7 @@ if ($studentId > 0 && $dateFrom !== '' && $dateTo !== '') {
                 a.id, a.attendance_date, a.morning_time_in, a.morning_time_out,
                 a.afternoon_time_in, a.afternoon_time_out, a.total_hours, a.status,
                 a.remarks, mda.id AS proof_id,
+                mdr.id AS request_id, mdr.reason_category, mdr.reason_details, mdr.submitted_ip, mdr.submitted_user_agent,
                 s.student_id AS student_number, s.first_name, s.last_name,
                 COALESCE(c.name, '') AS course_name, COALESCE(sec.code, sec.name, '') AS section_label
             FROM attendances a
@@ -190,6 +212,8 @@ if ($studentId > 0 && $dateFrom !== '' && $dateTo !== '') {
                 WHERE mda_inner.attendance_id = a.id
                   AND mda_inner.deleted_at IS NULL
             )
+            LEFT JOIN manual_dtr_request_entries mdre ON mdre.attendance_id = a.id
+            LEFT JOIN manual_dtr_requests mdr ON mdr.id = mdre.request_id
             WHERE a.student_id = {$studentId}
               AND a.source = 'manual'
               AND a.attendance_date BETWEEN '{$safeFrom}' AND '{$safeTo}'
@@ -244,6 +268,15 @@ include 'includes/header.php';
                     <?php echo manual_student_h(ucfirst($origin)); ?> |
                     <?php echo manual_student_h($dateFrom . ($dateFrom === $dateTo ? '' : ' to ' . $dateTo)); ?>
                 </small>
+                <?php if (!empty($meta['request_id'])): ?>
+                <div class="small text-muted mt-1">
+                    Request #<?php echo (int)$meta['request_id']; ?> |
+                    <?php echo manual_student_h(manual_dtr_category_label((string)($meta['reason_category'] ?? 'other'))); ?>
+                    <?php if (trim((string)($meta['reason_details'] ?? '')) !== ''): ?>
+                        - <?php echo manual_student_h((string)$meta['reason_details']); ?>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
             </div>
             <a href="reports-dtr-manual-input.php" class="btn btn-outline-secondary btn-sm">Back to Students</a>
         </div>

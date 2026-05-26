@@ -4,11 +4,14 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
+require_once dirname(__DIR__) . '/lib/manual_dtr_requests.php';
+require_once dirname(__DIR__) . '/includes/admin-activity-log.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_roles_page(['admin', 'coordinator', 'supervisor']);
 external_attendance_ensure_schema($conn);
+manual_dtr_requests_ensure_schema($conn);
 $currentRole = get_current_user_role();
 $currentUserId = get_current_user_id_or_zero();
 $coordinatorAllowedCourseIds = $currentRole === 'coordinator'
@@ -173,6 +176,23 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     attendance_workflow_sync_student_progress($conn, (int)$studentIdForSync);
                 }
             }
+        }
+        manual_dtr_requests_sync_for_attendance_ids($conn, $ids, $newStatus, $reviewerId, $reviewNote);
+        if ($updated > 0) {
+            biotern_admin_activity_log(
+                $conn,
+                $newStatus === 'approved' ? 'approve' : 'reject',
+                'manual_dtr_request',
+                null,
+                [
+                    'origin' => $origin,
+                    'attendance_ids' => $ids,
+                    'status' => $newStatus,
+                    'review_note' => $reviewNote,
+                ],
+                null,
+                ucfirst($newStatus) . ' ' . $updated . ' manual DTR date(s).'
+            );
         }
 
         $_SESSION['manual_dtr_flash'] = [
@@ -439,6 +459,8 @@ $internalSubmissionsSql = "
         MAX(a.attendance_date) AS date_to,
         COUNT(*) AS day_count,
         MIN(mda.id) AS proof_id,
+        MIN(mdr.id) AS request_id,
+        CONVERT(MAX(mdr.reason_category) USING utf8mb4) COLLATE utf8mb4_general_ci AS reason_category,
         MAX(a.created_at) AS submitted_at,
         CONVERT(GROUP_CONCAT(DISTINCT NULLIF(TRIM(a.remarks), '') SEPARATOR ' | ') USING utf8mb4) COLLATE utf8mb4_general_ci AS notes
     FROM attendances a
@@ -446,6 +468,8 @@ $internalSubmissionsSql = "
     LEFT JOIN courses c ON c.id = s.course_id
     LEFT JOIN sections sec ON sec.id = s.section_id
     INNER JOIN manual_dtr_attachments mda ON mda.attendance_id = a.id AND mda.deleted_at IS NULL
+    LEFT JOIN manual_dtr_request_entries mdre ON mdre.attendance_id = a.id
+    LEFT JOIN manual_dtr_requests mdr ON mdr.id = mdre.request_id
     WHERE a.source = 'manual'
       AND LOWER(COALESCE(a.status, 'pending')) = 'pending'
       {$scopeInternalSql}
@@ -465,6 +489,8 @@ $externalSubmissionsSql = "
         MAX(ea.attendance_date) AS date_to,
         COUNT(*) AS day_count,
         MIN(eda.id) AS proof_id,
+        NULL AS request_id,
+        '' COLLATE utf8mb4_general_ci AS reason_category,
         MAX(ea.created_at) AS submitted_at,
         CONVERT(GROUP_CONCAT(DISTINCT NULLIF(TRIM(ea.notes), '') SEPARATOR ' | ') USING utf8mb4) COLLATE utf8mb4_general_ci AS notes
     FROM external_attendance ea
@@ -688,7 +714,12 @@ include 'includes/header.php';
                                     </td>
                                     <td><?php echo dtr_h((string)($submission['course_name'] ?? '-')); ?></td>
                                     <td><?php echo dtr_h((string)($submission['section_label'] ?? '-')); ?></td>
-                                    <td><span class="badge bg-soft-<?php echo $submission['origin'] === 'external' ? 'info text-info' : 'primary text-primary'; ?>"><?php echo dtr_h(ucfirst((string)$submission['origin'])); ?></span></td>
+                                    <td>
+                                        <span class="badge bg-soft-<?php echo $submission['origin'] === 'external' ? 'info text-info' : 'primary text-primary'; ?>"><?php echo dtr_h(ucfirst((string)$submission['origin'])); ?></span>
+                                        <?php if (!empty($submission['request_id'])): ?>
+                                            <div class="small text-muted mt-1">#<?php echo (int)$submission['request_id']; ?> <?php echo dtr_h(manual_dtr_category_label((string)($submission['reason_category'] ?? 'other'))); ?></div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?php echo dtr_h(dtr_format_range_label((string)$submission['date_from'], (string)$submission['date_to'])); ?></td>
                                     <td><?php echo (int)($submission['day_count'] ?? 0); ?></td>
                                     <td>
