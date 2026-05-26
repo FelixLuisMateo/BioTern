@@ -217,7 +217,7 @@ body.reports-page .chatreports-table-card tbody td,
 body.reports-page .chatlogs-table-card tbody td,
 body.reports-page .attendance-exceptions-card tbody td,
 body.reports-page .card .table tbody td {
-    color: #dbe7ff !important;
+    color: var(--report-text) !important;
 }
 
 body.reports-page .report-kpi-label,
@@ -239,7 +239,7 @@ body.reports-page .chatlogs-convo-participants .sep {
 
 body.reports-page .text-muted,
 body.reports-page small.text-muted {
-    color: #b8c7ea !important;
+    color: var(--report-muted) !important;
     opacity: 1 !important;
 }
 

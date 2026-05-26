@@ -352,6 +352,21 @@ $queueOrigin = strtolower(trim((string)($_GET['origin_filter'] ?? 'all')));
 if (!in_array($queueOrigin, ['all', 'internal', 'external'], true)) {
     $queueOrigin = 'all';
 }
+$manualDtrLockedOrigin = isset($manualDtrLockedOrigin) ? strtolower(trim((string)$manualDtrLockedOrigin)) : '';
+if (in_array($manualDtrLockedOrigin, ['internal', 'external'], true)) {
+    $queueOrigin = $manualDtrLockedOrigin;
+}
+$manualDtrPageLabel = trim((string)($manualDtrPageLabel ?? 'Manual DTR Review'));
+$manualDtrCurrentPage = basename((string)($_SERVER['PHP_SELF'] ?? 'reports-dtr-manual-input.php'));
+if ($manualDtrCurrentPage === 'reports-dtr-manual-input.php' && $manualDtrLockedOrigin === 'internal') {
+    $manualDtrCurrentPage = 'reports-dtr-manual-internal.php';
+} elseif ($manualDtrCurrentPage === 'reports-dtr-manual-input.php' && $manualDtrLockedOrigin === 'external') {
+    $manualDtrCurrentPage = 'reports-dtr-manual-external.php';
+}
+$queueStatus = strtolower(trim((string)($_GET['status_filter'] ?? 'pending')));
+if (!in_array($queueStatus, ['pending', 'approved', 'rejected', 'all'], true)) {
+    $queueStatus = 'pending';
+}
 $queueSearch = trim((string)($_GET['q'] ?? ''));
 $queueDateFrom = trim((string)($_GET['from'] ?? ''));
 $queueDateTo = trim((string)($_GET['to'] ?? ''));
@@ -432,6 +447,12 @@ if ($queueSearch !== '') {
     $queueInternalWhere .= $searchSql;
     $queueExternalWhere .= $searchSql;
 }
+$queueInternalStatusWhere = $queueStatus === 'all'
+    ? ''
+    : " AND LOWER(COALESCE(a.status, 'pending')) = '" . $conn->real_escape_string($queueStatus) . "'";
+$queueExternalStatusWhere = $queueStatus === 'all'
+    ? ''
+    : " AND LOWER(COALESCE(ea.status, 'pending')) = '" . $conn->real_escape_string($queueStatus) . "'";
 if ($queueDateFrom !== '' && $queueDateTo !== '') {
     $safeQueueFrom = $conn->real_escape_string($queueDateFrom);
     $safeQueueTo = $conn->real_escape_string($queueDateTo);
@@ -471,7 +492,7 @@ $internalSubmissionsSql = "
     LEFT JOIN manual_dtr_request_entries mdre ON mdre.attendance_id = a.id
     LEFT JOIN manual_dtr_requests mdr ON mdr.id = mdre.request_id
     WHERE a.source = 'manual'
-      AND LOWER(COALESCE(a.status, 'pending')) = 'pending'
+      {$queueInternalStatusWhere}
       {$scopeInternalSql}
       {$queueInternalWhere}
     GROUP BY s.id, s.student_id, s.first_name, s.last_name, c.name, sec.code, sec.name
@@ -499,7 +520,7 @@ $externalSubmissionsSql = "
     LEFT JOIN sections sec ON sec.id = s.section_id
     LEFT JOIN external_dtr_attachments eda ON eda.external_attendance_id = ea.id AND eda.deleted_at IS NULL
     WHERE ea.source = 'manual'
-      AND LOWER(COALESCE(ea.status, 'pending')) = 'pending'
+      {$queueExternalStatusWhere}
       {$scopeExternalSql}
       {$queueExternalWhere}
     GROUP BY s.id, s.student_id, s.first_name, s.last_name, c.name, sec.code, sec.name
@@ -606,7 +627,7 @@ if ($detailOrigin !== '' && $detailStudentId > 0 && preg_match('/^\d{4}-\d{2}-\d
 $page_body_class = trim(($page_body_class ?? '') . ' reports-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-shell.css']);
 $page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-shell-runtime.js']);
-$page_title = 'BioTern || Manual DTR Review';
+$page_title = 'BioTern || ' . $manualDtrPageLabel;
 include 'includes/header.php';
 ?>
 <style>
@@ -630,12 +651,12 @@ include 'includes/header.php';
     <div class="page-header">
         <div class="page-header-left d-flex align-items-center">
             <div class="page-header-title">
-                <h5 class="m-b-10">Manual DTR Review</h5>
+                <h5 class="m-b-10"><?php echo dtr_h($manualDtrPageLabel); ?></h5>
             </div>
             <ul class="breadcrumb">
                 <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
                 <li class="breadcrumb-item"><a href="index.php">Reports</a></li>
-                <li class="breadcrumb-item">Manual DTR Review</li>
+                <li class="breadcrumb-item"><?php echo dtr_h($manualDtrPageLabel); ?></li>
             </ul>
         </div>
     </div>
@@ -646,17 +667,31 @@ include 'includes/header.php';
 
     <div class="card mb-3">
         <div class="card-body">
-            <form method="get" class="row g-2 align-items-end">
+            <form method="get" action="<?php echo dtr_h($manualDtrCurrentPage); ?>" class="row g-2 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label" for="manualDtrSearch">Search Student</label>
                     <input type="text" class="form-control" id="manualDtrSearch" name="q" value="<?php echo dtr_h($queueSearch); ?>" placeholder="Name, ID, course, section">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label" for="manualDtrOrigin">Type</label>
+                    <?php if ($manualDtrLockedOrigin !== ''): ?>
+                    <input type="hidden" name="origin_filter" value="<?php echo dtr_h($manualDtrLockedOrigin); ?>">
+                    <input type="text" class="form-control" value="<?php echo dtr_h(ucfirst($manualDtrLockedOrigin)); ?>" readonly>
+                    <?php else: ?>
                     <select class="form-select" id="manualDtrOrigin" name="origin_filter">
                         <option value="all" <?php echo $queueOrigin === 'all' ? 'selected' : ''; ?>>All</option>
                         <option value="internal" <?php echo $queueOrigin === 'internal' ? 'selected' : ''; ?>>Internal</option>
                         <option value="external" <?php echo $queueOrigin === 'external' ? 'selected' : ''; ?>>External</option>
+                    </select>
+                    <?php endif; ?>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="manualDtrStatus">Status</label>
+                    <select class="form-select" id="manualDtrStatus" name="status_filter">
+                        <option value="pending" <?php echo $queueStatus === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                        <option value="approved" <?php echo $queueStatus === 'approved' ? 'selected' : ''; ?>>Approved</option>
+                        <option value="rejected" <?php echo $queueStatus === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
+                        <option value="all" <?php echo $queueStatus === 'all' ? 'selected' : ''; ?>>All</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -667,9 +702,9 @@ include 'includes/header.php';
                     <label class="form-label" for="manualDtrTo">To</label>
                     <input type="date" class="form-control" id="manualDtrTo" name="to" value="<?php echo dtr_h($queueDateTo); ?>">
                 </div>
-                <div class="col-md-3 d-flex gap-2">
+                <div class="col-md-1 d-flex gap-2">
                     <button type="submit" class="btn btn-primary">Apply Filters</button>
-                    <a href="reports-dtr-manual-input.php" class="btn btn-outline-secondary">Reset</a>
+                    <a href="<?php echo dtr_h($manualDtrCurrentPage); ?>" class="btn btn-outline-secondary">Reset</a>
                 </div>
             </form>
         </div>
@@ -678,7 +713,7 @@ include 'includes/header.php';
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
             <span class="fw-semibold">Student Manual DTR Submissions</span>
-            <span class="badge bg-soft-warning text-warning"><?php echo count($submissionRows); ?> pending</span>
+            <span class="badge bg-soft-warning text-warning"><?php echo count($submissionRows); ?> <?php echo dtr_h($queueStatus === 'all' ? 'records' : $queueStatus); ?></span>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -697,7 +732,7 @@ include 'includes/header.php';
                     </thead>
                     <tbody>
                         <?php if ($submissionRows === []): ?>
-                            <tr><td colspan="8" class="text-center py-4 text-muted">No pending student manual DTR submissions.</td></tr>
+                            <tr><td colspan="8" class="text-center py-4 text-muted">No student manual DTR submissions found for this filter.</td></tr>
                         <?php else: ?>
                             <?php foreach ($submissionRows as $submission): ?>
                                 <?php

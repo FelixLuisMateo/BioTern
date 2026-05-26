@@ -9,6 +9,25 @@
   var initialized = new WeakMap();
   var dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
+  function parseDateKey(value) {
+    var raw = typeof value === "string" ? value.trim() : "";
+    if (!dateRegex.test(raw)) {
+      return null;
+    }
+    var parts = raw.split("-");
+    var year = Number(parts[0]);
+    var month = Number(parts[1]);
+    var day = Number(parts[2]);
+    if (!year || !month || !day) {
+      return null;
+    }
+    var date = new Date(year, month - 1, day);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+      return null;
+    }
+    return date;
+  }
+
   function normalizeDateValue(value) {
     var raw = typeof value === "string" ? value.trim() : "";
     if (!raw) {
@@ -42,10 +61,10 @@
     var minDate = input.getAttribute("min");
     var maxDate = input.getAttribute("max");
     if (minDate) {
-      options.minDate = minDate;
+      options.minDate = parseDateKey(minDate) || minDate;
     }
     if (maxDate) {
-      options.maxDate = maxDate;
+      options.maxDate = parseDateKey(maxDate) || maxDate;
     }
 
     if (input.dataset.datepickerAutohide === "0") {
@@ -129,7 +148,7 @@
       try {
         pickerInstance = new global.Datepicker(input, getPickerOptions(input));
         if (input.value) {
-          pickerInstance.setDate(input.value, { render: false });
+          pickerInstance.setDate(parseDateKey(input.value) || input.value, { render: false });
           pickerInstance.refresh("input", true);
         }
       } catch (err) {
