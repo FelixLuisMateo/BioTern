@@ -75,6 +75,23 @@ function dtr_proof_url(string $origin, array $row): string
         : 'manual-dtr-proof.php?id=' . $proofId;
 }
 
+$manualDtrLockedOrigin = isset($manualDtrLockedOrigin) ? strtolower(trim((string)$manualDtrLockedOrigin)) : '';
+$manualDtrPageLabel = trim((string)($manualDtrPageLabel ?? 'Manual DTR Review'));
+$manualDtrPageMode = strtolower(trim((string)($manualDtrPageMode ?? 'review')));
+if (!in_array($manualDtrPageMode, ['review', 'results'], true)) {
+    $manualDtrPageMode = 'review';
+}
+$manualDtrCurrentPage = basename((string)($_SERVER['PHP_SELF'] ?? 'reports-dtr-manual-input.php'));
+if ($manualDtrCurrentPage === 'reports-dtr-manual-input.php' && $manualDtrLockedOrigin === 'internal') {
+    $manualDtrCurrentPage = $manualDtrPageMode === 'results'
+        ? 'reports-dtr-manual-internal-results.php'
+        : 'reports-dtr-manual-internal.php';
+} elseif ($manualDtrCurrentPage === 'reports-dtr-manual-input.php' && $manualDtrLockedOrigin === 'external') {
+    $manualDtrCurrentPage = $manualDtrPageMode === 'results'
+        ? 'reports-dtr-manual-external-results.php'
+        : 'reports-dtr-manual-external.php';
+}
+
 $flash = $_SESSION['manual_dtr_flash'] ?? null;
 unset($_SESSION['manual_dtr_flash']);
 
@@ -106,12 +123,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
         if ($ids === []) {
             $_SESSION['manual_dtr_flash'] = ['type' => 'warning', 'message' => 'Select at least one manual DTR date first.'];
-            header('Location: reports-dtr-manual-input.php');
+            header('Location: ' . $manualDtrCurrentPage);
             exit;
         }
         if ($newStatus === 'rejected' && $reviewNote === '') {
             $_SESSION['manual_dtr_flash'] = ['type' => 'warning', 'message' => 'A review note is required when rejecting manual DTR.'];
-            header('Location: reports-dtr-manual-input.php');
+            header('Location: ' . $manualDtrCurrentPage);
             exit;
         }
 
@@ -201,7 +218,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 ? ucfirst($newStatus) . ' ' . $updated . ' manual DTR date(s).'
                 : 'No manual DTR rows were updated.',
         ];
-        $return = 'reports-dtr-manual-input.php';
+        $return = $manualDtrCurrentPage;
         foreach (['origin', 'student_id', 'from', 'to'] as $key) {
             if (isset($_POST[$key]) && trim((string)$_POST[$key]) !== '') {
                 $return .= (str_contains($return, '?') ? '&' : '?') . urlencode($key) . '=' . urlencode((string)$_POST[$key]);
@@ -226,7 +243,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 ");
                 if (!$scopeStmt) {
                     $_SESSION['manual_dtr_flash'] = ['type' => 'danger', 'message' => 'Unable to verify coordinator course access.'];
-                    header('Location: reports-dtr-manual-input.php');
+                    header('Location: ' . $manualDtrCurrentPage);
                     exit;
                 }
                 $scopeStmt->bind_param('i', $attendanceId);
@@ -235,7 +252,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $scopeStmt->close();
                 if (!$allowedAttendance) {
                     $_SESSION['manual_dtr_flash'] = ['type' => 'danger', 'message' => 'You can only delete manual DTR records for students in your assigned courses.'];
-                    header('Location: reports-dtr-manual-input.php');
+                    header('Location: ' . $manualDtrCurrentPage);
                     exit;
                 }
             }
@@ -249,7 +266,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 $_SESSION['manual_dtr_flash'] = ['type' => 'danger', 'message' => 'Unable to delete record.'];
             }
         }
-        header('Location: reports-dtr-manual-input.php');
+        header('Location: ' . $manualDtrCurrentPage);
         exit;
     }
 
@@ -264,14 +281,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
     if ($studentId <= 0 || preg_match('/^\d{4}-\d{2}-\d{2}$/', $attendanceDate) !== 1) {
         $_SESSION['manual_dtr_flash'] = ['type' => 'danger', 'message' => 'Student and attendance date are required.'];
-        header('Location: reports-dtr-manual-input.php');
+        header('Location: ' . $manualDtrCurrentPage);
         exit;
     }
     if ($coordinatorStudentScopeSql !== '') {
         $scopeStmt = $conn->prepare("SELECT id FROM students WHERE id = ? AND {$coordinatorStudentScopeSql} LIMIT 1");
         if (!$scopeStmt) {
             $_SESSION['manual_dtr_flash'] = ['type' => 'danger', 'message' => 'Unable to verify coordinator course access.'];
-            header('Location: reports-dtr-manual-input.php');
+            header('Location: ' . $manualDtrCurrentPage);
             exit;
         }
         $scopeStmt->bind_param('i', $studentId);
@@ -280,7 +297,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $scopeStmt->close();
         if (!$allowedStudent) {
             $_SESSION['manual_dtr_flash'] = ['type' => 'danger', 'message' => 'You can only add manual DTR records for students in your assigned courses.'];
-            header('Location: reports-dtr-manual-input.php');
+            header('Location: ' . $manualDtrCurrentPage);
             exit;
         }
     }
@@ -342,7 +359,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $_SESSION['manual_dtr_flash'] = ['type' => 'danger', 'message' => 'Failed to prepare manual DTR insert.'];
     }
 
-    header('Location: reports-dtr-manual-input.php');
+    header('Location: ' . $manualDtrCurrentPage);
     exit;
 }
 
@@ -352,20 +369,18 @@ $queueOrigin = strtolower(trim((string)($_GET['origin_filter'] ?? 'all')));
 if (!in_array($queueOrigin, ['all', 'internal', 'external'], true)) {
     $queueOrigin = 'all';
 }
-$manualDtrLockedOrigin = isset($manualDtrLockedOrigin) ? strtolower(trim((string)$manualDtrLockedOrigin)) : '';
 if (in_array($manualDtrLockedOrigin, ['internal', 'external'], true)) {
     $queueOrigin = $manualDtrLockedOrigin;
 }
-$manualDtrPageLabel = trim((string)($manualDtrPageLabel ?? 'Manual DTR Review'));
-$manualDtrCurrentPage = basename((string)($_SERVER['PHP_SELF'] ?? 'reports-dtr-manual-input.php'));
-if ($manualDtrCurrentPage === 'reports-dtr-manual-input.php' && $manualDtrLockedOrigin === 'internal') {
-    $manualDtrCurrentPage = 'reports-dtr-manual-internal.php';
-} elseif ($manualDtrCurrentPage === 'reports-dtr-manual-input.php' && $manualDtrLockedOrigin === 'external') {
-    $manualDtrCurrentPage = 'reports-dtr-manual-external.php';
-}
-$queueStatus = strtolower(trim((string)($_GET['status_filter'] ?? 'pending')));
+$queueStatusDefault = $manualDtrPageMode === 'results' ? 'all' : 'pending';
+$queueStatus = strtolower(trim((string)($_GET['status_filter'] ?? $queueStatusDefault)));
 if (!in_array($queueStatus, ['pending', 'approved', 'rejected', 'all'], true)) {
+    $queueStatus = $queueStatusDefault;
+}
+if ($manualDtrPageMode === 'review') {
     $queueStatus = 'pending';
+} elseif ($queueStatus === 'pending') {
+    $queueStatus = 'all';
 }
 $queueSearch = trim((string)($_GET['q'] ?? ''));
 $queueDateFrom = trim((string)($_GET['from'] ?? ''));
@@ -447,12 +462,13 @@ if ($queueSearch !== '') {
     $queueInternalWhere .= $searchSql;
     $queueExternalWhere .= $searchSql;
 }
-$queueInternalStatusWhere = $queueStatus === 'all'
-    ? ''
-    : " AND LOWER(COALESCE(a.status, 'pending')) = '" . $conn->real_escape_string($queueStatus) . "'";
-$queueExternalStatusWhere = $queueStatus === 'all'
-    ? ''
-    : " AND LOWER(COALESCE(ea.status, 'pending')) = '" . $conn->real_escape_string($queueStatus) . "'";
+if ($manualDtrPageMode === 'results' && $queueStatus === 'all') {
+    $queueInternalStatusWhere = " AND LOWER(COALESCE(a.status, 'pending')) IN ('approved', 'rejected')";
+    $queueExternalStatusWhere = " AND LOWER(COALESCE(ea.status, 'pending')) IN ('approved', 'rejected')";
+} else {
+    $queueInternalStatusWhere = " AND LOWER(COALESCE(a.status, 'pending')) = '" . $conn->real_escape_string($queueStatus) . "'";
+    $queueExternalStatusWhere = " AND LOWER(COALESCE(ea.status, 'pending')) = '" . $conn->real_escape_string($queueStatus) . "'";
+}
 if ($queueDateFrom !== '' && $queueDateTo !== '') {
     $safeQueueFrom = $conn->real_escape_string($queueDateFrom);
     $safeQueueTo = $conn->real_escape_string($queueDateTo);
@@ -482,6 +498,7 @@ $internalSubmissionsSql = "
         MIN(mda.id) AS proof_id,
         MIN(mdr.id) AS request_id,
         CONVERT(MAX(mdr.reason_category) USING utf8mb4) COLLATE utf8mb4_general_ci AS reason_category,
+        CONVERT(COALESCE(a.status, 'pending') USING utf8mb4) COLLATE utf8mb4_general_ci AS status,
         MAX(a.created_at) AS submitted_at,
         CONVERT(GROUP_CONCAT(DISTINCT NULLIF(TRIM(a.remarks), '') SEPARATOR ' | ') USING utf8mb4) COLLATE utf8mb4_general_ci AS notes
     FROM attendances a
@@ -495,7 +512,7 @@ $internalSubmissionsSql = "
       {$queueInternalStatusWhere}
       {$scopeInternalSql}
       {$queueInternalWhere}
-    GROUP BY s.id, s.student_id, s.first_name, s.last_name, c.name, sec.code, sec.name
+    GROUP BY s.id, s.student_id, s.first_name, s.last_name, c.name, sec.code, sec.name, a.status
 ";
 $externalSubmissionsSql = "
     SELECT
@@ -512,6 +529,7 @@ $externalSubmissionsSql = "
         MIN(eda.id) AS proof_id,
         NULL AS request_id,
         '' COLLATE utf8mb4_general_ci AS reason_category,
+        CONVERT(COALESCE(ea.status, 'pending') USING utf8mb4) COLLATE utf8mb4_general_ci AS status,
         MAX(ea.created_at) AS submitted_at,
         CONVERT(GROUP_CONCAT(DISTINCT NULLIF(TRIM(ea.notes), '') SEPARATOR ' | ') USING utf8mb4) COLLATE utf8mb4_general_ci AS notes
     FROM external_attendance ea
@@ -523,7 +541,7 @@ $externalSubmissionsSql = "
       {$queueExternalStatusWhere}
       {$scopeExternalSql}
       {$queueExternalWhere}
-    GROUP BY s.id, s.student_id, s.first_name, s.last_name, c.name, sec.code, sec.name
+    GROUP BY s.id, s.student_id, s.first_name, s.last_name, c.name, sec.code, sec.name, ea.status
 ";
 if ($queueOrigin === 'internal') {
     $submissionSql = "{$internalSubmissionsSql} ORDER BY submitted_at DESC, last_name ASC";
@@ -687,12 +705,16 @@ include 'includes/header.php';
                 </div>
                 <div class="col-md-2">
                     <label class="form-label" for="manualDtrStatus">Status</label>
+                    <?php if ($manualDtrPageMode === 'review'): ?>
+                    <input type="hidden" name="status_filter" value="pending">
+                    <input type="text" class="form-control" value="Pending" readonly>
+                    <?php else: ?>
                     <select class="form-select" id="manualDtrStatus" name="status_filter">
-                        <option value="pending" <?php echo $queueStatus === 'pending' ? 'selected' : ''; ?>>Pending</option>
                         <option value="approved" <?php echo $queueStatus === 'approved' ? 'selected' : ''; ?>>Approved</option>
                         <option value="rejected" <?php echo $queueStatus === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
-                        <option value="all" <?php echo $queueStatus === 'all' ? 'selected' : ''; ?>>All</option>
+                        <option value="all" <?php echo $queueStatus === 'all' ? 'selected' : ''; ?>>Approved + Rejected</option>
                     </select>
+                    <?php endif; ?>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label" for="manualDtrFrom">From</label>
@@ -712,7 +734,7 @@ include 'includes/header.php';
 
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <span class="fw-semibold">Student Manual DTR Submissions</span>
+            <span class="fw-semibold"><?php echo $manualDtrPageMode === 'results' ? 'Manual DTR Results' : 'Student Manual DTR Submissions'; ?></span>
             <span class="badge bg-soft-warning text-warning"><?php echo count($submissionRows); ?> <?php echo dtr_h($queueStatus === 'all' ? 'records' : $queueStatus); ?></span>
         </div>
         <div class="card-body p-0">
@@ -726,20 +748,24 @@ include 'includes/header.php';
                             <th>Type</th>
                             <th>Date Range</th>
                             <th>Days</th>
+                            <?php if ($manualDtrPageMode === 'results'): ?>
+                            <th>Status</th>
+                            <?php endif; ?>
                             <th>Proof</th>
                             <th>Submitted</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if ($submissionRows === []): ?>
-                            <tr><td colspan="8" class="text-center py-4 text-muted">No student manual DTR submissions found for this filter.</td></tr>
+                            <tr><td colspan="<?php echo $manualDtrPageMode === 'results' ? 9 : 8; ?>" class="text-center py-4 text-muted">No student manual DTR submissions found for this filter.</td></tr>
                         <?php else: ?>
                             <?php foreach ($submissionRows as $submission): ?>
                                 <?php
                                 $openUrl = 'reports-dtr-manual-student.php?origin=' . urlencode((string)$submission['origin'])
                                     . '&student_id=' . (int)$submission['student_id']
                                     . '&from=' . urlencode((string)$submission['date_from'])
-                                    . '&to=' . urlencode((string)$submission['date_to']);
+                                    . '&to=' . urlencode((string)$submission['date_to'])
+                                    . '&view=' . urlencode($manualDtrPageMode);
                                 $proofUrl = dtr_proof_url((string)$submission['origin'], $submission);
                                 ?>
                                 <tr class="manual-dtr-submission-row cursor-pointer" tabindex="0" role="link" onclick="window.location.href='<?php echo dtr_h($openUrl); ?>'" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); window.location.href='<?php echo dtr_h($openUrl); ?>'; }">
@@ -757,6 +783,14 @@ include 'includes/header.php';
                                     </td>
                                     <td><?php echo dtr_h(dtr_format_range_label((string)$submission['date_from'], (string)$submission['date_to'])); ?></td>
                                     <td><?php echo (int)($submission['day_count'] ?? 0); ?></td>
+                                    <?php if ($manualDtrPageMode === 'results'): ?>
+                                    <td>
+                                        <?php $resultStatus = strtolower((string)($submission['status'] ?? 'pending')); ?>
+                                        <span class="badge bg-soft-<?php echo $resultStatus === 'rejected' ? 'danger text-danger' : 'success text-success'; ?>">
+                                            <?php echo dtr_h(ucfirst($resultStatus)); ?>
+                                        </span>
+                                    </td>
+                                    <?php endif; ?>
                                     <td>
                                         <?php if ($proofUrl !== ''): ?>
                                             <a href="<?php echo dtr_h($proofUrl); ?>" target="_blank" rel="noopener" onclick="event.stopPropagation();" class="badge bg-soft-secondary text-secondary">View proof</a>

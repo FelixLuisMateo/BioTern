@@ -176,6 +176,8 @@ $map = [
   'reports-dtr-manual-input.php' => 'reports/reports-dtr-manual-input.php',
   'reports-dtr-manual-internal.php' => 'reports/reports-dtr-manual-internal.php',
   'reports-dtr-manual-external.php' => 'reports/reports-dtr-manual-external.php',
+  'reports-dtr-manual-internal-results.php' => 'reports/reports-dtr-manual-internal-results.php',
+  'reports-dtr-manual-external-results.php' => 'reports/reports-dtr-manual-external-results.php',
   'reports-dtr-manual-student.php' => 'reports/reports-dtr-manual-student.php',
   'reports-admin-logs.php' => 'reports/reports-admin-logs.php',
 
