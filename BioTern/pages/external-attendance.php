@@ -630,7 +630,7 @@ if ($currentRole === 'student') {
                                     <div class="fw-semibold">Need to encode many dates?</div>
                                     <div class="text-muted small">Use the standalone page for long physical DTR batches like 10 to 20 daily rows.</div>
                                 </div>
-                                <a href="external-biometric.php#manual-dtr" class="btn btn-primary">
+                                <a href="external-attendance-manual.php" class="btn btn-primary">
                                     <i class="feather-edit-3 me-2"></i>
                                     <span>Open Manual DTR Page</span>
                                 </a>

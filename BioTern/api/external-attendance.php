@@ -101,6 +101,7 @@ if ($action === 'clock') {
 }
 
 if ($action === 'manual_table') {
+    $maxManualExternalDays = 31;
     $dates = isset($_POST['dates']) && is_array($_POST['dates']) ? $_POST['dates'] : [];
     $morningIn = isset($_POST['morning_time_in']) && is_array($_POST['morning_time_in']) ? $_POST['morning_time_in'] : [];
     $morningOut = isset($_POST['morning_time_out']) && is_array($_POST['morning_time_out']) ? $_POST['morning_time_out'] : [];
@@ -134,13 +135,40 @@ if ($action === 'manual_table') {
         }
     }
 
+    $uniqueValidDates = [];
+    $today = date('Y-m-d');
+    foreach ($dates as $dateCandidate) {
+        $dateCandidate = trim((string)$dateCandidate);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateCandidate)) {
+            $uniqueValidDates[$dateCandidate] = true;
+        }
+    }
+
     if ($firstValidDate === '') {
         echo json_encode(['ok' => false, 'message' => 'Choose at least one valid date before submitting external DTR.']);
         exit;
     }
+    if (count($uniqueValidDates) > $maxManualExternalDays) {
+        echo json_encode(['ok' => false, 'message' => 'Manual external DTR can cover up to ' . $maxManualExternalDays . ' dates only.']);
+        exit;
+    }
+    foreach (array_keys($uniqueValidDates) as $validDate) {
+        if ($validDate > $today) {
+            echo json_encode(['ok' => false, 'message' => 'Manual external DTR cannot include future dates.']);
+            exit;
+        }
+    }
+    if (!$hasProofUpload) {
+        echo json_encode(['ok' => false, 'message' => 'Upload a physical DTR proof image before submitting manual external DTR.']);
+        exit;
+    }
+    if (strlen($notes) < 10) {
+        echo json_encode(['ok' => false, 'message' => 'Add a clear reviewer note with at least 10 characters.']);
+        exit;
+    }
 
-    if (!$hasSubmittableRow && !$hasProofUpload) {
-        echo json_encode(['ok' => false, 'message' => 'No manual external DTR rows were saved. Fill at least one row or upload proof for an existing row first.']);
+    if (!$hasSubmittableRow) {
+        echo json_encode(['ok' => false, 'message' => 'No manual external DTR rows were saved. Fill at least one row first.']);
         exit;
     }
 

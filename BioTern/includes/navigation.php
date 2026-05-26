@@ -195,7 +195,7 @@ $nav_active_documents = biotern_nav_any_active($nav_current_file, [
 $nav_active_student = biotern_nav_any_active($nav_current_file, [
     'student-profile.php',
     'student-dtr.php', 'student-internal-dtr.php',
-    'student-external-dtr.php', 'external-biometric.php',
+    'student-external-dtr.php', 'external-biometric.php', 'external-attendance-manual.php',
     'student-manual-dtr.php',
     'student-documents.php',
 ]);
@@ -373,18 +373,28 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <span class="nxl-mtext">My Internal DTR</span>
                     </a>
                 </li>
+                <?php if (!$nav_student_has_external_access): ?>
                 <li class="nxl-item<?php echo biotern_nav_is_active('student-manual-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
                     <a href="student-manual-dtr.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-edit-3"></i></span>
                         <span class="nxl-mtext">Manual Internal DTR</span>
                     </a>
                 </li>
+                <?php endif; ?>
                 <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['student-external-dtr.php', 'external-biometric.php']) ? ' active' : ''; ?>">
                     <a href="external-biometric.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-briefcase"></i></span>
                         <span class="nxl-mtext">External Biometric</span>
                     </a>
                 </li>
+                <?php if ($nav_student_has_external_access): ?>
+                <li class="nxl-item<?php echo biotern_nav_is_active('external-attendance-manual.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="external-attendance-manual.php" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-file-plus"></i></span>
+                        <span class="nxl-mtext">Manual External DTR</span>
+                    </a>
+                </li>
+                <?php endif; ?>
                 <li class="nxl-item nxl-caption">
                     <span>Documents</span>
                 </li>

@@ -8,6 +8,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         $canWorkspace = !empty($context['can_workspace']);
         $canSystem = !empty($context['can_system']);
         $isStudent = !empty($context['is_student']);
+        $studentExternal = !empty($context['student_external']);
         $role = strtolower(trim((string)($context['role'] ?? ($isStudent ? 'student' : ''))));
         $manualFiles = [
             'admin' => 'user-manual.php?role=admin',
@@ -47,9 +48,14 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         if ($isStudent) {
             $studentDtrItems = [
                 ['label' => 'My Internal DTR', 'href' => 'student-internal-dtr.php', 'icon' => 'feather-clock'],
-                ['label' => 'Manual Internal DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'],
                 ['label' => 'My External DTR', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'],
             ];
+            if (!$studentExternal) {
+                $studentDtrItems[] = ['label' => 'Manual Internal DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'];
+            }
+            if ($studentExternal) {
+                $studentDtrItems[] = ['label' => 'Manual External DTR', 'href' => 'external-attendance-manual.php', 'icon' => 'feather-file-plus'];
+            }
 
             $navGroups[] = [
                 'key' => 'student',
@@ -59,7 +65,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'profile-details.php',
                     'student-profile.php',
                     'student-dtr.php', 'student-internal-dtr.php',
-                    'student-external-dtr.php', 'external-biometric.php',
+                    'student-external-dtr.php', 'external-biometric.php', 'external-attendance-manual.php',
                     'student-manual-dtr.php',
                     'student-documents.php',
                 ],
