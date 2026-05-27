@@ -268,6 +268,12 @@
     }
 
     .btchat-filter {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2.35rem;
+        min-height: 1.55rem;
         border: 1px solid var(--chat-search-border);
         background: var(--chat-search-bg);
         color: var(--chat-snippet-color);
@@ -277,6 +283,8 @@
         font-weight: 800;
         line-height: 1;
         white-space: nowrap;
+        text-align: center;
+        overflow: visible;
     }
 
     .btchat-filter.active,
