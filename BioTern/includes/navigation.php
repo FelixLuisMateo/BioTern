@@ -198,7 +198,7 @@ $nav_active_documents = biotern_nav_any_active($nav_current_file, [
 $nav_active_student = biotern_nav_any_active($nav_current_file, [
     'student-profile.php',
     'student-dtr.php', 'student-internal-dtr.php',
-    'student-external-dtr.php', 'external-biometric.php',
+    'student-external-dtr.php', 'external-biometric.php', 'external-attendance-manual.php',
     'student-manual-dtr.php',
     'student-documents.php',
 ]);
@@ -206,6 +206,8 @@ $nav_active_reports = biotern_nav_any_active($nav_current_file, [
     'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-hours-completion.php',
     'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
     'reports-unassigned-students.php', 'reports-document.php', 'reports-attendance-anomalies.php',
+    'reports-dtr-manual-input.php', 'reports-dtr-manual-internal.php', 'reports-dtr-manual-external.php',
+    'reports-dtr-manual-internal-results.php', 'reports-dtr-manual-external-results.php', 'reports-dtr-manual-student.php',
 ]);
 $nav_active_academic = biotern_nav_any_active($nav_current_file, [
     'courses.php', 'courses-create.php', 'courses-edit.php',
@@ -351,17 +353,21 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                     </a>
                     <ul class="nxl-submenu">
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-attendance-dtr.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-attendance-dtr.php">Attendance Summary</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['reports-dtr-manual-internal.php']) || ($nav_current_file === 'reports-dtr-manual-student.php' && strtolower((string)($_GET['origin'] ?? '')) !== 'external' && strtolower((string)($_GET['view'] ?? 'review')) !== 'results') ? ' active' : ''; ?>"><a class="nxl-link" href="reports-dtr-manual-internal.php">Internal DTR Review</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['reports-dtr-manual-external.php']) || ($nav_current_file === 'reports-dtr-manual-student.php' && strtolower((string)($_GET['origin'] ?? '')) === 'external' && strtolower((string)($_GET['view'] ?? 'review')) !== 'results') ? ' active' : ''; ?>"><a class="nxl-link" href="reports-dtr-manual-external.php">External DTR Review</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['reports-dtr-manual-internal-results.php']) || ($nav_current_file === 'reports-dtr-manual-student.php' && strtolower((string)($_GET['origin'] ?? '')) !== 'external' && strtolower((string)($_GET['view'] ?? 'review')) === 'results') ? ' active' : ''; ?>"><a class="nxl-link" href="reports-dtr-manual-internal-results.php">Internal DTR Results</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['reports-dtr-manual-external-results.php']) || ($nav_current_file === 'reports-dtr-manual-student.php' && strtolower((string)($_GET['origin'] ?? '')) === 'external' && strtolower((string)($_GET['view'] ?? 'review')) === 'results') ? ' active' : ''; ?>"><a class="nxl-link" href="reports-dtr-manual-external-results.php">External DTR Results</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-attendance-anomalies.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-attendance-anomalies.php">Attendance Issues</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-hours-completion.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-hours-completion.php">Hours Completion</a></li>
                         <?php if ($nav_is_admin): ?>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-student-status.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-student-status.php">Student Status Report</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-attendance-dtr.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-attendance-dtr.php">Attendance Report (DTR)</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-attendance-anomalies.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-attendance-anomalies.php">Attendance Anomalies</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-hours-completion.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-hours-completion.php">Hours Completion Report</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-section.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-section.php">Section Report</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-department.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-department.php">Department Report</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-company.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-company.php">Company Report</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-evaluation.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-evaluation.php">Evaluation Report</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-unassigned-students.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-unassigned-students.php">Unassigned Students Report</a></li>
-                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-document.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-document.php">Document Report</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-student-status.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-student-status.php">Student Status</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-section.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-section.php">Sections</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-department.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-department.php">Departments</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-company.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-company.php">Companies</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-evaluation.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-evaluation.php">Evaluations</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-unassigned-students.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-unassigned-students.php">Unassigned Students</a></li>
+                        <li class="nxl-item<?php echo biotern_nav_is_active('reports-document.php', $nav_current_file) ? ' active' : ''; ?>"><a class="nxl-link" href="reports-document.php">Documents</a></li>
                         <?php endif; ?>
                     </ul>
                 </li>
@@ -378,13 +384,14 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                         <span class="nxl-mtext">Internal DTR</span>
                     </a>
                 </li>
+                <?php if (!$nav_student_has_external_access): ?>
                 <li class="nxl-item<?php echo biotern_nav_is_active('student-manual-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
                     <a href="student-manual-dtr.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-edit-3"></i></span>
                         <span class="nxl-mtext">Manual Internal DTR</span>
                     </a>
                 </li>
-                <?php else: ?>
+                <?php endif; ?>
                 <li class="nxl-item<?php echo biotern_nav_any_active($nav_current_file, ['student-external-dtr.php', 'external-biometric.php']) ? ' active' : ''; ?>">
                     <a href="external-biometric.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-briefcase"></i></span>
@@ -394,6 +401,13 @@ $nav_active_tools = biotern_nav_any_active($nav_current_file, [
                 <li class="nxl-item<?php echo biotern_nav_is_active('student-manual-dtr.php', $nav_current_file) ? ' active' : ''; ?>">
                     <a href="student-manual-dtr.php" class="nxl-link">
                         <span class="nxl-micon"><i class="feather-edit-3"></i></span>
+                        <span class="nxl-mtext">Manual External DTR</span>
+                    </a>
+                </li>
+                <?php if ($nav_student_has_external_access): ?>
+                <li class="nxl-item<?php echo biotern_nav_is_active('external-attendance-manual.php', $nav_current_file) ? ' active' : ''; ?>">
+                    <a href="external-attendance-manual.php" class="nxl-link">
+                        <span class="nxl-micon"><i class="feather-file-plus"></i></span>
                         <span class="nxl-mtext">Manual External DTR</span>
                     </a>
                 </li>

@@ -4,7 +4,9 @@ require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
+require_once dirname(__DIR__) . '/lib/manual_dtr_requests.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
+require_once dirname(__DIR__) . '/includes/admin-activity-log.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -364,6 +366,7 @@ $user = null;
 $student = null;
 $internship = null;
 $attendanceRows = [];
+$studentDtrExistingDateMap = [];
 $attendanceSummary = [
     'total_logs' => 0,
     'approved_logs' => 0,
@@ -381,6 +384,7 @@ $attendanceInsights = [
     'average_hours' => 0.0,
     'last_recorded_date' => '',
 ];
+$manualDtrRequests = [];
 
 $userStmt = $conn->prepare('SELECT id, name, email, profile_picture FROM users WHERE id = ? LIMIT 1');
 if ($userStmt) {
@@ -434,6 +438,7 @@ if (!$student && $user) {
 if ($student) {
     $studentId = (int)($student['id'] ?? 0);
     student_dtr_ensure_manual_attachment_table($conn);
+    manual_dtr_requests_ensure_schema($conn);
     student_dtr_ensure_runtime_dir(student_dtr_manual_upload_dir());
 
     $internshipStmt = $conn->prepare(
@@ -499,6 +504,28 @@ if ($student) {
         $attendanceStmt->close();
     }
 
+    $existingDateStmt = $conn->prepare("
+        SELECT attendance_date, source, status
+        FROM attendances
+        WHERE student_id = ?
+        ORDER BY attendance_date ASC, id ASC
+    ");
+    if ($existingDateStmt) {
+        $existingDateStmt->bind_param('i', $studentId);
+        $existingDateStmt->execute();
+        $existingDateResult = $existingDateStmt->get_result();
+        while ($existingDateResult && ($existingDateRow = $existingDateResult->fetch_assoc())) {
+            $existingDate = (string)($existingDateRow['attendance_date'] ?? '');
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $existingDate)) {
+                $studentDtrExistingDateMap[$existingDate] = [
+                    'source' => strtolower(trim((string)($existingDateRow['source'] ?? 'manual'))),
+                    'status' => strtolower(trim((string)($existingDateRow['status'] ?? 'pending'))),
+                ];
+            }
+        }
+        $existingDateStmt->close();
+    }
+
     if ($attendanceRows !== []) {
         $attendanceIds = [];
         foreach ($attendanceRows as $attendanceRow) {
@@ -540,6 +567,24 @@ if ($student) {
             }
             unset($attendanceRow);
         }
+    }
+
+    $manualRequestStmt = $conn->prepare("
+        SELECT id, date_from, date_to, day_count, total_hours, reason_category, reason_details, status, submitted_at, review_note
+        FROM manual_dtr_requests
+        WHERE student_id = ?
+          AND track = 'internal'
+        ORDER BY submitted_at DESC, id DESC
+        LIMIT 8
+    ");
+    if ($manualRequestStmt) {
+        $manualRequestStmt->bind_param('i', $studentId);
+        $manualRequestStmt->execute();
+        $manualRequestResult = $manualRequestStmt->get_result();
+        while ($manualRequestResult && ($requestRow = $manualRequestResult->fetch_assoc())) {
+            $manualDtrRequests[] = $requestRow;
+        }
+        $manualRequestStmt->close();
     }
 }
 
@@ -646,6 +691,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
     $morningOut = trim((string)($_POST['morning_time_out'] ?? ''));
     $afternoonIn = trim((string)($_POST['afternoon_time_in'] ?? ''));
     $afternoonOut = trim((string)($_POST['afternoon_time_out'] ?? ''));
+    $reasonCategory = strtolower(trim((string)($_POST['reason_category'] ?? '')));
+    $validReasonCategories = manual_dtr_valid_categories();
+    if (!isset($validReasonCategories[$reasonCategory])) {
+        $reasonCategory = '';
+    }
     $fallbackReason = trim((string)($_POST['fallback_reason'] ?? ''));
     $proofClockTime = trim((string)($_POST['proof_clock_time'] ?? ''));
     $proofFile = $_FILES['proof_image'] ?? null;
@@ -691,6 +741,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
     if ($studentRemainingHours <= 0) {
         $errors[] = 'Your required internship hours are already completed. Please contact your coordinator for corrections.';
     }
+    if ($reasonCategory === '') {
+        $errors[] = 'Choose the reason for this manual DTR request.';
+    }
+    if ($reasonCategory === 'other' && $fallbackReason === '') {
+        $errors[] = 'Please explain the reason when choosing Other.';
+    }
     if (!is_array($proofFile) || (int)($proofFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         $errors[] = 'Proof image is required.';
     }
@@ -712,6 +768,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
                 $dateKey = trim((string)$dateKey);
                 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateKey)) {
                     continue;
+                }
+                if (strtotime($dateKey) > strtotime(date('Y-m-d'))) {
+                    $errors[] = $dateKey . ': future dates cannot be submitted.';
+                    break;
                 }
 
                 $rowPayload = [
@@ -746,6 +806,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
 
             if ($errors === [] && $targetDates === []) {
                 $errors[] = 'Generate the date rows first and fill at least one day.';
+            }
+            if ($errors === [] && count($targetDates) > 31) {
+                $errors[] = 'Manual DTR requests can cover up to 31 days only.';
             }
         } else {
             $startTs = strtotime($attendanceDate);
@@ -796,7 +859,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
     }
 
     if ($errors === []) {
-        $existingStmt = $conn->prepare("SELECT id, source FROM attendances WHERE student_id = ? AND attendance_date = ? ORDER BY id DESC LIMIT 1");
+        $pendingStmt = $conn->prepare("
+            SELECT r.id
+            FROM manual_dtr_request_entries e
+            INNER JOIN manual_dtr_requests r ON r.id = e.request_id
+            WHERE r.student_id = ?
+              AND e.attendance_date = ?
+              AND LOWER(COALESCE(r.status, 'pending')) IN ('pending', 'partially_reviewed')
+            LIMIT 1
+        ");
+        if ($pendingStmt) {
+            foreach ($targetDates as $targetDate) {
+                $pendingStmt->bind_param('is', $studentId, $targetDate);
+                $pendingStmt->execute();
+                $pending = $pendingStmt->get_result()->fetch_assoc() ?: null;
+                if ($pending) {
+                    $errors[] = 'A manual DTR request is already pending for ' . $targetDate . '. Wait for review before submitting another one.';
+                    break;
+                }
+            }
+            $pendingStmt->close();
+        }
+    }
+
+    if ($errors === []) {
+        $conflictingDates = [];
+        $existingStmt = $conn->prepare("SELECT id, source, status FROM attendances WHERE student_id = ? AND attendance_date = ? ORDER BY id DESC LIMIT 1");
         if ($existingStmt) {
             foreach ($targetDates as $targetDate) {
                 $existingStmt->bind_param('is', $studentId, $targetDate);
@@ -804,13 +892,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
                 $existing = $existingStmt->get_result()->fetch_assoc() ?: null;
                 if ($existing) {
                     $existingSource = strtolower(trim((string)($existing['source'] ?? 'manual')));
-                    $errors[] = $existingSource === 'biometric'
-                        ? 'Biometric attendance already exists for ' . $targetDate . '. Please request a correction instead.'
-                        : 'Manual fallback entry already exists for ' . $targetDate . '.';
-                    break;
+                    $existingStatus = strtolower(trim((string)($existing['status'] ?? 'pending')));
+                    $conflictingDates[] = $targetDate . ' (' . ($existingSource === 'biometric' ? 'biometric' : 'manual') . ', ' . $existingStatus . ')';
                 }
             }
             $existingStmt->close();
+        }
+        if ($conflictingDates !== []) {
+            $shownConflicts = array_slice($conflictingDates, 0, 8);
+            $errors[] = 'Attendance already exists for these date(s): ' . implode(', ', $shownConflicts) . (count($conflictingDates) > 8 ? ', and ' . (count($conflictingDates) - 8) . ' more' : '') . '. Remove those dates from the range or request a correction instead.';
         }
     }
 
@@ -837,24 +927,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
                 'type' => 'danger',
                 'message' => 'Could not save the proof image.',
             ];
-            $redirectMonth = preg_match('/^\d{4}\-\d{2}$/', $selectedMonth) ? $selectedMonth : date('Y-m');
-            header('Location: student-internal-dtr.php?month=' . urlencode($redirectMonth));
+            header('Location: student-manual-dtr.php');
             exit;
         }
 
-        $insert = $conn->prepare("
+        $conn->begin_transaction();
+        $requestId = 0;
+        $requestTotalHours = 0.0;
+        foreach ($targetDates as $targetDate) {
+            $targetPayload = $payloadsByDate[$targetDate] ?? $payload;
+            $requestTotalHours += (float)student_dtr_manual_metrics($targetPayload)['net_hours'];
+        }
+        $requestDayCount = count($targetDates);
+        $dateFrom = min($targetDates);
+        $dateTo = max($targetDates);
+        $reasonLabel = manual_dtr_category_label($reasonCategory);
+        $combinedReason = trim($reasonLabel . ($fallbackReason !== '' ? ' - ' . $fallbackReason : ''));
+        $submittedIp = manual_dtr_client_ip();
+        $submittedUserAgent = substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
+        $proofSha1 = is_string($proofBlob) && $proofBlob !== '' ? sha1($proofBlob) : (is_file($targetPath) ? sha1_file($targetPath) : null);
+        $trackForRequest = 'internal';
+
+        $requestStmt = $conn->prepare("
+            INSERT INTO manual_dtr_requests (
+                student_id, submitted_by, track, date_from, date_to, day_count, total_hours,
+                reason_category, reason_details, proof_file_path, proof_file_name, proof_file_type, proof_file_size,
+                proof_storage_driver, proof_file_blob, proof_sha1, status, submitted_ip, submitted_user_agent,
+                submitted_at, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, NOW(), NOW(), NOW())
+        ");
+        if ($requestStmt) {
+            $requestStmt->bind_param(
+                'iisssidsssssssbsss',
+                $studentId,
+                $currentUserId,
+                $trackForRequest,
+                $dateFrom,
+                $dateTo,
+                $requestDayCount,
+                $requestTotalHours,
+                $reasonCategory,
+                $fallbackReason,
+                $proofRelativePath,
+                $proofOriginalName,
+                $proofMime,
+                $fileSize,
+                $proofStorageDriver,
+                $proofBlob,
+                $proofSha1,
+                $submittedIp,
+                $submittedUserAgent
+            );
+            $requestStmt->send_long_data(14, is_string($proofBlob) ? $proofBlob : '');
+            $requestStmt->execute();
+            $requestId = (int)$requestStmt->insert_id;
+            $requestStmt->close();
+        }
+
+        $insert = $requestId > 0 ? $conn->prepare("
             INSERT INTO attendances (
                 student_id, attendance_date, morning_time_in, morning_time_out, afternoon_time_in, afternoon_time_out,
                 total_hours, source, status, remarks, created_at, updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, 'manual', 'pending', ?, NOW(), NOW())
-        ");
+        ") : false;
         if ($insert) {
             $attendanceIds = [];
             $successCount = 0;
+            $entryStmt = $conn->prepare("
+                INSERT INTO manual_dtr_request_entries (
+                    request_id, attendance_id, attendance_date, morning_time_in, morning_time_out,
+                    afternoon_time_in, afternoon_time_out, total_hours, status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW())
+            ");
             foreach ($targetDates as $targetDate) {
                 $targetPayload = $payloadsByDate[$targetDate] ?? $payload;
                 $metrics = student_dtr_manual_metrics($targetPayload);
-                $remarks = $fallbackReason;
+                $remarks = $combinedReason;
                 $notes = [];
                 if ($metrics['lunch_deduction_hours'] > 0) {
                     $notes[] = 'Lunch deduction: ' . number_format((float)$metrics['lunch_deduction_hours'], 2) . ' hr';
@@ -881,13 +1029,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
                 $insert->execute();
                 if ($insert->affected_rows > 0) {
                     $successCount++;
-                    $attendanceIds[] = (int)$insert->insert_id;
+                    $attendanceId = (int)$insert->insert_id;
+                    $attendanceIds[] = $attendanceId;
+                    if ($entryStmt) {
+                        $entryStmt->bind_param(
+                            'iisssssd',
+                            $requestId,
+                            $attendanceId,
+                            $targetDate,
+                            $targetPayload['morning_time_in'],
+                            $targetPayload['morning_time_out'],
+                            $targetPayload['afternoon_time_in'],
+                            $targetPayload['afternoon_time_out'],
+                            $netHours
+                        );
+                        $entryStmt->execute();
+                    }
                 }
+            }
+            if ($entryStmt) {
+                $entryStmt->close();
             }
             $insert->close();
 
             if ($attendanceIds !== []) {
-                $attachmentReason = 'Machine-down fallback proof';
+                $attachmentReason = $combinedReason !== '' ? $combinedReason : 'Machine-down fallback proof';
                 if ($proofClockTime !== '') {
                     $attachmentReason .= ' | submitted at ' . $proofClockTime;
                 }
@@ -897,18 +1063,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
 
                 $attachmentStmt = $conn->prepare("
                     INSERT INTO manual_dtr_attachments (
-                        student_id, attendance_id, attendance_date, file_path, file_name, file_type, file_size, reason, uploaded_by, storage_driver, file_blob, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                        student_id, attendance_id, request_id, attendance_date, file_path, file_name, file_type, file_size, reason, uploaded_by, storage_driver, file_blob, proof_sha1, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
                 ");
                 if ($attachmentStmt) {
-                    $fileSize = (int)($proofFile['size'] ?? 0);
                     $uploadedBy = $currentUserId;
                     foreach ($attendanceIds as $index => $attendanceId) {
                         $attendanceDateForAttachment = $targetDates[$index] ?? $attendanceDate;
                         $attachmentStmt->bind_param(
-                            'iissssisiss',
+                            'iiissssisisbs',
                             $studentId,
                             $attendanceId,
+                            $requestId,
                             $attendanceDateForAttachment,
                             $proofRelativePath,
                             $proofOriginalName,
@@ -917,8 +1083,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
                             $attachmentReason,
                             $uploadedBy,
                             $proofStorageDriver,
-                            $proofBlob
+                            $proofBlob,
+                            $proofSha1
                         );
+                        $attachmentStmt->send_long_data(11, is_string($proofBlob) ? $proofBlob : '');
                         $attachmentStmt->execute();
                     }
                     $attachmentStmt->close();
@@ -929,13 +1097,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
             if ($success && function_exists('attendance_workflow_sync_student_progress')) {
                 attendance_workflow_sync_student_progress($conn, $studentId);
             }
+            if ($success) {
+                $conn->commit();
+                biotern_admin_activity_log(
+                    $conn,
+                    'create',
+                    'manual_dtr_request',
+                    (string)$requestId,
+                    [
+                        'student_id' => $studentId,
+                        'date_from' => $dateFrom,
+                        'date_to' => $dateTo,
+                        'day_count' => $successCount,
+                        'reason_category' => $reasonCategory,
+                        'submitted_by_student' => true,
+                    ],
+                    $displayName ?? 'Student manual DTR request',
+                    'Student submitted manual DTR request #' . $requestId . ' for ' . $successCount . ' day(s).'
+                );
+            } else {
+                $conn->rollback();
+            }
             $_SESSION['student_dtr_flash'] = [
                 'type' => $success ? 'success' : 'danger',
                 'message' => $success
-                    ? ('Machine-down fallback attendance submitted for review for ' . $successCount . ' day(s).')
+                    ? ('Manual DTR request submitted for review for ' . $successCount . ' day(s).')
                     : 'Could not submit the fallback attendance.',
             ];
         } else {
+            $conn->rollback();
             $_SESSION['student_dtr_flash'] = [
                 'type' => 'danger',
                 'message' => 'Could not prepare fallback attendance submission.',
@@ -948,8 +1138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
         ];
     }
 
-    $redirectMonth = preg_match('/^\d{4}\-\d{2}$/', $selectedMonth) ? $selectedMonth : date('Y-m');
-    header('Location: student-internal-dtr.php?month=' . urlencode($redirectMonth));
+    header('Location: student-manual-dtr.php');
     exit;
 }
 
@@ -1195,10 +1384,23 @@ include 'includes/header.php';
                                 <div class="external-manual-guide">
                                     <strong>How to submit internal manual DTR:</strong>
                                     <span>1. Choose one missed date or a date range, then click Create Time Rows.</span>
-                                    <span>2. Type the exact missed time for the clock-in/out you need, like 5:25 PM.</span>
+                                    <span>2. Enter the exact missed time for the clock-in/out you need.</span>
                                     <span>Rows are accepted only for dates that do not already have attendance logs.</span>
                                     <span>3. Upload proof and explain what happened. The entry stays pending until school review.</span>
                                 </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="fallbackReasonCategory">Reason</label>
+                                <select class="form-select" id="fallbackReasonCategory" name="reason_category" required>
+                                    <option value="">Choose reason</option>
+                                    <?php foreach (manual_dtr_valid_categories() as $reasonValue => $reasonLabel): ?>
+                                    <option value="<?php echo htmlspecialchars($reasonValue, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($reasonLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="fallbackReason">Details</label>
+                                <input type="text" class="form-control" id="fallbackReason" name="fallback_reason" maxlength="255" placeholder="Short note for the reviewer.">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="fallbackAttendanceDate">Start Date</label>
@@ -1228,8 +1430,11 @@ include 'includes/header.php';
                                         <div class="form-text">Upload JPG, PNG, or WEBP proof.</div>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="fallbackReason">Reason / Details (Optional)</label>
-                                        <input type="text" class="form-control" id="fallbackReason" name="fallback_reason" maxlength="255" placeholder="Optional note for the reviewer.">
+                                        <div class="external-manual-summary" id="fallbackHoursSummary">
+                                            <span>Calculated hours</span>
+                                            <strong>0.00h</strong>
+                                            <small>Only approved hours will count toward rendered hours.</small>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1240,19 +1445,19 @@ include 'includes/header.php';
                             </div>
                             <div class="d-none" aria-hidden="true">
                                 <label class="form-label" for="fallbackMorningIn">Morning In</label>
-                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackMorningIn" name="morning_time_in">
+                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackMorningIn" name="morning_time_in" data-timepicker-disabled="1" data-ui-select="native">
                                     <?php echo student_dtr_time_select_options_html('', 5, 11); ?>
                                 </select>
                                 <label class="form-label" for="fallbackMorningOut">Morning Out</label>
-                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackMorningOut" name="morning_time_out">
+                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackMorningOut" name="morning_time_out" data-timepicker-disabled="1" data-ui-select="native">
                                     <?php echo student_dtr_time_select_options_html('', 5, 11); ?>
                                 </select>
                                 <label class="form-label" for="fallbackAfternoonIn">Afternoon In</label>
-                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackAfternoonIn" name="afternoon_time_in">
+                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackAfternoonIn" name="afternoon_time_in" data-timepicker-disabled="1" data-ui-select="native">
                                     <?php echo student_dtr_time_select_options_html('', 12, 23); ?>
                                 </select>
                                 <label class="form-label" for="fallbackAfternoonOut">Afternoon Out</label>
-                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackAfternoonOut" name="afternoon_time_out">
+                                <select class="form-select student-dtr-time-select external-manual-time-select" id="fallbackAfternoonOut" name="afternoon_time_out" data-timepicker-disabled="1" data-ui-select="native">
                                     <?php echo student_dtr_time_select_options_html('', 12, 23); ?>
                                 </select>
                             </div>
@@ -1260,6 +1465,42 @@ include 'includes/header.php';
                                 <button type="submit" class="btn btn-primary w-100" <?php echo max(0, $remainingHours) <= 0 ? 'disabled' : ''; ?>>Submit Internal DTR for Review</button>
                             </div>
                         </form>
+                    </div>
+                </section>
+                <section class="record-section external-manual-card student-dtr-request-history mb-4">
+                    <div class="external-manual-header">
+                        <h5 class="mb-1">Recent Manual DTR Requests</h5>
+                        <p class="text-muted mb-0">Track submitted requests and review decisions.</p>
+                    </div>
+                    <div class="external-manual-body">
+                        <?php if ($manualDtrRequests === []): ?>
+                            <div class="student-dtr-empty">No manual DTR requests submitted yet.</div>
+                        <?php else: ?>
+                            <div class="student-dtr-request-list">
+                                <?php foreach ($manualDtrRequests as $manualRequest): ?>
+                                    <?php
+                                    $requestStatus = strtolower((string)($manualRequest['status'] ?? 'pending'));
+                                    $requestRange = (string)$manualRequest['date_from'];
+                                    if ((string)$manualRequest['date_to'] !== '' && (string)$manualRequest['date_to'] !== (string)$manualRequest['date_from']) {
+                                        $requestRange .= ' to ' . (string)$manualRequest['date_to'];
+                                    }
+                                    ?>
+                                    <article class="student-dtr-request-item">
+                                        <div>
+                                            <strong><?php echo htmlspecialchars($requestRange, ENT_QUOTES, 'UTF-8'); ?></strong>
+                                            <span><?php echo htmlspecialchars(manual_dtr_category_label((string)($manualRequest['reason_category'] ?? 'other')), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <?php if (trim((string)($manualRequest['review_note'] ?? '')) !== ''): ?>
+                                            <small><?php echo htmlspecialchars((string)$manualRequest['review_note'], ENT_QUOTES, 'UTF-8'); ?></small>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="student-dtr-request-meta">
+                                            <span class="student-dtr-status <?php echo htmlspecialchars($requestStatus === 'partially_reviewed' ? 'pending' : $requestStatus, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $requestStatus)), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <small><?php echo number_format((float)($manualRequest['total_hours'] ?? 0), 2); ?>h / <?php echo (int)($manualRequest['day_count'] ?? 0); ?> day(s)</small>
+                                        </div>
+                                    </article>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </section>
                 <?php endif; ?>
@@ -1456,10 +1697,12 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
     var modeSelect = document.getElementById('fallbackMode');
     var rangeHint = document.getElementById('fallbackDateRangeHint');
     var submitWrap = document.getElementById('fallbackSubmitWrap');
+    var hoursSummary = document.getElementById('fallbackHoursSummary');
 
     if (!generateButton || !startInput || !endInput || !rowsWrap) {
         return;
     }
+    var existingAttendanceDates = <?php echo json_encode($studentDtrExistingDateMap, JSON_UNESCAPED_SLASHES); ?>;
 
     var escapeHtml = function (value) {
         return String(value)
@@ -1487,9 +1730,9 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
 
     var buildTimeSelect = function (name, selected, startHour, endHour, slotName) {
         var slotAttr = slotName ? ' data-time-slot="' + escapeHtml(slotName) + '"' : '';
-        return '<select class="form-select student-dtr-time-select external-manual-time-select" name="' + name + '"' + slotAttr + '>' +
-            buildTimeOptions(selected || '', startHour, endHour) +
-            '</select>';
+        var minValue = String(Math.max(0, Math.min(23, startHour || 0))).padStart(2, '0') + ':00';
+        var maxValue = String(Math.max(0, Math.min(23, endHour || 23))).padStart(2, '0') + ':59';
+        return '<input type="time" class="form-control student-dtr-time-field external-manual-time-input" name="' + name + '" value="' + escapeHtml(selected || '') + '" min="' + minValue + '" max="' + maxValue + '" step="60"' + slotAttr + '>';
     };
 
     var formatLabel = function (dateValue) {
@@ -1514,6 +1757,41 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
 
     var formatLocalDate = function (date) {
         return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+    };
+
+    var timeToMinutes = function (value) {
+        var match = String(value || '').match(/^(\d{2}):(\d{2})$/);
+        if (!match) {
+            return null;
+        }
+        return (parseInt(match[1], 10) * 60) + parseInt(match[2], 10);
+    };
+
+    var updateGeneratedHours = function () {
+        if (!hoursSummary || !rowsWrap) {
+            return;
+        }
+        var totalMinutes = 0;
+        Array.prototype.forEach.call(rowsWrap.querySelectorAll('tbody tr'), function (row) {
+            var morningIn = timeToMinutes((row.querySelector('[name*="[morning_time_in]"]') || {}).value);
+            var morningOut = timeToMinutes((row.querySelector('[name*="[morning_time_out]"]') || {}).value);
+            var afternoonIn = timeToMinutes((row.querySelector('[name*="[afternoon_time_in]"]') || {}).value);
+            var afternoonOut = timeToMinutes((row.querySelector('[name*="[afternoon_time_out]"]') || {}).value);
+            if (morningIn !== null && morningOut !== null && morningOut > morningIn) {
+                totalMinutes += morningOut - morningIn;
+            }
+            if (afternoonIn !== null && afternoonOut !== null && afternoonOut > afternoonIn) {
+                totalMinutes += afternoonOut - afternoonIn;
+            }
+            if (morningOut !== null && afternoonIn !== null && morningOut < afternoonIn && (afternoonIn - morningOut) < 60) {
+                totalMinutes -= 60 - (afternoonIn - morningOut);
+            }
+        });
+        var totalHours = Math.max(0, totalMinutes / 60);
+        var strong = hoursSummary.querySelector('strong');
+        if (strong) {
+            strong.textContent = totalHours.toFixed(2) + 'h';
+        }
     };
 
     var diffDays = function (startDate, endDate) {
@@ -1573,16 +1851,23 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
         }
 
         var rows = [];
+        var conflictDates = [];
         for (var cursor = new Date(startDate); cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
             var isoDate = formatLocalDate(cursor);
             var safeDate = escapeHtml(isoDate);
+            var existingMeta = existingAttendanceDates && existingAttendanceDates[isoDate] ? existingAttendanceDates[isoDate] : null;
+            if (existingMeta) {
+                conflictDates.push(isoDate);
+            }
             rows.push(
-                '<tr>' +
-                    '<td data-label="Date"><strong>' + escapeHtml(formatLabel(isoDate)) + '</strong></td>' +
-                    '<td data-label="Morning In">' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_in]', '', 5, 11, 'fallbackMorningIn') + '</td>' +
-                    '<td data-label="Morning Out">' + buildTimeSelect('generated_entries[' + safeDate + '][morning_time_out]', '', 5, 11, 'fallbackMorningOut') + '</td>' +
-                    '<td data-label="Afternoon In">' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_in]', '', 12, 23, 'fallbackAfternoonIn') + '</td>' +
-                    '<td data-label="Afternoon Out">' + buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_out]', '', 12, 23, 'fallbackAfternoonOut') + '</td>' +
+                '<tr' + (existingMeta ? ' class="table-warning"' : '') + '>' +
+                    '<td data-label="Date"><strong>' + escapeHtml(formatLabel(isoDate)) + '</strong>' +
+                        (existingMeta ? '<div class="small text-warning fw-semibold">Already filled: ' + escapeHtml(String(existingMeta.source || 'attendance')) + ', ' + escapeHtml(String(existingMeta.status || 'pending')) + '</div>' : '') +
+                    '</td>' +
+                    '<td data-label="Morning In">' + (existingMeta ? '<input type="hidden" name="blocked_existing_dates[]" value="' + safeDate + '"><select class="form-select" disabled><option>Already filled</option></select>' : buildTimeSelect('generated_entries[' + safeDate + '][morning_time_in]', '', 5, 11, 'fallbackMorningIn')) + '</td>' +
+                    '<td data-label="Morning Out">' + (existingMeta ? '<select class="form-select" disabled><option>Already filled</option></select>' : buildTimeSelect('generated_entries[' + safeDate + '][morning_time_out]', '', 5, 11, 'fallbackMorningOut')) + '</td>' +
+                    '<td data-label="Afternoon In">' + (existingMeta ? '<select class="form-select" disabled><option>Already filled</option></select>' : buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_in]', '', 12, 23, 'fallbackAfternoonIn')) + '</td>' +
+                    '<td data-label="Afternoon Out">' + (existingMeta ? '<select class="form-select" disabled><option>Already filled</option></select>' : buildTimeSelect('generated_entries[' + safeDate + '][afternoon_time_out]', '', 12, 23, 'fallbackAfternoonOut')) + '</td>' +
                 '</tr>'
             );
         }
@@ -1596,11 +1881,19 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
                 '</table>' +
             '</div>';
         enhanceTimeFields(rowsWrap);
+        updateGeneratedHours();
+        rowsWrap.addEventListener('input', updateGeneratedHours);
+        rowsWrap.addEventListener('change', updateGeneratedHours);
         if (rangeHint) {
-            rangeHint.classList.remove('is-warning');
-            rangeHint.classList.add('is-success');
-            rangeHint.textContent = 'Created ' + rows.length + ' time row' + (rows.length === 1 ? '' : 's') + '. Fill the missing times below, then submit for review.';
-            rangeHint.textContent += ' Dates with existing attendance logs will be rejected so you can request a correction instead.';
+            if (conflictDates.length) {
+                rangeHint.classList.remove('is-success');
+                rangeHint.classList.add('is-warning');
+                rangeHint.textContent = 'Warning: ' + conflictDates.length + ' date(s) already have attendance and are locked: ' + conflictDates.slice(0, 6).join(', ') + (conflictDates.length > 6 ? ', and ' + (conflictDates.length - 6) + ' more' : '') + '. Remove those dates or request a correction.';
+            } else {
+                rangeHint.classList.remove('is-warning');
+                rangeHint.classList.add('is-success');
+                rangeHint.textContent = 'Created ' + rows.length + ' time row' + (rows.length === 1 ? '' : 's') + '. Fill the missing times below, then submit for review.';
+            }
         }
         if (submitWrap) {
             submitWrap.hidden = false;
@@ -1668,18 +1961,30 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
         return String(hour).padStart(2, '0') + ':' + String(rounded).padStart(2, '0');
     }
 
-    function chooseClosestOption(select, value) {
-        if (!select) {
+    function chooseClosestOption(field, value) {
+        if (!field) {
             return '';
         }
-        var options = Array.prototype.slice.call(select.options || []);
-        var match = options.find(function (option) {
-            return option.value === value;
-        });
-        if (match) {
-            select.value = match.value;
-            select.dispatchEvent(new Event('change', { bubbles: true }));
-            return match.value;
+        if (field.tagName && field.tagName.toLowerCase() === 'select') {
+            var options = Array.prototype.slice.call(field.options || []);
+            var match = options.find(function (option) {
+                return option.value === value;
+            });
+            if (match) {
+                field.value = match.value;
+                field.dispatchEvent(new Event('change', { bubbles: true }));
+                return match.value;
+            }
+            return '';
+        }
+
+        var min = field.getAttribute('min') || '00:00';
+        var max = field.getAttribute('max') || '23:59';
+        if (value >= min && value <= max) {
+            field.value = value;
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+            return value;
         }
 
         return '';
@@ -1708,14 +2013,14 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
             button.classList.add('is-selected');
 
             var selectId = button.getAttribute('data-target-select') || '';
-            var generatedSelect = document.querySelector('#fallbackGeneratedRowsWrap select[data-time-slot="' + selectId + '"]');
-            if (!generatedSelect) {
+            var generatedField = document.querySelector('#fallbackGeneratedRowsWrap [data-time-slot="' + selectId + '"]');
+            if (!generatedField) {
                 var generateRowsButton = document.getElementById('generateFallbackRows');
                 if (generateRowsButton) {
                     generateRowsButton.click();
                 }
-                generatedSelect = document.querySelector('#fallbackGeneratedRowsWrap select[data-time-slot="' + selectId + '"]');
-                if (!generatedSelect) {
+                generatedField = document.querySelector('#fallbackGeneratedRowsWrap [data-time-slot="' + selectId + '"]');
+                if (!generatedField) {
                     var missingRowsStatus = document.getElementById('quickTimePickerStatus');
                     if (missingRowsStatus) {
                         missingRowsStatus.textContent = 'Choose a date first, then tap a quick time button.';
@@ -1723,7 +2028,7 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
                     return;
                 }
             }
-            var chosenValue = chooseClosestOption(generatedSelect, nearestThirtyMinuteValue());
+            var chosenValue = chooseClosestOption(generatedField, nearestThirtyMinuteValue());
 
             var noteInput = document.getElementById('quickInternalPunchNote');
             var reasonBox = document.getElementById('fallbackReason');

@@ -38,7 +38,25 @@ if (!function_exists('biotern_theme_db_connection')) {
 if (!function_exists('biotern_theme_ensure_preferences_table')) {
     function biotern_theme_ensure_preferences_table(mysqli $conn): bool
     {
-        return (bool)$conn->query("CREATE TABLE IF NOT EXISTS user_theme_preferences (
+        static $checked = false;
+        static $available = false;
+
+        if ($checked) {
+            return $available;
+        }
+
+        $checked = true;
+        $result = $conn->query("SHOW TABLES LIKE 'user_theme_preferences'");
+        if ($result instanceof mysqli_result) {
+            if ($result->num_rows > 0) {
+                $available = true;
+                $result->free();
+                return true;
+            }
+            $result->free();
+        }
+
+        $available = (bool)$conn->query("CREATE TABLE IF NOT EXISTS user_theme_preferences (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             user_id INT UNSIGNED NOT NULL,
             preferences_json TEXT NOT NULL,
@@ -47,6 +65,8 @@ if (!function_exists('biotern_theme_ensure_preferences_table')) {
             PRIMARY KEY (id),
             UNIQUE KEY uq_user_theme_preferences_user_id (user_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+
+        return $available;
     }
 }
 

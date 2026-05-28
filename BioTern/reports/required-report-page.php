@@ -2,14 +2,13 @@
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
-$currentRole = strtolower(trim((string)($_SESSION['role'] ?? '')));
-if ($currentRole !== 'admin') {
-    header('Location: homepage.php');
-    exit;
-}
+$currentRole = get_current_user_role();
+$currentUserId = get_current_user_id_or_zero();
+require_roles_page(['admin', 'coordinator', 'supervisor']);
 
 function rr_esc($value): string
 {
@@ -73,6 +72,46 @@ function rr_request_date(string $key): string
 function rr_where(array $conditions): string
 {
     return $conditions ? ' WHERE ' . implode(' AND ', $conditions) : '';
+}
+
+function rr_student_scope_condition(mysqli $conn, string $studentAlias = 's'): string
+{
+    $role = get_current_user_role();
+    $userId = get_current_user_id_or_zero();
+    $studentAlias = preg_replace('/[^A-Za-z0-9_]/', '', $studentAlias) ?: 's';
+
+    if ($role === 'admin') {
+        return '';
+    }
+
+    if ($role === 'coordinator') {
+        $courseIds = coordinator_course_ids($conn, $userId);
+        if ($courseIds === []) {
+            return '1 = 0';
+        }
+        return $studentAlias . '.course_id IN (' . implode(',', array_map('intval', $courseIds)) . ')';
+    }
+
+    if ($role === 'supervisor') {
+        $conditions = [];
+        if (rr_column_exists($conn, 'students', 'supervisor_id')) {
+            $conditions[] = $studentAlias . '.supervisor_id = ' . $userId;
+        }
+        if (rr_table_exists($conn, 'internships') && rr_column_exists($conn, 'internships', 'supervisor_id')) {
+            $conditions[] = 'EXISTS (SELECT 1 FROM internships scope_i WHERE scope_i.student_id = ' . $studentAlias . '.id AND scope_i.supervisor_id = ' . $userId . ')';
+        }
+        return $conditions ? '(' . implode(' OR ', $conditions) . ')' : '1 = 0';
+    }
+
+    return '1 = 0';
+}
+
+function rr_add_student_scope(mysqli $conn, array &$where, string $studentAlias = 's'): void
+{
+    $scope = rr_student_scope_condition($conn, $studentAlias);
+    if ($scope !== '') {
+        $where[] = $scope;
+    }
 }
 
 function rr_course_options(mysqli $conn): array
@@ -494,6 +533,7 @@ $reports = [
             if (($type === '' || $type === 'internal') && rr_table_exists($conn, 'attendances')) {
                 $dateField = 'COALESCE(a.attendance_date, DATE(a.created_at))';
                 $where = [];
+                rr_add_student_scope($conn, $where, 's');
                 if ($dateFrom !== '') {
                     $where[] = "{$dateField} >= '" . $conn->real_escape_string($dateFrom) . "'";
                 }
@@ -503,10 +543,31 @@ $reports = [
                 if ($status !== '') {
                     $where[] = "LOWER(COALESCE(a.status, '')) = '" . $conn->real_escape_string($status) . "'";
                 }
-                $rows = array_merge($rows, rr_rows($conn, "SELECT s.id AS student_db_id, 'Internal' AS type, TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student, {$dateField} AS report_date, COALESCE(a.total_hours, '') AS hours, COALESCE(a.status, '-') AS status FROM attendances a LEFT JOIN students s ON s.id = a.student_id" . rr_where($where) . " ORDER BY a.id DESC LIMIT 250"));
+                $manualJoin = rr_table_exists($conn, 'manual_dtr_request_entries')
+                    ? ' LEFT JOIN manual_dtr_request_entries mdre ON mdre.attendance_id = a.id'
+                    : '';
+                if ($manualJoin !== '') {
+                    $where[] = 'mdre.id IS NULL';
+                }
+                $rows = array_merge($rows, rr_rows($conn, "SELECT s.id AS student_db_id, 'Internal' AS type, TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student, {$dateField} AS report_date, COALESCE(a.total_hours, '') AS hours, COALESCE(a.status, '-') AS status FROM attendances a LEFT JOIN students s ON s.id = a.student_id{$manualJoin}" . rr_where($where) . " ORDER BY a.id DESC LIMIT 250"));
+            }
+            if (($type === '' || $type === 'internal') && rr_table_exists($conn, 'manual_dtr_requests')) {
+                $where = ["mdr.track = 'internal'"];
+                rr_add_student_scope($conn, $where, 's');
+                if ($dateFrom !== '') {
+                    $where[] = "mdr.date_to >= '" . $conn->real_escape_string($dateFrom) . "'";
+                }
+                if ($dateTo !== '') {
+                    $where[] = "mdr.date_from <= '" . $conn->real_escape_string($dateTo) . "'";
+                }
+                if ($status !== '') {
+                    $where[] = "LOWER(COALESCE(mdr.status, 'pending')) = '" . $conn->real_escape_string($status) . "'";
+                }
+                $rows = array_merge($rows, rr_rows($conn, "SELECT s.id AS student_db_id, 'Internal Manual Request' AS type, TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student, CASE WHEN mdr.date_from = mdr.date_to THEN CAST(mdr.date_from AS CHAR) ELSE CONCAT(mdr.date_from, ' to ', mdr.date_to) END AS report_date, COALESCE(mdr.total_hours, 0) AS hours, COALESCE(mdr.status, 'pending') AS status, CONCAT('reports-dtr-manual-student.php?origin=internal&student_id=', s.id, '&from=', mdr.date_from, '&to=', mdr.date_to) AS row_url FROM manual_dtr_requests mdr INNER JOIN students s ON s.id = mdr.student_id" . rr_where($where) . " ORDER BY mdr.submitted_at DESC, mdr.id DESC LIMIT 250"));
             }
             if (($type === '' || $type === 'external') && rr_table_exists($conn, 'external_attendance')) {
                 $where = [];
+                rr_add_student_scope($conn, $where, 's');
                 if ($dateFrom !== '') {
                     $where[] = "ea.attendance_date >= '" . $conn->real_escape_string($dateFrom) . "'";
                 }
@@ -516,7 +577,13 @@ $reports = [
                 if ($status !== '') {
                     $where[] = "LOWER(COALESCE(ea.status, '')) = '" . $conn->real_escape_string($status) . "'";
                 }
-                $rows = array_merge($rows, rr_rows($conn, "SELECT s.id AS student_db_id, 'External' AS type, TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student, ea.attendance_date AS report_date, ea.total_hours AS hours, COALESCE(ea.status, '-') AS status FROM external_attendance ea LEFT JOIN students s ON s.id = ea.student_id" . rr_where($where) . " ORDER BY ea.id DESC LIMIT 250"));
+                $rawWhere = $where;
+                $rawWhere[] = "LOWER(COALESCE(ea.source, '')) <> 'manual'";
+                $rows = array_merge($rows, rr_rows($conn, "SELECT s.id AS student_db_id, 'External' AS type, TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student, ea.attendance_date AS report_date, ea.total_hours AS hours, COALESCE(ea.status, '-') AS status FROM external_attendance ea LEFT JOIN students s ON s.id = ea.student_id" . rr_where($rawWhere) . " ORDER BY ea.id DESC LIMIT 250"));
+
+                $manualWhere = $where;
+                $manualWhere[] = "LOWER(COALESCE(ea.source, '')) = 'manual'";
+                $rows = array_merge($rows, rr_rows($conn, "SELECT s.id AS student_db_id, 'External Manual Group' AS type, TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student, CASE WHEN MIN(ea.attendance_date) = MAX(ea.attendance_date) THEN CAST(MIN(ea.attendance_date) AS CHAR) ELSE CONCAT(MIN(ea.attendance_date), ' to ', MAX(ea.attendance_date)) END AS report_date, COALESCE(SUM(ea.total_hours), 0) AS hours, COALESCE(ea.status, '-') AS status, CONCAT('reports-dtr-manual-student.php?origin=external&student_id=', s.id, '&from=', MIN(ea.attendance_date), '&to=', MAX(ea.attendance_date)) AS row_url FROM external_attendance ea LEFT JOIN students s ON s.id = ea.student_id" . rr_where($manualWhere) . " GROUP BY s.id, s.student_id, s.first_name, s.last_name, ea.status ORDER BY MAX(ea.created_at) DESC, MAX(ea.id) DESC LIMIT 250"));
             }
             return $rows;
         },

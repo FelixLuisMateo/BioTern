@@ -21,9 +21,21 @@ if (!$student) {
     header('Location: external-attendance.php');
     exit;
 }
+if (!external_attendance_can_compute_hours($student)) {
+    $_SESSION['external_attendance_flash'] = ['message' => 'Manual external DTR is available only after external attendance access is enabled.', 'type' => 'danger'];
+    header('Location: student-internal-dtr.php');
+    exit;
+}
 
 $externalFlash = $_SESSION['external_attendance_flash'] ?? null;
 unset($_SESSION['external_attendance_flash']);
+
+const EXTERNAL_MANUAL_DTR_MAX_DAYS = 31;
+
+function external_attendance_manual_h($value): string
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
 
 function external_attendance_manual_range_days_page(string $startDate, string $endDate): array
 {
@@ -48,6 +60,30 @@ function external_attendance_manual_range_days_page(string $startDate, string $e
     return $days;
 }
 
+function external_attendance_manual_range_error(string $startDate, string $endDate): string
+{
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+        return 'Choose a valid start and end date.';
+    }
+    $startTs = strtotime($startDate);
+    $endTs = strtotime($endDate);
+    $todayTs = strtotime(date('Y-m-d'));
+    if ($startTs === false || $endTs === false || $endTs < $startTs) {
+        return 'End date must be the same as or later than the start date.';
+    }
+    if ($endTs > $todayTs) {
+        return 'Manual external DTR cannot include future dates.';
+    }
+    $days = external_attendance_manual_range_days_page($startDate, $endDate);
+    if ($days === []) {
+        return 'No fillable dates found in that range.';
+    }
+    if (count($days) > EXTERNAL_MANUAL_DTR_MAX_DAYS) {
+        return 'Manual external DTR can cover up to ' . EXTERNAL_MANUAL_DTR_MAX_DAYS . ' fillable days only.';
+    }
+    return '';
+}
+
 function external_attendance_manual_time_options_page(string $selected = ''): string
 {
     $selected = substr(trim($selected), 0, 5);
@@ -66,17 +102,30 @@ function external_attendance_manual_time_options_page(string $selected = ''): st
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $rangeStart = trim((string)($_POST['range_start'] ?? ''));
     $rangeEnd = trim((string)($_POST['range_end'] ?? ''));
+    $reasonCategory = trim((string)($_POST['reason_category'] ?? ''));
     $notes = trim((string)($_POST['range_notes'] ?? ''));
     $entries = isset($_POST['entries']) && is_array($_POST['entries']) ? $_POST['entries'] : [];
+    $rangeError = external_attendance_manual_range_error($rangeStart, $rangeEnd);
     $rangeDays = external_attendance_manual_range_days_page($rangeStart, $rangeEnd);
 
-    if ($rangeDays === []) {
-        $_SESSION['external_attendance_flash'] = ['message' => 'Choose a valid date range for the manual external DTR upload.', 'type' => 'danger'];
+    if ($rangeError !== '') {
+        $_SESSION['external_attendance_flash'] = ['message' => $rangeError, 'type' => 'danger'];
         header('Location: external-attendance-manual.php');
+        exit;
+    }
+    if (!in_array($reasonCategory, ['biometric_unavailable', 'company_log_only', 'missed_sync', 'other'], true)) {
+        $_SESSION['external_attendance_flash'] = ['message' => 'Choose a reason for the manual external DTR request.', 'type' => 'danger'];
+        header('Location: external-attendance-manual.php?range_start=' . urlencode($rangeStart) . '&range_end=' . urlencode($rangeEnd));
+        exit;
+    }
+    if ($notes === '' || strlen($notes) < 10) {
+        $_SESSION['external_attendance_flash'] = ['message' => 'Add a clear note with at least 10 characters for the reviewer.', 'type' => 'danger'];
+        header('Location: external-attendance-manual.php?range_start=' . urlencode($rangeStart) . '&range_end=' . urlencode($rangeEnd));
         exit;
     }
 
     $photoPath = null;
+    $upload = null;
     if (isset($_FILES['photo']) && (int)($_FILES['photo']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
         $upload = external_attendance_store_photo($_FILES['photo'], (int)$student['id'], $rangeStart);
         if (!($upload['ok'] ?? false)) {
@@ -85,9 +134,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         $photoPath = (string)($upload['path'] ?? '');
+    } else {
+        $_SESSION['external_attendance_flash'] = ['message' => 'Upload a physical DTR proof photo before submitting external manual DTR.', 'type' => 'danger'];
+        header('Location: external-attendance-manual.php?range_start=' . urlencode($rangeStart) . '&range_end=' . urlencode($rangeEnd));
+        exit;
     }
 
-    $savedCount = 0;
+    $savePayloadsByDate = [];
+    $conflictingDates = [];
+    $reasonLabels = [
+        'biometric_unavailable' => 'Biometric unavailable',
+        'company_log_only' => 'Company physical log only',
+        'missed_sync' => 'External record sync missed',
+        'other' => 'Other',
+    ];
+    $reviewNotes = 'Reason: ' . ($reasonLabels[$reasonCategory] ?? 'Other') . ' | ' . $notes;
     foreach ($rangeDays as $day) {
         $row = isset($entries[$day]) && is_array($entries[$day]) ? $entries[$day] : [];
         $payload = [
@@ -108,13 +169,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             continue;
         }
 
+        $existingForDate = external_attendance_student_record($conn, (int)$student['id'], $day);
+        if ($existingForDate && external_attendance_collect_punches($existingForDate) !== []) {
+            $conflictingDates[] = $day . ' (' . strtolower((string)($existingForDate['source'] ?? 'manual')) . ', ' . strtolower((string)($existingForDate['status'] ?? 'pending')) . ')';
+            continue;
+        }
+        $savePayloadsByDate[$day] = $payload;
+    }
+
+    if ($conflictingDates !== []) {
+        $shownConflicts = array_slice($conflictingDates, 0, 8);
+        $_SESSION['external_attendance_flash'] = [
+            'message' => 'External attendance already exists for these date(s): ' . implode(', ', $shownConflicts) . (count($conflictingDates) > 8 ? ', and ' . (count($conflictingDates) - 8) . ' more' : '') . '. Remove those dates from the range or request a correction instead.',
+            'type' => 'warning',
+        ];
+        header('Location: external-attendance-manual.php?range_start=' . urlencode($rangeStart) . '&range_end=' . urlencode($rangeEnd));
+        exit;
+    }
+
+    $savedCount = 0;
+    foreach ($savePayloadsByDate as $day => $payload) {
+
         $save = external_attendance_upsert_day(
             $conn,
             $student,
             $day,
             $payload,
             $photoPath,
-            $notes,
+            $reviewNotes,
             $currentUserId,
             false,
             'manual'
@@ -127,11 +209,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     (int)$save['attendance_id'],
                     $day,
                     $upload,
-                    $notes !== '' ? $notes : 'External manual DTR proof',
+                    $reviewNotes,
                     $currentUserId
                 );
             }
             $savedCount++;
+        } else {
+            $_SESSION['external_attendance_flash'] = ['message' => (string)($save['message'] ?? 'Could not save one or more external DTR rows.'), 'type' => 'warning'];
+            header('Location: external-attendance-manual.php?range_start=' . urlencode($rangeStart) . '&range_end=' . urlencode($rangeEnd));
+            exit;
         }
     }
 
@@ -141,8 +227,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    $_SESSION['external_attendance_flash'] = ['message' => 'Manual external DTR saved for ' . $savedCount . ' day(s).', 'type' => 'success'];
-    header('Location: external-attendance.php');
+    $_SESSION['external_attendance_flash'] = ['message' => 'Manual external DTR submitted for review for ' . $savedCount . ' day(s).', 'type' => 'success'];
+    header('Location: external-attendance-manual.php?range_start=' . urlencode($rangeStart) . '&range_end=' . urlencode($rangeEnd));
     exit;
 }
 
@@ -154,10 +240,16 @@ $monthStart = $selectedMonth . '-01';
 $monthEnd = date('Y-m-t', strtotime($monthStart));
 $monthRows = [];
 $monthStmt = $conn->prepare("
-    SELECT *
-    FROM external_attendance
-    WHERE student_id = ? AND attendance_date BETWEEN ? AND ?
-    ORDER BY attendance_date DESC, id DESC
+    SELECT ea.*,
+        (
+            SELECT MIN(eda.id)
+            FROM external_dtr_attachments eda
+            WHERE eda.external_attendance_id = ea.id
+              AND eda.deleted_at IS NULL
+        ) AS proof_id
+    FROM external_attendance ea
+    WHERE ea.student_id = ? AND ea.attendance_date BETWEEN ? AND ?
+    ORDER BY ea.attendance_date DESC, ea.id DESC
 ");
 if ($monthStmt) {
     $monthStmt->bind_param('iss', $student['id'], $monthStart, $monthEnd);
@@ -172,9 +264,14 @@ if ($monthStmt) {
 $manualRangeStart = trim((string)($_GET['range_start'] ?? date('Y-m-01')));
 $manualRangeEnd = trim((string)($_GET['range_end'] ?? date('Y-m-d')));
 $manualRangeDays = external_attendance_manual_range_days_page($manualRangeStart, $manualRangeEnd);
+$manualRangeError = external_attendance_manual_range_error($manualRangeStart, $manualRangeEnd);
 $manualRangeRecords = [];
+$manualRangeConflictDates = [];
 foreach ($manualRangeDays as $day) {
     $manualRangeRecords[$day] = external_attendance_student_record($conn, (int)$student['id'], $day) ?: [];
+    if ($manualRangeRecords[$day] !== [] && external_attendance_collect_punches($manualRangeRecords[$day]) !== []) {
+        $manualRangeConflictDates[] = $day;
+    }
 }
 
 $page_title = 'BioTern || Manual External DTR';
@@ -226,9 +323,9 @@ include 'includes/header.php';
                     <div class="card-body pt-3">
                         <div class="external-manual-guide mb-4">
                             <strong>Before saving, follow this flow:</strong>
-                            <span>1. Pick the date range and generate the rows. Sundays are skipped automatically.</span>
-                            <span>2. Pick the closest time from each dropdown, like 8:00 AM, 12:00 PM, 1:00 PM, and 5:00 PM.</span>
-                            <span>3. Upload your physical DTR photo if available, add notes, then save for review.</span>
+                            <span>1. Pick a weekly or monthly date range. Sundays are skipped automatically and the range is limited to <?php echo EXTERNAL_MANUAL_DTR_MAX_DAYS; ?> fillable days.</span>
+                            <span>2. Encode only missing external DTR dates. Existing dates are locked to prevent duplicate or overwritten attendance.</span>
+                            <span>3. Upload your physical DTR proof and add a clear reviewer note. Both are required.</span>
                         </div>
                         <form method="get" class="row g-3 align-items-end mb-4">
                             <div class="col-md-4">
@@ -244,21 +341,38 @@ include 'includes/header.php';
                             </div>
                         </form>
 
-                        <?php if ($manualRangeDays === []): ?>
-                            <div class="alert alert-warning mb-0">No fillable dates found in that range. Check the dates and try again.</div>
+                        <?php if ($manualRangeError !== ''): ?>
+                            <div class="alert alert-warning mb-0"><?php echo external_attendance_manual_h($manualRangeError); ?></div>
                         <?php else: ?>
+                            <?php if ($manualRangeConflictDates !== []): ?>
+                                <div class="alert alert-warning">
+                                    External attendance already exists for <?php echo count($manualRangeConflictDates); ?> date(s) in this range:
+                                    <?php echo external_attendance_manual_h(implode(', ', array_slice($manualRangeConflictDates, 0, 8))); ?><?php echo count($manualRangeConflictDates) > 8 ? external_attendance_manual_h(', and ' . (count($manualRangeConflictDates) - 8) . ' more') : ''; ?>.
+                                    Those rows are locked. Remove them from the range or request a correction.
+                                </div>
+                            <?php endif; ?>
                             <form method="post" enctype="multipart/form-data">
                                 <input type="hidden" name="range_start" value="<?php echo htmlspecialchars($manualRangeStart, ENT_QUOTES, 'UTF-8'); ?>">
                                 <input type="hidden" name="range_end" value="<?php echo htmlspecialchars($manualRangeEnd, ENT_QUOTES, 'UTF-8'); ?>">
 
                                 <div class="row g-3 mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label" for="externalRangePhoto">Physical DTR Photo</label>
-                                        <input id="externalRangePhoto" type="file" name="photo" class="form-control" accept="image/*" capture="environment">
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="externalReasonCategory">Reason</label>
+                                        <select id="externalReasonCategory" name="reason_category" class="form-select" required>
+                                            <option value="">Select reason</option>
+                                            <option value="biometric_unavailable">Biometric unavailable</option>
+                                            <option value="company_log_only">Company physical log only</option>
+                                            <option value="missed_sync">External record sync missed</option>
+                                            <option value="other">Other</option>
+                                        </select>
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label" for="externalRangeNotes">Notes</label>
-                                        <input id="externalRangeNotes" type="text" name="range_notes" class="form-control" maxlength="255" placeholder="Example: Encoded from my physical external DTR.">
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="externalRangePhoto">Physical DTR Photo</label>
+                                        <input id="externalRangePhoto" type="file" name="photo" class="form-control" accept="image/*" capture="environment" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="externalRangeNotes">Reviewer Note</label>
+                                        <input id="externalRangeNotes" type="text" name="range_notes" class="form-control" minlength="10" maxlength="255" required placeholder="Example: Encoded from company DTR log.">
                                     </div>
                                 </div>
 
@@ -277,16 +391,22 @@ include 'includes/header.php';
                                         <tbody>
                                             <?php foreach ($manualRangeDays as $index => $day): ?>
                                                 <?php $existingRow = $manualRangeRecords[$day] ?? []; ?>
-                                                <tr>
+                                                <?php $rowLocked = $existingRow !== [] && external_attendance_collect_punches($existingRow) !== []; ?>
+                                                <tr class="<?php echo $rowLocked ? 'table-light' : ''; ?>">
                                                     <td class="fw-semibold" data-label="Row"><?php echo (int)($index + 1); ?></td>
                                                     <td data-label="Date">
                                                         <div class="fw-semibold"><?php echo htmlspecialchars(date('M d, Y', strtotime($day)), ENT_QUOTES, 'UTF-8'); ?></div>
-                                                        <div class="small text-muted"><?php echo htmlspecialchars(date('l', strtotime($day)), ENT_QUOTES, 'UTF-8'); ?></div>
+                                                        <div class="small text-muted">
+                                                            <?php echo htmlspecialchars(date('l', strtotime($day)), ENT_QUOTES, 'UTF-8'); ?>
+                                                            <?php if ($rowLocked): ?>
+                                                                <span class="badge bg-soft-secondary text-secondary ms-1">Existing</span>
+                                                            <?php endif; ?>
+                                                        </div>
                                                     </td>
-                                                    <td data-label="Morning In"><select class="form-select external-manual-time-select" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][morning_time_in]"><?php echo external_attendance_manual_time_options_page((string)($existingRow['morning_time_in'] ?? '08:00')); ?></select></td>
-                                                    <td data-label="Morning Out"><select class="form-select external-manual-time-select" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][morning_time_out]"><?php echo external_attendance_manual_time_options_page((string)($existingRow['morning_time_out'] ?? '12:00')); ?></select></td>
-                                                    <td data-label="Afternoon In"><select class="form-select external-manual-time-select" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][afternoon_time_in]"><?php echo external_attendance_manual_time_options_page((string)($existingRow['afternoon_time_in'] ?? '13:00')); ?></select></td>
-                                                    <td data-label="Afternoon Out"><select class="form-select external-manual-time-select" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][afternoon_time_out]"><?php echo external_attendance_manual_time_options_page((string)($existingRow['afternoon_time_out'] ?? '17:00')); ?></select></td>
+                                                    <td data-label="Morning In"><select class="form-select external-manual-time-select" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][morning_time_in]" <?php echo $rowLocked ? 'disabled' : ''; ?>><?php echo external_attendance_manual_time_options_page((string)($existingRow['morning_time_in'] ?? '08:00')); ?></select></td>
+                                                    <td data-label="Morning Out"><select class="form-select external-manual-time-select" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][morning_time_out]" <?php echo $rowLocked ? 'disabled' : ''; ?>><?php echo external_attendance_manual_time_options_page((string)($existingRow['morning_time_out'] ?? '12:00')); ?></select></td>
+                                                    <td data-label="Afternoon In"><select class="form-select external-manual-time-select" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][afternoon_time_in]" <?php echo $rowLocked ? 'disabled' : ''; ?>><?php echo external_attendance_manual_time_options_page((string)($existingRow['afternoon_time_in'] ?? '13:00')); ?></select></td>
+                                                    <td data-label="Afternoon Out"><select class="form-select external-manual-time-select" name="entries[<?php echo htmlspecialchars($day, ENT_QUOTES, 'UTF-8'); ?>][afternoon_time_out]" <?php echo $rowLocked ? 'disabled' : ''; ?>><?php echo external_attendance_manual_time_options_page((string)($existingRow['afternoon_time_out'] ?? '17:00')); ?></select></td>
                                                 </tr>
                                             <?php endforeach; ?>
                                         </tbody>
@@ -322,12 +442,14 @@ include 'includes/header.php';
                                         <th>Afternoon</th>
                                         <th>Total</th>
                                         <th>Status</th>
+                                        <th>Source</th>
+                                        <th>Proof</th>
                                         <th>Notes</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php if ($monthRows === []): ?>
-                                        <tr><td colspan="6" class="text-center text-muted py-4">No external attendance records yet for this month.</td></tr>
+                                        <tr><td colspan="8" class="text-center text-muted py-4">No external attendance records yet for this month.</td></tr>
                                     <?php else: ?>
                                         <?php foreach ($monthRows as $row): ?>
                                             <tr>
@@ -335,7 +457,20 @@ include 'includes/header.php';
                                                 <td data-label="Morning"><?php echo htmlspecialchars(trim((string)($row['morning_time_in'] ?? '')) !== '' ? (date('g:i A', strtotime((string)$row['morning_time_in'])) . ' - ' . (trim((string)($row['morning_time_out'] ?? '')) !== '' ? date('g:i A', strtotime((string)$row['morning_time_out'])) : '--')) : '--', ENT_QUOTES, 'UTF-8'); ?></td>
                                                 <td data-label="Afternoon"><?php echo htmlspecialchars(trim((string)($row['afternoon_time_in'] ?? '')) !== '' ? (date('g:i A', strtotime((string)$row['afternoon_time_in'])) . ' - ' . (trim((string)($row['afternoon_time_out'] ?? '')) !== '' ? date('g:i A', strtotime((string)$row['afternoon_time_out'])) : '--')) : '--', ENT_QUOTES, 'UTF-8'); ?></td>
                                                 <td data-label="Total"><?php echo number_format((float)($row['total_hours'] ?? 0), 2); ?> hrs</td>
-                                                <td data-label="Status"><?php echo htmlspecialchars(ucfirst((string)($row['status'] ?? 'pending')), ENT_QUOTES, 'UTF-8'); ?></td>
+                                                <?php $rowStatus = strtolower((string)($row['status'] ?? 'pending')); ?>
+                                                <td data-label="Status">
+                                                    <span class="badge bg-soft-<?php echo $rowStatus === 'approved' ? 'success text-success' : ($rowStatus === 'rejected' ? 'danger text-danger' : 'warning text-warning'); ?>">
+                                                        <?php echo external_attendance_manual_h(ucfirst($rowStatus)); ?>
+                                                    </span>
+                                                </td>
+                                                <td data-label="Source"><?php echo external_attendance_manual_h(ucwords(str_replace('-', ' ', (string)($row['source'] ?? 'manual')))); ?></td>
+                                                <td data-label="Proof">
+                                                    <?php if ((int)($row['proof_id'] ?? 0) > 0): ?>
+                                                        <a href="external-dtr-proof.php?id=<?php echo (int)$row['proof_id']; ?>" target="_blank" rel="noopener">View proof</a>
+                                                    <?php else: ?>
+                                                        <span class="text-muted">No proof</span>
+                                                    <?php endif; ?>
+                                                </td>
                                                 <td data-label="Notes"><?php echo htmlspecialchars((string)($row['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                             </tr>
                                         <?php endforeach; ?>

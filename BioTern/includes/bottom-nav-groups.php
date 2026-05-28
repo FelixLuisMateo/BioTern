@@ -49,15 +49,16 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         ];
 
         if ($isStudent) {
-            $studentDtrItems = $studentExternal
-                ? [
-                    ['label' => 'External DTR', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'],
-                    ['label' => 'Manual External DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'],
-                ]
-                : [
-                    ['label' => 'Internal DTR', 'href' => 'student-internal-dtr.php', 'icon' => 'feather-clock'],
-                    ['label' => 'Manual Internal DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'],
-                ];
+            $studentDtrItems = [
+                ['label' => 'My Internal DTR', 'href' => 'student-internal-dtr.php', 'icon' => 'feather-clock'],
+                ['label' => 'My External DTR', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'],
+            ];
+            if (!$studentExternal) {
+                $studentDtrItems[] = ['label' => 'Manual Internal DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'];
+            }
+            if ($studentExternal) {
+                $studentDtrItems[] = ['label' => 'Manual External DTR', 'href' => 'external-attendance-manual.php', 'icon' => 'feather-file-plus'];
+            }
 
             $navGroups[] = [
                 'key' => 'student',
@@ -65,7 +66,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'icon' => 'feather-user-check',
                 'routes' => [
                     'student-dtr.php', 'student-internal-dtr.php',
-                    'student-external-dtr.php', 'external-biometric.php',
+                    'student-external-dtr.php', 'external-biometric.php', 'external-attendance-manual.php',
                     'student-manual-dtr.php',
                     'student-documents.php',
                 ],
@@ -113,7 +114,8 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'companies.php', 'ojt-internal-list.php', 'ojt-internal-masterlist.php', 'ojt-external-list.php',
                     'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-attendance-anomalies.php', 'reports-hours-completion.php',
                     'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
-                    'reports-unassigned-students.php', 'reports-document.php',
+                    'reports-unassigned-students.php', 'reports-document.php', 'reports-dtr-manual-input.php', 'reports-dtr-manual-internal.php', 'reports-dtr-manual-external.php',
+                    'reports-dtr-manual-internal-results.php', 'reports-dtr-manual-external-results.php', 'reports-dtr-manual-student.php',
                     'document_application.php', 'document_endorsement.php', 'document_moa.php', 'document_dau_moa.php', 'document_parent_consent.php', 'document_certificate.php',
                 ],
                 'sections' => [
@@ -160,17 +162,21 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     [
                         'title' => 'Reports',
                         'items' => [
+                            ['label' => 'Attendance Summary', 'href' => 'reports-attendance-dtr.php', 'icon' => 'feather-clock'],
+                            ['label' => 'Internal DTR Review', 'href' => 'reports-dtr-manual-internal.php', 'icon' => 'feather-edit-3'],
+                            ['label' => 'External DTR Review', 'href' => 'reports-dtr-manual-external.php', 'icon' => 'feather-briefcase'],
+                            ['label' => 'Internal DTR Results', 'href' => 'reports-dtr-manual-internal-results.php', 'icon' => 'feather-check-circle'],
+                            ['label' => 'External DTR Results', 'href' => 'reports-dtr-manual-external-results.php', 'icon' => 'feather-check-square'],
+                            ['label' => 'Attendance Issues', 'href' => 'reports-attendance-anomalies.php', 'icon' => 'feather-alert-triangle'],
+                            ['label' => 'Hours Completion', 'href' => 'reports-hours-completion.php', 'icon' => 'feather-bar-chart-2'],
                             ...($canSystem ? [
                                 ['label' => 'Student Status Report', 'href' => 'reports-student-status.php', 'icon' => 'feather-users'],
-                                ['label' => 'Attendance Report (DTR)', 'href' => 'reports-attendance-dtr.php', 'icon' => 'feather-clock'],
-                                ['label' => 'Attendance Anomalies', 'href' => 'reports-attendance-anomalies.php', 'icon' => 'feather-alert-triangle'],
-                                ['label' => 'Hours Completion Report', 'href' => 'reports-hours-completion.php', 'icon' => 'feather-bar-chart-2'],
-                                ['label' => 'Section Report', 'href' => 'reports-section.php', 'icon' => 'feather-layers'],
-                                ['label' => 'Department Report', 'href' => 'reports-department.php', 'icon' => 'feather-briefcase'],
-                                ['label' => 'Company Report', 'href' => 'reports-company.php', 'icon' => 'feather-map-pin'],
-                                ['label' => 'Evaluation Report', 'href' => 'reports-evaluation.php', 'icon' => 'feather-star'],
-                                ['label' => 'Unassigned Students Report', 'href' => 'reports-unassigned-students.php', 'icon' => 'feather-user-x'],
-                                ['label' => 'Document Report', 'href' => 'reports-document.php', 'icon' => 'feather-file-text'],
+                                ['label' => 'Section', 'href' => 'reports-section.php', 'icon' => 'feather-layers'],
+                                ['label' => 'Department', 'href' => 'reports-department.php', 'icon' => 'feather-briefcase'],
+                                ['label' => 'Company', 'href' => 'reports-company.php', 'icon' => 'feather-map-pin'],
+                                ['label' => 'Evaluation', 'href' => 'reports-evaluation.php', 'icon' => 'feather-star'],
+                                ['label' => 'Unassigned Students', 'href' => 'reports-unassigned-students.php', 'icon' => 'feather-user-x'],
+                                ['label' => 'Documents', 'href' => 'reports-document.php', 'icon' => 'feather-file-text'],
                             ] : []),
                         ],
                     ],
