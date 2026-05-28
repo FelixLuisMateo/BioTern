@@ -49,16 +49,15 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         ];
 
         if ($isStudent) {
-            $studentDtrItems = [
-                ['label' => 'My Internal DTR', 'href' => 'student-internal-dtr.php', 'icon' => 'feather-clock'],
-                ['label' => 'My External DTR', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'],
-            ];
-            if (!$studentExternal) {
-                $studentDtrItems[] = ['label' => 'Manual Internal DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'];
-            }
-            if ($studentExternal) {
-                $studentDtrItems[] = ['label' => 'Manual External DTR', 'href' => 'external-attendance-manual.php', 'icon' => 'feather-file-plus'];
-            }
+            $studentDtrItems = $studentExternal
+                ? [
+                    ['label' => 'External DTR', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'],
+                    ['label' => 'Manual External DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'],
+                ]
+                : [
+                    ['label' => 'Internal DTR', 'href' => 'student-internal-dtr.php', 'icon' => 'feather-clock'],
+                    ['label' => 'Manual Internal DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'],
+                ];
 
             $navGroups[] = [
                 'key' => 'student',
@@ -66,7 +65,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'icon' => 'feather-user-check',
                 'routes' => [
                     'student-dtr.php', 'student-internal-dtr.php',
-                    'student-external-dtr.php', 'external-biometric.php', 'external-attendance-manual.php',
+                    'student-external-dtr.php', 'external-biometric.php',
                     'student-manual-dtr.php',
                     'student-documents.php',
                 ],
