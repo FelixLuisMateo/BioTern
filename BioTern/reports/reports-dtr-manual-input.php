@@ -181,12 +181,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 ? ucfirst($newStatus) . ' ' . $updated . ' manual DTR date(s).'
                 : 'No manual DTR rows were updated.',
         ];
-        $return = 'reports-dtr-manual-input.php';
-        foreach (['origin', 'student_id', 'from', 'to'] as $key) {
-            if (isset($_POST[$key]) && trim((string)$_POST[$key]) !== '') {
-                $return .= (str_contains($return, '?') ? '&' : '?') . urlencode($key) . '=' . urlencode((string)$_POST[$key]);
-            }
-        }
+        $return = 'reports-dtr-manual-input.php?' . http_build_query([
+            'origin_filter' => $origin,
+        ]);
         header('Location: ' . $return);
         exit;
     }
@@ -437,7 +434,7 @@ $internalSubmissionsSql = "
         CONVERT(COALESCE(sec.code, sec.name, '') USING utf8mb4) COLLATE utf8mb4_general_ci AS section_label,
         MIN(a.attendance_date) AS date_from,
         MAX(a.attendance_date) AS date_to,
-        COUNT(*) AS day_count,
+        COUNT(DISTINCT a.id) AS day_count,
         MIN(mda.id) AS proof_id,
         MAX(a.created_at) AS submitted_at,
         CONVERT(GROUP_CONCAT(DISTINCT NULLIF(TRIM(a.remarks), '') SEPARATOR ' | ') USING utf8mb4) COLLATE utf8mb4_general_ci AS notes
@@ -445,7 +442,7 @@ $internalSubmissionsSql = "
     INNER JOIN students s ON s.id = a.student_id
     LEFT JOIN courses c ON c.id = s.course_id
     LEFT JOIN sections sec ON sec.id = s.section_id
-    INNER JOIN manual_dtr_attachments mda ON mda.attendance_id = a.id AND mda.deleted_at IS NULL
+    LEFT JOIN manual_dtr_attachments mda ON mda.attendance_id = a.id AND mda.deleted_at IS NULL
     WHERE a.source = 'manual'
       AND LOWER(COALESCE(a.status, 'pending')) = 'pending'
       {$scopeInternalSql}
@@ -463,7 +460,7 @@ $externalSubmissionsSql = "
         CONVERT(COALESCE(sec.code, sec.name, '') USING utf8mb4) COLLATE utf8mb4_general_ci AS section_label,
         MIN(ea.attendance_date) AS date_from,
         MAX(ea.attendance_date) AS date_to,
-        COUNT(*) AS day_count,
+        COUNT(DISTINCT ea.id) AS day_count,
         MIN(eda.id) AS proof_id,
         MAX(ea.created_at) AS submitted_at,
         CONVERT(GROUP_CONCAT(DISTINCT NULLIF(TRIM(ea.notes), '') SEPARATOR ' | ') USING utf8mb4) COLLATE utf8mb4_general_ci AS notes
@@ -577,7 +574,7 @@ if ($detailOrigin !== '' && $detailStudentId > 0 && preg_match('/^\d{4}-\d{2}-\d
     }
 }
 
-$page_body_class = trim(($page_body_class ?? '') . ' reports-page');
+$page_body_class = trim(($page_body_class ?? '') . ' reports-page manual-dtr-review-page');
 $page_styles = array_merge($page_styles ?? [], ['assets/css/modules/reports/reports-shell.css']);
 $page_scripts = array_merge($page_scripts ?? [], ['assets/js/modules/reports/reports-shell-runtime.js']);
 $page_title = 'BioTern || Manual DTR Review';
@@ -592,12 +589,25 @@ include 'includes/header.php';
             </div>
             <ul class="breadcrumb">
                 <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                <li class="breadcrumb-item"><a href="index.php">Reports</a></li>
+                <li class="breadcrumb-item">Attendance</li>
                 <li class="breadcrumb-item">Manual DTR Review</li>
             </ul>
         </div>
+        <div class="page-header-right ms-auto">
+            <div class="page-header-right-items-wrapper d-flex align-items-center gap-2">
+                <a href="attendance.php" class="btn btn-light-brand">
+                    <i class="feather-clock me-1"></i>
+                    <span>Internal Attendance</span>
+                </a>
+                <a href="external-attendance.php" class="btn btn-light-brand">
+                    <i class="feather-briefcase me-1"></i>
+                    <span>External Attendance</span>
+                </a>
+            </div>
+        </div>
     </div>
 
+    <div class="main-content manual-dtr-review-content">
     <?php if (is_array($flash) && !empty($flash['message'])): ?>
         <div class="alert alert-<?php echo dtr_h((string)($flash['type'] ?? 'info')); ?>"><?php echo dtr_h((string)$flash['message']); ?></div>
     <?php endif; ?>
@@ -690,6 +700,7 @@ include 'includes/header.php';
                 </table>
             </div>
         </div>
+    </div>
     </div>
 
 </div> <!-- .nxl-content -->

@@ -1058,7 +1058,7 @@ include 'includes/header.php';
                 </div>
                 <ul class="breadcrumb">
                     <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                    <li class="breadcrumb-item"><a href="attendance.php">Internal Attendance</a></li>
+                    <li class="breadcrumb-item">Attendance</li>
                     <li class="breadcrumb-item">External Attendance</li>
                 </ul>
             </div>

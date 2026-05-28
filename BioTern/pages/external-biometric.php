@@ -15,6 +15,7 @@ $currentUserId = (int)($_SESSION['user_id'] ?? 0);
 $currentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 $studentMode = ($currentRole === 'student');
 $canManage = in_array($currentRole, ['admin', 'coordinator', 'supervisor'], true);
+$externalManualOnly = defined('BIOTERN_EXTERNAL_MANUAL_DTR_ONLY') && BIOTERN_EXTERNAL_MANUAL_DTR_ONLY;
 $selectedStudentId = (int)($_GET['student_id'] ?? $_POST['student_id'] ?? 0);
 $studentContext = null;
 if ($studentMode) {
@@ -22,6 +23,11 @@ if ($studentMode) {
 
 	if (!$studentContext) {
 		header('Location: student-external-dtr.php');
+		exit;
+	}
+	$studentTrack = strtolower(trim((string)($studentContext['assignment_track'] ?? 'internal')));
+	if ($studentTrack !== 'external') {
+		header('Location: student-internal-dtr.php');
 		exit;
 	}
 } elseif ($canManage && $selectedStudentId > 0) {
@@ -89,7 +95,7 @@ function external_biometric_month_rows(mysqli $conn, int $studentId, string $mon
 $externalFlash = $_SESSION['external_attendance_flash'] ?? null;
 unset($_SESSION['external_attendance_flash']);
 
-$page_title = 'BioTern || External Biometric DTR';
+$page_title = $externalManualOnly ? 'BioTern || Manual External DTR' : 'BioTern || External Biometric DTR';
 $page_styles = [
 	'assets/css/homepage-student.css',
 	'assets/css/student-dtr.css',
@@ -184,7 +190,7 @@ $externalBiometricAllowedOrder = function_exists('attendance_schedule_action_ord
 				}());
 				</script>
 			<?php endif; ?>
-			<?php if ($studentContext): ?>
+			<?php if ($studentContext && !$externalManualOnly): ?>
 			<section class="external-dtr-hero">
 				<div class="external-dtr-hero-main">
 					<div class="external-dtr-eyebrow">
@@ -228,7 +234,7 @@ $externalBiometricAllowedOrder = function_exists('attendance_schedule_action_ord
 			</div>
 			<?php endif; ?>
 
-			<?php if ($studentContext): ?>
+			<?php if ($studentContext && !$externalManualOnly): ?>
 			<section class="external-quick-card mb-4">
 				<div class="external-quick-heading">
 					<div>
@@ -267,7 +273,42 @@ $externalBiometricAllowedOrder = function_exists('attendance_schedule_action_ord
 						</div>
 					</form>
 			</section>
+			<section class="external-manual-card mb-4">
+				<div class="external-manual-header">
+					<h5 class="mb-1">Need to submit missed external time?</h5>
+					<p class="text-muted mb-0">Manual external DTR is handled on the dedicated missed-time page so quick biometric punches stay clean.</p>
+				</div>
+				<div class="external-manual-body">
+					<a href="student-manual-dtr.php" class="btn btn-primary w-100">
+						<i class="feather-edit-3 me-1"></i>
+						Submit Missed External Time
+					</a>
+				</div>
+			</section>
+			<?php endif; ?>
 
+			<?php if ($studentContext && $externalManualOnly): ?>
+			<section class="external-dtr-hero">
+				<div class="external-dtr-hero-main">
+					<div class="external-dtr-eyebrow">
+						<i class="feather-edit-3"></i>
+						<span>Manual External DTR</span>
+					</div>
+					<h2><?php echo htmlspecialchars(trim((string)($studentContext['first_name'] . ' ' . $studentContext['last_name'])), ENT_QUOTES, 'UTF-8'); ?></h2>
+					<p>Submit missed external attendance only when your external DTR was not captured. Your entry will stay pending until school review.</p>
+					<div class="external-dtr-meta">
+						<span><?php echo htmlspecialchars((string)($studentContext['student_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+						<span><?php echo htmlspecialchars((string)($studentContext['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></span>
+						<span><?php echo htmlspecialchars((string)($studentContext['section_code'] ?? 'No section'), ENT_QUOTES, 'UTF-8'); ?></span>
+						<span><?php echo htmlspecialchars(trim((string)($studentContext['company_name'] ?? '')) !== '' ? (string)$studentContext['company_name'] : 'No company linked', ENT_QUOTES, 'UTF-8'); ?></span>
+					</div>
+				</div>
+				<div class="external-dtr-clock-card">
+					<div class="external-dtr-clock-label">Today</div>
+					<div class="external-dtr-clock" id="externalBiometricClock"><?php echo date('h:i:s A'); ?></div>
+					<div class="external-dtr-clock-date"><?php echo htmlspecialchars(date('M d, Y', strtotime($today)), ENT_QUOTES, 'UTF-8'); ?></div>
+				</div>
+			</section>
 			<section class="record-section external-manual-card mb-4" id="manual-dtr">
 				<div class="external-manual-header">
 					<h5 class="mb-1">Submit Missed External Time</h5>
@@ -301,7 +342,7 @@ $externalBiometricAllowedOrder = function_exists('attendance_schedule_action_ord
 			<form method="post" action="<?php echo $studentMode ? 'api/external-attendance.php' : 'external-attendance.php'; ?>" id="manualDtrTableForm" enctype="multipart/form-data">
 				<input type="hidden" name="action" value="manual_table">
 				<input type="hidden" name="external_action" value="manual_range">
-				<input type="hidden" name="return_to" value="external-biometric.php">
+				<input type="hidden" name="return_to" value="<?php echo $externalManualOnly ? 'student-manual-dtr.php' : 'external-biometric.php'; ?>">
 				<input type="hidden" name="student_id" value="<?php echo (int)($studentContext['id'] ?? 0); ?>">
 				<input type="hidden" name="return_student_id" value="<?php echo (int)($studentContext['id'] ?? 0); ?>">
 				<div class="external-manual-extra">
@@ -328,7 +369,8 @@ $externalBiometricAllowedOrder = function_exists('attendance_schedule_action_ord
 			</form>
 				</div>
 			</section>
-			<?php else: ?>
+			<?php endif; ?>
+			<?php if (!$studentContext): ?>
 			<div class="alert alert-info">
 				<?php if ($canManage && $selectedStudentId > 0): ?>
 					Student ID <?php echo (int)$selectedStudentId; ?> could not be loaded for external biometric. Confirm the student still exists, then open it from the student's External DTR page.

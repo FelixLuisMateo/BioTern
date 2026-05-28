@@ -20,7 +20,8 @@ if ($studentContext) {
 }
 
 if ($assignmentTrack === 'external') {
-    header('Location: external-biometric.php#manual-dtr');
+    define('BIOTERN_EXTERNAL_MANUAL_DTR_ONLY', true);
+    require __DIR__ . '/external-biometric.php';
     exit;
 }
 

@@ -131,10 +131,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             ];
         }
 
-        $return = 'reports-dtr-manual-student.php?origin=' . urlencode($origin)
-            . '&student_id=' . $studentId
-            . '&from=' . urlencode($dateFrom)
-            . '&to=' . urlencode($dateTo);
+        $return = 'reports-dtr-manual-input.php?' . http_build_query([
+            'origin_filter' => $origin,
+        ]);
         header('Location: ' . $return);
         exit;
     }

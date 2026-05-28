@@ -998,8 +998,8 @@ $lastRecordedDateText = $attendanceInsights['last_recorded_date'] !== ''
     : 'No entries yet';
 
 $studentDtrManualOnly = defined('BIOTERN_STUDENT_MANUAL_DTR_PAGE') && BIOTERN_STUDENT_MANUAL_DTR_PAGE;
-$studentDtrPageHeading = $studentDtrManualOnly ? 'Manual Internal DTR' : 'My Internal DTR';
-$studentDtrHeroTitle = $studentDtrManualOnly ? 'Record Time Entry' : 'My Internal DTR';
+$studentDtrPageHeading = $studentDtrManualOnly ? 'Submit Missed Internal Time' : 'My Internal DTR';
+$studentDtrHeroTitle = $studentDtrManualOnly ? 'Submit Missed Internal Time' : 'My Internal DTR';
 $studentDtrHeroCopy = $studentDtrManualOnly
     ? 'Submit a missed internal attendance entry when the biometric machine was unavailable or your time was not captured.'
     : 'Track your biometric logs, review attendance status, and download monthly attendance reports.';
@@ -1039,7 +1039,7 @@ include 'includes/header.php';
         <?php if ($studentDtrManualOnly): ?>
         <section class="external-dtr-hero">
             <div class="external-dtr-hero-main">
-                <div class="external-dtr-eyebrow"><i class="feather-edit-3"></i><span>My Internal DTR</span></div>
+                <div class="external-dtr-eyebrow"><i class="feather-edit-3"></i><span>Missed Internal Time</span></div>
                 <h2><?php echo htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8'); ?></h2>
                 <p>Submit missed internal attendance only when the biometric machine was unavailable or your time was not captured. Your entry will stay pending until school review.</p>
                 <div class="external-dtr-meta">
@@ -1057,59 +1057,6 @@ include 'includes/header.php';
             </div>
         </section>
 
-        <div class="external-dtr-stats">
-            <div class="external-dtr-stat">
-                <span>Month Hours</span>
-                <strong><?php echo number_format((float)$attendanceSummary['total_hours'], 2); ?> hrs</strong>
-            </div>
-            <div class="external-dtr-stat">
-                <span>Remaining</span>
-                <strong><?php echo number_format(max(0, $remainingHours), 0); ?> hrs</strong>
-            </div>
-            <div class="external-dtr-stat">
-                <span>Approved</span>
-                <strong><?php echo (int)$attendanceSummary['approved_logs']; ?></strong>
-            </div>
-            <div class="external-dtr-stat">
-                <span>Pending</span>
-                <strong><?php echo (int)$attendanceSummary['pending_logs']; ?></strong>
-            </div>
-        </div>
-
-        <section class="external-quick-card mb-4">
-            <div class="external-quick-heading">
-                <div>
-                    <h3>Punch Internal Time</h3>
-                    <p>Tap the next available punch for today. The button saves the exact current time.</p>
-                </div>
-                <span><?php echo htmlspecialchars(date('F d, Y'), ENT_QUOTES, 'UTF-8'); ?></span>
-            </div>
-            <form method="post">
-                <input type="hidden" name="student_action" value="quick_internal_punch">
-                <input type="hidden" name="clock_date" value="<?php echo htmlspecialchars($studentDtrToday, ENT_QUOTES, 'UTF-8'); ?>">
-                <div class="external-clock-grid">
-                    <?php foreach ($studentDtrClockTypes as $clockType => [$clockLabel, $clockIcon]): ?>
-                        <?php
-                            $clockColumn = attendance_action_to_column($clockType);
-                            $hasValue = $clockColumn !== null && trim((string)($studentDtrTodayRecord[$clockColumn] ?? '')) !== '';
-                            $isLocked = $clockType !== $studentDtrNextPunch;
-                        ?>
-                        <button type="submit" name="clock_type" value="<?php echo htmlspecialchars($clockType, ENT_QUOTES, 'UTF-8'); ?>" class="external-clock-btn<?php echo $hasValue ? ' is-complete' : ''; ?>" <?php echo $isLocked ? 'disabled aria-disabled="true"' : ''; ?>>
-                            <i class="<?php echo htmlspecialchars($clockIcon, ENT_QUOTES, 'UTF-8'); ?>"></i>
-                            <span><?php echo htmlspecialchars($clockLabel, ENT_QUOTES, 'UTF-8'); ?></span>
-                        </button>
-                    <?php endforeach; ?>
-                    <?php if ($studentDtrAllowedPunchOrder === [] || $studentDtrNextPunch === null): ?>
-                        <div class="student-dtr-quick-status w-100">No available punch for your section schedule today.</div>
-                    <?php endif; ?>
-                </div>
-                <div class="external-note-field">
-                    <label for="quickInternalPunchNote">Notes</label>
-                    <input type="text" id="quickInternalPunchNote" name="notes" maxlength="255" placeholder="Optional note for this punch">
-                </div>
-            </form>
-            <div class="student-dtr-quick-status" aria-live="polite">Quick punch entries save the exact current time and stay pending until school review.</div>
-        </section>
         <?php else: ?>
         <section class="student-dtr-station-hero">
             <div class="student-dtr-hero-main">

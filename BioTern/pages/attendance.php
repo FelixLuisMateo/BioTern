@@ -367,7 +367,8 @@ if ($stats_result instanceof mysqli_result) {
     $stats = $stats_result->fetch_assoc() ?: [];
     $stats_result->close();
 }
-// Prepare filter inputs (defaults: today's date)
+// Prepare filter inputs. Do not force a default date here; approved manual DTR
+// entries often land on past dates and should remain visible after review.
 $filter_date = isset($_GET['date']) && $_GET['date'] !== '' ? $_GET['date'] : '';
 $start_date = isset($_GET['start_date']) && $_GET['start_date'] !== '' ? $_GET['start_date'] : '';
 $end_date = isset($_GET['end_date']) && $_GET['end_date'] !== '' ? $_GET['end_date'] : '';
@@ -425,11 +426,6 @@ $has_additional_filters = (
     || $filter_reports !== 'all'
     || $filter_source !== 'all'
 );
-
-// default to local current date when no date filters provided
-if (empty($filter_date) && empty($start_date) && empty($end_date) && !$has_additional_filters) {
-    $filter_date = $attendance_today_local;
-}
 
 // Safety net: process any pending raw biometric logs so Attendance stays current
 // even if ingest accepted events while auto-import was temporarily disabled.
@@ -513,7 +509,7 @@ if ($coor_res && $coor_res->num_rows) {
     while ($r = $coor_res->fetch_assoc()) $coordinators[] = $r['coordinator_name'];
 }
 
-// Build attendance query filtered by provided inputs. Default shows today's records.
+// Build attendance query filtered by provided inputs. Default shows approved records.
 // Build WHERE clauses depending on provided filters
 $where = [];
 $hasManualDtrAttachments = function_exists('table_exists') && table_exists($conn, 'manual_dtr_attachments');
@@ -2127,7 +2123,7 @@ include 'includes/header.php';
                     </div>
                     <ul class="breadcrumb">
                         <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
-                        <li class="breadcrumb-item"><a href="students.php">Students</a></li>
+                        <li class="breadcrumb-item">Attendance</li>
                         <li class="breadcrumb-item">Internal Attendance</li>
                     </ul>
                 </div>

@@ -8,6 +8,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         $canWorkspace = !empty($context['can_workspace']);
         $canSystem = !empty($context['can_system']);
         $isStudent = !empty($context['is_student']);
+        $studentExternal = !empty($context['student_external']);
         $role = strtolower(trim((string)($context['role'] ?? ($isStudent ? 'student' : ''))));
         $manualFiles = [
             'admin' => 'user-manual.php?role=admin',
@@ -23,10 +24,13 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
 
         $navGroups = [];
 
-        $homeRoutes = $isStudent ? ['homepage.php'] : ['homepage.php', 'analytics.php'];
+        $homeRoutes = $isStudent ? ['homepage.php', 'profile-details.php', 'student-profile.php'] : ['homepage.php', 'analytics.php'];
         $homeItems = [
             ['label' => 'Overview', 'href' => 'homepage.php', 'icon' => 'feather-grid'],
         ];
+        if ($isStudent) {
+            $homeItems[] = ['label' => 'Profile Details', 'href' => 'profile-details.php', 'icon' => 'feather-user'];
+        }
         if (!$isStudent) {
             $homeItems[] = ['label' => 'Analytics', 'href' => 'analytics.php', 'icon' => 'feather-bar-chart-2'];
         }
@@ -45,19 +49,21 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         ];
 
         if ($isStudent) {
-            $studentDtrItems = [
-                ['label' => 'My Internal DTR', 'href' => 'student-internal-dtr.php', 'icon' => 'feather-clock'],
-                ['label' => 'Manual Internal DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'],
-                ['label' => 'My External DTR', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'],
-            ];
+            $studentDtrItems = $studentExternal
+                ? [
+                    ['label' => 'External DTR', 'href' => 'external-biometric.php', 'icon' => 'feather-briefcase'],
+                    ['label' => 'Manual External DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'],
+                ]
+                : [
+                    ['label' => 'Internal DTR', 'href' => 'student-internal-dtr.php', 'icon' => 'feather-clock'],
+                    ['label' => 'Manual Internal DTR', 'href' => 'student-manual-dtr.php', 'icon' => 'feather-edit-3'],
+                ];
 
             $navGroups[] = [
                 'key' => 'student',
                 'label' => 'Student',
                 'icon' => 'feather-user-check',
                 'routes' => [
-                    'profile-details.php',
-                    'student-profile.php',
                     'student-dtr.php', 'student-internal-dtr.php',
                     'student-external-dtr.php', 'external-biometric.php',
                     'student-manual-dtr.php',
@@ -65,19 +71,13 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 ],
                 'sections' => [
                     [
-                        'title' => 'My Profile',
-                        'items' => [
-                            ['label' => 'My Profile', 'href' => 'profile-details.php', 'icon' => 'feather-user'],
-                        ],
-                    ],
-                    [
-                        'title' => 'DTR',
+                        'title' => 'Attendance',
                         'items' => $studentDtrItems,
                     ],
                     [
                         'title' => 'Documents',
                         'items' => [
-                            ['label' => 'My Documents', 'href' => 'student-documents.php', 'icon' => 'feather-file-text'],
+                            ['label' => 'Documents', 'href' => 'student-documents.php', 'icon' => 'feather-file-text'],
                         ],
                     ],
                 ],
@@ -92,7 +92,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     [
                         'title' => 'Documents',
                         'items' => [
-                            ['label' => 'My Documents', 'href' => 'student-documents.php', 'icon' => 'feather-file-text'],
+                            ['label' => 'Documents', 'href' => 'student-documents.php', 'icon' => 'feather-file-text'],
                         ],
                     ],
                 ],
@@ -106,14 +106,14 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'icon' => 'feather-briefcase',
                 'routes' => [
                     'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php', 'students-internal-dtr.php',
-                    'applications-review.php', 'attendance.php', 'test-attendance.php', 'external-attendance.php', 'attendance-corrections.php', 'print_attendance.php', 'external-biometric.php',
+                    'applications-review.php', 'external-biometric.php',
                     'student-assistance.php',
                     'fingerprint_mapping.php', 'biometric-fleet.php', 'biometric-machine.php', 'biometric_machine_sync.php',
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
                     'companies.php', 'ojt-internal-list.php', 'ojt-internal-masterlist.php', 'ojt-external-list.php',
                     'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-attendance-anomalies.php', 'reports-hours-completion.php',
                     'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
-                    'reports-unassigned-students.php', 'reports-document.php', 'reports-dtr-manual-input.php', 'reports-dtr-manual-student.php',
+                    'reports-unassigned-students.php', 'reports-document.php',
                     'document_application.php', 'document_endorsement.php', 'document_moa.php', 'document_dau_moa.php', 'document_parent_consent.php', 'document_certificate.php',
                 ],
                 'sections' => [
@@ -125,8 +125,6 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                                 ['label' => 'SA Program', 'href' => 'student-assistance.php', 'icon' => 'feather-heart'],
                             ] : []),
                             ['label' => 'Applications Review', 'href' => 'applications-review.php', 'icon' => 'feather-clipboard'],
-                            ['label' => 'Internal Attendance', 'href' => 'attendance.php', 'icon' => 'feather-clock'],
-                            ['label' => 'External Attendance', 'href' => 'external-attendance.php', 'icon' => 'feather-briefcase'],
                         ],
                     ],
                     [
@@ -165,7 +163,6 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                             ...($canSystem ? [
                                 ['label' => 'Student Status Report', 'href' => 'reports-student-status.php', 'icon' => 'feather-users'],
                                 ['label' => 'Attendance Report (DTR)', 'href' => 'reports-attendance-dtr.php', 'icon' => 'feather-clock'],
-                                ['label' => 'Manual DTR Review', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit'],
                                 ['label' => 'Attendance Anomalies', 'href' => 'reports-attendance-anomalies.php', 'icon' => 'feather-alert-triangle'],
                                 ['label' => 'Hours Completion Report', 'href' => 'reports-hours-completion.php', 'icon' => 'feather-bar-chart-2'],
                                 ['label' => 'Section Report', 'href' => 'reports-section.php', 'icon' => 'feather-layers'],
@@ -175,6 +172,28 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                                 ['label' => 'Unassigned Students Report', 'href' => 'reports-unassigned-students.php', 'icon' => 'feather-user-x'],
                                 ['label' => 'Document Report', 'href' => 'reports-document.php', 'icon' => 'feather-file-text'],
                             ] : []),
+                        ],
+                    ],
+                ],
+            ];
+
+            $navGroups[] = [
+                'key' => 'attendance',
+                'label' => 'Attendance',
+                'icon' => 'feather-clock',
+                'routes' => [
+                    'attendance.php', 'test-attendance.php', 'external-attendance.php',
+                    'attendance-corrections.php', 'print_attendance.php',
+                    'reports-dtr-manual-input.php', 'reports-dtr-manual-student.php',
+                ],
+                'sections' => [
+                    [
+                        'title' => 'Attendance',
+                        'items' => [
+                            ['label' => 'Internal Attendance', 'href' => 'attendance.php', 'icon' => 'feather-clock'],
+                            ['label' => 'External Attendance', 'href' => 'external-attendance.php', 'icon' => 'feather-briefcase'],
+                            ['label' => 'Manual DTR Review', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit'],
+                            ['label' => 'Attendance Corrections', 'href' => 'attendance-corrections.php', 'icon' => 'feather-check-square'],
                         ],
                     ],
                 ],
@@ -223,8 +242,11 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 $workspaceItems = [
                     ['label' => 'Chat', 'href' => 'apps-chat.php', 'icon' => 'feather-message-circle'],
                     ['label' => 'Email', 'href' => 'apps-email.php', 'icon' => 'feather-mail'],
+                    ['label' => 'Notes', 'href' => 'apps-notes.php', 'icon' => 'feather-edit-2'],
+                    ['label' => 'Storage', 'href' => 'apps-storage.php', 'icon' => 'feather-hard-drive'],
+                    ['label' => 'Calendar', 'href' => 'apps-calendar.php', 'icon' => 'feather-calendar'],
                 ];
-                $workspaceRoutes = ['apps-chat.php', 'apps-email.php'];
+                $workspaceRoutes = ['apps-chat.php', 'apps-email.php', 'apps-notes.php', 'apps-storage.php', 'apps-calendar.php'];
             }
 
             $navGroups[] = [
@@ -244,32 +266,15 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
         if ($isStudent) {
             $navGroups[] = [
                 'key' => 'student-settings',
-                'label' => 'My Settings',
+                'label' => 'Settings',
                 'icon' => 'feather-settings',
-                'routes' => ['notifications.php', 'account-settings.php'],
+                'routes' => ['notifications.php', 'account-settings.php', 'theme-customizer.php'],
                 'sections' => [
                     [
                         'title' => 'Settings',
                         'items' => [
                             ['label' => 'Notifications', 'href' => 'notifications.php', 'icon' => 'feather-bell'],
                             ['label' => 'Account Settings', 'href' => 'account-settings.php', 'icon' => 'feather-user'],
-                        ],
-                    ],
-                ],
-            ];
-
-            $navGroups[] = [
-                'key' => 'student-tools',
-                'label' => 'Student Tools',
-                'icon' => 'feather-tool',
-                'routes' => ['apps-notes.php', 'apps-storage.php', 'apps-calendar.php', 'theme-customizer.php'],
-                'sections' => [
-                    [
-                        'title' => 'Tools',
-                        'items' => [
-                            ['label' => 'Notes', 'href' => 'apps-notes.php', 'icon' => 'feather-edit-2'],
-                            ['label' => 'Storage', 'href' => 'apps-storage.php', 'icon' => 'feather-hard-drive'],
-                            ['label' => 'Calendar', 'href' => 'apps-calendar.php', 'icon' => 'feather-calendar'],
                             ['label' => 'Appearance', 'href' => 'theme-customizer.php', 'icon' => 'feather-droplet'],
                         ],
                     ],
