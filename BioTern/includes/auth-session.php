@@ -236,9 +236,36 @@ if (!function_exists('biotern_auth_session_current_hash')) {
 if (!function_exists('biotern_login_sessions_has_column')) {
     function biotern_login_sessions_has_column(mysqli $conn, string $column): bool
     {
+        static $cache = [];
         $safeColumn = $conn->real_escape_string($column);
+        if (array_key_exists($safeColumn, $cache)) {
+            return $cache[$safeColumn];
+        }
         $result = $conn->query("SHOW COLUMNS FROM user_login_sessions LIKE '{$safeColumn}'");
-        return $result instanceof mysqli_result && $result->num_rows > 0;
+        $hasColumn = $result instanceof mysqli_result && $result->num_rows > 0;
+        if ($result instanceof mysqli_result) {
+            $result->free();
+        }
+        $cache[$safeColumn] = $hasColumn;
+        return $hasColumn;
+    }
+}
+
+if (!function_exists('biotern_login_sessions_has_index')) {
+    function biotern_login_sessions_has_index(mysqli $conn, string $index): bool
+    {
+        static $cache = [];
+        $safeIndex = $conn->real_escape_string($index);
+        if (array_key_exists($safeIndex, $cache)) {
+            return $cache[$safeIndex];
+        }
+        $result = $conn->query("SHOW INDEX FROM user_login_sessions WHERE Key_name = '{$safeIndex}'");
+        $hasIndex = $result instanceof mysqli_result && $result->num_rows > 0;
+        if ($result instanceof mysqli_result) {
+            $result->free();
+        }
+        $cache[$safeIndex] = $hasIndex;
+        return $hasIndex;
     }
 }
 
@@ -297,8 +324,12 @@ if (!function_exists('biotern_login_sessions_ensure_table')) {
             }
         }
 
-        $db->query('CREATE INDEX idx_user_login_sessions_user ON user_login_sessions (user_id)');
-        $db->query('CREATE INDEX idx_user_login_sessions_lookup ON user_login_sessions (user_id, token_hash)');
+        if (!biotern_login_sessions_has_index($db, 'idx_user_login_sessions_user')) {
+            $db->query('CREATE INDEX idx_user_login_sessions_user ON user_login_sessions (user_id)');
+        }
+        if (!biotern_login_sessions_has_index($db, 'idx_user_login_sessions_lookup')) {
+            $db->query('CREATE INDEX idx_user_login_sessions_lookup ON user_login_sessions (user_id, token_hash)');
+        }
         $initialized = true;
 
         return true;

@@ -2425,7 +2425,7 @@ include 'includes/header.php';
                         </div>
                     </div>
                     <?php if (!$selectedCanMessage): ?>
-                    <form method="post" action="<?php echo chat_esc(chat_page_url((int)$selectedUserId)); ?>" class="btchat-connection-form">
+                    <form method="post" action="<?php echo chat_esc(chat_page_url((int)$selectedUserId)); ?>" class="btchat-connection-form" data-chat-connection-form>
                         <input type="hidden" name="user_id" value="<?php echo (int)$selectedUserId; ?>">
                         <?php if ($selectedConnectionStatus === 'pending_received'): ?>
                             <input type="hidden" name="action" value="accept-chat">
