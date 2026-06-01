@@ -263,11 +263,6 @@
 
     function renderClock(options) {
       clock.classList.remove("is-grid-clock", "is-hidden");
-      if (isExactMinuteSelect(select) && state.view === "minute") {
-        clock.innerHTML = "";
-        clock.classList.add("is-hidden");
-        return;
-      }
       if (state.view === "minute") {
         renderMinuteClock(options);
         return;
@@ -278,17 +273,12 @@
         return option.hour % 12 || 12;
       }));
       clock.innerHTML = "";
-      if (isExactMinuteSelect(select)) {
-        clock.classList.add("is-grid-clock");
-      }
       for (var hour = 1; hour <= 12; hour += 1) {
         var button = createButton("biotern-time-hour", String(hour), "hour");
-        if (!isExactMinuteSelect(select)) {
-          var angle = ((hour % 12) * 30 - 90) * (Math.PI / 180);
-          var radius = 66;
-          button.style.left = (87 + Math.cos(angle) * radius) + "px";
-          button.style.top = (87 + Math.sin(angle) * radius) + "px";
-        }
+        var angle = ((hour % 12) * 30 - 90) * (Math.PI / 180);
+        var radius = 66;
+        button.style.left = (87 + Math.cos(angle) * radius) + "px";
+        button.style.top = (87 + Math.sin(angle) * radius) + "px";
         button.dataset.hour = String(hour);
         button.disabled = !enabledHours.has(hour);
         button.classList.toggle("is-active", state.hour !== null && (state.hour % 12 || 12) === hour);
@@ -310,7 +300,7 @@
       }
 
       clock.innerHTML = "";
-      for (var minute = 0; minute < 60; minute += 1) {
+      for (var minute = 0; minute < 60; minute += 5) {
         var button = createButton("biotern-time-minute-clock", pad(minute), "minute");
         var angle = (minute * 6 - 90) * (Math.PI / 180);
         var radius = minute % 5 === 0 ? 66 : 54;
