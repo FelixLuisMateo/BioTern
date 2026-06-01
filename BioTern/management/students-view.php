@@ -652,6 +652,8 @@ $external_hours_rendered = student_external_attendance_rendered_hours($conn, $ex
 $student_discipline_records = biotern_discipline_student_records($conn, $student_id, 30);
 $student_active_suspension = biotern_discipline_active_suspension($conn, $student_id, date('Y-m-d'));
 $student_absence_excuses = biotern_absence_excuse_rows_for_student($conn, $student_id, 40);
+$default_suspension_days = biotern_discipline_default_suspension_days($conn);
+$default_suspension_end_date = date('Y-m-d', strtotime('+' . max(0, $default_suspension_days - 1) . ' days'));
 
 $internal_hours_rendered = isset($sum_row['rendered']) ? (float)$sum_row['rendered'] : 0.0;
 if ($internal_hours_rendered <= 0 && isset($student['rendered_hours']) && strtolower(trim((string)($student['assignment_track'] ?? 'internal'))) !== 'external') {
@@ -1936,7 +1938,8 @@ endif; ?>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label class="form-label">End Date</label>
-                                                        <input type="date" name="discipline_end_date" class="form-control">
+                                                        <input type="date" name="discipline_end_date" class="form-control" value="<?php echo htmlspecialchars($default_suspension_end_date, ENT_QUOTES, 'UTF-8'); ?>">
+                                                        <small class="text-muted"><?php echo (int)$default_suspension_days; ?> day default for suspensions.</small>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label class="form-label">Reset Scope</label>

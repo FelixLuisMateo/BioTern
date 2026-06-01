@@ -2,6 +2,7 @@
 require_once __DIR__ . '/notifications.php';
 require_once __DIR__ . '/section_schedule.php';
 require_once __DIR__ . '/student_absence_excuses.php';
+require_once __DIR__ . '/attendance_settings.php';
 
 if (!function_exists('biotern_absence_ensure_system_settings_table')) {
     function biotern_absence_ensure_system_settings_table(mysqli $conn): void
@@ -73,7 +74,8 @@ if (!function_exists('biotern_absence_store_setting')) {
 if (!function_exists('biotern_absence_notify_threshold')) {
     function biotern_absence_notify_threshold(mysqli $conn): int
     {
-        $value = biotern_absence_setting($conn, 'student_absence_notify_days', '3');
+        $settings = function_exists('biotern_attendance_settings') ? biotern_attendance_settings($conn) : [];
+        $value = (string)($settings['student_absence_notify_days'] ?? biotern_absence_setting($conn, 'student_absence_notify_days', '3'));
         $threshold = (int)$value;
         return max(1, min(30, $threshold));
     }

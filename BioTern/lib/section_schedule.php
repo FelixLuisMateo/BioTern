@@ -301,20 +301,12 @@ if (!function_exists('section_schedule_has_configured_day')) {
     function section_schedule_has_configured_day(array $schedule, ?string $date = null): bool
     {
         $resolved = section_schedule_for_date($schedule, $date);
-        if (section_schedule_normalize_day_type((string)($resolved['day_type'] ?? 'class')) === 'no_class') {
+        $dayType = section_schedule_normalize_day_type((string)($resolved['day_type'] ?? 'class'), section_schedule_day_key_from_date($date));
+        if ($dayType === 'no_class') {
             return false;
         }
-        if (trim((string)($resolved['schedule_time_in'] ?? '')) !== '') {
-            return true;
-        }
-        if (trim((string)($resolved['schedule_time_out'] ?? '')) !== '') {
-            return true;
-        }
-        if (trim((string)($resolved['late_after_time'] ?? '')) !== '') {
-            return true;
-        }
-
-        return section_schedule_normalize_session((string)($resolved['attendance_session'] ?? 'whole_day')) !== 'whole_day';
+        return trim((string)($resolved['schedule_time_in'] ?? '')) !== ''
+            && trim((string)($resolved['schedule_time_out'] ?? '')) !== '';
     }
 }
 
@@ -344,16 +336,9 @@ if (!function_exists('section_schedule_effective_day')) {
             $resolved['schedule_time_in'] = $fallbackIn;
             $resolved['schedule_time_out'] = $fallbackOut;
             $resolved['late_after_time'] = $fallbackLate !== '' ? $fallbackLate : $fallbackIn;
-        } elseif ($resolved['schedule_time_in'] === '' && $fallbackIn !== '') {
-            $resolved['schedule_time_in'] = $fallbackIn;
-        }
-        if ($dayType !== 'no_class' && $resolved['schedule_time_out'] === '' && $fallbackOut !== '') {
-            $resolved['schedule_time_out'] = $fallbackOut;
         }
         if ($dayType !== 'no_class' && $resolved['late_after_time'] === '') {
-            if ($fallbackLate !== '') {
-                $resolved['late_after_time'] = $fallbackLate;
-            } elseif ($resolved['schedule_time_in'] !== '') {
+            if ($resolved['schedule_time_in'] !== '') {
                 $resolved['late_after_time'] = $resolved['schedule_time_in'];
             }
         }

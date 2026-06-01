@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/notifications.php';
 require_once __DIR__ . '/ops_helpers.php';
+require_once __DIR__ . '/attendance_settings.php';
 
 if (!function_exists('biotern_discipline_table_exists')) {
     function biotern_discipline_table_exists(mysqli $conn, string $table): bool
@@ -164,6 +165,27 @@ if (!function_exists('biotern_discipline_normalize_date')) {
         }
         $dt = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
         return $dt instanceof DateTimeImmutable && $dt->format('Y-m-d') === $value ? $value : null;
+    }
+}
+
+if (!function_exists('biotern_discipline_default_suspension_days')) {
+    function biotern_discipline_default_suspension_days(mysqli $conn): int
+    {
+        $value = '7';
+        if (function_exists('biotern_attendance_settings')) {
+            $settings = biotern_attendance_settings($conn);
+            $value = (string)($settings['discipline_default_suspension_days'] ?? $value);
+        } else {
+            biotern_discipline_ensure_schema($conn);
+            $stmt = $conn->prepare("SELECT `value` FROM system_settings WHERE `key` = 'discipline_default_suspension_days' LIMIT 1");
+            if ($stmt) {
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc() ?: null;
+                $stmt->close();
+                $value = (string)($row['value'] ?? $value);
+            }
+        }
+        return max(1, min(180, (int)$value));
     }
 }
 

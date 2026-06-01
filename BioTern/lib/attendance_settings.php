@@ -9,6 +9,9 @@ if (!function_exists('biotern_attendance_settings_defaults')) {
             'scheduled_slot_display' => '1',
             'live_timer_uses_schedule_cutoff' => '0',
             'apply_to_external' => '0',
+            'missing_schedule_notifications_enabled' => '1',
+            'student_absence_notify_days' => '3',
+            'discipline_default_suspension_days' => '7',
         ];
     }
 }
@@ -82,9 +85,11 @@ if (!function_exists('biotern_attendance_settings')) {
         }
 
         $settings['credit_mode'] = $settings['credit_mode'] === 'schedule' ? 'schedule' : 'actual';
-        foreach (['biometric_window_enabled', 'scheduled_slot_display', 'live_timer_uses_schedule_cutoff', 'apply_to_external'] as $key) {
+        foreach (['biometric_window_enabled', 'scheduled_slot_display', 'live_timer_uses_schedule_cutoff', 'apply_to_external', 'missing_schedule_notifications_enabled'] as $key) {
             $settings[$key] = $settings[$key] === '1' ? '1' : '0';
         }
+        $settings['student_absence_notify_days'] = (string)max(1, min(30, (int)($settings['student_absence_notify_days'] ?? 3)));
+        $settings['discipline_default_suspension_days'] = (string)max(1, min(180, (int)($settings['discipline_default_suspension_days'] ?? 7)));
 
         $cache[$hash] = $settings;
         return $settings;

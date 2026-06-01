@@ -328,6 +328,114 @@ function attendance_school_hours_config(?array $machineConfig = null): array
     ];
 }
 
+function attendance_ensure_missing_schedule_log(mysqli $conn): void
+{
+    $conn->query("CREATE TABLE IF NOT EXISTS section_schedule_notification_log (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        section_id BIGINT UNSIGNED NOT NULL,
+        attendance_date DATE NOT NULL,
+        notice_type VARCHAR(40) NOT NULL DEFAULT 'missing_schedule',
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_section_schedule_notice (section_id, attendance_date, notice_type),
+        KEY idx_section_schedule_notice_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+}
+
+function attendance_missing_schedule_recipient_ids(mysqli $conn, int $courseId): array
+{
+    $ids = [];
+    $adminRes = $conn->query("SELECT id FROM users WHERE role = 'admin' AND (is_active = 1 OR is_active IS NULL)");
+    if ($adminRes instanceof mysqli_result) {
+        while ($row = $adminRes->fetch_assoc()) {
+            $id = (int)($row['id'] ?? 0);
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+        $adminRes->close();
+    }
+
+    if ($courseId > 0 && function_exists('ensure_coordinator_courses_table') && ensure_coordinator_courses_table($conn)) {
+        $stmt = $conn->prepare(
+            "SELECT DISTINCT cc.coordinator_user_id
+             FROM coordinator_courses cc
+             INNER JOIN users u ON u.id = cc.coordinator_user_id
+             WHERE cc.course_id = ? AND u.role = 'coordinator' AND (u.is_active = 1 OR u.is_active IS NULL)"
+        );
+        if ($stmt) {
+            $stmt->bind_param('i', $courseId);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            while ($row = $res->fetch_assoc()) {
+                $id = (int)($row['coordinator_user_id'] ?? 0);
+                if ($id > 0) {
+                    $ids[] = $id;
+                }
+            }
+            $stmt->close();
+        }
+    }
+
+    return array_values(array_unique(array_filter($ids, static fn($id): bool => (int)$id > 0)));
+}
+
+function attendance_notify_missing_section_schedules(mysqli $conn, array $attendances): int
+{
+    if ($attendances === [] || !function_exists('biotern_notify')) {
+        return 0;
+    }
+    $settings = function_exists('biotern_attendance_settings') ? biotern_attendance_settings($conn) : [];
+    if ((string)($settings['missing_schedule_notifications_enabled'] ?? '1') !== '1') {
+        return 0;
+    }
+    attendance_ensure_missing_schedule_log($conn);
+
+    $created = 0;
+    $seen = [];
+    foreach ($attendances as $attendance) {
+        $sectionId = (int)($attendance['section_id'] ?? 0);
+        $date = substr((string)($attendance['attendance_date'] ?? ''), 0, 10);
+        if ($sectionId <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            continue;
+        }
+        $key = $sectionId . '|' . $date;
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+
+        $logStmt = $conn->prepare(
+            "INSERT IGNORE INTO section_schedule_notification_log (section_id, attendance_date, notice_type, created_at)
+             VALUES (?, ?, 'missing_schedule', NOW())"
+        );
+        if (!$logStmt) {
+            continue;
+        }
+        $logStmt->bind_param('is', $sectionId, $date);
+        $logStmt->execute();
+        $inserted = $logStmt->affected_rows > 0;
+        $logStmt->close();
+        if (!$inserted) {
+            continue;
+        }
+
+        $sectionLabel = biotern_format_section_label((string)($attendance['section_code'] ?? ''), (string)($attendance['section_name'] ?? ''));
+        if ($sectionLabel === '') {
+            $sectionLabel = 'Section #' . $sectionId;
+        }
+        $title = 'Section schedule not set';
+        $message = $sectionLabel . ' has biometric attendance on ' . $date . ', but no class/OJT schedule is configured for that day. Add the section schedule so attendance can display and compute correctly.';
+        $url = 'sections-edit.php?id=' . $sectionId;
+        foreach (attendance_missing_schedule_recipient_ids($conn, (int)($attendance['course_id'] ?? 0)) as $recipientId) {
+            if (biotern_notify($conn, $recipientId, $title, $message, 'attendance', $url)) {
+                $created++;
+            }
+        }
+    }
+
+    return $created;
+}
+
 $machineConfig = attendance_load_machine_config();
 
 // Fetch Attendance Statistics
@@ -634,6 +742,7 @@ $attendance_query = "
         {$manualProofSelect},
         s.id as student_id,
         s.user_id,
+        s.course_id,
         s.department_id,
         {$saStudentSelect}
         COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
@@ -899,6 +1008,7 @@ foreach ($attendances as $attendance) {
         $missingScheduleAttendances[] = $attendance;
     }
 }
+attendance_notify_missing_section_schedules($conn, $missingScheduleAttendances);
 
 $attendanceBridgeStatus = attendance_bridge_runtime_status($conn);
 $attendanceShowBridgeStatus = !in_array((string)($attendanceBridgeStatus['class'] ?? ''), ['danger'], true);
@@ -1122,6 +1232,10 @@ function attendanceDisplayTimeHtml(array $attendance, string $column, string $ba
 
     $resolved = attendanceResolvedTime($attendance, $column);
     if ($resolved['time'] === null) {
+        $schedule = attendance_effective_schedule($attendance);
+        if (strtolower(trim((string)($attendance['source'] ?? ''))) === 'biometric' && ($schedule['window_source'] ?? 'none') === 'none') {
+            return '<span class="badge bg-soft-warning text-warning">Schedule not set</span>';
+        }
         $expectedEnd = attendanceExpectedEndLabel($attendance, $column);
         return '<span class="badge ' . $badgeClass . '">-</span>'
             . ($expectedEnd !== ''
@@ -1199,7 +1313,7 @@ function attendancePlacementContextShortLabel(array $attendance): string {
         return 'School Hours';
     }
 
-    return 'No Window';
+    return 'Schedule Not Set';
 }
 
 function getSourceBadge($source, array $attendance = []) {
@@ -1426,6 +1540,7 @@ function attendance_virtual_absence_rows(mysqli $conn, array $visibleAttendances
         SELECT
             s.id AS student_id,
             s.user_id,
+            s.course_id,
             s.department_id,
             0 AS is_sa_student,
             COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
@@ -1543,7 +1658,17 @@ function attendance_schedule_bounds(array $attendance): array {
     $scheduleOut = section_schedule_normalize_time_input((string)($schedule['schedule_time_out'] ?? ''));
     $schoolOut = section_schedule_normalize_time_input((string)($schoolHours['schedule_time_out'] ?? '')) ?: '19:00:00';
 
-    if (($dayType === 'class' || $dayType === 'x2_schedule') && ($schedule['window_source'] ?? '') === 'section' && $scheduleOut !== null) {
+    if ($dayType === 'x2_schedule' && ($schedule['window_source'] ?? '') === 'section') {
+        return [
+            'schedule' => $schedule,
+            'official_start' => $scheduleIn ?: '08:00:00',
+            'official_end' => $scheduleOut ?: $schoolOut,
+            'late_after' => section_schedule_normalize_time_input((string)($schedule['late_after_time'] ?? ''))
+                ?: ($scheduleIn ?: '08:00:00'),
+        ];
+    }
+
+    if ($dayType === 'class' && ($schedule['window_source'] ?? '') === 'section' && $scheduleOut !== null) {
         return [
             'schedule' => $schedule,
             'official_start' => $scheduleOut,
@@ -1740,6 +1865,14 @@ function attendanceMultiplierContext(array $attendance, ?array $metrics = null):
     $metrics = is_array($metrics) ? $metrics : attendance_window_metrics($attendance);
     $weekday = attendanceDateWeekdayKey($dateKey);
     $best = ['multiplier' => 1.0, 'rule' => null];
+    $schedule = is_array($metrics['schedule'] ?? null) ? $metrics['schedule'] : attendance_effective_schedule($attendance);
+    $dayType = section_schedule_normalize_day_type((string)($schedule['day_type'] ?? 'class'), $weekday);
+    if ($dayType === 'x2_schedule' && ($schedule['window_source'] ?? '') === 'section') {
+        $best = [
+            'multiplier' => 2.0,
+            'rule' => ['title' => 'x2 Saturday section schedule'],
+        ];
+    }
 
     foreach ($customRules as $rule) {
         $multiplier = (float)($rule['multiplier'] ?? 1);
@@ -1813,7 +1946,13 @@ function attendance_hours_cell_html(array $attendance): string {
         ? (float)$attendance['computed_total_hours']
         : calculateAttendanceRowHours($attendance);
 
-    return '<span class="badge bg-soft-secondary text-secondary">' . attendance_format_hours_label($computedHours) . '</span>';
+    $html = '<span class="badge bg-soft-secondary text-secondary">' . attendance_format_hours_label($computedHours) . '</span>';
+    $bonus = attendanceMultiplierContext($attendance);
+    if ((float)($bonus['multiplier'] ?? 1) > 1.0) {
+        $reason = is_array($bonus['rule'] ?? null) ? trim((string)($bonus['rule']['title'] ?? 'x2 schedule')) : 'x2 schedule';
+        $html .= '<div class="fs-11 text-muted mt-1">' . htmlspecialchars($reason, ENT_QUOTES, 'UTF-8') . '</div>';
+    }
+    return $html;
 }
 
 function attendance_list_status_key(array $attendance): string {
