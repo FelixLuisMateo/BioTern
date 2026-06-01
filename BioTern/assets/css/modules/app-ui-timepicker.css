@@ -228,6 +228,22 @@ body .record-section select.biotern-time-native {
   border: 1px solid var(--biotern-timepicker-border);
 }
 
+.biotern-time-clock.is-hidden {
+  display: none;
+}
+
+.biotern-time-clock.is-grid-clock {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  height: auto;
+  margin-bottom: 12px;
+  padding: 10px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--biotern-timepicker-surface) 88%, var(--biotern-timepicker-bg));
+}
+
 .biotern-time-hour {
   position: absolute;
   width: 32px;
@@ -240,6 +256,16 @@ body .record-section select.biotern-time-native {
   font: inherit;
   font-size: 0.78rem;
   font-weight: 900;
+}
+
+.biotern-time-clock.is-grid-clock .biotern-time-hour {
+  position: static;
+  width: auto;
+  height: 38px;
+  margin: 0;
+  border-color: var(--biotern-timepicker-border);
+  border-radius: 999px;
+  background: var(--biotern-timepicker-surface);
 }
 
 .biotern-time-minute-clock {
@@ -278,8 +304,8 @@ body .record-section select.biotern-time-native {
 
 .biotern-time-minutes {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  max-height: 156px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  max-height: 142px;
   overflow: auto;
   margin-bottom: 12px;
   padding-right: 2px;
@@ -287,7 +313,7 @@ body .record-section select.biotern-time-native {
 
 .biotern-time-minute {
   min-width: 0;
-  padding: 0.5rem 0.45rem;
+  padding: 0.48rem 0.35rem;
 }
 
 .biotern-time-actions {
