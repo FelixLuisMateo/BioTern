@@ -1570,8 +1570,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (machine_is_cloud_runtime()) {
                     $_SESSION['machine_manager_flash'] = [
-                        'type' => 'warning',
-                        'message' => 'Bridge profile revived and left enabled. If the worker is stale, open this page on the Windows bridge PC and click Revive Bridge Connection there so BioTern can restart the local scheduled task.',
+                        'type' => 'info',
+                        'message' => 'Bridge profile revived and left enabled. This Vercel page cannot restart the Windows bridge worker. To restart it, open the local XAMPP BioTern page on the bridge PC, for example http://localhost/BioTern/biometric-machine.php, then click Revive Bridge Connection there.',
                     ];
                     machine_redirect_after_post([]);
                 }
@@ -3168,7 +3168,7 @@ include __DIR__ . '/../includes/header.php';
                                 <input type="hidden" name="machine_action" value="revive_bridge_connection">
                                 <button type="submit" class="btn btn-success w-100">Revive Bridge Profile</button>
                             </form>
-                            <div class="alert alert-info mt-2 mb-0 fs-12">Cloud can keep the bridge profile enabled, but only the local Windows bridge PC can restart BioTernBridgeWorker.</div>
+                            <div class="alert alert-info mt-2 mb-0 fs-12">Cloud can keep the bridge profile enabled, but only the local XAMPP BioTern page on the Windows bridge PC can restart BioTernBridgeWorker.</div>
                         <?php endif; ?>
                     </div>
                 </div>

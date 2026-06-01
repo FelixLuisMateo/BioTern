@@ -70,7 +70,7 @@ if (!function_exists('biotern_auth_session_db')) {
 }
 
 if (!function_exists('biotern_auth_cookie_options')) {
-    function biotern_auth_cookie_options($expires)
+    function biotern_auth_cookie_options($expires, bool $persistent = true)
     {
         $forwardedProto = strtolower(trim((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')));
         if ($forwardedProto !== '' && strpos($forwardedProto, ',') !== false) {
@@ -84,7 +84,7 @@ if (!function_exists('biotern_auth_cookie_options')) {
             || biotern_is_vercel_runtime();
 
         return [
-            'expires' => (int)$expires,
+            'expires' => $persistent ? (int)$expires : 0,
             'path' => '/',
             'secure' => $isHttps,
             'httponly' => true,
@@ -107,21 +107,21 @@ if (!function_exists('biotern_set_auth_cookie')) {
         $signature = hash_hmac('sha256', $payload, biotern_auth_cookie_key());
         $token = base64_encode($payload . '|' . $signature);
         if (!headers_sent()) {
-            setcookie('biotern_auth', $token, biotern_auth_cookie_options($expiresAt));
+            setcookie('biotern_auth', $token, biotern_auth_cookie_options($expiresAt, $remember));
         }
         $_COOKIE['biotern_auth'] = $token;
     }
 }
 
 if (!function_exists('biotern_login_session_cookie_options')) {
-    function biotern_login_session_cookie_options($expires)
+    function biotern_login_session_cookie_options($expires, bool $persistent = true)
     {
-        return biotern_auth_cookie_options((int)$expires);
+        return biotern_auth_cookie_options((int)$expires, $persistent);
     }
 }
 
 if (!function_exists('biotern_set_login_session_cookie')) {
-    function biotern_set_login_session_cookie($rawToken, $expiresAt)
+    function biotern_set_login_session_cookie($rawToken, $expiresAt, bool $remember = false)
     {
         $rawToken = trim((string)$rawToken);
         if ($rawToken === '') {
@@ -132,7 +132,7 @@ if (!function_exists('biotern_set_login_session_cookie')) {
             setcookie(
                 biotern_auth_session_cookie_name(),
                 $rawToken,
-                biotern_login_session_cookie_options((int)$expiresAt)
+                biotern_login_session_cookie_options((int)$expiresAt, $remember)
             );
         }
         $_COOKIE[biotern_auth_session_cookie_name()] = $rawToken;
@@ -146,7 +146,7 @@ if (!function_exists('biotern_clear_login_session_cookie')) {
             setcookie(
                 biotern_auth_session_cookie_name(),
                 '',
-                biotern_login_session_cookie_options(time() - 3600)
+                biotern_login_session_cookie_options(time() - 3600, true)
             );
         }
         unset($_COOKIE[biotern_auth_session_cookie_name()]);
@@ -157,7 +157,7 @@ if (!function_exists('biotern_clear_auth_cookie')) {
     function biotern_clear_auth_cookie()
     {
         if (!headers_sent()) {
-            setcookie('biotern_auth', '', biotern_auth_cookie_options(time() - 3600));
+            setcookie('biotern_auth', '', biotern_auth_cookie_options(time() - 3600, true));
         }
         unset($_COOKIE['biotern_auth']);
         biotern_clear_login_session_cookie();
@@ -236,9 +236,36 @@ if (!function_exists('biotern_auth_session_current_hash')) {
 if (!function_exists('biotern_login_sessions_has_column')) {
     function biotern_login_sessions_has_column(mysqli $conn, string $column): bool
     {
+        static $cache = [];
         $safeColumn = $conn->real_escape_string($column);
+        if (array_key_exists($safeColumn, $cache)) {
+            return $cache[$safeColumn];
+        }
         $result = $conn->query("SHOW COLUMNS FROM user_login_sessions LIKE '{$safeColumn}'");
-        return $result instanceof mysqli_result && $result->num_rows > 0;
+        $hasColumn = $result instanceof mysqli_result && $result->num_rows > 0;
+        if ($result instanceof mysqli_result) {
+            $result->free();
+        }
+        $cache[$safeColumn] = $hasColumn;
+        return $hasColumn;
+    }
+}
+
+if (!function_exists('biotern_login_sessions_has_index')) {
+    function biotern_login_sessions_has_index(mysqli $conn, string $index): bool
+    {
+        static $cache = [];
+        $safeIndex = $conn->real_escape_string($index);
+        if (array_key_exists($safeIndex, $cache)) {
+            return $cache[$safeIndex];
+        }
+        $result = $conn->query("SHOW INDEX FROM user_login_sessions WHERE Key_name = '{$safeIndex}'");
+        $hasIndex = $result instanceof mysqli_result && $result->num_rows > 0;
+        if ($result instanceof mysqli_result) {
+            $result->free();
+        }
+        $cache[$safeIndex] = $hasIndex;
+        return $hasIndex;
     }
 }
 
@@ -265,6 +292,7 @@ if (!function_exists('biotern_login_sessions_ensure_table')) {
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             expires_at DATETIME NOT NULL,
+            remember_me TINYINT(1) NOT NULL DEFAULT 0,
             revoked_at DATETIME NULL,
             revoke_reason VARCHAR(50) NULL,
             PRIMARY KEY (id),
@@ -288,6 +316,7 @@ if (!function_exists('biotern_login_sessions_ensure_table')) {
             'expires_at' => 'DATETIME NOT NULL',
             'revoked_at' => 'DATETIME NULL',
             'revoke_reason' => 'VARCHAR(50) NULL',
+            'remember_me' => 'TINYINT(1) NOT NULL DEFAULT 0',
         ];
 
         foreach ($requiredColumns as $column => $definition) {
@@ -297,8 +326,12 @@ if (!function_exists('biotern_login_sessions_ensure_table')) {
             }
         }
 
-        $db->query('CREATE INDEX idx_user_login_sessions_user ON user_login_sessions (user_id)');
-        $db->query('CREATE INDEX idx_user_login_sessions_lookup ON user_login_sessions (user_id, token_hash)');
+        if (!biotern_login_sessions_has_index($db, 'idx_user_login_sessions_user')) {
+            $db->query('CREATE INDEX idx_user_login_sessions_user ON user_login_sessions (user_id)');
+        }
+        if (!biotern_login_sessions_has_index($db, 'idx_user_login_sessions_lookup')) {
+            $db->query('CREATE INDEX idx_user_login_sessions_lookup ON user_login_sessions (user_id, token_hash)');
+        }
         $initialized = true;
 
         return true;
@@ -362,11 +395,20 @@ if (!function_exists('biotern_login_session_start')) {
 
         $stmt = $db->prepare("INSERT INTO user_login_sessions (user_id, token_hash, session_id, ip_address, user_agent, created_at, last_seen_at, expires_at)
             VALUES (?, ?, ?, ?, ?, NOW(), NOW(), FROM_UNIXTIME(?))");
+        if (biotern_login_sessions_has_column($db, 'remember_me')) {
+            $stmt = $db->prepare("INSERT INTO user_login_sessions (user_id, token_hash, session_id, ip_address, user_agent, created_at, last_seen_at, expires_at, remember_me)
+                VALUES (?, ?, ?, ?, ?, NOW(), NOW(), FROM_UNIXTIME(?), ?)");
+        }
         if (!$stmt) {
             return false;
         }
 
-        $stmt->bind_param('issssi', $userId, $tokenHash, $sessionId, $ipAddress, $userAgent, $expiresAt);
+        if (biotern_login_sessions_has_column($db, 'remember_me')) {
+            $rememberInt = $remember ? 1 : 0;
+            $stmt->bind_param('issssii', $userId, $tokenHash, $sessionId, $ipAddress, $userAgent, $expiresAt, $rememberInt);
+        } else {
+            $stmt->bind_param('issssi', $userId, $tokenHash, $sessionId, $ipAddress, $userAgent, $expiresAt);
+        }
         $ok = (bool)$stmt->execute();
         $stmt->close();
 
@@ -375,7 +417,7 @@ if (!function_exists('biotern_login_session_start')) {
         }
 
         $_SESSION['auth_session_token_hash'] = $tokenHash;
-        biotern_set_login_session_cookie($rawToken, $expiresAt);
+        biotern_set_login_session_cookie($rawToken, $expiresAt, $remember);
 
         $cleanup = $db->prepare("DELETE FROM user_login_sessions
             WHERE user_id = ?

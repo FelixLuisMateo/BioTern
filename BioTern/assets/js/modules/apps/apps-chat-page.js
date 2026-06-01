@@ -638,6 +638,7 @@
                 });
             });
         }
+        bindConnectionForms(document);
 
         function muteStorageKey(userId) {
             return 'chatMutedUser:' + String(userId || 0);
@@ -1850,7 +1851,7 @@
                     return;
                 }
                 if (!headerEl || !threadEl || !formEl) {
-                    showAlert('error', 'Chat view is still loading.');
+                    window.location.href = link.href;
                     return;
                 }
                 var wasMobileConversationOpen = isMobileLayout() && app.classList.contains('btchat-mobile-convo-open');
