@@ -141,6 +141,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]
     );
     foreach ($weekly_schedule as $dayKey => $daySchedule) {
+        $dayType = section_schedule_normalize_day_type((string)($daySchedule['day_type'] ?? 'class'), $dayKey);
+        if ($dayType === 'no_class') {
+            $weekly_schedule[$dayKey]['schedule_time_in'] = '08:00';
+            $weekly_schedule[$dayKey]['schedule_time_out'] = '19:00';
+            $weekly_schedule[$dayKey]['late_after_time'] = '08:00';
+            continue;
+        }
         $weekly_schedule[$dayKey]['late_after_time'] = $daySchedule['schedule_time_in'] ?: ($late_after_time ?? '');
     }
     $weekly_schedule_json = section_schedule_encode_weekly($weekly_schedule);
@@ -304,10 +311,6 @@ function section_edit_day_type_label(?string $dayType): string {
 }
 
 function section_edit_timetable_style(array $daySchedule, int $startMinutes, int $endMinutes, int $slotMinutes): string {
-    if (section_schedule_normalize_day_type((string)($daySchedule['day_type'] ?? 'class')) === 'no_class') {
-        return 'display: none;';
-    }
-
     $timeIn = section_edit_time_minutes((string)($daySchedule['schedule_time_in'] ?? ''));
     $timeOut = section_edit_time_minutes((string)($daySchedule['schedule_time_out'] ?? ''));
     if ($timeIn === null || $timeOut === null || $timeOut <= $timeIn) {
@@ -324,6 +327,25 @@ function section_edit_timetable_style(array $daySchedule, int $startMinutes, int
     $rowSpan = max(1, (int)ceil(($clampedEnd - $clampedStart) / $slotMinutes));
 
     return '--schedule-row-start: ' . $rowStart . '; --schedule-row-span: ' . $rowSpan . ';';
+}
+
+function section_edit_schedule_day_for_editor(array $daySchedule, string $dayKey): array {
+    $dayType = section_schedule_normalize_day_type((string)($daySchedule['day_type'] ?? 'class'), $dayKey);
+    if ($dayType === 'no_class') {
+        $daySchedule['schedule_time_in'] = '08:00';
+        $daySchedule['schedule_time_out'] = '19:00';
+        $daySchedule['late_after_time'] = '08:00';
+    }
+    $daySchedule['day_type'] = $dayType;
+    return $daySchedule;
+}
+
+function section_edit_schedule_block_class(array $daySchedule, string $dayKey): string {
+    return match (section_schedule_normalize_day_type((string)($daySchedule['day_type'] ?? 'class'), $dayKey)) {
+        'no_class' => 'is-no-class',
+        'x2_schedule' => 'is-x2-schedule',
+        default => 'is-class',
+    };
 }
 
 $page_title = 'Edit Section';
@@ -522,10 +544,10 @@ include 'includes/header.php';
                                 <?php endforeach; ?>
                                 <?php foreach (section_schedule_weekday_order() as $dayOffset => $dayKey): ?>
                                     <?php
-                                    $daySchedule = $weeklySchedule[$dayKey] ?? section_schedule_empty_day($sectionSchedule);
+                                    $daySchedule = section_edit_schedule_day_for_editor($weeklySchedule[$dayKey] ?? section_schedule_empty_day($sectionSchedule), $dayKey);
                                     $blockStyle = section_edit_timetable_style($daySchedule, $scheduleBoardStartMinutes, $scheduleBoardEndMinutes, $scheduleBoardSlotMinutes);
                                     ?>
-                                    <div class="class-schedule-block"
+                                    <div class="class-schedule-block <?php echo section_edit_schedule_block_class($daySchedule, $dayKey); ?>"
                                          data-schedule-block="<?php echo htmlspecialchars($dayKey, ENT_QUOTES, 'UTF-8'); ?>"
                                          style="grid-column: <?php echo $dayOffset + 2; ?>; <?php echo htmlspecialchars($blockStyle, ENT_QUOTES, 'UTF-8'); ?>">
                                         <span class="class-schedule-block-title"><?php echo htmlspecialchars($sectionBoardTitle, ENT_QUOTES, 'UTF-8'); ?></span>
@@ -546,7 +568,7 @@ include 'includes/header.php';
                             <div>Attendance Rule</div>
                         </div>
                         <?php foreach (section_schedule_weekday_order() as $dayKey): ?>
-                            <?php $daySchedule = $weeklySchedule[$dayKey] ?? section_schedule_empty_day($sectionSchedule); ?>
+                            <?php $daySchedule = section_edit_schedule_day_for_editor($weeklySchedule[$dayKey] ?? section_schedule_empty_day($sectionSchedule), $dayKey); ?>
                             <div class="weekly-schedule-row" data-weekday-row="<?php echo htmlspecialchars($dayKey); ?>">
                                 <div class="weekly-schedule-day"><?php echo htmlspecialchars(section_schedule_weekday_label($dayKey)); ?></div>
                                 <div class="d-none">
@@ -636,10 +658,10 @@ include 'includes/header.php';
                         <?php endforeach; ?>
                         <?php foreach (section_schedule_weekday_order() as $dayOffset => $dayKey): ?>
                             <?php
-                            $daySchedule = $weeklySchedule[$dayKey] ?? section_schedule_empty_day($sectionSchedule);
+                            $daySchedule = section_edit_schedule_day_for_editor($weeklySchedule[$dayKey] ?? section_schedule_empty_day($sectionSchedule), $dayKey);
                             $blockStyle = section_edit_timetable_style($daySchedule, $scheduleBoardStartMinutes, $scheduleBoardEndMinutes, $scheduleBoardSlotMinutes);
                             ?>
-                            <div class="section-print-block <?php echo $dayOffset % 2 === 0 ? 'is-green' : 'is-blue'; ?>"
+                            <div class="section-print-block <?php echo section_edit_schedule_block_class($daySchedule, $dayKey); ?>"
                                  data-print-schedule-block="<?php echo htmlspecialchars($dayKey, ENT_QUOTES, 'UTF-8'); ?>"
                                  style="grid-column: <?php echo $dayOffset + 2; ?>; <?php echo htmlspecialchars($blockStyle, ENT_QUOTES, 'UTF-8'); ?>">
                                 <span><?php echo htmlspecialchars($sectionBoardTitle, ENT_QUOTES, 'UTF-8'); ?></span>

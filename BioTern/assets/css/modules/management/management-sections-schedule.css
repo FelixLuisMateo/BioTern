@@ -247,6 +247,24 @@ html.app-skin-light input.form-control[type="time"] {
     text-align: center;
 }
 
+.class-schedule-block.is-class {
+    border-color: rgba(22, 101, 52, 0.55);
+    background: linear-gradient(180deg, #7fbf4d, #5f9f3f);
+    color: #102a12;
+}
+
+.class-schedule-block.is-no-class {
+    border-color: rgba(37, 99, 235, 0.55);
+    background: linear-gradient(180deg, #6bb7e8, #3f8fc8);
+    color: #08233d;
+}
+
+.class-schedule-block.is-x2-schedule {
+    border-color: rgba(180, 83, 9, 0.58);
+    background: linear-gradient(180deg, #f8d85a, #e6aa2e);
+    color: #3a2500;
+}
+
 .class-schedule-block-title,
 .class-schedule-block-session,
 .class-schedule-block-time {
@@ -656,12 +674,16 @@ html.app-skin-dark .class-schedule-cell {
         text-transform: uppercase;
     }
 
-    .section-print-block.is-green {
+    .section-print-block.is-class {
         background: #6daf45;
     }
 
-    .section-print-block.is-blue {
+    .section-print-block.is-no-class {
         background: #5da0d8;
+    }
+
+    .section-print-block.is-x2-schedule {
+        background: #f3c847;
     }
 
     .section-print-block span {

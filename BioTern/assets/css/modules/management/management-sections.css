@@ -35,7 +35,8 @@
 
 .app-section-name-hero {
     display: block;
-    color: #dbeafe;
+    color: rgb(87, 87, 87);
+    -webkit-text-fill-color: #0f172a;
     font-size: 1.18rem;
     font-weight: 900;
     line-height: 1.15;
@@ -46,6 +47,18 @@
 html.app-skin-light .app-section-name-hero {
     color: #0f172a !important;
     -webkit-text-fill-color: #0f172a !important;
+}
+
+html:not(.app-skin-dark) .app-section-name-hero,
+body:not(.app-skin-dark) .app-section-name-hero {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+}
+
+html.app-skin-dark .app-section-name-hero,
+body.app-skin-dark .app-section-name-hero {
+    color: #dbeafe !important;
+    -webkit-text-fill-color: #dbeafe !important;
 }
 
 .app-section-details-cell {
