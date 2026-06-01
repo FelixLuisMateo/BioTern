@@ -1805,9 +1805,9 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
 
     var buildTimeSelect = function (name, selected, startHour, endHour, slotName) {
         var slotAttr = slotName ? ' data-time-slot="' + escapeHtml(slotName) + '"' : '';
-        var minValue = String(Math.max(0, Math.min(23, startHour || 0))).padStart(2, '0') + ':00';
-        var maxValue = String(Math.max(0, Math.min(23, endHour || 23))).padStart(2, '0') + ':59';
-        return '<input type="time" class="form-control student-dtr-time-field external-manual-time-input" name="' + name + '" value="' + escapeHtml(selected || '') + '" min="' + minValue + '" max="' + maxValue + '" step="60"' + slotAttr + '>';
+        return '<select class="form-select student-dtr-time-select external-manual-time-select" name="' + name + '"' + slotAttr + '>' +
+            buildTimeOptions(selected || '', startHour, endHour) +
+        '</select>';
     };
 
     var formatLabel = function (dateValue) {
@@ -1955,7 +1955,9 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
                     '<tbody>' + rows.join('') + '</tbody>' +
                 '</table>' +
             '</div>';
-        enhanceTimeFields(rowsWrap);
+        if (window.BioTernUnifiedTimePicker && typeof window.BioTernUnifiedTimePicker.refresh === 'function') {
+            window.BioTernUnifiedTimePicker.refresh(rowsWrap);
+        }
         updateGeneratedHours();
         rowsWrap.addEventListener('input', updateGeneratedHours);
         rowsWrap.addEventListener('change', updateGeneratedHours);
@@ -1999,6 +2001,30 @@ Array.prototype.slice.call(document.querySelectorAll('input[type="file"][data-fi
     function enhanceTimeFields(scope) {
         Array.prototype.slice.call((scope || document).querySelectorAll('.student-dtr-time-field')).forEach(function (input) {
             if (input.type === 'time') {
+                var replacement = document.createElement('select');
+                replacement.className = 'form-select student-dtr-time-select external-manual-time-select';
+                replacement.name = input.name || '';
+                replacement.value = input.value || '';
+                Array.prototype.slice.call(input.attributes || []).forEach(function (attr) {
+                    if (attr.name.indexOf('data-') === 0) {
+                        replacement.setAttribute(attr.name, attr.value);
+                    }
+                });
+                var minHour = 0;
+                var maxHour = 23;
+                var minMatch = String(input.getAttribute('min') || '').match(/^(\d{2}):/);
+                var maxMatch = String(input.getAttribute('max') || '').match(/^(\d{2}):/);
+                if (minMatch) {
+                    minHour = parseInt(minMatch[1], 10);
+                }
+                if (maxMatch) {
+                    maxHour = parseInt(maxMatch[1], 10);
+                }
+                replacement.innerHTML = buildTimeOptions(input.value || '', minHour, maxHour);
+                input.replaceWith(replacement);
+                if (window.BioTernUnifiedTimePicker && typeof window.BioTernUnifiedTimePicker.refresh === 'function') {
+                    window.BioTernUnifiedTimePicker.refresh(replacement.parentNode || document);
+                }
                 return;
             }
             if (input.dataset.timeEnhanced === '1') {
