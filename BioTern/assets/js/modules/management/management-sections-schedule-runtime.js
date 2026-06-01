@@ -108,9 +108,9 @@
     }
 
     function labelDayType(value) {
-        if (value === "no_class") return "No Class";
-        if (value === "x2_schedule") return "x2 Schedule";
-        return "Class";
+        if (value === "no_class") return "OJT Required";
+        if (value === "x2_schedule") return "x2 Saturday";
+        return "Class First";
     }
 
     function normalizeDayType(input) {
