@@ -42,7 +42,7 @@ if ($isAdmin && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && strtolower(t
     }
 }
 
-if ($isAdmin) {
+if (in_array($currentRole, ['admin', 'coordinator', 'supervisor'], true)) {
     biotern_absence_notify_admins($conn, $absenceNotifyDays);
 }
 

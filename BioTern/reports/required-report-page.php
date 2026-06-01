@@ -6,9 +6,11 @@ require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
 require_once dirname(__DIR__) . '/lib/student_discipline.php';
+require_once dirname(__DIR__) . '/lib/student_absence_excuses.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 section_schedule_ensure_columns($conn);
 biotern_discipline_ensure_schema($conn);
+biotern_absence_excuses_ensure_schema($conn);
 
 $currentRole = get_current_user_role();
 $currentUserId = get_current_user_id_or_zero();
@@ -84,30 +86,9 @@ function rr_student_scope_condition(mysqli $conn, string $studentAlias = 's'): s
     $userId = get_current_user_id_or_zero();
     $studentAlias = preg_replace('/[^A-Za-z0-9_]/', '', $studentAlias) ?: 's';
 
-    if ($role === 'admin') {
-        return '';
-    }
-
-    if ($role === 'coordinator') {
-        $courseIds = coordinator_course_ids($conn, $userId);
-        if ($courseIds === []) {
-            return '1 = 0';
-        }
-        return $studentAlias . '.course_id IN (' . implode(',', array_map('intval', $courseIds)) . ')';
-    }
-
-    if ($role === 'supervisor') {
-        $conditions = [];
-        if (rr_column_exists($conn, 'students', 'supervisor_id')) {
-            $conditions[] = $studentAlias . '.supervisor_id = ' . $userId;
-        }
-        if (rr_table_exists($conn, 'internships') && rr_column_exists($conn, 'internships', 'supervisor_id')) {
-            $conditions[] = 'EXISTS (SELECT 1 FROM internships scope_i WHERE scope_i.student_id = ' . $studentAlias . '.id AND scope_i.supervisor_id = ' . $userId . ')';
-        }
-        return $conditions ? '(' . implode(' OR ', $conditions) . ')' : '1 = 0';
-    }
-
-    return '1 = 0';
+    return function_exists('biotern_student_scope_condition')
+        ? biotern_student_scope_condition($conn, $studentAlias, $role, $userId)
+        : ($role === 'admin' ? '' : '1 = 0');
 }
 
 function rr_add_student_scope(mysqli $conn, array &$where, string $studentAlias = 's'): void
@@ -302,6 +283,20 @@ function rr_student_has_attendance_on(mysqli $conn, int $studentId, string $date
     return false;
 }
 
+function rr_student_has_approved_absence_excuse(mysqli $conn, int $studentId, string $date): bool
+{
+    static $stmt = null;
+    if ($stmt === null) {
+        $stmt = $conn->prepare("SELECT id FROM student_absence_excuses WHERE student_id = ? AND absence_date = ? AND status = 'approved' AND deleted_at IS NULL LIMIT 1");
+    }
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('is', $studentId, $date);
+    $stmt->execute();
+    return (bool)$stmt->get_result()->fetch_assoc();
+}
+
 function rr_required_absent_dates(mysqli $conn, array $student, string $endDate): array
 {
     $studentId = (int)($student['student_db_id'] ?? 0);
@@ -328,7 +323,10 @@ function rr_required_absent_dates(mysqli $conn, array $student, string $endDate)
             $cursorTs = strtotime('-1 day', $cursorTs);
             continue;
         }
-        if (rr_student_has_attendance_on($conn, $studentId, $date)) {
+        if (biotern_discipline_active_suspension($conn, $studentId, $date)) {
+            break;
+        }
+        if (rr_student_has_attendance_on($conn, $studentId, $date) || rr_student_has_approved_absence_excuse($conn, $studentId, $date)) {
             break;
         }
         $dates[] = $date;
@@ -742,6 +740,7 @@ $reports = [
                     'days_absent' => (string)count($absentDates),
                     'last_absent_date' => $absentDates[count($absentDates) - 1],
                     'status' => $suspension ? 'Suspended' : 'Absent',
+                    'row_url' => 'students-view.php?id=' . (int)$student['student_db_id'] . '&tab=absences',
                 ];
             }
             usort($rows, static fn(array $a, array $b): int => ((int)$b['days_absent'] <=> (int)$a['days_absent']));

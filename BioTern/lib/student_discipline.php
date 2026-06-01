@@ -1,5 +1,136 @@
 <?php
 require_once __DIR__ . '/notifications.php';
+require_once __DIR__ . '/ops_helpers.php';
+
+if (!function_exists('biotern_discipline_table_exists')) {
+    function biotern_discipline_table_exists(mysqli $conn, string $table): bool
+    {
+        $safe = $conn->real_escape_string($table);
+        $res = $conn->query("SHOW TABLES LIKE '{$safe}'");
+        $exists = $res instanceof mysqli_result && $res->num_rows > 0;
+        if ($res instanceof mysqli_result) {
+            $res->close();
+        }
+        return $exists;
+    }
+}
+
+if (!function_exists('biotern_discipline_column_exists')) {
+    function biotern_discipline_column_exists(mysqli $conn, string $table, string $column): bool
+    {
+        static $cache = [];
+        $key = $table . '.' . $column;
+        if (array_key_exists($key, $cache)) {
+            return $cache[$key];
+        }
+        $safeTable = str_replace('`', '``', $table);
+        $safeColumn = $conn->real_escape_string($column);
+        $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+        $cache[$key] = $res instanceof mysqli_result && $res->num_rows > 0;
+        if ($res instanceof mysqli_result) {
+            $res->close();
+        }
+        return $cache[$key];
+    }
+}
+
+if (!function_exists('biotern_discipline_profile_ids')) {
+    function biotern_discipline_profile_ids(mysqli $conn, string $role, int $userId): array
+    {
+        $ids = $userId > 0 ? [$userId] : [];
+        $table = $role === 'coordinator' ? 'coordinators' : ($role === 'supervisor' ? 'supervisors' : '');
+        if ($table === '' || $userId <= 0 || !biotern_discipline_table_exists($conn, $table)) {
+            return array_values(array_unique(array_filter($ids)));
+        }
+        $stmt = $conn->prepare("SELECT id FROM {$table} WHERE user_id = ? LIMIT 1");
+        if ($stmt) {
+            $stmt->bind_param('i', $userId);
+            $stmt->execute();
+            $row = $stmt->get_result()->fetch_assoc() ?: null;
+            $stmt->close();
+            $profileId = (int)($row['id'] ?? 0);
+            if ($profileId > 0) {
+                $ids[] = $profileId;
+            }
+        }
+        return array_values(array_unique(array_filter($ids)));
+    }
+}
+
+if (!function_exists('biotern_student_scope_condition')) {
+    function biotern_student_scope_condition(mysqli $conn, string $studentAlias, string $role, int $userId): string
+    {
+        $studentAlias = preg_replace('/[^A-Za-z0-9_]/', '', $studentAlias) ?: 's';
+        $role = strtolower(trim($role));
+        if ($role === 'admin') {
+            return '';
+        }
+        if ($userId <= 0) {
+            return '1 = 0';
+        }
+
+        if ($role === 'coordinator') {
+            $ids = biotern_discipline_profile_ids($conn, 'coordinator', $userId);
+            $parts = [];
+            if ($ids && biotern_discipline_column_exists($conn, 'students', 'coordinator_id')) {
+                $parts[] = $studentAlias . '.coordinator_id IN (' . implode(',', array_map('intval', $ids)) . ')';
+            }
+            if (biotern_discipline_table_exists($conn, 'internships') && biotern_discipline_column_exists($conn, 'internships', 'coordinator_id')) {
+                $parts[] = 'EXISTS (SELECT 1 FROM internships scope_i WHERE scope_i.student_id = ' . $studentAlias . '.id AND scope_i.deleted_at IS NULL AND scope_i.coordinator_id IN (' . implode(',', array_map('intval', $ids)) . '))';
+            }
+            if (function_exists('coordinator_course_ids')) {
+                $courseIds = coordinator_course_ids($conn, $userId);
+                if ($courseIds !== []) {
+                    $parts[] = $studentAlias . '.course_id IN (' . implode(',', array_map('intval', $courseIds)) . ')';
+                }
+            }
+            return $parts ? '(' . implode(' OR ', $parts) . ')' : '1 = 0';
+        }
+
+        if ($role === 'supervisor') {
+            $ids = biotern_discipline_profile_ids($conn, 'supervisor', $userId);
+            $parts = [];
+            if ($ids && biotern_discipline_column_exists($conn, 'students', 'supervisor_id')) {
+                $parts[] = $studentAlias . '.supervisor_id IN (' . implode(',', array_map('intval', $ids)) . ')';
+            }
+            if (biotern_discipline_table_exists($conn, 'internships') && biotern_discipline_column_exists($conn, 'internships', 'supervisor_id')) {
+                $parts[] = 'EXISTS (SELECT 1 FROM internships scope_i WHERE scope_i.student_id = ' . $studentAlias . '.id AND scope_i.deleted_at IS NULL AND scope_i.supervisor_id IN (' . implode(',', array_map('intval', $ids)) . '))';
+            }
+            return $parts ? '(' . implode(' OR ', $parts) . ')' : '1 = 0';
+        }
+
+        return '1 = 0';
+    }
+}
+
+if (!function_exists('biotern_can_manage_student')) {
+    function biotern_can_manage_student(mysqli $conn, int $studentId, string $role, int $userId): bool
+    {
+        if ($studentId <= 0) {
+            return false;
+        }
+        $role = strtolower(trim($role));
+        if ($role === 'admin') {
+            return true;
+        }
+        if (!in_array($role, ['coordinator', 'supervisor'], true) || $userId <= 0) {
+            return false;
+        }
+        $scope = biotern_student_scope_condition($conn, 's', $role, $userId);
+        if ($scope === '' || $scope === '1 = 0') {
+            return false;
+        }
+        $stmt = $conn->prepare("SELECT s.id FROM students s WHERE s.id = ? AND {$scope} LIMIT 1");
+        if (!$stmt) {
+            return false;
+        }
+        $stmt->bind_param('i', $studentId);
+        $stmt->execute();
+        $ok = (bool)$stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        return $ok;
+    }
+}
 
 if (!function_exists('biotern_discipline_ensure_schema')) {
     function biotern_discipline_ensure_schema(mysqli $conn): void

@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/notifications.php';
 require_once __DIR__ . '/section_schedule.php';
+require_once __DIR__ . '/student_absence_excuses.php';
 
 if (!function_exists('biotern_absence_ensure_system_settings_table')) {
     function biotern_absence_ensure_system_settings_table(mysqli $conn): void
@@ -123,13 +124,17 @@ if (!function_exists('biotern_absence_admin_user_ids')) {
 if (!function_exists('biotern_absence_recipient_user_ids')) {
     function biotern_absence_recipient_user_ids(mysqli $conn, array $student): array
     {
-        $ids = biotern_absence_admin_user_ids($conn);
+        $ids = [];
 
-        foreach (['student_supervisor_user_id', 'internship_supervisor_user_id'] as $key) {
+        foreach (['student_supervisor_user_id', 'internship_supervisor_user_id', 'student_coordinator_user_id', 'internship_coordinator_user_id'] as $key) {
             $id = (int)($student[$key] ?? 0);
             if ($id > 0) {
                 $ids[] = $id;
             }
+        }
+
+        if ($ids === []) {
+            $ids = biotern_absence_admin_user_ids($conn);
         }
 
         return array_values(array_unique(array_filter($ids, static fn($id) => (int)$id > 0)));
@@ -200,11 +205,39 @@ if (!function_exists('biotern_absence_recent_attendance')) {
     }
 }
 
+if (!function_exists('biotern_absence_approved_excuse_dates')) {
+    function biotern_absence_approved_excuse_dates(mysqli $conn, int $studentId, string $startDate, string $endDate): array
+    {
+        biotern_absence_excuses_ensure_schema($conn);
+        $dates = [];
+        $stmt = $conn->prepare(
+            "SELECT absence_date
+             FROM student_absence_excuses
+             WHERE student_id = ? AND absence_date BETWEEN ? AND ? AND status = 'approved' AND deleted_at IS NULL"
+        );
+        if (!$stmt) {
+            return $dates;
+        }
+        $stmt->bind_param('iss', $studentId, $startDate, $endDate);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        while ($row = $res->fetch_assoc()) {
+            $date = (string)($row['absence_date'] ?? '');
+            if ($date !== '') {
+                $dates[$date] = true;
+            }
+        }
+        $stmt->close();
+        return $dates;
+    }
+}
+
 if (!function_exists('biotern_absence_student_streak')) {
     function biotern_absence_student_streak(mysqli $conn, array $student, int $threshold, string $endDate): array
     {
         $startDate = date('Y-m-d', strtotime($endDate . ' -45 days'));
         $attendanceRows = biotern_absence_recent_attendance($conn, (int)$student['id'], $startDate, $endDate);
+        $approvedExcuses = biotern_absence_approved_excuse_dates($conn, (int)$student['id'], $startDate, $endDate);
         $schedule = section_schedule_from_row($student);
         $absentDates = [];
         $cursorTs = strtotime($endDate);
@@ -220,6 +253,9 @@ if (!function_exists('biotern_absence_student_streak')) {
                 $cursorTs = strtotime('-1 day', $cursorTs);
                 continue;
             }
+            if (function_exists('biotern_discipline_active_suspension') && biotern_discipline_active_suspension($conn, (int)$student['id'], $date)) {
+                break;
+            }
 
             $present = false;
             foreach (($attendanceRows[$date] ?? []) as $row) {
@@ -231,6 +267,9 @@ if (!function_exists('biotern_absence_student_streak')) {
             }
 
             if ($present) {
+                break;
+            }
+            if (!empty($approvedExcuses[$date])) {
                 break;
             }
 
@@ -261,6 +300,8 @@ if (!function_exists('biotern_absence_notify_admins')) {
         $sql = "SELECT s.id, s.student_id, s.first_name, s.last_name, s.section_id,
                     sup_student.user_id AS student_supervisor_user_id,
                     sup_internship.user_id AS internship_supervisor_user_id,
+                    coord_student.user_id AS student_coordinator_user_id,
+                    coord_internship.user_id AS internship_coordinator_user_id,
                     sec.attendance_session, sec.schedule_time_in, sec.schedule_time_out, sec.late_after_time, sec.school_year_end_date, sec.weekly_schedule_json
                 FROM students s
                 INNER JOIN users u ON u.id = s.user_id
@@ -268,6 +309,8 @@ if (!function_exists('biotern_absence_notify_admins')) {
                 LEFT JOIN supervisors sup_student ON sup_student.id = s.supervisor_id OR sup_student.user_id = s.supervisor_id
                 LEFT JOIN internships i_active ON i_active.student_id = s.id AND i_active.status = 'ongoing' AND i_active.deleted_at IS NULL
                 LEFT JOIN supervisors sup_internship ON sup_internship.id = i_active.supervisor_id OR sup_internship.user_id = i_active.supervisor_id
+                LEFT JOIN coordinators coord_student ON coord_student.id = s.coordinator_id OR coord_student.user_id = s.coordinator_id
+                LEFT JOIN coordinators coord_internship ON coord_internship.id = i_active.coordinator_id OR coord_internship.user_id = i_active.coordinator_id
                 WHERE s.deleted_at IS NULL
                     AND (u.is_active = 1 OR u.is_active IS NULL)
                     AND (s.status IN ('1', 'active') OR s.status IS NULL)
@@ -322,7 +365,7 @@ if (!function_exists('biotern_absence_notify_admins')) {
             $title = 'Student absence threshold reached';
             $message = $name . ($studentNumber !== '' ? ' (' . $studentNumber . ')' : '') . ' has been absent for ' . $threshold . ' scheduled day' . ($threshold === 1 ? '' : 's') . ': ' . implode(', ', $absentDates) . '.';
             foreach (biotern_absence_recipient_user_ids($conn, $student) as $recipientId) {
-                if (biotern_notify($conn, $recipientId, $title, $message, 'attendance', 'attendance.php?status=absent')) {
+                if (biotern_notify($conn, $recipientId, $title, $message, 'attendance', 'reports-absences.php')) {
                     $created++;
                 }
             }
