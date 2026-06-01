@@ -55,6 +55,20 @@ require_once __DIR__ . '/config/db.php';
 require_once __DIR__ . '/includes/auth-session.php';
 biotern_boot_session($conn);
 
+function biotern_router_render_not_found(): void
+{
+    $requested = (string)($_SERVER['REQUEST_URI'] ?? '');
+    if (!headers_sent()) {
+        header('Location: /BioTern/BioTern/auth/auth-404-minimal.php?requested=' . rawurlencode($requested), true, 302);
+        exit;
+    }
+
+    $_GET['requested'] = $requested;
+    http_response_code(404);
+    require __DIR__ . '/auth/auth-404-minimal.php';
+    exit;
+}
+
 $map = [
   'students.php' => 'management/students.php',
   'student-assistance.php' => 'management/student-assistance.php',
@@ -245,8 +259,7 @@ if ($file === 'theme-customizer.php' && preg_match('#/api/theme-customizer\.php$
   $map[$file] = 'api/theme-customizer.php';
 }
 if ($file === '' || !isset($map[$file])) {
-    http_response_code(404);
-    exit('Not found');
+    biotern_router_render_not_found();
 }
 
 $request_uri = (string)($_SERVER['REQUEST_URI'] ?? '');
@@ -263,8 +276,7 @@ if ($request_uri !== '' && stripos($request_uri, 'legacy_router.php') !== false)
 
 $target = __DIR__ . '/' . $map[$file];
 if (!is_file($target)) {
-    http_response_code(404);
-    exit('Not found');
+    biotern_router_render_not_found();
 }
 
 $target_dir = dirname($target);

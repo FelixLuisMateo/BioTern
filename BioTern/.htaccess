@@ -1,4 +1,18 @@
 DirectoryIndex index.php
+<IfModule mod_php.c>
+php_flag display_errors Off
+php_flag log_errors On
+</IfModule>
+<IfModule php_module>
+php_flag display_errors Off
+php_flag log_errors On
+</IfModule>
+
+ErrorDocument 400 /BioTern/BioTern/auth/auth-404-minimal.php
+ErrorDocument 401 /BioTern/BioTern/auth/auth-404-minimal.php
+ErrorDocument 403 /BioTern/BioTern/auth/auth-404-minimal.php
+ErrorDocument 404 /BioTern/BioTern/auth/auth-404-minimal.php
+ErrorDocument 500 /BioTern/BioTern/auth/auth-404-minimal.php
 <IfModule mod_rewrite.c>
 RewriteEngine On
 
@@ -9,4 +23,7 @@ RewriteRule ^ - [L]
 
 # Route legacy flat PHP URLs to organized folders internally (no URL change).
 RewriteRule ^([A-Za-z0-9_-]+\.php)$ legacy_router.php?file=$1 [L,QSA,NC]
+
+# Keep unknown app URLs inside the BioTern error UI instead of Apache/XAMPP defaults.
+RewriteRule ^(.+)$ /BioTern/BioTern/auth/auth-404-minimal.php?requested=/$1 [R=302,L]
 </IfModule>

@@ -362,6 +362,23 @@ body .page-header .page-header-actions-toggle {
     -webkit-box-orient: vertical !important;
   }
 
+  body.chat-app-page .btchat-page-wrap .nxl-content {
+    padding-top: 0 !important;
+  }
+
+  body.chat-app-page .page-header.page-header-with-middle.btchat-unified-page-header {
+    top: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  body.chat-app-page .btchat-shell {
+    margin-top: 0 !important;
+    border-top-width: 0 !important;
+    border-radius: 0 0 20px 20px !important;
+  }
+
 }
 
 @media (max-width: 991.98px) {

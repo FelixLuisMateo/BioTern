@@ -131,6 +131,8 @@
         flex-shrink: 0;
         margin-bottom: 0 !important;
         border-bottom: 1px solid var(--chat-header-border);
+        position: relative;
+        z-index: 2;
     }
 
     .btchat-page-alert {
@@ -149,6 +151,7 @@
         min-height: 0;
         background: var(--chat-shell-bg);
         border: 1px solid color-mix(in srgb, var(--chat-header-border) 92%, transparent);
+        border-top: 0;
         position: relative;
         z-index: 0;
     }
@@ -205,33 +208,7 @@
     }
 
     .btchat-search-wrap {
-        padding: 0 1rem 1rem;
-    }
-
-    .btchat-admin-links {
-        display: flex;
-        gap: 0.4rem;
-        padding: 0 1rem 0.75rem;
-    }
-
-    .btchat-admin-links a {
-        flex: 1 1 0;
-        border-radius: 999px;
-        border: 1px solid var(--chat-search-border);
-        background: color-mix(in srgb, var(--chat-search-bg) 86%, transparent);
-        color: var(--chat-snippet-color);
-        font-size: 0.72rem;
-        font-weight: 800;
-        line-height: 1;
-        padding: 0.42rem 0.5rem;
-        text-align: center;
-        text-decoration: none;
-    }
-
-    .btchat-admin-links a:hover {
-        background: var(--chat-accent);
-        border-color: var(--chat-accent);
-        color: var(--chat-on-accent);
+        padding: 1rem 1rem 0.85rem;
     }
 
     .btchat-search {

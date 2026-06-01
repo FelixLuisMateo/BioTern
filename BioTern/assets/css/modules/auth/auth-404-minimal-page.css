@@ -39,6 +39,20 @@
     word-break: break-word;
 }
 
+.auth-minimal-reference {
+    width: 100%;
+    max-width: 360px;
+    margin: 1rem auto 0;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--bt-border-color, #d9dee7) 90%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--bt-surface-muted, #f5f7fb) 88%, transparent);
+    color: var(--bt-text-muted, #64748b);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
 @media (max-width: 575.98px) {
     .auth-minimal-card {
         margin-left: 0 !important;

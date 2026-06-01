@@ -1,7 +1,24 @@
 <?php
 $script_name = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? ''));
-$asset_prefix = (strpos($script_name, '/auth/') !== false) ? '../' : '';
-$route_prefix = $asset_prefix;
+$redirect_url = str_replace('\\', '/', (string)($_SERVER['REDIRECT_URL'] ?? ''));
+$request_uri_path = str_replace('\\', '/', (string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH) ?? ''));
+$project_root = '/';
+foreach ([$script_name, $redirect_url, $request_uri_path] as $root_candidate) {
+    $project_pos = stripos($root_candidate, '/BioTern/BioTern/');
+    if ($project_pos !== false) {
+        $project_root = substr($root_candidate, 0, $project_pos) . '/BioTern/BioTern/';
+        break;
+    }
+}
+if ($project_root === '/') {
+    $script_dir = rtrim(str_replace('\\', '/', dirname($script_name)), '/');
+    if (strtolower((string)basename($script_dir)) === 'auth') {
+        $script_dir = rtrim(str_replace('\\', '/', dirname($script_dir)), '/');
+    }
+    $project_root = ($script_dir === '' || $script_dir === '.') ? '/' : $script_dir . '/';
+}
+$asset_prefix = $project_root;
+$route_prefix = $project_root;
 ?>
 <!DOCTYPE html>
 <html lang="zxx">
