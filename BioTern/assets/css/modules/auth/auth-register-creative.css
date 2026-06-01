@@ -820,8 +820,9 @@ html.app-skin-dark .register-terms-section p {
 }
 
 html.app-skin-dark .register-terms-note {
+    border: 1px solid rgba(var(--biotern-primary-rgb), 0.28);
     background: rgba(var(--biotern-primary-rgb), 0.14);
-    color: var(--biotern-primary-soft);
+    color: var(--biotern-primary-soft-text, #eef4ff);
 }
 
 html.app-theme-gray:not(.app-skin-dark) .register-auth-card h2,
