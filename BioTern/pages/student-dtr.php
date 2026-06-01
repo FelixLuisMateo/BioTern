@@ -5,6 +5,8 @@ require_once dirname(__DIR__) . '/lib/section_schedule.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/lib/manual_dtr_requests.php';
+require_once dirname(__DIR__) . '/lib/student_discipline.php';
+require_once dirname(__DIR__) . '/lib/student_absence_excuses.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/includes/admin-activity-log.php';
 if (session_status() === PHP_SESSION_NONE) {
@@ -385,6 +387,7 @@ $attendanceInsights = [
     'last_recorded_date' => '',
 ];
 $manualDtrRequests = [];
+$studentAbsenceExcuses = [];
 
 $userStmt = $conn->prepare('SELECT id, name, email, profile_picture FROM users WHERE id = ? LIMIT 1');
 if ($userStmt) {
@@ -586,6 +589,26 @@ if ($student) {
         }
         $manualRequestStmt->close();
     }
+
+    $studentAbsenceExcuses = biotern_absence_excuse_rows_for_student($conn, $studentId, 8);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && $_POST['student_action'] === 'submit_absence_excuse' && !empty($student)) {
+    $studentId = (int)($student['id'] ?? 0);
+    $ok = biotern_absence_excuse_submit(
+        $conn,
+        $studentId,
+        trim((string)($_POST['absence_date'] ?? '')),
+        trim((string)($_POST['absence_reason'] ?? '')),
+        trim((string)($_POST['absence_details'] ?? '')),
+        $currentUserId
+    );
+    $_SESSION['student_dtr_flash'] = [
+        'type' => $ok ? 'success' : 'danger',
+        'message' => $ok ? 'Absence excuse submitted for review.' : 'Unable to submit the absence excuse. Add a valid date and reason.',
+    ];
+    header('Location: student-dtr.php#absence-excuse');
+    exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && $_POST['student_action'] === 'quick_internal_punch' && !empty($student)) {
@@ -597,6 +620,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
 
     if ($studentId <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $clockDate)) {
         $_SESSION['student_dtr_flash'] = ['type' => 'danger', 'message' => 'A valid student and clock date are required.'];
+        header('Location: student-manual-dtr.php');
+        exit;
+    }
+
+    if (biotern_discipline_active_suspension($conn, $studentId, $clockDate)) {
+        $_SESSION['student_dtr_flash'] = ['type' => 'warning', 'message' => 'You are suspended for this date. The attendance punch was not saved.'];
         header('Location: student-manual-dtr.php');
         exit;
     }
@@ -1224,6 +1253,52 @@ include 'includes/header.php';
             <?php echo htmlspecialchars((string)$studentDtrFlash['message'], ENT_QUOTES, 'UTF-8'); ?>
         </div>
         <?php endif; ?>
+
+        <section class="record-section external-manual-card student-dtr-request-history mb-4" id="absence-excuse">
+            <div class="external-manual-header">
+                <h5 class="mb-1">Absence Excuse / Compliance</h5>
+                <p class="mb-0">Submit an excuse for a required attendance day that you missed.</p>
+            </div>
+            <div class="external-manual-body">
+                <form method="post" class="row g-3 mb-4">
+                    <input type="hidden" name="student_action" value="submit_absence_excuse">
+                    <div class="col-md-4">
+                        <label class="form-label" for="studentAbsenceDate">Absent Date</label>
+                        <input type="date" class="form-control" id="studentAbsenceDate" name="absence_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" max="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label" for="studentAbsenceReason">Reason</label>
+                        <input type="text" class="form-control" id="studentAbsenceReason" name="absence_reason" maxlength="255" placeholder="Sick, emergency, official excuse..." required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="studentAbsenceDetails">Details</label>
+                        <textarea class="form-control" id="studentAbsenceDetails" name="absence_details" rows="3"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">Submit Excuse</button>
+                    </div>
+                </form>
+                <?php if ($studentAbsenceExcuses === []): ?>
+                    <div class="student-dtr-empty">No absence excuses submitted yet.</div>
+                <?php else: ?>
+                    <div class="student-dtr-request-list">
+                        <?php foreach ($studentAbsenceExcuses as $excuse): ?>
+                            <?php $excuseStatus = strtolower((string)($excuse['status'] ?? 'pending')); ?>
+                            <div class="student-dtr-request-item">
+                                <div>
+                                    <strong><?php echo htmlspecialchars((string)($excuse['absence_date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                    <span><?php echo htmlspecialchars((string)($excuse['reason'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <?php if (trim((string)($excuse['review_notes'] ?? '')) !== ''): ?>
+                                        <small><?php echo htmlspecialchars((string)$excuse['review_notes'], ENT_QUOTES, 'UTF-8'); ?></small>
+                                    <?php endif; ?>
+                                </div>
+                                <span class="student-dtr-status <?php echo htmlspecialchars($excuseStatus, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(ucfirst($excuseStatus), ENT_QUOTES, 'UTF-8'); ?></span>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </section>
 
         <?php if ($studentDtrManualOnly): ?>
         <section class="external-dtr-hero">

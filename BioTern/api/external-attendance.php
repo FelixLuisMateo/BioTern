@@ -3,6 +3,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
+require_once dirname(__DIR__) . '/lib/student_discipline.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 external_attendance_ensure_schema($conn);
 
@@ -42,6 +43,11 @@ if ($action === 'clock') {
 
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $clockDate) || $column === null || $clockTime === null) {
         echo json_encode(['ok' => false, 'message' => 'Valid date, clock type, and clock time are required.']);
+        exit;
+    }
+
+    if (biotern_discipline_active_suspension($conn, (int)$student['id'], $clockDate)) {
+        echo json_encode(['ok' => false, 'message' => 'You are suspended for this date. The attendance punch was not saved.']);
         exit;
     }
 

@@ -35,14 +35,33 @@
 
 .app-section-name-hero {
     display: block;
-    color: #eaf1ff;
+    color: #dbeafe;
     font-size: 1.18rem;
     font-weight: 900;
     line-height: 1.15;
+    opacity: 1 !important;
+    text-shadow: none;
 }
 
 html.app-skin-light .app-section-name-hero {
-    color: #1e293b;
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+}
+
+.app-section-details-cell {
+    display: grid;
+    gap: 0.25rem;
+    justify-items: start;
+}
+
+.app-section-details-cell small {
+    color: #64748b;
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+html.app-skin-dark .app-section-details-cell small {
+    color: #cbd5e1;
 }
 
 html.app-skin-dark .section-actions-toggle {

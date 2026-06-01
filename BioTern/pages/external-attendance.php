@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/student_discipline.php';
 
 biotern_boot_session(isset($conn) ? $conn : null);
 external_attendance_ensure_schema($conn);
@@ -242,6 +243,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $clockDate)) {
                 external_attendance_flash_redirect('A valid clock date is required.', 'danger', $redirectTarget);
+            }
+
+            $activeSuspension = biotern_discipline_active_suspension($conn, $targetStudentId, $clockDate);
+            if ($activeSuspension) {
+                external_attendance_flash_redirect('This student is suspended for this date. The attendance punch was not saved.', 'warning', $redirectTarget);
             }
 
             $existing = external_attendance_student_record($conn, $targetStudentId, $clockDate) ?: [

@@ -4,6 +4,7 @@ require_once __DIR__ . '/biometric_ops.php';
 require_once __DIR__ . '/biometric_db.php';
 require_once dirname(__DIR__) . '/lib/section_schedule.php';
 require_once dirname(__DIR__) . '/lib/attendance_settings.php';
+require_once dirname(__DIR__) . '/lib/student_discipline.php';
 
 if (!function_exists('run_biometric_auto_import')) {
     function run_biometric_auto_import(?string $attendanceFile = null): string
@@ -1068,6 +1069,33 @@ if (!function_exists('markRawLogProcessed')) {
 if (!function_exists('syncAttendanceFromBiometricLog')) {
     function syncAttendanceFromBiometricLog(mysqli $conn, int $studentId, string $date, string $time, int $clockType, ?string $hintColumn, ?int $rawLogId = null, ?int $fingerId = null, ?int $userId = null, array $machineConfig = [], array $studentSchedule = []): array
     {
+        $activeSuspension = biotern_discipline_active_suspension($conn, $studentId, $date);
+        if ($activeSuspension) {
+            biometric_ops_record_anomaly(
+                $conn,
+                $rawLogId,
+                $fingerId,
+                $userId,
+                $studentId,
+                'disciplinary_suspension_punch',
+                'warning',
+                $date . ' ' . $time,
+                'Biometric punch was ignored because the student is suspended for this date.',
+                [
+                    'attendance_date' => $date,
+                    'time' => $time,
+                    'disciplinary_record_id' => (int)($activeSuspension['id'] ?? 0),
+                    'suspension_end_date' => $activeSuspension['end_date'] ?? null,
+                ]
+            );
+            return [
+                'changed' => false,
+                'skipped' => true,
+                'reason' => 'student_suspended',
+                'message' => 'Student is suspended for this date.',
+            ];
+        }
+
         consolidateDuplicateBiometricAttendanceRows($conn, $studentId, $date);
         $effectiveSchedule = section_schedule_effective_day($studentSchedule, $date, biometricMachineSchoolHours($machineConfig));
 

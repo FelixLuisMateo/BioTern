@@ -8,6 +8,7 @@ if (!function_exists('section_schedule_columns')) {
             'schedule_time_in' => "ALTER TABLE sections ADD COLUMN schedule_time_in TIME NULL AFTER attendance_session",
             'schedule_time_out' => "ALTER TABLE sections ADD COLUMN schedule_time_out TIME NULL AFTER schedule_time_in",
             'late_after_time' => "ALTER TABLE sections ADD COLUMN late_after_time TIME NULL AFTER schedule_time_out",
+            'school_year_end_date' => "ALTER TABLE sections ADD COLUMN school_year_end_date DATE NULL AFTER late_after_time",
             'weekly_schedule_json' => "ALTER TABLE sections ADD COLUMN weekly_schedule_json LONGTEXT NULL AFTER late_after_time",
         ];
     }
@@ -89,6 +90,7 @@ if (!function_exists('section_schedule_from_row')) {
             'schedule_time_in' => section_schedule_format_time_input((string)($row['schedule_time_in'] ?? '')),
             'schedule_time_out' => section_schedule_format_time_input((string)($row['schedule_time_out'] ?? '')),
             'late_after_time' => section_schedule_format_time_input((string)($row['late_after_time'] ?? '')),
+            'school_year_end_date' => section_schedule_normalize_date((string)($row['school_year_end_date'] ?? '')),
         ];
 
         return [
@@ -97,8 +99,24 @@ if (!function_exists('section_schedule_from_row')) {
             'schedule_time_in' => $defaults['schedule_time_in'],
             'schedule_time_out' => $defaults['schedule_time_out'],
             'late_after_time' => $defaults['late_after_time'],
+            'school_year_end_date' => $defaults['school_year_end_date'],
             'weekly_schedule' => section_schedule_decode_weekly((string)($row['weekly_schedule_json'] ?? ''), $defaults),
         ];
+    }
+}
+
+if (!function_exists('section_schedule_normalize_date')) {
+    function section_schedule_normalize_date(?string $value): ?string
+    {
+        $value = trim((string)$value);
+        if ($value === '') {
+            return null;
+        }
+
+        $dt = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        return $dt instanceof DateTimeImmutable && $dt->format('Y-m-d') === $value
+            ? $value
+            : null;
     }
 }
 
@@ -139,6 +157,7 @@ if (!function_exists('section_schedule_empty_day')) {
             'schedule_time_in' => section_schedule_format_time_input((string)($defaults['schedule_time_in'] ?? '')),
             'schedule_time_out' => section_schedule_format_time_input((string)($defaults['schedule_time_out'] ?? '')),
             'late_after_time' => section_schedule_format_time_input((string)($defaults['late_after_time'] ?? '')),
+            'school_year_end_date' => section_schedule_normalize_date((string)($defaults['school_year_end_date'] ?? '')),
         ];
     }
 }
@@ -236,6 +255,7 @@ if (!function_exists('section_schedule_for_date')) {
             'schedule_time_in' => section_schedule_format_time_input((string)($schedule['schedule_time_in'] ?? '')),
             'schedule_time_out' => section_schedule_format_time_input((string)($schedule['schedule_time_out'] ?? '')),
             'late_after_time' => section_schedule_format_time_input((string)($schedule['late_after_time'] ?? '')),
+            'school_year_end_date' => section_schedule_normalize_date((string)($schedule['school_year_end_date'] ?? '')),
         ];
 
         $dayKey = section_schedule_day_key_from_date($date);
@@ -253,6 +273,27 @@ if (!function_exists('section_schedule_for_date')) {
         }
 
         return $resolved;
+    }
+}
+
+if (!function_exists('section_schedule_is_after_school_year_end')) {
+    function section_schedule_is_after_school_year_end(array $schedule, ?string $date): bool
+    {
+        $date = section_schedule_normalize_date((string)$date);
+        $endDate = section_schedule_normalize_date((string)($schedule['school_year_end_date'] ?? ''));
+        return $date !== null && $endDate !== null && $date > $endDate;
+    }
+}
+
+if (!function_exists('section_schedule_requires_school_attendance')) {
+    function section_schedule_requires_school_attendance(array $schedule, ?string $date): bool
+    {
+        if (!section_schedule_is_after_school_year_end($schedule, $date)) {
+            return false;
+        }
+
+        $dayKey = section_schedule_day_key_from_date($date);
+        return in_array((string)$dayKey, section_schedule_weekday_order(), true);
     }
 }
 
@@ -287,6 +328,16 @@ if (!function_exists('section_schedule_effective_day')) {
         $fallbackIn = section_schedule_format_time_input((string)($fallback['schedule_time_in'] ?? ''));
         $fallbackOut = section_schedule_format_time_input((string)($fallback['schedule_time_out'] ?? ''));
         $fallbackLate = section_schedule_format_time_input((string)($fallback['late_after_time'] ?? ''));
+
+        if (section_schedule_requires_school_attendance($schedule, $date)) {
+            $resolved['day_type'] = 'no_class';
+            $resolved['attendance_session'] = 'whole_day';
+            $resolved['schedule_time_in'] = $fallbackIn;
+            $resolved['schedule_time_out'] = $fallbackOut;
+            $resolved['late_after_time'] = $fallbackLate !== '' ? $fallbackLate : $fallbackIn;
+            $resolved['window_source'] = $fallbackIn !== '' || $fallbackOut !== '' ? 'school_after_year_end' : 'none';
+            return $resolved;
+        }
 
         if ($dayType === 'no_class') {
             $resolved['attendance_session'] = 'whole_day';

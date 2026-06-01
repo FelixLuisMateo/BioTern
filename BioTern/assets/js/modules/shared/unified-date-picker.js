@@ -158,6 +158,7 @@
 
     input.addEventListener("changeDate", function () {
       setInputValidity(input);
+      input.dispatchEvent(new Event("change", { bubbles: true }));
     });
     input.addEventListener("blur", function () {
       setInputValidity(input);

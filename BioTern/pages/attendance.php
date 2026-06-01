@@ -369,9 +369,12 @@ if ($stats_result instanceof mysqli_result) {
 }
 // Prepare filter inputs. Do not force a default date here; approved manual DTR
 // entries often land on past dates and should remain visible after review.
-$filter_date = isset($_GET['date']) && $_GET['date'] !== '' ? $_GET['date'] : '';
-$start_date = isset($_GET['start_date']) && $_GET['start_date'] !== '' ? $_GET['start_date'] : '';
-$end_date = isset($_GET['end_date']) && $_GET['end_date'] !== '' ? $_GET['end_date'] : '';
+$filter_date = section_schedule_normalize_date((string)($_GET['date'] ?? '')) ?? '';
+$start_date = section_schedule_normalize_date((string)($_GET['start_date'] ?? '')) ?? '';
+$end_date = section_schedule_normalize_date((string)($_GET['end_date'] ?? '')) ?? '';
+if ($start_date !== '' && $end_date !== '' && $start_date > $end_date) {
+    [$start_date, $end_date] = [$end_date, $start_date];
+}
 $filter_course = 0;
 $filter_department = 0;
 $filter_section = 0;
@@ -649,6 +652,7 @@ $attendance_query = "
         sec.schedule_time_in,
         sec.schedule_time_out,
         sec.late_after_time,
+        sec.school_year_end_date,
         sec.weekly_schedule_json,
         u.name as approver_name
     FROM attendances a
@@ -787,6 +791,7 @@ $externalAttendanceQuery = "
          sec.schedule_time_in,
          sec.schedule_time_out,
          sec.late_after_time,
+         sec.school_year_end_date,
          sec.weekly_schedule_json,
          u.name AS approver_name,
          ea.multiplier,
@@ -815,6 +820,35 @@ if ($externalAttendanceResult instanceof mysqli_result) {
         $attendances[] = $row;
     }
     $externalAttendanceResult->close();
+}
+
+if (
+    in_array($filter_status, ['all', 'absent'], true)
+    && $filter_source === 'all'
+    && in_array($filter_reports, ['all', 'internal_dtr'], true)
+    && ($filter_status === 'absent' || $filter_date !== '' || ($start_date !== '' && $end_date !== ''))
+) {
+    $attendances = array_merge(
+        $attendances,
+        attendance_virtual_absence_rows(
+            $conn,
+            $attendances,
+            [
+                'date' => $filter_date,
+                'start_date' => $start_date,
+                'end_date' => $end_date,
+                'course_id' => $filter_course,
+                'department_id' => $filter_department,
+                'section_id' => $filter_section,
+                'school_year' => $filter_school_year,
+                'supervisor' => $filter_supervisor,
+                'coordinator' => $filter_coordinator,
+                'is_supervisor' => $attendance_is_supervisor,
+                'supervisor_user_id' => $attendance_user_id,
+                'supervisor_profile_id' => $attendance_supervisor_profile_id,
+            ]
+        )
+    );
 }
 
 // Remove same-day duplicates per student, preferring the row that has actual punches.
@@ -1138,6 +1172,10 @@ function attendancePlacementContextLabel(array $attendance): string {
         return 'Placed using the student section schedule for this day.';
     }
 
+    if (($schedule['window_source'] ?? '') === 'school_after_year_end') {
+        return 'Placed using school hours because this date is after the section last school day.';
+    }
+
     if (($schedule['window_source'] ?? '') === 'school') {
         return 'Placed using school open hours because the student section has no schedule for this day.';
     }
@@ -1154,6 +1192,9 @@ function attendancePlacementContextShortLabel(array $attendance): string {
     if (($schedule['window_source'] ?? '') === 'section') {
         return 'Section Schedule';
     }
+    if (($schedule['window_source'] ?? '') === 'school_after_year_end') {
+        return 'After School Year';
+    }
     if (($schedule['window_source'] ?? '') === 'school') {
         return 'School Hours';
     }
@@ -1162,6 +1203,11 @@ function attendancePlacementContextShortLabel(array $attendance): string {
 }
 
 function getSourceBadge($source, array $attendance = []) {
+    if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'virtual_absent') {
+        return '<span class="badge bg-soft-danger text-danger">Required</span>'
+            . '<div class="fs-11 text-muted mt-1">No attendance record</div>';
+    }
+
     if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
         $label = strtolower(trim((string)($attendance['status'] ?? 'approved'))) === 'approved'
             ? 'External Approved'
@@ -1243,6 +1289,230 @@ function attendance_effective_schedule(array $attendance): array {
         (string)($attendance['attendance_date'] ?? ''),
         attendance_school_hours_config($machineConfig ?? [])
     );
+}
+
+function attendance_virtual_absence_date_range(array $filters): array {
+    $date = (string)($filters['date'] ?? '');
+    $start = (string)($filters['start_date'] ?? '');
+    $end = (string)($filters['end_date'] ?? '');
+
+    if ($date !== '') {
+        $start = $date;
+        $end = $date;
+    } elseif ($start === '' || $end === '') {
+        $end = date('Y-m-d', strtotime('yesterday'));
+        $start = $end;
+    }
+
+    if ($start > $end) {
+        [$start, $end] = [$end, $start];
+    }
+
+    $startTs = strtotime($start);
+    $endTs = strtotime($end);
+    if ($startTs === false || $endTs === false) {
+        return [];
+    }
+
+    $dates = [];
+    $cursor = $startTs;
+    $maxDays = 31;
+    while ($cursor <= $endTs && count($dates) < $maxDays) {
+        $dates[] = date('Y-m-d', $cursor);
+        $cursor = strtotime('+1 day', $cursor);
+        if ($cursor === false) {
+            break;
+        }
+    }
+
+    return $dates;
+}
+
+function attendance_student_has_record_on_date(mysqli $conn, int $studentId, string $date): bool {
+    static $internalStmt = null;
+    static $externalStmt = null;
+
+    if ($studentId <= 0 || $date === '') {
+        return false;
+    }
+
+    if ($internalStmt === null) {
+        $internalStmt = $conn->prepare(
+            "SELECT id FROM attendances
+             WHERE student_id = ? AND attendance_date = ?
+               AND NOT (source = 'manual' AND LOWER(COALESCE(status, 'pending')) <> 'approved')
+             LIMIT 1"
+        );
+    }
+    if ($internalStmt) {
+        $internalStmt->bind_param('is', $studentId, $date);
+        $internalStmt->execute();
+        if ($internalStmt->get_result()->fetch_assoc()) {
+            return true;
+        }
+    }
+
+    if ($externalStmt === null && function_exists('table_exists') && table_exists($conn, 'external_attendance')) {
+        $externalStmt = $conn->prepare(
+            "SELECT id FROM external_attendance
+             WHERE student_id = ? AND attendance_date = ? AND status = 'approved'
+             LIMIT 1"
+        );
+    }
+    if ($externalStmt) {
+        $externalStmt->bind_param('is', $studentId, $date);
+        $externalStmt->execute();
+        if ($externalStmt->get_result()->fetch_assoc()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function attendance_virtual_absence_rows(mysqli $conn, array $visibleAttendances, array $filters): array {
+    $dates = attendance_virtual_absence_date_range($filters);
+    if ($dates === []) {
+        return [];
+    }
+
+    $existing = [];
+    foreach ($visibleAttendances as $attendance) {
+        $studentId = (int)($attendance['student_id'] ?? 0);
+        $date = substr((string)($attendance['attendance_date'] ?? ''), 0, 10);
+        if ($studentId > 0 && $date !== '') {
+            $existing[$studentId . '|' . $date] = true;
+        }
+    }
+
+    $where = [
+        "s.deleted_at IS NULL",
+        "(u.is_active = 1 OR u.is_active IS NULL)",
+        "(s.status IN ('1', 'active') OR s.status IS NULL)",
+        "(s.application_status = 'approved' OR s.application_status IS NULL)",
+    ];
+    if ((int)($filters['course_id'] ?? 0) > 0) {
+        $where[] = "s.course_id = " . (int)$filters['course_id'];
+    }
+    if ((int)($filters['department_id'] ?? 0) > 0) {
+        $where[] = "COALESCE(s.department_id, i.department_id) = " . (int)$filters['department_id'];
+    }
+    if ((int)($filters['section_id'] ?? 0) > 0) {
+        $where[] = "s.section_id = " . (int)$filters['section_id'];
+    }
+    $schoolYear = trim((string)($filters['school_year'] ?? ''));
+    if ($schoolYear !== '' && preg_match('/^\d{4}-\d{4}$/', $schoolYear)) {
+        $where[] = "s.school_year = '" . $conn->real_escape_string($schoolYear) . "'";
+    }
+    $supervisor = trim((string)($filters['supervisor'] ?? ''));
+    if ($supervisor !== '') {
+        $esc = $conn->real_escape_string($supervisor);
+        $where[] = "(TRIM(CONCAT_WS(' ', sup.first_name, sup.middle_name, sup.last_name)) LIKE '%{$esc}%' OR s.supervisor_name LIKE '%{$esc}%')";
+    }
+    $coordinator = trim((string)($filters['coordinator'] ?? ''));
+    if ($coordinator !== '') {
+        $esc = $conn->real_escape_string($coordinator);
+        $where[] = "(TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)) LIKE '%{$esc}%' OR s.coordinator_name LIKE '%{$esc}%')";
+    }
+    if (!empty($filters['is_supervisor']) && (int)($filters['supervisor_user_id'] ?? 0) > 0) {
+        $scopeParts = ["(i.supervisor_id = " . (int)$filters['supervisor_user_id'] . " OR s.supervisor_id = " . (int)$filters['supervisor_user_id'] . ")"];
+        if ((int)($filters['supervisor_profile_id'] ?? 0) > 0 && (int)$filters['supervisor_profile_id'] !== (int)$filters['supervisor_user_id']) {
+            $scopeParts[] = "(i.supervisor_id = " . (int)$filters['supervisor_profile_id'] . " OR s.supervisor_id = " . (int)$filters['supervisor_profile_id'] . ")";
+        }
+        $where[] = '(' . implode(' OR ', $scopeParts) . ')';
+    }
+
+    $sql = "
+        SELECT
+            s.id AS student_id,
+            s.user_id,
+            s.department_id,
+            0 AS is_sa_student,
+            COALESCE(NULLIF(u_student.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture,
+            s.student_id AS student_number,
+            s.first_name,
+            s.last_name,
+            s.email,
+            s.section_id,
+            s.supervisor_name,
+            s.coordinator_name,
+            sec.code AS section_code,
+            sec.name AS section_name,
+            c.name AS course_name,
+            d.name AS department_name,
+            sec.attendance_session,
+            sec.schedule_time_in,
+            sec.schedule_time_out,
+            sec.late_after_time,
+            sec.school_year_end_date,
+            sec.weekly_schedule_json
+        FROM students s
+        LEFT JOIN users u ON u.id = s.user_id
+        LEFT JOIN users u_student ON u_student.id = s.user_id
+        LEFT JOIN sections sec ON sec.id = s.section_id
+        LEFT JOIN courses c ON c.id = s.course_id
+        LEFT JOIN internships i ON i.student_id = s.id AND i.status = 'ongoing'
+        LEFT JOIN supervisors sup ON i.supervisor_id = sup.id
+        LEFT JOIN coordinators coor ON i.coordinator_id = coor.id
+        LEFT JOIN departments d ON d.id = COALESCE(s.department_id, i.department_id)
+        WHERE " . implode(' AND ', $where) . "
+        ORDER BY s.last_name ASC, s.first_name ASC
+        LIMIT 500";
+
+    $result = $conn->query($sql);
+    if (!$result instanceof mysqli_result) {
+        return [];
+    }
+
+    $rows = [];
+    $schoolHours = attendance_school_hours_config($GLOBALS['machineConfig'] ?? []);
+    while ($student = $result->fetch_assoc()) {
+        $studentId = (int)($student['student_id'] ?? 0);
+        if ($studentId <= 0) {
+            continue;
+        }
+
+        $baseSchedule = section_schedule_from_row($student);
+        foreach ($dates as $date) {
+            $key = $studentId . '|' . $date;
+            if (isset($existing[$key]) || attendance_student_has_record_on_date($conn, $studentId, $date)) {
+                continue;
+            }
+
+            $schedule = section_schedule_effective_day($baseSchedule, $date, $schoolHours);
+            $dayKey = section_schedule_day_key_from_date($date);
+            if ($dayKey === 'sunday' || ($schedule['window_source'] ?? 'none') === 'none') {
+                continue;
+            }
+
+            $virtualId = -abs((int)sprintf('%u', crc32($studentId . '|' . $date)));
+            $rows[] = array_merge($student, [
+                'id' => $virtualId,
+                'attendance_date' => $date,
+                'morning_time_in' => null,
+                'morning_time_out' => null,
+                'break_time_in' => null,
+                'break_time_out' => null,
+                'afternoon_time_in' => null,
+                'afternoon_time_out' => null,
+                'total_hours' => 0,
+                'computed_total_hours' => 0,
+                'source' => 'virtual_absent',
+                'status' => 'absent',
+                'approved_by' => null,
+                'approved_at' => null,
+                'remarks' => 'Generated required-attendance absence.',
+                'record_origin' => 'virtual_absent',
+                'proof_photo_path' => null,
+                'proof_reason' => null,
+                'approver_name' => null,
+            ]);
+            $existing[$key] = true;
+        }
+    }
+    $result->close();
+
+    return $rows;
 }
 
 function attendance_collect_punch_values(array $attendance): array {
@@ -1558,6 +1828,11 @@ function attendance_list_status_key(array $attendance): string {
 }
 
 function attendance_status_cell_html(array $attendance): string {
+    if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'virtual_absent') {
+        return '<span class="badge bg-soft-danger text-danger">Absent</span>'
+            . '<div class="fs-11 text-muted mt-1">Required attendance day</div>';
+    }
+
     if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
         return '<span class="badge bg-soft-success text-success">Approved</span>'
             . '<div class="fs-11 text-muted mt-1">Teacher-reviewed external DTR</div>';
@@ -1578,7 +1853,7 @@ function attendance_status_cell_html(array $attendance): string {
     $metrics = attendance_window_metrics($attendance);
 
     $notes = [];
-    if ((($metrics['schedule']['window_source'] ?? '') === 'school')) {
+    if (in_array(($metrics['schedule']['window_source'] ?? ''), ['school', 'school_after_year_end'], true)) {
         $notes[] = 'School hours';
     } elseif ((($metrics['schedule']['window_source'] ?? '') === 'section')) {
         $notes[] = 'Section schedule';
@@ -1613,6 +1888,10 @@ function synchronizeAttendanceProgress(mysqli $conn, array &$attendances): void 
     $updateAttendanceStmt = $conn->prepare("UPDATE attendances SET total_hours = ?, updated_at = NOW() WHERE id = ?");
 
     foreach ($attendances as &$attendance) {
+        if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'virtual_absent') {
+            continue;
+        }
+
         if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
             continue;
         }
@@ -1899,6 +2178,14 @@ function attendanceActionMenuItems(array $attendance): string
         $studentName = 'Attendance';
     }
 
+    if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'virtual_absent') {
+        $items = [
+            '<li><span class="dropdown-item-text text-muted"><i class="feather feather-alert-circle me-3"></i><span>No attendance record exists for this required day.</span></span></li>',
+            '<li><a class="dropdown-item" href="students-view.php?id=' . $studentId . '"><i class="feather feather-user me-3"></i><span>Open Student</span></a></li>',
+        ];
+        return attendance_row_actions_modal_trigger($attendanceId, $studentId, $studentName, $items);
+    }
+
     if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
         $items = [];
         $proofPath = trim((string)($attendance['proof_photo_path'] ?? ''));
@@ -1963,7 +2250,7 @@ function attendance_time_input_value($value): string
 
 function attendance_row_actions_modal_trigger(int $attendanceId, int $studentId, string $studentName, array $items): string
 {
-    $templateId = 'attendanceActionsTemplate' . max(0, $attendanceId);
+    $templateId = 'attendanceActionsTemplate' . abs($attendanceId);
     $safeTitle = htmlspecialchars($studentName, ENT_QUOTES, 'UTF-8');
     $safeTemplateId = htmlspecialchars($templateId, ENT_QUOTES, 'UTF-8');
 
@@ -2290,7 +2577,7 @@ include 'includes/header.php';
                             <form method="GET" action="attendance.php" class="filter-form row g-2 align-items-end" id="attendanceFilterForm">
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-date">Date</label>
-                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php
+                            <input id="filter-date" type="date" name="date" class="form-control" data-datepicker-disabled="1" value="<?php
 echo htmlspecialchars((string)$filter_date, ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
                         <div class="col-sm-2">
