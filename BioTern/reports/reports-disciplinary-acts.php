@@ -2,10 +2,12 @@
 require_once dirname(__DIR__) . '/config/db.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/lib/student_discipline.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 require_roles_page(['admin', 'coordinator', 'supervisor']);
+biotern_discipline_ensure_schema($conn);
 
 function rep_h($value): string
 {
@@ -23,16 +25,61 @@ function rep_format_datetime(?string $value): string
 }
 
 $statusFilter = strtolower(trim((string)($_GET['status'] ?? 'all')));
-if (!in_array($statusFilter, ['all', 'pending', 'approved', 'rejected'], true)) {
+if (!in_array($statusFilter, ['all', 'active', 'pending', 'approved', 'rejected'], true)) {
     $statusFilter = 'all';
 }
 
 $sourceFilter = strtolower(trim((string)($_GET['source'] ?? 'all')));
-if (!in_array($sourceFilter, ['all', 'users', 'staging'], true)) {
+if (!in_array($sourceFilter, ['all', 'records', 'users', 'staging'], true)) {
     $sourceFilter = 'all';
 }
 
 $records = [];
+
+if ($sourceFilter === 'all' || $sourceFilter === 'records') {
+    $where = ["r.deleted_at IS NULL"];
+    if ($statusFilter !== 'all') {
+        $where[] = "r.status = '" . $conn->real_escape_string($statusFilter) . "'";
+    }
+
+    $sql = "
+        SELECT
+            r.action_type,
+            r.status,
+            r.reason,
+            r.details,
+            r.start_date,
+            r.end_date,
+            r.created_at,
+            COALESCE(s.student_id, '-') AS student_number,
+            COALESCE(NULLIF(TRIM(CONCAT_WS(' ', s.first_name, s.middle_name, s.last_name)), ''), CONCAT('Student #', r.student_id)) AS student_name,
+            COALESCE(u.name, u.username, '-') AS reviewed_by_name
+        FROM student_disciplinary_records r
+        LEFT JOIN students s ON s.id = r.student_id
+        LEFT JOIN users u ON u.id = r.created_by
+        WHERE " . implode(' AND ', $where) . "
+        ORDER BY r.created_at DESC, r.id DESC
+    ";
+    $res = $conn->query($sql);
+    if ($res instanceof mysqli_result) {
+        while ($row = $res->fetch_assoc()) {
+            $period = trim((string)($row['start_date'] ?? '')) !== '' || trim((string)($row['end_date'] ?? '')) !== ''
+                ? ' | Period: ' . ((string)($row['start_date'] ?? '-') ?: '-') . ' to ' . ((string)($row['end_date'] ?? 'open') ?: 'open')
+                : '';
+            $records[] = [
+                'source' => 'records',
+                'student_number' => (string)($row['student_number'] ?? '-'),
+                'student_name' => (string)($row['student_name'] ?? '-'),
+                'status' => strtolower((string)($row['status'] ?? 'active')),
+                'disciplinary_remark' => ucwords(str_replace('_', ' ', (string)($row['action_type'] ?? 'note'))) . ': ' . (string)($row['reason'] ?? ''),
+                'approval_notes' => trim((string)($row['details'] ?? '')) . $period,
+                'reviewed_by_name' => (string)($row['reviewed_by_name'] ?? '-'),
+                'happened_at' => (string)($row['created_at'] ?? ''),
+            ];
+        }
+        $res->close();
+    }
+}
 
 $usersHasDisciplinary = false;
 $usersHasStatus = false;
@@ -174,6 +221,7 @@ include 'includes/header.php';
                     <label class="form-label">Status</label>
                     <select class="form-select" name="status">
                         <option value="all"<?php echo $statusFilter === 'all' ? ' selected' : ''; ?>>All</option>
+                        <option value="active"<?php echo $statusFilter === 'active' ? ' selected' : ''; ?>>Active</option>
                         <option value="pending"<?php echo $statusFilter === 'pending' ? ' selected' : ''; ?>>Pending</option>
                         <option value="approved"<?php echo $statusFilter === 'approved' ? ' selected' : ''; ?>>Approved</option>
                         <option value="rejected"<?php echo $statusFilter === 'rejected' ? ' selected' : ''; ?>>Rejected</option>
@@ -183,6 +231,7 @@ include 'includes/header.php';
                     <label class="form-label">Source</label>
                     <select class="form-select" name="source">
                         <option value="all"<?php echo $sourceFilter === 'all' ? ' selected' : ''; ?>>All Sources</option>
+                        <option value="records"<?php echo $sourceFilter === 'records' ? ' selected' : ''; ?>>Discipline Records</option>
                         <option value="users"<?php echo $sourceFilter === 'users' ? ' selected' : ''; ?>>Users Table</option>
                         <option value="staging"<?php echo $sourceFilter === 'staging' ? ' selected' : ''; ?>>Application Staging</option>
                     </select>

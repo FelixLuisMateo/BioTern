@@ -7,18 +7,31 @@ require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/company_profiles.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
+require_once dirname(__DIR__) . '/lib/student_discipline.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 $current_user_id = (int)($_SESSION['user_id'] ?? 0);
 $current_user_role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
 $can_manage_eval_unlock = in_array($current_user_role, ['admin', 'coordinator', 'supervisor'], true);
+$can_manage_student_discipline = in_array($current_user_role, ['admin', 'coordinator', 'supervisor'], true);
+$student_view_tab = strtolower(trim((string)($_GET['tab'] ?? 'overview')));
+if (!in_array($student_view_tab, ['overview', 'attendance', 'evaluation', 'documents', 'discipline'], true)) {
+    $student_view_tab = 'overview';
+}
 $eval_flash_message = '';
 $eval_flash_type = 'success';
+$discipline_flash_message = '';
+$discipline_flash_type = 'success';
 if (!empty($_SESSION['student_view_eval_flash']) && is_array($_SESSION['student_view_eval_flash'])) {
     $eval_flash_message = (string)($_SESSION['student_view_eval_flash']['message'] ?? '');
     $eval_flash_type = (string)($_SESSION['student_view_eval_flash']['type'] ?? 'success');
     unset($_SESSION['student_view_eval_flash']);
+}
+if (!empty($_SESSION['student_view_discipline_flash']) && is_array($_SESSION['student_view_discipline_flash'])) {
+    $discipline_flash_message = (string)($_SESSION['student_view_discipline_flash']['message'] ?? '');
+    $discipline_flash_type = (string)($_SESSION['student_view_discipline_flash']['type'] ?? 'success');
+    unset($_SESSION['student_view_discipline_flash']);
 }
 
 function resolve_profile_image_url(string $profilePath, int $userId = 0): ?string {
@@ -454,6 +467,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eval_unlock_action'])
     exit;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['discipline_action'])) {
+    if (!$can_manage_student_discipline) {
+        $_SESSION['student_view_discipline_flash'] = ['type' => 'danger', 'message' => 'You do not have permission to add disciplinary records.'];
+    } else {
+        $post_student_id = (int)($_POST['student_id'] ?? 0);
+        $actionType = strtolower(trim((string)($_POST['discipline_action_type'] ?? 'note')));
+        $reason = trim((string)($_POST['discipline_reason'] ?? ''));
+        $details = trim((string)($_POST['discipline_details'] ?? ''));
+        $startDate = trim((string)($_POST['discipline_start_date'] ?? ''));
+        $endDate = trim((string)($_POST['discipline_end_date'] ?? ''));
+        $resetScope = strtolower(trim((string)($_POST['discipline_reset_scope'] ?? 'internal')));
+        $ok = $post_student_id === $student_id && biotern_discipline_create_record($conn, $student_id, $actionType, $reason, $startDate, $endDate, $details, $current_user_id, $resetScope);
+        $_SESSION['student_view_discipline_flash'] = [
+            'type' => $ok ? 'success' : 'danger',
+            'message' => $ok ? 'Disciplinary record saved.' : 'Unable to save the disciplinary record. Add a reason and check the dates.',
+        ];
+    }
+    header('Location: students-view.php?id=' . (int)$student_id . '&tab=discipline');
+    exit;
+}
+
 // Check if student has attendance today (any record for today's date).
 $today = date('Y-m-d');
 $active_today_query = "
@@ -563,6 +597,8 @@ $sum_row = $sum_stmt->get_result()->fetch_assoc();
 $sum_stmt->close();
 
 $external_hours_rendered = student_external_attendance_rendered_hours($conn, $externalAttendanceIds);
+$student_discipline_records = biotern_discipline_student_records($conn, $student_id, 30);
+$student_active_suspension = biotern_discipline_active_suspension($conn, $student_id, date('Y-m-d'));
 
 $internal_hours_rendered = isset($sum_row['rendered']) ? (float)$sum_row['rendered'] : 0.0;
 if ($internal_hours_rendered <= 0 && isset($student['rendered_hours']) && strtolower(trim((string)($student['assignment_track'] ?? 'internal'))) !== 'external') {
@@ -1140,22 +1176,25 @@ echo $student['id']; ?>" class="btn btn-success" target="_blank">
                             <div class="card-header p-0 app-students-view-tabs-shell">
                                 <ul class="nav nav-tabs w-100 text-center app-students-view-tabs" id="myTab" role="tablist">
                                     <li class="nav-item app-students-view-tab-item" role="presentation">
-                                        <a href="javascript:void(0);" class="nav-link active app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#overviewTab" role="tab">Overview</a>
+                                        <a href="javascript:void(0);" class="nav-link <?php echo $student_view_tab === 'overview' ? 'active' : ''; ?> app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#overviewTab" role="tab">Overview</a>
                                     </li>
                                     <li class="nav-item app-students-view-tab-item" role="presentation">
-                                        <a href="javascript:void(0);" class="nav-link app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#activityTab" role="tab">Attendance</a>
+                                        <a href="javascript:void(0);" class="nav-link <?php echo $student_view_tab === 'attendance' ? 'active' : ''; ?> app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#activityTab" role="tab">Attendance</a>
                                     </li>
                                     <li class="nav-item app-students-view-tab-item" role="presentation">
-                                        <a href="javascript:void(0);" class="nav-link app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#evaluationTab" role="tab">Evaluation</a>
+                                        <a href="javascript:void(0);" class="nav-link <?php echo $student_view_tab === 'evaluation' ? 'active' : ''; ?> app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#evaluationTab" role="tab">Evaluation</a>
                                     </li>
                                     <li class="nav-item app-students-view-tab-item" role="presentation">
-                                        <a href="javascript:void(0);" class="nav-link app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#documentsTab" role="tab">Documents</a>
+                                        <a href="javascript:void(0);" class="nav-link <?php echo $student_view_tab === 'discipline' ? 'active' : ''; ?> app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#disciplineTab" role="tab">Discipline</a>
+                                    </li>
+                                    <li class="nav-item app-students-view-tab-item" role="presentation">
+                                        <a href="javascript:void(0);" class="nav-link <?php echo $student_view_tab === 'documents' ? 'active' : ''; ?> app-students-view-tab-link" data-bs-toggle="tab" data-bs-target="#documentsTab" role="tab">Documents</a>
                                     </li>
                                 </ul>
                             </div>
                             <div class="tab-content">
                                 <!-- Overview Tab -->
-                                <div class="tab-pane fade show active app-students-view-tab-pane" id="overviewTab" role="tabpanel">
+                                <div class="tab-pane fade <?php echo $student_view_tab === 'overview' ? 'show active' : ''; ?> app-students-view-tab-pane" id="overviewTab" role="tabpanel">
                                     <div class="profile-details app-students-view-profile-details mb-4">
                                         <div class="mb-4 d-flex align-items-center justify-content-between">
                                             <h5 class="fw-bold mb-0">Profile Details:</h5>
@@ -1384,7 +1423,7 @@ echo $biometric_registered_at ? formatDate($biometric_registered_at) : 'N/A'; ?>
                                 </div>
 
                                 <!-- Attendance Tab -->
-                                <div class="tab-pane fade app-students-view-tab-pane" id="activityTab" role="tabpanel">
+                                <div class="tab-pane fade <?php echo $student_view_tab === 'attendance' ? 'show active' : ''; ?> app-students-view-tab-pane" id="activityTab" role="tabpanel">
                                     <div class="recent-activity app-students-view-recent-activity">
                                         <div class="mb-4 pb-2 d-flex justify-content-between">
                                             <h5 class="fw-bold">Recent Attendance Records:</h5>
@@ -1451,7 +1490,7 @@ endif; ?>
                                 </div>
 
                                 <!-- Evaluation Tab -->
-                                <div class="tab-pane fade app-students-view-tab-pane" id="evaluationTab" role="tabpanel">
+                                <div class="tab-pane fade <?php echo $student_view_tab === 'evaluation' ? 'show active' : ''; ?> app-students-view-tab-pane" id="evaluationTab" role="tabpanel">
                                     <div class="app-students-view-evaluation-wrap">
                                         <div class="mb-4 d-flex align-items-center justify-content-between">
                                             <h5 class="fw-bold mb-0">Supervisor Evaluation:</h5>
@@ -1802,7 +1841,98 @@ endif; ?>
                                     </div>
                                 </div>
 
-                                <div class="tab-pane fade app-students-view-tab-pane" id="documentsTab" role="tabpanel">
+                                <div class="tab-pane fade <?php echo $student_view_tab === 'discipline' ? 'show active' : ''; ?> app-students-view-tab-pane" id="disciplineTab" role="tabpanel">
+                                    <div class="profile-details app-students-view-profile-details mb-4">
+                                        <div class="mb-4 d-flex align-items-center justify-content-between">
+                                            <h5 class="fw-bold mb-0">Disciplinary Records:</h5>
+                                            <?php if ($student_active_suspension): ?>
+                                                <span class="badge bg-soft-danger text-danger">Suspended until <?php echo htmlspecialchars((string)($student_active_suspension['end_date'] ?? 'open-ended'), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <?php if ($discipline_flash_message !== ''): ?>
+                                            <div class="alert alert-<?php echo htmlspecialchars($discipline_flash_type, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($discipline_flash_message, ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <?php endif; ?>
+                                        <?php if ($can_manage_student_discipline): ?>
+                                            <form method="post" class="p-3 border rounded mb-4">
+                                                <input type="hidden" name="discipline_action" value="save">
+                                                <input type="hidden" name="student_id" value="<?php echo (int)$student_id; ?>">
+                                                <div class="row g-3">
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">Action</label>
+                                                        <select name="discipline_action_type" class="form-select">
+                                                            <option value="note">Record note</option>
+                                                            <option value="warning">Warning</option>
+                                                            <option value="suspension">Suspend attendance until date</option>
+                                                            <option value="reset_time">Reset rendered time</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">Start Date</label>
+                                                        <input type="date" name="discipline_start_date" class="form-control" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">End Date</label>
+                                                        <input type="date" name="discipline_end_date" class="form-control">
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label class="form-label">Reset Scope</label>
+                                                        <select name="discipline_reset_scope" class="form-select">
+                                                            <option value="internal">Internal attendance</option>
+                                                            <option value="external">External attendance</option>
+                                                            <option value="all">Internal + external</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-8">
+                                                        <label class="form-label">Reason</label>
+                                                        <input type="text" name="discipline_reason" class="form-control" maxlength="255" required>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label">Details</label>
+                                                        <textarea name="discipline_details" class="form-control" rows="3"></textarea>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <button type="submit" class="btn btn-primary">Save Disciplinary Record</button>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        <?php endif; ?>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm align-middle">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Action</th>
+                                                        <th>Reason</th>
+                                                        <th>Dates</th>
+                                                        <th>Status</th>
+                                                        <th>By</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php if ($student_discipline_records === []): ?>
+                                                        <tr><td colspan="5" class="text-center text-muted py-4">No disciplinary records yet.</td></tr>
+                                                    <?php else: ?>
+                                                        <?php foreach ($student_discipline_records as $record): ?>
+                                                            <tr>
+                                                                <td><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', (string)$record['action_type'])), ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                <td>
+                                                                    <div class="fw-semibold"><?php echo htmlspecialchars((string)$record['reason'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                                                    <?php if (trim((string)($record['details'] ?? '')) !== ''): ?>
+                                                                        <small class="text-muted"><?php echo htmlspecialchars((string)$record['details'], ENT_QUOTES, 'UTF-8'); ?></small>
+                                                                    <?php endif; ?>
+                                                                </td>
+                                                                <td><?php echo htmlspecialchars(((string)($record['start_date'] ?? '') ?: '-') . ' to ' . ((string)($record['end_date'] ?? '') ?: 'open'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                <td><span class="badge bg-soft-primary text-primary"><?php echo htmlspecialchars(ucfirst((string)$record['status']), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                                                <td><?php echo htmlspecialchars((string)($record['created_by_name'] ?: '-'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                                            </tr>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="tab-pane fade <?php echo $student_view_tab === 'documents' ? 'show active' : ''; ?> app-students-view-tab-pane" id="documentsTab" role="tabpanel">
                                     <div class="mb-4 pb-2 d-flex justify-content-between align-items-center flex-wrap gap-2">
                                         <h5 class="fw-bold mb-0">Student Documents</h5>
                                         <a href="<?php echo htmlspecialchars(student_view_public_asset_url('documents/index.php?id=' . (int)$student['id']), ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-sm btn-primary">Open Documents Hub</a>

@@ -4,7 +4,11 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/section_schedule.php';
+require_once dirname(__DIR__) . '/lib/student_discipline.php';
 biotern_boot_session(isset($conn) ? $conn : null);
+section_schedule_ensure_columns($conn);
+biotern_discipline_ensure_schema($conn);
 
 $currentRole = get_current_user_role();
 $currentUserId = get_current_user_id_or_zero();
@@ -170,6 +174,11 @@ function rr_server_filter_fields(mysqli $conn, string $reportKey): array
                 ['value' => 'rejected', 'label' => 'Rejected'],
             ]],
         ],
+        'absence-streaks' => [
+            ['name' => 'date_to', 'label' => 'Count Through', 'type' => 'date'],
+            ['name' => 'course_id', 'label' => 'Course', 'type' => 'select', 'all' => 'All Courses', 'options' => $courseOptions()],
+            ['name' => 'section_id', 'label' => 'Section', 'type' => 'select', 'all' => 'All Sections', 'options' => $sectionOptions()],
+        ],
         'hours-completion' => [
             ['name' => 'course_id', 'label' => 'Course', 'type' => 'select', 'all' => 'All Courses', 'options' => $courseOptions()],
             ['name' => 'progress', 'label' => 'Progress', 'type' => 'select', 'all' => 'All Progress', 'options' => [
@@ -257,6 +266,77 @@ function rr_add_course_section_labels(array $rows): array
     return $rows;
 }
 
+function rr_school_hours_fallback(): array
+{
+    return [
+        'schedule_time_in' => '08:00',
+        'schedule_time_out' => '19:00',
+        'late_after_time' => '08:00',
+    ];
+}
+
+function rr_student_has_attendance_on(mysqli $conn, int $studentId, string $date): bool
+{
+    static $internalStmt = null;
+    static $externalStmt = null;
+    if ($internalStmt === null) {
+        $internalStmt = $conn->prepare("SELECT id FROM attendances WHERE student_id = ? AND attendance_date = ? AND LOWER(COALESCE(status, 'approved')) <> 'rejected' LIMIT 1");
+    }
+    if ($internalStmt) {
+        $internalStmt->bind_param('is', $studentId, $date);
+        $internalStmt->execute();
+        if ($internalStmt->get_result()->fetch_assoc()) {
+            return true;
+        }
+    }
+    if ($externalStmt === null && rr_table_exists($conn, 'external_attendance')) {
+        $externalStmt = $conn->prepare("SELECT id FROM external_attendance WHERE student_id = ? AND attendance_date = ? AND LOWER(COALESCE(status, 'approved')) <> 'rejected' LIMIT 1");
+    }
+    if ($externalStmt) {
+        $externalStmt->bind_param('is', $studentId, $date);
+        $externalStmt->execute();
+        if ($externalStmt->get_result()->fetch_assoc()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function rr_required_absent_dates(mysqli $conn, array $student, string $endDate): array
+{
+    $studentId = (int)($student['student_db_id'] ?? 0);
+    if ($studentId <= 0) {
+        return [];
+    }
+    $startDate = date('Y-m-d', strtotime($endDate . ' -45 days'));
+    $schedule = section_schedule_from_row($student);
+    $dates = [];
+    $cursorTs = strtotime($endDate);
+    $startTs = strtotime($startDate);
+    while ($cursorTs !== false && $startTs !== false && $cursorTs >= $startTs) {
+        $date = date('Y-m-d', $cursorTs);
+        $dayKey = section_schedule_day_key_from_date($date);
+        if ($dayKey === 'sunday') {
+            $cursorTs = strtotime('-1 day', $cursorTs);
+            continue;
+        }
+        $effective = section_schedule_effective_day($schedule, $date, rr_school_hours_fallback());
+        if (($effective['window_source'] ?? 'none') === 'none') {
+            if ($dates !== [] && $dayKey !== 'saturday') {
+                break;
+            }
+            $cursorTs = strtotime('-1 day', $cursorTs);
+            continue;
+        }
+        if (rr_student_has_attendance_on($conn, $studentId, $date)) {
+            break;
+        }
+        $dates[] = $date;
+        $cursorTs = strtotime('-1 day', $cursorTs);
+    }
+    return array_reverse($dates);
+}
+
 function rr_format_status_label($value): string
 {
     $raw = trim((string)$value);
@@ -273,6 +353,9 @@ function rr_format_status_label($value): string
         'pending' => 'Pending',
         'approved' => 'Approved',
         'rejected' => 'Rejected',
+        'active' => 'Active',
+        'absent' => 'Absent',
+        'suspended' => 'Suspended',
         'draft' => 'Draft',
     ];
 
@@ -414,8 +497,11 @@ function rr_report_row_state(string $reportKey, array $row): string
     if (in_array($status, ['pending', 'not started', 'draft'], true)) {
         return 'warning';
     }
-    if ($status === 'rejected') {
+    if (in_array($status, ['rejected', 'absent'], true)) {
         return 'danger';
+    }
+    if ($status === 'suspended') {
+        return 'warning';
     }
     if (in_array($status, ['approved', 'finished'], true)) {
         return 'success';
@@ -443,8 +529,11 @@ function rr_cell_state(string $key, array $row): string
         if (in_array($status, ['pending', 'not started', 'draft'], true)) {
             return 'warning';
         }
-        if ($status === 'rejected') {
+        if (in_array($status, ['rejected', 'absent'], true)) {
             return 'danger';
+        }
+        if ($status === 'suspended') {
+            return 'warning';
         }
         if (in_array($status, ['approved', 'finished'], true)) {
             return 'success';
@@ -585,6 +674,77 @@ $reports = [
                 $manualWhere[] = "LOWER(COALESCE(ea.source, '')) = 'manual'";
                 $rows = array_merge($rows, rr_rows($conn, "SELECT s.id AS student_db_id, 'External Manual Group' AS type, TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student, CASE WHEN MIN(ea.attendance_date) = MAX(ea.attendance_date) THEN CAST(MIN(ea.attendance_date) AS CHAR) ELSE CONCAT(MIN(ea.attendance_date), ' to ', MAX(ea.attendance_date)) END AS report_date, COALESCE(SUM(ea.total_hours), 0) AS hours, COALESCE(ea.status, '-') AS status, CONCAT('reports-dtr-manual-student.php?origin=external&student_id=', s.id, '&from=', MIN(ea.attendance_date), '&to=', MAX(ea.attendance_date)) AS row_url FROM external_attendance ea LEFT JOIN students s ON s.id = ea.student_id" . rr_where($manualWhere) . " GROUP BY s.id, s.student_id, s.first_name, s.last_name, ea.status ORDER BY MAX(ea.created_at) DESC, MAX(ea.id) DESC LIMIT 250"));
             }
+            return $rows;
+        },
+    ],
+    'absence-streaks' => [
+        'title' => 'Absence Streak Report',
+        'statement' => 'Students with current scheduled absences and how many required days they have missed.',
+        'columns' => ['Student No', 'Student', 'Course', 'Section', 'Absent Since', 'Days Absent', 'Last Absent Date', 'Status'],
+        'summary' => function (mysqli $conn): array {
+            return [
+                ['label' => 'Tracked Students', 'value' => rr_count($conn, "SELECT COUNT(*) AS total FROM students WHERE deleted_at IS NULL")],
+                ['label' => 'Active Suspensions', 'value' => rr_count($conn, "SELECT COUNT(*) AS total FROM student_disciplinary_records WHERE action_type = 'suspension' AND status = 'active' AND deleted_at IS NULL AND (end_date IS NULL OR end_date >= CURDATE())")],
+                ['label' => 'Report Window', 'value' => '45 days'],
+            ];
+        },
+        'rows' => function (mysqli $conn): array {
+            $endDate = rr_request_date('date_to');
+            if ($endDate === '') {
+                $endDate = date('Y-m-d', strtotime('yesterday'));
+            }
+            $where = ["s.deleted_at IS NULL", "(s.application_status = 'approved' OR s.application_status IS NULL)"];
+            rr_add_student_scope($conn, $where, 's');
+            $courseId = rr_request_int('course_id');
+            $sectionId = rr_request_int('section_id');
+            if ($courseId > 0) {
+                $where[] = 's.course_id = ' . $courseId;
+            }
+            if ($sectionId > 0) {
+                $where[] = 's.section_id = ' . $sectionId;
+            }
+            $students = rr_rows($conn, "
+                SELECT
+                    s.id AS student_db_id,
+                    COALESCE(s.student_id, '') AS student_no,
+                    TRIM(CONCAT(COALESCE(s.first_name, ''), ' ', COALESCE(s.last_name, ''))) AS student,
+                    COALESCE(c.name, '-') AS course,
+                    COALESCE(sec.code, '') AS section_code,
+                    COALESCE(sec.name, '') AS section_name,
+                    sec.attendance_session,
+                    sec.schedule_time_in,
+                    sec.schedule_time_out,
+                    sec.late_after_time,
+                    sec.school_year_end_date,
+                    sec.weekly_schedule_json
+                FROM students s
+                LEFT JOIN courses c ON c.id = s.course_id
+                LEFT JOIN sections sec ON sec.id = s.section_id
+                " . rr_where($where) . "
+                ORDER BY s.last_name ASC, s.first_name ASC
+                LIMIT 500
+            ");
+            $rows = [];
+            foreach ($students as $student) {
+                $absentDates = rr_required_absent_dates($conn, $student, $endDate);
+                if ($absentDates === []) {
+                    continue;
+                }
+                $student['section'] = rr_format_course_section_label((string)($student['section_code'] ?? ''), (string)($student['section_name'] ?? ''));
+                $suspension = biotern_discipline_active_suspension($conn, (int)$student['student_db_id'], $endDate);
+                $rows[] = [
+                    'student_db_id' => $student['student_db_id'],
+                    'student_no' => $student['student_no'],
+                    'student' => $student['student'],
+                    'course' => $student['course'],
+                    'section' => $student['section'],
+                    'absent_since' => $absentDates[0],
+                    'days_absent' => (string)count($absentDates),
+                    'last_absent_date' => $absentDates[count($absentDates) - 1],
+                    'status' => $suspension ? 'Suspended' : 'Absent',
+                ];
+            }
+            usort($rows, static fn(array $a, array $b): int => ((int)$b['days_absent'] <=> (int)$a['days_absent']));
             return $rows;
         },
     ],

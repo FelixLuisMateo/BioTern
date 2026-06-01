@@ -5,6 +5,7 @@ require_once dirname(__DIR__) . '/lib/section_schedule.php';
 require_once dirname(__DIR__) . '/lib/attendance_rules.php';
 require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/lib/manual_dtr_requests.php';
+require_once dirname(__DIR__) . '/lib/student_discipline.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/includes/admin-activity-log.php';
 if (session_status() === PHP_SESSION_NONE) {
@@ -597,6 +598,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['student_action']) && 
 
     if ($studentId <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $clockDate)) {
         $_SESSION['student_dtr_flash'] = ['type' => 'danger', 'message' => 'A valid student and clock date are required.'];
+        header('Location: student-manual-dtr.php');
+        exit;
+    }
+
+    if (biotern_discipline_active_suspension($conn, $studentId, $clockDate)) {
+        $_SESSION['student_dtr_flash'] = ['type' => 'warning', 'message' => 'You are suspended for this date. The attendance punch was not saved.'];
         header('Location: student-manual-dtr.php');
         exit;
     }

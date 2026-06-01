@@ -2577,7 +2577,7 @@ include 'includes/header.php';
                             <form method="GET" action="attendance.php" class="filter-form row g-2 align-items-end" id="attendanceFilterForm">
                         <div class="col-sm-2">
                             <label class="form-label" for="filter-date">Date</label>
-                            <input id="filter-date" type="date" name="date" class="form-control" value="<?php
+                            <input id="filter-date" type="date" name="date" class="form-control" data-datepicker-disabled="1" value="<?php
 echo htmlspecialchars((string)$filter_date, ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
                         <div class="col-sm-2">

@@ -286,7 +286,12 @@ include 'includes/header.php';
                                         <span class="app-academic-meta"><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></span>
                                     </div>
                                 </td>
-                                <td><span class="app-academic-code-pill"><?php echo htmlspecialchars((string)($sec['course_name'] ?? '-')); ?></span></td>
+                                <td>
+                                    <div class="app-section-details-cell">
+                                        <span class="app-academic-code-pill"><?php echo htmlspecialchars((string)($sec['code'] ?? '-')); ?></span>
+                                        <small><?php echo htmlspecialchars((string)($sec['name'] ?? '-')); ?></small>
+                                    </div>
+                                </td>
                                 <td><span class="app-academic-head"><?php echo htmlspecialchars((string)($sec['course_name'] ?? '-')); ?></span></td>
                                 <?php if ($hasSectionDepartment): ?><td><span class="app-academic-created"><?php echo htmlspecialchars((string)($sec['department_name'] ?? '-')); ?></span></td><?php endif; ?>
                                 <?php if ($hasSectionStatus || $hasSectionIsActive): ?>

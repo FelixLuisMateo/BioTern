@@ -111,7 +111,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                     'fingerprint_mapping.php', 'biometric-fleet.php', 'biometric-machine.php', 'biometric_machine_sync.php',
                     'ojt.php', 'ojt-create.php', 'ojt-edit.php', 'ojt-view.php', 'ojt-workflow-board.php',
                     'companies.php', 'ojt-internal-list.php', 'ojt-internal-masterlist.php', 'ojt-external-list.php',
-                    'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-attendance-anomalies.php', 'reports-hours-completion.php',
+                    'reports-student-status.php', 'reports-attendance-dtr.php', 'reports-absences.php', 'reports-attendance-anomalies.php', 'reports-hours-completion.php',
                     'reports-section.php', 'reports-department.php', 'reports-company.php', 'reports-evaluation.php',
                     'reports-unassigned-students.php', 'reports-document.php', 'reports-dtr-manual-input.php', 'reports-dtr-manual-internal.php', 'reports-dtr-manual-external.php',
                     'reports-dtr-manual-internal-results.php', 'reports-dtr-manual-external-results.php', 'reports-dtr-manual-student.php',
@@ -162,6 +162,7 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                         'title' => 'Reports',
                         'items' => [
                             ['label' => 'Attendance Summary', 'href' => 'reports-attendance-dtr.php', 'icon' => 'feather-clock'],
+                            ['label' => 'Absence Streaks', 'href' => 'reports-absences.php', 'icon' => 'feather-user-x'],
                             ['label' => 'Internal DTR Review', 'href' => 'reports-dtr-manual-internal.php', 'icon' => 'feather-edit-3'],
                             ['label' => 'External DTR Review', 'href' => 'reports-dtr-manual-external.php', 'icon' => 'feather-briefcase'],
                             ['label' => 'Internal DTR Results', 'href' => 'reports-dtr-manual-internal-results.php', 'icon' => 'feather-check-circle'],
