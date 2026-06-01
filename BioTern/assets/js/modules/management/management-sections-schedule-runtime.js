@@ -85,6 +85,7 @@
         document.querySelectorAll(".js-day-session, .js-day-type, .js-section-time").forEach(function (input) {
             input.addEventListener("change", function () {
                 normalizeDayType(input);
+                applyDayTypeDefaults(input);
                 updateDefaultPreview();
                 updateScheduleSummary();
                 updateScheduleBoard();
@@ -120,6 +121,21 @@
         if (input.value === "x2_schedule" && day !== "saturday") {
             input.value = "class";
         }
+    }
+
+    function applyDayTypeDefaults(input) {
+        if (!input || !input.classList || !input.classList.contains("js-day-type")) return;
+        var row = input.closest("[data-weekday-row]");
+        if (!row || input.value !== "no_class") return;
+
+        var session = row.querySelector(".js-day-session");
+        var timeIn = row.querySelector(".js-weekly-time-in");
+        var lateAfter = row.querySelector(".js-weekly-late");
+        var timeOut = row.querySelector(".js-weekly-time-out");
+        if (session) session.value = "whole_day";
+        if (timeIn) timeIn.value = "08:00";
+        if (lateAfter) lateAfter.value = "08:00";
+        if (timeOut) timeOut.value = "19:00";
     }
 
     function labelDay(value) {
@@ -194,11 +210,6 @@
             var dayType = row.querySelector(".js-day-type");
             var timeIn = row.querySelector(".js-weekly-time-in");
             var timeOut = row.querySelector(".js-weekly-time-out");
-            if (dayType && dayType.value === "no_class") {
-                setScheduleBlockVisibility(block, false);
-                setScheduleBlockVisibility(printBlock, false);
-                return;
-            }
             var startMinutes = parseMinutes(timeIn ? timeIn.value : "");
             var endMinutes = parseMinutes(timeOut ? timeOut.value : "");
 
@@ -232,6 +243,7 @@
         if (!block) return;
 
         setScheduleBlockVisibility(block, true);
+        updateScheduleBlockClass(block, dayType ? dayType.value : "class");
         block.style.setProperty("--schedule-row-start", rowStart);
         block.style.setProperty("--schedule-row-span", rowSpan);
 
@@ -243,6 +255,13 @@
         if (timeLabel) {
             timeLabel.textContent = formatTime(timeIn ? timeIn.value : "") + " - " + formatTime(timeOut ? timeOut.value : "");
         }
+    }
+
+    function updateScheduleBlockClass(block, dayType) {
+        if (!block || !block.classList) return;
+        block.classList.toggle("is-no-class", dayType === "no_class");
+        block.classList.toggle("is-x2-schedule", dayType === "x2_schedule");
+        block.classList.toggle("is-class", dayType !== "no_class" && dayType !== "x2_schedule");
     }
 
     if (document.readyState === "loading") {

@@ -267,7 +267,6 @@ include 'includes/header.php';
                         <tr>
                             <th>ID</th>
                             <th>Section</th>
-                            <th>Details</th>
                             <th>Course</th>
                             <?php if ($hasSectionDepartment): ?><th>Department</th><?php endif; ?>
                             <?php if ($hasSectionStatus || $hasSectionIsActive): ?><th>Status</th><?php endif; ?>
@@ -283,13 +282,6 @@ include 'includes/header.php';
                                 <td>
                                     <div class="app-academic-name-cell">
                                         <span class="app-academic-name app-section-name-hero"><?php echo htmlspecialchars(biotern_format_section_label((string)($sec['code'] ?? ''), (string)($sec['name'] ?? ''))); ?></span>
-                                        <span class="app-academic-meta"><?php echo htmlspecialchars((string)($sec['name'] ?? '')); ?></span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="app-section-details-cell">
-                                        <span class="app-academic-code-pill"><?php echo htmlspecialchars((string)($sec['code'] ?? '-')); ?></span>
-                                        <small><?php echo htmlspecialchars((string)($sec['name'] ?? '-')); ?></small>
                                     </div>
                                 </td>
                                 <td><span class="app-academic-head"><?php echo htmlspecialchars((string)($sec['course_name'] ?? '-')); ?></span></td>
@@ -324,7 +316,7 @@ include 'includes/header.php';
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="<?php echo 5 + ($hasSectionDepartment ? 1 : 0) + (($hasSectionStatus || $hasSectionIsActive) ? 1 : 0) + ($hasSectionCreatedAt ? 1 : 0); ?>" class="text-center py-4 text-muted">
+                            <td colspan="<?php echo 4 + ($hasSectionDepartment ? 1 : 0) + (($hasSectionStatus || $hasSectionIsActive) ? 1 : 0) + ($hasSectionCreatedAt ? 1 : 0); ?>" class="text-center py-4 text-muted">
                                 No sections found.
                             </td>
                         </tr>
