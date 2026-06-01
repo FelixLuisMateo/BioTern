@@ -130,6 +130,8 @@ body .record-section select.biotern-time-native {
   top: 0;
   left: 0;
   width: min(340px, calc(100vw - 32px));
+  max-height: min(520px, calc(100vh - 24px));
+  overflow: auto;
   border: 1px solid var(--biotern-timepicker-border);
   border-radius: 18px;
   background: var(--biotern-timepicker-bg);
@@ -216,9 +218,9 @@ body .record-section select.biotern-time-native {
 
 .biotern-time-clock {
   position: relative;
-  width: 214px;
-  height: 214px;
-  margin: 0 auto 14px;
+  width: 174px;
+  height: 174px;
+  margin: 0 auto 12px;
   border-radius: 50%;
   background:
     radial-gradient(circle at center, var(--biotern-timepicker-accent) 0 4px, transparent 5px),
@@ -228,15 +230,15 @@ body .record-section select.biotern-time-native {
 
 .biotern-time-hour {
   position: absolute;
-  width: 38px;
-  height: 38px;
-  margin: -19px 0 0 -19px;
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
   border: 1px solid transparent;
   border-radius: 50%;
   background: transparent;
   color: var(--biotern-timepicker-text);
   font: inherit;
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   font-weight: 900;
 }
 
@@ -275,14 +277,17 @@ body .record-section select.biotern-time-native {
 }
 
 .biotern-time-minutes {
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-height: 156px;
+  overflow: auto;
   margin-bottom: 12px;
+  padding-right: 2px;
 }
 
 .biotern-time-minute {
-  min-width: 58px;
-  padding: 0.58rem 0.7rem;
+  min-width: 0;
+  padding: 0.5rem 0.45rem;
 }
 
 .biotern-time-actions {

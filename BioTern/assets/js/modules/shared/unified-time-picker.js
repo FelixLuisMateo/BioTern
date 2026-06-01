@@ -275,9 +275,9 @@
       for (var hour = 1; hour <= 12; hour += 1) {
         var button = createButton("biotern-time-hour", String(hour), "hour");
         var angle = ((hour % 12) * 30 - 90) * (Math.PI / 180);
-        var radius = 82;
-        button.style.left = (107 + Math.cos(angle) * radius) + "px";
-        button.style.top = (107 + Math.sin(angle) * radius) + "px";
+        var radius = 66;
+        button.style.left = (87 + Math.cos(angle) * radius) + "px";
+        button.style.top = (87 + Math.sin(angle) * radius) + "px";
         button.dataset.hour = String(hour);
         button.disabled = !enabledHours.has(hour);
         button.classList.toggle("is-active", state.hour !== null && (state.hour % 12 || 12) === hour);
@@ -302,9 +302,9 @@
       for (var minute = 0; minute < 60; minute += 1) {
         var button = createButton("biotern-time-minute-clock", pad(minute), "minute");
         var angle = (minute * 6 - 90) * (Math.PI / 180);
-        var radius = minute % 5 === 0 ? 82 : 68;
-        button.style.left = (107 + Math.cos(angle) * radius) + "px";
-        button.style.top = (107 + Math.sin(angle) * radius) + "px";
+        var radius = minute % 5 === 0 ? 66 : 54;
+        button.style.left = (87 + Math.cos(angle) * radius) + "px";
+        button.style.top = (87 + Math.sin(angle) * radius) + "px";
         button.dataset.minute = String(minute);
         button.disabled = !enabledMinutes.has(minute);
         button.classList.toggle("is-major", minute % 5 === 0);
