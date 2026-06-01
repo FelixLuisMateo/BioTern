@@ -285,6 +285,30 @@ include 'includes/header.php';
 ?>
 <main class="nxl-container">
     <div class="nxl-content">
+        <div class="page-header page-header-with-middle external-dtr-page-header">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">Manual External DTR</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                    <li class="breadcrumb-item">Attendance</li>
+                    <li class="breadcrumb-item">Manual External DTR</li>
+                </ul>
+            </div>
+            <div class="page-header-middle">
+                <p class="page-header-statement">Encode missed external time from your physical DTR and submit it for review.</p>
+            </div>
+            <div class="page-header-right ms-auto">
+                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                    <span class="badge bg-soft-primary text-primary fs-11"><?php echo htmlspecialchars(trim((string)(($student['first_name'] ?? '') . ' ' . ($student['last_name'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <a href="external-attendance.php" class="btn btn-light-brand">
+                        <i class="feather-arrow-left me-1"></i>
+                        <span>External DTR</span>
+                    </a>
+                </div>
+            </div>
+        </div>
         <div class="main-content">
             <div class="student-home-shell student-dtr-shell biometric-container">
                 <?php if (is_array($externalFlash) && !empty($externalFlash['message'])): ?>
@@ -292,20 +316,6 @@ include 'includes/header.php';
                         <?php echo htmlspecialchars((string)$externalFlash['message'], ENT_QUOTES, 'UTF-8'); ?>
                     </div>
                 <?php endif; ?>
-
-                <section class="bio-hero">
-                    <div class="bio-hero-chip">
-                        <i class="feather-edit-3"></i>
-                        <span>Manual External DTR Encoder</span>
-                    </div>
-                    <h2><?php echo htmlspecialchars(trim((string)($student['first_name'] . ' ' . $student['last_name'])), ENT_QUOTES, 'UTF-8'); ?></h2>
-                    <p>Generate a long date range, then encode one row per day from your physical DTR. This page is built for bigger batches so the main external attendance screen stays uncluttered.</p>
-                    <div class="student-home-meta mt-3">
-                        <span><?php echo htmlspecialchars((string)($student['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></span>
-                        <span><?php echo htmlspecialchars(biotern_format_section_code((string)($student['section_code'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></span>
-                        <span>Rows in current range: <?php echo count($manualRangeDays); ?></span>
-                    </div>
-                </section>
 
                 <section class="record-section mb-4">
                     <div class="card-header border-0 bg-transparent px-4 pt-4">

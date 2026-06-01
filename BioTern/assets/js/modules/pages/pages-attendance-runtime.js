@@ -5,17 +5,59 @@
  */
 
         function bindViewAllButton(table, selector) {
-            var $button = $(selector);
-            if (!$button.length || !table) {
+            var sourceButton = document.querySelector(selector);
+            if (!sourceButton || !table) {
                 return;
             }
-            var allMode = table.page.len() === -1;
-            $button.text(allMode ? 'Show paged list' : 'View all list');
-            $button.off('click.bioternViewAll').on('click.bioternViewAll', function () {
-                allMode = table.page.len() === -1;
-                table.page.len(allMode ? 10 : -1).draw();
-                $button.text(allMode ? 'View all list' : 'Show paged list');
+
+            var tableEl = document.getElementById('attendanceList');
+            var wrapper = tableEl ? tableEl.closest('.dataTables_wrapper') : null;
+            var paginateHost = wrapper ? wrapper.querySelector('.dataTables_paginate') : null;
+            var inlineButton = sourceButton;
+            var legacyWrap = sourceButton.closest('.d-flex.justify-content-end.px-3.py-2');
+
+            if (paginateHost) {
+                var viewAllSlot = paginateHost.querySelector('.attendance-pagination-viewall');
+                var paginationList = paginateHost.querySelector('ul.pagination');
+                if (!viewAllSlot) {
+                    viewAllSlot = document.createElement('div');
+                    viewAllSlot.className = 'attendance-pagination-viewall';
+                    if (paginationList && paginationList.nextSibling) {
+                        paginateHost.insertBefore(viewAllSlot, paginationList.nextSibling);
+                    } else {
+                        paginateHost.appendChild(viewAllSlot);
+                    }
+                }
+
+                inlineButton = viewAllSlot.querySelector('[data-attendance-view-all-inline]');
+                if (!inlineButton) {
+                    inlineButton = sourceButton.cloneNode(true);
+                    inlineButton.removeAttribute('id');
+                    inlineButton.setAttribute('data-attendance-view-all-inline', 'true');
+                    viewAllSlot.appendChild(inlineButton);
+                }
+                if (legacyWrap) {
+                    legacyWrap.classList.add('attendance-view-all-fallback-hidden');
+                }
+            }
+
+            function syncLabel() {
+                var allMode = table.page.len() === -1;
+                var label = allMode ? 'Show paged list' : 'View all list';
+                sourceButton.textContent = label;
+                inlineButton.textContent = label;
+            }
+
+            $(sourceButton).off('click.bioternViewAll').on('click.bioternViewAll', function () {
+                table.page.len(table.page.len() === -1 ? 10 : -1).draw();
+                syncLabel();
             });
+            $(inlineButton).off('click.bioternViewAll').on('click.bioternViewAll', function () {
+                table.page.len(table.page.len() === -1 ? 10 : -1).draw();
+                syncLabel();
+            });
+            $('#attendanceList').off('draw.dt.bioternViewAll').on('draw.dt.bioternViewAll', syncLabel);
+            syncLabel();
         }
 
         function initAttendanceDataTable() {

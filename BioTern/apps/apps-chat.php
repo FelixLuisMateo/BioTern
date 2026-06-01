@@ -2332,6 +2332,40 @@ include 'includes/header.php';
 
 <main class="nxl-container btchat-page-wrap">
     <div class="nxl-content">
+        <div class="page-header page-header-with-middle btchat-unified-page-header">
+            <div class="page-header-left d-flex align-items-center">
+                <div class="page-header-title">
+                    <h5 class="m-b-10">Chat</h5>
+                </div>
+                <ul class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+                    <li class="breadcrumb-item">Workspace</li>
+                    <li class="breadcrumb-item">Chat</li>
+                </ul>
+            </div>
+            <div class="page-header-middle">
+                <p class="page-header-statement">Conversations stay focused here. Search all users when you need to start a new thread.</p>
+            </div>
+            <div class="page-header-right ms-auto">
+                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                    <?php if ($currentUserRole === 'admin'): ?>
+                        <a href="reports-chat-reports.php" class="btn btn-light-brand">
+                            <i class="feather-flag me-1"></i>
+                            <span>Reports</span>
+                        </a>
+                        <a href="reports-chat-penalties.php" class="btn btn-light-brand">
+                            <i class="feather-shield me-1"></i>
+                            <span>Penalties</span>
+                        </a>
+                        <a href="reports-chat-logs.php" class="btn btn-light-brand">
+                            <i class="feather-message-square me-1"></i>
+                            <span>Logs</span>
+                        </a>
+                    <?php endif; ?>
+                    <span class="badge bg-soft-primary text-primary fs-11<?php echo $chatUnreadTotal > 0 ? '' : ' chat-init-hidden'; ?>" id="btchat-unread-total"><?php echo (int)$chatUnreadTotal; ?></span>
+                </div>
+            </div>
+        </div>
 <div class="main-content btchat-main-content">
     <?php if ($errorMessage !== ''): ?>
         <div class="alert alert-danger btchat-page-alert"><?php echo chat_esc($errorMessage); ?></div>
@@ -2342,16 +2376,6 @@ include 'includes/header.php';
 
     <div class="btchat-shell" id="btchat-app" data-selected-user-id="<?php echo (int)$selectedUserId; ?>" data-chat-base-url="<?php echo chat_esc(chat_page_url()); ?>" data-current-user-id="<?php echo (int)$currentUserId; ?>" data-selected-can-message="<?php echo $selectedCanMessage ? '1' : '0'; ?>" data-selected-connection-status="<?php echo chat_esc($selectedConnectionStatus); ?>">
         <aside class="btchat-left">
-            <div class="btchat-left-header">
-                <h2 class="btchat-left-title">Chat <span class="btchat-title-badge<?php echo $chatUnreadTotal > 0 ? '' : ' chat-init-hidden'; ?>" id="btchat-unread-total"><?php echo (int)$chatUnreadTotal; ?></span></h2>
-            </div>
-            <?php if ($currentUserRole === 'admin'): ?>
-            <div class="btchat-admin-links" aria-label="Chat moderation">
-                <a href="reports-chat-reports.php">Reports</a>
-                <a href="reports-chat-penalties.php">Penalties</a>
-                <a href="reports-chat-logs.php">Logs</a>
-            </div>
-            <?php endif; ?>
             <div class="btchat-search-wrap">
                 <input type="search" class="btchat-search" id="btchat-search" placeholder="<?php echo chat_esc($contactSearchPlaceholder); ?>">
             </div>

@@ -91,27 +91,69 @@ body.external-attendance-page .external-attendance-table-card .dataTables_filter
 }
 
 body.external-attendance-page .external-attendance-table-card .dataTables_wrapper .row:last-child {
-    align-items: center;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 0.75rem;
     padding: 0.65rem 1rem 0.95rem;
 }
 
+body.external-attendance-page .external-attendance-table-card .dataTables_wrapper .row:last-child > [class*="col-"] {
+    width: auto !important;
+    flex: 0 0 auto !important;
+    max-width: none !important;
+    padding: 0 !important;
+}
+
 body.external-attendance-page .external-attendance-table-card .dataTables_info {
+    display: flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 0 !important;
+    justify-self: start;
     color: #9fb7da;
     font-size: 12px;
 }
 
+body.external-attendance-page .external-attendance-table-card .dataTables_paginate {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    float: none !important;
+    margin: 0 !important;
+    justify-self: end;
+    text-align: right !important;
+}
+
+body.external-attendance-page .external-attendance-table-card .dataTables_paginate .pagination {
+    order: 1;
+    justify-content: flex-end !important;
+    margin: 0 !important;
+}
+
+body.external-attendance-page .external-attendance-table-card .external-attendance-pagination-viewall {
+    order: 2;
+    display: inline-flex;
+    align-items: center;
+}
+
+body.external-attendance-page .external-attendance-view-all-fallback-hidden {
+    display: none !important;
+}
+
 body.external-attendance-page .external-attendance-table-card .page-link {
-    border-color: rgba(129, 153, 199, 0.25);
-    background-color: #111a2e;
-    color: #dbeafe;
+    border-color: var(--biotern-data-page-border, rgba(129, 153, 199, 0.25));
+    background-color: var(--biotern-data-page-bg, #111a2e);
+    color: var(--biotern-data-page-text, #dbeafe);
     font-size: 12px;
     font-weight: 700;
 }
 
 body.external-attendance-page .external-attendance-table-card .page-item.active .page-link {
-    border-color: #5b7cfa;
-    background-color: #5b7cfa;
-    color: #fff;
+    border-color: var(--biotern-data-page-active-border, var(--biotern-primary, #5b7cfa));
+    background-color: var(--biotern-data-page-active-bg, var(--biotern-primary, #5b7cfa));
+    color: var(--biotern-data-page-active-text, #fff);
 }
 
 body.external-attendance-page .external-review-notes-text {

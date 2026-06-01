@@ -1240,6 +1240,9 @@ include 'includes/header.php';
                             </tbody>
                         </table>
                     </div>
+                    <div class="d-flex justify-content-end px-3 py-2">
+                        <button type="button" class="btn btn-light btn-sm" id="externalAttendanceViewAllList">View all list</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1275,8 +1278,9 @@ include 'includes/header.php';
             }
         }
 
-        if (!jQuery.fn.DataTable.isDataTable('#externalAttendanceReviewTable')) {
-            $reviewTable.DataTable({
+        var externalAttendanceDataTable = jQuery.fn.DataTable.isDataTable('#externalAttendanceReviewTable')
+            ? $reviewTable.DataTable()
+            : $reviewTable.DataTable({
             pageLength: 10,
             ordering: true,
             searching: true,
@@ -1293,6 +1297,51 @@ include 'includes/header.php';
                 lengthMenu: '<span class="attendance-length-prefix">Show</span> _MENU_ <span class="attendance-length-suffix">entries</span>'
             }
         });
+
+        var sourceButton = document.getElementById('externalAttendanceViewAllList');
+        var wrapper = reviewTable.closest('.dataTables_wrapper');
+        var paginateHost = wrapper ? wrapper.querySelector('.dataTables_paginate') : null;
+        if (sourceButton && paginateHost) {
+            var legacyWrap = sourceButton.closest('.d-flex.justify-content-end.px-3.py-2');
+            var viewAllSlot = paginateHost.querySelector('.external-attendance-pagination-viewall');
+            var paginationList = paginateHost.querySelector('ul.pagination');
+            if (!viewAllSlot) {
+                viewAllSlot = document.createElement('div');
+                viewAllSlot.className = 'external-attendance-pagination-viewall';
+                if (paginationList && paginationList.nextSibling) {
+                    paginateHost.insertBefore(viewAllSlot, paginationList.nextSibling);
+                } else {
+                    paginateHost.appendChild(viewAllSlot);
+                }
+            }
+
+            var inlineButton = viewAllSlot.querySelector('[data-external-attendance-view-all-inline]');
+            if (!inlineButton) {
+                inlineButton = sourceButton.cloneNode(true);
+                inlineButton.removeAttribute('id');
+                inlineButton.setAttribute('data-external-attendance-view-all-inline', 'true');
+                viewAllSlot.appendChild(inlineButton);
+            }
+            if (legacyWrap) {
+                legacyWrap.classList.add('external-attendance-view-all-fallback-hidden');
+            }
+
+            function syncExternalViewAllLabel() {
+                var label = externalAttendanceDataTable.page.len() === -1 ? 'Show paged list' : 'View all list';
+                sourceButton.textContent = label;
+                inlineButton.textContent = label;
+            }
+
+            jQuery(sourceButton).off('click.bioternExternalViewAll').on('click.bioternExternalViewAll', function () {
+                externalAttendanceDataTable.page.len(externalAttendanceDataTable.page.len() === -1 ? 10 : -1).draw();
+                syncExternalViewAllLabel();
+            });
+            jQuery(inlineButton).off('click.bioternExternalViewAll').on('click.bioternExternalViewAll', function () {
+                externalAttendanceDataTable.page.len(externalAttendanceDataTable.page.len() === -1 ? 10 : -1).draw();
+                syncExternalViewAllLabel();
+            });
+            $reviewTable.off('draw.dt.bioternExternalViewAll').on('draw.dt.bioternExternalViewAll', syncExternalViewAllLabel);
+            syncExternalViewAllLabel();
         }
     }
 

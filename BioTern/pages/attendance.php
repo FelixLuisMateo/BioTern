@@ -1847,6 +1847,9 @@ function attendanceCanReview(array $attendance): bool
     if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
         return false;
     }
+    if (attendanceIsBiometricRecord($attendance)) {
+        return false;
+    }
     if (strtolower(trim((string)($attendance['source'] ?? ''))) === 'manual') {
         return false;
     }
@@ -1862,6 +1865,12 @@ function attendance_review_cell_html(array $attendance): string
     if (!attendanceCanReview($attendance) || $attendanceId <= 0) {
         if (strtolower(trim((string)($attendance['source'] ?? ''))) === 'manual') {
             return '<span class="badge bg-soft-warning text-warning">Reviewed in Manual DTR Report</span>';
+        }
+        if (attendanceIsBiometricRecord($attendance)) {
+            return '<span class="badge bg-soft-success text-success">Auto-Verified</span>';
+        }
+        if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
+            return '<span class="badge bg-soft-success text-success">Teacher Approved</span>';
         }
         return '<span class="text-muted fs-12">No manual review needed</span>';
     }

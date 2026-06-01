@@ -162,9 +162,39 @@ $externalBiometricTodaySchedule = $studentContext
 	: ['attendance_session' => 'whole_day', 'day_type' => 'class'];
 $GLOBALS['externalBiometricCurrentSchedule'] = $externalBiometricTodaySchedule;
 $externalBiometricAllowedOrder = function_exists('attendance_schedule_action_order') ? attendance_schedule_action_order($externalBiometricTodaySchedule) : array_keys($clockTypes);
+$externalPageHeading = $externalManualOnly ? 'Manual External DTR' : 'External Biometric DTR';
+$externalPageStatement = $externalManualOnly
+	? 'Submit missed external attendance for review without mixing it into the live punch screen.'
+	: 'Record external clock-in and clock-out events for approved external OJT students.';
 ?>
 <main class="nxl-container">
 	<div class="nxl-content">
+		<div class="page-header page-header-with-middle external-dtr-page-header">
+			<div class="page-header-left d-flex align-items-center">
+				<div class="page-header-title">
+					<h5 class="m-b-10"><?php echo htmlspecialchars($externalPageHeading, ENT_QUOTES, 'UTF-8'); ?></h5>
+				</div>
+				<ul class="breadcrumb">
+					<li class="breadcrumb-item"><a href="homepage.php">Home</a></li>
+					<li class="breadcrumb-item">Attendance</li>
+					<li class="breadcrumb-item"><?php echo htmlspecialchars($externalPageHeading, ENT_QUOTES, 'UTF-8'); ?></li>
+				</ul>
+			</div>
+			<div class="page-header-middle">
+				<p class="page-header-statement"><?php echo htmlspecialchars($externalPageStatement, ENT_QUOTES, 'UTF-8'); ?></p>
+			</div>
+			<div class="page-header-right ms-auto">
+				<div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+					<?php if ($studentContext): ?>
+						<span class="badge bg-soft-primary text-primary fs-11"><?php echo htmlspecialchars(trim((string)(($studentContext['first_name'] ?? '') . ' ' . ($studentContext['last_name'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?></span>
+					<?php endif; ?>
+					<a href="<?php echo $externalManualOnly ? 'external-biometric.php' : ($studentMode ? 'student-manual-dtr.php' : 'external-attendance.php'); ?>" class="btn btn-light-brand">
+						<i class="feather-<?php echo $externalManualOnly ? 'clock' : 'edit-3'; ?> me-1"></i>
+						<span><?php echo $externalManualOnly ? 'Live Punch' : ($studentMode ? 'Manual DTR' : 'Review Queue'); ?></span>
+					</a>
+				</div>
+			</div>
+		</div>
 		<div class="main-content">
 			<?php if (is_array($externalFlash) && !empty($externalFlash['message'])): ?>
 				<div class="alert alert-<?php echo htmlspecialchars((string)($externalFlash['type'] ?? 'info'), ENT_QUOTES, 'UTF-8'); ?>">
@@ -191,29 +221,6 @@ $externalBiometricAllowedOrder = function_exists('attendance_schedule_action_ord
 				</script>
 			<?php endif; ?>
 			<?php if ($studentContext && !$externalManualOnly): ?>
-			<section class="external-dtr-hero">
-				<div class="external-dtr-hero-main">
-					<div class="external-dtr-eyebrow">
-						<i class="feather-briefcase"></i>
-						<span><?php echo $studentMode ? 'My External DTR' : 'Managed External DTR'; ?></span>
-					</div>
-					<h2><?php echo htmlspecialchars(trim((string)($studentContext['first_name'] . ' ' . $studentContext['last_name'])), ENT_QUOTES, 'UTF-8'); ?></h2>
-					<p><?php echo $studentMode ? 'Record external attendance from your account. If external start is not yet approved, entries can be saved but approved hours will not reduce your remaining total.' : 'Record or review external attendance for this student. Hours count only when the student is on external track or external start override is enabled.'; ?></p>
-					<div class="external-dtr-meta">
-						<span><?php echo htmlspecialchars((string)($studentContext['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></span>
-						<span><?php echo htmlspecialchars((string)($studentContext['section_code'] ?? 'No section'), ENT_QUOTES, 'UTF-8'); ?></span>
-						<span><?php echo htmlspecialchars((string)($studentContext['student_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
-						<span><?php echo htmlspecialchars(trim((string)($studentContext['company_name'] ?? '')) !== '' ? (string)$studentContext['company_name'] : 'No company linked', ENT_QUOTES, 'UTF-8'); ?></span>
-						<span class="<?php echo $externalHoursCounting ? 'is-counting' : 'is-paused'; ?>"><?php echo $externalHoursCounting ? 'Hours counting' : 'Hours not counting yet'; ?></span>
-					</div>
-				</div>
-				<div class="external-dtr-clock-card">
-					<div class="external-dtr-clock-label">Today</div>
-					<div class="external-dtr-clock" id="externalBiometricClock"><?php echo date('h:i:s A'); ?></div>
-					<div class="external-dtr-clock-date"><?php echo htmlspecialchars(date('M d, Y', strtotime($today)), ENT_QUOTES, 'UTF-8'); ?></div>
-				</div>
-			</section>
-
 			<div class="external-dtr-stats">
 				<div class="external-dtr-stat">
 					<span>Month Hours</span>
@@ -288,27 +295,6 @@ $externalBiometricAllowedOrder = function_exists('attendance_schedule_action_ord
 			<?php endif; ?>
 
 			<?php if ($studentContext && $externalManualOnly): ?>
-			<section class="external-dtr-hero">
-				<div class="external-dtr-hero-main">
-					<div class="external-dtr-eyebrow">
-						<i class="feather-edit-3"></i>
-						<span>Manual External DTR</span>
-					</div>
-					<h2><?php echo htmlspecialchars(trim((string)($studentContext['first_name'] . ' ' . $studentContext['last_name'])), ENT_QUOTES, 'UTF-8'); ?></h2>
-					<p>Submit missed external attendance only when your external DTR was not captured. Your entry will stay pending until school review.</p>
-					<div class="external-dtr-meta">
-						<span><?php echo htmlspecialchars((string)($studentContext['student_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
-						<span><?php echo htmlspecialchars((string)($studentContext['course_name'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></span>
-						<span><?php echo htmlspecialchars((string)($studentContext['section_code'] ?? 'No section'), ENT_QUOTES, 'UTF-8'); ?></span>
-						<span><?php echo htmlspecialchars(trim((string)($studentContext['company_name'] ?? '')) !== '' ? (string)$studentContext['company_name'] : 'No company linked', ENT_QUOTES, 'UTF-8'); ?></span>
-					</div>
-				</div>
-				<div class="external-dtr-clock-card">
-					<div class="external-dtr-clock-label">Today</div>
-					<div class="external-dtr-clock" id="externalBiometricClock"><?php echo date('h:i:s A'); ?></div>
-					<div class="external-dtr-clock-date"><?php echo htmlspecialchars(date('M d, Y', strtotime($today)), ENT_QUOTES, 'UTF-8'); ?></div>
-				</div>
-			</section>
 			<section class="record-section external-manual-card mb-4" id="manual-dtr">
 				<div class="external-manual-header">
 					<h5 class="mb-1">Submit Missed External Time</h5>
