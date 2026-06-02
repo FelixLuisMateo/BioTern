@@ -72,7 +72,7 @@
                 "order": [[2, "desc"]],
                 "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
                 "columnDefs": [
-                    { "orderable": false, "targets": [0, 9, 10, 11, 12, 13] }
+                    { "orderable": false, "targets": [0, 8] }
                 ],
                 "language": {
                     "emptyTable": "No attendance records found",
@@ -425,6 +425,38 @@
                     showToastOnError: true,
                     reloadPage: false
                 });
+            });
+
+            $(document).on('click', '[data-attendance-details-toggle]', function(event) {
+                event.preventDefault();
+                var trigger = this;
+                var template = document.getElementById(trigger.getAttribute('data-template-id') || '');
+                if (!template || !$.fn.DataTable.isDataTable('#attendanceList')) {
+                    return;
+                }
+
+                var table = $('#attendanceList').DataTable();
+                var tr = $(trigger).closest('tr');
+                var row = table.row(tr);
+                if (!row.length) {
+                    return;
+                }
+
+                if (row.child.isShown()) {
+                    row.child.hide();
+                    tr.removeClass('shown');
+                    trigger.classList.remove('is-active');
+                    return;
+                }
+
+                table.rows('.shown').every(function() {
+                    this.child.hide();
+                    $(this.node()).removeClass('shown').find('[data-attendance-details-toggle]').removeClass('is-active');
+                });
+
+                row.child('<div class="attendance-row-details-shell">' + template.innerHTML + '</div>').show();
+                tr.addClass('shown');
+                trigger.classList.add('is-active');
             });
 
             $(document).on('click', '[data-attendance-actions-open]', function() {

@@ -203,6 +203,23 @@ function external_attendance_admin_filter_target(array $filters): string
     return 'external-attendance.php' . ($query !== '' ? ('?' . $query) : '');
 }
 
+function external_attendance_columns(mysqli $conn, string $table): array
+{
+    $columns = [];
+    $safeTable = $conn->real_escape_string($table);
+    $res = $conn->query("SHOW COLUMNS FROM `{$safeTable}`");
+    if ($res instanceof mysqli_result) {
+        while ($row = $res->fetch_assoc()) {
+            $field = strtolower(trim((string)($row['Field'] ?? '')));
+            if ($field !== '') {
+                $columns[$field] = true;
+            }
+        }
+        $res->close();
+    }
+    return $columns;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = strtolower(trim((string)($_POST['external_action'] ?? '')));
     if ($action !== '') {
@@ -788,6 +805,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         external_attendance_flash_redirect('Could not update external attendance review.', 'danger', $redirectTarget);
+    } elseif ($action === 'delete') {
+        $recordId = (int)($_POST['record_id'] ?? 0);
+        if ($recordId > 0) {
+            $studentId = 0;
+            $studentLookup = $conn->prepare("SELECT student_id FROM external_attendance WHERE id = ? LIMIT 1");
+            if ($studentLookup) {
+                $studentLookup->bind_param('i', $recordId);
+                $studentLookup->execute();
+                $row = $studentLookup->get_result()->fetch_assoc();
+                $studentLookup->close();
+                $studentId = (int)($row['student_id'] ?? 0);
+            }
+
+            $attachmentColumns = external_attendance_columns($conn, 'external_dtr_attachments');
+            if (isset($attachmentColumns['deleted_at'])) {
+                $attachmentStmt = $conn->prepare('UPDATE external_dtr_attachments SET deleted_at = NOW() WHERE external_attendance_id = ? AND deleted_at IS NULL');
+                if ($attachmentStmt) {
+                    $attachmentStmt->bind_param('i', $recordId);
+                    $attachmentStmt->execute();
+                    $attachmentStmt->close();
+                }
+            }
+
+            $deleteStmt = $conn->prepare('DELETE FROM external_attendance WHERE id = ?');
+            if ($deleteStmt) {
+                $deleteStmt->bind_param('i', $recordId);
+                $deleteStmt->execute();
+                $deleted = $deleteStmt->affected_rows > 0;
+                $deleteStmt->close();
+
+                if ($deleted) {
+                    if ($studentId > 0) {
+                        external_attendance_sync_student_hours($conn, $studentId);
+                    }
+                    external_attendance_flash_redirect('External attendance removed.', 'success', $redirectTarget);
+                }
+            }
+        }
+
+        external_attendance_flash_redirect('Could not remove external attendance.', 'danger', $redirectTarget);
     }
 }
 
@@ -1011,6 +1068,43 @@ function external_attendance_review_form(array $row): string
         . '</form>';
 }
 
+function external_attendance_source_cell(array $row): string
+{
+    $source = trim((string)($row['source'] ?? 'manual'));
+    return '<span class="badge bg-soft-primary text-primary">' . htmlspecialchars($source !== '' ? ucwords(str_replace(['-', '_'], ' ', $source)) : 'Manual', ENT_QUOTES, 'UTF-8') . '</span>';
+}
+
+function external_attendance_details_panel_html(array $row): string
+{
+    $sections = [
+        'Source' => external_attendance_source_cell($row),
+        'Photo' => external_attendance_photo_cell($row),
+        'Reports' => external_attendance_reports_cell($row),
+        'Notes' => external_attendance_notes_cell($row),
+        'Review' => external_attendance_review_form($row),
+    ];
+
+    $html = '<div class="external-attendance-row-details">';
+    foreach ($sections as $label => $content) {
+        $html .= '<div class="external-attendance-row-detail-block">'
+            . '<div class="external-attendance-row-detail-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</div>'
+            . '<div class="external-attendance-row-detail-content">' . $content . '</div>'
+            . '</div>';
+    }
+
+    return $html . '</div>';
+}
+
+function external_attendance_delete_form(array $row): string
+{
+    return '<form method="post" class="external-action-form" data-external-delete-form>'
+        . '<input type="hidden" name="external_admin_action" value="delete">'
+        . '<input type="hidden" name="record_id" value="' . (int)($row['id'] ?? 0) . '">'
+        . external_attendance_filter_hidden_inputs()
+        . '<button type="submit" class="dropdown-item text-danger"><i class="feather feather-trash-2 me-3"></i><span>Remove Attendance</span></button>'
+        . '</form>';
+}
+
 function external_attendance_action_menu_items(array $row): string
 {
     $items = [];
@@ -1027,6 +1121,7 @@ function external_attendance_action_menu_items(array $row): string
     if ($proofPath !== '') {
         $items[] = '<li><a class="dropdown-item" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener"><i class="feather feather-image me-3"></i><span>Open Proof</span></a></li>';
     }
+    $items[] = '<li>' . external_attendance_delete_form($row) . '</li>';
 
     return '<ul class="external-row-actions-menu list-unstyled mb-0">' . implode('', $items) . '</ul>';
 }
@@ -1040,10 +1135,13 @@ function external_attendance_row_actions_modal_trigger(array $row): string
     }
 
     $templateId = 'externalAttendanceActionsTemplate' . $recordId;
+    $detailsTemplateId = 'externalAttendanceDetailsTemplate' . $recordId;
 
     return '<div class="hstack gap-2 justify-content-end external-row-actions">'
+        . '<button type="button" class="avatar-text avatar-md external-row-details-toggle" data-external-attendance-details-toggle data-template-id="' . htmlspecialchars($detailsTemplateId, ENT_QUOTES, 'UTF-8') . '" title="View Details"><i class="feather feather-eye"></i></button>'
         . '<button type="button" class="avatar-text avatar-md external-row-actions-open" data-external-attendance-actions-open data-template-id="' . htmlspecialchars($templateId, ENT_QUOTES, 'UTF-8') . '" data-external-attendance-title="' . htmlspecialchars($studentName, ENT_QUOTES, 'UTF-8') . '" title="More actions"><i class="feather feather-more-horizontal"></i></button>'
         . '<template id="' . htmlspecialchars($templateId, ENT_QUOTES, 'UTF-8') . '">' . external_attendance_action_menu_items($row) . '</template>'
+        . '<template id="' . htmlspecialchars($detailsTemplateId, ENT_QUOTES, 'UTF-8') . '">' . external_attendance_details_panel_html($row) . '</template>'
         . '</div>';
 }
 
@@ -1189,17 +1287,12 @@ include 'includes/header.php';
                                     <th>Afternoon Out</th>
                                     <th>Total</th>
                                     <th>Status</th>
-                                    <th>Source</th>
-                                    <th>Photo</th>
-                                    <th>Reports</th>
-                                    <th>Notes</th>
-                                    <th>Review</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if ($rows === []): ?>
-                                    <tr><td colspan="14" class="text-center text-muted py-4">No external attendance records found.</td></tr>
+                                    <tr><td colspan="9" class="text-center text-muted py-4">No external attendance records found.</td></tr>
                                 <?php else: ?>
                                     <?php foreach ($rows as $row): ?>
                                         <?php
@@ -1234,11 +1327,6 @@ include 'includes/header.php';
                                                     <?php echo htmlspecialchars(ucfirst($rowStatus), ENT_QUOTES, 'UTF-8'); ?>
                                                 </span>
                                             </td>
-                                            <td data-label="Source"><?php echo htmlspecialchars((string)($row['source'] ?? 'manual'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            <td data-label="Photo"><?php echo external_attendance_photo_cell($row); ?></td>
-                                            <td data-label="Reports"><?php echo external_attendance_reports_cell($row); ?></td>
-                                            <td class="small external-review-notes" data-label="Notes"><?php echo external_attendance_notes_cell($row); ?></td>
-                                            <td data-label="Review"><?php echo external_attendance_review_form($row); ?></td>
                                             <td data-label="Actions"><?php echo external_attendance_row_actions_modal_trigger($row); ?></td>
                                         </tr>
                                     <?php endforeach; ?>

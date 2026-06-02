@@ -1090,7 +1090,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == '1') {
             echo '<td data-label="Afternoon In">' . attendanceDisplayTimeHtml($attendance, 'afternoon_time_in', 'bg-soft-warning text-warning') . '</td>';
             echo '<td data-label="Afternoon Out">' . attendanceDisplayTimeHtml($attendance, 'afternoon_time_out', 'bg-soft-warning text-warning') . '</td>';
             echo '<td data-label="Total Hours">' . attendance_hours_cell_html($attendance) . '</td>';
-            echo '<td data-label="Source">' . getSourceBadge($attendance['source'] ?? 'manual', $attendance) . '</td>';
             echo '<td data-label="Actions">' . attendanceActionMenuItems($attendance) . '</td>';
             echo '</tr>';
         }
@@ -2374,7 +2373,7 @@ function attendanceActionMenuItems(array $attendance): string
             '<li><span class="dropdown-item-text text-muted"><i class="feather feather-alert-circle me-3"></i><span>No attendance record exists for this required day.</span></span></li>',
             '<li><a class="dropdown-item" href="students-view.php?id=' . $studentId . '"><i class="feather feather-user me-3"></i><span>Open Student</span></a></li>',
         ];
-        return attendance_row_actions_modal_trigger($attendanceId, $studentId, $studentName, $items);
+        return attendance_row_actions_modal_trigger($attendanceId, $studentId, $studentName, $items, attendance_details_panel_html($attendance));
     }
 
     if (strtolower(trim((string)($attendance['record_origin'] ?? 'internal'))) === 'external') {
@@ -2384,7 +2383,7 @@ function attendanceActionMenuItems(array $attendance): string
         if ($proofPath !== '') {
             $items[] = '<li><a class="dropdown-item" href="' . htmlspecialchars($proofPath, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener"><i class="feather feather-image me-3"></i><span>Open Proof</span></a></li>';
         }
-        return attendance_row_actions_modal_trigger($attendanceId, $studentId, $studentName, $items);
+        return attendance_row_actions_modal_trigger($attendanceId, $studentId, $studentName, $items, attendance_details_panel_html($attendance));
     }
 
     $items = [];
@@ -2404,8 +2403,9 @@ function attendanceActionMenuItems(array $attendance): string
     $editAttrs = attendance_edit_action_attrs($attendance);
     $items[] = '<li><button type="button" class="dropdown-item" data-attendance-edit-open ' . $editAttrs . '><i class="feather feather-edit-3 me-3"></i><span>Edit</span></button></li>';
     $items[] = '<li><a class="dropdown-item printBTN" href="javascript:void(0)" onclick="printAttendance(' . $attendanceId . ')"><i class="feather feather-printer me-3"></i><span>Print</span></a></li>';
+    $items[] = '<li><button type="button" class="dropdown-item text-danger" onclick="deleteAttendanceIndividual(' . $attendanceId . ')"><i class="feather feather-trash-2 me-3"></i><span>Remove Attendance</span></button></li>';
 
-    return attendance_row_actions_modal_trigger($attendanceId, $studentId, $studentName, $items);
+    return attendance_row_actions_modal_trigger($attendanceId, $studentId, $studentName, $items, attendance_details_panel_html($attendance));
 }
 
 function attendance_edit_action_attrs(array $attendance): string
@@ -2439,36 +2439,40 @@ function attendance_time_input_value($value): string
     return $ts === false ? '' : date('H:i', $ts);
 }
 
-function attendance_row_actions_modal_trigger(int $attendanceId, int $studentId, string $studentName, array $items): string
+function attendance_row_actions_modal_trigger(int $attendanceId, int $studentId, string $studentName, array $items, string $detailsHtml = ''): string
 {
     $templateId = 'attendanceActionsTemplate' . abs($attendanceId);
+    $detailsTemplateId = 'attendanceDetailsTemplate' . abs($attendanceId);
     $safeTitle = htmlspecialchars($studentName, ENT_QUOTES, 'UTF-8');
     $safeTemplateId = htmlspecialchars($templateId, ENT_QUOTES, 'UTF-8');
+    $safeDetailsTemplateId = htmlspecialchars($detailsTemplateId, ENT_QUOTES, 'UTF-8');
 
     return '<div class="hstack gap-2 justify-content-end attendance-row-actions">'
-        . '<a href="javascript:void(0)" class="avatar-text avatar-md" data-bs-toggle="tooltip" title="View Details" onclick="viewDetails(' . $studentId . ')"><i class="feather feather-eye"></i></a>'
+        . '<button type="button" class="avatar-text avatar-md attendance-row-details-toggle" data-attendance-details-toggle data-template-id="' . $safeDetailsTemplateId . '" data-bs-toggle="tooltip" title="View Details"><i class="feather feather-eye"></i></button>'
         . '<button type="button" class="avatar-text avatar-md attendance-row-actions-open" data-attendance-actions-open data-template-id="' . $safeTemplateId . '" data-attendance-title="' . $safeTitle . '" title="More actions"><i class="feather feather-more-horizontal"></i></button>'
         . '<template id="' . $safeTemplateId . '"><ul class="attendance-row-actions-menu list-unstyled mb-0">' . implode('', $items) . '</ul></template>'
+        . '<template id="' . $safeDetailsTemplateId . '">' . $detailsHtml . '</template>'
         . '</div>';
 }
 
-function attendance_details_dropdown_html(array $attendance): string
+function attendance_details_panel_html(array $attendance): string
 {
     $sections = [
+        'Source' => getSourceBadge($attendance['source'] ?? 'manual', $attendance),
         'Photo' => attendance_photo_cell_html($attendance),
         'Reports' => attendance_reports_cell_html($attendance),
         'Notes' => attendance_notes_cell_html($attendance),
         'Review' => attendance_review_cell_html($attendance),
     ];
 
-    $html = '<li><div class="attendance-row-details">';
+    $html = '<div class="attendance-row-details">';
     foreach ($sections as $label => $content) {
         $html .= '<div class="attendance-row-detail-block">'
             . '<div class="attendance-row-detail-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</div>'
             . '<div class="attendance-row-detail-content">' . $content . '</div>'
             . '</div>';
     }
-    return $html . '</div></li>';
+    return $html . '</div>';
 }
 
 // Determine attendance status based on the section schedule.
@@ -2962,11 +2966,6 @@ echo $stats['total_count'] ?? 0; ?></span>
                                                 <th>Afternoon In</th>
                                                 <th>Afternoon Out</th>
                                                 <th>Total Hours</th>
-                                                <th>Source</th>
-                                                <th>Photo</th>
-                                                <th>Reports</th>
-                                                <th>Notes</th>
-                                                <th>Review</th>
                                                 <th>Actions</th>
                                             </tr>
                                         </thead>
@@ -3019,12 +3018,6 @@ echo date('Y-m-d', strtotime($attendance['attendance_date'])); ?></span></td>
                                                             <?php
 echo attendance_hours_cell_html($attendance); ?>
                                                         </td>
-                                                        <td data-label="Source"><?php
-echo getSourceBadge($attendance['source'] ?? 'manual', $attendance); ?></td>
-                                                        <td data-label="Photo"><?php echo attendance_photo_cell_html($attendance); ?></td>
-                                                        <td data-label="Reports"><?php echo attendance_reports_cell_html($attendance); ?></td>
-                                                        <td data-label="Notes"><?php echo attendance_notes_cell_html($attendance); ?></td>
-                                                        <td data-label="Review"><?php echo attendance_review_cell_html($attendance); ?></td>
                                                         <td data-label="Actions">
                                                             <?php echo attendanceActionMenuItems($attendance); ?>
                                                         </td>

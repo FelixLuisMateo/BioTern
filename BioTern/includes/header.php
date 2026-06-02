@@ -693,10 +693,6 @@ if ($header_db instanceof mysqli) {
                                                 <i class="feather-check-circle"></i>
                                                 <span>Mark All Read</span>
                                             </button>
-                                            <button type="button" class="header-notification-remove-all-link<?php echo $header_notifications_read > 0 ? '' : ' is-disabled'; ?>" data-notification-remove-all aria-label="Remove all read notifications" title="Remove all read notifications"<?php echo $header_notifications_read > 0 ? '' : ' disabled aria-disabled="true"'; ?>>
-                                                <i class="feather-trash-2"></i>
-                                                <span>Remove All</span>
-                                            </button>
                                             <a href="<?php echo htmlspecialchars($header_notifications_url, ENT_QUOTES, 'UTF-8'); ?>" class="header-notification-settings-link" title="Notification settings" aria-label="Notification settings">
                                                 <i class="feather-settings"></i>
                                             </a>
@@ -1089,7 +1085,6 @@ if ($header_db instanceof mysqli) {
                     var list = menu.querySelector('.header-notifications-list');
                     var emptyState = menu.querySelector('.header-notifications-empty');
                     var markAllReadButton = menu.querySelector('[data-notification-mark-all-read]');
-                    var removeAllButton = menu.querySelector('[data-notification-remove-all]');
                     var pending = false;
 
                     function parseCount(value) {
@@ -1099,10 +1094,6 @@ if ($header_db instanceof mysqli) {
 
                     function setPending(state) {
                         pending = !!state;
-                        if (removeAllButton) {
-                            var isDisabled = removeAllButton.classList.contains('is-disabled');
-                            removeAllButton.disabled = pending || isDisabled;
-                        }
                         if (markAllReadButton) {
                             var markDisabled = markAllReadButton.classList.contains('is-disabled');
                             markAllReadButton.disabled = pending || markDisabled;
@@ -1132,17 +1123,6 @@ if ($header_db instanceof mysqli) {
                         }
                     }
 
-                    function updateRemoveAllState() {
-                        if (!removeAllButton) {
-                            return;
-                        }
-
-                        var hasReadRows = !!menu.querySelector('.header-notification-row.read');
-                        removeAllButton.classList.toggle('is-disabled', !hasReadRows);
-                        removeAllButton.disabled = pending || !hasReadRows;
-                        removeAllButton.setAttribute('aria-disabled', hasReadRows ? 'false' : 'true');
-                    }
-
                     function updateMarkAllReadState() {
                         if (!markAllReadButton) {
                             return;
@@ -1163,7 +1143,6 @@ if ($header_db instanceof mysqli) {
                             emptyState.classList.toggle('d-none', hasRows);
                         }
                         updateMarkAllReadState();
-                        updateRemoveAllState();
                     }
 
                     function postAction(payload) {
@@ -1217,7 +1196,6 @@ if ($header_db instanceof mysqli) {
                                 })
                                 .finally(function () {
                                     setPending(false);
-                                    updateRemoveAllState();
                                 });
                             return;
                         }
@@ -1252,38 +1230,8 @@ if ($header_db instanceof mysqli) {
                                 .finally(function () {
                                     setPending(false);
                                     updateMarkAllReadState();
-                                    updateRemoveAllState();
                                 });
                             return;
-                        }
-
-                        var removeAll = event.target.closest('[data-notification-remove-all]');
-                        if (removeAll) {
-                            event.preventDefault();
-                            if (pending || removeAll.classList.contains('is-disabled')) {
-                                return;
-                            }
-
-                            setPending(true);
-                            postAction({ action: 'remove_all_read' })
-                                .then(function (result) {
-                                    if (!result || result.ok !== true) {
-                                        return;
-                                    }
-
-                                    menu.querySelectorAll('.header-notification-row.read').forEach(function (row) {
-                                        if (row && row.parentNode) {
-                                            row.parentNode.removeChild(row);
-                                        }
-                                    });
-
-                                    updateUnreadBadges(result.unread_count);
-                                    updateEmptyState();
-                                })
-                                .finally(function () {
-                                    setPending(false);
-                                    updateRemoveAllState();
-                                });
                         }
                     });
 
