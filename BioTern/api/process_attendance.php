@@ -55,7 +55,8 @@ try {
             
         case 'delete':
             require_roles_json(['admin', 'coordinator']);
-            $response = deleteAttendance($conn, $ids);
+            $requeueRawLogs = !empty($_POST['requeue_raw_logs']);
+            $response = deleteAttendance($conn, $ids, $requeueRawLogs);
             break;
             
         case 'edit_status':
@@ -231,7 +232,7 @@ function rejectAttendance($conn, $ids, $remarks, $current_user_id) {
 /**
  * Delete attendance records
  */
-function deleteAttendance($conn, $ids) {
+function deleteAttendance($conn, $ids, bool $requeueRawLogs) {
     $ids = attendanceRequestValidIds($ids);
     if (empty($ids)) {
         return [
@@ -263,7 +264,7 @@ function deleteAttendance($conn, $ids) {
     
     $affected_rows = $conn->affected_rows;
 
-    if ($affected_rows > 0 && $biometricRows !== []) {
+    if ($requeueRawLogs && $affected_rows > 0 && $biometricRows !== []) {
         requeueRawLogsForDeletedBiometricAttendance($conn, $biometricRows);
     }
     if ($affected_rows > 0) {

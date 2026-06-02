@@ -123,6 +123,10 @@
             ].join('');
         }
 
+        function attendanceApiUrl() {
+            return 'api/process_attendance.php';
+        }
+
         function setManualSyncButtonBusy(isBusy) {
             var button = document.getElementById('manualSyncMachineButton');
             if (!button) {
@@ -431,32 +435,15 @@
                 event.preventDefault();
                 var trigger = this;
                 var template = document.getElementById(trigger.getAttribute('data-template-id') || '');
-                if (!template || !$.fn.DataTable.isDataTable('#attendanceList')) {
+                var modalEl = document.getElementById('attendanceRowDetailsModal');
+                var bodyEl = document.getElementById('attendanceRowDetailsBody');
+                if (!template || !modalEl || !bodyEl) {
                     return;
                 }
 
-                var table = $('#attendanceList').DataTable();
-                var tr = $(trigger).closest('tr');
-                var row = table.row(tr);
-                if (!row.length) {
-                    return;
-                }
-
-                if (row.child.isShown()) {
-                    row.child.hide();
-                    tr.removeClass('shown');
-                    trigger.classList.remove('is-active');
-                    return;
-                }
-
-                table.rows('.shown').every(function() {
-                    this.child.hide();
-                    $(this.node()).removeClass('shown').find('[data-attendance-details-toggle]').removeClass('is-active');
-                });
-
-                row.child('<div class="attendance-row-details-shell">' + template.innerHTML + '</div>').show();
-                tr.addClass('shown');
-                trigger.classList.add('is-active');
+                bodyEl.innerHTML = template.innerHTML;
+                var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
             });
 
             $(document).on('click', '[data-attendance-actions-open]', function() {
@@ -554,7 +541,7 @@
 
             $.ajax({
                 type: 'POST',
-                url: 'process_attendance.php',
+                url: attendanceApiUrl(),
                 data: payload,
                 dataType: 'text',
                 success: function(response) {
@@ -685,7 +672,7 @@
 
             $.ajax({
                 type: 'POST',
-                url: 'process_attendance.php',
+                url: attendanceApiUrl(),
                 data: payload,
                 dataType: 'text',
                 success: function(response) {
@@ -974,7 +961,7 @@
             if (confirm('Change status to ' + newStatus + '?')) {
                 $.ajax({
                     type: 'POST',
-                    url: 'process_attendance.php',
+                    url: attendanceApiUrl(),
                     data: {
                         action: 'edit_status',
                         id: [id],
