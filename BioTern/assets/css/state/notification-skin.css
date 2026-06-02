@@ -576,7 +576,9 @@ html.app-skin-dark .app-theme-toast-static-icon {
   color: var(--biotern-notify-text);
 }
 
-.header-notification-browser-link {
+.header-notification-browser-link,
+.header-notification-mark-read-link,
+.header-notification-remove-all-link {
   display: inline-flex;
   align-items: center;
   gap: 0.38rem;
@@ -592,7 +594,9 @@ html.app-skin-dark .app-theme-toast-static-icon {
   transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
 }
 
-.header-notification-browser-link:hover {
+.header-notification-browser-link:hover,
+.header-notification-mark-read-link:hover,
+.header-notification-remove-all-link:hover {
   background: rgba(59, 130, 246, 0.08);
   border-color: rgba(59, 130, 246, 0.24);
   color: var(--biotern-primary, #2563eb);
@@ -611,7 +615,11 @@ html.app-skin-dark .app-theme-toast-static-icon {
 }
 
 .header-notification-browser-link.is-unsupported,
-.header-notification-browser-link:disabled {
+.header-notification-browser-link:disabled,
+.header-notification-mark-read-link.is-disabled,
+.header-notification-mark-read-link:disabled,
+.header-notification-remove-all-link.is-disabled,
+.header-notification-remove-all-link:disabled {
   opacity: 0.6;
   cursor: default;
 }

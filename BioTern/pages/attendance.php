@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/lib/attendance_bonus_rules.php';
 require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/tools/biometric_machine_runtime.php';
 require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
@@ -314,6 +315,50 @@ function attendance_local_today(): string
     return $now->format('Y-m-d');
 }
 
+function attendance_auto_sync_machine_on_page_load(mysqli $conn): array
+{
+    $stats = [
+        'attempted' => false,
+        'ok' => true,
+        'message' => '',
+        'import' => [],
+    ];
+
+    $isAjax = (string)($_GET['ajax'] ?? '') === '1';
+    $isPrint = (string)($_GET['print'] ?? '') !== '';
+    if ($isAjax || $isPrint || strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'GET') {
+        return $stats;
+    }
+
+    $stats['attempted'] = true;
+
+    try {
+        $machineConfig = attendance_load_machine_config();
+        $syncMode = strtolower(trim((string)($machineConfig['syncMode'] ?? 'direct_ingest')));
+        if (!in_array($syncMode, ['direct_ingest', 'connector_fallback'], true)) {
+            $syncMode = 'direct_ingest';
+        }
+
+        if ($syncMode === 'connector_fallback' && function_exists('biometric_machine_run_command')) {
+            $connector = biometric_machine_run_command('sync');
+            if (empty($connector['success'])) {
+                $stats['ok'] = false;
+                $stats['message'] = trim(implode("\n", $connector['output'] ?? []));
+                return $stats;
+            }
+        }
+
+        if (function_exists('run_biometric_auto_import_stats')) {
+            $stats['import'] = run_biometric_auto_import_stats();
+        }
+    } catch (Throwable $e) {
+        $stats['ok'] = false;
+        $stats['message'] = $e->getMessage();
+    }
+
+    return $stats;
+}
+
 function attendance_school_hours_config(?array $machineConfig = null): array
 {
     $machineConfig = is_array($machineConfig) ? $machineConfig : attendance_load_machine_config();
@@ -437,6 +482,7 @@ function attendance_notify_missing_section_schedules(mysqli $conn, array $attend
 }
 
 $machineConfig = attendance_load_machine_config();
+$attendanceAutoSyncResult = attendance_auto_sync_machine_on_page_load($conn);
 
 // Fetch Attendance Statistics
 $stats_query = "
@@ -475,13 +521,19 @@ if ($stats_result instanceof mysqli_result) {
     $stats = $stats_result->fetch_assoc() ?: [];
     $stats_result->close();
 }
-// Prepare filter inputs. Do not force a default date here; approved manual DTR
-// entries often land on past dates and should remain visible after review.
+// Prepare filter inputs. Opening the page without a date should show today's
+// attendance, while explicit date/range links still keep their requested scope.
+$has_explicit_date_filter = array_key_exists('date', $_GET)
+    || array_key_exists('start_date', $_GET)
+    || array_key_exists('end_date', $_GET);
 $filter_date = section_schedule_normalize_date((string)($_GET['date'] ?? '')) ?? '';
 $start_date = section_schedule_normalize_date((string)($_GET['start_date'] ?? '')) ?? '';
 $end_date = section_schedule_normalize_date((string)($_GET['end_date'] ?? '')) ?? '';
 if ($start_date !== '' && $end_date !== '' && $start_date > $end_date) {
     [$start_date, $end_date] = [$end_date, $start_date];
+}
+if (!$has_explicit_date_filter && $filter_date === '' && $start_date === '' && $end_date === '') {
+    $filter_date = attendance_local_today();
 }
 $filter_course = 0;
 $filter_department = 0;

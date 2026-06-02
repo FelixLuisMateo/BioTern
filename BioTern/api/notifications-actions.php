@@ -112,6 +112,8 @@ if ($action === 'remove_one_read') {
 
     $removed = biotern_notifications_clear($conn, $userId, $notificationId);
     $removedCount = $removed ? 1 : 0;
+} elseif ($action === 'mark_all_read') {
+    biotern_notifications_mark_all_read($conn, $userId);
 } elseif ($action === 'remove_all_read') {
     $removedCount = biotern_notifications_clear_read($conn, $userId);
 } else {

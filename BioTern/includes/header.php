@@ -689,6 +689,10 @@ if ($header_db instanceof mysqli) {
                                                 <i class="feather-monitor"></i>
                                                 <span>Enable Alerts</span>
                                             </button>
+                                            <button type="button" class="header-notification-mark-read-link<?php echo $header_notifications_unread > 0 ? '' : ' is-disabled'; ?>" data-notification-mark-all-read aria-label="Mark all notifications as read" title="Mark all notifications as read"<?php echo $header_notifications_unread > 0 ? '' : ' disabled aria-disabled="true"'; ?>>
+                                                <i class="feather-check-circle"></i>
+                                                <span>Mark All Read</span>
+                                            </button>
                                             <button type="button" class="header-notification-remove-all-link<?php echo $header_notifications_read > 0 ? '' : ' is-disabled'; ?>" data-notification-remove-all aria-label="Remove all read notifications" title="Remove all read notifications"<?php echo $header_notifications_read > 0 ? '' : ' disabled aria-disabled="true"'; ?>>
                                                 <i class="feather-trash-2"></i>
                                                 <span>Remove All</span>
@@ -1084,6 +1088,7 @@ if ($header_db instanceof mysqli) {
                     var headBadge = menu.querySelector('.notifications-head .badge');
                     var list = menu.querySelector('.header-notifications-list');
                     var emptyState = menu.querySelector('.header-notifications-empty');
+                    var markAllReadButton = menu.querySelector('[data-notification-mark-all-read]');
                     var removeAllButton = menu.querySelector('[data-notification-remove-all]');
                     var pending = false;
 
@@ -1097,6 +1102,10 @@ if ($header_db instanceof mysqli) {
                         if (removeAllButton) {
                             var isDisabled = removeAllButton.classList.contains('is-disabled');
                             removeAllButton.disabled = pending || isDisabled;
+                        }
+                        if (markAllReadButton) {
+                            var markDisabled = markAllReadButton.classList.contains('is-disabled');
+                            markAllReadButton.disabled = pending || markDisabled;
                         }
                     }
 
@@ -1134,6 +1143,17 @@ if ($header_db instanceof mysqli) {
                         removeAllButton.setAttribute('aria-disabled', hasReadRows ? 'false' : 'true');
                     }
 
+                    function updateMarkAllReadState() {
+                        if (!markAllReadButton) {
+                            return;
+                        }
+
+                        var hasUnreadRows = !!menu.querySelector('.header-notification-row.unread');
+                        markAllReadButton.classList.toggle('is-disabled', !hasUnreadRows);
+                        markAllReadButton.disabled = pending || !hasUnreadRows;
+                        markAllReadButton.setAttribute('aria-disabled', hasUnreadRows ? 'false' : 'true');
+                    }
+
                     function updateEmptyState() {
                         var hasRows = !!menu.querySelector('.header-notification-row');
                         if (list) {
@@ -1142,6 +1162,7 @@ if ($header_db instanceof mysqli) {
                         if (emptyState) {
                             emptyState.classList.toggle('d-none', hasRows);
                         }
+                        updateMarkAllReadState();
                         updateRemoveAllState();
                     }
 
@@ -1196,6 +1217,41 @@ if ($header_db instanceof mysqli) {
                                 })
                                 .finally(function () {
                                     setPending(false);
+                                    updateRemoveAllState();
+                                });
+                            return;
+                        }
+
+                        var markAllRead = event.target.closest('[data-notification-mark-all-read]');
+                        if (markAllRead) {
+                            event.preventDefault();
+                            if (pending || markAllRead.classList.contains('is-disabled')) {
+                                return;
+                            }
+
+                            setPending(true);
+                            postAction({ action: 'mark_all_read' })
+                                .then(function (result) {
+                                    if (!result || result.ok !== true) {
+                                        return;
+                                    }
+
+                                    menu.querySelectorAll('.header-notification-row.unread').forEach(function (row) {
+                                        row.classList.remove('unread');
+                                        row.classList.add('read');
+                                        row.setAttribute('data-notification-read', '1');
+                                        var item = row.querySelector('.header-notification-item.unread');
+                                        if (item) {
+                                            item.classList.remove('unread');
+                                        }
+                                    });
+
+                                    updateUnreadBadges(result.unread_count);
+                                    updateEmptyState();
+                                })
+                                .finally(function () {
+                                    setPending(false);
+                                    updateMarkAllReadState();
                                     updateRemoveAllState();
                                 });
                             return;
