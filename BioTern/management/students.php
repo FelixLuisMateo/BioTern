@@ -7,6 +7,7 @@ require_once dirname(__DIR__) . '/includes/avatar.php';
 /** @var mysqli $conn */
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/lib/access_scope.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 biotern_offices_ensure_schema($conn);
 if (!isset($conn) || !($conn instanceof mysqli) || $conn->connect_errno) {
@@ -45,6 +46,9 @@ if ($current_role === 'coordinator') {
         ? '1 = 0'
         : 's.course_id IN (' . implode(',', array_map('intval', $coordinator_allowed_course_ids)) . ')';
 }
+$supervisor_student_scope_sql = ($current_role === 'supervisor')
+    ? biotern_scope_student_sql($db, 's', 'i')
+    : '';
 
 function biotern_students_has_column(mysqli $conn, string $table, string $column): bool
 {
@@ -139,13 +143,14 @@ if ($has_fingerprint_user_map) {
 // Fetch Students Statistics
 $stats_query = "
     SELECT 
-        COUNT(*) as total_students,
-        SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as active_students,
-        SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as inactive_students,
-        SUM(CASE WHEN {$biometric_ready_condition} THEN 1 ELSE 0 END) as biometric_registered
+        COUNT(DISTINCT s.id) as total_students,
+        COUNT(DISTINCT CASE WHEN s.status = 1 THEN s.id END) as active_students,
+        COUNT(DISTINCT CASE WHEN s.status = 0 THEN s.id END) as inactive_students,
+        COUNT(DISTINCT CASE WHEN {$biometric_ready_condition} THEN s.id END) as biometric_registered
     FROM students s
 ";
 $stats_where = [];
+$stats_query .= " LEFT JOIN internships i ON i.student_id = s.id AND i.deleted_at IS NULL ";
 if ($has_application_status) {
     $stats_query .= "
     LEFT JOIN users u ON u.id = s.user_id
@@ -154,6 +159,9 @@ if ($has_application_status) {
 }
 if ($coordinator_course_scope_sql !== '') {
     $stats_where[] = $coordinator_course_scope_sql;
+}
+if ($supervisor_student_scope_sql !== '') {
+    $stats_where[] = $supervisor_student_scope_sql;
 }
 if (!empty($stats_where)) {
     $stats_query .= ' WHERE ' . implode(' AND ', $stats_where);
@@ -702,6 +710,9 @@ if ($filter_course > 0) {
 }
 if ($coordinator_course_scope_sql !== '') {
     $where[] = $coordinator_course_scope_sql;
+}
+if ($supervisor_student_scope_sql !== '') {
+    $where[] = $supervisor_student_scope_sql;
 }
 if ($filter_department > 0) {
     $where[] = "i.department_id = " . intval($filter_department);

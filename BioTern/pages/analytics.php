@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
+require_once dirname(__DIR__) . '/lib/access_scope.php';
 require_once dirname(__DIR__) . '/includes/dashboard_data.php';
 
 $currentRole = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
@@ -87,6 +88,10 @@ function analytics_format_hours(float $hours): string
     return number_format(max(0, $hours), 2) . 'h';
 }
 
+$analyticsIsSupervisor = biotern_scope_current_role() === 'supervisor';
+$analyticsScopeSi = (isset($conn) && $conn instanceof mysqli) ? biotern_scope_student_sql($conn, 's', 'i') : '1 = 1';
+$analyticsScopeS = (isset($conn) && $conn instanceof mysqli) ? biotern_scope_student_sql($conn, 's', null) : '1 = 1';
+
 $stats = [
     'students_total' => (int)($dashboard_data['total_students'] ?? 0),
     'students_active' => (int)($dashboard_data['active_students'] ?? 0),
@@ -167,11 +172,20 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'in
     }
 
     if ($typeColumn !== '') {
-        $whereDeleted = analytics_column_exists($conn, 'internships', 'deleted_at') ? ' WHERE deleted_at IS NULL' : '';
+        $whereParts = [];
+        if (analytics_column_exists($conn, 'internships', 'deleted_at')) {
+            $whereParts[] = 'i.deleted_at IS NULL';
+        }
+        if ($analyticsIsSupervisor) {
+            $whereParts[] = $analyticsScopeSi;
+        }
+        $whereDeleted = !empty($whereParts) ? ' WHERE ' . implode(' AND ', $whereParts) : '';
         $typeRows = analytics_rows(
             $conn,
             "SELECT LOWER(TRIM(COALESCE(`{$typeColumn}`, 'unknown'))) AS internship_type, COUNT(*) AS total
-             FROM internships{$whereDeleted}
+             FROM internships i
+             LEFT JOIN students s ON s.id = i.student_id
+             {$whereDeleted}
              GROUP BY LOWER(TRIM(COALESCE(`{$typeColumn}`, 'unknown')))"
         );
 
@@ -190,12 +204,21 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'in
 }
 
 if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'internships')) {
-    $whereDeleted = analytics_column_exists($conn, 'internships', 'deleted_at') ? ' WHERE deleted_at IS NULL' : '';
+    $whereParts = [];
+    if (analytics_column_exists($conn, 'internships', 'deleted_at')) {
+        $whereParts[] = 'i.deleted_at IS NULL';
+    }
+    if ($analyticsIsSupervisor) {
+        $whereParts[] = $analyticsScopeSi;
+    }
+    $whereDeleted = !empty($whereParts) ? ' WHERE ' . implode(' AND ', $whereParts) : '';
 
     $stageRows = analytics_rows(
         $conn,
         "SELECT LOWER(TRIM(COALESCE(status, 'pending'))) AS stage_key, COUNT(*) AS total
-         FROM internships{$whereDeleted}
+         FROM internships i
+         LEFT JOIN students s ON s.id = i.student_id
+         {$whereDeleted}
          GROUP BY LOWER(TRIM(COALESCE(status, 'pending')))"
     );
     foreach ($stageRows as $row) {
@@ -212,7 +235,9 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'in
                 COALESCE(SUM(COALESCE(required_hours, 0)), 0) AS required_hours,
                 COALESCE(SUM(COALESCE(rendered_hours, 0)), 0) AS rendered_hours,
                 COALESCE(AVG(COALESCE(completion_percentage, 0)), 0) AS avg_completion
-             FROM internships{$whereDeleted}"
+             FROM internships i
+             LEFT JOIN students s ON s.id = i.student_id
+             {$whereDeleted}"
         );
         if (!empty($hoursSummary)) {
             $hoursStats['required'] = (float)($hoursSummary[0]['required_hours'] ?? 0);
@@ -227,6 +252,10 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'in
 }
 
 if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'attendances')) {
+    $attendanceScopeJoin = $analyticsIsSupervisor
+        ? "LEFT JOIN students s ON s.id = attendances.student_id LEFT JOIN internships i ON i.student_id = s.id"
+        : "";
+    $attendanceScopeWhere = $analyticsIsSupervisor ? " WHERE {$analyticsScopeSi}" : "";
     $attendanceSummary = analytics_rows(
         $conn,
         "SELECT
@@ -235,7 +264,9 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'at
             COALESCE(SUM(CASE WHEN source = 'biometric' THEN 1 ELSE 0 END), 0) AS biometric_total,
             COALESCE(SUM(CASE WHEN source = 'manual' THEN 1 ELSE 0 END), 0) AS manual_total,
             COALESCE(SUM(CASE WHEN source = 'uploaded' THEN 1 ELSE 0 END), 0) AS uploaded_total
-         FROM attendances"
+         FROM attendances
+         {$attendanceScopeJoin}
+         {$attendanceScopeWhere}"
     );
     if (!empty($attendanceSummary)) {
         $hoursStats['approved_attendance_hours'] = (float)($attendanceSummary[0]['approved_hours'] ?? 0);
@@ -248,6 +279,11 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'at
 
 if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'users')) {
     $userWhere = " WHERE LOWER(TRIM(role)) = 'student'";
+    $userJoin = '';
+    if ($analyticsIsSupervisor) {
+        $userJoin = " INNER JOIN students s ON s.user_id = users.id LEFT JOIN internships i ON i.student_id = s.id";
+        $userWhere .= " AND {$analyticsScopeSi}";
+    }
     $userRows = analytics_rows(
         $conn,
         "SELECT
@@ -257,7 +293,7 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'us
             SUM(CASE WHEN COALESCE(application_status, 'approved') = 'pending' THEN 1 ELSE 0 END) AS pending_total,
             SUM(CASE WHEN COALESCE(application_status, 'approved') = 'approved' THEN 1 ELSE 0 END) AS approved_total,
             SUM(CASE WHEN COALESCE(application_status, 'approved') = 'rejected' THEN 1 ELSE 0 END) AS rejected_total
-         FROM users{$userWhere}"
+         FROM users{$userJoin}{$userWhere}"
     );
     if (!empty($userRows)) {
         $studentUserStats['total'] = (int)($userRows[0]['total'] ?? 0);
@@ -314,11 +350,19 @@ $stats['login_success_rate'] = analytics_pct($loginStats['success'], max(1, $log
 
 $recentStudents = [];
 if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'students')) {
-    $whereDeleted = analytics_column_exists($conn, 'students', 'deleted_at') ? ' WHERE s.deleted_at IS NULL' : '';
+    $whereParts = [];
+    if (analytics_column_exists($conn, 'students', 'deleted_at')) {
+        $whereParts[] = 's.deleted_at IS NULL';
+    }
+    if ($analyticsIsSupervisor) {
+        $whereParts[] = $analyticsScopeSi;
+    }
+    $whereDeleted = !empty($whereParts) ? ' WHERE ' . implode(' AND ', $whereParts) : '';
     $recentStudents = analytics_rows(
         $conn,
         "SELECT s.id, s.student_id, s.first_name, s.last_name, s.created_at
          FROM students s
+         " . ($analyticsIsSupervisor ? "LEFT JOIN internships i ON i.student_id = s.id" : "") . "
          {$whereDeleted}
          ORDER BY s.created_at DESC, s.id DESC
          LIMIT 8"
@@ -327,7 +371,14 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'st
 
 $recentInternships = [];
 if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'internships')) {
-    $whereDeleted = analytics_column_exists($conn, 'internships', 'deleted_at') ? ' WHERE i.deleted_at IS NULL' : '';
+    $whereParts = [];
+    if (analytics_column_exists($conn, 'internships', 'deleted_at')) {
+        $whereParts[] = 'i.deleted_at IS NULL';
+    }
+    if ($analyticsIsSupervisor) {
+        $whereParts[] = $analyticsScopeSi;
+    }
+    $whereDeleted = !empty($whereParts) ? ' WHERE ' . implode(' AND ', $whereParts) : '';
     $recentInternships = analytics_rows(
         $conn,
         "SELECT i.id, i.student_id, i.status, i.type, i.company_name, i.required_hours, i.completion_percentage, i.updated_at,
@@ -353,11 +404,17 @@ for ($i = 6; $i >= 0; $i--) {
 }
 
 if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'attendances') && analytics_column_exists($conn, 'attendances', 'attendance_date')) {
+    $windowJoin = $analyticsIsSupervisor
+        ? "LEFT JOIN students s ON s.id = a.student_id LEFT JOIN internships i ON i.student_id = s.id"
+        : "";
+    $windowScope = $analyticsIsSupervisor ? " AND {$analyticsScopeSi}" : "";
     $windowRows = analytics_rows(
         $conn,
         "SELECT DATE(attendance_date) AS day_key, COUNT(*) AS total
-         FROM attendances
+         FROM attendances a
+         {$windowJoin}
          WHERE attendance_date >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+         {$windowScope}
          GROUP BY DATE(attendance_date)"
     );
     foreach ($windowRows as $row) {

@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/lib/attendance_bonus_rules.php';
 require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/lib/ops_helpers.php';
+require_once dirname(__DIR__) . '/lib/access_scope.php';
 require_once dirname(__DIR__) . '/tools/biometric_machine_runtime.php';
 require_once dirname(__DIR__) . '/tools/biometric_auto_import.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
@@ -984,10 +985,10 @@ if ($externalAttendanceResult instanceof mysqli_result) {
 }
 
 if (
-    in_array($filter_status, ['all', 'absent'], true)
+    $filter_status === 'absent'
     && $filter_source === 'all'
     && in_array($filter_reports, ['all', 'internal_dtr'], true)
-    && ($filter_status === 'absent' || $filter_date !== '' || ($start_date !== '' && $end_date !== ''))
+    && ($filter_date !== '' || ($start_date !== '' && $end_date !== ''))
 ) {
     $attendances = array_merge(
         $attendances,
@@ -1201,6 +1202,18 @@ function attendanceResolvedTime(array $attendance, string $column): array {
     $raw = trim((string)($attendance[$column] ?? ''));
     if ($raw !== '' && $raw !== '00:00:00') {
         return ['time' => $raw, 'is_schedule' => false];
+    }
+
+    if (strtolower(trim((string)($attendance['source'] ?? ''))) === 'biometric') {
+        foreach (['morning_time_in', 'morning_time_out', 'afternoon_time_in', 'afternoon_time_out'] as $punchColumn) {
+            if ($punchColumn === $column) {
+                continue;
+            }
+            $punch = trim((string)($attendance[$punchColumn] ?? ''));
+            if ($punch !== '' && $punch !== '00:00:00') {
+                return ['time' => null, 'is_schedule' => false];
+            }
+        }
     }
 
     $fallback = attendanceScheduleDisplayFallback($attendance, $column);

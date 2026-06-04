@@ -777,12 +777,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             SELECT 1
             FROM supervisors
             WHERE id = ?
-              AND (? = 0 OR course_id IS NULL OR course_id = 0 OR course_id = ?)
-              AND (? = '' OR department_id IS NULL OR department_id = 0 OR department_id = CAST(? AS UNSIGNED))
             LIMIT 1
         ");
         if ($supervisor_assignment_check) {
-            $supervisor_assignment_check->bind_param("iiiss", $supervisor_id, $course_id, $course_id, $department_id, $department_id);
+            $supervisor_assignment_check->bind_param("i", $supervisor_id);
             $supervisor_assignment_check->execute();
             $supervisor_assignment_valid = $supervisor_assignment_check->get_result()->num_rows > 0;
             $supervisor_assignment_check->close();
@@ -799,7 +797,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (!$section_course_valid) {
         $error_message = "Selected section does not belong to the selected course and department.";
     } elseif (!$supervisor_assignment_valid) {
-        $error_message = "Selected supervisor does not belong to the selected course and department.";
+        $error_message = "Selected supervisor was not found.";
     } elseif ($requested_password_reset && !$can_admin_reset_student_password) {
         $error_message = "Only admin accounts can reset a student's account password.";
     } elseif ($requested_password_reset && empty($student['user_id'])) {
@@ -1625,15 +1623,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     option.disabled = false;
                     return;
                 }
-                var optionCourse = option.getAttribute('data-course-id') || '0';
-                var optionDepartment = option.getAttribute('data-department-id') || '0';
-                var courseMatches = courseId === '0' || optionCourse === '0' || optionCourse === courseId;
-                var departmentMatches = departmentId === '0' || optionDepartment === '0' || optionDepartment === departmentId;
-                option.hidden = !(courseMatches && departmentMatches);
-                option.disabled = option.hidden;
-                if (option.hidden && option.selected) {
-                    supervisorSelect.value = '';
-                }
+                option.hidden = false;
+                option.disabled = false;
             });
             refreshSelect2(supervisorSelect);
         }
