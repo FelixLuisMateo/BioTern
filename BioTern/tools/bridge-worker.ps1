@@ -1536,30 +1536,56 @@ function Publish-Ingest {
     $payload = $eventsToUpload | ConvertTo-Json -Depth 20 -Compress
 
     $lastError = $null
-    $response = $null
+    $successfulResponses = @()
+    $remoteSuccessCount = 0
+    $remoteCandidateCount = 0
     foreach ($candidateUri in $candidates) {
+        $candidateHost = ''
+        try {
+            $candidateHost = ([uri]$candidateUri).Host.ToLowerInvariant()
+        } catch {
+            $candidateHost = ''
+        }
+        $candidateIsLocal = $candidateHost -in @('localhost', '127.0.0.1', '::1')
+        if (-not $candidateIsLocal) {
+            $remoteCandidateCount++
+        }
+
         try {
             $response = Invoke-RestMethod -Method Post -Uri $candidateUri -Headers $headers -ContentType 'application/json' -Body $payload -TimeoutSec 60
             if ($response.success) {
-                break
+                $successfulResponses += $response
+                if (-not $candidateIsLocal) {
+                    $remoteSuccessCount++
+                }
+                Write-BridgeLog "Ingest endpoint success. Uri=$candidateUri Received=$($response.received) Inserted=$($response.inserted)"
+                continue
             }
             throw "Ingest failed: $($response.message)"
         } catch {
             $lastError = $_
-            $response = $null
+            Write-BridgeLog "Ingest endpoint failed. Uri=$candidateUri Error=$($_.Exception.Message)"
         }
     }
 
-    if ($null -eq $response) {
-        if ($lastError) {
+    if ($successfulResponses.Count -eq 0) {
+        if ($null -ne $lastError) {
             throw $lastError
         }
         throw 'Ingest failed on all candidate endpoints.'
     }
 
+    if ($remoteCandidateCount -gt 0 -and $remoteSuccessCount -eq 0) {
+        if ($null -ne $lastError) {
+            throw $lastError
+        }
+        throw 'Ingest reached localhost but no remote cloud endpoint accepted it.'
+    }
+
+    $response = $successfulResponses[0]
     Save-BridgePendingEvents -Events @()
     Move-BridgeHoldingPendingToUploaded
-    Write-BridgeLog "Ingest success. Uploaded=$($eventsToUpload.Count) Received=$($response.received) Inserted=$($response.inserted)"
+    Write-BridgeLog "Ingest success. Uploaded=$($eventsToUpload.Count) Endpoints=$($successfulResponses.Count) RemoteEndpoints=$remoteSuccessCount Received=$($response.received) Inserted=$($response.inserted)"
 }
 
 if (-not (Enter-BridgeWorkerSingleInstance)) {
