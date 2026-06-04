@@ -72,7 +72,7 @@ if ($result instanceof mysqli_result) {
 }
 
 $page_title = 'Evaluation Form';
-$base_href = '../';
+$base_href = (stripos((string)($_SERVER['SCRIPT_NAME'] ?? ''), 'legacy_router.php') !== false) ? '' : '../';
 $page_styles = ['assets/css/layout/page_shell.css'];
 include __DIR__ . '/../includes/header.php';
 ?>

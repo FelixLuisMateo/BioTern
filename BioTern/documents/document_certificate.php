@@ -253,7 +253,7 @@ if ($eligibleStudents === []) {
 }
 
 $page_title = 'Certificate of Completion';
-$base_href = '../';
+$base_href = (stripos((string)($_SERVER['SCRIPT_NAME'] ?? ''), 'legacy_router.php') !== false) ? '' : '../';
 $page_styles = [
     'assets/css/layout/page_shell.css',
 ];
