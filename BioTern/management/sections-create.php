@@ -5,7 +5,7 @@ require_once dirname(__DIR__) . '/lib/section_schedule.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 /** @var mysqli $conn */
 
-require_roles_page(['admin']);
+require_roles_page(['admin', 'coordinator']);
 
 section_schedule_ensure_columns($conn);
 

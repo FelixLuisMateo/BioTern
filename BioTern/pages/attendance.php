@@ -25,6 +25,7 @@ if ($attendance_role === 'student') {
 }
 $attendance_user_id = function_exists('get_current_user_id_or_zero') ? get_current_user_id_or_zero() : (int)($_SESSION['user_id'] ?? 0);
 $attendance_is_supervisor = ($attendance_role === 'supervisor');
+$attendance_is_scoped_role = in_array($attendance_role, ['coordinator', 'supervisor'], true);
 $attendance_supervisor_profile_id = 0;
 
 // Database Connection
@@ -76,6 +77,9 @@ if ($attendance_is_supervisor && $attendance_user_id > 0) {
         $attendance_scope_stmt->close();
     }
 }
+$attendance_student_scope_sql = $attendance_is_scoped_role
+    ? biotern_scope_student_sql($conn, 's', 'i')
+    : '1 = 1';
 
 function attendance_machine_config_path(): string
 {
@@ -496,12 +500,8 @@ $stats_query = "
     WHERE NOT (source = 'manual' AND LOWER(COALESCE(status, 'pending')) <> 'approved')
 ";
 $attendance_stats_where = [];
-if ($attendance_is_supervisor && $attendance_user_id > 0) {
-    $attendance_stats_scope = ["(i.supervisor_id = " . (int)$attendance_user_id . " OR s.supervisor_id = " . (int)$attendance_user_id . ")"];
-    if ($attendance_supervisor_profile_id > 0 && $attendance_supervisor_profile_id !== $attendance_user_id) {
-        $attendance_stats_scope[] = "(i.supervisor_id = " . (int)$attendance_supervisor_profile_id . " OR s.supervisor_id = " . (int)$attendance_supervisor_profile_id . ")";
-    }
-    $attendance_stats_where[] = '(' . implode(' OR ', $attendance_stats_scope) . ')';
+if ($attendance_is_scoped_role) {
+    $attendance_stats_where[] = $attendance_student_scope_sql;
 }
 $attendance_stats_where[] = "NOT (a.source = 'manual' AND LOWER(COALESCE(a.status, 'pending')) <> 'approved')";
 if (!empty($attendance_stats_where)) {
@@ -678,12 +678,8 @@ if ($coor_res && $coor_res->num_rows) {
 $where = [];
 $hasManualDtrAttachments = function_exists('table_exists') && table_exists($conn, 'manual_dtr_attachments');
 $where[] = "NOT (a.source = 'manual' AND LOWER(COALESCE(a.status, 'pending')) <> 'approved')";
-if ($attendance_is_supervisor && $attendance_user_id > 0) {
-    $attendanceScopeParts = ["(i.supervisor_id = " . (int)$attendance_user_id . " OR s.supervisor_id = " . (int)$attendance_user_id . ")"];
-    if ($attendance_supervisor_profile_id > 0 && $attendance_supervisor_profile_id !== $attendance_user_id) {
-        $attendanceScopeParts[] = "(i.supervisor_id = " . (int)$attendance_supervisor_profile_id . " OR s.supervisor_id = " . (int)$attendance_supervisor_profile_id . ")";
-    }
-    $where[] = '(' . implode(' OR ', $attendanceScopeParts) . ')';
+if ($attendance_is_scoped_role) {
+    $where[] = $attendance_student_scope_sql;
 }
 if (!empty($start_date) && !empty($end_date)) {
     $where[] = "a.attendance_date BETWEEN '" . $conn->real_escape_string($start_date) . "' AND '" . $conn->real_escape_string($end_date) . "'";
@@ -899,12 +895,8 @@ if (!empty($filter_coordinator)) {
         OR s.coordinator_name LIKE '%{$escCoor}%'
     )";
 }
-if ($attendance_is_supervisor && $attendance_user_id > 0) {
-    $scopeParts = ["(i.supervisor_id = " . (int)$attendance_user_id . " OR s.supervisor_id = " . (int)$attendance_user_id . ")"];
-    if ($attendance_supervisor_profile_id > 0 && $attendance_supervisor_profile_id !== $attendance_user_id) {
-        $scopeParts[] = "(i.supervisor_id = " . (int)$attendance_supervisor_profile_id . " OR s.supervisor_id = " . (int)$attendance_supervisor_profile_id . ")";
-    }
-    $externalWhere[] = '(' . implode(' OR ', $scopeParts) . ')';
+if ($attendance_is_scoped_role) {
+    $externalWhere[] = $attendance_student_scope_sql;
 }
 
 $externalAttendanceQuery = "
@@ -1006,6 +998,8 @@ if (
                 'supervisor' => $filter_supervisor,
                 'coordinator' => $filter_coordinator,
                 'is_supervisor' => $attendance_is_supervisor,
+                'is_scoped_role' => $attendance_is_scoped_role,
+                'student_scope_sql' => $attendance_student_scope_sql,
                 'supervisor_user_id' => $attendance_user_id,
                 'supervisor_profile_id' => $attendance_supervisor_profile_id,
             ]
@@ -1580,12 +1574,9 @@ function attendance_virtual_absence_rows(mysqli $conn, array $visibleAttendances
         $esc = $conn->real_escape_string($coordinator);
         $where[] = "(TRIM(CONCAT_WS(' ', coor.first_name, coor.middle_name, coor.last_name)) LIKE '%{$esc}%' OR s.coordinator_name LIKE '%{$esc}%')";
     }
-    if (!empty($filters['is_supervisor']) && (int)($filters['supervisor_user_id'] ?? 0) > 0) {
-        $scopeParts = ["(i.supervisor_id = " . (int)$filters['supervisor_user_id'] . " OR s.supervisor_id = " . (int)$filters['supervisor_user_id'] . ")"];
-        if ((int)($filters['supervisor_profile_id'] ?? 0) > 0 && (int)$filters['supervisor_profile_id'] !== (int)$filters['supervisor_user_id']) {
-            $scopeParts[] = "(i.supervisor_id = " . (int)$filters['supervisor_profile_id'] . " OR s.supervisor_id = " . (int)$filters['supervisor_profile_id'] . ")";
-        }
-        $where[] = '(' . implode(' OR ', $scopeParts) . ')';
+    if (!empty($filters['is_scoped_role'])) {
+        $scopeSql = trim((string)($filters['student_scope_sql'] ?? ''));
+        $where[] = $scopeSql !== '' ? $scopeSql : '1 = 0';
     }
 
     $sql = "

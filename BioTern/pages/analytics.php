@@ -88,7 +88,7 @@ function analytics_format_hours(float $hours): string
     return number_format(max(0, $hours), 2) . 'h';
 }
 
-$analyticsIsSupervisor = biotern_scope_current_role() === 'supervisor';
+$analyticsIsScopedRole = in_array(biotern_scope_current_role(), ['coordinator', 'supervisor'], true);
 $analyticsScopeSi = (isset($conn) && $conn instanceof mysqli) ? biotern_scope_student_sql($conn, 's', 'i') : '1 = 1';
 $analyticsScopeS = (isset($conn) && $conn instanceof mysqli) ? biotern_scope_student_sql($conn, 's', null) : '1 = 1';
 
@@ -176,7 +176,7 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'in
         if (analytics_column_exists($conn, 'internships', 'deleted_at')) {
             $whereParts[] = 'i.deleted_at IS NULL';
         }
-        if ($analyticsIsSupervisor) {
+        if ($analyticsIsScopedRole) {
             $whereParts[] = $analyticsScopeSi;
         }
         $whereDeleted = !empty($whereParts) ? ' WHERE ' . implode(' AND ', $whereParts) : '';
@@ -208,7 +208,7 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'in
     if (analytics_column_exists($conn, 'internships', 'deleted_at')) {
         $whereParts[] = 'i.deleted_at IS NULL';
     }
-    if ($analyticsIsSupervisor) {
+    if ($analyticsIsScopedRole) {
         $whereParts[] = $analyticsScopeSi;
     }
     $whereDeleted = !empty($whereParts) ? ' WHERE ' . implode(' AND ', $whereParts) : '';
@@ -252,10 +252,10 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'in
 }
 
 if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'attendances')) {
-    $attendanceScopeJoin = $analyticsIsSupervisor
+    $attendanceScopeJoin = $analyticsIsScopedRole
         ? "LEFT JOIN students s ON s.id = attendances.student_id LEFT JOIN internships i ON i.student_id = s.id"
         : "";
-    $attendanceScopeWhere = $analyticsIsSupervisor ? " WHERE {$analyticsScopeSi}" : "";
+    $attendanceScopeWhere = $analyticsIsScopedRole ? " WHERE {$analyticsScopeSi}" : "";
     $attendanceSummary = analytics_rows(
         $conn,
         "SELECT
@@ -280,7 +280,7 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'at
 if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'users')) {
     $userWhere = " WHERE LOWER(TRIM(role)) = 'student'";
     $userJoin = '';
-    if ($analyticsIsSupervisor) {
+    if ($analyticsIsScopedRole) {
         $userJoin = " INNER JOIN students s ON s.user_id = users.id LEFT JOIN internships i ON i.student_id = s.id";
         $userWhere .= " AND {$analyticsScopeSi}";
     }
@@ -354,7 +354,7 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'st
     if (analytics_column_exists($conn, 'students', 'deleted_at')) {
         $whereParts[] = 's.deleted_at IS NULL';
     }
-    if ($analyticsIsSupervisor) {
+    if ($analyticsIsScopedRole) {
         $whereParts[] = $analyticsScopeSi;
     }
     $whereDeleted = !empty($whereParts) ? ' WHERE ' . implode(' AND ', $whereParts) : '';
@@ -362,7 +362,7 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'st
         $conn,
         "SELECT s.id, s.student_id, s.first_name, s.last_name, s.created_at
          FROM students s
-         " . ($analyticsIsSupervisor ? "LEFT JOIN internships i ON i.student_id = s.id" : "") . "
+         " . ($analyticsIsScopedRole ? "LEFT JOIN internships i ON i.student_id = s.id" : "") . "
          {$whereDeleted}
          ORDER BY s.created_at DESC, s.id DESC
          LIMIT 8"
@@ -375,7 +375,7 @@ if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'in
     if (analytics_column_exists($conn, 'internships', 'deleted_at')) {
         $whereParts[] = 'i.deleted_at IS NULL';
     }
-    if ($analyticsIsSupervisor) {
+    if ($analyticsIsScopedRole) {
         $whereParts[] = $analyticsScopeSi;
     }
     $whereDeleted = !empty($whereParts) ? ' WHERE ' . implode(' AND ', $whereParts) : '';
@@ -404,10 +404,10 @@ for ($i = 6; $i >= 0; $i--) {
 }
 
 if (isset($conn) && $conn instanceof mysqli && analytics_table_exists($conn, 'attendances') && analytics_column_exists($conn, 'attendances', 'attendance_date')) {
-    $windowJoin = $analyticsIsSupervisor
+    $windowJoin = $analyticsIsScopedRole
         ? "LEFT JOIN students s ON s.id = a.student_id LEFT JOIN internships i ON i.student_id = s.id"
         : "";
-    $windowScope = $analyticsIsSupervisor ? " AND {$analyticsScopeSi}" : "";
+    $windowScope = $analyticsIsScopedRole ? " AND {$analyticsScopeSi}" : "";
     $windowRows = analytics_rows(
         $conn,
         "SELECT DATE(attendance_date) AS day_key, COUNT(*) AS total

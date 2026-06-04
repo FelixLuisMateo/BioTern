@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/ops_helpers.php';
+
 if (!function_exists('biotern_scope_current_role')) {
     function biotern_scope_current_role(): string
     {
@@ -68,10 +70,37 @@ if (!function_exists('biotern_scope_supervisor_ids')) {
     }
 }
 
+if (!function_exists('biotern_scope_coordinator_course_ids')) {
+    function biotern_scope_coordinator_course_ids(mysqli $conn): array
+    {
+        if (biotern_scope_current_role() !== 'coordinator') {
+            return [];
+        }
+
+        $userId = biotern_scope_current_user_id();
+        if ($userId <= 0 || !function_exists('coordinator_course_ids')) {
+            return [];
+        }
+
+        return coordinator_course_ids($conn, $userId);
+    }
+}
+
 if (!function_exists('biotern_scope_student_sql')) {
     function biotern_scope_student_sql(mysqli $conn, string $studentAlias = 's', ?string $internshipAlias = null): string
     {
-        if (biotern_scope_current_role() !== 'supervisor') {
+        $role = biotern_scope_current_role();
+        $studentAlias = preg_replace('/[^A-Za-z0-9_]/', '', $studentAlias) ?: 's';
+
+        if ($role === 'coordinator') {
+            $courseIds = biotern_scope_coordinator_course_ids($conn);
+            if (empty($courseIds)) {
+                return '1 = 0';
+            }
+            return "{$studentAlias}.course_id IN (" . implode(',', array_map('intval', $courseIds)) . ")";
+        }
+
+        if ($role !== 'supervisor') {
             return '1 = 1';
         }
 
@@ -81,7 +110,6 @@ if (!function_exists('biotern_scope_student_sql')) {
         }
 
         $idList = implode(',', $ids);
-        $studentAlias = preg_replace('/[^A-Za-z0-9_]/', '', $studentAlias) ?: 's';
         $parts = ["{$studentAlias}.supervisor_id IN ({$idList})"];
 
         if ($internshipAlias !== null && $internshipAlias !== '') {

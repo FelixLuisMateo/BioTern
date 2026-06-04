@@ -203,27 +203,28 @@ if (isset($dashboard_data) && is_array($dashboard_data) && !empty($dashboard_dat
 try {
     $dashboard_role = biotern_scope_current_role();
     $dashboard_is_supervisor = ($dashboard_role === 'supervisor');
+    $dashboard_is_scoped_role = in_array($dashboard_role, ['coordinator', 'supervisor'], true);
     $dashboard_scope_si = biotern_scope_student_sql($conn, 's', 'i');
     $dashboard_scope_s = biotern_scope_student_sql($conn, 's', null);
-    $dashboard_students_from = $dashboard_is_supervisor
+    $dashboard_students_from = $dashboard_is_scoped_role
         ? "students s LEFT JOIN internships i ON i.student_id = s.id AND i.deleted_at IS NULL"
         : "students s";
-    $dashboard_attendance_from = $dashboard_is_supervisor
+    $dashboard_attendance_from = $dashboard_is_scoped_role
         ? "attendances a LEFT JOIN students s ON a.student_id = s.id LEFT JOIN internships i ON i.student_id = s.id AND i.deleted_at IS NULL"
         : "attendances a";
-    $dashboard_internship_from = $dashboard_is_supervisor
+    $dashboard_internship_from = $dashboard_is_scoped_role
         ? "internships i LEFT JOIN students s ON s.id = i.student_id"
         : "internships i";
-    $dashboard_deleted_where = $dashboard_is_supervisor
+    $dashboard_deleted_where = $dashboard_is_scoped_role
         ? "i.deleted_at IS NULL AND {$dashboard_scope_si}"
         : "i.deleted_at IS NULL";
 
     // Core counts
-    $dashboard_stats['attendance_awaiting'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT a.id) AS count FROM {$dashboard_attendance_from} WHERE a.status = 'pending' AND " . ($dashboard_is_supervisor ? $dashboard_scope_si : '1 = 1'));
-    $dashboard_stats['attendance_completed'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT a.id) AS count FROM {$dashboard_attendance_from} WHERE a.status = 'approved' AND " . ($dashboard_is_supervisor ? $dashboard_scope_si : '1 = 1'));
-    $dashboard_stats['attendance_rejected'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT a.id) AS count FROM {$dashboard_attendance_from} WHERE a.status = 'rejected' AND " . ($dashboard_is_supervisor ? $dashboard_scope_si : '1 = 1'));
-    $dashboard_stats['attendance_total'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT a.id) AS count FROM {$dashboard_attendance_from} WHERE " . ($dashboard_is_supervisor ? $dashboard_scope_si : '1 = 1'));
-    $dashboard_stats['student_count'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT s.id) AS count FROM {$dashboard_students_from} WHERE s.deleted_at IS NULL AND " . ($dashboard_is_supervisor ? $dashboard_scope_si : '1 = 1'));
+    $dashboard_stats['attendance_awaiting'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT a.id) AS count FROM {$dashboard_attendance_from} WHERE a.status = 'pending' AND " . ($dashboard_is_scoped_role ? $dashboard_scope_si : '1 = 1'));
+    $dashboard_stats['attendance_completed'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT a.id) AS count FROM {$dashboard_attendance_from} WHERE a.status = 'approved' AND " . ($dashboard_is_scoped_role ? $dashboard_scope_si : '1 = 1'));
+    $dashboard_stats['attendance_rejected'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT a.id) AS count FROM {$dashboard_attendance_from} WHERE a.status = 'rejected' AND " . ($dashboard_is_scoped_role ? $dashboard_scope_si : '1 = 1'));
+    $dashboard_stats['attendance_total'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT a.id) AS count FROM {$dashboard_attendance_from} WHERE " . ($dashboard_is_scoped_role ? $dashboard_scope_si : '1 = 1'));
+    $dashboard_stats['student_count'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT s.id) AS count FROM {$dashboard_students_from} WHERE s.deleted_at IS NULL AND " . ($dashboard_is_scoped_role ? $dashboard_scope_si : '1 = 1'));
 
     $dashboard_stats['active_students'] = dashboard_fetch_count(
         $conn,
@@ -262,19 +263,19 @@ try {
 
     $dashboard_stats['active_internships'] = (int)($ojt_status_counts['ongoing'] ?? 0);
     $dashboard_stats['completed_internships'] = (int)($ojt_status_counts['completed'] ?? 0);
-    $dashboard_stats['biometric_registered'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT s.id) AS count FROM {$dashboard_students_from} WHERE s.biometric_registered = 1 AND " . ($dashboard_is_supervisor ? $dashboard_scope_si : '1 = 1'));
+    $dashboard_stats['biometric_registered'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT s.id) AS count FROM {$dashboard_students_from} WHERE s.biometric_registered = 1 AND " . ($dashboard_is_scoped_role ? $dashboard_scope_si : '1 = 1'));
 
     $today = date('Y-m-d');
-    $dashboard_stats['today_attendance'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT a.id) AS count FROM {$dashboard_attendance_from} WHERE DATE(a.attendance_date) = '{$today}' AND " . ($dashboard_is_supervisor ? $dashboard_scope_si : '1 = 1'));
+    $dashboard_stats['today_attendance'] = dashboard_fetch_count($conn, "SELECT COUNT(DISTINCT a.id) AS count FROM {$dashboard_attendance_from} WHERE DATE(a.attendance_date) = '{$today}' AND " . ($dashboard_is_scoped_role ? $dashboard_scope_si : '1 = 1'));
 
     // Lists used by dashboard widgets
     $recent_students = dashboard_fetch_all(
         $conn,
-        "SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.status, s.biometric_registered, s.created_at
+         "SELECT s.id, s.student_id, s.first_name, s.last_name, s.email, s.status, s.biometric_registered, s.created_at
          FROM students s
-         " . ($dashboard_is_supervisor ? "LEFT JOIN internships i ON i.student_id = s.id AND i.deleted_at IS NULL" : "") . "
+         " . ($dashboard_is_scoped_role ? "LEFT JOIN internships i ON i.student_id = s.id AND i.deleted_at IS NULL" : "") . "
          WHERE s.deleted_at IS NULL
-           AND " . ($dashboard_is_supervisor ? $dashboard_scope_si : '1 = 1') . "
+           AND " . ($dashboard_is_scoped_role ? $dashboard_scope_si : '1 = 1') . "
          ORDER BY s.created_at DESC
          LIMIT 5"
     );
@@ -286,9 +287,9 @@ try {
                 COALESCE(NULLIF(u.profile_picture, ''), NULLIF(s.profile_picture, '')) AS profile_picture
          FROM attendances a
          LEFT JOIN students s ON a.student_id = s.id
-         " . ($dashboard_is_supervisor ? "LEFT JOIN internships i ON i.student_id = s.id AND i.deleted_at IS NULL" : "") . "
+         " . ($dashboard_is_scoped_role ? "LEFT JOIN internships i ON i.student_id = s.id AND i.deleted_at IS NULL" : "") . "
          LEFT JOIN users u ON u.id = s.user_id
-         WHERE " . ($dashboard_is_supervisor ? $dashboard_scope_si : '1 = 1') . "
+         WHERE " . ($dashboard_is_scoped_role ? $dashboard_scope_si : '1 = 1') . "
          ORDER BY (DATE(a.attendance_date) = CURDATE()) DESC, a.attendance_date DESC, a.created_at DESC
          LIMIT 10"
     );
@@ -362,7 +363,7 @@ try {
          LIMIT 5"
     );
 
-    if ($dashboard_is_supervisor) {
+    if ($dashboard_is_scoped_role) {
         $recent_activities = dashboard_fetch_all(
             $conn,
             "SELECT

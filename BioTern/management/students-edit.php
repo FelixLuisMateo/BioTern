@@ -3,6 +3,7 @@ require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/lib/offices.php';
+require_once dirname(__DIR__) . '/lib/ops_helpers.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 /** @var mysqli $conn */
 
@@ -403,6 +404,7 @@ if ($sections_result && $sections_result->num_rows > 0) {
 }
 
 // Fetch supervisors and coordinators strictly from their own tables
+ensure_coordinator_courses_table($conn);
 $supervisors_query = "
     SELECT 
         id,
@@ -440,10 +442,14 @@ if ($officeMapRes) {
 
 $coordinators_query = "
     SELECT 
-        id,
-        TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS name
+        co.id,
+        co.user_id,
+        cc.course_id,
+        TRIM(CONCAT_WS(' ', co.first_name, co.middle_name, co.last_name)) AS name
     FROM coordinators
-    WHERE TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) <> ''
+    co
+    LEFT JOIN coordinator_courses cc ON cc.coordinator_user_id = co.user_id
+    WHERE TRIM(CONCAT_WS(' ', co.first_name, co.middle_name, co.last_name)) <> ''
     ORDER BY name ASC
 ";
 $coordinators_result = $conn->query($coordinators_query);
@@ -452,6 +458,8 @@ if ($coordinators_result->num_rows > 0) {
     while ($row = $coordinators_result->fetch_assoc()) {
         $coordinators[] = [
             'id' => (int)$row['id'],
+            'user_id' => (int)($row['user_id'] ?? 0),
+            'course_id' => (int)($row['course_id'] ?? 0),
             'name' => $row['name']
         ];
     }
@@ -613,7 +621,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $status = isset($_POST['status']) ? intval($_POST['status']) : 1;
     $supervisor_id = isset($_POST['supervisor_id']) && $_POST['supervisor_id'] !== '' ? intval($_POST['supervisor_id']) : null;
     $office_id = isset($_POST['office_id']) && $_POST['office_id'] !== '' ? intval($_POST['office_id']) : null;
-    $coordinator_id = isset($_POST['coordinator_id']) && $_POST['coordinator_id'] !== '' ? intval($_POST['coordinator_id']) : null;
+    $coordinator_id = null;
     $student_id_code = isset($_POST['student_id']) ? trim($_POST['student_id']) : ($student['student_id'] ?? '');
     $internal_total_hours = isset($_POST['internal_total_hours']) && $_POST['internal_total_hours'] !== '' ? intval($_POST['internal_total_hours']) : null;
     $internal_total_hours_remaining = isset($_POST['internal_total_hours_remaining']) && $_POST['internal_total_hours_remaining'] !== '' ? intval($_POST['internal_total_hours_remaining']) : null;
@@ -637,6 +645,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
     if ($assignment_track === 'external') {
         $external_start_allowed = 1;
+    }
+
+    if ($course_id > 0 && ensure_coordinator_courses_table($conn)) {
+        $auto_coordinator_stmt = $conn->prepare("
+            SELECT co.id
+            FROM coordinator_courses cc
+            INNER JOIN coordinators co ON co.user_id = cc.coordinator_user_id
+            WHERE cc.course_id = ?
+              AND co.deleted_at IS NULL
+              AND co.is_active = 1
+            ORDER BY cc.id DESC
+            LIMIT 1
+        ");
+        if ($auto_coordinator_stmt) {
+            $auto_coordinator_stmt->bind_param('i', $course_id);
+            $auto_coordinator_stmt->execute();
+            $auto_coordinator_row = $auto_coordinator_stmt->get_result()->fetch_assoc();
+            $auto_coordinator_stmt->close();
+            $auto_coordinator_id = (int)($auto_coordinator_row['id'] ?? 0);
+            if ($auto_coordinator_id > 0) {
+                $coordinator_id = $auto_coordinator_id;
+            }
+        }
     }
 
     $selected_supervisor_name = null;
@@ -1345,15 +1376,17 @@ include 'includes/header.php';
                                             </div>
                                             <div class="col-md-6 mb-4">
                                                 <label for="coordinator_id" class="form-label fw-semibold">Coordinator</label>
-                                                <select class="form-control" id="coordinator_id" name="coordinator_id">
+                                                <select class="form-control" id="coordinator_id" name="coordinator_id" disabled>
                                                     <option value=""></option>
                                                     <?php foreach ($coordinators as $coordinator): ?>
                                                         <option value="<?php echo (int)$coordinator['id']; ?>"
+                                                            data-course-id="<?php echo (int)($coordinator['course_id'] ?? 0); ?>"
                                                             <?php echo ((int)($student['coordinator_id'] ?? 0) === (int)$coordinator['id']) ? 'selected' : ''; ?>>
                                                             <?php echo htmlspecialchars($coordinator['name']); ?>
                                                         </option>
                                                     <?php endforeach; ?>
                                                 </select>
+                                                <small class="form-text text-muted">Automatically selected from the student's course coordinator.</small>
                                             </div>
                                         </div>
 
@@ -1552,6 +1585,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var supervisorSelect = document.getElementById('supervisor_id');
     var officeSelect = document.getElementById('office_id');
+    var coordinatorSelect = document.getElementById('coordinator_id');
 
     function csvHas(csv, value) {
         if (!csv || !value) return false;
@@ -1656,10 +1690,26 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function syncCoordinatorFromCourse() {
+        if (!coordinatorSelect) return;
+        var courseId = courseSelect ? (courseSelect.value || '0') : '0';
+        var matchedValue = '';
+        Array.prototype.forEach.call(coordinatorSelect.options, function (option) {
+            if (!option.value) return;
+            var optionCourse = option.getAttribute('data-course-id') || '0';
+            if (courseId !== '0' && optionCourse === courseId && matchedValue === '') {
+                matchedValue = option.value;
+            }
+        });
+        coordinatorSelect.value = matchedValue;
+        refreshSelect2(coordinatorSelect);
+    }
+
     if (courseSelect) {
         courseSelect.addEventListener('change', function () {
             syncAcademicFields(true);
             filterSupervisorsAndOffices();
+            syncCoordinatorFromCourse();
         });
     }
     if (departmentSelect) {
@@ -1671,6 +1721,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (supervisorSelect) supervisorSelect.addEventListener('change', filterSupervisorsAndOffices);
     syncAcademicFields(false);
     filterSupervisorsAndOffices();
+    syncCoordinatorFromCourse();
 
     var toggle = document.getElementById('toggle_admin_reset_password');
     if (!toggle) {

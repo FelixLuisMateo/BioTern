@@ -254,6 +254,73 @@ function ensure_coordinator_courses_table(?mysqli $conn): bool
         return false;
     }
 
+    $conn->query("
+        DELETE cc1 FROM coordinator_courses cc1
+        INNER JOIN coordinator_courses cc2
+            ON cc1.course_id = cc2.course_id
+           AND cc1.id < cc2.id
+    ");
+    $conn->query("
+        DELETE cc1 FROM coordinator_courses cc1
+        INNER JOIN coordinator_courses cc2
+            ON cc1.coordinator_user_id = cc2.coordinator_user_id
+           AND cc1.id < cc2.id
+    ");
+    @$conn->query("CREATE UNIQUE INDEX uq_coordinator_courses_user_only ON coordinator_courses (coordinator_user_id)");
+    @$conn->query("CREATE UNIQUE INDEX uq_coordinator_courses_course_only ON coordinator_courses (course_id)");
+
+    $mappingRes = $conn->query("
+        SELECT
+            cc.coordinator_user_id,
+            cc.course_id,
+            co.id AS coordinator_profile_id,
+            TRIM(CONCAT_WS(' ', co.first_name, co.middle_name, co.last_name)) AS coordinator_name
+        FROM coordinator_courses cc
+        INNER JOIN coordinators co ON co.user_id = cc.coordinator_user_id
+        WHERE co.deleted_at IS NULL
+    ");
+    if ($mappingRes instanceof mysqli_result) {
+        while ($mapping = $mappingRes->fetch_assoc()) {
+            $mappedUserId = (int)($mapping['coordinator_user_id'] ?? 0);
+            $mappedCourseId = (int)($mapping['course_id'] ?? 0);
+            $mappedProfileId = (int)($mapping['coordinator_profile_id'] ?? 0);
+            $mappedName = trim((string)($mapping['coordinator_name'] ?? ''));
+            if ($mappedUserId <= 0 || $mappedCourseId <= 0 || $mappedProfileId <= 0) {
+                continue;
+            }
+
+            $studentUpdate = $conn->prepare("
+                UPDATE students
+                SET coordinator_id = ?,
+                    coordinator_name = ?,
+                    updated_at = NOW()
+                WHERE course_id = ?
+                  AND deleted_at IS NULL
+            ");
+            if ($studentUpdate) {
+                $studentUpdate->bind_param('isi', $mappedProfileId, $mappedName, $mappedCourseId);
+                $studentUpdate->execute();
+                $studentUpdate->close();
+            }
+
+            $internshipUpdate = $conn->prepare("
+                UPDATE internships i
+                INNER JOIN students s ON s.id = i.student_id
+                SET i.coordinator_id = ?,
+                    i.updated_at = NOW()
+                WHERE s.course_id = ?
+                  AND i.deleted_at IS NULL
+                  AND i.status = 'ongoing'
+            ");
+            if ($internshipUpdate) {
+                $internshipUpdate->bind_param('ii', $mappedUserId, $mappedCourseId);
+                $internshipUpdate->execute();
+                $internshipUpdate->close();
+            }
+        }
+        $mappingRes->close();
+    }
+
     $initialized = true;
     return true;
 }
@@ -307,6 +374,18 @@ function sync_coordinator_courses(?mysqli $conn, int $coordinatorUserId, array $
             $normalized[$courseId] = $courseId;
         }
     }
+    $normalized = array_slice($normalized, 0, 1, true);
+
+    if (!empty($normalized)) {
+        $courseId = (int)reset($normalized);
+        $deleteOtherCourseStmt = $conn->prepare('DELETE FROM coordinator_courses WHERE course_id = ? AND coordinator_user_id <> ?');
+        if (!$deleteOtherCourseStmt) {
+            return false;
+        }
+        $deleteOtherCourseStmt->bind_param('ii', $courseId, $coordinatorUserId);
+        $deleteOtherCourseStmt->execute();
+        $deleteOtherCourseStmt->close();
+    }
 
     $deleteStmt = $conn->prepare('DELETE FROM coordinator_courses WHERE coordinator_user_id = ?');
     if (!$deleteStmt) {
@@ -335,6 +414,56 @@ function sync_coordinator_courses(?mysqli $conn, int $coordinatorUserId, array $
     }
 
     $insertStmt->close();
+    $courseId = (int)reset($normalized);
+    if ($courseId > 0) {
+        $profileStmt = $conn->prepare("
+            SELECT id, TRIM(CONCAT_WS(' ', first_name, middle_name, last_name)) AS coordinator_name
+            FROM coordinators
+            WHERE user_id = ?
+              AND deleted_at IS NULL
+            LIMIT 1
+        ");
+        if ($profileStmt) {
+            $profileStmt->bind_param('i', $coordinatorUserId);
+            $profileStmt->execute();
+            $profile = $profileStmt->get_result()->fetch_assoc() ?: [];
+            $profileStmt->close();
+
+            $coordinatorProfileId = (int)($profile['id'] ?? 0);
+            $coordinatorName = trim((string)($profile['coordinator_name'] ?? ''));
+            if ($coordinatorProfileId > 0) {
+                $studentUpdate = $conn->prepare("
+                    UPDATE students
+                    SET coordinator_id = ?,
+                        coordinator_name = ?,
+                        updated_at = NOW()
+                    WHERE course_id = ?
+                      AND deleted_at IS NULL
+                ");
+                if ($studentUpdate) {
+                    $studentUpdate->bind_param('isi', $coordinatorProfileId, $coordinatorName, $courseId);
+                    $studentUpdate->execute();
+                    $studentUpdate->close();
+                }
+            }
+
+            $internshipUpdate = $conn->prepare("
+                UPDATE internships i
+                INNER JOIN students s ON s.id = i.student_id
+                SET i.coordinator_id = ?,
+                    i.updated_at = NOW()
+                WHERE s.course_id = ?
+                  AND i.deleted_at IS NULL
+                  AND i.status = 'ongoing'
+            ");
+            if ($internshipUpdate) {
+                $internshipUpdate->bind_param('ii', $coordinatorUserId, $courseId);
+                $internshipUpdate->execute();
+                $internshipUpdate->close();
+            }
+        }
+    }
+
     return true;
 }
 

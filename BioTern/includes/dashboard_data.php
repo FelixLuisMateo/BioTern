@@ -35,19 +35,20 @@ $dashboard_count = static function (string $sql) use ($conn): int {
 
 try {
     $today = date('Y-m-d');
-    $isSupervisor = biotern_scope_current_role() === 'supervisor';
+    $scopeRole = biotern_scope_current_role();
+    $isScopedRole = in_array($scopeRole, ['coordinator', 'supervisor'], true);
     $scopeSi = biotern_scope_student_sql($conn, 's', 'i');
-    $studentsFrom = $isSupervisor
+    $studentsFrom = $isScopedRole
         ? "students s LEFT JOIN internships i ON i.student_id = s.id AND i.deleted_at IS NULL"
         : "students s";
-    $attendancesFrom = $isSupervisor
+    $attendancesFrom = $isScopedRole
         ? "attendances a LEFT JOIN students s ON a.student_id = s.id LEFT JOIN internships i ON i.student_id = s.id AND i.deleted_at IS NULL"
         : "attendances a";
-    $internshipsFrom = $isSupervisor
+    $internshipsFrom = $isScopedRole
         ? "internships i LEFT JOIN students s ON s.id = i.student_id"
         : "internships i";
-    $studentScopeWhere = $isSupervisor ? $scopeSi : '1 = 1';
-    $internshipScopeWhere = $isSupervisor ? $scopeSi : '1 = 1';
+    $studentScopeWhere = $isScopedRole ? $scopeSi : '1 = 1';
+    $internshipScopeWhere = $isScopedRole ? $scopeSi : '1 = 1';
 
     $dashboard_data['total_students'] = $dashboard_count("SELECT COUNT(DISTINCT s.id) AS count FROM {$studentsFrom} WHERE {$studentScopeWhere}");
     $dashboard_data['active_students'] = $dashboard_count(
@@ -80,7 +81,7 @@ try {
             s.student_id AS student_num
          FROM attendances a
          LEFT JOIN students s ON a.student_id = s.id
-         " . ($isSupervisor ? "LEFT JOIN internships i ON i.student_id = s.id AND i.deleted_at IS NULL" : "") . "
+         " . ($isScopedRole ? "LEFT JOIN internships i ON i.student_id = s.id AND i.deleted_at IS NULL" : "") . "
          WHERE {$studentScopeWhere}
          ORDER BY a.created_at DESC
          LIMIT 10"

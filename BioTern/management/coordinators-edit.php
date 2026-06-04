@@ -20,20 +20,8 @@ function edit_post_value(string $key, string $fallback = ''): string
 
 function edit_post_course_ids(): array
 {
-    $raw = $_POST['course_ids'] ?? [];
-    if (!is_array($raw)) {
-        $raw = [$raw];
-    }
-
-    $selected = [];
-    foreach ($raw as $courseId) {
-        $courseId = (int)$courseId;
-        if ($courseId > 0) {
-            $selected[$courseId] = $courseId;
-        }
-    }
-
-    return array_values($selected);
+    $courseId = (int)($_POST['course_id'] ?? 0);
+    return $courseId > 0 ? [$courseId] : [];
 }
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : (int)($_POST['id'] ?? 0);
@@ -113,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Please complete required fields.';
         $message_type = 'danger';
     } elseif (!empty($courses) && empty($selectedCourseIds)) {
-        $message = 'Please select at least one course this coordinator can supervise.';
+        $message = 'Please select exactly one course this coordinator can manage.';
         $message_type = 'danger';
     } else {
         $conn->begin_transaction();
@@ -130,6 +118,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Failed to update coordinator: ' . $errorText);
             }
             $up->close();
+
+            $displayName = trim($first_name . ' ' . $last_name);
+            $userUpdate = $conn->prepare('UPDATE users SET name = ?, email = ?, is_active = ?, updated_at = NOW() WHERE id = ? LIMIT 1');
+            if (!$userUpdate) {
+                throw new RuntimeException('Failed to prepare linked user update statement.');
+            }
+            $userUpdate->bind_param('ssii', $displayName, $email, $is_active, $user_id);
+            if (!$userUpdate->execute()) {
+                $errorText = $userUpdate->error;
+                $userUpdate->close();
+                throw new RuntimeException('Failed to update linked user: ' . $errorText);
+            }
+            $userUpdate->close();
 
             if ($originalUserId > 0 && $originalUserId !== $user_id && !sync_coordinator_courses($conn, $originalUserId, [])) {
                 throw new RuntimeException('Failed to clear the previous coordinator course assignments.');
@@ -197,34 +198,21 @@ include 'includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Courses to Supervise *</label>
-                    <div class="app-coordinator-course-picker">
-                        <div class="app-coordinator-course-grid">
+                    <label class="form-label">Course to Manage *</label>
                         <?php
-                        $selectedCourses = !empty($_POST['course_ids']) ? edit_post_course_ids() : $assignedCourseIds;
-                        foreach ($courses as $course):
+                        $selectedCourses = array_key_exists('course_id', $_POST) ? edit_post_course_ids() : array_slice($assignedCourseIds, 0, 1);
+                        ?>
+                    <select name="course_id" class="form-select" required>
+                        <option value="">Select course</option>
+                        <?php foreach ($courses as $course):
                             $courseId = (int)$course['id'];
                         ?>
-                            <div class="app-coordinator-course-item form-check">
-                                    <input
-                                        class="form-check-input"
-                                        type="checkbox"
-                                        name="course_ids[]"
-                                        id="edit_course_<?php echo $courseId; ?>"
-                                        value="<?php echo $courseId; ?>"
-                                        <?php echo in_array($courseId, $selectedCourses, true) ? 'checked' : ''; ?>
-                                    >
-                                    <label class="form-check-label" for="edit_course_<?php echo $courseId; ?>" title="<?php echo h($course['name']); ?>">
-                                        <?php echo h($course['name']); ?>
-                                    </label>
-                            </div>
+                            <option value="<?php echo $courseId; ?>" <?php echo in_array($courseId, $selectedCourses, true) ? 'selected' : ''; ?>>
+                                <?php echo h($course['name']); ?>
+                            </option>
                         <?php endforeach; ?>
-                        <?php if (empty($courses)): ?>
-                            <div class="text-muted small">No courses available right now.</div>
-                        <?php endif; ?>
-                        </div>
-                    </div>
-                    <small class="app-coordinator-course-help d-block">Choose one or more courses this coordinator can supervise.</small>
+                    </select>
+                    <small class="app-coordinator-course-help d-block">Each course can have only one coordinator. Saving this will move the course from any previous coordinator.</small>
                 </div>
                 <div class="col-md-4"><label class="form-label">Office Location</label><input type="text" name="office_location" class="form-control" value="<?php echo edit_post_value('office_location', $coordinator['office_location']); ?>"></div>
                 <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" rows="2" class="form-control"><?php echo edit_post_value('bio', $coordinator['bio']); ?></textarea></div>
