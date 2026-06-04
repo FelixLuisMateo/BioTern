@@ -1,0 +1,102 @@
+/* Mobile page header (hidden on desktop) */
+.biotern-mobile-page-header {
+  display: none;
+}
+
+@media (max-width: 991.98px) {
+  body.mobile-bottom-nav .biotern-mobile-page-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--biotern-surface, #ffffff);
+    border-bottom: 1px solid var(--biotern-border, rgba(15, 23, 42, 0.1));
+  }
+
+  body.mobile-bottom-nav .biotern-mobile-page-header-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  body.mobile-bottom-nav .biotern-mobile-page-header-icon {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: var(--biotern-surface-muted, #f3f4f6);
+    color: var(--biotern-text, #1f2937);
+    flex: 0 0 auto;
+  }
+
+  body.mobile-bottom-nav .biotern-mobile-page-header-copy {
+    min-width: 0;
+  }
+
+  body.mobile-bottom-nav .biotern-mobile-page-header-kicker {
+    margin: 0;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--biotern-text-muted, #6b7280);
+  }
+
+  body.mobile-bottom-nav .biotern-mobile-page-header-title {
+    margin: 2px 0 0;
+    font-size: 1.05rem;
+    line-height: 1.2;
+    font-weight: 700;
+    color: var(--biotern-text, #111827);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  body.mobile-bottom-nav .biotern-mobile-page-header-tools {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  body.mobile-bottom-nav .biotern-mobile-page-header-tool {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--biotern-surface-muted, #f3f4f6);
+    color: var(--biotern-text, #1f2937);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  body.mobile-bottom-nav .biotern-mobile-page-header-panel {
+    display: none;
+  }
+
+  html.app-skin-dark body.mobile-bottom-nav .biotern-mobile-page-header {
+    background: #0f172a;
+    border-bottom-color: #1f2937;
+  }
+
+  html.app-skin-dark body.mobile-bottom-nav .biotern-mobile-page-header-icon,
+  html.app-skin-dark body.mobile-bottom-nav .biotern-mobile-page-header-tool {
+    background: #111827;
+    color: #e5e7eb;
+  }
+
+  html.app-skin-dark body.mobile-bottom-nav .biotern-mobile-page-header-title {
+    color: #f9fafb;
+  }
+
+  html.app-skin-dark body.mobile-bottom-nav .biotern-mobile-page-header-kicker {
+    color: #94a3b8;
+  }
+}
