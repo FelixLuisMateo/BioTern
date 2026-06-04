@@ -5,6 +5,7 @@ require_once dirname(__DIR__) . '/lib/notifications.php';
 require_once dirname(__DIR__) . '/lib/announcements.php';
 require_once __DIR__ . '/avatar.php';
 require_once __DIR__ . '/page-header-actions.php';
+require_once __DIR__ . '/mobile-page-header.php';
 // Shared header include.  Sets up HTML <head> and page header/navigation.
 // Pages can set a $page_title variable before including this file.
 biotern_boot_session(isset($conn) ? $conn : null);
@@ -863,6 +864,13 @@ if ($header_db instanceof mysqli) {
         <!--! ================================================================ !-->
         <!--! [End] Header !-->
         <!--! ================================================================ !-->
+
+        <?php
+        biotern_render_mobile_page_header([
+            'title' => (string)$page_title,
+            'route' => (string)($_SERVER['SCRIPT_NAME'] ?? ''),
+        ]);
+        ?>
 
         <?php if (!empty($header_pending_announcements)): ?>
             <?php

@@ -260,14 +260,14 @@ body.auth-login-page .auth-cover-card .btn-lg {
 }
 
 body.auth-login-page .auth-cover-card .btn-outline-primary {
-    color: #2740b7;
+    color: var(--biotern-primary);
     background: rgba(var(--biotern-primary-rgb), 0.06);
     border-color: rgba(var(--biotern-primary-rgb), 0.22);
 }
 
 body.auth-login-page .auth-cover-card .btn-outline-primary:hover,
 body.auth-login-page .auth-cover-card .btn-outline-primary:focus {
-    color: #1f35a0;
+    color: var(--biotern-primary);
     background: rgba(var(--biotern-primary-rgb), 0.12);
     border-color: rgba(var(--biotern-primary-rgb), 0.3);
 }
@@ -356,7 +356,20 @@ html.app-theme-gray:not(.app-skin-dark) body.auth-login-page {
         min-height: 100dvh;
     }
 
+    html.app-skin-dark body.auth-login-page,
+    html.app-theme-gray.app-skin-dark body.auth-login-page,
     body.auth-login-page {
+        --auth-card-surface: #ffffff;
+        --auth-card-border: transparent;
+        --auth-card-shadow: none;
+        --auth-card-title: #1e293b;
+        --auth-card-copy: #334155;
+        --auth-field-bg: #ffffff;
+        --auth-field-border: #cbd5e1;
+        --auth-field-text: #111827;
+        --auth-field-placeholder: #8a94a8;
+        background: #ffffff !important;
+        color: var(--auth-card-title);
         overflow-x: hidden;
         overflow-y: auto;
     }
@@ -380,7 +393,7 @@ html.app-theme-gray:not(.app-skin-dark) body.auth-login-page {
         min-height: 100vh;
         min-height: 100dvh;
         height: auto;
-        background: var(--biotern-surface, #0f172a);
+        background: #ffffff !important;
         padding: 0 !important;
         margin: 0 !important;
         border-radius: 0 !important;
@@ -409,9 +422,9 @@ html.app-theme-gray:not(.app-skin-dark) body.auth-login-page {
         min-height: 100vh;
         min-height: 100dvh;
         padding:
-            calc(env(safe-area-inset-top, 0px) + 1.5rem)
-            1.25rem
-            calc(env(safe-area-inset-bottom, 0px) + 1.2rem) !important;
+            calc(env(safe-area-inset-top, 0px) + clamp(1.75rem, 9vw, 3.25rem))
+            clamp(1.25rem, 6vw, 1.65rem)
+            calc(env(safe-area-inset-bottom, 0px) + clamp(1.4rem, 7vw, 2.4rem)) !important;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -422,12 +435,70 @@ html.app-theme-gray:not(.app-skin-dark) body.auth-login-page {
     }
 
     body.auth-login-page .auth-cover-card {
-        background: var(--auth-card-surface);
-        border-color: var(--auth-card-border);
-        box-shadow: none;
-        border-radius: 0;
-        border-left: 0;
-        border-right: 0;
+        background: #ffffff !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        border: 0 !important;
+    }
+
+    body.auth-login-page .auth-brand-lockup {
+        margin-bottom: 1.1rem !important;
+        gap: 0.75rem;
+    }
+
+    body.auth-login-page .auth-brand-lockup-school {
+        width: clamp(3rem, 13vw, 3.65rem);
+    }
+
+    body.auth-login-page .auth-brand-lockup-app {
+        width: clamp(10.2rem, 43vw, 12rem);
+        filter: brightness(0) saturate(100%);
+    }
+
+    body.auth-login-page .auth-cover-card h2 {
+        font-size: clamp(1.35rem, 6vw, 1.65rem);
+        margin-bottom: 1.3rem !important;
+    }
+
+    body.auth-login-page .auth-cover-card h4 {
+        color: #334155 !important;
+        font-size: clamp(0.98rem, 4vw, 1.08rem);
+        line-height: 1.25;
+        margin-bottom: 2rem !important;
+    }
+
+    body.auth-login-page .auth-cover-card .form-control {
+        min-height: 50px;
+        border-radius: 14px;
+        font-size: 0.98rem;
+    }
+
+    body.auth-login-page .auth-cover-card .input-group .btn {
+        background: #ffffff;
+        color: #64748b;
+    }
+
+    body.auth-login-page .auth-cover-card .form-check-label,
+    body.auth-login-page .auth-cover-card .text-muted {
+        color: #334155 !important;
+    }
+
+    body.auth-login-page .auth-cover-card .btn-lg {
+        min-height: 46px;
+        border-radius: 12px;
+    }
+
+    body.auth-login-page .auth-cover-card .btn-outline-primary {
+        background: #f1f5f9;
+        border-color: #f1f5f9;
+        color: var(--biotern-primary);
+    }
+}
+
+@media (max-width: 389.98px) {
+    body.auth-login-page .auth-cover-card {
+        justify-content: flex-start;
     }
 }
 

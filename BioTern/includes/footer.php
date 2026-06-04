@@ -157,6 +157,7 @@ if (!function_exists('footer_asset_versioned_src')) {
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/theme-preferences-runtime.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/navigation-core.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/mobile-bottom-nav.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
+    <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/mobile-components-runtime.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/mobile-patterns.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <script src="<?php echo htmlspecialchars(footer_asset_versioned_src('assets/js/modules/shared/customers-runtime.js'), ENT_QUOTES, 'UTF-8'); ?>"></script>
     <?php if (isset($page_vendor_scripts) && is_array($page_vendor_scripts)): ?>

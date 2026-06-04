@@ -106,6 +106,8 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                 'icon' => 'feather-briefcase',
                 'routes' => [
                     'students.php', 'students-create.php', 'students-edit.php', 'students-view.php', 'students-dtr.php', 'students-internal-dtr.php',
+                    'attendance.php', 'test-attendance.php', 'external-attendance.php',
+                    'attendance-corrections.php', 'print_attendance.php',
                     'applications-review.php', 'external-biometric.php',
                     'student-assistance.php',
                     'fingerprint_mapping.php', 'biometric-fleet.php', 'biometric-machine.php', 'biometric_machine_sync.php',
@@ -126,6 +128,15 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                                 ['label' => 'SA Program', 'href' => 'student-assistance.php', 'icon' => 'feather-heart'],
                             ] : []),
                             ['label' => 'Applications Review', 'href' => 'applications-review.php', 'icon' => 'feather-clipboard'],
+                        ],
+                    ],
+                    [
+                        'title' => 'Attendance',
+                        'items' => [
+                            ['label' => 'Internal Attendance', 'href' => 'attendance.php', 'icon' => 'feather-clock'],
+                            ['label' => 'External Attendance', 'href' => 'external-attendance.php', 'icon' => 'feather-briefcase'],
+                            ['label' => 'Manual DTR Review', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit-3'],
+                            ['label' => 'Attendance Corrections', 'href' => 'attendance-corrections.php', 'icon' => 'feather-check-square'],
                         ],
                     ],
                     [
@@ -178,28 +189,6 @@ if (!function_exists('biotern_build_bottom_nav_groups')) {
                                 ['label' => 'Unassigned Students', 'href' => 'reports-unassigned-students.php', 'icon' => 'feather-user-x'],
                                 ['label' => 'Documents', 'href' => 'reports-document.php', 'icon' => 'feather-file-text'],
                             ] : []),
-                        ],
-                    ],
-                ],
-            ];
-
-            $navGroups[] = [
-                'key' => 'attendance',
-                'label' => 'Attendance',
-                'icon' => 'feather-clock',
-                'routes' => [
-                    'attendance.php', 'test-attendance.php', 'external-attendance.php',
-                    'attendance-corrections.php', 'print_attendance.php',
-                    'reports-dtr-manual-input.php', 'reports-dtr-manual-student.php',
-                ],
-                'sections' => [
-                    [
-                        'title' => 'Attendance',
-                        'items' => [
-                            ['label' => 'Internal Attendance', 'href' => 'attendance.php', 'icon' => 'feather-clock'],
-                            ['label' => 'External Attendance', 'href' => 'external-attendance.php', 'icon' => 'feather-briefcase'],
-                            ['label' => 'Manual DTR Review', 'href' => 'reports-dtr-manual-input.php', 'icon' => 'feather-edit'],
-                            ['label' => 'Attendance Corrections', 'href' => 'attendance-corrections.php', 'icon' => 'feather-check-square'],
                         ],
                     ],
                 ],
