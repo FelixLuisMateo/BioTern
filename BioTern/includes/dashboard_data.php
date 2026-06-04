@@ -1,4 +1,4 @@
-<?php
+rviso<?php
 // Lightweight dashboard fallback data for homepage.php.
 include_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/lib/access_scope.php';

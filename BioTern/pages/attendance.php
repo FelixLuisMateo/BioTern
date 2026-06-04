@@ -1204,18 +1204,6 @@ function attendanceResolvedTime(array $attendance, string $column): array {
         return ['time' => $raw, 'is_schedule' => false];
     }
 
-    if (strtolower(trim((string)($attendance['source'] ?? ''))) === 'biometric') {
-        foreach (['morning_time_in', 'morning_time_out', 'afternoon_time_in', 'afternoon_time_out'] as $punchColumn) {
-            if ($punchColumn === $column) {
-                continue;
-            }
-            $punch = trim((string)($attendance[$punchColumn] ?? ''));
-            if ($punch !== '' && $punch !== '00:00:00') {
-                return ['time' => null, 'is_schedule' => false];
-            }
-        }
-    }
-
     $fallback = attendanceScheduleDisplayFallback($attendance, $column);
     if ($fallback !== null && $fallback !== '') {
         return ['time' => $fallback, 'is_schedule' => true];
