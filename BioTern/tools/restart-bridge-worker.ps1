@@ -27,9 +27,11 @@ if ([string]::IsNullOrWhiteSpace($BridgeToken)) {
     throw 'Bridge token is required. Pass -BridgeToken or set BIOTERN_BRIDGE_TOKEN environment variable.'
 }
 
+$env:BIOTERN_BRIDGE_TOKEN = $BridgeToken
+
 # Stop old worker processes.
 Get-CimInstance Win32_Process |
-    Where-Object { $_.CommandLine -like '*bridge-worker.ps1*' } |
+    Where-Object { $_.CommandLine -like '*\bridge-worker.ps1*' -or $_.CommandLine -like '*\bridge-worker-autostart.ps1*' } |
     ForEach-Object {
         try {
             Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop
@@ -42,7 +44,7 @@ Start-Sleep -Seconds 1
 
 $windowStyle = if ($ShowWindow) { 'Normal' } else { 'Hidden' }
 
-$psArgs = ('-NoProfile -ExecutionPolicy Bypass -File "{0}" -SiteBaseUrl "{1}" -BridgeToken "{2}" -WorkspaceRoot "{3}" -DefaultPollSeconds {4}' -f $bridgeWorkerPath, $SiteBaseUrl, $BridgeToken, $WorkspaceRoot, $DefaultPollSeconds)
+$psArgs = ('-NoProfile -ExecutionPolicy Bypass -File "{0}" -SiteBaseUrl "{1}" -WorkspaceRoot "{2}" -DefaultPollSeconds {3}' -f $bridgeWorkerPath, $SiteBaseUrl, $WorkspaceRoot, $DefaultPollSeconds)
 Start-Process powershell.exe -ArgumentList $psArgs -WindowStyle $windowStyle | Out-Null
 
 Write-Host 'Bridge worker restarted successfully.'

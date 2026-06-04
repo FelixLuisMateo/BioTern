@@ -2,8 +2,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$SiteBaseUrl,
-    [Parameter(Mandatory = $true)]
-    [string]$BridgeToken,
+    [string]$BridgeToken = "",
     [string]$BridgeProfileName = "",
     [string]$WorkspaceRoot = "",
     [int]$DefaultPollSeconds = 30,
@@ -12,6 +11,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $MinPollSeconds = 5
+
+if ([string]::IsNullOrWhiteSpace($BridgeToken)) {
+    $BridgeToken = $env:BIOTERN_BRIDGE_TOKEN
+}
 
 function Resolve-BridgeBool {
     param($Value, [bool]$Default = $true)
@@ -1049,28 +1052,41 @@ function Publish-UserCache {
 
     $usersJson = Get-UsersPayloadJson
     $headers = Get-BridgeRequestHeaders
-
-    $candidates = @()
-    foreach ($base in $bases) {
-        $candidates += ('{0}/bridge_users_sync.php' -f $base)
-        $candidates += ('{0}/api/bridge_users_sync.php' -f $base)
-    }
-
+    $successCount = 0
     $lastError = $null
-    foreach ($uri in $candidates) {
-        try {
-            $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType 'application/json' -Body $usersJson -TimeoutSec 60
-            if ($response.success) {
-                Write-BridgeLog "User cache sync success. Users=$($response.users_count)"
-                return
+
+    foreach ($base in $bases) {
+        $baseSynced = $false
+        $candidates = @(
+            ('{0}/bridge_users_sync.php' -f $base),
+            ('{0}/api/bridge_users_sync.php' -f $base)
+        )
+
+        foreach ($uri in $candidates) {
+            try {
+                $response = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType 'application/json' -Body $usersJson -TimeoutSec 60
+                if ($response.success) {
+                    Write-BridgeLog "User cache sync success. Base=$base Users=$($response.users_count)"
+                    $baseSynced = $true
+                    $successCount++
+                    break
+                }
+                throw "User cache sync failed: $($response.message)"
+            } catch {
+                $lastError = $_
             }
-            throw "User cache sync failed: $($response.message)"
-        } catch {
-            $lastError = $_
+        }
+
+        if (-not $baseSynced) {
+            Write-BridgeLog "User cache sync failed for base $base."
         }
     }
 
-    if ($lastError) {
+    if ($successCount -gt 0) {
+        return
+    }
+
+    if ($null -ne $lastError) {
         throw $lastError
     }
 
