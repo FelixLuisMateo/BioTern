@@ -531,7 +531,7 @@ $machineRowValue = static function (array $row, array $keys): string {
 
 $extractMachineAdminMeta = static function (array $userRow): array {
     $indicatorKeys = [
-        'privilege', 'Privilege', 'role', 'Role', 'user_role', 'userRole',
+        'privilege', 'privalege', 'Privilege', 'Privalege', 'role', 'Role', 'user_role', 'userRole',
         'authority', 'Authority', 'admin', 'is_admin', 'isAdmin',
         'user_type', 'UserType', 'type',
     ];
@@ -567,64 +567,78 @@ $extractMachineAdminMeta = static function (array $userRow): array {
     return ['is_admin' => false, 'label' => ''];
 };
 
-$bridgeCacheRes = $conn->query('SELECT users_json FROM biometric_bridge_user_cache ORDER BY id DESC LIMIT 1');
+$bridgeCacheRes = $conn->query('SELECT users_json FROM biometric_bridge_user_cache ORDER BY id DESC LIMIT 30');
 if ($bridgeCacheRes instanceof mysqli_result) {
-    $bridgeCacheRow = $bridgeCacheRes->fetch_assoc();
-    $bridgeCacheRes->close();
+    while ($bridgeCacheRow = $bridgeCacheRes->fetch_assoc()) {
+        $usersJson = trim((string)($bridgeCacheRow['users_json'] ?? ''));
+        if ($usersJson === '') {
+            continue;
+        }
 
-    $usersJson = trim((string)($bridgeCacheRow['users_json'] ?? ''));
-    if ($usersJson !== '') {
         $decodedUsers = json_decode($usersJson, true);
-        if (is_array($decodedUsers)) {
-            foreach ($extractBridgeRows($decodedUsers) as $userRow) {
-                if (!is_array($userRow)) {
-                    continue;
-                }
+        if (!is_array($decodedUsers)) {
+            continue;
+        }
 
-                $fingerId = (int)trim($machineRowValue($userRow, ['id', 'ID', 'user_id', 'userId', 'UserID', 'uid', 'UID', 'pin', 'PIN', 'EnrollNumber', 'enrollNumber', 'enroll_number']));
-                if ($fingerId <= 0) {
-                    continue;
-                }
+        foreach ($extractBridgeRows($decodedUsers) as $userRow) {
+            if (!is_array($userRow)) {
+                continue;
+            }
 
-                $machineName = trim($machineRowValue($userRow, ['name', 'Name', 'user_name', 'username', 'userName', 'UserName', 'full_name', 'FullName', 'EnrollName', 'enrollName']));
-                $machineEnrolledAt = $extractMachineEnrollmentDate($userRow);
-                $machineAdminMeta = $extractMachineAdminMeta($userRow);
-                $machineIsAdmin = !empty($machineAdminMeta['is_admin']);
-                $machineAdminLabel = trim((string)($machineAdminMeta['label'] ?? ''));
+            $fingerId = (int)trim($machineRowValue($userRow, [
+                'id', 'ID', 'user_id', 'userId', 'UserId', 'UserID',
+                'uid', 'UID', 'pin', 'PIN',
+                'EnrollNumber', 'enrollNumber', 'enroll_number',
+                'enroll_id', 'enrollId', 'EnrollId',
+            ]));
+            if ($fingerId <= 0) {
+                continue;
+            }
 
-                if (!isset($detectedFingerprints[$fingerId])) {
-                    $detectedFingerprints[$fingerId] = [
-                        'finger_id' => $fingerId,
-                        'last_seen' => '',
-                        'first_seen' => '',
-                        'machine_enrolled_at' => $machineEnrolledAt,
-                        'machine_user_name' => $machineName,
-                        'machine_is_admin' => $machineIsAdmin,
-                        'machine_admin_label' => $machineAdminLabel,
-                        'is_mapped' => false,
-                        'mapped_user_name' => '',
-                        'mapped_user_id' => 0,
-                        'student_name' => '',
-                        'student_number' => '',
-                        'mapped_created_at' => '',
-                        'mapped_updated_at' => '',
-                    ];
-                } elseif ($machineName !== '' && trim((string)($detectedFingerprints[$fingerId]['machine_user_name'] ?? '')) === '') {
-                    $detectedFingerprints[$fingerId]['machine_user_name'] = $machineName;
-                }
-                if ($machineEnrolledAt !== '' && trim((string)($detectedFingerprints[$fingerId]['machine_enrolled_at'] ?? '')) === '') {
-                    $detectedFingerprints[$fingerId]['machine_enrolled_at'] = $machineEnrolledAt;
-                }
+            $machineName = trim($machineRowValue($userRow, [
+                'name', 'Name',
+                'user_name', 'username', 'userName', 'UserName',
+                'full_name', 'FullName',
+                'EnrollName', 'enrollName', 'enroll_name',
+            ]));
+            $machineEnrolledAt = $extractMachineEnrollmentDate($userRow);
+            $machineAdminMeta = $extractMachineAdminMeta($userRow);
+            $machineIsAdmin = !empty($machineAdminMeta['is_admin']);
+            $machineAdminLabel = trim((string)($machineAdminMeta['label'] ?? ''));
 
-                if ($machineIsAdmin) {
-                    $detectedFingerprints[$fingerId]['machine_is_admin'] = true;
-                    if ($machineAdminLabel !== '') {
-                        $detectedFingerprints[$fingerId]['machine_admin_label'] = $machineAdminLabel;
-                    }
+            if (!isset($detectedFingerprints[$fingerId])) {
+                $detectedFingerprints[$fingerId] = [
+                    'finger_id' => $fingerId,
+                    'last_seen' => '',
+                    'first_seen' => '',
+                    'machine_enrolled_at' => $machineEnrolledAt,
+                    'machine_user_name' => $machineName,
+                    'machine_is_admin' => $machineIsAdmin,
+                    'machine_admin_label' => $machineAdminLabel,
+                    'is_mapped' => false,
+                    'mapped_user_name' => '',
+                    'mapped_user_id' => 0,
+                    'student_name' => '',
+                    'student_number' => '',
+                    'mapped_created_at' => '',
+                    'mapped_updated_at' => '',
+                ];
+            } elseif ($machineName !== '' && trim((string)($detectedFingerprints[$fingerId]['machine_user_name'] ?? '')) === '') {
+                $detectedFingerprints[$fingerId]['machine_user_name'] = $machineName;
+            }
+            if ($machineEnrolledAt !== '' && trim((string)($detectedFingerprints[$fingerId]['machine_enrolled_at'] ?? '')) === '') {
+                $detectedFingerprints[$fingerId]['machine_enrolled_at'] = $machineEnrolledAt;
+            }
+
+            if ($machineIsAdmin) {
+                $detectedFingerprints[$fingerId]['machine_is_admin'] = true;
+                if ($machineAdminLabel !== '') {
+                    $detectedFingerprints[$fingerId]['machine_admin_label'] = $machineAdminLabel;
                 }
             }
         }
     }
+    $bridgeCacheRes->close();
 }
 
 foreach ($mappings as $mapping) {

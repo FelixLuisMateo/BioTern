@@ -1026,6 +1026,15 @@ function Invoke-BridgeCommandQueue {
                 $resultText = 'Command completed successfully.'
             }
             Invoke-BridgeCommandResultPublish -BridgeConfig $BridgeConfig -CommandId $commandId -Status 'succeeded' -ResultText $resultText
+            $mutatesUsers = @('rename_user', 'delete_user', 'clear_users', 'clear_admin') -contains ([string]$command.command_name)
+            if ($mutatesUsers) {
+                try {
+                    Publish-UserCache -BridgeConfig $BridgeConfig
+                    Write-BridgeLog ("User cache refreshed after bridge command #{0}." -f $commandId)
+                } catch {
+                    Write-BridgeLog ("User cache refresh failed after bridge command #{0}: {1}" -f $commandId, [string]$_.Exception.Message)
+                }
+            }
             Write-BridgeLog ("Bridge command #{0} completed." -f $commandId)
         } catch {
             $errorText = [string]$_.Exception.Message

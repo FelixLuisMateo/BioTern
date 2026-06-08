@@ -2,6 +2,7 @@
 ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../lib/section_format.php';
+require_once __DIR__ . '/../lib/access_scope.php';
 require_once __DIR__ . '/../includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
@@ -10,6 +11,7 @@ if (!in_array($role, ['admin', 'coordinator', 'supervisor'], true)) {
     header('Location: homepage.php');
     exit;
 }
+$isCoordinator = $role === 'coordinator';
 
 if (!isset($conn) || !($conn instanceof mysqli)) {
     $conn = new mysqli(
@@ -331,6 +333,8 @@ $internshipsHasEndDateColumn = $internshipsTableExists && ojt_internal_column_ex
 $internshipsHasStatusColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'status');
 $internshipsHasRequiredHoursColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'required_hours');
 $internshipsHasStudentIdColumn = $internshipsTableExists && ojt_internal_column_exists($conn, 'internships', 'student_id');
+$coordinatorCourseIds = $isCoordinator ? biotern_scope_coordinator_course_ids($conn) : [];
+$coordinatorCourseMap = array_fill_keys(array_map('intval', $coordinatorCourseIds), true);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['internal_action'] ?? '') === 'start_internal') {
     $redirectQuery = [];
@@ -379,6 +383,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['internal_action'] 
         $_SESSION['ojt_internal_flash_message'] = 'Please select at least one student.';
         header('Location: ' . $redirectTarget);
         exit;
+    }
+
+    if ($isCoordinator) {
+        if ($coordinatorCourseMap === []) {
+            $_SESSION['ojt_internal_flash_type'] = 'danger';
+            $_SESSION['ojt_internal_flash_message'] = 'Your coordinator account is not assigned to a course.';
+            header('Location: ' . $redirectTarget);
+            exit;
+        }
+
+        $studentIdList = implode(',', array_map('intval', $targetStudentIds));
+        $allowedCourseList = implode(',', array_map('intval', array_keys($coordinatorCourseMap)));
+        $allowedCount = 0;
+        $scopeCheck = $conn->query("
+            SELECT COUNT(*) AS total
+            FROM students
+            WHERE id IN ({$studentIdList})
+              AND course_id IN ({$allowedCourseList})
+              AND deleted_at IS NULL
+        ");
+        if ($scopeCheck instanceof mysqli_result) {
+            $allowedCount = (int)($scopeCheck->fetch_assoc()['total'] ?? 0);
+            $scopeCheck->close();
+        }
+        if ($allowedCount !== count($targetStudentIds)) {
+            $_SESSION['ojt_internal_flash_type'] = 'danger';
+            $_SESSION['ojt_internal_flash_message'] = 'You can only manage internal students in your assigned course.';
+            header('Location: ' . $redirectTarget);
+            exit;
+        }
     }
 
     $messages = [];
@@ -574,6 +608,10 @@ foreach ($rows as $row) {
     $row['internal_status_key'] = $statusKey;
     $row['internal_status_label'] = ojt_internal_list_status_label($statusKey);
     $row['internal_status_badge_class'] = ojt_internal_list_status_badge_class($statusKey);
+
+    if ($isCoordinator && !isset($coordinatorCourseMap[$row['resolved_course_id']])) {
+        continue;
+    }
 
     if ($filterCourseId > 0 && $row['resolved_course_id'] !== $filterCourseId) {
         continue;

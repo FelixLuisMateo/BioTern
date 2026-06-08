@@ -88,6 +88,30 @@ function bridge_users_sync_token_candidates(array $profile): array
     })));
 }
 
+function bridge_users_sync_extract_rows($decoded): array
+{
+    if (!is_array($decoded)) {
+        return [];
+    }
+
+    if (array_keys($decoded) === range(0, count($decoded) - 1)) {
+        return array_values(array_filter($decoded, 'is_array'));
+    }
+
+    foreach (['users', 'rows', 'data', 'items', 'list'] as $key) {
+        if (isset($decoded[$key]) && is_array($decoded[$key])) {
+            return bridge_users_sync_extract_rows($decoded[$key]);
+        }
+    }
+
+    $values = array_values($decoded);
+    if ($values !== [] && count(array_filter($values, 'is_array')) === count($values)) {
+        return $values;
+    }
+
+    return [];
+}
+
 $conn = new mysqli(
     defined('DB_HOST') ? DB_HOST : 'localhost',
     defined('DB_USER') ? DB_USER : 'root',
@@ -142,16 +166,7 @@ if (!is_array($decoded)) {
     exit;
 }
 
-$users = [];
-if (array_keys($decoded) === range(0, count($decoded) - 1)) {
-    $users = $decoded;
-} elseif (isset($decoded['users']) && is_array($decoded['users'])) {
-    $users = $decoded['users'];
-}
-
-if (!is_array($users)) {
-    $users = [];
-}
+$users = bridge_users_sync_extract_rows($decoded);
 
 $usersJson = json_encode($users, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 if (!is_string($usersJson)) {

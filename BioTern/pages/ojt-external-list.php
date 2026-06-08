@@ -2,14 +2,16 @@
 ob_start();
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../lib/section_format.php';
+require_once __DIR__ . '/../lib/access_scope.php';
 require_once __DIR__ . '/../includes/auth-session.php';
 biotern_boot_session(isset($conn) ? $conn : null);
 
 $role = strtolower(trim((string)($_SESSION['role'] ?? $_SESSION['user_role'] ?? '')));
-if (!in_array($role, ['admin', 'coordinator', 'supervisor'], true)) {
+if (!in_array($role, ['admin', 'coordinator'], true)) {
     header('Location: homepage.php');
     exit;
 }
+$isCoordinator = $role === 'coordinator';
 
 if (!isset($conn) || !($conn instanceof mysqli)) {
     $conn = new mysqli(
@@ -155,6 +157,8 @@ if (!in_array($filterSemester, ['', '1st Semester', '2nd Semester', 'Summer'], t
 if (!in_array($filterAccountStatus, ['all', 'linked', 'unlinked'], true)) {
     $filterAccountStatus = 'all';
 }
+$coordinatorCourseIds = $isCoordinator ? biotern_scope_coordinator_course_ids($conn) : [];
+$coordinatorCourseMap = array_fill_keys(array_map('intval', $coordinatorCourseIds), true);
 
 $courses = [];
 $courseRes = $conn->query('SELECT id, name FROM courses ORDER BY name ASC');
@@ -360,6 +364,11 @@ foreach ($rows as $row) {
                 break;
             }
         }
+    }
+    $row['resolved_course_id'] = (int)($row['resolved_course_id'] ?? 0);
+    $row['resolved_section_id'] = (int)($row['resolved_section_id'] ?? 0);
+    if ($isCoordinator && !isset($coordinatorCourseMap[$row['resolved_course_id']])) {
+        continue;
     }
     if ($filterCourseId > 0 && (int)($row['resolved_course_id'] ?? 0) !== $filterCourseId) {
         continue;

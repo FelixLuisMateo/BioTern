@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/auth-session.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/access_scope.php';
 
 biotern_boot_session(isset($conn) ? $conn : null);
 
@@ -51,6 +52,39 @@ function export_ojt_column_exists(mysqli $conn, string $table, string $column): 
         $res->close();
     }
     return $exists;
+}
+
+function export_ojt_course_prefix(string $value): string
+{
+    $value = strtoupper(trim($value));
+    if ($value === '') {
+        return '';
+    }
+    $value = preg_replace('/\s+/', ' ', $value) ?? $value;
+    if (strpos($value, '|') !== false) {
+        $value = trim((string)strtok($value, '|'));
+    }
+    if (strpos($value, '-') !== false) {
+        $value = trim((string)strtok($value, '-'));
+    }
+    return preg_replace('/[^A-Z0-9]+/', '', $value) ?? '';
+}
+
+function export_ojt_course_acronym(string $name): string
+{
+    $name = strtoupper(trim($name));
+    if ($name === '') {
+        return '';
+    }
+    $skip = ['IN', 'OF', 'AND', 'THE', 'A', 'AN'];
+    $letters = '';
+    foreach (preg_split('/[^A-Z0-9]+/', $name, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $word) {
+        if (in_array($word, $skip, true)) {
+            continue;
+        }
+        $letters .= substr($word, 0, 1);
+    }
+    return $letters;
 }
 
 function export_ojt_bind(mysqli_stmt $stmt, string $types, array &$values): void
@@ -170,6 +204,11 @@ $type = strtolower(trim((string)($_GET['type'] ?? 'external')));
 if (!in_array($type, ['internal', 'external'], true)) {
     $type = 'external';
 }
+if ($type === 'external' && $role === 'supervisor') {
+    http_response_code(403);
+    echo 'Forbidden.';
+    exit;
+}
 
 $schoolYear = trim((string)($_GET['school_year'] ?? ''));
 $semester = trim((string)($_GET['semester'] ?? ''));
@@ -180,6 +219,23 @@ $status = strtolower(trim((string)($_GET['ojt_status'] ?? 'all')));
 $accountStatus = strtolower(trim((string)($_GET['account_status'] ?? 'all')));
 if (!in_array($accountStatus, ['all', 'linked', 'unlinked'], true)) {
     $accountStatus = 'all';
+}
+$isCoordinator = $role === 'coordinator';
+$coordinatorCourseIds = $isCoordinator ? biotern_scope_coordinator_course_ids($conn) : [];
+$coordinatorCourseMap = array_fill_keys(array_map('intval', $coordinatorCourseIds), true);
+$coordinatorCourseAcronyms = [];
+if ($isCoordinator && $coordinatorCourseMap !== []) {
+    $courseIdList = implode(',', array_map('intval', array_keys($coordinatorCourseMap)));
+    $courseRes = $conn->query("SELECT name FROM courses WHERE id IN ({$courseIdList})");
+    if ($courseRes instanceof mysqli_result) {
+        while ($course = $courseRes->fetch_assoc()) {
+            $acronym = export_ojt_course_acronym((string)($course['name'] ?? ''));
+            if ($acronym !== '') {
+                $coordinatorCourseAcronyms[$acronym] = true;
+            }
+        }
+        $courseRes->close();
+    }
 }
 
 $hasMasterlist = export_ojt_table_exists($conn, 'ojt_masterlist');
@@ -321,6 +377,13 @@ if ($courseId > 0) {
     $where[] = 's.course_id = ?';
     $types .= 'i';
     $params[] = $courseId;
+}
+if ($isCoordinator) {
+    if ($coordinatorCourseMap === []) {
+        $where[] = '1 = 0';
+    } else {
+        $where[] = 's.course_id IN (' . implode(',', array_map('intval', array_keys($coordinatorCourseMap))) . ')';
+    }
 }
 if ($sectionId > 0) {
     $where[] = 's.section_id = ?';
@@ -557,6 +620,12 @@ if ($type === 'external' && $hasMasterlist) {
             $studentNoKey = preg_replace('/[^a-z0-9]+/', '', strtolower((string)($row['student_no'] ?? '')));
             if ($studentNoKey !== '' && isset($exportedStudentNos[$studentNoKey])) {
                 continue;
+            }
+            if ($isCoordinator) {
+                $sectionPrefix = export_ojt_course_prefix((string)($row['section'] ?? ''));
+                if ($coordinatorCourseAcronyms === [] || $sectionPrefix === '' || !isset($coordinatorCourseAcronyms[$sectionPrefix])) {
+                    continue;
+                }
             }
             if ($studentNoKey !== '') {
                 $exportedStudentNos[$studentNoKey] = true;

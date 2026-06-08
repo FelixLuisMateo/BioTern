@@ -902,6 +902,32 @@ function machine_ensure_bridge_user_cache_table(mysqli $conn): void
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 }
 
+function machine_store_user_list_cache(mysqli $conn, $userListDecoded, string $sourceNode = 'local_machine_manager'): void
+{
+    machine_ensure_bridge_user_cache_table($conn);
+
+    $rows = machine_extract_rows($userListDecoded);
+    if ($rows === []) {
+        return;
+    }
+
+    $usersJson = json_encode($rows, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!is_string($usersJson) || trim($usersJson) === '') {
+        return;
+    }
+
+    $usersCount = count($rows);
+    $stmt = $conn->prepare('INSERT INTO biometric_bridge_user_cache (source_node, users_json, users_count) VALUES (?, ?, ?)');
+    if (!$stmt) {
+        return;
+    }
+    $stmt->bind_param('ssi', $sourceNode, $usersJson, $usersCount);
+    $stmt->execute();
+    $stmt->close();
+
+    $conn->query('DELETE FROM biometric_bridge_user_cache WHERE id NOT IN (SELECT id_keep FROM (SELECT id AS id_keep FROM biometric_bridge_user_cache ORDER BY id DESC LIMIT 30) AS keep_rows)');
+}
+
 function machine_ensure_bridge_command_queue_table(mysqli $conn): void
 {
     $conn->query("CREATE TABLE IF NOT EXISTS biometric_bridge_command_queue (
@@ -1373,7 +1399,7 @@ function machine_identity_label(array $identity): string
     return 'Unknown user';
 }
 
-function machine_load_user_list_into_state(&$userListRaw, &$userListDecoded): void
+function machine_load_user_list_into_state(&$userListRaw, &$userListDecoded, ?mysqli $conn = null): void
 {
     $result = biometric_machine_run_command('get-user-list');
     if (!$result['success']) {
@@ -1382,6 +1408,9 @@ function machine_load_user_list_into_state(&$userListRaw, &$userListDecoded): vo
 
     $userListRaw = biometric_machine_clean_output((string)($result['text'] ?? ''));
     $userListDecoded = biometric_machine_decode_data($userListRaw);
+    if ($conn instanceof mysqli) {
+        machine_store_user_list_cache($conn, $userListDecoded);
+    }
 }
 
 function machine_load_user_details_into_state(int $selectedUserId, &$userDetailsRaw, &$userDetailsDecoded): void
@@ -1430,7 +1459,7 @@ if ((int)($_GET['load_users'] ?? 0) === 1) {
                 machine_bridge_cache_max_age_seconds($bridgePollSeconds)
             );
         } else {
-            machine_load_user_list_into_state($userListRaw, $userListDecoded);
+            machine_load_user_list_into_state($userListRaw, $userListDecoded, $conn);
         }
     } catch (Throwable $e) {
         if ($flashMessage === '') {
@@ -1818,7 +1847,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             . ', age ' . (int)($cacheMeta['age_seconds'] ?? -1) . 's).',
                     ];
                 } else {
-                    machine_load_user_list_into_state($userListRaw, $userListDecoded);
+                    machine_load_user_list_into_state($userListRaw, $userListDecoded, $conn);
                     $_SESSION['machine_manager_flash'] = ['type' => 'success', 'message' => 'Machine user list loaded.'];
                 }
                 machine_redirect_after_post(['load_users' => 1]);
