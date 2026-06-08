@@ -1541,6 +1541,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'clear_users',
             'clear_admin',
             'restart',
+            'restart_bridge_task_now',
             'restart_windows',
             'save_device_identity',
             'process_old_logs',
@@ -1586,7 +1587,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new RuntimeException('Direct machine commands are disabled in cloud runtime. Use F20H direct ingest by posting events to /api/f20h_ingest.php, then run Sync Now to reconcile logs into attendance.');
         }
 
-        if (machine_is_cloud_runtime() && in_array($action, ['open_restart_bridge_shell', 'open_bridge_log_tail_shell', 'repair_bridge_task_now', 'restart_bridge_task_now'], true)) {
+        if (machine_is_cloud_runtime() && in_array($action, ['open_restart_bridge_shell', 'open_bridge_log_tail_shell', 'repair_bridge_task_now'], true)) {
             throw new RuntimeException('Bridge shell launcher actions are available only on the local Windows bridge computer.');
         }
 
@@ -1719,6 +1720,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 machine_redirect_after_post([]);
 
             case 'restart_bridge_task_now':
+                if (machine_is_cloud_runtime()) {
+                    $queuedId = machine_enqueue_bridge_command(
+                        $conn,
+                        'restart_bridge_worker',
+                        ['task_name' => 'BioTernBridgeWorker'],
+                        (int)($_SESSION['user_id'] ?? 0)
+                    );
+                    $_SESSION['machine_manager_flash'] = [
+                        'type' => 'warning',
+                        'message' => 'Bridge restart queued for the Windows bridge worker. Queue ID #' . $queuedId . '. The worker will report completion, then restart itself a few seconds later.',
+                    ];
+                    machine_redirect_after_post([]);
+                }
+
                 $workspaceRoot = dirname(__DIR__);
                 $result = machine_run_local_powershell([
                     '-NoProfile',
@@ -3193,11 +3208,19 @@ include __DIR__ . '/../includes/header.php';
                                 <button type="submit" class="btn btn-outline-secondary w-100">Open PowerShell: Bridge Log Tail</button>
                             </form>
                         <?php elseif ($isAdmin && $cloudRuntime): ?>
+                            <form method="post" class="mt-2" data-confirm="Ask the Windows bridge worker to pull all old F20H logs and upload them?">
+                                <input type="hidden" name="machine_action" value="process_old_logs">
+                                <button type="submit" class="btn btn-outline-primary w-100">Process Old Logs</button>
+                            </form>
                             <form method="post" class="mt-2" data-confirm="Revive the shared bridge profile? To restart the Windows task itself, use this same button from the bridge PC.">
                                 <input type="hidden" name="machine_action" value="revive_bridge_connection">
                                 <button type="submit" class="btn btn-success w-100">Revive Bridge Profile</button>
                             </form>
-                            <div class="alert alert-info mt-2 mb-0 fs-12">Cloud can keep the bridge profile enabled, but only the local XAMPP BioTern page on the Windows bridge PC can restart BioTernBridgeWorker.</div>
+                            <form method="post" class="mt-2" data-confirm="Ask the Windows bridge worker to restart the BioTernBridgeWorker scheduled task?">
+                                <input type="hidden" name="machine_action" value="restart_bridge_task_now">
+                                <button type="submit" class="btn btn-outline-success w-100">Restart Bridge Now</button>
+                            </form>
+                            <div class="alert alert-info mt-2 mb-0 fs-12">Cloud queues bridge actions for the Windows bridge worker. The worker must be online to claim them.</div>
                         <?php endif; ?>
                     </div>
                 </div>

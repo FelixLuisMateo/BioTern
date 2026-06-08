@@ -978,6 +978,24 @@ function Invoke-BridgeQueuedCommand {
             $added = [Math]::Max(0, ($mergedEvents.Count - $beforeCount))
             return ("Old log pull complete. SourceEvents={0} AddedToPending={1}" -f $historyEvents.Count, $added)
         }
+        'restart_bridge_worker' {
+            $taskName = [string]($payload.task_name)
+            if ([string]::IsNullOrWhiteSpace($taskName)) {
+                $taskName = 'BioTernBridgeWorker'
+            }
+
+            $manager = Join-Path $WorkspaceRoot 'tools\manage-bridge-worker-task.ps1'
+            if (-not (Test-Path -LiteralPath $manager -PathType Leaf)) {
+                throw "Bridge task manager script not found: $manager"
+            }
+
+            $safeManager = $manager.Replace("'", "''")
+            $safeTaskName = $taskName.Replace("'", "''")
+            $restartScript = "Start-Sleep -Seconds 5; & '$safeManager' -Action restart -TaskName '$safeTaskName'"
+            Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', $restartScript) -WindowStyle Hidden
+
+            return ("Bridge worker restart scheduled for task '{0}'. The current command will finish before the delayed restart runs." -f $taskName)
+        }
         'save_device_identity' {
             $messages = @()
             $deviceNo = [string]($payload.device_number)
