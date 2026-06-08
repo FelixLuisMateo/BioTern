@@ -1,23 +1,23 @@
 ﻿{
     "profile_name":  "default",
     "bridge_enabled":  true,
-    "selected_bridge_preset":  "laptop_router_2",
+    "selected_bridge_preset":  "laptop_router_1",
     "cloud_base_url":  "https://biotern.vercel.app",
     "ingest_path":  "/api/f20h_ingest.php",
     "ingest_api_token":  "eDeYGNLhVBHePxAxObSRZuwyDzHaQIZK",
     "poll_seconds":  10,
-    "ip_address":  "192.168.110.201",
-    "gateway":  "192.168.110.1",
+    "ip_address":  "192.168.100.201",
+    "gateway":  "192.168.100.1",
     "mask":  "255.255.255.0",
     "port":  5001,
     "device_number":  1,
     "communication_password":  "0",
-    "output_path":  "C:\\xampp\\htdocs\\BioTern\\BioTern\\attendance.txt",
+    "output_path":  "/var/task/user/attendance.txt",
     "auto_import_on_ingest":  true,
     "attendance_window_enabled":  false,
     "attendance_start_time":  "08:00:00",
     "attendance_end_time":  "20:00:00",
     "duplicate_guard_minutes":  10,
     "slot_advance_minimum_minutes":  10,
-    "updated_at":  "2026-06-04 16:12:53"
+    "updated_at":  "2026-06-04 07:53:05"
 }

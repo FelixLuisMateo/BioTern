@@ -2,6 +2,7 @@
 require_once dirname(__DIR__) . '/config/db.php';
 require_once dirname(__DIR__) . '/includes/avatar.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
+require_once dirname(__DIR__) . '/lib/student_placement_details.php';
 
 function resume_h($value): string
 {
@@ -12,6 +13,15 @@ function resolve_resume_profile_image_url(string $profilePath, int $userId = 0):
 {
     $resolved = biotern_avatar_public_src($profilePath, $userId);
     return $resolved !== '' ? $resolved : null;
+}
+
+function resume_clean_role(string $role): string
+{
+    $role = trim($role);
+    if ($role !== '' && preg_match('/\b(head|supervisor|manager|coordinator|representative|director|president|officer)\b/i', $role)) {
+        return '';
+    }
+    return $role;
 }
 
 $student_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -50,6 +60,7 @@ if ($result->num_rows === 0) {
 }
 $student = $result->fetch_assoc();
 $stmt->close();
+$placements = biotern_student_all_placement_details($conn, $student_id, $student);
 
 $full_name = trim(implode(' ', array_filter([
     (string)($student['first_name'] ?? ''),
@@ -62,9 +73,43 @@ $department = trim((string)($student['department_name'] ?? ''));
 $section = biotern_format_section_label((string)($student['section_code'] ?? ''), (string)($student['section_name'] ?? ''));
 $company = trim((string)($student['company_name'] ?? ''));
 $companyAddress = trim((string)($student['company_address'] ?? ''));
-$companyPosition = trim((string)($student['position'] ?? ''));
-if ($companyPosition !== '' && preg_match('/\b(head|supervisor|manager|coordinator|representative|director|president|officer)\b/i', $companyPosition)) {
-    $companyPosition = '';
+$companyPosition = resume_clean_role((string)($student['position'] ?? ''));
+$resumePlacements = [];
+if (!empty($placements['internal']['has_details'])) {
+    $resumePlacements[] = [
+        'title' => 'Internal OJT Place',
+        'name' => (string)($placements['internal']['name'] ?? ''),
+        'role' => resume_clean_role((string)($placements['internal']['role'] ?? '')),
+        'status' => (string)($placements['internal']['status'] ?? ''),
+        'contact_label' => 'Office Contact',
+        'contact' => (string)($placements['internal']['contact_name'] ?? ''),
+        'address_label' => 'Office Code / Location',
+        'address' => (string)($placements['internal']['office_code'] ?? ''),
+    ];
+}
+if (!empty($placements['external']['has_details'])) {
+    $resumePlacements[] = [
+        'title' => 'External OJT Company',
+        'name' => (string)($placements['external']['name'] ?? ''),
+        'role' => resume_clean_role((string)($placements['external']['role'] ?? '')),
+        'status' => (string)($placements['external']['status'] ?? ''),
+        'contact_label' => 'Company Contact',
+        'contact' => (string)($placements['external']['contact_name'] ?? ''),
+        'address_label' => 'Address',
+        'address' => (string)($placements['external']['address'] ?? ''),
+    ];
+}
+if (empty($resumePlacements)) {
+    $resumePlacements[] = [
+        'title' => 'Current Internship',
+        'name' => $company,
+        'role' => $companyPosition,
+        'status' => (string)($student['internship_status'] ?? ''),
+        'contact_label' => 'Contact',
+        'contact' => '',
+        'address_label' => 'Address',
+        'address' => $companyAddress,
+    ];
 }
 $phone = trim((string)($student['phone'] ?? ''));
 $email = trim((string)($student['email'] ?? ''));
@@ -198,6 +243,9 @@ if ($summary === '') {
         border: 1px solid #e2e8f0;
         padding: 14px 16px;
     }
+    .company-block + .company-block {
+        margin-top: 10px;
+    }
     .company-name {
         margin: 0 0 4px;
         font-size: 18px;
@@ -289,15 +337,31 @@ if ($summary === '') {
         </section>
 
         <section class="section">
-            <h2 class="section-title">Current Internship</h2>
-            <div class="company-block">
-                <p class="company-name"><?php echo resume_h($company !== '' ? $company : 'No company linked yet'); ?></p>
-                <p class="company-meta">
-                    <strong>Internship Role:</strong> <?php echo resume_h($companyPosition !== '' ? $companyPosition : 'OJT Trainee'); ?><br>
-                    <strong>Status:</strong> <?php echo resume_h(trim((string)($student['internship_status'] ?? '')) !== '' ? ucfirst((string)$student['internship_status']) : 'Not started'); ?><br>
-                    <strong>Address:</strong> <?php echo resume_h($companyAddress !== '' ? $companyAddress : 'No company address saved yet'); ?>
-                </p>
-            </div>
+            <h2 class="section-title">OJT Placement</h2>
+            <?php foreach ($resumePlacements as $placement): ?>
+                <?php
+                $placementTitle = trim((string)($placement['title'] ?? 'Current Internship'));
+                $placementName = trim((string)($placement['name'] ?? ''));
+                $placementRole = trim((string)($placement['role'] ?? ''));
+                $placementStatus = trim((string)($placement['status'] ?? ''));
+                $placementContact = trim((string)($placement['contact'] ?? ''));
+                $placementContactLabel = trim((string)($placement['contact_label'] ?? 'Contact'));
+                $placementAddress = trim((string)($placement['address'] ?? ''));
+                $placementAddressLabel = trim((string)($placement['address_label'] ?? 'Address'));
+                ?>
+                <div class="company-block">
+                    <p class="info-label"><?php echo resume_h($placementTitle); ?></p>
+                    <p class="company-name"><?php echo resume_h($placementName !== '' ? $placementName : 'No placement linked yet'); ?></p>
+                    <p class="company-meta">
+                        <strong>Internship Role:</strong> <?php echo resume_h($placementRole !== '' ? $placementRole : 'OJT Trainee'); ?><br>
+                        <strong>Status:</strong> <?php echo resume_h($placementStatus !== '' ? ucfirst($placementStatus) : 'Not started'); ?><br>
+                        <?php if ($placementContact !== ''): ?>
+                            <strong><?php echo resume_h($placementContactLabel); ?>:</strong> <?php echo resume_h($placementContact); ?><br>
+                        <?php endif; ?>
+                        <strong><?php echo resume_h($placementAddressLabel); ?>:</strong> <?php echo resume_h($placementAddress !== '' ? $placementAddress : 'Not provided'); ?>
+                    </p>
+                </div>
+            <?php endforeach; ?>
         </section>
     </div>
 </div>

@@ -6,6 +6,7 @@ require_once dirname(__DIR__) . '/lib/evaluation_unlock.php';
 require_once dirname(__DIR__) . '/lib/attendance_workflow.php';
 require_once dirname(__DIR__) . '/lib/section_format.php';
 require_once dirname(__DIR__) . '/lib/company_profiles.php';
+require_once dirname(__DIR__) . '/lib/student_placement_details.php';
 require_once dirname(__DIR__) . '/lib/external_attendance.php';
 require_once dirname(__DIR__) . '/lib/student_discipline.php';
 require_once dirname(__DIR__) . '/lib/student_absence_excuses.php';
@@ -158,6 +159,7 @@ if ($result->num_rows == 0) {
 }
 
 $student = $result->fetch_assoc();
+$student_placements = biotern_student_all_placement_details($conn, $student_id, $student);
 $can_manage_student_discipline = biotern_can_manage_student($conn, $student_id, $current_user_role, $current_user_id);
 $can_reset_student_time = in_array($current_user_role, ['admin', 'coordinator'], true) && $can_manage_student_discipline;
 $student_latest_internship = null;
@@ -1323,28 +1325,29 @@ echo htmlspecialchars(biotern_format_section_label((string)($student['section_co
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
-                                                <div class="p-3 border rounded">
-                                                    <div class="small text-muted mb-1">Current Company</div>
+                                                <div class="p-3 border rounded h-100">
+                                                    <div class="small text-muted mb-1">Internal OJT Place</div>
                                                     <div class="fw-semibold"><?php
-echo htmlspecialchars(trim((string)($student_latest_internship['company_name'] ?? '')) !== '' ? (string)$student_latest_internship['company_name'] : 'No company linked yet'); ?></div>
+echo htmlspecialchars(trim((string)($student_placements['internal']['name'] ?? '')) !== '' ? (string)$student_placements['internal']['name'] : 'No internal office linked yet'); ?></div>
+                                                    <div class="small text-muted mt-2 mb-1">Office Contact</div>
+                                                    <div class="fw-semibold"><?php
+echo htmlspecialchars(trim((string)($student_placements['internal']['contact_name'] ?? '')) !== '' ? (string)$student_placements['internal']['contact_name'] : 'Not provided'); ?></div>
+                                                    <div class="small text-muted mt-2 mb-1">Office Code / Location</div>
+                                                    <div class="fw-semibold"><?php
+echo htmlspecialchars(trim((string)($student_placements['internal']['office_code'] ?? '')) !== '' ? (string)$student_placements['internal']['office_code'] : 'No office code saved yet'); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
-                                                <div class="p-3 border rounded">
-                                                    <div class="small text-muted mb-1">Company Contact</div>
+                                                <div class="p-3 border rounded h-100">
+                                                    <div class="small text-muted mb-1">External OJT Company</div>
                                                     <div class="fw-semibold"><?php
-$studentCompanyContact = trim((string)($student_latest_internship['company_representative'] ?? ''));
-if ($studentCompanyContact === '') {
-    $studentCompanyContact = trim((string)($student_latest_internship['supervisor_name'] ?? ''));
-}
-echo htmlspecialchars($studentCompanyContact !== '' ? $studentCompanyContact : 'Not provided'); ?></div>
-                                                </div>
-                                            </div>
-                                            <div class="col-12">
-                                                <div class="p-3 border rounded">
-                                                    <div class="small text-muted mb-1">Company Address</div>
+echo htmlspecialchars(trim((string)($student_placements['external']['name'] ?? '')) !== '' ? (string)$student_placements['external']['name'] : 'No external company linked yet'); ?></div>
+                                                    <div class="small text-muted mt-2 mb-1">Company Contact</div>
                                                     <div class="fw-semibold"><?php
-echo htmlspecialchars(trim((string)($student_latest_internship['company_address'] ?? '')) !== '' ? (string)$student_latest_internship['company_address'] : 'No company address saved yet'); ?></div>
+echo htmlspecialchars(trim((string)($student_placements['external']['contact_name'] ?? '')) !== '' ? (string)$student_placements['external']['contact_name'] : 'Not provided'); ?></div>
+                                                    <div class="small text-muted mt-2 mb-1">Company Address</div>
+                                                    <div class="fw-semibold"><?php
+echo htmlspecialchars(trim((string)($student_placements['external']['address'] ?? '')) !== '' ? (string)$student_placements['external']['address'] : 'No company address saved yet'); ?></div>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
